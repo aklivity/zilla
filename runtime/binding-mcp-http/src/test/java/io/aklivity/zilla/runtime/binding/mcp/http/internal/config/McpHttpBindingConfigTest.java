@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.mcp.http.internal.config;
 import static io.aklivity.zilla.runtime.binding.mcp.http.internal.config.McpHttpBindingConfig.argPathValid;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -164,6 +165,57 @@ public class McpHttpBindingConfigTest
 
         assertThat(binding.resourceGuarded("order"), hasSize(2));
         assertThat(binding.resourceGuarded("other"), empty());
+    }
+
+    @Test
+    public void shouldResolveClientRouteExitToSysHttpClient()
+    {
+        RouteConfig route = RouteConfig.builder()
+            .order(0)
+            .with(McpHttpWithConfig::builder)
+                .header(":path", "/items")
+                .build()
+            .exit("ignored")
+            .build();
+
+        BindingConfig config = GenericBindingConfig.builder()
+            .namespace("test")
+            .name("app0")
+            .type("mcp_http")
+            .kind(KindConfig.CLIENT)
+            .routes(List.of(route))
+            .build();
+        config.resolveId = name -> "sys:http_client".equals(name) ? 42L : 0L;
+
+        McpHttpBindingConfig binding = new McpHttpBindingConfig(config, null);
+
+        assertThat(binding.routes.get(0).id, equalTo(42L));
+    }
+
+    @Test
+    public void shouldNotOverrideProxyRouteExit()
+    {
+        RouteConfig route = RouteConfig.builder()
+            .order(0)
+            .with(McpHttpWithConfig::builder)
+                .header(":path", "/items")
+                .build()
+            .exit("http0")
+            .build();
+        route.id = 7L;
+
+        BindingConfig config = GenericBindingConfig.builder()
+            .namespace("test")
+            .name("app0")
+            .type("mcp_http")
+            .kind(KindConfig.PROXY)
+            .routes(List.of(route))
+            .build();
+        config.resolveId = name -> "sys:http_client".equals(name) ? 42L : 0L;
+
+        McpHttpBindingConfig binding = new McpHttpBindingConfig(config, null);
+
+        assertThat(binding.routes.get(0).id, equalTo(7L));
     }
 
     private static final String FLAT = "{\"type\":\"object\",\"properties\":{\"owner\":{\"type\":\"string\"}}}";

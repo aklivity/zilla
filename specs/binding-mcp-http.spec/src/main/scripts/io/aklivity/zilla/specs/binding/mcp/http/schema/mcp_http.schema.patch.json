@@ -29,7 +29,7 @@
                     },
                     "kind":
                     {
-                        "enum": [ "proxy" ]
+                        "enum": [ "client", "proxy" ]
                     },
                     "vault": false,
                     "entry": false,
@@ -359,7 +359,58 @@
                             }
                         }
                     }
-                }
+                },
+                "oneOf":
+                [
+                    {
+                        "properties":
+                        {
+                            "kind":
+                            {
+                                "const": "proxy"
+                            }
+                        },
+                        "anyOf":
+                        [
+                            {
+                                "required": [ "exit" ]
+                            },
+                            {
+                                "properties":
+                                {
+                                    "routes":
+                                    {
+                                        "items":
+                                        {
+                                            "required": [ "exit" ]
+                                        }
+                                    }
+                                },
+                                "required": [ "routes" ]
+                            }
+                        ]
+                    },
+                    {
+                        "properties":
+                        {
+                            "kind":
+                            {
+                                "const": "client"
+                            },
+                            "exit": false,
+                            "routes":
+                            {
+                                "items":
+                                {
+                                    "properties":
+                                    {
+                                        "exit": false
+                                    }
+                                }
+                            }
+                        }
+                    }
+                ]
             }
         }
     }

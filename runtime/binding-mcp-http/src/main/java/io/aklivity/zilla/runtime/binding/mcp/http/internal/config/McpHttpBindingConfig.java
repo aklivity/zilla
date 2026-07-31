@@ -43,6 +43,7 @@ import io.aklivity.zilla.config.binding.mcp.http.McpHttpToolConfig;
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.config.engine.CatalogedConfig;
 import io.aklivity.zilla.config.engine.GuardedConfig;
+import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.config.engine.ModelConfig;
 import io.aklivity.zilla.config.engine.SchemaConfig;
 import io.aklivity.zilla.runtime.common.json.JsonSchema;
@@ -54,6 +55,7 @@ public final class McpHttpBindingConfig
 {
     private static final String CREDENTIALS_TOKEN = "{credentials}";
     private static final String IDENTITY_TOKEN = "{identity}";
+    private static final String SYS_HTTP_CLIENT = "sys:http_client";
 
     public final long id;
     public final McpHttpOptionsConfig options;
@@ -83,6 +85,13 @@ public final class McpHttpBindingConfig
         this.context = context;
         this.resolveId = binding.resolveId;
         this.options = (McpHttpOptionsConfig) binding.options;
+
+        if (binding.kind == KindConfig.CLIENT)
+        {
+            final long httpClientId = resolveId.applyAsLong(SYS_HTTP_CLIENT);
+            binding.routes.forEach(route -> route.id = httpClientId);
+        }
+
         this.routes = binding.routes.stream()
             .map(McpHttpRouteConfig::new)
             .collect(toList());
