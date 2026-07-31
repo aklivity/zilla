@@ -15,95 +15,97 @@
 package io.aklivity.zilla.runtime.binding.mcp.internal.codec;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 
 import java.io.StringReader;
 
-import jakarta.json.JsonValue;
-import jakarta.json.bind.JsonbBuilder;
+import jakarta.json.Json;
+import jakarta.json.JsonObject;
 
 import org.junit.Test;
 
 public class McpInitializeParamsTest
 {
     @Test
-    public void shouldDeserializeWellFormedParams()
+    public void shouldParseWellFormedParams()
     {
-        McpInitializeParams params = JsonbBuilder.create().fromJson(
-            new StringReader("{\"protocolVersion\":\"2025-11-25\",\"capabilities\":{}}"),
-            McpInitializeParams.class);
+        McpInitializeParams params = McpInitializeParams.parse(parse("{\"protocolVersion\":\"2025-11-25\",\"capabilities\":{}}"));
 
-        assertThat(params.protocolVersion, notNullValue());
-        assertThat(params.protocolVersion.getValueType(), is(JsonValue.ValueType.STRING));
-        assertThat(params.capabilities, notNullValue());
-        assertThat(params.capabilities.getValueType(), is(JsonValue.ValueType.OBJECT));
+        assertThat(params, notNullValue());
+        assertThat(params.protocolVersion(), equalTo("2025-11-25"));
+        assertThat(params.capabilities(), notNullValue());
     }
 
     @Test
-    public void shouldDeserializeMissingFields()
+    public void shouldParseMissingFields()
     {
-        McpInitializeParams params = JsonbBuilder.create().fromJson(
-            new StringReader("{}"),
-            McpInitializeParams.class);
+        McpInitializeParams params = McpInitializeParams.parse(parse("{}"));
 
-        assertThat(params.protocolVersion, nullValue());
-        assertThat(params.capabilities, nullValue());
+        assertThat(params, notNullValue());
+        assertThat(params.protocolVersion(), nullValue());
+        assertThat(params.capabilities(), nullValue());
     }
 
     @Test
-    public void shouldNotThrowWhenProtocolVersionIsObject()
+    public void shouldFallBackWhenProtocolVersionIsObject()
     {
-        McpInitializeParams params = JsonbBuilder.create().fromJson(
-            new StringReader("{\"protocolVersion\":{\"nested\":true},\"capabilities\":{}}"),
-            McpInitializeParams.class);
+        McpInitializeParams params = McpInitializeParams.parse(
+            parse("{\"protocolVersion\":{\"nested\":true},\"capabilities\":{}}"));
 
-        assertThat(params.protocolVersion, notNullValue());
-        assertThat(params.protocolVersion.getValueType(), is(JsonValue.ValueType.OBJECT));
+        assertThat(params, notNullValue());
+        assertThat(params.protocolVersion(), nullValue());
     }
 
     @Test
-    public void shouldNotThrowWhenProtocolVersionIsArray()
+    public void shouldFallBackWhenProtocolVersionIsArray()
     {
-        McpInitializeParams params = JsonbBuilder.create().fromJson(
-            new StringReader("{\"protocolVersion\":[1,2],\"capabilities\":{}}"),
-            McpInitializeParams.class);
+        McpInitializeParams params = McpInitializeParams.parse(parse("{\"protocolVersion\":[1,2],\"capabilities\":{}}"));
 
-        assertThat(params.protocolVersion, notNullValue());
-        assertThat(params.protocolVersion.getValueType(), is(JsonValue.ValueType.ARRAY));
+        assertThat(params, notNullValue());
+        assertThat(params.protocolVersion(), nullValue());
     }
 
     @Test
-    public void shouldNotThrowWhenCapabilitiesIsString()
+    public void shouldFallBackWhenProtocolVersionIsNumber()
     {
-        McpInitializeParams params = JsonbBuilder.create().fromJson(
-            new StringReader("{\"protocolVersion\":\"2025-11-25\",\"capabilities\":\"not-an-object\"}"),
-            McpInitializeParams.class);
+        McpInitializeParams params = McpInitializeParams.parse(parse("{\"protocolVersion\":42,\"capabilities\":{}}"));
 
-        assertThat(params.capabilities, notNullValue());
-        assertThat(params.capabilities.getValueType(), is(JsonValue.ValueType.STRING));
+        assertThat(params, notNullValue());
+        assertThat(params.protocolVersion(), nullValue());
     }
 
     @Test
-    public void shouldNotThrowWhenCapabilitiesIsArray()
+    public void shouldRejectWhenCapabilitiesIsString()
     {
-        McpInitializeParams params = JsonbBuilder.create().fromJson(
-            new StringReader("{\"protocolVersion\":\"2025-11-25\",\"capabilities\":[1,2,3]}"),
-            McpInitializeParams.class);
+        McpInitializeParams params = McpInitializeParams.parse(
+            parse("{\"protocolVersion\":\"2025-11-25\",\"capabilities\":\"not-an-object\"}"));
 
-        assertThat(params.capabilities, notNullValue());
-        assertThat(params.capabilities.getValueType(), is(JsonValue.ValueType.ARRAY));
+        assertThat(params, nullValue());
     }
 
     @Test
-    public void shouldNotThrowWhenCapabilitiesIsNumber()
+    public void shouldRejectWhenCapabilitiesIsArray()
     {
-        McpInitializeParams params = JsonbBuilder.create().fromJson(
-            new StringReader("{\"protocolVersion\":\"2025-11-25\",\"capabilities\":42}"),
-            McpInitializeParams.class);
+        McpInitializeParams params = McpInitializeParams.parse(
+            parse("{\"protocolVersion\":\"2025-11-25\",\"capabilities\":[1,2,3]}"));
 
-        assertThat(params.capabilities, notNullValue());
-        assertThat(params.capabilities.getValueType(), is(JsonValue.ValueType.NUMBER));
+        assertThat(params, nullValue());
+    }
+
+    @Test
+    public void shouldRejectWhenCapabilitiesIsNumber()
+    {
+        McpInitializeParams params = McpInitializeParams.parse(
+            parse("{\"protocolVersion\":\"2025-11-25\",\"capabilities\":42}"));
+
+        assertThat(params, nullValue());
+    }
+
+    private static JsonObject parse(
+        String json)
+    {
+        return Json.createReader(new StringReader(json)).readObject();
     }
 }

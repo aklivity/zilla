@@ -14,10 +14,25 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.internal.codec;
 
+import jakarta.json.JsonObject;
+import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
 
-public class McpNotifyCanceledParams
+public record McpNotifyCanceledParams(
+    JsonValue requestId,
+    String reason)
 {
-    public JsonValue requestId;
-    public JsonValue reason;
+    public static McpNotifyCanceledParams parse(
+        JsonObject params)
+    {
+        final JsonValue requestId = params.get("requestId");
+        final JsonValue reasonValue = params.get("reason");
+
+        final String reason = reasonValue != null &&
+            reasonValue.getValueType() == JsonValue.ValueType.STRING
+                ? ((JsonString) reasonValue).getString()
+                : null;
+
+        return new McpNotifyCanceledParams(requestId, reason);
+    }
 }

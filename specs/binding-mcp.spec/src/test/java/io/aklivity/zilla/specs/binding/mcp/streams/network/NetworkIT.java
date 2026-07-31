@@ -452,6 +452,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/notifications.cancelled.missing.request.id/client",
+        "${net}/notifications.cancelled.missing.request.id/server"})
+    public void shouldAcceptCancelMissingRequestId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/prompts.list/client",
         "${net}/prompts.list/server"})
     public void shouldListPrompts() throws Exception

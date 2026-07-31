@@ -31,9 +31,9 @@ import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import jakarta.json.JsonString;
+import jakarta.json.Json;
+import jakarta.json.JsonObject;
 import jakarta.json.JsonValue;
-import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParserFactory;
 
@@ -2095,21 +2095,16 @@ public final class McpServerFactory implements McpStreamFactory
         {
             final DirectBufferInputStreamEx input = new DirectBufferInputStreamEx();
             input.wrap(buffer, offset, limit - offset);
-            final McpInitializeParams params = JsonbBuilder.create().fromJson(input, McpInitializeParams.class);
+            final JsonObject paramsObject = Json.createReader(input).readObject();
+            final McpInitializeParams params = McpInitializeParams.parse(paramsObject);
 
-            final boolean capabilitiesValid = params.capabilities == null ||
-                params.capabilities.getValueType() == JsonValue.ValueType.OBJECT;
-
-            if (capabilitiesValid)
+            if (params != null)
             {
-                decodedProtocolVersion = params.protocolVersion != null &&
-                    params.protocolVersion.getValueType() == JsonValue.ValueType.STRING
-                        ? ((JsonString) params.protocolVersion).getString()
-                        : null;
+                decodedProtocolVersion = params.protocolVersion();
 
                 int capabilities = 0;
-                final JsonValue elicitation = params.capabilities != null
-                    ? params.capabilities.asJsonObject().get("elicitation")
+                final JsonValue elicitation = params.capabilities() != null
+                    ? params.capabilities().get("elicitation")
                     : null;
                 if (elicitation != null)
                 {
@@ -2379,11 +2374,14 @@ public final class McpServerFactory implements McpStreamFactory
         {
             DirectBufferInputStreamEx input = new DirectBufferInputStreamEx();
             input.wrap(buffer, offset, limit - offset);
-            McpNotifyCanceledParams params = JsonbBuilder.create().fromJson(input, McpNotifyCanceledParams.class);
+            JsonObject paramsObject = Json.createReader(input).readObject();
+            McpNotifyCanceledParams params = McpNotifyCanceledParams.parse(paramsObject);
 
             assert session != null;
 
-            McpRequestStream request = session.requests.get(params.requestId.toString());
+            McpRequestStream request = params.requestId() != null
+                ? session.requests.get(params.requestId().toString())
+                : null;
             if (request != null)
             {
                 request.doAppCancel(traceId, authorization);

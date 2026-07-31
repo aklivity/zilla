@@ -588,6 +588,16 @@ public class McpServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/notifications.cancelled.missing.request.id/client",
+        "${app}/lifecycle.initialize/server"})
+    public void shouldAcceptCancelMissingRequestId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/prompts.list/client",
         "${app}/prompts.list/server"})
     public void shouldListPrompts() throws Exception

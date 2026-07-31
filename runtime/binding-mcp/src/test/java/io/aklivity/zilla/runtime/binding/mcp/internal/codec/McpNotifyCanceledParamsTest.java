@@ -15,61 +15,60 @@
 package io.aklivity.zilla.runtime.binding.mcp.internal.codec;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 
 import java.io.StringReader;
 
-import jakarta.json.JsonValue;
-import jakarta.json.bind.JsonbBuilder;
+import jakarta.json.Json;
+import jakarta.json.JsonObject;
 
 import org.junit.Test;
 
 public class McpNotifyCanceledParamsTest
 {
     @Test
-    public void shouldDeserializeWellFormedParams()
+    public void shouldParseWellFormedParams()
     {
-        McpNotifyCanceledParams params = JsonbBuilder.create().fromJson(
-            new StringReader("{\"requestId\":\"1\",\"reason\":\"cancelled by user\"}"),
-            McpNotifyCanceledParams.class);
+        McpNotifyCanceledParams params = McpNotifyCanceledParams.parse(
+            parse("{\"requestId\":\"1\",\"reason\":\"cancelled by user\"}"));
 
-        assertThat(params.requestId, notNullValue());
-        assertThat(params.reason, notNullValue());
-        assertThat(params.reason.getValueType(), is(JsonValue.ValueType.STRING));
+        assertThat(params.requestId(), notNullValue());
+        assertThat(params.reason(), equalTo("cancelled by user"));
     }
 
     @Test
-    public void shouldDeserializeMissingReason()
+    public void shouldParseMissingFields()
     {
-        McpNotifyCanceledParams params = JsonbBuilder.create().fromJson(
-            new StringReader("{\"requestId\":\"1\"}"),
-            McpNotifyCanceledParams.class);
+        McpNotifyCanceledParams params = McpNotifyCanceledParams.parse(parse("{}"));
 
-        assertThat(params.requestId, notNullValue());
-        assertThat(params.reason, nullValue());
+        assertThat(params.requestId(), nullValue());
+        assertThat(params.reason(), nullValue());
     }
 
     @Test
-    public void shouldNotThrowWhenReasonIsObject()
+    public void shouldFallBackWhenReasonIsObject()
     {
-        McpNotifyCanceledParams params = JsonbBuilder.create().fromJson(
-            new StringReader("{\"requestId\":\"1\",\"reason\":{\"nested\":true}}"),
-            McpNotifyCanceledParams.class);
+        McpNotifyCanceledParams params = McpNotifyCanceledParams.parse(
+            parse("{\"requestId\":\"1\",\"reason\":{\"nested\":true}}"));
 
-        assertThat(params.reason, notNullValue());
-        assertThat(params.reason.getValueType(), is(JsonValue.ValueType.OBJECT));
+        assertThat(params.requestId(), notNullValue());
+        assertThat(params.reason(), nullValue());
     }
 
     @Test
-    public void shouldNotThrowWhenReasonIsArray()
+    public void shouldFallBackWhenReasonIsArray()
     {
-        McpNotifyCanceledParams params = JsonbBuilder.create().fromJson(
-            new StringReader("{\"requestId\":\"1\",\"reason\":[1,2,3]}"),
-            McpNotifyCanceledParams.class);
+        McpNotifyCanceledParams params = McpNotifyCanceledParams.parse(
+            parse("{\"requestId\":\"1\",\"reason\":[1,2,3]}"));
 
-        assertThat(params.reason, notNullValue());
-        assertThat(params.reason.getValueType(), is(JsonValue.ValueType.ARRAY));
+        assertThat(params.reason(), nullValue());
+    }
+
+    private static JsonObject parse(
+        String json)
+    {
+        return Json.createReader(new StringReader(json)).readObject();
     }
 }
