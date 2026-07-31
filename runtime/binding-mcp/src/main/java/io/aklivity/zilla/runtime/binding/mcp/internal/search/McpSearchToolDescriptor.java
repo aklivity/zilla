@@ -18,6 +18,7 @@ import java.nio.charset.StandardCharsets;
 
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
+import jakarta.json.JsonObjectBuilder;
 
 /**
  * Builds the synthetic {@code Tool} JSON descriptors advertised in {@code tools/list} for the three
@@ -45,6 +46,20 @@ public final class McpSearchToolDescriptor
     {
     }
 
+    private static final JsonObject SEARCH_TOOLS_ANNOTATIONS = Json.createObjectBuilder()
+        .add("readOnlyHint", true)
+        .add("destructiveHint", false)
+        .add("idempotentHint", true)
+        .add("openWorldHint", false)
+        .build();
+
+    private static final JsonObject DESCRIBE_TOOL_ANNOTATIONS = Json.createObjectBuilder()
+        .add("readOnlyHint", true)
+        .add("destructiveHint", false)
+        .add("idempotentHint", true)
+        .add("openWorldHint", false)
+        .build();
+
     public static byte[] buildSearchTools(
         String toolkit)
     {
@@ -60,7 +75,8 @@ public final class McpSearchToolDescriptor
             .add("required", Json.createArrayBuilder().add("query"))
             .build();
 
-        return build(McpToolNames.effectiveName(toolkit, McpToolNames.SEARCH_TOOLS), SEARCH_TOOLS_DESCRIPTION, inputSchema);
+        return build(McpToolNames.effectiveName(toolkit, McpToolNames.SEARCH_TOOLS), SEARCH_TOOLS_DESCRIPTION, inputSchema,
+            SEARCH_TOOLS_ANNOTATIONS);
     }
 
     public static byte[] buildDescribeTool(
@@ -75,7 +91,8 @@ public final class McpSearchToolDescriptor
             .add("required", Json.createArrayBuilder().add("name"))
             .build();
 
-        return build(McpToolNames.effectiveName(toolkit, McpToolNames.DESCRIBE_TOOL), DESCRIBE_TOOL_DESCRIPTION, inputSchema);
+        return build(McpToolNames.effectiveName(toolkit, McpToolNames.DESCRIBE_TOOL), DESCRIBE_TOOL_DESCRIPTION, inputSchema,
+            DESCRIBE_TOOL_ANNOTATIONS);
     }
 
     public static byte[] buildExecuteTool(
@@ -93,20 +110,24 @@ public final class McpSearchToolDescriptor
             .add("required", Json.createArrayBuilder().add("name"))
             .build();
 
-        return build(McpToolNames.effectiveName(toolkit, McpToolNames.EXECUTE_TOOL), EXECUTE_TOOL_DESCRIPTION, inputSchema);
+        return build(McpToolNames.effectiveName(toolkit, McpToolNames.EXECUTE_TOOL), EXECUTE_TOOL_DESCRIPTION, inputSchema, null);
     }
 
     private static byte[] build(
         String name,
         String description,
-        JsonObject inputSchema)
+        JsonObject inputSchema,
+        JsonObject annotations)
     {
-        JsonObject descriptor = Json.createObjectBuilder()
+        JsonObjectBuilder descriptor = Json.createObjectBuilder()
             .add("name", name)
             .add("description", description)
-            .add("inputSchema", inputSchema)
-            .build();
+            .add("inputSchema", inputSchema);
+        if (annotations != null)
+        {
+            descriptor.add("annotations", annotations);
+        }
 
-        return descriptor.toString().getBytes(StandardCharsets.UTF_8);
+        return descriptor.build().toString().getBytes(StandardCharsets.UTF_8);
     }
 }

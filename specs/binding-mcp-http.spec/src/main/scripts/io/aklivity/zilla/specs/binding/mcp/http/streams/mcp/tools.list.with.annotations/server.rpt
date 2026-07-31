@@ -48,14 +48,10 @@ read zilla:begin.ext ${mcp:matchBeginEx()
 
 connected
 
-write '{"tools":[{"name":"create_pr",'
-        '"description":"Create a pull request to merge one branch into another.",'
-        '"inputSchema":{"type":"object","properties":{"owner":{"type":"string"},"repo":{"type":"string"},'
-        '"base":{"type":"string"},"body":{"type":"string"},"head":{"type":"string"},"title":{"type":"string"}},'
-        '"required":["owner","repo","title","head","base"]},'
-        '"outputSchema":{"type":"object","properties":{"number":{"type":"integer"},"html_url":{"type":"string"},'
-        '"state":{"type":"string"},"title":{"type":"string"}}},'
-        '"annotations":{"openWorldHint":false}}]}'
+write '{"tools":[{"name":"get_item","description":"Get an item",'
+      '"inputSchema":{"type":"object","properties":{"id":{"type":"string"}}},'
+      '"annotations":{"title":"Get Item","readOnlyHint":true,"destructiveHint":false,'
+      '"idempotentHint":true,"openWorldHint":false}}]}'
 write flush
 
 write close

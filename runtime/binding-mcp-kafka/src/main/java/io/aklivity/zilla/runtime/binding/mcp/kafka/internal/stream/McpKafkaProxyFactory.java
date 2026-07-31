@@ -597,6 +597,11 @@ public class McpKafkaProxyFactory implements BindingHandler
             {
                 item.add("outputSchema", outputSchema);
             }
+            final JsonObject annotations = buildToolAnnotations(tool);
+            if (annotations != null)
+            {
+                item.add("annotations", annotations);
+            }
             tools.add(item);
         }
         final JsonObject toolsList = Json.createObjectBuilder()
@@ -717,6 +722,36 @@ public class McpKafkaProxyFactory implements BindingHandler
         }
 
         return schema;
+    }
+
+    // omits any hint that equals the MCP spec's own default (readOnlyHint: false, destructiveHint: true,
+    // idempotentHint: false, openWorldHint: true) -- asserting a default-equal value costs bytes on every
+    // tools/list response for zero information a compliant client wouldn't already assume; produce and
+    // delete_topics match every default, so they emit no annotations object at all
+    private JsonObject buildToolAnnotations(
+        String tool)
+    {
+        JsonObject annotations = null;
+
+        switch (tool)
+        {
+        case TOOL_CONSUME:
+            annotations = Json.createObjectBuilder()
+                .add("readOnlyHint", true)
+                .add("destructiveHint", false)
+                .add("idempotentHint", true)
+                .build();
+            break;
+        case TOOL_CREATE_TOPICS:
+            annotations = Json.createObjectBuilder()
+                .add("destructiveHint", false)
+                .build();
+            break;
+        default:
+            break;
+        }
+
+        return annotations;
     }
 
     private static McpKafkaToolArgs buildToolArgs(

@@ -29,6 +29,7 @@ public final class McpHttpToolConfigBuilder<T> extends ConfigBuilder<T, McpHttpT
     private ModelConfig input;
     private ModelConfig output;
     private boolean outputMaybeWrapped;
+    private McpHttpToolAnnotationsConfig annotations;
 
     McpHttpToolConfigBuilder(
         Function<McpHttpToolConfig, T> mapper)
@@ -85,9 +86,17 @@ public final class McpHttpToolConfigBuilder<T> extends ConfigBuilder<T, McpHttpT
         return this;
     }
 
+    public McpHttpToolConfigBuilder<T> annotations(
+        McpHttpToolAnnotationsConfig annotations)
+    {
+        this.annotations = annotations;
+        return this;
+    }
+
     @Override
     public T build()
     {
-        return mapper.apply(new McpHttpToolConfig(name, summary, description, input, output, outputMaybeWrapped));
+        return mapper.apply(new McpHttpToolConfig(
+            name, summary, description, input, output, outputMaybeWrapped, annotations));
     }
 }
