@@ -161,4 +161,40 @@ public class KafkaIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${kafka}/describe.configs/client",
+        "${kafka}/describe.configs/server"})
+    public void shouldDescribeConfigs() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/describe.configs.negotiated/client",
+        "${kafka}/describe.configs.negotiated/server"})
+    public void shouldDescribeConfigsNegotiated() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/alter.configs/client",
+        "${kafka}/alter.configs/server"})
+    public void shouldAlterConfigs() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/alter.configs.negotiated/client",
+        "${kafka}/alter.configs.negotiated/server"})
+    public void shouldAlterConfigsNegotiated() throws Exception
+    {
+        k3po.finish();
+    }
 }

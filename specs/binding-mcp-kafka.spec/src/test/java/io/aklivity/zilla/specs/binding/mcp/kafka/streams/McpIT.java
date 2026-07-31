@@ -197,4 +197,22 @@ public class McpIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${mcp}/describe.configs/client",
+        "${mcp}/describe.configs/server"})
+    public void shouldDescribeConfigs() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mcp}/alter.configs/client",
+        "${mcp}/alter.configs/server"})
+    public void shouldAlterConfigs() throws Exception
+    {
+        k3po.finish();
+    }
 }
