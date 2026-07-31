@@ -41,13 +41,13 @@ import jakarta.json.JsonObjectBuilder;
 import org.agrona.collections.Long2ObjectHashMap;
 
 import io.aklivity.zilla.config.engine.BindingConfig;
-import io.aklivity.zilla.runtime.binding.kafka.api.CreateTopicsResponse.Kind;
-import io.aklivity.zilla.runtime.binding.kafka.api.CreateTopicsResponse.Topic;
-import io.aklivity.zilla.runtime.binding.kafka.api.CreateTopicsResponseV7FW;
-import io.aklivity.zilla.runtime.binding.kafka.api.DeleteTopicsResponse;
-import io.aklivity.zilla.runtime.binding.kafka.api.DeleteTopicsResponseV6FW;
 import io.aklivity.zilla.runtime.binding.kafka.api.KafkaCreateTopicsRequest;
+import io.aklivity.zilla.runtime.binding.kafka.api.KafkaCreateTopicsResponse.Kind;
+import io.aklivity.zilla.runtime.binding.kafka.api.KafkaCreateTopicsResponse.Topic;
+import io.aklivity.zilla.runtime.binding.kafka.api.KafkaCreateTopicsResponseV7FW;
 import io.aklivity.zilla.runtime.binding.kafka.api.KafkaDeleteTopicsRequest;
+import io.aklivity.zilla.runtime.binding.kafka.api.KafkaDeleteTopicsResponse;
+import io.aklivity.zilla.runtime.binding.kafka.api.KafkaDeleteTopicsResponseV6FW;
 import io.aklivity.zilla.runtime.binding.kafka.api.KafkaMetadataRequest;
 import io.aklivity.zilla.runtime.binding.kafka.api.KafkaMetadataResponse;
 import io.aklivity.zilla.runtime.binding.kafka.api.KafkaMetadataResponseV9FW;
@@ -198,8 +198,8 @@ public class McpKafkaProxyFactory implements BindingHandler
     private final KafkaDeleteTopicsRequest.Generator deleteTopicsRequestGenerator;
     private final KafkaMetadataRequest.Generator metadataRequestGenerator;
     private final JsonGeneratorEx apiResultGenerator;
-    private final CreateTopicsResponseV7FW createTopicsResponseRO;
-    private final DeleteTopicsResponseV6FW deleteTopicsResponseRO;
+    private final KafkaCreateTopicsResponseV7FW createTopicsResponseRO;
+    private final KafkaDeleteTopicsResponseV6FW deleteTopicsResponseRO;
     private final KafkaMetadataResponseV9FW metadataResponseRO;
     private final int createTopicsRequestTimeoutMs;
 
@@ -227,8 +227,8 @@ public class McpKafkaProxyFactory implements BindingHandler
         this.deleteTopicsRequestGenerator = new KafkaDeleteTopicsRequest.Generator();
         this.metadataRequestGenerator = new KafkaMetadataRequest.Generator();
         this.apiResultGenerator = JsonEx.createGenerator();
-        this.createTopicsResponseRO = new CreateTopicsResponseV7FW();
-        this.deleteTopicsResponseRO = new DeleteTopicsResponseV6FW();
+        this.createTopicsResponseRO = new KafkaCreateTopicsResponseV7FW();
+        this.deleteTopicsResponseRO = new KafkaDeleteTopicsResponseV6FW();
         this.metadataResponseRO = new KafkaMetadataResponseV9FW();
         this.createTopicsRequestTimeoutMs = (int) config.requestTimeout().toMillis();
     }
@@ -2620,7 +2620,7 @@ public class McpKafkaProxyFactory implements BindingHandler
             long traceId)
         {
             final MutableDirectBufferEx slot = decodePool.buffer(decodeSlot);
-            final CreateTopicsResponseV7FW response = createTopicsResponseRO.wrap(slot, 0, responseLength);
+            final KafkaCreateTopicsResponseV7FW response = createTopicsResponseRO.wrap(slot, 0, responseLength);
 
             final int encodeSlot = encodePool.acquire(kafkaReplyId);
             if (encodeSlot == NO_SLOT)
@@ -3027,7 +3027,7 @@ public class McpKafkaProxyFactory implements BindingHandler
             long traceId)
         {
             final MutableDirectBufferEx slot = decodePool.buffer(decodeSlot);
-            final DeleteTopicsResponseV6FW response = deleteTopicsResponseRO.wrap(slot, 0, responseLength);
+            final KafkaDeleteTopicsResponseV6FW response = deleteTopicsResponseRO.wrap(slot, 0, responseLength);
 
             final int encodeSlot = encodePool.acquire(kafkaReplyId);
             if (encodeSlot == NO_SLOT)
@@ -3049,7 +3049,7 @@ public class McpKafkaProxyFactory implements BindingHandler
 
                 while (response.hasNext())
                 {
-                    final DeleteTopicsResponse.Topic topic = response.next();
+                    final KafkaDeleteTopicsResponse.Topic topic = response.next();
                     final String name = topic.buffer().getStringWithoutLengthUtf8(topic.nameOffset(), topic.nameLength());
                     final short error = topic.error();
 

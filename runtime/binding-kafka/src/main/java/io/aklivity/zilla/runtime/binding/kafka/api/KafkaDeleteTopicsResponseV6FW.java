@@ -28,10 +28,10 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 /**
  * Hand-crafted (not {@code .idl}-generated) DeleteTopics v6 response cursor. Delegates the actual
  * byte decoding to the generated {@code protocol.idl} wire types, adding the version-tolerant
- * {@link DeleteTopicsResponse} view on top - a fixed-default-on-read behavior the flyweight
+ * {@link KafkaDeleteTopicsResponse} view on top - a fixed-default-on-read behavior the flyweight
  * generator cannot produce, since generated builders only default missing fields on write.
  */
-public final class DeleteTopicsResponseV6FW implements DeleteTopicsResponse
+public final class KafkaDeleteTopicsResponseV6FW implements KafkaDeleteTopicsResponse
 {
     private static final int FIELD_SIZE_THROTTLE_TIME_MILLIS = 4;
 
@@ -63,7 +63,7 @@ public final class DeleteTopicsResponseV6FW implements DeleteTopicsResponse
      * Wraps a complete DeleteTopics v6 response body: tagged fields, throttle time, and topic count,
      * followed by the topics themselves.
      */
-    public DeleteTopicsResponseV6FW wrap(
+    public KafkaDeleteTopicsResponseV6FW wrap(
         DirectBufferEx buffer,
         int offset,
         int limit)
@@ -87,7 +87,7 @@ public final class DeleteTopicsResponseV6FW implements DeleteTopicsResponse
      * the throttle time and topic count itself (e.g. via a generated header flyweight covering a wider
      * response envelope, such as one that also carries a correlation id).
      */
-    public DeleteTopicsResponseV6FW wrapTopics(
+    public KafkaDeleteTopicsResponseV6FW wrapTopics(
         DirectBufferEx buffer,
         int offset,
         int limit,
