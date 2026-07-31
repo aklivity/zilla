@@ -416,7 +416,7 @@ public final class McpOpenapiCompositeGenerator
                 .name(BINDING_NAME)
                 .kind(PROXY)
                 .options(mcpHttpOptions(binding, routed))
-                .inject(b -> injectRoutes(b, routed))
+                .inject(b -> injectRoutes(b, binding, routed))
                 .build();
     }
 
@@ -571,9 +571,12 @@ public final class McpOpenapiCompositeGenerator
     }
 
     private <C> McpHttpBindingConfigBuilder<C> injectRoutes(
-        McpHttpBindingConfigBuilder<C> binding,
+        McpHttpBindingConfigBuilder<C> mcpHttp,
+        McpOpenapiBindingConfig binding,
         List<RoutedOperation> routed)
     {
+        final String exit = binding.exit != null ? binding.exit : httpClientExit;
+
         for (RoutedOperation entry : routed)
         {
             final McpHttpConditionConfig when = McpHttpConditionConfig.builder()
@@ -582,15 +585,15 @@ public final class McpOpenapiCompositeGenerator
                 .build();
             final McpHttpWithConfig with = withConfig(entry);
 
-            binding.route()
+            mcpHttp.route()
                 .when(when)
                 .with(with)
-                .exit(httpClientExit)
+                .exit(exit)
                 .inject(route -> injectGuarded(route, entry))
                 .build();
         }
 
-        return binding;
+        return mcpHttp;
     }
 
     private <C> McpHttpRouteConfigBuilder<C> injectGuarded(

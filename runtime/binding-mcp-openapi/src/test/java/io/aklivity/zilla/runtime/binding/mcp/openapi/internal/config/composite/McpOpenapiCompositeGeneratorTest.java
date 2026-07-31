@@ -521,6 +521,58 @@ public class McpOpenapiCompositeGeneratorTest
     }
 
     @Test
+    public void shouldOverrideHttpClientExitFromBindingLevelExit()
+    {
+        lenient().when(context.supplyQName(eq(9L))).thenReturn("test:schema_registry0");
+
+        BindingConfig binding = GenericBindingConfig.builder()
+            .namespace("test")
+            .name("mcp_openapi0")
+            .type("mcp_openapi")
+            .kind(CLIENT)
+            .exit("schema_registry0")
+            .options(McpOpenapiOptionsConfig.builder()
+                .spec()
+                    .label("openapi_github0")
+                    .server("https://api.github.com")
+                    .catalog()
+                        .name("catalog0")
+                        .subject("rest-api")
+                        .version("latest")
+                        .build()
+                    .build()
+                .build())
+            .route()
+                .when(McpOpenapiConditionConfig.builder()
+                    .tool("create_pr")
+                    .build())
+                .with(McpOpenapiWithConfig.builder()
+                    .spec("openapi_github0")
+                    .operation("pulls/create")
+                    .build())
+                .build()
+            .build();
+        binding.resolveId = resolveId;
+        binding.routes.stream()
+            .filter(route -> "schema_registry0".equals(route.exit))
+            .findFirst()
+            .orElseThrow()
+            .id = 9L;
+
+        McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
+
+        NamespaceConfig namespace = composite.namespaces.get(0);
+        BindingConfig mcpHttp = namespace.bindings.stream()
+            .filter(b -> "mcp_http0".equals(b.name))
+            .findFirst()
+            .orElse(null);
+
+        assertThat(mcpHttp, notNullValue());
+        assertThat(mcpHttp.routes, hasSize(1));
+        assertThat(mcpHttp.routes.get(0).exit, equalTo("test:schema_registry0"));
+    }
+
+    @Test
     public void shouldForwardAuthorizationToMcpHttp()
     {
         BindingConfig binding = GenericBindingConfig.builder()
