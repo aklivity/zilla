@@ -125,4 +125,20 @@ public class SchemaTest
 
         assertThat(config, not(nullValue()));
     }
+
+    @Test
+    public void shouldValidateClientListBrokers()
+    {
+        JsonObject config = schema.validate("client.list.brokers.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateClientDescribeCluster()
+    {
+        JsonObject config = schema.validate("client.describe.cluster.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
 }
