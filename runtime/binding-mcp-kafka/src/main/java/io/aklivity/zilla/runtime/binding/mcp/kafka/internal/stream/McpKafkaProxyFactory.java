@@ -28,6 +28,7 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.PrimitiveIterator;
 import java.util.Set;
 import java.util.function.LongUnaryOperator;
 import java.util.function.Supplier;
@@ -50,13 +51,18 @@ import io.aklivity.zilla.runtime.binding.kafka.api.KafkaDeleteTopicsResponseV6FW
 import io.aklivity.zilla.runtime.binding.kafka.api.KafkaDescribeClusterRequest;
 import io.aklivity.zilla.runtime.binding.kafka.api.KafkaDescribeClusterResponse.Broker;
 import io.aklivity.zilla.runtime.binding.kafka.api.KafkaDescribeClusterResponseV0FW;
+import io.aklivity.zilla.runtime.binding.kafka.api.KafkaMetadataRequest;
+import io.aklivity.zilla.runtime.binding.kafka.api.KafkaMetadataResponse;
+import io.aklivity.zilla.runtime.binding.kafka.api.KafkaMetadataResponseV9FW;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.McpKafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.config.McpKafkaBindingConfig;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.config.McpKafkaRouteConfig;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.transform.McpKafkaArguments;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.transform.McpKafkaConsumeResult;
+import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.transform.McpKafkaToolAllTopicsSource;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.transform.McpKafkaToolCreateTopicsSource;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.transform.McpKafkaToolDeleteTopicsSource;
+import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.transform.McpKafkaToolDescribeTopicSource;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.KafkaKeyFW;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.KafkaOffsetFW;
@@ -102,6 +108,9 @@ public class McpKafkaProxyFactory implements BindingHandler
     private static final String TOOL_CONSUME = "consume";
     private static final String TOOL_CREATE_TOPICS = "create_topics";
     private static final String TOOL_DELETE_TOPICS = "delete_topics";
+    private static final String TOOL_LIST_TOPICS = "list_topics";
+    private static final String TOOL_DESCRIBE_TOPIC = "describe_topic";
+    private static final String TOOL_CLUSTER_OVERVIEW = "cluster_overview";
     private static final String TOOL_LIST_BROKERS = "list_brokers";
     private static final String TOOL_DESCRIBE_CLUSTER = "describe_cluster";
 
@@ -111,6 +120,9 @@ public class McpKafkaProxyFactory implements BindingHandler
         TOOL_CONSUME,
         TOOL_CREATE_TOPICS,
         TOOL_DELETE_TOPICS,
+        TOOL_LIST_TOPICS,
+        TOOL_DESCRIBE_TOPIC,
+        TOOL_CLUSTER_OVERVIEW,
         TOOL_LIST_BROKERS,
         TOOL_DESCRIBE_CLUSTER
     };
@@ -118,17 +130,20 @@ public class McpKafkaProxyFactory implements BindingHandler
     /**
      * Tools that bypass the local Kafka cache and talk directly to the plain Kafka client
      * (routed via {@code composite.clientExitId}, see {@link McpKafkaClientFactory#attach}),
-     * using {@code KafkaApiClient}/{@code KafkaApiDeleteTopicsClient}/{@code KafkaApiDescribeClusterClient}
-     * instead of the merged-capability {@code KafkaProxy}. A {@code Set} so future tools (e.g.
-     * {@code alter_configs}) are a one-line addition.
+     * using {@code KafkaApiClient}/{@code KafkaApiDeleteTopicsClient}/{@code KafkaApiMetadataClient}/
+     * {@code KafkaApiDescribeClusterClient} instead of the merged-capability {@code KafkaProxy}.
+     * A {@code Set} so future tools (e.g. {@code alter_configs}) are a one-line addition.
      */
-    protected static final Set<String> API_TOOLS =
-        Set.of(TOOL_CREATE_TOPICS, TOOL_DELETE_TOPICS, TOOL_LIST_BROKERS, TOOL_DESCRIBE_CLUSTER);
+    protected static final Set<String> API_TOOLS = Set.of(
+        TOOL_CREATE_TOPICS, TOOL_DELETE_TOPICS, TOOL_LIST_TOPICS, TOOL_DESCRIBE_TOPIC, TOOL_CLUSTER_OVERVIEW,
+        TOOL_LIST_BROKERS, TOOL_DESCRIBE_CLUSTER);
 
     private static final short CREATE_TOPICS_API_KEY = 19;
     private static final short CREATE_TOPICS_API_VERSION = 7;
     private static final short DELETE_TOPICS_API_KEY = 20;
     private static final short DELETE_TOPICS_API_VERSION = 6;
+    private static final short METADATA_API_KEY = 3;
+    private static final short METADATA_API_VERSION = 9;
     private static final short DESCRIBE_CLUSTER_API_KEY = 60;
     private static final short DESCRIBE_CLUSTER_API_VERSION = 0;
 
@@ -191,10 +206,12 @@ public class McpKafkaProxyFactory implements BindingHandler
     private final BufferPool encodePool;
     private final KafkaCreateTopicsRequest.Generator createTopicsRequestGenerator;
     private final KafkaDeleteTopicsRequest.Generator deleteTopicsRequestGenerator;
+    private final KafkaMetadataRequest.Generator metadataRequestGenerator;
     private final KafkaDescribeClusterRequest.Generator describeClusterRequestGenerator;
     private final JsonGeneratorEx apiResultGenerator;
     private final KafkaCreateTopicsResponseV7FW createTopicsResponseRO;
     private final KafkaDeleteTopicsResponseV6FW deleteTopicsResponseRO;
+    private final KafkaMetadataResponseV9FW metadataResponseRO;
     private final KafkaDescribeClusterResponseV0FW describeClusterResponseRO;
     private final int createTopicsRequestTimeoutMs;
 
@@ -220,10 +237,12 @@ public class McpKafkaProxyFactory implements BindingHandler
         this.encodePool = context.bufferPool().duplicate();
         this.createTopicsRequestGenerator = new KafkaCreateTopicsRequest.Generator();
         this.deleteTopicsRequestGenerator = new KafkaDeleteTopicsRequest.Generator();
+        this.metadataRequestGenerator = new KafkaMetadataRequest.Generator();
         this.describeClusterRequestGenerator = new KafkaDescribeClusterRequest.Generator();
         this.apiResultGenerator = JsonEx.createGenerator();
         this.createTopicsResponseRO = new KafkaCreateTopicsResponseV7FW();
         this.deleteTopicsResponseRO = new KafkaDeleteTopicsResponseV6FW();
+        this.metadataResponseRO = new KafkaMetadataResponseV9FW();
         this.describeClusterResponseRO = new KafkaDescribeClusterResponseV0FW();
         this.createTopicsRequestTimeoutMs = (int) config.requestTimeout().toMillis();
     }
@@ -632,6 +651,20 @@ public class McpKafkaProxyFactory implements BindingHandler
 
         switch (tool)
         {
+        case TOOL_LIST_TOPICS:
+            schema = Json.createObjectBuilder()
+                .add("type", "object")
+                .add("properties", Json.createObjectBuilder())
+                .add("additionalProperties", false)
+                .build();
+            break;
+        case TOOL_CLUSTER_OVERVIEW:
+            schema = Json.createObjectBuilder()
+                .add("type", "object")
+                .add("properties", Json.createObjectBuilder())
+                .add("additionalProperties", false)
+                .build();
+            break;
         case TOOL_PRODUCE:
             schema = Json.createObjectBuilder()
                 .add("type", "object")
@@ -685,6 +718,14 @@ public class McpKafkaProxyFactory implements BindingHandler
                 .add("required", Json.createArrayBuilder().add("topics"))
                 .build();
             break;
+        case TOOL_DESCRIBE_TOPIC:
+            schema = Json.createObjectBuilder()
+                .add("type", "object")
+                .add("properties", Json.createObjectBuilder()
+                    .add("topic", Json.createObjectBuilder().add("type", "string")))
+                .add("required", Json.createArrayBuilder().add("topic"))
+                .build();
+            break;
         case TOOL_LIST_BROKERS:
         case TOOL_DESCRIBE_CLUSTER:
             schema = Json.createObjectBuilder()
@@ -736,6 +777,60 @@ public class McpKafkaProxyFactory implements BindingHandler
                                 .add("errorMessage", Json.createObjectBuilder().add("type", "string")))
                             .add("required", Json.createArrayBuilder().add("name").add("error")))))
                 .add("required", Json.createArrayBuilder().add("topics"))
+                .build();
+            break;
+        case TOOL_LIST_TOPICS:
+            schema = Json.createObjectBuilder()
+                .add("type", "object")
+                .add("properties", Json.createObjectBuilder()
+                    .add("topics", Json.createObjectBuilder()
+                        .add("type", "array")
+                        .add("items", Json.createObjectBuilder()
+                            .add("type", "object")
+                            .add("properties", Json.createObjectBuilder()
+                                .add("name", Json.createObjectBuilder().add("type", "string"))
+                                .add("partition_count", Json.createObjectBuilder().add("type", "integer"))
+                                .add("replication_factor", Json.createObjectBuilder().add("type", "integer")))
+                            .add("required", Json.createArrayBuilder()
+                                .add("name").add("partition_count").add("replication_factor")))))
+                .add("required", Json.createArrayBuilder().add("topics"))
+                .build();
+            break;
+        case TOOL_DESCRIBE_TOPIC:
+            schema = Json.createObjectBuilder()
+                .add("type", "object")
+                .add("properties", Json.createObjectBuilder()
+                    .add("name", Json.createObjectBuilder().add("type", "string"))
+                    .add("partitions", Json.createObjectBuilder()
+                        .add("type", "array")
+                        .add("items", Json.createObjectBuilder()
+                            .add("type", "object")
+                            .add("properties", Json.createObjectBuilder()
+                                .add("partition_id", Json.createObjectBuilder().add("type", "integer"))
+                                .add("leader", Json.createObjectBuilder().add("type", "integer"))
+                                .add("replicas", Json.createObjectBuilder()
+                                    .add("type", "array")
+                                    .add("items", Json.createObjectBuilder().add("type", "integer")))
+                                .add("isr", Json.createObjectBuilder()
+                                    .add("type", "array")
+                                    .add("items", Json.createObjectBuilder().add("type", "integer"))))
+                            .add("required", Json.createArrayBuilder()
+                                .add("partition_id").add("leader").add("replicas").add("isr")))))
+                .add("required", Json.createArrayBuilder().add("name").add("partitions"))
+                .build();
+            break;
+        case TOOL_CLUSTER_OVERVIEW:
+            schema = Json.createObjectBuilder()
+                .add("type", "object")
+                .add("properties", Json.createObjectBuilder()
+                    .add("broker_count", Json.createObjectBuilder().add("type", "integer"))
+                    .add("controller_id", Json.createObjectBuilder().add("type", "integer"))
+                    .add("under_replicated_partitions", Json.createObjectBuilder().add("type", "integer"))
+                    .add("offline_partitions", Json.createObjectBuilder().add("type", "integer"))
+                    .add("topic_count", Json.createObjectBuilder().add("type", "integer")))
+                .add("required", Json.createArrayBuilder()
+                    .add("broker_count").add("controller_id").add("under_replicated_partitions")
+                    .add("offline_partitions").add("topic_count"))
                 .build();
             break;
         case TOOL_LIST_BROKERS:
@@ -795,6 +890,9 @@ public class McpKafkaProxyFactory implements BindingHandler
                 .add("destructiveHint", false)
                 .build();
             break;
+        case TOOL_LIST_TOPICS:
+        case TOOL_DESCRIBE_TOPIC:
+        case TOOL_CLUSTER_OVERVIEW:
         case TOOL_LIST_BROKERS:
         case TOOL_DESCRIBE_CLUSTER:
             annotations = Json.createObjectBuilder()
@@ -1251,6 +1349,8 @@ public class McpKafkaProxyFactory implements BindingHandler
         private Map<String, String> capturedArgs;
         private McpKafkaToolCreateTopicsSource createTopicsSource;
         private McpKafkaToolDeleteTopicsSource deleteTopicsSource;
+        private McpKafkaToolDescribeTopicSource describeTopicSource;
+        private McpKafkaToolAllTopicsSource allTopicsSource;
         private int decodeSlot = NO_SLOT;
         private int decodeSlotOffset;
 
@@ -1337,6 +1437,16 @@ public class McpKafkaProxyFactory implements BindingHandler
                 {
                     deleteTopicsSource = new McpKafkaToolDeleteTopicsSource(createTopicsRequestTimeoutMs);
                     argsPipeline = JsonEx.stream(JsonEx.createParser()).into(deleteTopicsSource);
+                }
+                else if (TOOL_DESCRIBE_TOPIC.equals(tool))
+                {
+                    describeTopicSource = new McpKafkaToolDescribeTopicSource();
+                    argsPipeline = JsonEx.stream(JsonEx.createParser()).into(describeTopicSource);
+                }
+                else if (TOOL_LIST_TOPICS.equals(tool) || TOOL_CLUSTER_OVERVIEW.equals(tool))
+                {
+                    allTopicsSource = new McpKafkaToolAllTopicsSource();
+                    argsPipeline = JsonEx.stream(JsonEx.createParser()).into(allTopicsSource);
                 }
                 else
                 {
@@ -1519,6 +1629,10 @@ public class McpKafkaProxyFactory implements BindingHandler
             {
                 completeDeleteTopicsArgs(traceId);
             }
+            else if (TOOL_DESCRIBE_TOPIC.equals(tool) || TOOL_LIST_TOPICS.equals(tool) || TOOL_CLUSTER_OVERVIEW.equals(tool))
+            {
+                completeMetadataArgs(traceId);
+            }
             else if (TOOL_LIST_BROKERS.equals(tool) || TOOL_DESCRIBE_CLUSTER.equals(tool))
             {
                 completeDescribeClusterArgs(traceId);
@@ -1596,6 +1710,42 @@ public class McpKafkaProxyFactory implements BindingHandler
 
                     final KafkaApiDeleteTopicsClient client = new KafkaApiDeleteTopicsClient(
                         this, originId, resolvedId, affinity, authorization, deleteTopicsSource);
+                    client.doKafkaBegin(traceId);
+                    kafka = client;
+                }
+                else
+                {
+                    doMcpReset(traceId);
+                }
+            }
+            else
+            {
+                doMcpReset(traceId, buildInvalidParamsResetEx());
+            }
+        }
+
+        /**
+         * Shared completion for {@code list_topics}/{@code describe_topic}/{@code cluster_overview} -
+         * all three drive the same {@code KafkaApiMetadataClient} wire request/response, differing
+         * only in which {@link KafkaMetadataRequest.Source} was parsed and in the result JSON
+         * {@code KafkaApiMetadataClient} assembles for {@link #tool}.
+         */
+        private void completeMetadataArgs(
+            long traceId)
+        {
+            final boolean describeTopic = TOOL_DESCRIBE_TOPIC.equals(tool);
+            final boolean completed = describeTopic ? describeTopicSource.completed() : allTopicsSource.completed();
+
+            if (completed)
+            {
+                final McpKafkaRouteConfig route = binding.resolve(authorization, tool, null);
+                if (route != null)
+                {
+                    resolvedId = route.id;
+
+                    final KafkaMetadataRequest.Source source = describeTopic ? describeTopicSource : allTopicsSource;
+                    final KafkaApiMetadataClient client = new KafkaApiMetadataClient(
+                        this, originId, resolvedId, affinity, authorization, tool, source);
                     client.doKafkaBegin(traceId);
                     kafka = client;
                 }
@@ -3141,6 +3291,569 @@ public class McpKafkaProxyFactory implements BindingHandler
                     .length(requestLength)
                     .api(DELETE_TOPICS_API_KEY)
                     .version(DELETE_TOPICS_API_VERSION)
+                    .clientId("zilla"))
+                .build();
+
+            kafka = newKafkaStream(this::onKafkaMessage, originId, resolvedId, kafkaInitialId,
+                traceId, authorization, affinity, kafkaBeginEx);
+        }
+
+        @Override
+        public void doKafkaEnd(
+            long traceId)
+        {
+            if (kafka != null && !McpKafkaState.initialClosed(state))
+            {
+                state = McpKafkaState.closedInitial(state);
+                doEnd(kafka, originId, resolvedId, kafkaInitialId, traceId, authorization);
+            }
+        }
+
+        @Override
+        public void doKafkaAbort(
+            long traceId)
+        {
+            if (kafka != null && !McpKafkaState.initialClosed(state))
+            {
+                state = McpKafkaState.closedInitial(state);
+                doAbort(kafka, originId, resolvedId, kafkaInitialId, traceId, authorization);
+            }
+        }
+
+        @Override
+        public void doKafkaWindow(
+            long traceId,
+            long budgetId,
+            int credit,
+            int padding)
+        {
+            if (kafka != null)
+            {
+                doWindow(kafka, originId, resolvedId, kafkaReplyId, traceId, authorization, budgetId, credit, padding);
+            }
+        }
+
+        @Override
+        public void doKafkaReset(
+            long traceId)
+        {
+            if (kafka != null && !McpKafkaState.replyClosed(state))
+            {
+                state = McpKafkaState.closedReply(state);
+                doReset(kafka, originId, resolvedId, kafkaReplyId, traceId, authorization);
+            }
+        }
+    }
+
+    /**
+     * Shared Kafka-stream-facing downstream for {@code list_topics}, {@code describe_topic}, and
+     * {@code cluster_overview} - all three drive the same Metadata request/response, differing only
+     * in the {@link KafkaMetadataRequest.Source} that shaped the request and in the result JSON
+     * {@link #completeResponse} assembles for {@link #tool}. One class instead of three avoids
+     * tripling the connection/buffering/challenge-flush plumbing that {@link KafkaApiClient} and
+     * {@link KafkaApiDeleteTopicsClient} otherwise duplicate.
+     */
+    private final class KafkaApiMetadataClient implements KafkaDownstream
+    {
+        private final McpProxy peer;
+        private final long originId;
+        private final long resolvedId;
+        private final long affinity;
+        private final long authorization;
+        private final String tool;
+        private final long kafkaInitialId;
+        private final long kafkaReplyId;
+        private final KafkaMetadataRequest.Source source;
+        private final int requestLength;
+
+        private MessageConsumer kafka;
+        private int state;
+
+        private long initialSeq;
+        private long initialAck;
+        private int initialMax;
+        private boolean requestSent;
+
+        private int decodeSlot = NO_SLOT;
+        private int decodeSlotOffset;
+        private int responseLength = -1;
+
+        private KafkaApiMetadataClient(
+            McpProxy peer,
+            long originId,
+            long resolvedId,
+            long affinity,
+            long authorization,
+            String tool,
+            KafkaMetadataRequest.Source source)
+        {
+            this.peer = peer;
+            this.originId = originId;
+            this.resolvedId = resolvedId;
+            this.affinity = affinity;
+            this.authorization = authorization;
+            this.tool = tool;
+            this.kafkaInitialId = supplyInitialId.applyAsLong(resolvedId);
+            this.kafkaReplyId = supplyReplyId.applyAsLong(kafkaInitialId);
+            this.source = source;
+            this.requestLength = KafkaMetadataRequest.sizeof(source, METADATA_API_VERSION);
+        }
+
+        private void onKafkaMessage(
+            int msgTypeId,
+            DirectBufferEx buffer,
+            int index,
+            int length)
+        {
+            switch (msgTypeId)
+            {
+            case BeginFW.TYPE_ID:
+                final BeginFW begin = beginRO.wrap(buffer, index, index + length);
+                onKafkaBegin(begin);
+                break;
+            case DataFW.TYPE_ID:
+                final DataFW data = dataRO.wrap(buffer, index, index + length);
+                onKafkaData(data);
+                break;
+            case EndFW.TYPE_ID:
+                final EndFW end = endRO.wrap(buffer, index, index + length);
+                onKafkaEnd(end);
+                break;
+            case AbortFW.TYPE_ID:
+                final AbortFW abort = abortRO.wrap(buffer, index, index + length);
+                onKafkaAbort(abort);
+                break;
+            case WindowFW.TYPE_ID:
+                final WindowFW window = windowRO.wrap(buffer, index, index + length);
+                onKafkaWindow(window);
+                break;
+            case ResetFW.TYPE_ID:
+                final ResetFW reset = resetRO.wrap(buffer, index, index + length);
+                onKafkaReset(reset);
+                break;
+            case ChallengeFW.TYPE_ID:
+                final ChallengeFW challenge = challengeRO.wrap(buffer, index, index + length);
+                onKafkaChallenge(challenge);
+                break;
+            default:
+                break;
+            }
+        }
+
+        private void onKafkaChallenge(
+            ChallengeFW challenge)
+        {
+            final long traceId = challenge.traceId();
+
+            doKafkaFlush(traceId);
+        }
+
+        private void doKafkaFlush(
+            long traceId)
+        {
+            final KafkaFlushExFW kafkaFlushEx = kafkaFlushExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(kafkaTypeId)
+                .apiFlush(f -> f.version(METADATA_API_VERSION))
+                .build();
+
+            doFlush(kafka, originId, resolvedId, kafkaInitialId, traceId, authorization, kafkaFlushEx);
+        }
+
+        private void onKafkaBegin(
+            BeginFW begin)
+        {
+            final long traceId = begin.traceId();
+            final OctetsFW extension = begin.extension();
+            final KafkaBeginExFW kafkaBeginEx = extension.sizeof() != 0
+                ? kafkaBeginExRO.tryWrap(extension.buffer(), extension.offset(), extension.limit())
+                : null;
+
+            responseLength = kafkaBeginEx != null && kafkaBeginEx.kind() == KafkaBeginExFW.KIND_API_RESPONSE
+                ? kafkaBeginEx.apiResponse().length()
+                : -1;
+
+            state = McpKafkaState.openedReply(state);
+
+            peer.doMcpBegin(traceId);
+            doKafkaWindow(traceId, 0, writeBuffer.capacity(), 0);
+        }
+
+        private void onKafkaData(
+            DataFW data)
+        {
+            final long traceId = data.traceId();
+            final OctetsFW payload = data.payload();
+
+            if (payload != null)
+            {
+                appendResponse(traceId, payload.buffer(), payload.offset(), payload.sizeof());
+            }
+        }
+
+        private void appendResponse(
+            long traceId,
+            DirectBufferEx buffer,
+            int offset,
+            int length)
+        {
+            if (decodeSlot == NO_SLOT)
+            {
+                decodeSlot = decodePool.acquire(kafkaReplyId);
+            }
+
+            if (decodeSlot == NO_SLOT)
+            {
+                cleanupMetadata(traceId);
+            }
+            else
+            {
+                final MutableDirectBufferEx slot = decodePool.buffer(decodeSlot);
+                slot.putBytes(decodeSlotOffset, buffer, offset, length);
+                decodeSlotOffset += length;
+
+                if (responseLength >= 0 && decodeSlotOffset >= responseLength)
+                {
+                    completeResponse(traceId);
+                }
+            }
+        }
+
+        private void completeResponse(
+            long traceId)
+        {
+            final MutableDirectBufferEx slot = decodePool.buffer(decodeSlot);
+            final KafkaMetadataResponse response = metadataResponseRO.wrap(slot, 0, responseLength);
+
+            final int encodeSlot = encodePool.acquire(kafkaReplyId);
+            if (encodeSlot == NO_SLOT)
+            {
+                cleanupMetadata(traceId);
+            }
+            else
+            {
+                final MutableDirectBufferEx encodeBuffer = encodePool.buffer(encodeSlot);
+                apiResultGenerator.reset();
+                apiResultGenerator.wrap(encodeBuffer, 0, encodeBuffer.capacity());
+
+                final boolean isError;
+                if (TOOL_DESCRIBE_TOPIC.equals(tool))
+                {
+                    isError = writeDescribeTopicResult(response);
+                }
+                else if (TOOL_CLUSTER_OVERVIEW.equals(tool))
+                {
+                    writeClusterOverviewResult(response);
+                    isError = false;
+                }
+                else
+                {
+                    writeListTopicsResult(response);
+                    isError = false;
+                }
+
+                cleanupDecodeSlot();
+
+                peer.doMcpResult(traceId, apiResultGenerator.length(), encodeBuffer, isError);
+
+                encodePool.release(encodeSlot);
+            }
+        }
+
+        private void writeListTopicsResult(
+            KafkaMetadataResponse response)
+        {
+            while (response.hasNextBroker())
+            {
+                response.nextBroker();
+            }
+
+            apiResultGenerator.writeStartObject()
+                .writeStartObject("structuredContent")
+                .writeStartArray("topics");
+
+            int topicCount = 0;
+            boolean awaitingFactor = false;
+
+            while (response.hasNext())
+            {
+                if (response.next() == KafkaMetadataResponse.Kind.TOPIC)
+                {
+                    final KafkaMetadataResponse.Topic topic = response.topic();
+                    final String name =
+                        response.buffer().getStringWithoutLengthUtf8(topic.nameOffset(), topic.nameLength());
+                    topicCount++;
+
+                    apiResultGenerator.writeStartObject()
+                        .write("name", name)
+                        .write("partition_count", topic.partitionCount());
+
+                    awaitingFactor = topic.partitionCount() != 0;
+                    if (!awaitingFactor)
+                    {
+                        apiResultGenerator.write("replication_factor", 0).writeEnd();
+                    }
+                }
+                else if (awaitingFactor)
+                {
+                    final KafkaMetadataResponse.Partition partition = response.partition();
+                    apiResultGenerator.write("replication_factor", partition.replicaCount()).writeEnd();
+                    awaitingFactor = false;
+                }
+            }
+
+            apiResultGenerator
+                .writeEnd()
+                .writeEnd()
+                .writeStartArray("content")
+                .writeStartObject()
+                .write("type", "text")
+                .write("text", "Found " + topicCount + " topic(s)")
+                .writeEnd()
+                .writeEnd()
+                .write("isError", false)
+                .writeEnd();
+        }
+
+        private boolean writeDescribeTopicResult(
+            KafkaMetadataResponse response)
+        {
+            while (response.hasNextBroker())
+            {
+                response.nextBroker();
+            }
+
+            apiResultGenerator.writeStartObject()
+                .writeStartObject("structuredContent");
+
+            String name = null;
+            boolean isError = false;
+            boolean partitionsOpen = false;
+
+            while (response.hasNext())
+            {
+                if (response.next() == KafkaMetadataResponse.Kind.TOPIC)
+                {
+                    final KafkaMetadataResponse.Topic topic = response.topic();
+                    name = response.buffer().getStringWithoutLengthUtf8(topic.nameOffset(), topic.nameLength());
+                    apiResultGenerator.write("name", name);
+
+                    isError = topic.error() != 0;
+                    if (!isError)
+                    {
+                        apiResultGenerator.writeStartArray("partitions");
+                        partitionsOpen = true;
+                    }
+                }
+                else if (partitionsOpen)
+                {
+                    final KafkaMetadataResponse.Partition partition = response.partition();
+                    apiResultGenerator.writeStartObject()
+                        .write("partition_id", partition.partitionId())
+                        .write("leader", partition.leader())
+                        .writeStartArray("replicas");
+
+                    final PrimitiveIterator.OfInt replicas = partition.replicas();
+                    while (replicas.hasNext())
+                    {
+                        apiResultGenerator.write(replicas.nextInt());
+                    }
+
+                    apiResultGenerator.writeEnd()
+                        .writeStartArray("isr");
+
+                    final PrimitiveIterator.OfInt isr = partition.isr();
+                    while (isr.hasNext())
+                    {
+                        apiResultGenerator.write(isr.nextInt());
+                    }
+
+                    apiResultGenerator.writeEnd()
+                        .writeEnd();
+                }
+            }
+
+            if (partitionsOpen)
+            {
+                apiResultGenerator.writeEnd();
+            }
+
+            final String text = isError ? "Failed to describe topic " + name : "Described topic " + name;
+
+            apiResultGenerator
+                .writeEnd()
+                .writeStartArray("content")
+                .writeStartObject()
+                .write("type", "text")
+                .write("text", text)
+                .writeEnd()
+                .writeEnd()
+                .write("isError", isError)
+                .writeEnd();
+
+            return isError;
+        }
+
+        private void writeClusterOverviewResult(
+            KafkaMetadataResponse response)
+        {
+            while (response.hasNextBroker())
+            {
+                response.nextBroker();
+            }
+
+            int underReplicated = 0;
+            int offline = 0;
+
+            while (response.hasNext())
+            {
+                if (response.next() == KafkaMetadataResponse.Kind.PARTITION)
+                {
+                    final KafkaMetadataResponse.Partition partition = response.partition();
+                    if (partition.isrCount() < partition.replicaCount())
+                    {
+                        underReplicated++;
+                    }
+                    if (partition.offlineReplicaCount() > 0)
+                    {
+                        offline++;
+                    }
+                }
+            }
+
+            final int brokerCount = response.brokerCount();
+            final int controllerId = response.controllerId();
+            final int topicCount = response.topicCount();
+
+            apiResultGenerator.writeStartObject()
+                .writeStartObject("structuredContent")
+                .write("broker_count", brokerCount)
+                .write("controller_id", controllerId)
+                .write("under_replicated_partitions", underReplicated)
+                .write("offline_partitions", offline)
+                .write("topic_count", topicCount)
+                .writeEnd()
+                .writeStartArray("content")
+                .writeStartObject()
+                .write("type", "text")
+                .write("text", "Cluster overview: " + topicCount + " topic(s), " + brokerCount + " broker(s)")
+                .writeEnd()
+                .writeEnd()
+                .write("isError", false)
+                .writeEnd();
+        }
+
+        private void onKafkaEnd(
+            EndFW end)
+        {
+            final long traceId = end.traceId();
+
+            state = McpKafkaState.closedReply(state);
+
+            peer.doMcpEnd(traceId);
+        }
+
+        private void onKafkaAbort(
+            AbortFW abort)
+        {
+            final long traceId = abort.traceId();
+
+            state = McpKafkaState.closedReply(state);
+
+            cleanupDecodeSlot();
+            peer.doMcpAbort(traceId);
+        }
+
+        private void onKafkaWindow(
+            WindowFW window)
+        {
+            final long traceId = window.traceId();
+            final long budgetId = window.budgetId();
+            final int credit = window.maximum();
+            final int padding = window.padding();
+
+            initialAck = window.acknowledge();
+
+            if (!requestSent && credit > 0)
+            {
+                requestSent = true;
+                sendMetadataRequest(traceId, budgetId);
+            }
+
+            initialMax = credit;
+        }
+
+        private void sendMetadataRequest(
+            long traceId,
+            long budgetId)
+        {
+            final int encodeSlot = encodePool.acquire(kafkaInitialId);
+            if (encodeSlot == NO_SLOT)
+            {
+                cleanupMetadata(traceId);
+            }
+            else
+            {
+                final MutableDirectBufferEx slot = encodePool.buffer(encodeSlot);
+                final boolean fits = requestLength <= slot.capacity();
+                metadataRequestGenerator.wrap(slot, 0, slot.capacity());
+                final boolean built = fits && metadataRequestGenerator.generate(source);
+
+                if (built)
+                {
+                    doData(kafka, originId, resolvedId, kafkaInitialId, traceId, authorization,
+                        budgetId, FLAGS_COMPLETE, requestLength, slot, 0, requestLength);
+                    initialSeq += requestLength;
+                }
+                else
+                {
+                    cleanupMetadata(traceId);
+                }
+
+                encodePool.release(encodeSlot);
+            }
+        }
+
+        private void onKafkaReset(
+            ResetFW reset)
+        {
+            final long traceId = reset.traceId();
+
+            state = McpKafkaState.closedInitial(state);
+
+            cleanupDecodeSlot();
+            peer.doMcpReset(traceId);
+        }
+
+        private void cleanupMetadata(
+            long traceId)
+        {
+            cleanupDecodeSlot();
+            doKafkaAbort(traceId);
+            doKafkaReset(traceId);
+            peer.doMcpAbort(traceId);
+        }
+
+        private void cleanupDecodeSlot()
+        {
+            if (decodeSlot != NO_SLOT)
+            {
+                decodePool.release(decodeSlot);
+                decodeSlot = NO_SLOT;
+                decodeSlotOffset = 0;
+            }
+        }
+
+        private void doKafkaBegin(
+            long traceId)
+        {
+            state = McpKafkaState.openingInitial(state);
+
+            final KafkaBeginExFW kafkaBeginEx = kafkaBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(kafkaTypeId)
+                .apiRequest(a -> a
+                    .length(requestLength)
+                    .api(METADATA_API_KEY)
+                    .version(METADATA_API_VERSION)
                     .clientId("zilla"))
                 .build();
 

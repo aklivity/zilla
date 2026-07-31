@@ -36,7 +36,7 @@ This one configuration exercises all seven `mcp*` binding kinds:
 | `mcp_http` | `proxy` | Synthesizes MCP tools from hand-authored config, backed by a plain REST API (`github` toolkit) |
 | `mcp_openapi` | `client` | Synthesizes MCP tools from an OpenAPI document, backed by a plain REST API (`petstore` toolkit) |
 | `mcp_schema_registry` | `client` | Exposes a fixed, bundled tool set for the Karapace/Confluent Schema Registry REST API -- no operator-authored OpenAPI document, unlike `mcp_openapi` (`kafka_sr` toolkit) |
-| `mcp_kafka` | `client` | Exposes Kafka broker operations (`produce`/`consume`/`create_topics`/`delete_topics`) as intrinsic MCP tools, generating its own `kafka_cache_client → kafka_client → tcp_client` pipeline against a real broker (`kafka` toolkit) |
+| `mcp_kafka` | `client` | Exposes Kafka broker operations (`produce`/`consume`/`create_topics`/`delete_topics`/`list_topics`/`describe_topic`/`cluster_overview`) as intrinsic MCP tools, generating its own `kafka_cache_client → kafka_client → tcp_client` pipeline against a real broker (`kafka` toolkit) |
 
 ## Authorization model
 
@@ -83,6 +83,11 @@ for structural (not just data) mutation. `create_topics` and `delete_topics`
 share one route rather than two near-identical ones: a route's `when` list
 already matches by OR, so a second `- tool: delete_topics` entry under the
 same `create_topics` route reuses the one `kafka:admin` guard for both.
+`list_topics`, `describe_topic`, and `cluster_overview` are read-only
+cluster/topic metadata tools that need only the toolkit-level `kafka:tools`
+scope, the same tier as `consume` -- all three coalesce into one more shared
+route alongside `create_topics`/`delete_topics`'s, this time with no
+`guarded:` block at all since the toolkit-level gate is already sufficient.
 
 The `everything` toolkit has no `guarded:` route at all, so it is reachable by
 any session that can complete `initialize` -- including one with no token.
@@ -187,7 +192,8 @@ frequently used tools -- `everything__echo`, `urlelicit__authorize`,
 `github__create_pr`, `petstore__list_pets`, `petstore__search_pets`,
 `petstore__create_pet`, `kafka_sr__list_subjects`,
 `kafka_sr__register_schema`, `kafka__produce`, `kafka__consume`,
-`kafka__create_topics`, `kafka__delete_topics`, `kafka__list_brokers`, and
+`kafka__create_topics`, `kafka__delete_topics`, `kafka__list_topics`,
+`kafka__describe_topic`, `kafka__cluster_overview`, `kafka__list_brokers`, and
 `kafka__describe_cluster` -- eagerly listed in
 `tools/list`. Every other tool is
 "cold": because `options.cache.tools.search` also configures a `toolkit`
@@ -220,6 +226,9 @@ kafka__produce
 kafka__consume
 kafka__create_topics
 kafka__delete_topics
+kafka__list_topics
+kafka__describe_topic
+kafka__cluster_overview
 kafka__list_brokers
 kafka__describe_cluster
 zilla__search_tools
@@ -542,6 +551,55 @@ docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
     tools-list-client
 # Deleted topic(s): widgets
 ```
+
+### List topics, describe a topic, and get a cluster overview
+
+`list_topics`, `describe_topic`, and `cluster_overview` are read-only
+cluster/topic metadata tools built the same way `create_topics`/
+`delete_topics` are -- against the real Kafka broker's Metadata API, not a
+mock. Unlike `produce`/`consume`, none of the three take a `topics`
+allow-list on their route: `list_topics` and `cluster_overview` request
+metadata for every topic on the broker, and `describe_topic` names its one
+topic as a call argument rather than a route match. All three need only the
+toolkit-level `kafka:tools` scope -- the same tier as `consume` -- so they
+share one route with no `guarded:` block of their own.
+
+List every topic on the broker -- each entry reports its own partition count
+and replication factor:
+
+```bash
+docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
+    -e CALL_TOOL=kafka__list_topics \
+    tools-list-client
+# Found 1 topic(s)
+# {"topics":[{"name":"orders","partition_count":1,"replication_factor":1}]}
+```
+
+Describe the `orders` topic by name -- the result reports each partition's
+leader, replica set, and in-sync replica (ISR) set:
+
+```bash
+docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
+    -e CALL_TOOL=kafka__describe_topic \
+    -e CALL_ARGS='{"topic":"orders"}' \
+    tools-list-client
+# Described topic orders
+# {"name":"orders","partitions":[{"partition_id":0,"leader":1,"replicas":[1],"isr":[1]}]}
+```
+
+Get a whole-cluster summary -- broker count, controller broker id, and
+under-replicated/offline partition counts, useful as a single health check
+across every topic at once:
+
+```bash
+docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
+    -e CALL_TOOL=kafka__cluster_overview \
+    tools-list-client
+# Cluster overview: 1 topic(s), 1 broker(s)
+# {"broker_count":1,"controller_id":1,"under_replicated_partitions":0,"offline_partitions":0,"topic_count":1}
+```
+
+### List brokers and describe the cluster
 
 `list_brokers` and `describe_cluster` are read-only cluster introspection --
 unlike `produce`/`consume` and `create_topics`/`delete_topics`, they take no
