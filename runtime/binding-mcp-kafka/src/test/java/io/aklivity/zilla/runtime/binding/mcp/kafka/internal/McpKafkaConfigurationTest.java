@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.kafka.internal;
 
+import static io.aklivity.zilla.runtime.binding.mcp.kafka.internal.McpKafkaConfiguration.MCP_KAFKA_REQUEST_TIMEOUT;
 import static io.aklivity.zilla.runtime.binding.mcp.kafka.internal.McpKafkaConfiguration.MCP_KAFKA_SESSION_ID;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -27,11 +28,13 @@ import io.aklivity.zilla.runtime.engine.Configuration;
 public class McpKafkaConfigurationTest
 {
     public static final String MCP_KAFKA_SESSION_ID_NAME = "zilla.binding.mcp.kafka.session.id";
+    public static final String MCP_KAFKA_REQUEST_TIMEOUT_NAME = "zilla.binding.mcp.kafka.request.timeout";
 
     @Test
     public void shouldVerifyConstants() throws Exception
     {
         assertEquals(MCP_KAFKA_SESSION_ID.name(), MCP_KAFKA_SESSION_ID_NAME);
+        assertEquals(MCP_KAFKA_REQUEST_TIMEOUT.name(), MCP_KAFKA_REQUEST_TIMEOUT_NAME);
     }
 
     @Test

@@ -61,14 +61,20 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.rebalance.MemberAssignmentFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.rebalance.TopicAssignmentFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaApi;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaApiChallengeExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaApiFlushExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaApiRequestBeginExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaApiResponseBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaBootstrapBeginExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaChallengeExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaConsumerBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaConsumerDataExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaConsumerFlushExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaDataExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaDescribeBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaDescribeDataExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaEndExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaFetchBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaFetchDataExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaFetchFlushExFW;
@@ -4131,6 +4137,244 @@ public class KafkaFunctionsTest
 
         assertEquals(0x01, resetEx.typeId());
         assertEquals("consumer-1", resetEx.consumerId().asString());
+    }
+
+    @Test
+    public void shouldMatchResetExtension() throws Exception
+    {
+        BytesMatcher matcher = KafkaFunctions.matchResetEx()
+                .typeId(0x01)
+                .error(87)
+                .consumerId("consumer-1")
+                .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new KafkaResetExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .error(87)
+            .consumerId("consumer-1")
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldGenerateEndExtension()
+    {
+        byte[] build = KafkaFunctions.endEx()
+                .typeId(0x01)
+                .tag(1, "value".getBytes(UTF_8))
+                .build();
+
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
+        KafkaEndExFW endEx = new KafkaEndExFW().wrap(buffer, 0, buffer.capacity());
+
+        assertEquals(0x01, endEx.typeId());
+        assertEquals(1, endEx.tags().fieldCount());
+    }
+
+    @Test
+    public void shouldMatchEndExtension() throws Exception
+    {
+        BytesMatcher matcher = KafkaFunctions.matchEndEx()
+                .typeId(0x01)
+                .tag(1, "value".getBytes(UTF_8))
+                .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new KafkaEndExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .tagsItem(t -> t.tag(1).length(5).value(v -> v.set("value".getBytes(UTF_8))))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldGenerateApiRequestBeginExtension()
+    {
+        byte[] build = KafkaFunctions.beginEx()
+                                     .typeId(0x01)
+                                     .apiRequest()
+                                         .length(5)
+                                         .api(18)
+                                         .version(0)
+                                         .clientId("zilla")
+                                         .tag(1, "value".getBytes(UTF_8))
+                                         .build()
+                                     .build();
+
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
+        KafkaBeginExFW beginEx = new KafkaBeginExFW().wrap(buffer, 0, buffer.capacity());
+        assertEquals(0x01, beginEx.typeId());
+        assertEquals(KafkaApi.API_REQUEST.value(), beginEx.kind());
+
+        final KafkaApiRequestBeginExFW apiRequestBeginEx = beginEx.apiRequest();
+        assertEquals(5, apiRequestBeginEx.length());
+        assertEquals(18, apiRequestBeginEx.api());
+        assertEquals(0, apiRequestBeginEx.version());
+        assertEquals("zilla", apiRequestBeginEx.clientId().asString());
+        assertEquals(1, apiRequestBeginEx.tags().fieldCount());
+    }
+
+    @Test
+    public void shouldMatchApiRequestBeginExtension() throws Exception
+    {
+        BytesMatcher matcher = KafkaFunctions.matchBeginEx()
+            .apiRequest()
+                .length(5)
+                .api(18)
+                .version(0)
+                .clientId("zilla")
+                .tag(1, "value".getBytes(UTF_8))
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new KafkaBeginExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .apiRequest(f -> f
+                .length(5)
+                .api((short) 18)
+                .version((short) 0)
+                .clientId("zilla")
+                .tagsItem(t -> t.tag(1).length(5).value(v -> v.set("value".getBytes(UTF_8)))))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldGenerateApiResponseBeginExtension()
+    {
+        byte[] build = KafkaFunctions.beginEx()
+                                     .typeId(0x01)
+                                     .apiResponse()
+                                         .length(12)
+                                         .version(0)
+                                         .tag(1, "value".getBytes(UTF_8))
+                                         .build()
+                                     .build();
+
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
+        KafkaBeginExFW beginEx = new KafkaBeginExFW().wrap(buffer, 0, buffer.capacity());
+        assertEquals(0x01, beginEx.typeId());
+        assertEquals(KafkaApi.API_RESPONSE.value(), beginEx.kind());
+
+        final KafkaApiResponseBeginExFW apiResponseBeginEx = beginEx.apiResponse();
+        assertEquals(12, apiResponseBeginEx.length());
+        assertEquals(0, apiResponseBeginEx.version());
+        assertEquals(1, apiResponseBeginEx.tags().fieldCount());
+    }
+
+    @Test
+    public void shouldMatchApiResponseBeginExtension() throws Exception
+    {
+        BytesMatcher matcher = KafkaFunctions.matchBeginEx()
+            .apiResponse()
+                .length(12)
+                .version(0)
+                .tag(1, "value".getBytes(UTF_8))
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new KafkaBeginExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .apiResponse(f -> f
+                .length(12)
+                .version((short) 0)
+                .tagsItem(t -> t.tag(1).length(5).value(v -> v.set("value".getBytes(UTF_8)))))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldGenerateApiChallengeExtension()
+    {
+        byte[] build = KafkaFunctions.challengeEx()
+                                     .typeId(0x01)
+                                     .apiChallenge()
+                                         .versions(0, 7)
+                                         .build()
+                                     .build();
+
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
+        KafkaChallengeExFW challengeEx = new KafkaChallengeExFW().wrap(buffer, 0, buffer.capacity());
+        assertEquals(0x01, challengeEx.typeId());
+        assertEquals(KafkaApi.API_REQUEST.value(), challengeEx.kind());
+
+        final KafkaApiChallengeExFW apiChallengeEx = challengeEx.apiChallenge();
+        assertEquals(0, apiChallengeEx.versions().min());
+        assertEquals(7, apiChallengeEx.versions().max());
+    }
+
+    @Test
+    public void shouldMatchApiChallengeExtension() throws Exception
+    {
+        BytesMatcher matcher = KafkaFunctions.matchChallengeEx()
+            .apiChallenge()
+                .versions(0, 7)
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new KafkaChallengeExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .apiChallenge(f -> f.versions(v -> v.min((short) 0).max((short) 7)))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldGenerateApiFlushExtension()
+    {
+        byte[] build = KafkaFunctions.flushEx()
+                                     .typeId(0x01)
+                                     .apiFlush()
+                                         .version(3)
+                                         .build()
+                                     .build();
+
+        DirectBufferEx buffer = new UnsafeBufferEx(build);
+        KafkaFlushExFW flushEx = new KafkaFlushExFW().wrap(buffer, 0, buffer.capacity());
+        assertEquals(0x01, flushEx.typeId());
+        assertEquals(KafkaApi.API_REQUEST.value(), flushEx.kind());
+
+        final KafkaApiFlushExFW apiFlushEx = flushEx.apiFlush();
+        assertEquals(3, apiFlushEx.version());
+    }
+
+    @Test
+    public void shouldMatchApiFlushExtension() throws Exception
+    {
+        BytesMatcher matcher = KafkaFunctions.matchFlushEx()
+            .apiFlush()
+                .version(3)
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new KafkaFlushExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .apiFlush(f -> f.version((short) 3))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
     }
 
     @Test
