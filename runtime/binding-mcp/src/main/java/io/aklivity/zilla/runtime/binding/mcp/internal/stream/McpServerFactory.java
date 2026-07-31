@@ -31,9 +31,9 @@ import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
 import jakarta.json.bind.JsonbBuilder;
-import jakarta.json.bind.JsonbException;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParserFactory;
 
@@ -2095,24 +2095,21 @@ public final class McpServerFactory implements McpStreamFactory
         {
             final DirectBufferInputStreamEx input = new DirectBufferInputStreamEx();
             input.wrap(buffer, offset, limit - offset);
+            final McpInitializeParams params = JsonbBuilder.create().fromJson(input, McpInitializeParams.class);
 
-            McpInitializeParams params = null;
-            try
-            {
-                params = JsonbBuilder.create().fromJson(input, McpInitializeParams.class);
-            }
-            catch (JsonbException ex)
-            {
-                onDecodeInvalidParams(traceId, authorization);
-            }
+            final boolean capabilitiesValid = params.capabilities == null ||
+                params.capabilities.getValueType() == JsonValue.ValueType.OBJECT;
 
-            if (params != null)
+            if (capabilitiesValid)
             {
-                decodedProtocolVersion = params.protocolVersion;
+                decodedProtocolVersion = params.protocolVersion != null &&
+                    params.protocolVersion.getValueType() == JsonValue.ValueType.STRING
+                        ? ((JsonString) params.protocolVersion).getString()
+                        : null;
 
                 int capabilities = 0;
                 final JsonValue elicitation = params.capabilities != null
-                    ? params.capabilities.get("elicitation")
+                    ? params.capabilities.asJsonObject().get("elicitation")
                     : null;
                 if (elicitation != null)
                 {
@@ -2126,6 +2123,10 @@ public final class McpServerFactory implements McpStreamFactory
                 decodedClientCapabilities = capabilities;
 
                 onLifecycleInitialize(traceId, authorization);
+            }
+            else
+            {
+                onDecodeInvalidParams(traceId, authorization);
             }
 
             return limit;

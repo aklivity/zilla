@@ -19,5 +19,8 @@ import jakarta.json.JsonValue;
 public class McpNotifyCanceledParams
 {
     public JsonValue requestId;
-    public String reason;
+
+    // JsonValue, not String: see McpInitializeParams for why a narrower binding target
+    // is unsafe against untrusted wire input.
+    public JsonValue reason;
 }
