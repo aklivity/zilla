@@ -4808,7 +4808,7 @@ public final class McpClientFactory implements McpStreamFactory
                 decodeNet(traceId, authorization, budgetId, reserved, buffer, offset, limit);
             }
 
-            doNetWindow(traceId, authorization, budgetId, 0);
+            flushNetWindow(traceId, authorization, budgetId);
         }
 
         private void decodeNet(
@@ -4904,6 +4904,26 @@ public final class McpClientFactory implements McpStreamFactory
         {
             doWindow(net, originId, routedId, replyId, replySeq, replyAck, replyMax,
                 traceId, authorization, budgetId, padding);
+        }
+
+        private void flushNetWindow(
+            long traceId,
+            long authorization,
+            long budgetId)
+        {
+            if (net == null)
+            {
+                return;
+            }
+
+            final long replyAckMax = Math.max(replySeq - decodeSlotReserved, replyAck);
+            if (replyAckMax > replyAck || !McpState.replyOpened(state))
+            {
+                replyAck = replyAckMax;
+                assert replyAck <= replySeq;
+
+                doNetWindow(traceId, authorization, budgetId, 0);
+            }
         }
 
         @Override

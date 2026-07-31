@@ -22,6 +22,7 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTes
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_ELICIT_CORRELATION_ID_NAME;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_INACTIVITY_TIMEOUT_NAME;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_SESSION_ID_NAME;
+import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_SLOT_CAPACITY_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -677,6 +678,21 @@ public class McpClientIT
         "${app}/lifecycle.notify.resources.updated/client",
         "${net}/lifecycle.notify.resources.updated/server"})
     public void shouldNotifyResourcesUpdated() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // regression test: the persistent GET listener stream must keep replenishing its own
+    // reply-side window as each SSE event is fully decoded -- otherwise cumulative bytes
+    // across a run of notifications eventually exceed a fixed, never-advancing ceiling and
+    // the listener self-resets, independent of any individual message's content
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/lifecycle.notify.resources.updated.repeated/client",
+        "${net}/lifecycle.notify.resources.updated.repeated/server"})
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "512")
+    public void shouldNotifyResourcesUpdatedRepeated() throws Exception
     {
         k3po.finish();
     }
