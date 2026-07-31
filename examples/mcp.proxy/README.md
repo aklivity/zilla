@@ -190,7 +190,8 @@ frequently used tools -- `everything__echo`, `urlelicit__authorize`,
 `petstore__create_pet`, `kafka_sr__list_subjects`,
 `kafka_sr__register_schema`, `kafka__produce`, `kafka__consume`,
 `kafka__create_topics`, `kafka__delete_topics`, `kafka__describe_configs`,
-and `kafka__alter_configs` -- eagerly listed in
+`kafka__alter_configs`, `kafka__list_brokers`, and `kafka__describe_cluster`
+-- eagerly listed in
 `tools/list`. Every other tool is
 "cold": because `options.cache.tools.search` also configures a `toolkit`
 (`zilla` here), cold tools are omitted from `tools/list` entirely rather than
@@ -224,6 +225,8 @@ kafka__create_topics
 kafka__delete_topics
 kafka__describe_configs
 kafka__alter_configs
+kafka__list_brokers
+kafka__describe_cluster
 zilla__search_tools
 zilla__describe_tool
 zilla__execute_tool
@@ -467,7 +470,7 @@ docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
 # Compatibility check result: true
 ```
 
-### Produce, consume, create/delete topics, and describe/alter configs through a real Kafka broker
+### Produce, consume, create/delete topics, describe/alter configs, and cluster introspection through a real Kafka broker
 
 `south_mcp_kafka_client` is an `mcp_kafka` `kind: client` binding -- unlike
 every other toolkit in this example, it does not proxy to a separate MCP or
@@ -572,6 +575,32 @@ docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
     tools-list-client
 # Updated configs for topic orders
 ```
+
+`list_brokers` and `describe_cluster` are read-only cluster introspection --
+unlike `produce`/`consume` and `create_topics`/`delete_topics`, they take no
+arguments and have no topic to route on, so they share `consume`'s unscoped
+`kafka:tools`-only route rather than requiring `kafka:admin`. Both issue the
+same Kafka `DescribeCluster` request through `KafkaApiDescribeClusterClient`,
+differing only in how the response is shaped into each tool's result:
+
+```bash
+docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
+    -e CALL_TOOL=kafka__list_brokers \
+    tools-list-client
+# Brokers: 1@kafka.examples.dev:29092
+```
+
+```bash
+docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
+    -e CALL_TOOL=kafka__describe_cluster \
+    tools-list-client
+# Described cluster <cluster-id>, controller 1
+```
+
+The single node started by this example (`KAFKA_NODE_ID`/`KAFKA_BROKER_ID`
+both `1`) is both the only broker `list_brokers` reports and the controller
+`describe_cluster` reports -- `<cluster-id>` is a KRaft-generated identifier
+that varies per broker startup.
 
 ### Trigger a form elicitation round-trip
 

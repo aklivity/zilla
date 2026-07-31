@@ -50,6 +50,9 @@ import io.aklivity.zilla.runtime.binding.kafka.api.KafkaCreateTopicsResponseV7FW
 import io.aklivity.zilla.runtime.binding.kafka.api.KafkaDeleteTopicsRequest;
 import io.aklivity.zilla.runtime.binding.kafka.api.KafkaDeleteTopicsResponse;
 import io.aklivity.zilla.runtime.binding.kafka.api.KafkaDeleteTopicsResponseV6FW;
+import io.aklivity.zilla.runtime.binding.kafka.api.KafkaDescribeClusterRequest;
+import io.aklivity.zilla.runtime.binding.kafka.api.KafkaDescribeClusterResponse.Broker;
+import io.aklivity.zilla.runtime.binding.kafka.api.KafkaDescribeClusterResponseV0FW;
 import io.aklivity.zilla.runtime.binding.kafka.api.KafkaDescribeConfigsRequest;
 import io.aklivity.zilla.runtime.binding.kafka.api.KafkaDescribeConfigsResponse;
 import io.aklivity.zilla.runtime.binding.kafka.api.KafkaDescribeConfigsResponseV4FW;
@@ -109,6 +112,8 @@ public class McpKafkaProxyFactory implements BindingHandler
     private static final String TOOL_DELETE_TOPICS = "delete_topics";
     private static final String TOOL_DESCRIBE_CONFIGS = "describe_configs";
     private static final String TOOL_ALTER_CONFIGS = "alter_configs";
+    private static final String TOOL_LIST_BROKERS = "list_brokers";
+    private static final String TOOL_DESCRIBE_CLUSTER = "describe_cluster";
 
     private static final String[] TOOL_NAMES =
     {
@@ -117,18 +122,21 @@ public class McpKafkaProxyFactory implements BindingHandler
         TOOL_CREATE_TOPICS,
         TOOL_DELETE_TOPICS,
         TOOL_DESCRIBE_CONFIGS,
-        TOOL_ALTER_CONFIGS
+        TOOL_ALTER_CONFIGS,
+        TOOL_LIST_BROKERS,
+        TOOL_DESCRIBE_CLUSTER
     };
 
     /**
      * Tools that bypass the local Kafka cache and talk directly to the plain Kafka client
      * (routed via {@code composite.clientExitId}, see {@link McpKafkaClientFactory#attach}),
      * using {@code KafkaApiClient}/{@code KafkaApiDeleteTopicsClient}/{@code KafkaApiDescribeConfigsClient}/
-     * {@code KafkaApiAlterConfigsClient} instead of the merged-capability {@code KafkaProxy}. A
-     * {@code Set} so future tools are a one-line addition.
+     * {@code KafkaApiAlterConfigsClient}/{@code KafkaApiDescribeClusterClient} instead of the
+     * merged-capability {@code KafkaProxy}. A {@code Set} so future tools are a one-line addition.
      */
     protected static final Set<String> API_TOOLS =
-        Set.of(TOOL_CREATE_TOPICS, TOOL_DELETE_TOPICS, TOOL_DESCRIBE_CONFIGS, TOOL_ALTER_CONFIGS);
+        Set.of(TOOL_CREATE_TOPICS, TOOL_DELETE_TOPICS, TOOL_DESCRIBE_CONFIGS, TOOL_ALTER_CONFIGS,
+            TOOL_LIST_BROKERS, TOOL_DESCRIBE_CLUSTER);
 
     private static final short CREATE_TOPICS_API_KEY = 19;
     private static final short CREATE_TOPICS_API_VERSION = 7;
@@ -138,6 +146,8 @@ public class McpKafkaProxyFactory implements BindingHandler
     private static final short DESCRIBE_CONFIGS_API_VERSION = 4;
     private static final short ALTER_CONFIGS_API_KEY = 33;
     private static final short ALTER_CONFIGS_API_VERSION = 2;
+    private static final short DESCRIBE_CLUSTER_API_KEY = 60;
+    private static final short DESCRIBE_CLUSTER_API_VERSION = 0;
 
     private static final int CAPABILITIES_TOOLS = 1;
     private static final int FLAGS_INIT = 0x01;
@@ -204,11 +214,13 @@ public class McpKafkaProxyFactory implements BindingHandler
     private final KafkaDeleteTopicsRequest.Generator deleteTopicsRequestGenerator;
     private final KafkaDescribeConfigsRequest.Generator describeConfigsRequestGenerator;
     private final KafkaAlterConfigsRequest.Generator alterConfigsRequestGenerator;
+    private final KafkaDescribeClusterRequest.Generator describeClusterRequestGenerator;
     private final JsonGeneratorEx apiResultGenerator;
     private final KafkaCreateTopicsResponseV7FW createTopicsResponseRO;
     private final KafkaDeleteTopicsResponseV6FW deleteTopicsResponseRO;
     private final KafkaDescribeConfigsResponseV4FW describeConfigsResponseRO;
     private final KafkaAlterConfigsResponseV2FW alterConfigsResponseRO;
+    private final KafkaDescribeClusterResponseV0FW describeClusterResponseRO;
     private final int createTopicsRequestTimeoutMs;
 
     protected final Long2ObjectHashMap<McpKafkaBindingConfig> bindings;
@@ -235,11 +247,13 @@ public class McpKafkaProxyFactory implements BindingHandler
         this.deleteTopicsRequestGenerator = new KafkaDeleteTopicsRequest.Generator();
         this.describeConfigsRequestGenerator = new KafkaDescribeConfigsRequest.Generator();
         this.alterConfigsRequestGenerator = new KafkaAlterConfigsRequest.Generator();
+        this.describeClusterRequestGenerator = new KafkaDescribeClusterRequest.Generator();
         this.apiResultGenerator = JsonEx.createGenerator();
         this.createTopicsResponseRO = new KafkaCreateTopicsResponseV7FW();
         this.deleteTopicsResponseRO = new KafkaDeleteTopicsResponseV6FW();
         this.describeConfigsResponseRO = new KafkaDescribeConfigsResponseV4FW();
         this.alterConfigsResponseRO = new KafkaAlterConfigsResponseV2FW();
+        this.describeClusterResponseRO = new KafkaDescribeClusterResponseV0FW();
         this.createTopicsRequestTimeoutMs = (int) config.requestTimeout().toMillis();
     }
 
@@ -725,6 +739,13 @@ public class McpKafkaProxyFactory implements BindingHandler
                 .add("required", Json.createArrayBuilder().add("resource_type").add("resource_name").add("configs"))
                 .build();
             break;
+        case TOOL_LIST_BROKERS:
+        case TOOL_DESCRIBE_CLUSTER:
+            schema = Json.createObjectBuilder()
+                .add("type", "object")
+                .add("properties", Json.createObjectBuilder())
+                .build();
+            break;
         default:
             break;
         }
@@ -801,6 +822,33 @@ public class McpKafkaProxyFactory implements BindingHandler
                 .add("required", Json.createArrayBuilder().add("resource_type").add("resource_name").add("updated"))
                 .build();
             break;
+        case TOOL_LIST_BROKERS:
+            schema = Json.createObjectBuilder()
+                .add("type", "object")
+                .add("properties", Json.createObjectBuilder()
+                    .add("brokers", Json.createObjectBuilder()
+                        .add("type", "array")
+                        .add("items", Json.createObjectBuilder()
+                            .add("type", "object")
+                            .add("properties", Json.createObjectBuilder()
+                                .add("broker_id", Json.createObjectBuilder().add("type", "integer"))
+                                .add("host", Json.createObjectBuilder().add("type", "string"))
+                                .add("port", Json.createObjectBuilder().add("type", "integer"))
+                                .add("rack", Json.createObjectBuilder().add("type", "string")))
+                            .add("required", Json.createArrayBuilder().add("broker_id").add("host").add("port")))))
+                .add("required", Json.createArrayBuilder().add("brokers"))
+                .build();
+            break;
+        case TOOL_DESCRIBE_CLUSTER:
+            schema = Json.createObjectBuilder()
+                .add("type", "object")
+                .add("properties", Json.createObjectBuilder()
+                    .add("cluster_id", Json.createObjectBuilder().add("type", "string"))
+                    .add("controller_id", Json.createObjectBuilder().add("type", "integer"))
+                    .add("authorized_operations", Json.createObjectBuilder().add("type", "integer")))
+                .add("required", Json.createArrayBuilder().add("controller_id").add("authorized_operations"))
+                .build();
+            break;
         default:
             break;
         }
@@ -833,6 +881,8 @@ public class McpKafkaProxyFactory implements BindingHandler
                 .build();
             break;
         case TOOL_DESCRIBE_CONFIGS:
+        case TOOL_LIST_BROKERS:
+        case TOOL_DESCRIBE_CLUSTER:
             annotations = Json.createObjectBuilder()
                 .add("readOnlyHint", true)
                 .add("destructiveHint", false)
@@ -1590,6 +1640,10 @@ public class McpKafkaProxyFactory implements BindingHandler
             {
                 completeAlterConfigsArgs(traceId);
             }
+            else if (TOOL_LIST_BROKERS.equals(tool) || TOOL_DESCRIBE_CLUSTER.equals(tool))
+            {
+                completeDescribeClusterArgs(traceId);
+            }
             else
             {
                 completeToolArgs(traceId);
@@ -1726,6 +1780,25 @@ public class McpKafkaProxyFactory implements BindingHandler
             else
             {
                 doMcpReset(traceId, buildInvalidParamsResetEx());
+            }
+        }
+
+        private void completeDescribeClusterArgs(
+            long traceId)
+        {
+            final McpKafkaRouteConfig route = binding.resolve(authorization, tool, null);
+            if (route != null)
+            {
+                resolvedId = route.id;
+
+                final KafkaApiDescribeClusterClient client = new KafkaApiDescribeClusterClient(
+                    this, originId, resolvedId, affinity, authorization, tool);
+                client.doKafkaBegin(traceId);
+                kafka = client;
+            }
+            else
+            {
+                doMcpReset(traceId);
             }
         }
 
@@ -4054,6 +4127,462 @@ public class McpKafkaProxyFactory implements BindingHandler
                     .length(requestLength)
                     .api(ALTER_CONFIGS_API_KEY)
                     .version(ALTER_CONFIGS_API_VERSION)
+                    .clientId("zilla"))
+                .build();
+
+            kafka = newKafkaStream(this::onKafkaMessage, originId, resolvedId, kafkaInitialId,
+                traceId, authorization, affinity, kafkaBeginEx);
+        }
+
+        @Override
+        public void doKafkaEnd(
+            long traceId)
+        {
+            if (kafka != null && !McpKafkaState.initialClosed(state))
+            {
+                state = McpKafkaState.closedInitial(state);
+                doEnd(kafka, originId, resolvedId, kafkaInitialId, traceId, authorization);
+            }
+        }
+
+        @Override
+        public void doKafkaAbort(
+            long traceId)
+        {
+            if (kafka != null && !McpKafkaState.initialClosed(state))
+            {
+                state = McpKafkaState.closedInitial(state);
+                doAbort(kafka, originId, resolvedId, kafkaInitialId, traceId, authorization);
+            }
+        }
+
+        @Override
+        public void doKafkaWindow(
+            long traceId,
+            long budgetId,
+            int credit,
+            int padding)
+        {
+            if (kafka != null)
+            {
+                doWindow(kafka, originId, resolvedId, kafkaReplyId, traceId, authorization, budgetId, credit, padding);
+            }
+        }
+
+        @Override
+        public void doKafkaReset(
+            long traceId)
+        {
+            if (kafka != null && !McpKafkaState.replyClosed(state))
+            {
+                state = McpKafkaState.closedReply(state);
+                doReset(kafka, originId, resolvedId, kafkaReplyId, traceId, authorization);
+            }
+        }
+    }
+
+    /**
+     * Shared by both {@code list_brokers} and {@code describe_cluster} - they issue the identical
+     * DescribeCluster wire request and differ only in how the response is shaped into MCP result JSON,
+     * so a single client (parameterized by {@code tool}) avoids duplicating the full request/response
+     * lifecycle {@link KafkaApiClient}/{@link KafkaApiDeleteTopicsClient} each carry for their own,
+     * differently-shaped APIs.
+     */
+    private final class KafkaApiDescribeClusterClient implements KafkaDownstream
+    {
+        private final McpProxy peer;
+        private final long originId;
+        private final long resolvedId;
+        private final long affinity;
+        private final long authorization;
+        private final long kafkaInitialId;
+        private final long kafkaReplyId;
+        private final String tool;
+        private final int requestLength;
+
+        private MessageConsumer kafka;
+        private int state;
+
+        private long initialSeq;
+        private long initialAck;
+        private int initialMax;
+        private boolean requestSent;
+
+        private int decodeSlot = NO_SLOT;
+        private int decodeSlotOffset;
+        private int responseLength = -1;
+
+        private KafkaApiDescribeClusterClient(
+            McpProxy peer,
+            long originId,
+            long resolvedId,
+            long affinity,
+            long authorization,
+            String tool)
+        {
+            this.peer = peer;
+            this.originId = originId;
+            this.resolvedId = resolvedId;
+            this.affinity = affinity;
+            this.authorization = authorization;
+            this.kafkaInitialId = supplyInitialId.applyAsLong(resolvedId);
+            this.kafkaReplyId = supplyReplyId.applyAsLong(kafkaInitialId);
+            this.tool = tool;
+            this.requestLength = KafkaDescribeClusterRequest.sizeof(DESCRIBE_CLUSTER_API_VERSION);
+        }
+
+        private void onKafkaMessage(
+            int msgTypeId,
+            DirectBufferEx buffer,
+            int index,
+            int length)
+        {
+            switch (msgTypeId)
+            {
+            case BeginFW.TYPE_ID:
+                final BeginFW begin = beginRO.wrap(buffer, index, index + length);
+                onKafkaBegin(begin);
+                break;
+            case DataFW.TYPE_ID:
+                final DataFW data = dataRO.wrap(buffer, index, index + length);
+                onKafkaData(data);
+                break;
+            case EndFW.TYPE_ID:
+                final EndFW end = endRO.wrap(buffer, index, index + length);
+                onKafkaEnd(end);
+                break;
+            case AbortFW.TYPE_ID:
+                final AbortFW abort = abortRO.wrap(buffer, index, index + length);
+                onKafkaAbort(abort);
+                break;
+            case WindowFW.TYPE_ID:
+                final WindowFW window = windowRO.wrap(buffer, index, index + length);
+                onKafkaWindow(window);
+                break;
+            case ResetFW.TYPE_ID:
+                final ResetFW reset = resetRO.wrap(buffer, index, index + length);
+                onKafkaReset(reset);
+                break;
+            case ChallengeFW.TYPE_ID:
+                final ChallengeFW challenge = challengeRO.wrap(buffer, index, index + length);
+                onKafkaChallenge(challenge);
+                break;
+            default:
+                break;
+            }
+        }
+
+        private void onKafkaChallenge(
+            ChallengeFW challenge)
+        {
+            final long traceId = challenge.traceId();
+
+            doKafkaFlush(traceId);
+        }
+
+        private void doKafkaFlush(
+            long traceId)
+        {
+            final KafkaFlushExFW kafkaFlushEx = kafkaFlushExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(kafkaTypeId)
+                .apiFlush(f -> f.version(DESCRIBE_CLUSTER_API_VERSION))
+                .build();
+
+            doFlush(kafka, originId, resolvedId, kafkaInitialId, traceId, authorization, kafkaFlushEx);
+        }
+
+        private void onKafkaBegin(
+            BeginFW begin)
+        {
+            final long traceId = begin.traceId();
+            final OctetsFW extension = begin.extension();
+            final KafkaBeginExFW kafkaBeginEx = extension.sizeof() != 0
+                ? kafkaBeginExRO.tryWrap(extension.buffer(), extension.offset(), extension.limit())
+                : null;
+
+            responseLength = kafkaBeginEx != null && kafkaBeginEx.kind() == KafkaBeginExFW.KIND_API_RESPONSE
+                ? kafkaBeginEx.apiResponse().length()
+                : -1;
+
+            state = McpKafkaState.openedReply(state);
+
+            peer.doMcpBegin(traceId);
+            doKafkaWindow(traceId, 0, writeBuffer.capacity(), 0);
+        }
+
+        private void onKafkaData(
+            DataFW data)
+        {
+            final long traceId = data.traceId();
+            final OctetsFW payload = data.payload();
+
+            if (payload != null)
+            {
+                appendResponse(traceId, payload.buffer(), payload.offset(), payload.sizeof());
+            }
+        }
+
+        private void appendResponse(
+            long traceId,
+            DirectBufferEx buffer,
+            int offset,
+            int length)
+        {
+            if (decodeSlot == NO_SLOT)
+            {
+                decodeSlot = decodePool.acquire(kafkaReplyId);
+            }
+
+            if (decodeSlot == NO_SLOT)
+            {
+                cleanupDescribeCluster(traceId);
+            }
+            else
+            {
+                final MutableDirectBufferEx slot = decodePool.buffer(decodeSlot);
+                slot.putBytes(decodeSlotOffset, buffer, offset, length);
+                decodeSlotOffset += length;
+
+                if (responseLength >= 0 && decodeSlotOffset >= responseLength)
+                {
+                    completeResponse(traceId);
+                }
+            }
+        }
+
+        private void completeResponse(
+            long traceId)
+        {
+            final MutableDirectBufferEx slot = decodePool.buffer(decodeSlot);
+            final KafkaDescribeClusterResponseV0FW response = describeClusterResponseRO.wrap(slot, 0, responseLength);
+
+            // captured up front, while `slot` is still held - cleanupDecodeSlot() below releases it
+            // back to the pool, so nothing may read from `slot` after that point
+            final short error = response.error();
+            final boolean isError = error != 0;
+            final boolean listBrokers = TOOL_LIST_BROKERS.equals(tool);
+            final String message = response.messageLength() != -1
+                ? slot.getStringWithoutLengthUtf8(response.messageOffset(), response.messageLength())
+                : null;
+            final String clusterId = response.clusterIdLength() != -1
+                ? slot.getStringWithoutLengthUtf8(response.clusterIdOffset(), response.clusterIdLength())
+                : null;
+            final int controllerId = response.controllerId();
+
+            final int encodeSlot = encodePool.acquire(kafkaReplyId);
+            if (encodeSlot == NO_SLOT)
+            {
+                cleanupDescribeCluster(traceId);
+            }
+            else
+            {
+                final MutableDirectBufferEx encodeBuffer = encodePool.buffer(encodeSlot);
+                apiResultGenerator.reset();
+                apiResultGenerator.wrap(encodeBuffer, 0, encodeBuffer.capacity());
+
+                apiResultGenerator.writeStartObject()
+                    .writeStartObject("structuredContent");
+
+                if (listBrokers)
+                {
+                    apiResultGenerator.writeStartArray("brokers");
+                }
+
+                final StringBuilder text = new StringBuilder();
+
+                while (response.hasNext())
+                {
+                    final Broker broker = response.next();
+
+                    if (listBrokers)
+                    {
+                        final String host = broker.buffer()
+                            .getStringWithoutLengthUtf8(broker.hostOffset(), broker.hostLength());
+
+                        apiResultGenerator.writeStartObject()
+                            .write("broker_id", broker.brokerId())
+                            .write("host", host)
+                            .write("port", broker.port());
+
+                        if (broker.rackLength() != -1)
+                        {
+                            final String rack = broker.buffer()
+                                .getStringWithoutLengthUtf8(broker.rackOffset(), broker.rackLength());
+                            apiResultGenerator.write("rack", rack);
+                        }
+
+                        apiResultGenerator.writeEnd();
+
+                        if (text.length() != 0)
+                        {
+                            text.append(", ");
+                        }
+                        text.append(broker.brokerId()).append('@').append(host).append(':').append(broker.port());
+                    }
+                }
+
+                if (listBrokers)
+                {
+                    apiResultGenerator.writeEnd();
+                }
+                else
+                {
+                    apiResultGenerator.write("controller_id", controllerId)
+                        .write("authorized_operations", response.authorizedOperations());
+
+                    if (clusterId != null)
+                    {
+                        apiResultGenerator.write("cluster_id", clusterId);
+                    }
+
+                    text.append("cluster ")
+                        .append(clusterId != null ? clusterId : "(unknown)")
+                        .append(", controller ")
+                        .append(controllerId);
+                }
+
+                cleanupDecodeSlot();
+
+                final String prefix;
+                if (isError)
+                {
+                    prefix = (listBrokers ? "Failed to list brokers (error " : "Failed to describe cluster (error ") +
+                        error + (message != null ? "): " + message : ")");
+                }
+                else
+                {
+                    prefix = listBrokers ? "Brokers: " : "Described ";
+                }
+
+                apiResultGenerator
+                    .writeEnd()
+                    .writeStartArray("content")
+                    .writeStartObject()
+                    .write("type", "text")
+                    .write("text", isError ? prefix : prefix + text)
+                    .writeEnd()
+                    .writeEnd()
+                    .write("isError", isError)
+                    .writeEnd();
+
+                peer.doMcpResult(traceId, apiResultGenerator.length(), encodeBuffer, isError);
+
+                encodePool.release(encodeSlot);
+            }
+        }
+
+        private void onKafkaEnd(
+            EndFW end)
+        {
+            final long traceId = end.traceId();
+
+            state = McpKafkaState.closedReply(state);
+
+            peer.doMcpEnd(traceId);
+        }
+
+        private void onKafkaAbort(
+            AbortFW abort)
+        {
+            final long traceId = abort.traceId();
+
+            state = McpKafkaState.closedReply(state);
+
+            cleanupDecodeSlot();
+            peer.doMcpAbort(traceId);
+        }
+
+        private void onKafkaWindow(
+            WindowFW window)
+        {
+            final long traceId = window.traceId();
+            final long budgetId = window.budgetId();
+            final int credit = window.maximum();
+            final int padding = window.padding();
+
+            initialAck = window.acknowledge();
+
+            if (!requestSent && credit > 0)
+            {
+                requestSent = true;
+                sendDescribeClusterRequest(traceId, budgetId);
+            }
+
+            initialMax = credit;
+        }
+
+        private void sendDescribeClusterRequest(
+            long traceId,
+            long budgetId)
+        {
+            final int encodeSlot = encodePool.acquire(kafkaInitialId);
+            if (encodeSlot == NO_SLOT)
+            {
+                cleanupDescribeCluster(traceId);
+            }
+            else
+            {
+                final MutableDirectBufferEx slot = encodePool.buffer(encodeSlot);
+                final boolean fits = requestLength <= slot.capacity();
+                describeClusterRequestGenerator.wrap(slot, 0, slot.capacity());
+                final boolean built = fits && describeClusterRequestGenerator.generate(true);
+
+                if (built)
+                {
+                    doData(kafka, originId, resolvedId, kafkaInitialId, traceId, authorization,
+                        budgetId, FLAGS_COMPLETE, requestLength, slot, 0, requestLength);
+                    initialSeq += requestLength;
+                }
+                else
+                {
+                    cleanupDescribeCluster(traceId);
+                }
+
+                encodePool.release(encodeSlot);
+            }
+        }
+
+        private void onKafkaReset(
+            ResetFW reset)
+        {
+            final long traceId = reset.traceId();
+
+            state = McpKafkaState.closedInitial(state);
+
+            cleanupDecodeSlot();
+            peer.doMcpReset(traceId);
+        }
+
+        private void cleanupDescribeCluster(
+            long traceId)
+        {
+            cleanupDecodeSlot();
+            doKafkaAbort(traceId);
+            doKafkaReset(traceId);
+            peer.doMcpAbort(traceId);
+        }
+
+        private void cleanupDecodeSlot()
+        {
+            if (decodeSlot != NO_SLOT)
+            {
+                decodePool.release(decodeSlot);
+                decodeSlot = NO_SLOT;
+                decodeSlotOffset = 0;
+            }
+        }
+
+        private void doKafkaBegin(
+            long traceId)
+        {
+            state = McpKafkaState.openingInitial(state);
+
+            final KafkaBeginExFW kafkaBeginEx = kafkaBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(kafkaTypeId)
+                .apiRequest(a -> a
+                    .length(requestLength)
+                    .api(DESCRIBE_CLUSTER_API_KEY)
+                    .version(DESCRIBE_CLUSTER_API_VERSION)
                     .clientId("zilla"))
                 .build();
 
