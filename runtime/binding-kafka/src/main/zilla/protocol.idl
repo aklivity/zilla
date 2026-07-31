@@ -780,6 +780,102 @@ scope protocol
             }
         }
 
+        scope find_coordinator
+        {
+            struct FindCoordinatorRequest // v3
+            {
+                varstring key;
+                int8 keyType;
+                varuint32 taggedFields;
+            }
+
+            struct FindCoordinatorResponse
+            {
+                varuint32 taggedFields;
+                int32 throttleTimeMillis;
+                int16 error;
+                varstring message = null;
+                int32 nodeId;
+                varstring host;
+                int32 port;
+                varuint32 trailingTaggedFields;
+            }
+        }
+
+        scope list_groups
+        {
+            struct ListGroupsRequest // v4
+            {
+                varuint32n statesFilterCount;
+            }
+
+            struct ListGroupsRequestPart2
+            {
+                varuint32 taggedFields;
+            }
+
+            struct GroupResponse
+            {
+                varstring groupId;
+                varstring protocolType;
+                varstring groupState;
+                varuint32 taggedFields;
+            }
+
+            struct ListGroupsResponsePart2
+            {
+                varuint32 taggedFields;
+            }
+        }
+
+        scope describe_groups
+        {
+            struct DescribeGroupsRequest // v5
+            {
+                varuint32n groupCount;
+            }
+
+            struct GroupIdRequest
+            {
+                varstring groupId;
+            }
+
+            struct DescribeGroupsRequestPart2
+            {
+                uint8 includeAuthorizedOperations;
+                varuint32 taggedFields;
+            }
+
+            struct DescribedGroupResponse
+            {
+                int16 error;
+                varstring groupId;
+                varstring groupState;
+                varstring protocolType;
+                varstring protocolData;
+                varuint32n memberCount;
+            }
+
+            struct DescribedGroupMemberResponse
+            {
+                varstring memberId;
+                varstring groupInstanceId = null;
+                varstring clientId;
+                varstring clientHost;
+            }
+
+            struct DescribedGroupResponsePart2
+            {
+                int32 authorizedOperations;
+                varuint32 taggedFields;
+            }
+
+            struct DescribeGroupsResponsePart2
+            {
+                varuint32 taggedFields;
+            }
+        }
+
         scope alter_configs
         {
             struct AlterConfigsRequest // v1
