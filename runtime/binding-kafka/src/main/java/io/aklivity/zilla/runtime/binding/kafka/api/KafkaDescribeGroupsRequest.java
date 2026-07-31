@@ -61,7 +61,7 @@ public final class KafkaDescribeGroupsRequest
             throw new UnsupportedOperationException("unsupported DescribeGroups API version: " + apiVersion);
         }
 
-        final int[] size = { varintWidth(source.groupCount() + 1) };
+        final int[] size = { 1 + varintWidth(source.groupCount() + 1) };
 
         source.forEach(groupId -> size[0] += stringSizeof(groupId));
 
@@ -125,6 +125,7 @@ public final class KafkaDescribeGroupsRequest
             try
             {
                 final DescribeGroupsRequestFW describeGroupsRequest = describeGroupsRequestRW.wrap(buffer, progress, limit)
+                    .taggedFields(0)
                     .groupCount(count)
                     .build();
 

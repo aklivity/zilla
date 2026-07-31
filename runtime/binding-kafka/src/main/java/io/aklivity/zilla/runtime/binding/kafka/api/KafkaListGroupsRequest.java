@@ -45,7 +45,7 @@ public final class KafkaListGroupsRequest
             throw new UnsupportedOperationException("unsupported ListGroups API version: " + apiVersion);
         }
 
-        return 1 + 1;
+        return 1 + 1 + 1;
     }
 
     public static final class Generator
@@ -78,6 +78,7 @@ public final class KafkaListGroupsRequest
             try
             {
                 final ListGroupsRequestFW listGroupsRequest = listGroupsRequestRW.wrap(buffer, progress, limit)
+                    .taggedFields(0)
                     .statesFilterCount(0)
                     .build();
 

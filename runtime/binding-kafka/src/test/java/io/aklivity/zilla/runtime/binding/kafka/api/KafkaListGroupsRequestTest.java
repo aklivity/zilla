@@ -33,6 +33,7 @@ public class KafkaListGroupsRequestTest
     // (RequestHeader apiKey/apiVersion/correlationId/clientId are encoded separately and excluded here)
     private static final byte[] EXPECTED = new byte[]
     {
+        0x00, // request header tagged fields
         0x01, // statesFilter: empty compact array (0 items, encoded as 0+1)
         0x00  // tagged fields
     };

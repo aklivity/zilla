@@ -37,6 +37,7 @@ public class KafkaDescribeGroupsRequestTest
     // (RequestHeader apiKey/apiVersion/correlationId/clientId are encoded separately and excluded here)
     private static final byte[] EXPECTED = new byte[]
     {
+        0x00, // request header tagged fields
         0x02,
         0x09, 'm', 'y', '-', 'g', 'r', 'o', 'u', 'p',
         0x00,

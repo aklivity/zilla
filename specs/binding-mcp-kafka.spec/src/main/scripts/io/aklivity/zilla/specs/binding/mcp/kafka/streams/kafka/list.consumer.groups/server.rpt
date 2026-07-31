@@ -25,7 +25,7 @@ accepted
 read zilla:begin.ext ${kafka:matchBeginEx()
                                .typeId(zilla:id("kafka"))
                                .apiRequest()
-                                 .length(2)
+                                 .length(3)
                                  .api(16)
                                  .version(4)
                                  .clientId("zilla")
@@ -34,7 +34,8 @@ read zilla:begin.ext ${kafka:matchBeginEx()
 
 connected
 
-read  [0x01]                            # states filter (empty compact array)
+read  [0x00]                            # request header tagged fields
+      [0x01]                            # states filter (empty compact array)
       [0x00]                            # tagged fields
 
 write zilla:begin.ext ${kafka:beginEx()

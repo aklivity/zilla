@@ -25,7 +25,7 @@ accepted
 read zilla:begin.ext ${kafka:matchBeginEx()
                                .typeId(zilla:id("kafka"))
                                .apiRequest()
-                                 .length(11)
+                                 .length(12)
                                  .api(10)
                                  .version(3)
                                  .clientId("zilla")
@@ -34,7 +34,8 @@ read zilla:begin.ext ${kafka:matchBeginEx()
 
 connected
 
-read  [0x09] "my-group"                 # group id (key)
+read  [0x00]                            # request header tagged fields
+      [0x09] "my-group"                 # group id (key)
       [0x00]                            # key type (group)
       [0x00]                            # tagged fields
 

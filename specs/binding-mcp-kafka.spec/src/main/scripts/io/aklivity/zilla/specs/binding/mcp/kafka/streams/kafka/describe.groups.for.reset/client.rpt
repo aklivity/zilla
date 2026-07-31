@@ -21,7 +21,7 @@ connect "zilla://streams/kafka0"
 write zilla:begin.ext ${kafka:beginEx()
                                .typeId(zilla:id("kafka"))
                                .apiRequest()
-                                 .length(12)
+                                 .length(13)
                                  .api(15)
                                  .version(5)
                                  .clientId("zilla")
@@ -30,7 +30,8 @@ write zilla:begin.ext ${kafka:beginEx()
 
 connected
 
-write [0x02]                            # group count
+write [0x00]                            # request header tagged fields
+      [0x02]                            # group count
       [0x09] "my-group"                 # group id
       [0x00]                            # include authorized operations
       [0x00]                            # tagged fields

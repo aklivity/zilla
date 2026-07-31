@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.binding.kafka.api;
 
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.find_coordinator.FindCoordinatorRequestFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.find_coordinator.FindCoordinatorRequestPart2FW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.lang.Strings;
 
@@ -48,7 +49,7 @@ public final class KafkaFindCoordinatorRequest
 
         final int length = Strings.utf8Length(groupId);
 
-        return varintWidth(length + 1) + length + 1 + 1;
+        return 1 + varintWidth(length + 1) + length + 1 + 1;
     }
 
     private static int varintWidth(
@@ -67,6 +68,8 @@ public final class KafkaFindCoordinatorRequest
     public static final class Generator
     {
         private final FindCoordinatorRequestFW.Builder findCoordinatorRequestRW = new FindCoordinatorRequestFW.Builder();
+        private final FindCoordinatorRequestPart2FW.Builder findCoordinatorRequestPart2RW =
+            new FindCoordinatorRequestPart2FW.Builder();
 
         private MutableDirectBufferEx buffer;
         private int limit;
@@ -95,12 +98,19 @@ public final class KafkaFindCoordinatorRequest
             {
                 final FindCoordinatorRequestFW findCoordinatorRequest = findCoordinatorRequestRW
                     .wrap(buffer, progress, limit)
+                    .taggedFields(0)
                     .key(groupId)
                     .keyType(KEY_TYPE_GROUP)
-                    .taggedFields(0)
                     .build();
 
                 progress = findCoordinatorRequest.limit();
+
+                final FindCoordinatorRequestPart2FW findCoordinatorRequestPart2 = findCoordinatorRequestPart2RW
+                    .wrap(buffer, progress, limit)
+                    .taggedFields(0)
+                    .build();
+
+                progress = findCoordinatorRequestPart2.limit();
                 built = true;
             }
             catch (IndexOutOfBoundsException ex)

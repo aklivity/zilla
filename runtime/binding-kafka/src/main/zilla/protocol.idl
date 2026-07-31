@@ -784,8 +784,13 @@ scope protocol
         {
             struct FindCoordinatorRequest // v3
             {
+                varuint32 taggedFields;
                 varstring key;
                 int8 keyType;
+            }
+
+            struct FindCoordinatorRequestPart2
+            {
                 varuint32 taggedFields;
             }
 
@@ -806,6 +811,7 @@ scope protocol
         {
             struct ListGroupsRequest // v4
             {
+                varuint32 taggedFields;
                 varuint32n statesFilterCount;
             }
 
@@ -832,6 +838,7 @@ scope protocol
         {
             struct DescribeGroupsRequest // v5
             {
+                varuint32 taggedFields;
                 varuint32n groupCount;
             }
 
