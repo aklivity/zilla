@@ -167,7 +167,7 @@ fi
 list_tools() {
   _token=$1
   docker compose run --rm --no-deps -e JWT_TOKEN="$_token" -e MCP_URL="http://zilla:$PORT/mcp" \
-      tools-list-client 2>/dev/null
+      tools-list-client 2>&1
 }
 
 # WHEN: a caller presents no JWT at all
@@ -442,7 +442,7 @@ read_resource() {
   _uri=$2
   docker compose run --rm --no-deps -e JWT_TOKEN="$_token" -e MCP_URL="http://zilla:$PORT/mcp" \
       -e READ_RESOURCE="$_uri" \
-      tools-list-client 2>/dev/null
+      tools-list-client 2>&1
 }
 
 # WHEN: a github:tools-scoped caller reads the pull_by_number resource template
