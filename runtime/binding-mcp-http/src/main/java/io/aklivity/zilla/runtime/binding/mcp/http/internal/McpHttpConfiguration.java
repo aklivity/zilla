@@ -32,6 +32,7 @@ public class McpHttpConfiguration extends Configuration
 
     public static final PropertyDef<SessionIdSupplier> MCP_HTTP_SESSION_ID;
     public static final IntPropertyDef MCP_HTTP_SESSION_ID_ATTEMPTS;
+    public static final PropertyDef<String> MCP_HTTP_CLIENT_EXIT;
 
     static
     {
@@ -40,6 +41,7 @@ public class McpHttpConfiguration extends Configuration
             McpHttpConfiguration::decodeSessionIdSupplier, McpHttpConfiguration::defaultSessionIdSupplier);
         MCP_HTTP_SESSION_ID_ATTEMPTS = config.property("session.id.attempts",
             McpHttpConfiguration::defaultSessionIdAttempts);
+        MCP_HTTP_CLIENT_EXIT = config.property("client.exit", "sys:http_client");
         MCP_HTTP_CONFIG = config;
     }
 
@@ -62,6 +64,11 @@ public class McpHttpConfiguration extends Configuration
     public int sessionIdAttempts()
     {
         return MCP_HTTP_SESSION_ID_ATTEMPTS.getAsInt(this);
+    }
+
+    public String clientExit()
+    {
+        return MCP_HTTP_CLIENT_EXIT.get(this);
     }
 
     @FunctionalInterface

@@ -1,0 +1,619 @@
+#
+# Copyright 2021-2026 Aklivity Inc
+#
+# Licensed under the Aklivity Community License (the "License"); you may not use
+# this file except in compliance with the License.  You may obtain a copy of the
+# License at
+#
+#   https://www.aklivity.io/aklivity-community-license/
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations under the License.
+#
+
+---
+name: test
+catalogs:
+  http_github0:
+    type: inline
+    options:
+      subjects:
+        create_pr_params:
+          version: latest
+          schema: |
+            {
+              "type": "object",
+              "required": ["owner", "repo", "title", "head", "base"],
+              "properties": {
+                "owner": { "type": "string" },
+                "repo":  { "type": "string" },
+                "title": { "type": "string" },
+                "head":  { "type": "string" },
+                "base":  { "type": "string" },
+                "body":  { "type": "string" },
+                "draft": { "type": "boolean" }
+              }
+            }
+        create_pr_body:
+          version: latest
+          schema: |
+            {
+              "type": "object",
+              "required": ["title", "head", "base"],
+              "properties": {
+                "title": { "type": "string" },
+                "head":  { "type": "string" },
+                "base":  { "type": "string" },
+                "body":  { "type": "string" },
+                "draft": { "type": "boolean" }
+              }
+            }
+        create_pr_result:
+          version: latest
+          schema: |
+            {
+              "type": "object",
+              "properties": {
+                "number":   { "type": "integer" },
+                "html_url": { "type": "string" },
+                "state":    { "type": "string" },
+                "title":    { "type": "string" }
+              }
+            }
+        add_pr_comment_params:
+          version: latest
+          schema: |
+            {
+              "type": "object",
+              "required": ["owner", "repo", "number", "message"],
+              "properties": {
+                "owner":   { "type": "string" },
+                "repo":    { "type": "string" },
+                "number":  { "type": "integer" },
+                "message": { "type": "string" }
+              }
+            }
+        add_pr_comment_result:
+          version: latest
+          schema: |
+            {
+              "type": "object",
+              "properties": {
+                "id":   { "type": "integer" },
+                "body": { "type": "string" }
+              }
+            }
+        search_code_params:
+          version: latest
+          schema: |
+            {
+              "type": "object",
+              "required": ["q"],
+              "properties": {
+                "q":        { "type": "string" },
+                "per_page": { "type": "integer" },
+                "page":     { "type": "integer" },
+                "labels":   { "type": "array", "items": { "type": "string" } },
+                "archived": { "type": "boolean" }
+              }
+            }
+        search_code_result:
+          version: latest
+          schema: |
+            {
+              "type": "object",
+              "properties": {
+                "total_count": { "type": "integer" },
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": { "path": { "type": "string" } }
+                  }
+                }
+              }
+            }
+        order_result:
+          version: latest
+          schema: |
+            {
+              "type": "object",
+              "properties": {
+                "id":     { "type": "string" },
+                "status": { "type": "string" },
+                "total":  { "type": "number" }
+              }
+            }
+        search_items_params:
+          version: latest
+          schema: |
+            {
+              "type": "object",
+              "required": ["q"],
+              "properties": {
+                "q":     { "type": "string" },
+                "limit": { "type": "integer" }
+              }
+            }
+        search_items_result:
+          version: latest
+          schema: |
+            {
+              "type": "object",
+              "properties": {
+                "items": { "type": "array", "items": { "type": "string" } }
+              }
+            }
+        report_params:
+          version: latest
+          schema: |
+            {
+              "type": "object",
+              "properties": {}
+            }
+        report_result:
+          version: latest
+          schema: |
+            {
+              "type": "object",
+              "properties": {
+                "message": { "type": "string" }
+              }
+            }
+        ping_params:
+          version: latest
+          schema: |
+            {
+              "type": "object",
+              "properties": {}
+            }
+        ping_result:
+          version: latest
+          schema: |
+            {
+              "type": "object",
+              "properties": {
+                "status": { "type": "string" }
+              }
+            }
+        list_tags_params:
+          version: latest
+          schema: |
+            {
+              "type": "object",
+              "properties": {}
+            }
+        list_tags_result:
+          version: latest
+          schema: |
+            {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+        count_items_params:
+          version: latest
+          schema: |
+            {
+              "type": "object",
+              "properties": {}
+            }
+        count_items_result:
+          version: latest
+          schema: |
+            {
+              "type": "integer"
+            }
+        echo_id_params:
+          version: latest
+          schema: |
+            {
+              "type": "object",
+              "required": ["id"],
+              "properties": {
+                "id": { "type": "string" }
+              }
+            }
+        echo_id_result:
+          version: latest
+          schema: |
+            {
+              "type": "object",
+              "properties": {
+                "status": { "type": "string" }
+              }
+            }
+        profile_params:
+          version: latest
+          schema: |
+            {
+              "type": "object",
+              "properties": {}
+            }
+        profile_result:
+          version: latest
+          schema: |
+            {
+              "type": "object",
+              "properties": {
+                "user": {
+                  "type": "object",
+                  "properties": {
+                    "id":   { "type": "integer" },
+                    "name": { "type": "string" }
+                  }
+                },
+                "roles": {
+                  "type": "array",
+                  "items": { "type": "string" }
+                },
+                "active":  { "type": "boolean" },
+                "manager": { "type": ["string", "null"] }
+              }
+            }
+        update_issue_params:
+          version: latest
+          schema: |
+            {
+              "type": "object",
+              "required": ["state"],
+              "properties": {
+                "owner": { "type": "string" },
+                "repo":  { "type": "string" },
+                "state": { "type": "string" }
+              }
+            }
+bindings:
+  app0:
+    type: mcp_http
+    kind: client
+    options:
+      tools:
+        create_pr:
+          description: >
+            Create a pull request to merge one branch into another.
+            Use when proposing code changes for review.
+          summary: "Created pull request #${result.number}"
+          schemas:
+            input:
+              model: json
+              catalog:
+                http_github0:
+                  - subject: create_pr_params
+                    version: latest
+            output:
+              model: json
+              catalog:
+                http_github0:
+                  - subject: create_pr_result
+                    version: latest
+        add_pr_comment:
+          description: >
+            Add a comment to a pull request.
+          summary: "Commented: ${result.body}"
+          schemas:
+            input:
+              model: json
+              catalog:
+                http_github0:
+                  - subject: add_pr_comment_params
+                    version: latest
+            output:
+              model: json
+              catalog:
+                http_github0:
+                  - subject: add_pr_comment_result
+                    version: latest
+        create_widget:
+          description: >
+            Create a widget. A body-only tool with no path parameters,
+            covering the with.body request-shaping path independently of
+            any path-arg-driven readiness gate.
+          summary: "Created widget: ${result.name}"
+          schemas:
+            input:
+              model: json
+              catalog:
+                http_github0:
+                  - subject: create_pr_body
+                    version: latest
+        search_code:
+          description: >
+            Search for code across repositories using code search syntax.
+          summary: "Found ${result.total_count} matches"
+          schemas:
+            input:
+              model: json
+              catalog:
+                http_github0:
+                  - subject: search_code_params
+                    version: latest
+            output:
+              model: json
+              catalog:
+                http_github0:
+                  - subject: search_code_result
+                    version: latest
+        get_report:
+          description: >
+            Get a status report.
+          summary: "Report: ${result.message}"
+          schemas:
+            input:
+              model: json
+              catalog:
+                http_github0:
+                  - subject: report_params
+                    version: latest
+            output:
+              model: json
+              catalog:
+                http_github0:
+                  - subject: report_result
+                    version: latest
+        ping:
+          description: >
+            Check service liveness.
+          summary: "Status: ${result.status}"
+          schemas:
+            input:
+              model: json
+              catalog:
+                http_github0:
+                  - subject: ping_params
+                    version: latest
+            output:
+              model: json
+              catalog:
+                http_github0:
+                  - subject: ping_result
+                    version: latest
+        list_tags:
+          description: >
+            List repository tags.
+          summary: "done"
+          schemas:
+            input:
+              model: json
+              catalog:
+                http_github0:
+                  - subject: list_tags_params
+                    version: latest
+            output:
+              model: json
+              catalog:
+                http_github0:
+                  - subject: list_tags_result
+                    version: latest
+        count_items:
+          description: >
+            Count items in the backlog.
+          summary: "done"
+          schemas:
+            input:
+              model: json
+              catalog:
+                http_github0:
+                  - subject: count_items_params
+                    version: latest
+            output:
+              model: json
+              catalog:
+                http_github0:
+                  - subject: count_items_result
+                    version: latest
+        echo_id:
+          description: >
+            Echo the given identifier.
+          summary: "Echoed: ${result.status}"
+          schemas:
+            input:
+              model: json
+              catalog:
+                http_github0:
+                  - subject: echo_id_params
+                    version: latest
+            output:
+              model: json
+              catalog:
+                http_github0:
+                  - subject: echo_id_result
+                    version: latest
+        get_profile:
+          description: >
+            Get the caller's profile.
+          summary: "Profile for ${result.user.name}"
+          schemas:
+            input:
+              model: json
+              catalog:
+                http_github0:
+                  - subject: profile_params
+                    version: latest
+            output:
+              model: json
+              catalog:
+                http_github0:
+                  - subject: profile_result
+                    version: latest
+        search_items:
+          description: >
+            Search items, optionally limiting the number of results.
+          summary: "done"
+          schemas:
+            input:
+              model: json
+              catalog:
+                http_github0:
+                  - subject: search_items_params
+                    version: latest
+            output:
+              model: json
+              catalog:
+                http_github0:
+                  - subject: search_items_result
+                    version: latest
+        update_issue:
+          description: >
+            Update an issue's state. Models a tool whose derived input schema
+            marks only the body arg as required, leaving path args (owner,
+            repo) present in properties but absent from required.
+          summary: "done"
+          schemas:
+            input:
+              model: json
+              catalog:
+                http_github0:
+                  - subject: update_issue_params
+                    version: latest
+      resources:
+        order:
+          uri: "order://{orderId}"
+          description: "Customer order by identifier"
+          mimeType: application/json
+          schemas:
+            output:
+              model: json
+              catalog:
+                http_github0:
+                  - subject: order_result
+                    version: latest
+    routes:
+      - when:
+          - tool: create_pr
+        with:
+          headers:
+            ":method": POST
+            ":scheme": https
+            ":authority": api.github.com:443
+            ":path": /repos/${args.owner}/${args.repo}/pulls
+          body:
+            model: json
+            catalog:
+              http_github0:
+                - subject: create_pr_body
+                  version: latest
+      - when:
+          - tool: create_widget
+        with:
+          headers:
+            ":method": POST
+            ":scheme": https
+            ":authority": api.github.com:443
+            ":path": /widgets
+          body:
+            model: json
+            catalog:
+              http_github0:
+                - subject: create_pr_body
+                  version: latest
+      - when:
+          - tool: add_pr_comment
+        with:
+          headers:
+            ":method": POST
+            ":scheme": https
+            ":authority": api.github.com:443
+            ":path": /repos/${args.owner}/${args.repo}/issues/${args.number}/comments
+          body:
+            template:
+              body: "${args.message}"
+      - when:
+          - tool: search_code
+        with:
+          headers:
+            ":method": GET
+            ":scheme": https
+            ":authority": api.github.com:443
+            ":path": /search/code
+          query:
+            model: json
+            catalog:
+              http_github0:
+                - subject: search_code_params
+                  version: latest
+      - when:
+          - resource: order
+        with:
+          headers:
+            ":method": GET
+            ":scheme": https
+            ":authority": api.orders.internal:443
+            ":path": /orders/${params.orderId}
+      - when:
+          - tool: get_report
+        with:
+          headers:
+            ":method": GET
+            ":scheme": https
+            ":authority": api.github.com:443
+            ":path": /report
+      - when:
+          - tool: ping
+        with:
+          headers:
+            ":method": GET
+            ":scheme": https
+            ":authority": api.github.com:443
+            ":path": /ping
+      - when:
+          - tool: list_tags
+        with:
+          headers:
+            ":method": GET
+            ":scheme": https
+            ":authority": api.github.com:443
+            ":path": /tags
+      - when:
+          - tool: count_items
+        with:
+          headers:
+            ":method": GET
+            ":scheme": https
+            ":authority": api.github.com:443
+            ":path": /count
+      - when:
+          - tool: echo_id
+        with:
+          headers:
+            ":method": POST
+            ":scheme": https
+            ":authority": api.github.com:443
+            ":path": /echo/${args.id}
+          body:
+            model: json
+            catalog:
+              http_github0:
+                - subject: echo_id_params
+                  version: latest
+      - when:
+          - tool: get_profile
+        with:
+          headers:
+            ":method": GET
+            ":scheme": https
+            ":authority": api.github.com:443
+            ":path": /profile
+      - when:
+          - tool: search_items
+        with:
+          headers:
+            ":method": GET
+            ":scheme": https
+            ":authority": api.github.com:443
+            ":path": /items?q=${args.q}&${?args.limit=limit}
+      - when:
+          - tool: update_issue
+        with:
+          headers:
+            ":method": PATCH
+            ":scheme": https
+            ":authority": api.github.com:443
+            ":path": /repos/${args.owner}/${args.repo}/issues
+          body:
+            model: json
+            catalog:
+              http_github0:
+                - subject: update_issue_params
+                  version: latest

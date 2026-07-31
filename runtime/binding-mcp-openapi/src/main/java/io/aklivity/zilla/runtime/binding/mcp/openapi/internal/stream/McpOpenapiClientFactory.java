@@ -82,7 +82,7 @@ public final class McpOpenapiClientFactory implements BindingHandler
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.bindings = new Long2ObjectHashMap<>();
-        this.generator = new McpOpenapiCompositeGenerator(config.httpClientExit());
+        this.generator = new McpOpenapiCompositeGenerator();
         this.event = new McpOpenapiEventContext(context);
         this.compositeRouteId = config.compositeRouteId();
     }
