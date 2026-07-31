@@ -28,7 +28,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
  * boundary.
  * </p>
  */
-public interface DescribeConfigsResponse
+public interface KafkaDescribeConfigsResponse
 {
     enum Kind
     {

@@ -31,11 +31,11 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 /**
  * Hand-crafted (not {@code .idl}-generated) DescribeConfigs v4 response cursor. Delegates the actual
  * byte decoding to the generated {@code protocol.idl} wire types, adding the version-tolerant
- * {@link DescribeConfigsResponse} view on top, mirroring {@link CreateTopicsResponseV7FW}. Each
+ * {@link KafkaDescribeConfigsResponse} view on top, mirroring {@link CreateTopicsResponseV7FW}. Each
  * config's synonyms (and v3+ config type / documentation) are decoded and discarded inline as part
- * of landing on that config, since {@link DescribeConfigsResponse.Config} does not surface them.
+ * of landing on that config, since {@link KafkaDescribeConfigsResponse.Config} does not surface them.
  */
-public final class DescribeConfigsResponseV4FW implements DescribeConfigsResponse
+public final class KafkaDescribeConfigsResponseV4FW implements KafkaDescribeConfigsResponse
 {
     private static final int FIELD_SIZE_THROTTLE_TIME_MILLIS = 4;
 
@@ -82,7 +82,7 @@ public final class DescribeConfigsResponseV4FW implements DescribeConfigsRespons
      * Wraps a complete DescribeConfigs v4 response body: tagged fields, throttle time, and resource
      * count, followed by the resources themselves.
      */
-    public DescribeConfigsResponseV4FW wrap(
+    public KafkaDescribeConfigsResponseV4FW wrap(
         DirectBufferEx buffer,
         int offset,
         int limit)

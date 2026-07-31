@@ -40,19 +40,19 @@ import jakarta.json.JsonObjectBuilder;
 import org.agrona.collections.Long2ObjectHashMap;
 
 import io.aklivity.zilla.config.engine.BindingConfig;
-import io.aklivity.zilla.runtime.binding.kafka.api.AlterConfigsResponse;
-import io.aklivity.zilla.runtime.binding.kafka.api.AlterConfigsResponseV2FW;
 import io.aklivity.zilla.runtime.binding.kafka.api.CreateTopicsResponse.Kind;
 import io.aklivity.zilla.runtime.binding.kafka.api.CreateTopicsResponse.Topic;
 import io.aklivity.zilla.runtime.binding.kafka.api.CreateTopicsResponseV7FW;
 import io.aklivity.zilla.runtime.binding.kafka.api.DeleteTopicsResponse;
 import io.aklivity.zilla.runtime.binding.kafka.api.DeleteTopicsResponseV6FW;
-import io.aklivity.zilla.runtime.binding.kafka.api.DescribeConfigsResponse;
-import io.aklivity.zilla.runtime.binding.kafka.api.DescribeConfigsResponseV4FW;
 import io.aklivity.zilla.runtime.binding.kafka.api.KafkaAlterConfigsRequest;
+import io.aklivity.zilla.runtime.binding.kafka.api.KafkaAlterConfigsResponse;
+import io.aklivity.zilla.runtime.binding.kafka.api.KafkaAlterConfigsResponseV2FW;
 import io.aklivity.zilla.runtime.binding.kafka.api.KafkaCreateTopicsRequest;
 import io.aklivity.zilla.runtime.binding.kafka.api.KafkaDeleteTopicsRequest;
 import io.aklivity.zilla.runtime.binding.kafka.api.KafkaDescribeConfigsRequest;
+import io.aklivity.zilla.runtime.binding.kafka.api.KafkaDescribeConfigsResponse;
+import io.aklivity.zilla.runtime.binding.kafka.api.KafkaDescribeConfigsResponseV4FW;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.McpKafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.config.McpKafkaBindingConfig;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.config.McpKafkaRouteConfig;
@@ -207,8 +207,8 @@ public class McpKafkaProxyFactory implements BindingHandler
     private final JsonGeneratorEx apiResultGenerator;
     private final CreateTopicsResponseV7FW createTopicsResponseRO;
     private final DeleteTopicsResponseV6FW deleteTopicsResponseRO;
-    private final DescribeConfigsResponseV4FW describeConfigsResponseRO;
-    private final AlterConfigsResponseV2FW alterConfigsResponseRO;
+    private final KafkaDescribeConfigsResponseV4FW describeConfigsResponseRO;
+    private final KafkaAlterConfigsResponseV2FW alterConfigsResponseRO;
     private final int createTopicsRequestTimeoutMs;
 
     protected final Long2ObjectHashMap<McpKafkaBindingConfig> bindings;
@@ -238,8 +238,8 @@ public class McpKafkaProxyFactory implements BindingHandler
         this.apiResultGenerator = JsonEx.createGenerator();
         this.createTopicsResponseRO = new CreateTopicsResponseV7FW();
         this.deleteTopicsResponseRO = new DeleteTopicsResponseV6FW();
-        this.describeConfigsResponseRO = new DescribeConfigsResponseV4FW();
-        this.alterConfigsResponseRO = new AlterConfigsResponseV2FW();
+        this.describeConfigsResponseRO = new KafkaDescribeConfigsResponseV4FW();
+        this.alterConfigsResponseRO = new KafkaAlterConfigsResponseV2FW();
         this.createTopicsRequestTimeoutMs = (int) config.requestTimeout().toMillis();
     }
 
@@ -3457,7 +3457,7 @@ public class McpKafkaProxyFactory implements BindingHandler
             long traceId)
         {
             final MutableDirectBufferEx slot = decodePool.buffer(decodeSlot);
-            final DescribeConfigsResponseV4FW response = describeConfigsResponseRO.wrap(slot, 0, responseLength);
+            final KafkaDescribeConfigsResponseV4FW response = describeConfigsResponseRO.wrap(slot, 0, responseLength);
 
             final int encodeSlot = encodePool.acquire(kafkaReplyId);
             if (encodeSlot == NO_SLOT)
@@ -3483,7 +3483,7 @@ public class McpKafkaProxyFactory implements BindingHandler
                     switch (response.next())
                     {
                     case RESOURCE:
-                        final DescribeConfigsResponse.Resource resource = response.resource();
+                        final KafkaDescribeConfigsResponse.Resource resource = response.resource();
                         if (resource.error() != 0)
                         {
                             isError = true;
@@ -3495,7 +3495,7 @@ public class McpKafkaProxyFactory implements BindingHandler
                         }
                         break;
                     case CONFIG:
-                        final DescribeConfigsResponse.Config config = response.config();
+                        final KafkaDescribeConfigsResponse.Config config = response.config();
                         final String configName = config.buffer()
                             .getStringWithoutLengthUtf8(config.nameOffset(), config.nameLength());
 
@@ -3877,7 +3877,7 @@ public class McpKafkaProxyFactory implements BindingHandler
             long traceId)
         {
             final MutableDirectBufferEx slot = decodePool.buffer(decodeSlot);
-            final AlterConfigsResponseV2FW response = alterConfigsResponseRO.wrap(slot, 0, responseLength);
+            final KafkaAlterConfigsResponseV2FW response = alterConfigsResponseRO.wrap(slot, 0, responseLength);
 
             final int encodeSlot = encodePool.acquire(kafkaReplyId);
             if (encodeSlot == NO_SLOT)
@@ -3897,7 +3897,7 @@ public class McpKafkaProxyFactory implements BindingHandler
 
                 while (response.hasNext())
                 {
-                    final AlterConfigsResponse.Resource resource = response.next();
+                    final KafkaAlterConfigsResponse.Resource resource = response.next();
                     error = resource.error();
                     if (resource.messageLength() != -1)
                     {

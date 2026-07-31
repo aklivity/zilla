@@ -25,7 +25,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
  * AlterConfigs has exactly one result shape per entry, so there is no {@code Kind} discriminator.
  * </p>
  */
-public interface AlterConfigsResponse
+public interface KafkaAlterConfigsResponse
 {
     int throttleTimeMillis();
 

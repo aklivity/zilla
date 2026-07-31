@@ -27,9 +27,9 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 /**
  * Hand-crafted (not {@code .idl}-generated) AlterConfigs v2 response cursor. Delegates the actual
  * byte decoding to the generated {@code protocol.idl} wire types, adding the version-tolerant
- * {@link AlterConfigsResponse} view on top, mirroring {@link DeleteTopicsResponseV6FW}.
+ * {@link KafkaAlterConfigsResponse} view on top, mirroring {@link DeleteTopicsResponseV6FW}.
  */
-public final class AlterConfigsResponseV2FW implements AlterConfigsResponse
+public final class KafkaAlterConfigsResponseV2FW implements KafkaAlterConfigsResponse
 {
     private static final int FIELD_SIZE_THROTTLE_TIME_MILLIS = 4;
 
@@ -60,7 +60,7 @@ public final class AlterConfigsResponseV2FW implements AlterConfigsResponse
      * Wraps a complete AlterConfigs v2 response body: tagged fields, throttle time, and resource
      * count, followed by the resources themselves.
      */
-    public AlterConfigsResponseV2FW wrap(
+    public KafkaAlterConfigsResponseV2FW wrap(
         DirectBufferEx buffer,
         int offset,
         int limit)

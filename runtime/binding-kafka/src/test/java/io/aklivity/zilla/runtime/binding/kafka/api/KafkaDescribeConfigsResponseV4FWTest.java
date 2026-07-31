@@ -21,13 +21,13 @@ import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.binding.kafka.api.DescribeConfigsResponse.Config;
-import io.aklivity.zilla.runtime.binding.kafka.api.DescribeConfigsResponse.Kind;
-import io.aklivity.zilla.runtime.binding.kafka.api.DescribeConfigsResponse.Resource;
+import io.aklivity.zilla.runtime.binding.kafka.api.KafkaDescribeConfigsResponse.Config;
+import io.aklivity.zilla.runtime.binding.kafka.api.KafkaDescribeConfigsResponse.Kind;
+import io.aklivity.zilla.runtime.binding.kafka.api.KafkaDescribeConfigsResponse.Resource;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
-public class DescribeConfigsResponseV4FWTest
+public class KafkaDescribeConfigsResponseV4FWTest
 {
     // body bytes only, as verified against the DescribeConfigs v4 wire decoder input (the response
     // header's correlationId is decoded separately and excluded here). One resource with two configs;
@@ -95,7 +95,7 @@ public class DescribeConfigsResponseV4FWTest
     @Test
     public void shouldDecodeDescribeConfigsV4ResponseWithConfigsAndSynonyms()
     {
-        DescribeConfigsResponseV4FW response = new DescribeConfigsResponseV4FW();
+        KafkaDescribeConfigsResponseV4FW response = new KafkaDescribeConfigsResponseV4FW();
 
         DirectBufferEx buffer = new UnsafeBufferEx(BODY_WITH_CONFIGS);
         response.wrap(buffer, 0, buffer.capacity());
@@ -137,7 +137,7 @@ public class DescribeConfigsResponseV4FWTest
     @Test
     public void shouldDecodeDescribeConfigsV4ResponseWithResourceError()
     {
-        DescribeConfigsResponseV4FW response = new DescribeConfigsResponseV4FW();
+        KafkaDescribeConfigsResponseV4FW response = new KafkaDescribeConfigsResponseV4FW();
 
         DirectBufferEx buffer = new UnsafeBufferEx(BODY_WITH_ERROR);
         response.wrap(buffer, 0, buffer.capacity());

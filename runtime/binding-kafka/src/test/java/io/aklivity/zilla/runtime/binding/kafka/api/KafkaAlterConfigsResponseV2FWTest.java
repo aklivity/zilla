@@ -21,11 +21,11 @@ import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.binding.kafka.api.AlterConfigsResponse.Resource;
+import io.aklivity.zilla.runtime.binding.kafka.api.KafkaAlterConfigsResponse.Resource;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
-public class AlterConfigsResponseV2FWTest
+public class KafkaAlterConfigsResponseV2FWTest
 {
     // body bytes only, as verified against the AlterConfigs v2 wire decoder input (the response
     // header's correlationId is decoded separately and excluded here)
@@ -63,7 +63,7 @@ public class AlterConfigsResponseV2FWTest
     @Test
     public void shouldDecodeAlterConfigsV2Response()
     {
-        AlterConfigsResponseV2FW response = new AlterConfigsResponseV2FW();
+        KafkaAlterConfigsResponseV2FW response = new KafkaAlterConfigsResponseV2FW();
 
         DirectBufferEx buffer = new UnsafeBufferEx(BODY);
         response.wrap(buffer, 0, buffer.capacity());
