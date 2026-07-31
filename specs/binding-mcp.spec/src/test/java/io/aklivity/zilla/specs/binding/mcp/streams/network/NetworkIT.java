@@ -497,6 +497,33 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/resources.subscribe/client",
+        "${net}/resources.subscribe/server"})
+    public void shouldSubscribeToResource() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/resources.unsubscribe/client",
+        "${net}/resources.unsubscribe/server"})
+    public void shouldUnsubscribeFromResource() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/resources.unsubscribe.unknown.uri/client",
+        "${net}/resources.unsubscribe.unknown.uri/server"})
+    public void shouldRejectUnsubscribeFromUnknownUri() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/resources.read.identity/client",
         "${net}/resources.read.identity/server"})
     public void shouldReadResourceWithIdentity() throws Exception

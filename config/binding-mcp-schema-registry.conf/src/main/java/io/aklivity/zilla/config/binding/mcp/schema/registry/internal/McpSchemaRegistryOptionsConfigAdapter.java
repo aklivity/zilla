@@ -33,7 +33,10 @@ public final class McpSchemaRegistryOptionsConfigAdapter implements JsonbAdapter
         McpSchemaRegistryOptionsConfig schemaRegistryOptions = (McpSchemaRegistryOptionsConfig) options;
 
         JsonObjectBuilder object = Json.createObjectBuilder();
-        object.add(SERVER_NAME, schemaRegistryOptions.server);
+        if (schemaRegistryOptions.server != null)
+        {
+            object.add(SERVER_NAME, schemaRegistryOptions.server);
+        }
         return object.build();
     }
 
@@ -41,7 +44,7 @@ public final class McpSchemaRegistryOptionsConfigAdapter implements JsonbAdapter
     public OptionsConfig adaptFromJson(
         JsonObject object)
     {
-        String server = object.getString(SERVER_NAME);
+        String server = object.containsKey(SERVER_NAME) ? object.getString(SERVER_NAME) : null;
 
         return McpSchemaRegistryOptionsConfig.builder()
             .server(server)

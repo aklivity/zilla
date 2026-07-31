@@ -1,0 +1,10 @@
+{
+  "name": "resource-subscribe-client",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Headless MCP client that subscribes to an everything resource through the Zilla mcp proxy and waits for a relayed notifications/resources/updated",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.29.0"
+  }
+}

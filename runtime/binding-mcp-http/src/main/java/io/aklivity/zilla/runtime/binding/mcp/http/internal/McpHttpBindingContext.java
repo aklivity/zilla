@@ -38,7 +38,7 @@ final class McpHttpBindingContext implements BindingContext
     {
         BindingHandler handler = null;
 
-        if (binding.kind == KindConfig.PROXY)
+        if (binding.kind == KindConfig.PROXY || binding.kind == KindConfig.CLIENT)
         {
             factory.attach(binding);
             handler = factory;
@@ -51,7 +51,7 @@ final class McpHttpBindingContext implements BindingContext
     public void detach(
         BindingConfig binding)
     {
-        if (binding.kind == KindConfig.PROXY)
+        if (binding.kind == KindConfig.PROXY || binding.kind == KindConfig.CLIENT)
         {
             factory.detach(binding.id);
         }
