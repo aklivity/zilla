@@ -32,7 +32,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 /**
  * Hand-crafted (not {@code .idl}-generated) Metadata v9 response cursor. Delegates the actual byte
  * decoding to the generated {@code protocol.idl} wire types, adding the version-tolerant
- * {@link MetadataResponse} view on top - a fixed-default-on-read behavior the flyweight generator
+ * {@link KafkaMetadataResponse} view on top - a fixed-default-on-read behavior the flyweight generator
  * cannot produce, since generated builders only default missing fields on write.
  * <p>
  * Also works around a flyweight-maven-plugin code generation gap: the generated {@code int32[]}
@@ -41,7 +41,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
  * network}, unlike every scalar field accessor in the same generated class. {@link #networkOrder}
  * corrects this per element rather than papering over it silently.
  */
-public final class MetadataResponseV9FW implements MetadataResponse
+public final class KafkaMetadataResponseV9FW implements KafkaMetadataResponse
 {
     private static final int FIELD_SIZE_THROTTLE_TIME_MILLIS = 4;
 
@@ -107,9 +107,9 @@ public final class MetadataResponseV9FW implements MetadataResponse
     /**
      * Wraps a complete Metadata v9 response body: tagged fields, throttle time, and broker count,
      * followed by the brokers themselves. The leading {@code correlationId} is assumed already
-     * consumed by the caller, as with {@link CreateTopicsResponseV7FW}.
+     * consumed by the caller, as with {@link KafkaCreateTopicsResponseV7FW}.
      */
-    public MetadataResponseV9FW wrap(
+    public KafkaMetadataResponseV9FW wrap(
         DirectBufferEx buffer,
         int offset,
         int limit)

@@ -23,14 +23,14 @@ import java.util.PrimitiveIterator;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.binding.kafka.api.MetadataResponse.Broker;
-import io.aklivity.zilla.runtime.binding.kafka.api.MetadataResponse.Kind;
-import io.aklivity.zilla.runtime.binding.kafka.api.MetadataResponse.Partition;
-import io.aklivity.zilla.runtime.binding.kafka.api.MetadataResponse.Topic;
+import io.aklivity.zilla.runtime.binding.kafka.api.KafkaMetadataResponse.Broker;
+import io.aklivity.zilla.runtime.binding.kafka.api.KafkaMetadataResponse.Kind;
+import io.aklivity.zilla.runtime.binding.kafka.api.KafkaMetadataResponse.Partition;
+import io.aklivity.zilla.runtime.binding.kafka.api.KafkaMetadataResponse.Topic;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
-public class MetadataResponseV9FWTest
+public class KafkaMetadataResponseV9FWTest
 {
     // body bytes only, as verified against the official Metadata v9 response schema
     // (the response header's correlationId is decoded separately and excluded here)
@@ -78,7 +78,7 @@ public class MetadataResponseV9FWTest
     @Test
     public void shouldDecodeMetadataV9Response()
     {
-        MetadataResponseV9FW response = new MetadataResponseV9FW();
+        KafkaMetadataResponseV9FW response = new KafkaMetadataResponseV9FW();
 
         DirectBufferEx buffer = new UnsafeBufferEx(BODY);
         response.wrap(buffer, 0, buffer.capacity());

@@ -49,8 +49,8 @@ import io.aklivity.zilla.runtime.binding.kafka.api.DeleteTopicsResponseV6FW;
 import io.aklivity.zilla.runtime.binding.kafka.api.KafkaCreateTopicsRequest;
 import io.aklivity.zilla.runtime.binding.kafka.api.KafkaDeleteTopicsRequest;
 import io.aklivity.zilla.runtime.binding.kafka.api.KafkaMetadataRequest;
-import io.aklivity.zilla.runtime.binding.kafka.api.MetadataResponse;
-import io.aklivity.zilla.runtime.binding.kafka.api.MetadataResponseV9FW;
+import io.aklivity.zilla.runtime.binding.kafka.api.KafkaMetadataResponse;
+import io.aklivity.zilla.runtime.binding.kafka.api.KafkaMetadataResponseV9FW;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.McpKafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.config.McpKafkaBindingConfig;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.config.McpKafkaRouteConfig;
@@ -200,7 +200,7 @@ public class McpKafkaProxyFactory implements BindingHandler
     private final JsonGeneratorEx apiResultGenerator;
     private final CreateTopicsResponseV7FW createTopicsResponseRO;
     private final DeleteTopicsResponseV6FW deleteTopicsResponseRO;
-    private final MetadataResponseV9FW metadataResponseRO;
+    private final KafkaMetadataResponseV9FW metadataResponseRO;
     private final int createTopicsRequestTimeoutMs;
 
     protected final Long2ObjectHashMap<McpKafkaBindingConfig> bindings;
@@ -229,7 +229,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         this.apiResultGenerator = JsonEx.createGenerator();
         this.createTopicsResponseRO = new CreateTopicsResponseV7FW();
         this.deleteTopicsResponseRO = new DeleteTopicsResponseV6FW();
-        this.metadataResponseRO = new MetadataResponseV9FW();
+        this.metadataResponseRO = new KafkaMetadataResponseV9FW();
         this.createTopicsRequestTimeoutMs = (int) config.requestTimeout().toMillis();
     }
 
@@ -3435,7 +3435,7 @@ public class McpKafkaProxyFactory implements BindingHandler
             long traceId)
         {
             final MutableDirectBufferEx slot = decodePool.buffer(decodeSlot);
-            final MetadataResponse response = metadataResponseRO.wrap(slot, 0, responseLength);
+            final KafkaMetadataResponse response = metadataResponseRO.wrap(slot, 0, responseLength);
 
             final int encodeSlot = encodePool.acquire(kafkaReplyId);
             if (encodeSlot == NO_SLOT)
@@ -3473,7 +3473,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         }
 
         private void writeListTopicsResult(
-            MetadataResponse response)
+            KafkaMetadataResponse response)
         {
             while (response.hasNextBroker())
             {
@@ -3489,9 +3489,9 @@ public class McpKafkaProxyFactory implements BindingHandler
 
             while (response.hasNext())
             {
-                if (response.next() == MetadataResponse.Kind.TOPIC)
+                if (response.next() == KafkaMetadataResponse.Kind.TOPIC)
                 {
-                    final MetadataResponse.Topic topic = response.topic();
+                    final KafkaMetadataResponse.Topic topic = response.topic();
                     final String name =
                         response.buffer().getStringWithoutLengthUtf8(topic.nameOffset(), topic.nameLength());
                     topicCount++;
@@ -3508,7 +3508,7 @@ public class McpKafkaProxyFactory implements BindingHandler
                 }
                 else if (awaitingFactor)
                 {
-                    final MetadataResponse.Partition partition = response.partition();
+                    final KafkaMetadataResponse.Partition partition = response.partition();
                     apiResultGenerator.write("replication_factor", partition.replicaCount()).writeEnd();
                     awaitingFactor = false;
                 }
@@ -3528,7 +3528,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         }
 
         private boolean writeDescribeTopicResult(
-            MetadataResponse response)
+            KafkaMetadataResponse response)
         {
             while (response.hasNextBroker())
             {
@@ -3544,9 +3544,9 @@ public class McpKafkaProxyFactory implements BindingHandler
 
             while (response.hasNext())
             {
-                if (response.next() == MetadataResponse.Kind.TOPIC)
+                if (response.next() == KafkaMetadataResponse.Kind.TOPIC)
                 {
-                    final MetadataResponse.Topic topic = response.topic();
+                    final KafkaMetadataResponse.Topic topic = response.topic();
                     name = response.buffer().getStringWithoutLengthUtf8(topic.nameOffset(), topic.nameLength());
                     apiResultGenerator.write("name", name);
 
@@ -3559,7 +3559,7 @@ public class McpKafkaProxyFactory implements BindingHandler
                 }
                 else if (partitionsOpen)
                 {
-                    final MetadataResponse.Partition partition = response.partition();
+                    final KafkaMetadataResponse.Partition partition = response.partition();
                     apiResultGenerator.writeStartObject()
                         .write("partition_id", partition.partitionId())
                         .write("leader", partition.leader())
@@ -3607,7 +3607,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         }
 
         private void writeClusterOverviewResult(
-            MetadataResponse response)
+            KafkaMetadataResponse response)
         {
             while (response.hasNextBroker())
             {
@@ -3619,9 +3619,9 @@ public class McpKafkaProxyFactory implements BindingHandler
 
             while (response.hasNext())
             {
-                if (response.next() == MetadataResponse.Kind.PARTITION)
+                if (response.next() == KafkaMetadataResponse.Kind.PARTITION)
                 {
-                    final MetadataResponse.Partition partition = response.partition();
+                    final KafkaMetadataResponse.Partition partition = response.partition();
                     if (partition.isrCount() < partition.replicaCount())
                     {
                         underReplicated++;

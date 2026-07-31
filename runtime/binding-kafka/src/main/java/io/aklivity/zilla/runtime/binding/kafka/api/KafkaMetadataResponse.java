@@ -32,7 +32,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
  * default for any field its wire version does not carry, rather than changing shape.
  * </p>
  */
-public interface MetadataResponse
+public interface KafkaMetadataResponse
 {
     enum Kind
     {
