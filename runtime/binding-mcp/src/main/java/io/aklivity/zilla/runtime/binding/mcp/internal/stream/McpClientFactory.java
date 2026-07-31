@@ -1510,6 +1510,8 @@ public final class McpClientFactory implements McpStreamFactory
                             case KIND_TOOLS_CALL -> mcpBeginEx.toolsCall().contentLength();
                             case KIND_PROMPTS_GET -> mcpBeginEx.promptsGet().contentLength();
                             case KIND_RESOURCES_READ -> mcpBeginEx.resourcesRead().contentLength();
+                            case KIND_RESOURCES_SUBSCRIBE -> mcpBeginEx.resourcesSubscribe().contentLength();
+                            case KIND_RESOURCES_UNSUBSCRIBE -> mcpBeginEx.resourcesUnsubscribe().contentLength();
                             default -> -1;
                             };
                             request.timeout = switch (mcpBeginEx.kind())
@@ -1520,6 +1522,8 @@ public final class McpClientFactory implements McpStreamFactory
                             case KIND_PROMPTS_GET -> mcpBeginEx.promptsGet().timeout();
                             case KIND_RESOURCES_LIST -> mcpBeginEx.resourcesList().timeout();
                             case KIND_RESOURCES_READ -> mcpBeginEx.resourcesRead().timeout();
+                            case KIND_RESOURCES_SUBSCRIBE -> mcpBeginEx.resourcesSubscribe().timeout();
+                            case KIND_RESOURCES_UNSUBSCRIBE -> mcpBeginEx.resourcesUnsubscribe().timeout();
                             case KIND_RESOURCES_TEMPLATES_LIST -> mcpBeginEx.resourcesTemplatesList().timeout();
                             default -> 0L;
                             };

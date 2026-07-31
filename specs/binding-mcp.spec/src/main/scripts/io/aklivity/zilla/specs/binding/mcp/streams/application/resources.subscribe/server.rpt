@@ -35,6 +35,7 @@ write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .lifecycle()
                                .sessionId("session-1")
+                               .capabilities("SERVER_RESOURCES_SUBSCRIBE")
                                .build()
                            .build()}
 write flush

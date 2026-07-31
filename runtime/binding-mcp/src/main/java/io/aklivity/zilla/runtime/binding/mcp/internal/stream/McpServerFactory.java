@@ -73,6 +73,7 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpErrorReset
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpFlushExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpProgressFlushExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpResetExFW;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpResourcesUpdatedFlushExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.RedirectFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.SignalFW;

@@ -36,7 +36,7 @@ import jakarta.json.JsonObject;
 import jakarta.json.stream.JsonParser;
 
 import org.agrona.collections.Int2ObjectHashMap;
-import org.agrona.collections.Long2IntHashMap;
+import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.Object2IntHashMap;
 import org.agrona.collections.Object2ObjectHashMap;
 
@@ -100,7 +100,7 @@ public final class McpBindingConfig
     public final McpAggregateRoute[] aggregateRoutes;
 
     private final List<McpRouteConfig> routes;
-    private final Long2IntHashMap realCapabilitiesByRoute;
+    private final Long2ObjectHashMap<Integer> realCapabilitiesByRoute;
     private final String serverScheme;
     private final String serverAuthority;
     private final String serverPath;
@@ -166,7 +166,7 @@ public final class McpBindingConfig
             .map(cache -> new McpProxyCache(binding, config, context, cache))
             .orElse(null);
         this.sessions = new Object2ObjectHashMap<>();
-        this.realCapabilitiesByRoute = new Long2IntHashMap(0);
+        this.realCapabilitiesByRoute = new Long2ObjectHashMap<>();
 
         final URI server = Optional.ofNullable(options)
             .map(o -> o.server)
@@ -623,7 +623,11 @@ public final class McpBindingConfig
             if (route.authorized(authorization))
             {
                 bits |= route.serverCapabilities();
-                bits |= realCapabilitiesByRoute.get(route.id);
+                final Integer real = realCapabilitiesByRoute.get(route.id);
+                if (real != null)
+                {
+                    bits |= real;
+                }
             }
         }
         return bits;
@@ -633,7 +637,9 @@ public final class McpBindingConfig
         long routedId,
         int capabilities)
     {
-        realCapabilitiesByRoute.put(routedId, realCapabilitiesByRoute.get(routedId) | capabilities);
+        final Integer existing = realCapabilitiesByRoute.get(routedId);
+        final Integer merged = (existing != null ? existing : 0) | capabilities;
+        realCapabilitiesByRoute.put(routedId, merged);
     }
 
     public McpRouteConfig resolve(
