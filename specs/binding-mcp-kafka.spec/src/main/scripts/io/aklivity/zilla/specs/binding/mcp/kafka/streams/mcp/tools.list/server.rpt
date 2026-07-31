@@ -85,7 +85,7 @@ write  '{"tools":[{"name":"produce","inputSchema":{"type":"object","properties":
         '{"name":"describe_cluster","inputSchema":{"type":"object","properties":{}},'
         '"outputSchema":{"type":"object","properties":{"cluster_id":{"type":"string"},'
         '"controller_id":{"type":"integer"},"authorized_operations":{"type":"integer"}},'
-        '"required":["controller_id"]},"annotations":{"readOnlyHint":true,'
+        '"required":["controller_id","authorized_operations"]},"annotations":{"readOnlyHint":true,'
         '"destructiveHint":false,"idempotentHint":true}}]}'
 write flush
 

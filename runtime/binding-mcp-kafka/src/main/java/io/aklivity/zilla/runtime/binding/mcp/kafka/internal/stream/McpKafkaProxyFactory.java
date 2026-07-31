@@ -762,7 +762,7 @@ public class McpKafkaProxyFactory implements BindingHandler
                     .add("cluster_id", Json.createObjectBuilder().add("type", "string"))
                     .add("controller_id", Json.createObjectBuilder().add("type", "integer"))
                     .add("authorized_operations", Json.createObjectBuilder().add("type", "integer")))
-                .add("required", Json.createArrayBuilder().add("controller_id"))
+                .add("required", Json.createArrayBuilder().add("controller_id").add("authorized_operations"))
                 .build();
             break;
         default:
