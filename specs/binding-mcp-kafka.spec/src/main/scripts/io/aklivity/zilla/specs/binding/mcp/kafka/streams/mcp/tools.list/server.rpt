@@ -75,7 +75,18 @@ write  '{"tools":[{"name":"produce","inputSchema":{"type":"object","properties":
         '"required":["topics"]},"outputSchema":{"type":"object","properties":'
         '{"topics":{"type":"array","items":{"type":"object","properties":'
         '{"name":{"type":"string"},"error":{"type":"integer"},"errorMessage":{"type":"string"}},'
-        '"required":["name","error"]}}},"required":["topics"]}}]}'
+        '"required":["name","error"]}}},"required":["topics"]}},'
+        '{"name":"list_brokers","inputSchema":{"type":"object","properties":{}},'
+        '"outputSchema":{"type":"object","properties":{"brokers":{"type":"array",'
+        '"items":{"type":"object","properties":{"broker_id":{"type":"integer"},'
+        '"host":{"type":"string"},"port":{"type":"integer"},"rack":{"type":"string"}},'
+        '"required":["broker_id","host","port"]}}},"required":["brokers"]},'
+        '"annotations":{"readOnlyHint":true,"destructiveHint":false,"idempotentHint":true}},'
+        '{"name":"describe_cluster","inputSchema":{"type":"object","properties":{}},'
+        '"outputSchema":{"type":"object","properties":{"cluster_id":{"type":"string"},'
+        '"controller_id":{"type":"integer"},"authorized_operations":{"type":"integer"}},'
+        '"required":["controller_id","authorized_operations"]},"annotations":{"readOnlyHint":true,'
+        '"destructiveHint":false,"idempotentHint":true}}]}'
 write flush
 
 write close
