@@ -25,6 +25,7 @@ import io.aklivity.zilla.config.binding.mcp.schema.registry.McpSchemaRegistryOpt
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.config.engine.NamespaceConfig;
+import io.aklivity.zilla.config.engine.RouteConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 
 public final class McpSchemaRegistryBindingConfig
@@ -35,6 +36,7 @@ public final class McpSchemaRegistryBindingConfig
     public final KindConfig kind;
     public final McpSchemaRegistryOptionsConfig options;
     public final List<McpSchemaRegistryRouteConfig> routes;
+    public final String exit;
 
     public final ToLongBiFunction<NamespaceConfig, BindingConfig> supplyBindingId;
     public final ToLongFunction<String> resolveId;
@@ -51,12 +53,22 @@ public final class McpSchemaRegistryBindingConfig
         this.qname = binding.qname;
         this.kind = binding.kind;
         this.options = (McpSchemaRegistryOptionsConfig) binding.options;
+
+        // a top-level exit: shorthand synthesizes its own catch-all last route (empty when, no with,
+        // exit set) on this same binding -- exclude it here so it never counts as a declared tool route
         this.routes = binding.routes.stream()
+            .filter(route -> route.exit == null)
             .map(McpSchemaRegistryRouteConfig::new)
             .collect(toList());
 
         this.supplyBindingId = context::supplyBindingId;
         this.resolveId = binding.resolveId;
         this.supplyQName = context::supplyQName;
+
+        final RouteConfig exitRoute = binding.routes.stream()
+            .filter(route -> route.exit != null)
+            .findFirst()
+            .orElse(null);
+        this.exit = exitRoute != null ? context.supplyQName(exitRoute.id) : null;
     }
 }

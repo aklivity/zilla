@@ -73,6 +73,12 @@
 #      needing only the toolkit-level kafka:tools scope
 #  26. kafka__list_consumer_groups succeeds against the real broker, needing
 #      only the toolkit-level kafka:tools scope
+#  27. a real MCP SDK client subscribes to an everything resource, triggers
+#      the everything server's own toggle-subscriber-updates tool, and
+#      receives a relayed notifications/resources/updated -- exercising
+#      resources/subscribe, resources/unsubscribe, and the notification
+#      pass-through across mcp(server), mcp(proxy), and mcp(client)
+#      (aklivity/zilla#2220)
 #
 # kafka__reset_offsets' own OffsetCommit stage (the third hop of its
 # FindCoordinator -> DescribeGroups -> OffsetCommit flow) is a known,
@@ -802,6 +808,28 @@ if echo "$KAFKA_LIST_GROUPS_OUT" | grep -qE "Consumer groups:|No consumer groups
   echo "✅ kafka__list_consumer_groups succeeded against the real Kafka broker"
 else
   echo "❌ kafka__list_consumer_groups did not succeed against the real broker"
+  EXIT=1
+fi
+
+# WHEN: a real MCP SDK client subscribes to an everything resource, calls
+#       everything__toggle-subscriber-updates to start the reference server's
+#       simulated per-session update interval, and waits for the resulting
+#       notification
+# THEN: notifications/resources/updated is relayed back end-to-end -- through
+#       south_mcp_client_everything, north_mcp_proxy (re-prefixing the URI),
+#       and north_mcp_server -- proving resources/subscribe,
+#       resources/unsubscribe, and the update notification all pass through
+#       every mcp binding kind (aklivity/zilla#2220)
+subscribe_resource() {
+  SUBSCRIBE_OUT=$(docker compose run --rm --no-deps resource-subscribe-client 2>&1)
+  echo "$SUBSCRIBE_OUT" | grep -q 'OK resource subscription relayed end-to-end'
+}
+retry_until 5 3 subscribe_resource
+echo "SUBSCRIBE_OUT=$SUBSCRIBE_OUT"
+if echo "$SUBSCRIBE_OUT" | grep -q 'OK resource subscription relayed end-to-end'; then
+  echo "✅ resources/subscribe, notifications/resources/updated, and resources/unsubscribe relayed end-to-end"
+else
+  echo "❌ resource subscription round-trip did not relay end-to-end"
   EXIT=1
 fi
 

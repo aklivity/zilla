@@ -649,6 +649,47 @@ sends `notifications/elicitation/complete`, which Zilla also relays. URL-mode
 elicitation only flows when the client advertised `elicitation.url` at
 `initialize` -- a form-only or older client never sees the url request.
 
+### Trigger a resource-subscription round-trip
+
+`resources/subscribe`, `resources/unsubscribe`, and the resulting
+`notifications/resources/updated` (aklivity/zilla#2220) pass through all
+three `mcp` binding kinds the same way `elicitation/create` does above.
+`@modelcontextprotocol/server-everything` implements all three: subscribing
+registers interest in a resource URI, and a dedicated
+`toggle-subscriber-updates` tool starts (or stops) a per-session, five-second
+interval of simulated update notifications for whatever that session has
+subscribed to -- subscribing alone does not push anything until this tool is
+called.
+
+```bash
+docker compose run --rm resource-subscribe-client
+```
+
+The client lists resources to find a live `everything+...` URI, subscribes to
+it, calls `everything__toggle-subscriber-updates`, waits for the relayed
+`notifications/resources/updated`, then unsubscribes and toggles the updates
+back off:
+
+```text
+[client] connected, protocolVersion=2025-11-25
+[client] subscribed to everything+demo://resource/static/document/architecture.md
+[client] toggle-subscriber-updates: Started simulated resource updated notifications for session ... at a 5 second pace...
+[client] notifications/resources/updated uri=everything+demo://resource/static/document/architecture.md
+OK resource subscription relayed end-to-end for everything+demo://resource/static/document/architecture.md
+```
+
+The URI arrives back prefixed `everything+`, same as any other aggregated
+resource -- `north_mcp_proxy` re-prefixes it on the way out, exactly like the
+`petstore+`/`github+` prefixes above. `north_mcp_proxy` also aggregates each
+south binding's *real* capabilities (learned from that binding's own
+`initialize` handshake with its upstream) into what it advertises for
+`resources.subscribe`, rather than only reflecting a `routes[]`-declared
+static capability -- so the very first session against a freshly started
+gateway can occasionally race that south handshake and see
+`resources.subscribe: false` for a moment; the client above retries on that
+specific miss rather than treating it as a hard failure. See "Observe the
+cache" below for the same warm-up behavior applied to `tools/list`.
+
 ### Forward the caller's own credential to an upstream MCP server
 
 `south_mcp_client_urlelicit` sets its own `options.authorization`, using the

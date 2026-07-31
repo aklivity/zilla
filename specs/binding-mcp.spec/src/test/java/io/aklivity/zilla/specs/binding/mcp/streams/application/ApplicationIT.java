@@ -425,6 +425,24 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/resources.subscribe/client",
+        "${app}/resources.subscribe/server"})
+    public void shouldSubscribeToResource() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/resources.unsubscribe/client",
+        "${app}/resources.unsubscribe/server"})
+    public void shouldUnsubscribeFromResource() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/lifecycle.events.open/client",
         "${app}/lifecycle.events.open/server"})
     public void shouldOpenLifecycleEvents() throws Exception
@@ -554,6 +572,33 @@ public class ApplicationIT
         "${app}/lifecycle.notify.resources.list.changed/client",
         "${app}/lifecycle.notify.resources.list.changed/server"})
     public void shouldNotifyResourcesListChanged() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/lifecycle.notify.resources.updated/client",
+        "${app}/lifecycle.notify.resources.updated/server"})
+    public void shouldNotifyResourcesUpdated() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/lifecycle.notify.resources.updated.fragmented/client",
+        "${app}/lifecycle.notify.resources.updated.fragmented/server"})
+    public void shouldNotifyResourcesUpdatedFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/lifecycle.notify.resources.updated.unknown.param/client",
+        "${app}/lifecycle.notify.resources.updated.unknown.param/server"})
+    public void shouldNotifyResourcesUpdatedUnknownParam() throws Exception
     {
         k3po.finish();
     }
