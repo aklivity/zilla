@@ -211,6 +211,21 @@ public class McpProxyIT
         k3po.finish();
     }
 
+    // regression test for aklivity/zilla#2220: notifications/resources/updated must be
+    // re-prefixed with the toolkit's own "<toolkit>+" URI prefix (the same one resources/list
+    // and resources/read already use), not McpAggregateRoute's short CRC-derived event-id code
+    // -- an aggregate proxy with only one configured route can never tell the two apart, so
+    // this scenario requires a second (unused) toolkit route purely to activate aggregation
+    @Test
+    @Configuration("proxy.toolkit.multi.yaml")
+    @Specification({
+        "${app}/lifecycle.notify.resources.updated.toolkit.multi.prefixed/client",
+        "${app}/lifecycle.notify.resources.updated.toolkit.multi/server" })
+    public void shouldNotifyResourcesUpdatedWithToolkitPrefix() throws Exception
+    {
+        k3po.finish();
+    }
+
     @Test
     @Configuration("proxy.toolkit.multi.yaml")
     @Specification({
@@ -332,6 +347,28 @@ public class McpProxyIT
         "${app}/resources.read/server" })
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldReadResource() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${app}/resources.subscribe/client",
+        "${app}/resources.subscribe/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldSubscribeToResource() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${app}/resources.unsubscribe/client",
+        "${app}/resources.unsubscribe/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldUnsubscribeFromResource() throws Exception
     {
         k3po.finish();
     }

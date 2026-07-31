@@ -19,7 +19,9 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeg
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_PROMPTS_LIST;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_LIST;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_READ;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_SUBSCRIBE;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_TEMPLATES_LIST;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_UNSUBSCRIBE;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_CALL;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_LIST;
 
@@ -95,6 +97,10 @@ public final class McpProxyFactory implements McpStreamFactory
             new McpProxyPromptsGetFactory(config, context, bindings::get));
         this.factories.put(KIND_RESOURCES_READ,
             new McpProxyResourcesReadFactory(config, context, bindings::get));
+        this.factories.put(KIND_RESOURCES_SUBSCRIBE,
+            new McpProxyResourcesSubscribeFactory(config, context, bindings::get));
+        this.factories.put(KIND_RESOURCES_UNSUBSCRIBE,
+            new McpProxyResourcesUnsubscribeFactory(config, context, bindings::get));
         this.factories.put(KIND_TOOLS_LIST, toolsListFactory);
         this.factories.put(KIND_PROMPTS_LIST, promptsListFactory);
         this.factories.put(KIND_RESOURCES_LIST, resourcesListFactory);
