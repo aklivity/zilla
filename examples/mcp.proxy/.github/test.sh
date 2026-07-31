@@ -67,7 +67,14 @@
 #      sharing create_topics' route (one `when` list, two `tool` entries)
 #      and its kafka:admin scope -- both are structural, admin-risk
 #      mutations, so one route/guard covers both instead of duplicating it
-#  25. a real MCP SDK client subscribes to an everything resource, triggers
+#  25. kafka__list_brokers lists the real, single-node KRaft broker started
+#      by this example -- proving KafkaApiDescribeClusterClient's shared
+#      DescribeCluster request/response path (not the older, fully-decoded
+#      mechanism used elsewhere in binding-kafka) reaches a real broker
+#  26. kafka__describe_cluster reports that same broker as its controller --
+#      both tools share one route/guard (kafka:tools only, no admin scope),
+#      being read-only cluster introspection like consume
+#  27. a real MCP SDK client subscribes to an everything resource, triggers
 #      the everything server's own toggle-subscriber-updates tool, and
 #      receives a relayed notifications/resources/updated -- exercising
 #      resources/subscribe, resources/unsubscribe, and the notification
@@ -258,7 +265,9 @@ assert_full_token() {
     echo "$TOOLS_FULL" | grep -q '^kafka__produce$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__consume$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__create_topics$' &&
-    echo "$TOOLS_FULL" | grep -q '^kafka__delete_topics$'
+    echo "$TOOLS_FULL" | grep -q '^kafka__delete_topics$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__list_brokers$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__describe_cluster$'
 }
 retry_until 5 3 assert_full_token
 echo "TOOLS_FULL=$TOOLS_FULL"
@@ -276,7 +285,9 @@ if echo "$TOOLS_FULL" | grep -q '^everything__' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__produce$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__consume$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__create_topics$' &&
-    echo "$TOOLS_FULL" | grep -q '^kafka__delete_topics$'; then
+    echo "$TOOLS_FULL" | grep -q '^kafka__delete_topics$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__list_brokers$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__describe_cluster$'; then
   echo "✅ full scope: every toolkit's tools and resources are listed"
 else
   echo "❌ full scope did not unlock every toolkit"
@@ -732,6 +743,52 @@ if echo "$KAFKA_DELETE_TOPICS_OUT" | grep -q 'Deleted topic(s): widgets'; then
   echo "✅ kafka__delete_topics deleted the topic from the real Kafka broker"
 else
   echo "❌ kafka__delete_topics did not succeed against the real broker"
+  EXIT=1
+fi
+
+# WHEN: a kafka:tools-scoped caller calls kafka__list_brokers
+# THEN: the real, single-node KRaft broker started by this example (node id 1,
+#       advertised as kafka.examples.dev:29092 on the INTERNAL listener
+#       south_mcp_kafka_client connects on) comes back -- proving
+#       KafkaApiDescribeClusterClient's shared DescribeCluster request/response
+#       path (not the older, fully-decoded mechanism used elsewhere in
+#       binding-kafka) reaches a real broker, not the engine's test double
+call_kafka_list_brokers() {
+  KAFKA_LIST_BROKERS_OUT=$(docker compose run --rm --no-deps \
+      -e JWT_TOKEN="$JWT_FULL" \
+      -e MCP_URL="http://zilla:$PORT/mcp" \
+      -e CALL_TOOL="kafka__list_brokers" \
+      tools-list-client 2>&1)
+  echo "$KAFKA_LIST_BROKERS_OUT" | grep -q 'Brokers: 1@kafka.examples.dev:29092'
+}
+retry_until 10 3 call_kafka_list_brokers
+echo "KAFKA_LIST_BROKERS_OUT=$KAFKA_LIST_BROKERS_OUT"
+if echo "$KAFKA_LIST_BROKERS_OUT" | grep -q 'Brokers: 1@kafka.examples.dev:29092'; then
+  echo "✅ kafka__list_brokers listed the real Kafka broker"
+else
+  echo "❌ kafka__list_brokers did not list the real broker"
+  EXIT=1
+fi
+
+# WHEN: that same caller calls kafka__describe_cluster
+# THEN: the same single-node broker (node id 1) is reported as controller --
+#       proving describe_cluster and list_brokers share one route/guard
+#       (kafka:tools only, no admin scope), being read-only cluster
+#       introspection like consume rather than a structural mutation
+call_kafka_describe_cluster() {
+  KAFKA_DESCRIBE_CLUSTER_OUT=$(docker compose run --rm --no-deps \
+      -e JWT_TOKEN="$JWT_FULL" \
+      -e MCP_URL="http://zilla:$PORT/mcp" \
+      -e CALL_TOOL="kafka__describe_cluster" \
+      tools-list-client 2>&1)
+  echo "$KAFKA_DESCRIBE_CLUSTER_OUT" | grep -q 'Described cluster .*, controller 1'
+}
+retry_until 10 3 call_kafka_describe_cluster
+echo "KAFKA_DESCRIBE_CLUSTER_OUT=$KAFKA_DESCRIBE_CLUSTER_OUT"
+if echo "$KAFKA_DESCRIBE_CLUSTER_OUT" | grep -q 'Described cluster .*, controller 1'; then
+  echo "✅ kafka__describe_cluster reported the real broker as controller"
+else
+  echo "❌ kafka__describe_cluster did not succeed against the real broker"
   EXIT=1
 fi
 
