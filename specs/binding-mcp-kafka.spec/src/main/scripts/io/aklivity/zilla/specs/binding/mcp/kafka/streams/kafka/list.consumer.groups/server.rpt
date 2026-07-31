@@ -1,0 +1,61 @@
+#
+# Copyright 2021-2026 Aklivity Inc
+#
+# Licensed under the Aklivity Community License (the "License"); you may not use
+# this file except in compliance with the License.  You may obtain a copy of the
+# License at
+#
+#   https://www.aklivity.io/aklivity-community-license/
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations under the License.
+#
+
+property serverAddress "zilla://streams/kafka0"
+
+accept ${serverAddress}
+    option zilla:window 8192
+    option zilla:transmission "half-duplex"
+    option zilla:byteorder "network"
+
+accepted
+
+read zilla:begin.ext ${kafka:matchBeginEx()
+                               .typeId(zilla:id("kafka"))
+                               .apiRequest()
+                                 .length(2)
+                                 .api(16)
+                                 .version(4)
+                                 .clientId("zilla")
+                                 .build()
+                                .build()}
+
+connected
+
+read  [0x01]                            # states filter (empty compact array)
+      [0x00]                            # tagged fields
+
+write zilla:begin.ext ${kafka:beginEx()
+                               .typeId(zilla:id("kafka"))
+                               .apiResponse()
+                                 .length(35)
+                                 .version(4)
+                                 .build()
+                                .build()}
+
+write [0x00]                             # tagged fields
+      0                                  # throttle time ms
+      0s                                 # error code
+      [0x02]                             # groups
+        [0x09] "my-group"                # group id
+        [0x09] "consumer"                # protocol type
+        [0x07] "Stable"                  # group state
+        [0x00]                           # tagged fields
+      [0x00]                             # tagged fields
+
+write flush
+
+read closed
+write close

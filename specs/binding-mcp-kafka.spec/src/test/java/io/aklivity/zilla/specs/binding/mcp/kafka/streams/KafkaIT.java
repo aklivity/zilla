@@ -161,4 +161,13 @@ public class KafkaIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${kafka}/list.consumer.groups/client",
+        "${kafka}/list.consumer.groups/server"})
+    public void shouldListConsumerGroups() throws Exception
+    {
+        k3po.finish();
+    }
 }

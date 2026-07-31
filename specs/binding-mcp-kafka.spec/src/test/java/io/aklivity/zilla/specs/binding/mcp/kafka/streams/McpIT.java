@@ -197,4 +197,13 @@ public class McpIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${mcp}/list.consumer.groups/client",
+        "${mcp}/list.consumer.groups/server"})
+    public void shouldListConsumerGroups() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -115,6 +115,16 @@ public class McpKafkaClientIT
         k3po.finish();
     }
 
+    @Test
+    @Configuration("client.list.consumer.groups.yaml")
+    @Specification({
+        "${mcp}/list.consumer.groups/client",
+        "${kafka}/list.consumer.groups/server"})
+    public void shouldListConsumerGroups() throws Exception
+    {
+        k3po.finish();
+    }
+
     public static String sessionId()
     {
         return "session-1";
