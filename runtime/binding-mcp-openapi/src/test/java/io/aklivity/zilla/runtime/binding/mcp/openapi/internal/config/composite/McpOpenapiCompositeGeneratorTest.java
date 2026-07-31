@@ -51,11 +51,13 @@ import org.mockito.junit.MockitoRule;
 
 import io.aklivity.zilla.config.binding.mcp.http.McpHttpOptionsConfig;
 import io.aklivity.zilla.config.binding.mcp.http.McpHttpResourceConfig;
+import io.aklivity.zilla.config.binding.mcp.http.McpHttpToolAnnotationsConfig;
 import io.aklivity.zilla.config.binding.mcp.http.McpHttpToolConfig;
 import io.aklivity.zilla.config.binding.mcp.http.McpHttpWithConfig;
 import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiAuthorizationConfig;
 import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiConditionConfig;
 import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiOptionsConfig;
+import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiToolAnnotationsConfig;
 import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiWithConfig;
 import io.aklivity.zilla.config.catalog.inline.InlineOptionsConfig;
 import io.aklivity.zilla.config.engine.BindingConfig;
@@ -328,6 +330,67 @@ public class McpOpenapiCompositeGeneratorTest
                     "application/xml": { "schema": { "type": "object" } },
                     "application/json": { "schema": { "type": "object" } }
                   } } }
+              }
+            }
+          }
+        }
+        """;
+
+    private static final String ANNOTATIONS_SPEC =
+        """
+        {
+          "openapi": "3.1.0",
+          "info": { "title": "annotations", "version": "1.0.0" },
+          "servers": [ { "url": "https://api.annotations.example" } ],
+          "paths": {
+            "/items/{id}": {
+              "get": {
+                "operationId": "items/get",
+                "parameters": [
+                  { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+                ],
+                "responses": { "200": { "description": "ok",
+                  "content": { "application/json": { "schema": { "type": "object" } } } } }
+              },
+              "put": {
+                "operationId": "items/replace",
+                "parameters": [
+                  { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+                ],
+                "responses": { "200": { "description": "ok",
+                  "content": { "application/json": { "schema": { "type": "object" } } } } }
+              },
+              "delete": {
+                "operationId": "items/delete",
+                "parameters": [
+                  { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+                ],
+                "responses": { "200": { "description": "ok",
+                  "content": { "application/json": { "schema": { "type": "object" } } } } }
+              }
+            },
+            "/items": {
+              "post": {
+                "operationId": "items/create",
+                "responses": { "201": { "description": "created",
+                  "content": { "application/json": { "schema": { "type": "object" } } } } }
+              }
+            },
+            "/items/{id}/annotated": {
+              "post": {
+                "operationId": "items/annotated",
+                "x-mcp-annotations": {
+                  "title": "Annotated Item Action",
+                  "readOnlyHint": true,
+                  "destructiveHint": true,
+                  "idempotentHint": true,
+                  "openWorldHint": true
+                },
+                "parameters": [
+                  { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+                ],
+                "responses": { "200": { "description": "ok",
+                  "content": { "application/json": { "schema": { "type": "object" } } } } }
               }
             }
           }
@@ -2844,5 +2907,191 @@ public class McpOpenapiCompositeGeneratorTest
         assertThat(tool, notNullValue());
         assertThat(tool.output, sameInstance(override));
         assertThat(tool.outputMaybeWrapped, equalTo(false));
+    }
+
+    @Test
+    public void shouldDeriveToolAnnotationsFromHttpMethod()
+    {
+        lenient().when(catalog.resolve(eq("annotations-api"), eq("latest"))).thenReturn(44);
+        lenient().when(catalog.resolve(eq(44))).thenReturn(ANNOTATIONS_SPEC);
+
+        BindingConfig binding = GenericBindingConfig.builder()
+            .namespace("test")
+            .name("mcp_openapi0")
+            .type("mcp_openapi")
+            .kind(CLIENT)
+            .options(McpOpenapiOptionsConfig.builder()
+                .spec()
+                    .label("annotations")
+                    .server("https://api.annotations.example")
+                    .catalog()
+                        .name("catalog0")
+                        .subject("annotations-api")
+                        .version("latest")
+                        .build()
+                    .build()
+                .build())
+            .route()
+                .with(McpOpenapiWithConfig.builder()
+                    .spec("annotations")
+                    .build())
+                .build()
+            .build();
+        binding.resolveId = resolveId;
+
+        McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
+
+        BindingConfig mcpHttp = composite.namespaces.get(0).bindings.stream()
+            .filter(b -> "mcp_http0".equals(b.name))
+            .findFirst()
+            .orElse(null);
+        McpHttpOptionsConfig mcpHttpOptions = (McpHttpOptionsConfig) mcpHttp.options;
+
+        McpHttpToolAnnotationsConfig getAnnotations = toolAnnotations(mcpHttpOptions, "items_get");
+        assertThat(getAnnotations.readOnlyHint, equalTo(true));
+        assertThat(getAnnotations.destructiveHint, nullValue());
+        assertThat(getAnnotations.idempotentHint, nullValue());
+        assertThat(getAnnotations.openWorldHint, equalTo(false));
+
+        McpHttpToolAnnotationsConfig putAnnotations = toolAnnotations(mcpHttpOptions, "items_replace");
+        assertThat(putAnnotations.readOnlyHint, nullValue());
+        assertThat(putAnnotations.destructiveHint, nullValue());
+        assertThat(putAnnotations.idempotentHint, equalTo(true));
+        assertThat(putAnnotations.openWorldHint, equalTo(false));
+
+        McpHttpToolAnnotationsConfig deleteAnnotations = toolAnnotations(mcpHttpOptions, "items_delete");
+        assertThat(deleteAnnotations.readOnlyHint, nullValue());
+        assertThat(deleteAnnotations.destructiveHint, equalTo(true));
+        assertThat(deleteAnnotations.idempotentHint, equalTo(true));
+        assertThat(deleteAnnotations.openWorldHint, equalTo(false));
+
+        McpHttpToolAnnotationsConfig postAnnotations = toolAnnotations(mcpHttpOptions, "items_create");
+        assertThat(postAnnotations.readOnlyHint, nullValue());
+        assertThat(postAnnotations.destructiveHint, nullValue());
+        assertThat(postAnnotations.idempotentHint, nullValue());
+        assertThat(postAnnotations.openWorldHint, equalTo(false));
+    }
+
+    @Test
+    public void shouldReadToolAnnotationsFromOpenapiExtension()
+    {
+        lenient().when(catalog.resolve(eq("annotations-api"), eq("latest"))).thenReturn(44);
+        lenient().when(catalog.resolve(eq(44))).thenReturn(ANNOTATIONS_SPEC);
+
+        BindingConfig binding = GenericBindingConfig.builder()
+            .namespace("test")
+            .name("mcp_openapi0")
+            .type("mcp_openapi")
+            .kind(CLIENT)
+            .options(McpOpenapiOptionsConfig.builder()
+                .spec()
+                    .label("annotations")
+                    .server("https://api.annotations.example")
+                    .catalog()
+                        .name("catalog0")
+                        .subject("annotations-api")
+                        .version("latest")
+                        .build()
+                    .build()
+                .build())
+            .route()
+                .when(McpOpenapiConditionConfig.builder()
+                    .tool("annotated_action")
+                    .build())
+                .with(McpOpenapiWithConfig.builder()
+                    .spec("annotations")
+                    .operation("items/annotated")
+                    .build())
+                .build()
+            .build();
+        binding.resolveId = resolveId;
+
+        McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
+
+        BindingConfig mcpHttp = composite.namespaces.get(0).bindings.stream()
+            .filter(b -> "mcp_http0".equals(b.name))
+            .findFirst()
+            .orElse(null);
+        McpHttpOptionsConfig mcpHttpOptions = (McpHttpOptionsConfig) mcpHttp.options;
+
+        McpHttpToolAnnotationsConfig annotations = toolAnnotations(mcpHttpOptions, "annotated_action");
+        assertThat(annotations.title, equalTo("Annotated Item Action"));
+        assertThat(annotations.readOnlyHint, equalTo(true));
+        assertThat(annotations.destructiveHint, equalTo(true));
+        assertThat(annotations.idempotentHint, equalTo(true));
+        assertThat(annotations.openWorldHint, equalTo(true));
+    }
+
+    @Test
+    public void shouldOverrideToolAnnotationsOverExtensionAndDefault()
+    {
+        lenient().when(catalog.resolve(eq("annotations-api"), eq("latest"))).thenReturn(44);
+        lenient().when(catalog.resolve(eq(44))).thenReturn(ANNOTATIONS_SPEC);
+
+        BindingConfig binding = GenericBindingConfig.builder()
+            .namespace("test")
+            .name("mcp_openapi0")
+            .type("mcp_openapi")
+            .kind(CLIENT)
+            .options(McpOpenapiOptionsConfig.builder()
+                .spec()
+                    .label("annotations")
+                    .server("https://api.annotations.example")
+                    .catalog()
+                        .name("catalog0")
+                        .subject("annotations-api")
+                        .version("latest")
+                        .build()
+                    .build()
+                .tool()
+                    .name("annotated_action")
+                    .annotations(McpOpenapiToolAnnotationsConfig.builder()
+                        .title("Custom Title")
+                        .readOnlyHint(false)
+                        .build())
+                    .build()
+                .build())
+            .route()
+                .when(McpOpenapiConditionConfig.builder()
+                    .tool("annotated_action")
+                    .build())
+                .with(McpOpenapiWithConfig.builder()
+                    .spec("annotations")
+                    .operation("items/annotated")
+                    .build())
+                .build()
+            .build();
+        binding.resolveId = resolveId;
+
+        McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
+
+        BindingConfig mcpHttp = composite.namespaces.get(0).bindings.stream()
+            .filter(b -> "mcp_http0".equals(b.name))
+            .findFirst()
+            .orElse(null);
+        McpHttpOptionsConfig mcpHttpOptions = (McpHttpOptionsConfig) mcpHttp.options;
+
+        // title/readOnlyHint come from the authored override; destructiveHint/idempotentHint/openWorldHint
+        // fall through the override (unset) to the x-mcp-annotations extension, never reaching the
+        // HTTP-method-derived default
+        McpHttpToolAnnotationsConfig annotations = toolAnnotations(mcpHttpOptions, "annotated_action");
+        assertThat(annotations.title, equalTo("Custom Title"));
+        assertThat(annotations.readOnlyHint, equalTo(false));
+        assertThat(annotations.destructiveHint, equalTo(true));
+        assertThat(annotations.idempotentHint, equalTo(true));
+        assertThat(annotations.openWorldHint, equalTo(true));
+    }
+
+    private static McpHttpToolAnnotationsConfig toolAnnotations(
+        McpHttpOptionsConfig options,
+        String name)
+    {
+        McpHttpToolConfig tool = options.tools.stream()
+            .filter(t -> name.equals(t.name))
+            .findFirst()
+            .orElse(null);
+        assertThat(tool, notNullValue());
+        assertThat(tool.annotations, notNullValue());
+        return tool.annotations;
     }
 }

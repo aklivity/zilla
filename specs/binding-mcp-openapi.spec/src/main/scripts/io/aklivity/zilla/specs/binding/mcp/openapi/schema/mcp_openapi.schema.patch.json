@@ -201,6 +201,40 @@
                                             {
                                                 "title": "Input Schema",
                                                 "$ref": "#/$defs/models"
+                                            },
+                                            "annotations":
+                                            {
+                                                "title": "Annotations",
+                                                "type": "object",
+                                                "properties":
+                                                {
+                                                    "title":
+                                                    {
+                                                        "title": "Title",
+                                                        "type": "string"
+                                                    },
+                                                    "readOnlyHint":
+                                                    {
+                                                        "title": "Read-Only Hint",
+                                                        "type": "boolean"
+                                                    },
+                                                    "destructiveHint":
+                                                    {
+                                                        "title": "Destructive Hint",
+                                                        "type": "boolean"
+                                                    },
+                                                    "idempotentHint":
+                                                    {
+                                                        "title": "Idempotent Hint",
+                                                        "type": "boolean"
+                                                    },
+                                                    "openWorldHint":
+                                                    {
+                                                        "title": "Open-World Hint",
+                                                        "type": "boolean"
+                                                    }
+                                                },
+                                                "additionalProperties": false
                                             }
                                         },
                                         "additionalProperties": false

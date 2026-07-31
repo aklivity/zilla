@@ -25,6 +25,7 @@ public final class McpOpenapiToolConfig
     public final String summary;
     public final ModelConfig input;
     public final ModelConfig output;
+    public final McpOpenapiToolAnnotationsConfig annotations;
 
     public static McpOpenapiToolConfigBuilder<McpOpenapiToolConfig> builder()
     {
@@ -42,12 +43,14 @@ public final class McpOpenapiToolConfig
         String description,
         String summary,
         ModelConfig input,
-        ModelConfig output)
+        ModelConfig output,
+        McpOpenapiToolAnnotationsConfig annotations)
     {
         this.name = name;
         this.description = description;
         this.summary = summary;
         this.input = input;
         this.output = output;
+        this.annotations = annotations;
     }
 }

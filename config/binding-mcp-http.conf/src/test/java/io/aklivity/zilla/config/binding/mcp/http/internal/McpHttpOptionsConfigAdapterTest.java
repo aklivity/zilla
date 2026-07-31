@@ -30,6 +30,7 @@ import org.junit.Test;
 
 import io.aklivity.zilla.config.binding.mcp.http.McpHttpOptionsConfig;
 import io.aklivity.zilla.config.binding.mcp.http.McpHttpResourceConfig;
+import io.aklivity.zilla.config.binding.mcp.http.McpHttpToolAnnotationsConfig;
 import io.aklivity.zilla.config.binding.mcp.http.McpHttpToolConfig;
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 
@@ -213,5 +214,83 @@ public class McpHttpOptionsConfigAdapterTest
         assertThat(text, not(containsString("authorization")));
         assertThat(text, not(containsString("tools")));
         assertThat(text, not(containsString("resources")));
+    }
+
+    @Test
+    public void shouldReadOptionsWithToolAnnotations()
+    {
+        String yaml =
+                """
+                tools:
+                  create_pr:
+                    summary: "Created pull request #${result.number}"
+                    schemas:
+                      input:
+                        model: test
+                    annotations:
+                      title: Create Pull Request
+                      readOnlyHint: false
+                      destructiveHint: false
+                      idempotentHint: false
+                      openWorldHint: true
+                """;
+
+        McpHttpOptionsConfig options = jsonb.fromJson(yaml, McpHttpOptionsConfig.class);
+
+        McpHttpToolConfig tool = options.tools.get(0);
+        McpHttpToolAnnotationsConfig annotations = tool.annotations;
+        assertThat(annotations, not(nullValue()));
+        assertThat(annotations.title, equalTo("Create Pull Request"));
+        assertThat(annotations.readOnlyHint, equalTo(false));
+        assertThat(annotations.destructiveHint, equalTo(false));
+        assertThat(annotations.idempotentHint, equalTo(false));
+        assertThat(annotations.openWorldHint, equalTo(true));
+    }
+
+    @Test
+    public void shouldWriteOptionsWithToolAnnotations()
+    {
+        McpHttpOptionsConfig options = McpHttpOptionsConfig.builder()
+            .tool(McpHttpToolConfig.builder()
+                .name("create_pr")
+                .summary("Created pull request #${result.number}")
+                .annotations(McpHttpToolAnnotationsConfig.builder()
+                    .title("Create Pull Request")
+                    .readOnlyHint(false)
+                    .destructiveHint(false)
+                    .idempotentHint(false)
+                    .openWorldHint(true)
+                    .build())
+                .build())
+            .build();
+
+        String text = jsonb.toJson(options);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, containsString("annotations:"));
+        assertThat(text, containsString("title: \"Create Pull Request\""));
+        assertThat(text, containsString("readOnlyHint: false"));
+        assertThat(text, containsString("destructiveHint: false"));
+        assertThat(text, containsString("idempotentHint: false"));
+        assertThat(text, containsString("openWorldHint: true"));
+    }
+
+    @Test
+    public void shouldReadAndWriteToolsWithoutAnnotations()
+    {
+        String yaml =
+                """
+                tools:
+                  ping: {}
+                """;
+
+        McpHttpOptionsConfig options = jsonb.fromJson(yaml, McpHttpOptionsConfig.class);
+
+        assertThat(options.tools.get(0).annotations, nullValue());
+
+        String text = jsonb.toJson(options);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, not(containsString("annotations")));
     }
 }

@@ -15,6 +15,7 @@
 package io.aklivity.zilla.config.binding.mcp.openapi.internal;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
@@ -31,6 +32,7 @@ import org.junit.Test;
 import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiAuthorizationConfig;
 import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiOptionsConfig;
 import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiSpecificationConfig;
+import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiToolAnnotationsConfig;
 import io.aklivity.zilla.config.model.core.StringModelConfig;
 
 public class McpOpenapiOptionsConfigAdapterTest
@@ -291,5 +293,80 @@ public class McpOpenapiOptionsConfigAdapterTest
 
         assertThat(text, not(nullValue()));
         assertThat(text, equalTo(expected));
+    }
+
+    @Test
+    public void shouldReadOptionsWithToolAnnotations()
+    {
+        String text =
+            """
+            {
+              "tools": {
+                "create_pr": {
+                  "annotations": {
+                    "title": "Create Pull Request",
+                    "readOnlyHint": false,
+                    "destructiveHint": false,
+                    "idempotentHint": false,
+                    "openWorldHint": true
+                  }
+                }
+              }
+            }
+            """;
+
+        McpOpenapiOptionsConfig options = jsonb.fromJson(text, McpOpenapiOptionsConfig.class);
+
+        assertThat(options.tools, not(nullValue()));
+        McpOpenapiToolAnnotationsConfig annotations = options.tools.get(0).annotations;
+        assertThat(annotations, not(nullValue()));
+        assertThat(annotations.title, equalTo("Create Pull Request"));
+        assertThat(annotations.readOnlyHint, equalTo(false));
+        assertThat(annotations.destructiveHint, equalTo(false));
+        assertThat(annotations.idempotentHint, equalTo(false));
+        assertThat(annotations.openWorldHint, equalTo(true));
+    }
+
+    @Test
+    public void shouldWriteOptionsWithToolAnnotations()
+    {
+        String expected =
+            "{\"tools\":{\"create_pr\":{\"annotations\":{\"title\":\"Create Pull Request\"," +
+            "\"readOnlyHint\":false,\"destructiveHint\":false,\"idempotentHint\":false,\"openWorldHint\":true}}}}";
+
+        McpOpenapiOptionsConfig options = McpOpenapiOptionsConfig.builder()
+            .tool()
+                .name("create_pr")
+                .annotations(McpOpenapiToolAnnotationsConfig.builder()
+                    .title("Create Pull Request")
+                    .readOnlyHint(false)
+                    .destructiveHint(false)
+                    .idempotentHint(false)
+                    .openWorldHint(true)
+                    .build())
+                .build()
+            .build();
+
+        String text = jsonb.toJson(options);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, equalTo(expected));
+    }
+
+    @Test
+    public void shouldReadAndWriteToolsWithoutAnnotations()
+    {
+        McpOpenapiOptionsConfig options = McpOpenapiOptionsConfig.builder()
+            .tool()
+                .name("create_pr")
+                .build()
+            .build();
+
+        assertThat(options.tools.get(0).annotations, nullValue());
+
+        String text = jsonb.toJson(options);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, not(containsString("annotations")));
     }
 }

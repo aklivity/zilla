@@ -31,6 +31,7 @@ import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiOptionsConfigBuild
 import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiResourceConfig;
 import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiSpecificationConfig;
 import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiSpecificationConfigBuilder;
+import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiToolAnnotationsConfig;
 import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiToolConfig;
 import io.aklivity.zilla.config.engine.ModelConfig;
 import io.aklivity.zilla.config.engine.ModelConfigAdapter;
@@ -55,6 +56,12 @@ public final class McpOpenapiOptionsConfigAdapter implements JsonbAdapter<Option
     private static final String INPUT_NAME = "input";
     private static final String OUTPUT_NAME = "output";
     private static final String MIME_TYPE_NAME = "mimeType";
+    private static final String ANNOTATIONS_NAME = "annotations";
+    private static final String TITLE_NAME = "title";
+    private static final String READ_ONLY_HINT_NAME = "readOnlyHint";
+    private static final String DESTRUCTIVE_HINT_NAME = "destructiveHint";
+    private static final String IDEMPOTENT_HINT_NAME = "idempotentHint";
+    private static final String OPEN_WORLD_HINT_NAME = "openWorldHint";
 
     private final ModelConfigAdapter model = new ModelConfigAdapter();
 
@@ -156,6 +163,10 @@ public final class McpOpenapiOptionsConfigAdapter implements JsonbAdapter<Option
                 {
                     model.adaptType(tool.output.model);
                     toolObject.add(OUTPUT_NAME, model.adaptToJson(tool.output));
+                }
+                if (tool.annotations != null)
+                {
+                    toolObject.add(ANNOTATIONS_NAME, annotationsObject(tool.annotations));
                 }
                 toolsObject.add(tool.name, toolObject);
             }
@@ -311,6 +322,9 @@ public final class McpOpenapiOptionsConfigAdapter implements JsonbAdapter<Option
                 ModelConfig output = toolObject.containsKey(OUTPUT_NAME)
                     ? model.adaptFromJson(toolObject.get(OUTPUT_NAME))
                     : null;
+                McpOpenapiToolAnnotationsConfig annotations = toolObject.containsKey(ANNOTATIONS_NAME)
+                    ? toolAnnotations(toolObject.getJsonObject(ANNOTATIONS_NAME))
+                    : null;
 
                 mcpOpenapiOptions.tool()
                     .name(name)
@@ -318,6 +332,7 @@ public final class McpOpenapiOptionsConfigAdapter implements JsonbAdapter<Option
                     .summary(summary)
                     .input(input)
                     .output(output)
+                    .annotations(annotations)
                     .build();
             }
         }
@@ -350,5 +365,60 @@ public final class McpOpenapiOptionsConfigAdapter implements JsonbAdapter<Option
         }
 
         return mcpOpenapiOptions.build();
+    }
+
+    private static JsonObjectBuilder annotationsObject(
+        McpOpenapiToolAnnotationsConfig annotations)
+    {
+        JsonObjectBuilder annotationsObject = Json.createObjectBuilder();
+        if (annotations.title != null)
+        {
+            annotationsObject.add(TITLE_NAME, annotations.title);
+        }
+        if (annotations.readOnlyHint != null)
+        {
+            annotationsObject.add(READ_ONLY_HINT_NAME, annotations.readOnlyHint);
+        }
+        if (annotations.destructiveHint != null)
+        {
+            annotationsObject.add(DESTRUCTIVE_HINT_NAME, annotations.destructiveHint);
+        }
+        if (annotations.idempotentHint != null)
+        {
+            annotationsObject.add(IDEMPOTENT_HINT_NAME, annotations.idempotentHint);
+        }
+        if (annotations.openWorldHint != null)
+        {
+            annotationsObject.add(OPEN_WORLD_HINT_NAME, annotations.openWorldHint);
+        }
+        return annotationsObject;
+    }
+
+    private static McpOpenapiToolAnnotationsConfig toolAnnotations(
+        JsonObject annotationsObject)
+    {
+        String title = annotationsObject.containsKey(TITLE_NAME)
+            ? annotationsObject.getString(TITLE_NAME)
+            : null;
+        Boolean readOnlyHint = annotationsObject.containsKey(READ_ONLY_HINT_NAME)
+            ? annotationsObject.getBoolean(READ_ONLY_HINT_NAME)
+            : null;
+        Boolean destructiveHint = annotationsObject.containsKey(DESTRUCTIVE_HINT_NAME)
+            ? annotationsObject.getBoolean(DESTRUCTIVE_HINT_NAME)
+            : null;
+        Boolean idempotentHint = annotationsObject.containsKey(IDEMPOTENT_HINT_NAME)
+            ? annotationsObject.getBoolean(IDEMPOTENT_HINT_NAME)
+            : null;
+        Boolean openWorldHint = annotationsObject.containsKey(OPEN_WORLD_HINT_NAME)
+            ? annotationsObject.getBoolean(OPEN_WORLD_HINT_NAME)
+            : null;
+
+        return McpOpenapiToolAnnotationsConfig.builder()
+            .title(title)
+            .readOnlyHint(readOnlyHint)
+            .destructiveHint(destructiveHint)
+            .idempotentHint(idempotentHint)
+            .openWorldHint(openWorldHint)
+            .build();
     }
 }
