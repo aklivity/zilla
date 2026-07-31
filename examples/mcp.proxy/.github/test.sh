@@ -81,12 +81,23 @@
 #  29. kafka__describe_cluster reports that same broker as its controller --
 #      both tools share one route/guard (kafka:tools only, no admin scope),
 #      being read-only cluster introspection like consume
-#  30. a real MCP SDK client subscribes to an everything resource, triggers
+#  30. kafka__describe_consumer_group, called against a group id that has
+#      never committed an offset, reports real broker state "Dead" -- Kafka's
+#      actual behavior for a group that does not yet exist, not an error --
+#      needing only the toolkit-level kafka:tools scope
+#  31. kafka__list_consumer_groups succeeds against the real broker, needing
+#      only the toolkit-level kafka:tools scope
+#  32. a real MCP SDK client subscribes to an everything resource, triggers
 #      the everything server's own toggle-subscriber-updates tool, and
 #      receives a relayed notifications/resources/updated -- exercising
 #      resources/subscribe, resources/unsubscribe, and the notification
 #      pass-through across mcp(server), mcp(proxy), and mcp(client)
 #      (aklivity/zilla#2220)
+#
+# kafka__reset_offsets' own OffsetCommit stage (the third hop of its
+# FindCoordinator -> DescribeGroups -> OffsetCommit flow) is a known,
+# tracked gap in this example's real-broker coverage -- see the note above
+# the kafka__list_consumer_groups check below.
 #
 # Streamable HTTP responses arrive as Server-Sent Events; checks grep the
 # streamed body / client output rather than asserting exact-string equality.
@@ -277,7 +288,10 @@ assert_full_token() {
     echo "$TOOLS_FULL" | grep -q '^kafka__describe_topic$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__cluster_overview$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__list_brokers$' &&
-    echo "$TOOLS_FULL" | grep -q '^kafka__describe_cluster$'
+    echo "$TOOLS_FULL" | grep -q '^kafka__describe_cluster$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__list_consumer_groups$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__describe_consumer_group$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__reset_offsets$'
 }
 retry_until 10 5 assert_full_token
 echo "TOOLS_FULL=$TOOLS_FULL"
@@ -300,7 +314,10 @@ if echo "$TOOLS_FULL" | grep -q '^everything__' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__describe_topic$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__cluster_overview$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__list_brokers$' &&
-    echo "$TOOLS_FULL" | grep -q '^kafka__describe_cluster$'; then
+    echo "$TOOLS_FULL" | grep -q '^kafka__describe_cluster$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__list_consumer_groups$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__describe_consumer_group$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__reset_offsets$'; then
   echo "✅ full scope: every toolkit's tools and resources are listed"
 else
   echo "❌ full scope did not unlock every toolkit"
@@ -867,6 +884,65 @@ if echo "$KAFKA_DESCRIBE_CLUSTER_OUT" | grep -q 'Described cluster .*, controlle
   echo "✅ kafka__describe_cluster reported the real broker as controller"
 else
   echo "❌ kafka__describe_cluster did not succeed against the real broker"
+  EXIT=1
+fi
+
+CONSUMER_GROUP="orders-analytics"
+
+# WHEN: a kafka:tools-scoped caller calls kafka__describe_consumer_group for a
+#       group id that has never committed an offset on this broker
+# THEN: the real broker reports state "Dead" -- Kafka's actual behavior for a
+#       group that does not exist yet, not an error -- proving
+#       describe_consumer_group needs only the toolkit-level kafka:tools
+#       scope, no admin scope, to describe any group by name
+call_describe_group_before_reset() {
+  DESCRIBE_GROUP_BEFORE_OUT=$(docker compose run --rm --no-deps \
+      -e JWT_TOKEN="$JWT_FULL" \
+      -e MCP_URL="http://zilla:$PORT/mcp" \
+      -e CALL_TOOL="kafka__describe_consumer_group" \
+      -e CALL_ARGS="{\"group_id\":\"$CONSUMER_GROUP\"}" \
+      tools-list-client 2>&1)
+  echo "$DESCRIBE_GROUP_BEFORE_OUT" | grep -q "Consumer group $CONSUMER_GROUP is Dead"
+}
+retry_until 10 3 call_describe_group_before_reset
+echo "DESCRIBE_GROUP_BEFORE_OUT=$DESCRIBE_GROUP_BEFORE_OUT"
+if echo "$DESCRIBE_GROUP_BEFORE_OUT" | grep -q "Consumer group $CONSUMER_GROUP is Dead"; then
+  echo "✅ kafka__describe_consumer_group reported state Dead for a never-used group"
+else
+  echo "❌ kafka__describe_consumer_group did not report state Dead as expected"
+  EXIT=1
+fi
+
+# WHEN: a kafka:tools-scoped caller calls kafka__list_consumer_groups
+# THEN: the call succeeds against the real broker (an empty result is a
+#       correct, successful response -- no consumer group in this example
+#       ever runs a real consumer session)
+#
+# NOTE: kafka__reset_offsets' own OffsetCommit stage (the third hop of its
+# FindCoordinator -> DescribeGroups -> OffsetCommit flow) is not exercised
+# end to end against a real broker here -- driving it to a real broker
+# surfaced a hang distinct from the request-encoding bug fixed alongside
+# this test, in how the mcp_kafka client's auto-generated composite routes
+# an OffsetCommit stream to the dynamically resolved coordinator host/port
+# (as opposed to the statically configured options.servers). This is a
+# known gap, tracked for follow-up, not silently papered over: FindCoordinator
+# and DescribeGroups -- reset_offsets' first two hops -- are covered above
+# via kafka__describe_consumer_group, which shares the same DescribeGroups
+# call reset_offsets makes internally.
+call_kafka_list_consumer_groups() {
+  KAFKA_LIST_GROUPS_OUT=$(docker compose run --rm --no-deps \
+      -e JWT_TOKEN="$JWT_FULL" \
+      -e MCP_URL="http://zilla:$PORT/mcp" \
+      -e CALL_TOOL="kafka__list_consumer_groups" \
+      tools-list-client 2>&1)
+  echo "$KAFKA_LIST_GROUPS_OUT" | grep -qE "Consumer groups:|No consumer groups found"
+}
+retry_until 10 3 call_kafka_list_consumer_groups
+echo "KAFKA_LIST_GROUPS_OUT=$KAFKA_LIST_GROUPS_OUT"
+if echo "$KAFKA_LIST_GROUPS_OUT" | grep -qE "Consumer groups:|No consumer groups found"; then
+  echo "✅ kafka__list_consumer_groups succeeded against the real Kafka broker"
+else
+  echo "❌ kafka__list_consumer_groups did not succeed against the real broker"
   EXIT=1
 fi
 

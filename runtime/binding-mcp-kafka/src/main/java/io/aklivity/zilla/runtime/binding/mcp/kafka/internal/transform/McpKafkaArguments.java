@@ -24,12 +24,13 @@ import io.aklivity.zilla.runtime.common.json.JsonSource;
 
 /**
  * Terminal {@link JsonSink} that captures the fixed set of scalar tool-call argument fields
- * mcp-kafka's {@code produce}/{@code consume} tools accept ({@code arguments.topic},
+ * mcp-kafka's flat-argument tools accept ({@code produce}/{@code consume}: {@code arguments.topic},
  * {@code arguments.key}, {@code arguments.value}, {@code arguments.partition},
- * {@code arguments.offset}, {@code arguments.limit}) as the request body streams in, without
- * buffering the whole body first. There is no downstream stage -- captured values are read back
- * from {@code captured} once the pipeline reports {@link Status#COMPLETED} -- so every event is
- * observed here and never forwarded.
+ * {@code arguments.offset}, {@code arguments.limit}; {@code describe_consumer_group}:
+ * {@code arguments.group_id}; {@code reset_offsets}: {@code arguments.group}) as the request body
+ * streams in, without buffering the whole body first. There is no downstream stage -- captured
+ * values are read back from {@code captured} once the pipeline reports {@link Status#COMPLETED}
+ * -- so every event is observed here and never forwarded.
  */
 public final class McpKafkaArguments implements JsonSink
 {
@@ -40,7 +41,9 @@ public final class McpKafkaArguments implements JsonSink
         "arguments.value",
         "arguments.partition",
         "arguments.offset",
-        "arguments.limit"
+        "arguments.limit",
+        "arguments.group_id",
+        "arguments.group"
     };
 
     private final Map<String, String> captured;
