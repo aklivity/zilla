@@ -123,4 +123,30 @@ public class SchemaTest
 
         assertThat(config, not(nullValue()));
     }
+
+    @Test
+    public void shouldValidateClientOptions()
+    {
+        JsonObject config = schema.validate("client.options.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectClientWithExit()
+    {
+        schema.validate("client.exit.invalid.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectClientRouteWithExit()
+    {
+        schema.validate("client.route.exit.invalid.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectProxyWithoutExit()
+    {
+        schema.validate("proxy.exit.required.invalid.yaml");
+    }
 }
