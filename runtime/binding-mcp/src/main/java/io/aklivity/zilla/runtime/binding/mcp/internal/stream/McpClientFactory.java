@@ -372,6 +372,7 @@ public final class McpClientFactory implements McpStreamFactory
     private final HttpResponseDecoder decodeJsonRpcMethod = this::decodeJsonRpcMethod;
     private final HttpResponseDecoder decodeJsonRpcParamsStart = this::decodeJsonRpcParamsStart;
     private final HttpResponseDecoder decodeJsonRpcParamsNext = this::decodeJsonRpcParamsNext;
+    private final HttpResponseDecoder decodeJsonRpcParamsSkipValue = this::decodeJsonRpcParamsSkipValue;
     private final HttpResponseDecoder decodeJsonRpcParamsToken = this::decodeJsonRpcParamsToken;
     private final HttpResponseDecoder decodeJsonRpcParamsProgress = this::decodeJsonRpcParamsProgress;
     private final HttpResponseDecoder decodeJsonRpcParamsTotal = this::decodeJsonRpcParamsTotal;
@@ -972,7 +973,13 @@ public final class McpClientFactory implements McpStreamFactory
                     http.decoder = decodeJsonRpcParamsUri;
                     break;
                 default:
-                    http.decoder = decodeJsonRpcParamsNext;
+                    // an unrecognized key's value is still on the wire and must be consumed before the
+                    // next KEY_NAME/END_OBJECT event is reachable -- looping back to this same decoder
+                    // reference without consuming it stalls decodeNet's progress check (previous == decoder)
+                    // and permanently wedges this stream on the very next call, which sees the orphaned
+                    // value token where a KEY_NAME or END_OBJECT was expected
+                    http.decodedSkipValueDepth = 0;
+                    http.decoder = decodeJsonRpcParamsSkipValue;
                     break;
                 }
                 break;
@@ -988,6 +995,53 @@ public final class McpClientFactory implements McpStreamFactory
         }
 
         return progress;
+    }
+
+    private int decodeJsonRpcParamsSkipValue(
+        McpHttpStream http,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        JsonParser parser = http.decodableJson;
+
+        boolean complete = false;
+        while (!complete && parser.hasNext())
+        {
+            final JsonParser.Event event = parser.next();
+            switch (event)
+            {
+            case START_OBJECT:
+            case START_ARRAY:
+                http.decodedSkipValueDepth++;
+                break;
+            case END_OBJECT:
+            case END_ARRAY:
+                http.decodedSkipValueDepth--;
+                complete = http.decodedSkipValueDepth == 0;
+                break;
+            case VALUE_STRING:
+            case VALUE_NUMBER:
+                parser.getString();
+                complete = http.decodedSkipValueDepth == 0 && !http.decodableJson.deferredBytes();
+                break;
+            default:
+                complete = http.decodedSkipValueDepth == 0;
+                break;
+            }
+        }
+
+        if (complete)
+        {
+            http.decoder = decodeJsonRpcParamsNext;
+        }
+
+        return offset + (int) (parser.getLocation().getStreamOffset() - http.decodedParserProgress);
     }
 
     private int decodeJsonRpcParamsToken(
@@ -3721,6 +3775,7 @@ public final class McpClientFactory implements McpStreamFactory
         protected int decodedParserProgress;
         protected HttpResponseDecoder decodedSkipObjectThen;
         protected int decodedSkipObjectDepth;
+        protected int decodedSkipValueDepth;
         protected boolean decodedResultErrorKey;
         protected boolean responseError;
 

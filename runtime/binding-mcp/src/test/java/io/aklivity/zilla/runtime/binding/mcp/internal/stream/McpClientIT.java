@@ -696,6 +696,20 @@ public class McpClientIT
         k3po.finish();
     }
 
+    // regression test: an unrecognized key in a notification's params object (e.g. "level" from
+    // a notifications/message event) must be skipped without stalling the decoder -- looping back
+    // to the same decoder reference without consuming the key's value wedges decodeNet's progress
+    // check permanently, silently dropping this and every later event on the stream
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/lifecycle.notify.resources.updated.unknown.param/client",
+        "${net}/lifecycle.notify.resources.updated.unknown.param/server"})
+    public void shouldNotifyResourcesUpdatedUnknownParam() throws Exception
+    {
+        k3po.finish();
+    }
+
     @Test
     @Configuration("client.yaml")
     @Specification({

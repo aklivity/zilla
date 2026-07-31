@@ -596,6 +596,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/lifecycle.notify.resources.updated.unknown.param/client",
+        "${app}/lifecycle.notify.resources.updated.unknown.param/server"})
+    public void shouldNotifyResourcesUpdatedUnknownParam() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/lifecycle.suspend.events/client",
         "${app}/lifecycle.suspend.events/server"})
     public void shouldLifecycleSuspendEvents() throws Exception
