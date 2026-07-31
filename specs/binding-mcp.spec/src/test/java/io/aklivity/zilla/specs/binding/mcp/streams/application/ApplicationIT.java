@@ -587,6 +587,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/lifecycle.notify.resources.updated.fragmented/client",
+        "${app}/lifecycle.notify.resources.updated.fragmented/server"})
+    public void shouldNotifyResourcesUpdatedFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/lifecycle.suspend.events/client",
         "${app}/lifecycle.suspend.events/server"})
     public void shouldLifecycleSuspendEvents() throws Exception

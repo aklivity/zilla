@@ -616,6 +616,25 @@ public final class McpClientFactory implements McpStreamFactory
         return progress;
     }
 
+    // a scalar (string or number lexeme) whose bytes fill the input window before completing is
+    // delivered as fragments, the same event repeated with deferredBytes() true until it completes --
+    // accumulate every fragment and only hand back the value once the whole scalar has arrived, so a
+    // long value straddling a window boundary is never mistaken for a complete one
+    private String accumulateJsonRpcStringValue(
+        McpHttpStream http)
+    {
+        http.sseJsonValue.append(http.decodableJson.getString());
+
+        String value = null;
+        if (!http.decodableJson.deferredBytes())
+        {
+            value = http.sseJsonValue.toString();
+            http.sseJsonValue.setLength(0);
+        }
+
+        return value;
+    }
+
     private int decodeJsonRpcVersion(
         McpHttpStream http,
         long traceId,
@@ -633,15 +652,25 @@ public final class McpClientFactory implements McpStreamFactory
         if (parser.hasNext())
         {
             final JsonParser.Event event = parser.next();
-            if (event != JsonParser.Event.VALUE_STRING ||
-                !JSON_RPC_VERSION.equals(parser.getString()))
+            if (event != JsonParser.Event.VALUE_STRING)
             {
                 http.onDecodeParseError(traceId, authorization);
                 http.decoder = decodeIgnore;
                 break decode;
             }
 
-            http.decoder = decodeJsonRpcNext;
+            final String version = accumulateJsonRpcStringValue(http);
+            if (version != null)
+            {
+                if (!JSON_RPC_VERSION.equals(version))
+                {
+                    http.onDecodeParseError(traceId, authorization);
+                    http.decoder = decodeIgnore;
+                    break decode;
+                }
+
+                http.decoder = decodeJsonRpcNext;
+            }
 
             progress = offset + (int) (parser.getLocation().getStreamOffset() - http.decodedParserProgress);
         }
@@ -674,8 +703,12 @@ public final class McpClientFactory implements McpStreamFactory
                 break decode;
             }
 
-            http.sseEventJsonId = parser.getString();
-            http.decoder = decodeJsonRpcNext;
+            final String id = accumulateJsonRpcStringValue(http);
+            if (id != null)
+            {
+                http.sseEventJsonId = id;
+                http.decoder = decodeJsonRpcNext;
+            }
 
             progress = offset + (int) (parser.getLocation().getStreamOffset() - http.decodedParserProgress);
         }
@@ -842,16 +875,19 @@ public final class McpClientFactory implements McpStreamFactory
                 http.decoder = decodeIgnore;
                 break decode;
             }
-            final String method = parser.getString();
-            if ("notifications/progress".equals(method))
+            final String method = accumulateJsonRpcStringValue(http);
+            if (method != null)
             {
-                http.sseEventProgress = true;
+                if ("notifications/progress".equals(method))
+                {
+                    http.sseEventProgress = true;
+                }
+                else
+                {
+                    http.sseEventMethod = method;
+                }
+                http.decoder = decodeJsonRpcNext;
             }
-            else
-            {
-                http.sseEventMethod = method;
-            }
-            http.decoder = decodeJsonRpcNext;
             progress = offset + (int) (parser.getLocation().getStreamOffset() - http.decodedParserProgress);
         }
 
@@ -970,8 +1006,12 @@ public final class McpClientFactory implements McpStreamFactory
         if (parser.hasNext())
         {
             parser.next();
-            http.sseProgressToken = parser.getString();
-            http.decoder = decodeJsonRpcParamsNext;
+            final String token = accumulateJsonRpcStringValue(http);
+            if (token != null)
+            {
+                http.sseProgressToken = token;
+                http.decoder = decodeJsonRpcParamsNext;
+            }
             progress = offset + (int) (parser.getLocation().getStreamOffset() - http.decodedParserProgress);
         }
 
@@ -1042,8 +1082,12 @@ public final class McpClientFactory implements McpStreamFactory
         if (parser.hasNext())
         {
             parser.next();
-            http.sseProgressMessage = parser.getString();
-            http.decoder = decodeJsonRpcParamsNext;
+            final String message = accumulateJsonRpcStringValue(http);
+            if (message != null)
+            {
+                http.sseProgressMessage = message;
+                http.decoder = decodeJsonRpcParamsNext;
+            }
             progress = offset + (int) (parser.getLocation().getStreamOffset() - http.decodedParserProgress);
         }
 
@@ -1066,8 +1110,12 @@ public final class McpClientFactory implements McpStreamFactory
         if (parser.hasNext())
         {
             parser.next();
-            http.sseElicitationId = parser.getString();
-            http.decoder = decodeJsonRpcParamsNext;
+            final String elicitationId = accumulateJsonRpcStringValue(http);
+            if (elicitationId != null)
+            {
+                http.sseElicitationId = elicitationId;
+                http.decoder = decodeJsonRpcParamsNext;
+            }
             progress = offset + (int) (parser.getLocation().getStreamOffset() - http.decodedParserProgress);
         }
 
@@ -1090,8 +1138,12 @@ public final class McpClientFactory implements McpStreamFactory
         if (parser.hasNext())
         {
             parser.next();
-            http.sseElicitUrl = parser.getString();
-            http.decoder = decodeJsonRpcParamsNext;
+            final String url = accumulateJsonRpcStringValue(http);
+            if (url != null)
+            {
+                http.sseElicitUrl = url;
+                http.decoder = decodeJsonRpcParamsNext;
+            }
             progress = offset + (int) (parser.getLocation().getStreamOffset() - http.decodedParserProgress);
         }
 
@@ -1114,8 +1166,12 @@ public final class McpClientFactory implements McpStreamFactory
         if (parser.hasNext())
         {
             parser.next();
-            http.sseElicitMode = parser.getString();
-            http.decoder = decodeJsonRpcParamsNext;
+            final String mode = accumulateJsonRpcStringValue(http);
+            if (mode != null)
+            {
+                http.sseElicitMode = mode;
+                http.decoder = decodeJsonRpcParamsNext;
+            }
             progress = offset + (int) (parser.getLocation().getStreamOffset() - http.decodedParserProgress);
         }
 
@@ -1138,8 +1194,12 @@ public final class McpClientFactory implements McpStreamFactory
         if (parser.hasNext())
         {
             parser.next();
-            http.sseResourceUri = parser.getString();
-            http.decoder = decodeJsonRpcParamsNext;
+            final String uri = accumulateJsonRpcStringValue(http);
+            if (uri != null)
+            {
+                http.sseResourceUri = uri;
+                http.decoder = decodeJsonRpcParamsNext;
+            }
             progress = offset + (int) (parser.getLocation().getStreamOffset() - http.decodedParserProgress);
         }
 
@@ -1405,6 +1465,7 @@ public final class McpClientFactory implements McpStreamFactory
         http.sseResourceUri = null;
         http.sseFieldKind = 0;
         http.sseSmallValue.setLength(0);
+        http.sseJsonValue.setLength(0);
         http.sseLineState = SSE_LINE_START;
     }
 
@@ -3669,6 +3730,10 @@ public final class McpClientFactory implements McpStreamFactory
         protected int sseLineState;
         protected byte sseFieldKind;
         protected final StringBuilder sseSmallValue = new StringBuilder();
+        // distinct from sseSmallValue (the byte-level id:/retry: field scanner's own accumulator, never
+        // cleared after a read completes) -- accumulates fragments of a JSON-RPC scalar that spans an
+        // input window, so the two never collide when a value read overlaps stale small-value content
+        protected final StringBuilder sseJsonValue = new StringBuilder();
         protected boolean sseEventHasData;
         protected boolean sseEventProgress;
         protected String sseEventMethod;

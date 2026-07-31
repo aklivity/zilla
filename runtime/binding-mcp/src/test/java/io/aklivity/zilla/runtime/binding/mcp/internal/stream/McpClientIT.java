@@ -22,6 +22,7 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTes
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_ELICIT_CORRELATION_ID_NAME;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_INACTIVITY_TIMEOUT_NAME;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_SESSION_ID_NAME;
+import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_SLOT_CAPACITY_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -677,6 +678,20 @@ public class McpClientIT
         "${app}/lifecycle.notify.resources.updated/client",
         "${net}/lifecycle.notify.resources.updated/server"})
     public void shouldNotifyResourcesUpdated() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // regression test: a JSON-RPC scalar value (here the notified resource's uri) that spans an
+    // input window must be accumulated across every deferredBytes() fragment rather than handed
+    // back as complete on the first one -- a small buffer slot capacity forces the split
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/lifecycle.notify.resources.updated.fragmented/client",
+        "${net}/lifecycle.notify.resources.updated.fragmented/server"})
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "1024")
+    public void shouldNotifyResourcesUpdatedFragmented() throws Exception
     {
         k3po.finish();
     }
