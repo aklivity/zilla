@@ -352,6 +352,8 @@ bindings:
               - kafka__consume
               - kafka__create_topics
               - kafka__delete_topics
+              - kafka__describe_configs
+              - kafka__alter_configs
           search:
             toolkit: zilla
     routes:
@@ -610,20 +612,25 @@ bindings:
     # tool + topics together restrict each route to an allow-list of topics
     # (exact names or *-glob patterns), not just a tool-name dispatch; a
     # produce/consume call naming any other topic has no matching route
-    # and is rejected. create_topics and delete_topics have no topics
-    # allow-list -- each takes an array of topics as call arguments rather
-    # than a single routed topic -- so they share one route, matching on
-    # tool name alone (multiple `when` entries OR together); both are
-    # equally admin-risk structural mutations, so one guard covers both.
-    # create_topics/delete_topics and produce each layer a tool-specific
-    # scope under the toolkit-level kafka:tools guard above (the same
-    # layering register_schema demonstrates for the kafka_sr toolkit):
-    # kafka:admin for the admin-risk topic create/delete, kafka:write for
-    # writing data -- consume needs neither, only kafka:tools
+    # and is rejected. create_topics, delete_topics, and alter_configs have
+    # no topics allow-list -- each takes a resource name or an array of
+    # topics as call arguments rather than a single routed topic -- so they
+    # share one route, matching on tool name alone (multiple `when` entries
+    # OR together); all three are equally admin-risk structural mutations,
+    # so one guard covers them. describe_configs is read-only, like
+    # consume, so it needs no scope beyond the toolkit-level kafka:tools
+    # guard above.
+    # create_topics/delete_topics/alter_configs and produce each layer a
+    # tool-specific scope under the toolkit-level kafka:tools guard above
+    # (the same layering register_schema demonstrates for the kafka_sr
+    # toolkit): kafka:admin for the admin-risk topic/config mutations,
+    # kafka:write for writing data -- consume and describe_configs need
+    # neither, only kafka:tools
     routes:
       - when:
           - tool: create_topics
           - tool: delete_topics
+          - tool: alter_configs
         guarded:
           authn_jwt:
             - kafka:admin
@@ -636,6 +643,8 @@ bindings:
       - when:
           - tool: consume
             topics: [orders]
+      - when:
+          - tool: describe_configs
 telemetry:
   metrics:
     - mcp.initialize

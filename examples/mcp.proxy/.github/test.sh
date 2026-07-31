@@ -67,6 +67,14 @@
 #      sharing create_topics' route (one `when` list, two `tool` entries)
 #      and its kafka:admin scope -- both are structural, admin-risk
 #      mutations, so one route/guard covers both instead of duplicating it
+#  25. kafka__describe_configs reads back the real broker's effective
+#      config for the orders topic, including a config every topic
+#      carries by default -- needs no scope beyond the toolkit-level
+#      kafka:tools guard already exercised by consume
+#  26. kafka__alter_configs changes the orders topic's cleanup.policy on
+#      the same real broker, sharing create_topics/delete_topics' route
+#      and kafka:admin scope -- a third structural, admin-risk mutation
+#      coalesced onto the same route/guard
 #
 # Streamable HTTP responses arrive as Server-Sent Events; checks grep the
 # streamed body / client output rather than asserting exact-string equality.
@@ -252,7 +260,9 @@ assert_full_token() {
     echo "$TOOLS_FULL" | grep -q '^kafka__produce$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__consume$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__create_topics$' &&
-    echo "$TOOLS_FULL" | grep -q '^kafka__delete_topics$'
+    echo "$TOOLS_FULL" | grep -q '^kafka__delete_topics$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__describe_configs$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__alter_configs$'
 }
 retry_until 5 3 assert_full_token
 echo "TOOLS_FULL=$TOOLS_FULL"
@@ -270,7 +280,9 @@ if echo "$TOOLS_FULL" | grep -q '^everything__' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__produce$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__consume$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__create_topics$' &&
-    echo "$TOOLS_FULL" | grep -q '^kafka__delete_topics$'; then
+    echo "$TOOLS_FULL" | grep -q '^kafka__delete_topics$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__describe_configs$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__alter_configs$'; then
   echo "✅ full scope: every toolkit's tools and resources are listed"
 else
   echo "❌ full scope did not unlock every toolkit"
@@ -679,6 +691,53 @@ if echo "$KAFKA_CONSUME_OUT" | grep -q 'hello from mcp-kafka'; then
   echo "✅ kafka__consume read the produced record back from the real Kafka broker"
 else
   echo "❌ kafka__consume did not read the produced record back"
+  EXIT=1
+fi
+
+# WHEN: that same caller calls kafka__describe_configs for the orders topic
+# THEN: the real broker's effective config comes back, including
+#       cleanup.policy -- a config every topic carries by default -- proving
+#       describe_configs is read-only and needs no scope beyond the
+#       toolkit-level kafka:tools guard already exercised by consume
+call_kafka_describe_configs() {
+  KAFKA_DESCRIBE_CONFIGS_OUT=$(docker compose run --rm --no-deps \
+      -e JWT_TOKEN="$JWT_FULL" \
+      -e MCP_URL="http://zilla:$PORT/mcp" \
+      -e CALL_TOOL="kafka__describe_configs" \
+      -e CALL_ARGS='{"resource_type":"topic","resource_name":"orders"}' \
+      tools-list-client 2>&1)
+  echo "$KAFKA_DESCRIBE_CONFIGS_OUT" | grep -q '"name":"cleanup.policy"'
+}
+retry_until 10 3 call_kafka_describe_configs
+echo "KAFKA_DESCRIBE_CONFIGS_OUT=$KAFKA_DESCRIBE_CONFIGS_OUT"
+if echo "$KAFKA_DESCRIBE_CONFIGS_OUT" | grep -q '"name":"cleanup.policy"'; then
+  echo "✅ kafka__describe_configs read the real broker's effective topic config"
+else
+  echo "❌ kafka__describe_configs did not return the expected config"
+  EXIT=1
+fi
+
+# WHEN: a kafka:admin-scoped caller calls kafka__alter_configs to change the
+#       orders topic's cleanup.policy
+# THEN: the real broker accepts the change -- proving alter_configs' shared
+#       route (coalesced with create_topics/delete_topics under kafka:admin,
+#       same reasoning as delete_topics above) is sufficient to actually
+#       invoke the tool, not just see it listed
+call_kafka_alter_configs() {
+  KAFKA_ALTER_CONFIGS_OUT=$(docker compose run --rm --no-deps \
+      -e JWT_TOKEN="$JWT_FULL" \
+      -e MCP_URL="http://zilla:$PORT/mcp" \
+      -e CALL_TOOL="kafka__alter_configs" \
+      -e CALL_ARGS='{"resource_type":"topic","resource_name":"orders","configs":{"cleanup.policy":"compact"}}' \
+      tools-list-client 2>&1)
+  echo "$KAFKA_ALTER_CONFIGS_OUT" | grep -q 'Updated configs for topic orders'
+}
+retry_until 10 3 call_kafka_alter_configs
+echo "KAFKA_ALTER_CONFIGS_OUT=$KAFKA_ALTER_CONFIGS_OUT"
+if echo "$KAFKA_ALTER_CONFIGS_OUT" | grep -q 'Updated configs for topic orders'; then
+  echo "✅ kafka__alter_configs updated the topic config on the real Kafka broker"
+else
+  echo "❌ kafka__alter_configs did not succeed against the real broker"
   EXIT=1
 fi
 
