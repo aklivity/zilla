@@ -18,11 +18,6 @@ import jakarta.json.JsonValue;
 
 public class McpInitializeParams
 {
-    // JsonValue, not String/JsonObject: JsonbBuilder throws when the wire value doesn't
-    // match a narrower target type, and an uncaught exception here terminates the whole
-    // EngineWorker (see EngineWorker.doWork()'s single top-level catch (Throwable)), not
-    // just this connection. JsonValue binds unconditionally regardless of shape; callers
-    // must check getValueType() before narrowing.
     public JsonValue protocolVersion;
     public JsonValue capabilities;
 }
