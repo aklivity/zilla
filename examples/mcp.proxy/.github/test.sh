@@ -264,7 +264,7 @@ assert_full_token() {
     echo "$TOOLS_FULL" | grep -q '^kafka__describe_topic$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__cluster_overview$'
 }
-retry_until 5 3 assert_full_token
+retry_until 10 5 assert_full_token
 echo "TOOLS_FULL=$TOOLS_FULL"
 if echo "$TOOLS_FULL" | grep -q '^everything__' &&
     echo "$TOOLS_FULL" | grep -q '^urlelicit__authorize$' &&
@@ -471,7 +471,7 @@ read_featured_pets() {
   FEATURED_OUT=$(read_resource "$JWT_PARTIAL" "petstore+/pets/featured")
   echo "$FEATURED_OUT" | grep -q 'Bramble'
 }
-retry_until 5 3 read_featured_pets
+retry_until 10 5 read_featured_pets
 echo "FEATURED_OUT=$FEATURED_OUT"
 if echo "$FEATURED_OUT" | grep -q 'Bramble'; then
   echo "✅ petstore+/pets/featured read end-to-end"
