@@ -23,13 +23,13 @@ import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.binding.kafka.api.DescribeGroupsResponse.Group;
-import io.aklivity.zilla.runtime.binding.kafka.api.DescribeGroupsResponse.Kind;
-import io.aklivity.zilla.runtime.binding.kafka.api.DescribeGroupsResponse.Member;
+import io.aklivity.zilla.runtime.binding.kafka.api.KafkaDescribeGroupsResponse.Group;
+import io.aklivity.zilla.runtime.binding.kafka.api.KafkaDescribeGroupsResponse.Kind;
+import io.aklivity.zilla.runtime.binding.kafka.api.KafkaDescribeGroupsResponse.Member;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
-public class DescribeGroupsResponseV5FWTest
+public class KafkaDescribeGroupsResponseV5FWTest
 {
     // body bytes only, as verified against the real Kafka DescribeGroups v5 wire decoder input
     // (the response header's correlationId is decoded separately and excluded here)
@@ -77,7 +77,7 @@ public class DescribeGroupsResponseV5FWTest
     @Test
     public void shouldDecodeDescribeGroupsV5Response()
     {
-        DescribeGroupsResponseV5FW response = new DescribeGroupsResponseV5FW();
+        KafkaDescribeGroupsResponseV5FW response = new KafkaDescribeGroupsResponseV5FW();
 
         DirectBufferEx buffer = new UnsafeBufferEx(BODY);
         response.wrap(buffer, 0, buffer.capacity());

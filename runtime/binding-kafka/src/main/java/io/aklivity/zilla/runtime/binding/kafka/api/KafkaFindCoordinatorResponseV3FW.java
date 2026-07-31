@@ -21,11 +21,11 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 
 /**
  * Hand-crafted (not {@code .idl}-generated) FindCoordinator v3 response, adding the
- * version-tolerant {@link FindCoordinatorResponse} view over the single generated flyweight -
+ * version-tolerant {@link KafkaFindCoordinatorResponse} view over the single generated flyweight -
  * unlike the array-shaped responses elsewhere in this package, FindCoordinator has exactly one
  * result per response, so there is no cursor to drive.
  */
-public final class FindCoordinatorResponseV3FW implements FindCoordinatorResponse
+public final class KafkaFindCoordinatorResponseV3FW implements KafkaFindCoordinatorResponse
 {
     private final FindCoordinatorResponseFW findCoordinatorResponseRO = new FindCoordinatorResponseFW();
 
@@ -41,7 +41,7 @@ public final class FindCoordinatorResponseV3FW implements FindCoordinatorRespons
     private int hostLength;
     private int port;
 
-    public FindCoordinatorResponseV3FW wrap(
+    public KafkaFindCoordinatorResponseV3FW wrap(
         DirectBufferEx buffer,
         int offset,
         int limit)

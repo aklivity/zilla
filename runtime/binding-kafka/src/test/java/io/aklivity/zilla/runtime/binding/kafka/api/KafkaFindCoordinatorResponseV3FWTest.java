@@ -23,7 +23,7 @@ import org.junit.Test;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
-public class FindCoordinatorResponseV3FWTest
+public class KafkaFindCoordinatorResponseV3FWTest
 {
     // body bytes only, as verified against the real Kafka FindCoordinator v3 wire decoder input
     // (the response header's correlationId is decoded separately and excluded here)
@@ -50,7 +50,7 @@ public class FindCoordinatorResponseV3FWTest
     @Test
     public void shouldDecodeFindCoordinatorV3Response()
     {
-        FindCoordinatorResponseV3FW response = new FindCoordinatorResponseV3FW();
+        KafkaFindCoordinatorResponseV3FW response = new KafkaFindCoordinatorResponseV3FW();
 
         DirectBufferEx buffer = new UnsafeBufferEx(BODY);
         response.wrap(buffer, 0, buffer.capacity());

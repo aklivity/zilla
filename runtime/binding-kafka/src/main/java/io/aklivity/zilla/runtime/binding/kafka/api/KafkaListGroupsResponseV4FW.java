@@ -27,10 +27,10 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 /**
  * Hand-crafted (not {@code .idl}-generated) ListGroups v4 response cursor. Delegates the actual
  * byte decoding to the generated {@code protocol.idl} wire types, adding the version-tolerant
- * {@link ListGroupsResponse} view on top - a fixed-default-on-read behavior the flyweight
+ * {@link KafkaListGroupsResponse} view on top - a fixed-default-on-read behavior the flyweight
  * generator cannot produce, since generated builders only default missing fields on write.
  */
-public final class ListGroupsResponseV4FW implements ListGroupsResponse
+public final class KafkaListGroupsResponseV4FW implements KafkaListGroupsResponse
 {
     private static final int FIELD_SIZE_THROTTLE_TIME_MILLIS = 4;
     private static final int FIELD_SIZE_ERROR = 2;
@@ -62,7 +62,7 @@ public final class ListGroupsResponseV4FW implements ListGroupsResponse
      * Wraps a complete ListGroups v4 response body: tagged fields, throttle time, error code, and
      * group count, followed by the groups themselves.
      */
-    public ListGroupsResponseV4FW wrap(
+    public KafkaListGroupsResponseV4FW wrap(
         DirectBufferEx buffer,
         int offset,
         int limit)
@@ -88,7 +88,7 @@ public final class ListGroupsResponseV4FW implements ListGroupsResponse
      * the throttle time, error code, and group count itself (e.g. via a generated header flyweight
      * covering a wider response envelope, such as one that also carries a correlation id).
      */
-    public ListGroupsResponseV4FW wrapGroups(
+    public KafkaListGroupsResponseV4FW wrapGroups(
         DirectBufferEx buffer,
         int offset,
         int limit,

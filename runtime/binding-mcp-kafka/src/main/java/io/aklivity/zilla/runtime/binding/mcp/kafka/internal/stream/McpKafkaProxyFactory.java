@@ -47,17 +47,17 @@ import io.aklivity.zilla.runtime.binding.kafka.api.CreateTopicsResponse.Topic;
 import io.aklivity.zilla.runtime.binding.kafka.api.CreateTopicsResponseV7FW;
 import io.aklivity.zilla.runtime.binding.kafka.api.DeleteTopicsResponse;
 import io.aklivity.zilla.runtime.binding.kafka.api.DeleteTopicsResponseV6FW;
-import io.aklivity.zilla.runtime.binding.kafka.api.DescribeGroupsResponse;
-import io.aklivity.zilla.runtime.binding.kafka.api.DescribeGroupsResponseV5FW;
-import io.aklivity.zilla.runtime.binding.kafka.api.FindCoordinatorResponse;
-import io.aklivity.zilla.runtime.binding.kafka.api.FindCoordinatorResponseV3FW;
 import io.aklivity.zilla.runtime.binding.kafka.api.KafkaCreateTopicsRequest;
 import io.aklivity.zilla.runtime.binding.kafka.api.KafkaDeleteTopicsRequest;
 import io.aklivity.zilla.runtime.binding.kafka.api.KafkaDescribeGroupsRequest;
+import io.aklivity.zilla.runtime.binding.kafka.api.KafkaDescribeGroupsResponse;
+import io.aklivity.zilla.runtime.binding.kafka.api.KafkaDescribeGroupsResponseV5FW;
 import io.aklivity.zilla.runtime.binding.kafka.api.KafkaFindCoordinatorRequest;
+import io.aklivity.zilla.runtime.binding.kafka.api.KafkaFindCoordinatorResponse;
+import io.aklivity.zilla.runtime.binding.kafka.api.KafkaFindCoordinatorResponseV3FW;
 import io.aklivity.zilla.runtime.binding.kafka.api.KafkaListGroupsRequest;
-import io.aklivity.zilla.runtime.binding.kafka.api.ListGroupsResponse;
-import io.aklivity.zilla.runtime.binding.kafka.api.ListGroupsResponseV4FW;
+import io.aklivity.zilla.runtime.binding.kafka.api.KafkaListGroupsResponse;
+import io.aklivity.zilla.runtime.binding.kafka.api.KafkaListGroupsResponseV4FW;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.McpKafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.config.McpKafkaBindingConfig;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.config.McpKafkaRouteConfig;
@@ -221,9 +221,9 @@ public class McpKafkaProxyFactory implements BindingHandler
     private final JsonGeneratorEx apiResultGenerator;
     private final CreateTopicsResponseV7FW createTopicsResponseRO;
     private final DeleteTopicsResponseV6FW deleteTopicsResponseRO;
-    private final ListGroupsResponseV4FW listGroupsResponseRO;
-    private final DescribeGroupsResponseV5FW describeGroupsResponseRO;
-    private final FindCoordinatorResponseV3FW findCoordinatorResponseRO;
+    private final KafkaListGroupsResponseV4FW listGroupsResponseRO;
+    private final KafkaDescribeGroupsResponseV5FW describeGroupsResponseRO;
+    private final KafkaFindCoordinatorResponseV3FW findCoordinatorResponseRO;
     private final int createTopicsRequestTimeoutMs;
 
     protected final Long2ObjectHashMap<McpKafkaBindingConfig> bindings;
@@ -254,9 +254,9 @@ public class McpKafkaProxyFactory implements BindingHandler
         this.apiResultGenerator = JsonEx.createGenerator();
         this.createTopicsResponseRO = new CreateTopicsResponseV7FW();
         this.deleteTopicsResponseRO = new DeleteTopicsResponseV6FW();
-        this.listGroupsResponseRO = new ListGroupsResponseV4FW();
-        this.describeGroupsResponseRO = new DescribeGroupsResponseV5FW();
-        this.findCoordinatorResponseRO = new FindCoordinatorResponseV3FW();
+        this.listGroupsResponseRO = new KafkaListGroupsResponseV4FW();
+        this.describeGroupsResponseRO = new KafkaDescribeGroupsResponseV5FW();
+        this.findCoordinatorResponseRO = new KafkaFindCoordinatorResponseV3FW();
         this.createTopicsRequestTimeoutMs = (int) config.requestTimeout().toMillis();
     }
 
@@ -3497,7 +3497,7 @@ public class McpKafkaProxyFactory implements BindingHandler
             long traceId)
         {
             final MutableDirectBufferEx slot = decodePool.buffer(decodeSlot);
-            final ListGroupsResponseV4FW response = listGroupsResponseRO.wrap(slot, 0, responseLength);
+            final KafkaListGroupsResponseV4FW response = listGroupsResponseRO.wrap(slot, 0, responseLength);
 
             final int encodeSlot = encodePool.acquire(kafkaReplyId);
             if (encodeSlot == NO_SLOT)
@@ -3519,7 +3519,7 @@ public class McpKafkaProxyFactory implements BindingHandler
 
                 while (response.hasNext())
                 {
-                    final ListGroupsResponse.Group group = response.next();
+                    final KafkaListGroupsResponse.Group group = response.next();
                     final String groupId = group.buffer()
                         .getStringWithoutLengthUtf8(group.groupIdOffset(), group.groupIdLength());
                     final String groupState = group.buffer()
@@ -3895,7 +3895,7 @@ public class McpKafkaProxyFactory implements BindingHandler
             long traceId)
         {
             final MutableDirectBufferEx slot = decodePool.buffer(decodeSlot);
-            final DescribeGroupsResponseV5FW response = describeGroupsResponseRO.wrap(slot, 0, responseLength);
+            final KafkaDescribeGroupsResponseV5FW response = describeGroupsResponseRO.wrap(slot, 0, responseLength);
 
             final int encodeSlot = encodePool.acquire(kafkaReplyId);
             if (encodeSlot == NO_SLOT)
@@ -3917,9 +3917,9 @@ public class McpKafkaProxyFactory implements BindingHandler
 
                 while (response.hasNext())
                 {
-                    if (response.next() == DescribeGroupsResponse.Kind.GROUP)
+                    if (response.next() == KafkaDescribeGroupsResponse.Kind.GROUP)
                     {
-                        final DescribeGroupsResponse.Group group = response.group();
+                        final KafkaDescribeGroupsResponse.Group group = response.group();
                         groupState = group.buffer()
                             .getStringWithoutLengthUtf8(group.groupStateOffset(), group.groupStateLength());
                         isError = group.error() != 0;
@@ -3964,7 +3964,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         }
 
         private void writeMember(
-            DescribeGroupsResponse.Member member)
+            KafkaDescribeGroupsResponse.Member member)
         {
             final String memberId = member.buffer()
                 .getStringWithoutLengthUtf8(member.memberIdOffset(), member.memberIdLength());
@@ -3989,7 +3989,7 @@ public class McpKafkaProxyFactory implements BindingHandler
          * rather than modeled as a flyweight type.
          */
         private void writeAssignments(
-            DescribeGroupsResponse.Member member)
+            KafkaDescribeGroupsResponse.Member member)
         {
             final DirectBufferEx buffer = member.buffer();
             final int assignmentLength = member.memberAssignmentLength();
@@ -4406,7 +4406,7 @@ public class McpKafkaProxyFactory implements BindingHandler
             long traceId)
         {
             final MutableDirectBufferEx slot = decodePool.buffer(decodeSlot);
-            final FindCoordinatorResponse response = findCoordinatorResponseRO.wrap(slot, 0, responseLength);
+            final KafkaFindCoordinatorResponse response = findCoordinatorResponseRO.wrap(slot, 0, responseLength);
 
             cleanupDecodeSlot();
 
@@ -4426,16 +4426,16 @@ public class McpKafkaProxyFactory implements BindingHandler
             long traceId)
         {
             final MutableDirectBufferEx slot = decodePool.buffer(decodeSlot);
-            final DescribeGroupsResponseV5FW response = describeGroupsResponseRO.wrap(slot, 0, responseLength);
+            final KafkaDescribeGroupsResponseV5FW response = describeGroupsResponseRO.wrap(slot, 0, responseLength);
 
             short groupError = 0;
             String groupState = "";
 
             while (response.hasNext())
             {
-                if (response.next() == DescribeGroupsResponse.Kind.GROUP)
+                if (response.next() == KafkaDescribeGroupsResponse.Kind.GROUP)
                 {
-                    final DescribeGroupsResponse.Group describedGroup = response.group();
+                    final KafkaDescribeGroupsResponse.Group describedGroup = response.group();
                     groupError = describedGroup.error();
                     groupState = describedGroup.buffer()
                         .getStringWithoutLengthUtf8(describedGroup.groupStateOffset(), describedGroup.groupStateLength());

@@ -21,11 +21,11 @@ import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.binding.kafka.api.ListGroupsResponse.Group;
+import io.aklivity.zilla.runtime.binding.kafka.api.KafkaListGroupsResponse.Group;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
-public class ListGroupsResponseV4FWTest
+public class KafkaListGroupsResponseV4FWTest
 {
     // body bytes only, as verified against the real Kafka ListGroups v4 wire decoder input
     // (the response header's correlationId is decoded separately and excluded here)
@@ -57,7 +57,7 @@ public class ListGroupsResponseV4FWTest
     @Test
     public void shouldDecodeListGroupsV4Response()
     {
-        ListGroupsResponseV4FW response = new ListGroupsResponseV4FW();
+        KafkaListGroupsResponseV4FW response = new KafkaListGroupsResponseV4FW();
 
         DirectBufferEx buffer = new UnsafeBufferEx(BODY);
         response.wrap(buffer, 0, buffer.capacity());

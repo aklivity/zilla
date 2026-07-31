@@ -29,7 +29,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 /**
  * Hand-crafted (not {@code .idl}-generated) DescribeGroups v5 response cursor. Delegates the actual
  * byte decoding to the generated {@code protocol.idl} wire types, adding the version-tolerant
- * {@link DescribeGroupsResponse} view on top - a fixed-default-on-read behavior the flyweight
+ * {@link KafkaDescribeGroupsResponse} view on top - a fixed-default-on-read behavior the flyweight
  * generator cannot produce, since generated builders only default missing fields on write.
  * <p>
  * {@code memberMetadata} and {@code memberAssignment} are Kafka COMPACT_BYTES fields; since no
@@ -38,7 +38,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
  * and slices the raw payload directly, rather than modeling them in {@code protocol.idl}.
  * </p>
  */
-public final class DescribeGroupsResponseV5FW implements DescribeGroupsResponse
+public final class KafkaDescribeGroupsResponseV5FW implements KafkaDescribeGroupsResponse
 {
     private static final int FIELD_SIZE_THROTTLE_TIME_MILLIS = 4;
 
@@ -93,7 +93,7 @@ public final class DescribeGroupsResponseV5FW implements DescribeGroupsResponse
      * Wraps a complete DescribeGroups v5 response body: tagged fields, throttle time, and group
      * count, followed by the groups themselves.
      */
-    public DescribeGroupsResponseV5FW wrap(
+    public KafkaDescribeGroupsResponseV5FW wrap(
         DirectBufferEx buffer,
         int offset,
         int limit)
@@ -117,7 +117,7 @@ public final class DescribeGroupsResponseV5FW implements DescribeGroupsResponse
      * decoded the throttle time and group count itself (e.g. via a generated header flyweight
      * covering a wider response envelope, such as one that also carries a correlation id).
      */
-    public DescribeGroupsResponseV5FW wrapGroups(
+    public KafkaDescribeGroupsResponseV5FW wrapGroups(
         DirectBufferEx buffer,
         int offset,
         int limit,

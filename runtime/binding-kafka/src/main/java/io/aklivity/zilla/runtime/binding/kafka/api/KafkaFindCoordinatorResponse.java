@@ -21,7 +21,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
  * A decoded FindCoordinator response - a single result, unlike the array-shaped responses
  * elsewhere in this package, so there is no cursor to drive.
  */
-public interface FindCoordinatorResponse
+public interface KafkaFindCoordinatorResponse
 {
     DirectBufferEx buffer();
 

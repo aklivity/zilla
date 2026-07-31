@@ -25,7 +25,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
  * until the next {@link #next()} call.
  * </p>
  */
-public interface DescribeGroupsResponse
+public interface KafkaDescribeGroupsResponse
 {
     enum Kind
     {

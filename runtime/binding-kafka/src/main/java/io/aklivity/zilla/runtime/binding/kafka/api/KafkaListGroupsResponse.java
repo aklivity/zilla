@@ -24,7 +24,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
  * are valid only until the next {@link #next()} call.
  * </p>
  */
-public interface ListGroupsResponse
+public interface KafkaListGroupsResponse
 {
     short error();
 
