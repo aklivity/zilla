@@ -25,7 +25,7 @@ runtime/                     # Core engine and all bindings
   ...
 specs/                       # Integration test specifications (IT)
 incubator/                   # Bindings under active development
-maven-plugin/                # Code generator for flyweight types
+build/flyweight-maven-plugin/ # Code generator for flyweight types (local peer module, not a remote artifact)
 ```
 
 ---
@@ -101,8 +101,10 @@ without properly saying goodbye", event-assertion mismatches) is a symptom of
 this same root cause, not a real bug — before spending time diagnosing a
 crash from an `*IT` run, confirm it was launched with `verify`.
 
-The Maven plugin in `maven-plugin/` generates flyweight Java classes from `.idl`
-files. Always run a full build after modifying any `.idl` file.
+The Maven plugin in `build/flyweight-maven-plugin/` generates flyweight Java
+classes from `.idl` files. Always run a full build after modifying any `.idl`
+file. It is a peer reactor module, not a published remote artifact — it comes
+from this same checkout, not from a Maven registry.
 
 ---
 

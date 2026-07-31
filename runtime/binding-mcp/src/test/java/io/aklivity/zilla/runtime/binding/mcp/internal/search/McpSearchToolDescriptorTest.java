@@ -50,6 +50,20 @@ public class McpSearchToolDescriptorTest
     }
 
     @Test
+    public void shouldBuildSearchToolsWithAnnotations()
+    {
+        byte[] bytes = McpSearchToolDescriptor.buildSearchTools("zilla");
+
+        JsonObject tool = parse(bytes);
+        JsonObject annotations = tool.getJsonObject("annotations");
+
+        assertThat(annotations.getBoolean("readOnlyHint"), equalTo(true));
+        assertThat(annotations.getBoolean("destructiveHint"), equalTo(false));
+        assertThat(annotations.getBoolean("idempotentHint"), equalTo(true));
+        assertThat(annotations.getBoolean("openWorldHint"), equalTo(false));
+    }
+
+    @Test
     public void shouldBuildSearchToolsInputSchemaRequiringQuery()
     {
         byte[] bytes = McpSearchToolDescriptor.buildSearchTools("zilla");
@@ -76,6 +90,20 @@ public class McpSearchToolDescriptorTest
     }
 
     @Test
+    public void shouldBuildDescribeToolWithAnnotations()
+    {
+        byte[] bytes = McpSearchToolDescriptor.buildDescribeTool("zilla");
+
+        JsonObject tool = parse(bytes);
+        JsonObject annotations = tool.getJsonObject("annotations");
+
+        assertThat(annotations.getBoolean("readOnlyHint"), equalTo(true));
+        assertThat(annotations.getBoolean("destructiveHint"), equalTo(false));
+        assertThat(annotations.getBoolean("idempotentHint"), equalTo(true));
+        assertThat(annotations.getBoolean("openWorldHint"), equalTo(false));
+    }
+
+    @Test
     public void shouldBuildDescribeToolInputSchemaRequiringName()
     {
         byte[] bytes = McpSearchToolDescriptor.buildDescribeTool("zilla");
@@ -97,6 +125,16 @@ public class McpSearchToolDescriptorTest
 
         assertThat(tool.getString("name"), equalTo("zilla__execute_tool"));
         assertThat(tool.containsKey("description"), equalTo(true));
+    }
+
+    @Test
+    public void shouldBuildExecuteToolWithoutAnnotations()
+    {
+        byte[] bytes = McpSearchToolDescriptor.buildExecuteTool("zilla");
+
+        JsonObject tool = parse(bytes);
+
+        assertThat(tool.containsKey("annotations"), equalTo(false));
     }
 
     @Test

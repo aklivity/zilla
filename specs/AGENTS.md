@@ -167,12 +167,30 @@ pointing at `streams/network/...` or `streams/application/...` and references
 scripts as `${net}/scenario/client` and `${net}/scenario/server` (or `${app}/`
 for application-layer scenarios).
 
+**Every scenario's scripts must always be authored as a `client.rpt` /
+`server.rpt` pair, never a single script.** A lone script cannot be verified
+for self-consistency and has no peer to run against — the pairing is what
+makes the peer-to-peer check below possible at all.
+
 Each scenario also has a corresponding test method in a `NetworkIT` or
 `ApplicationIT` class (in the spec project's `src/test/` tree) that runs
 `client.rpt` and `server.rpt` directly against each other — without Zilla —
 to verify that the two scripts are complementary and self-consistent. Every
 new scenario must have both a binding IT method (running against Zilla) and a
-`NetworkIT`/`ApplicationIT` method (running the scripts peer-to-peer).
+`NetworkIT`/`ApplicationIT` method (running the scripts peer-to-peer). This
+peer-to-peer verification is not optional — a scenario without it has never
+actually confirmed that its two scripts agree with each other, only that each
+independently passed against Zilla.
+
+Cross-protocol proxy specs (e.g. `binding-http-kafka.spec`,
+`binding-mcp-kafka.spec`) follow the same pairing and peer-to-peer-verification
+rule, but organise scripts per protocol instead of `network`/`application` —
+e.g. `streams/mcp/` and `streams/kafka/` — and name the peer-to-peer IT class
+after the protocol it verifies (`McpIT`, `KafkaIT`) rather than
+`NetworkIT`/`ApplicationIT`. Each such class pairs a protocol's own
+`client.rpt`/`server.rpt` against each other, independent of the engine and
+of the other protocol — see `binding-mcp-kafka.spec`'s `McpIT`/`KafkaIT` for
+the canonical example.
 
 IT test method names are derived from the scenario directory name by
 prepending `should` and converting `dot.separated.words` to `camelCase` — for

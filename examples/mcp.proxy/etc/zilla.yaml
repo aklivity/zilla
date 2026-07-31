@@ -350,6 +350,8 @@ bindings:
               - kafka_sr__register_schema
               - kafka__produce
               - kafka__consume
+              - kafka__create_topics
+              - kafka__delete_topics
           search:
             toolkit: zilla
     routes:
@@ -608,11 +610,29 @@ bindings:
     # tool + topics together restrict each route to an allow-list of topics
     # (exact names or *-glob patterns), not just a tool-name dispatch; a
     # produce/consume call naming any other topic has no matching route
-    # and is rejected
+    # and is rejected. create_topics and delete_topics have no topics
+    # allow-list -- each takes an array of topics as call arguments rather
+    # than a single routed topic -- so they share one route, matching on
+    # tool name alone (multiple `when` entries OR together); both are
+    # equally admin-risk structural mutations, so one guard covers both.
+    # create_topics/delete_topics and produce each layer a tool-specific
+    # scope under the toolkit-level kafka:tools guard above (the same
+    # layering register_schema demonstrates for the kafka_sr toolkit):
+    # kafka:admin for the admin-risk topic create/delete, kafka:write for
+    # writing data -- consume needs neither, only kafka:tools
     routes:
+      - when:
+          - tool: create_topics
+          - tool: delete_topics
+        guarded:
+          authn_jwt:
+            - kafka:admin
       - when:
           - tool: produce
             topics: [orders]
+        guarded:
+          authn_jwt:
+            - kafka:write
       - when:
           - tool: consume
             topics: [orders]

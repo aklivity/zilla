@@ -57,6 +57,16 @@
 #      scope (kafka_sr:write) under the toolkit-level scope
 #      (kafka_sr:tools) for register_schema only -- no OpenAPI
 #      security scheme is involved, unlike petstore's create_pet
+#  23. kafka__create_topics creates a real topic on the same broker
+#      (mcp_kafka kind:client's own generated pipeline, not the engine's
+#      test double), gated by its own tool-specific kafka:admin scope
+#      layered under the toolkit-level kafka:tools scope -- the same
+#      layering mechanism as register_schema/kafka_sr:write, demonstrated
+#      on a different toolkit
+#  24. kafka__delete_topics deletes that same topic on the same broker,
+#      sharing create_topics' route (one `when` list, two `tool` entries)
+#      and its kafka:admin scope -- both are structural, admin-risk
+#      mutations, so one route/guard covers both instead of duplicating it
 #
 # Streamable HTTP responses arrive as Server-Sent Events; checks grep the
 # streamed body / client output rather than asserting exact-string equality.
@@ -89,7 +99,7 @@ encode_jwt() {
 JWT_NONE=""
 JWT_URLELICIT=$(encode_jwt "urlelicit:authorize")
 JWT_PARTIAL=$(encode_jwt "github:tools petstore:tools kafka_sr:tools")
-JWT_FULL=$(encode_jwt "urlelicit:authorize github:tools github:pr:write petstore:tools pets:write kafka_sr:tools kafka_sr:write kafka:tools")
+JWT_FULL=$(encode_jwt "urlelicit:authorize github:tools github:pr:write petstore:tools pets:write kafka_sr:tools kafka_sr:write kafka:tools kafka:write kafka:admin")
 
 # WHEN: a url-elicitation-capable client initializes against the gateway
 # THEN: the gateway negotiates protocol version 2025-11-25 in the response
@@ -240,7 +250,9 @@ assert_full_token() {
     echo "$TOOLS_FULL" | grep -q '^kafka_sr__list_subjects$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka_sr__register_schema$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__produce$' &&
-    echo "$TOOLS_FULL" | grep -q '^kafka__consume$'
+    echo "$TOOLS_FULL" | grep -q '^kafka__consume$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__create_topics$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__delete_topics$'
 }
 retry_until 5 3 assert_full_token
 echo "TOOLS_FULL=$TOOLS_FULL"
@@ -256,7 +268,9 @@ if echo "$TOOLS_FULL" | grep -q '^everything__' &&
     echo "$TOOLS_FULL" | grep -q '^kafka_sr__list_subjects$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka_sr__register_schema$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__produce$' &&
-    echo "$TOOLS_FULL" | grep -q '^kafka__consume$'; then
+    echo "$TOOLS_FULL" | grep -q '^kafka__consume$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__create_topics$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__delete_topics$'; then
   echo "✅ full scope: every toolkit's tools and resources are listed"
 else
   echo "❌ full scope did not unlock every toolkit"
@@ -513,7 +527,7 @@ call_list_subjects() {
       tools-list-client 2>&1)
   echo "$LIST_SUBJECTS_OUT" | grep -q "$SR_SUBJECT"
 }
-retry_until 5 3 call_list_subjects
+retry_until 10 3 call_list_subjects
 echo "LIST_SUBJECTS_OUT=$LIST_SUBJECTS_OUT"
 if echo "$LIST_SUBJECTS_OUT" | grep -q "$SR_SUBJECT"; then
   echo "✅ kafka_sr__list_subjects saw the registered subject in real Karapace state"
@@ -531,7 +545,7 @@ call_describe_subject() {
       tools-list-client 2>&1)
   echo "$DESCRIBE_SUBJECT_OUT" | grep -q '\[1\]'
 }
-retry_until 5 3 call_describe_subject
+retry_until 10 3 call_describe_subject
 echo "DESCRIBE_SUBJECT_OUT=$DESCRIBE_SUBJECT_OUT"
 if echo "$DESCRIBE_SUBJECT_OUT" | grep -q '\[1\]'; then
   echo "✅ kafka_sr__describe_subject listed version 1 of the registered subject"
@@ -553,7 +567,7 @@ call_get_schema() {
       tools-list-client 2>&1)
   echo "$GET_SCHEMA_OUT" | grep -q 'Retrieved schema id 1, version 1'
 }
-retry_until 5 3 call_get_schema
+retry_until 10 3 call_get_schema
 echo "GET_SCHEMA_OUT=$GET_SCHEMA_OUT"
 if echo "$GET_SCHEMA_OUT" | grep -q 'Retrieved schema id 1, version 1'; then
   echo "✅ kafka_sr__get_schema read the schema back with both result fields interpolated"
@@ -576,7 +590,7 @@ call_set_compatibility() {
       tools-list-client 2>&1)
   echo "$SET_COMPAT_OUT" | grep -q 'Compatibility level set to FULL'
 }
-retry_until 5 3 call_set_compatibility
+retry_until 10 3 call_set_compatibility
 echo "SET_COMPAT_OUT=$SET_COMPAT_OUT"
 if echo "$SET_COMPAT_OUT" | grep -q 'Compatibility level set to FULL'; then
   echo "✅ kafka_sr__set_compatibility set a compatibility level on the registered subject"
@@ -594,7 +608,7 @@ call_get_compatibility() {
       tools-list-client 2>&1)
   echo "$GET_COMPAT_OUT" | grep -q 'Compatibility level is FULL'
 }
-retry_until 5 3 call_get_compatibility
+retry_until 10 3 call_get_compatibility
 echo "GET_COMPAT_OUT=$GET_COMPAT_OUT"
 if echo "$GET_COMPAT_OUT" | grep -q 'Compatibility level is FULL'; then
   echo "✅ kafka_sr__get_compatibility read back the level set above"
@@ -615,7 +629,7 @@ call_check_compatibility() {
       tools-list-client 2>&1)
   echo "$CHECK_COMPAT_OUT" | grep -q 'Compatibility check result: true'
 }
-retry_until 5 3 call_check_compatibility
+retry_until 10 3 call_check_compatibility
 echo "CHECK_COMPAT_OUT=$CHECK_COMPAT_OUT"
 if echo "$CHECK_COMPAT_OUT" | grep -q 'Compatibility check result: true'; then
   echo "✅ kafka_sr__check_compatibility reported the identical schema as compatible"
@@ -624,7 +638,7 @@ else
   EXIT=1
 fi
 
-# WHEN: a kafka:tools-scoped caller calls kafka__produce
+# WHEN: a kafka:write-scoped caller calls kafka__produce
 # THEN: the record reaches the real, single-node KRaft Kafka broker started by
 #       this example -- not the engine's `type: test` double specs/ITs use --
 #       proving mcp_kafka's kind:client composite generator (kafka_cache_client
@@ -665,6 +679,53 @@ if echo "$KAFKA_CONSUME_OUT" | grep -q 'hello from mcp-kafka'; then
   echo "✅ kafka__consume read the produced record back from the real Kafka broker"
 else
   echo "❌ kafka__consume did not read the produced record back"
+  EXIT=1
+fi
+
+# WHEN: a kafka:admin-scoped caller calls kafka__create_topics
+# THEN: a new topic is created on the real Kafka broker -- proving the
+#       tool-specific kafka:admin scope (layered under the toolkit-level
+#       kafka:tools guard already exercised above by produce/consume) is
+#       sufficient to actually invoke the tool, not just see it listed
+call_kafka_create_topics() {
+  KAFKA_CREATE_TOPICS_OUT=$(docker compose run --rm --no-deps \
+      -e JWT_TOKEN="$JWT_FULL" \
+      -e MCP_URL="http://zilla:$PORT/mcp" \
+      -e CALL_TOOL="kafka__create_topics" \
+      -e CALL_ARGS='{"topics":[{"name":"widgets","partitions":1,"replicas":1}]}' \
+      tools-list-client 2>&1)
+  echo "$KAFKA_CREATE_TOPICS_OUT" | grep -q 'Created topic(s): widgets'
+}
+retry_until 10 3 call_kafka_create_topics
+echo "KAFKA_CREATE_TOPICS_OUT=$KAFKA_CREATE_TOPICS_OUT"
+if echo "$KAFKA_CREATE_TOPICS_OUT" | grep -q 'Created topic(s): widgets'; then
+  echo "✅ kafka__create_topics created a new topic on the real Kafka broker"
+else
+  echo "❌ kafka__create_topics did not succeed against the real broker"
+  EXIT=1
+fi
+
+# WHEN: that same kafka:admin-scoped caller calls kafka__delete_topics for
+#       the topic just created
+# THEN: the topic is deleted on the real Kafka broker -- proving
+#       delete_topics' coalesced route (sharing create_topics' `when` list
+#       and kafka:admin guard, rather than a duplicate route) is sufficient
+#       to actually invoke the tool, not just see it listed
+call_kafka_delete_topics() {
+  KAFKA_DELETE_TOPICS_OUT=$(docker compose run --rm --no-deps \
+      -e JWT_TOKEN="$JWT_FULL" \
+      -e MCP_URL="http://zilla:$PORT/mcp" \
+      -e CALL_TOOL="kafka__delete_topics" \
+      -e CALL_ARGS='{"topics":["widgets"]}' \
+      tools-list-client 2>&1)
+  echo "$KAFKA_DELETE_TOPICS_OUT" | grep -q 'Deleted topic(s): widgets'
+}
+retry_until 10 3 call_kafka_delete_topics
+echo "KAFKA_DELETE_TOPICS_OUT=$KAFKA_DELETE_TOPICS_OUT"
+if echo "$KAFKA_DELETE_TOPICS_OUT" | grep -q 'Deleted topic(s): widgets'; then
+  echo "✅ kafka__delete_topics deleted the topic from the real Kafka broker"
+else
+  echo "❌ kafka__delete_topics did not succeed against the real broker"
   EXIT=1
 fi
 

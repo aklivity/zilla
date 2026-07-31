@@ -33,6 +33,7 @@ import io.aklivity.zilla.runtime.common.openapi.model.OpenapiMediaType;
 import io.aklivity.zilla.runtime.common.openapi.model.OpenapiOAuthFlow;
 import io.aklivity.zilla.runtime.common.openapi.model.OpenapiOAuthFlows;
 import io.aklivity.zilla.runtime.common.openapi.model.OpenapiOperation;
+import io.aklivity.zilla.runtime.common.openapi.model.OpenapiParameter;
 import io.aklivity.zilla.runtime.common.openapi.model.OpenapiPath;
 import io.aklivity.zilla.runtime.common.openapi.model.OpenapiRequestBody;
 import io.aklivity.zilla.runtime.common.openapi.model.OpenapiSchema;
@@ -417,6 +418,45 @@ public class OpenapiViewTest
 
         assertEquals(1, operationView.servers.size());
         assertEquals(URI.create("/"), operationView.servers.get(0).url);
+    }
+
+    @Test
+    public void shouldResolveRequiredAndSchemaForReferencedParameter() throws Exception
+    {
+        OpenapiSchema ownerSchema = new OpenapiSchema();
+        ownerSchema.type = "string";
+
+        OpenapiParameter ownerComponent = new OpenapiParameter();
+        ownerComponent.name = "owner";
+        ownerComponent.in = "path";
+        ownerComponent.required = true;
+        ownerComponent.schema = ownerSchema;
+
+        OpenapiComponents components = new OpenapiComponents();
+        components.parameters = Map.of("owner", ownerComponent);
+
+        OpenapiParameter ownerRef = new OpenapiParameter();
+        ownerRef.ref = "#/components/parameters/owner";
+
+        OpenapiOperation operation = new OpenapiOperation();
+        operation.operationId = "ReadItems";
+        operation.parameters = List.of(ownerRef);
+
+        OpenapiPath path = new OpenapiPath();
+        path.get = operation;
+
+        Openapi model = new Openapi();
+        model.components = components;
+        model.paths = Map.of("/items/{owner}", path);
+
+        OpenapiView view = OpenapiView.of(model);
+        OpenapiOperationView operationView = view.paths.get("/items/{owner}").methods.get("GET");
+        OpenapiParameterView parameterView = operationView.parameters.get(0);
+
+        assertEquals("owner", parameterView.name);
+        assertEquals("path", parameterView.in);
+        assertTrue(parameterView.required);
+        assertEquals("string", parameterView.schema.type);
     }
 
     public static final class SampleExtension

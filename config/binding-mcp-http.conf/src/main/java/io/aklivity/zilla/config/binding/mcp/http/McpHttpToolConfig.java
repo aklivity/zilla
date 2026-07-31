@@ -26,6 +26,7 @@ public final class McpHttpToolConfig
     public final ModelConfig input;
     public final ModelConfig output;
     public final boolean outputMaybeWrapped;
+    public final McpHttpToolAnnotationsConfig annotations;
 
     public static McpHttpToolConfigBuilder<McpHttpToolConfig> builder()
     {
@@ -50,7 +51,8 @@ public final class McpHttpToolConfig
         String description,
         ModelConfig input,
         ModelConfig output,
-        boolean outputMaybeWrapped)
+        boolean outputMaybeWrapped,
+        McpHttpToolAnnotationsConfig annotations)
     {
         this.name = name;
         this.summary = summary;
@@ -58,5 +60,6 @@ public final class McpHttpToolConfig
         this.input = input;
         this.output = output;
         this.outputMaybeWrapped = outputMaybeWrapped;
+        this.annotations = annotations;
     }
 }

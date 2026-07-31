@@ -117,4 +117,12 @@ public class SchemaTest
 
         assertThat(config, not(nullValue()));
     }
+
+    @Test
+    public void shouldValidateClientCreateTopics()
+    {
+        JsonObject config = schema.validate("client.create.topics.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
 }

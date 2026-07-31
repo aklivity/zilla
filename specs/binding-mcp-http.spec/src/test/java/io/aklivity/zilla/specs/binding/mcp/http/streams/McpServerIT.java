@@ -164,6 +164,15 @@ public class McpServerIT
 
     @Test
     @Specification({
+        "${mcp}/tools.list.with.annotations/client",
+        "${mcp}/tools.list.with.annotations/server"})
+    public void shouldListToolsWithAnnotations() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mcp}/resources.list/client",
         "${mcp}/resources.list/server"})
     public void shouldListResources() throws Exception
@@ -311,6 +320,15 @@ public class McpServerIT
         "${mcp}/get.profile/client",
         "${mcp}/get.profile/server"})
     public void shouldCallToolGetProfileWithNoSummary() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mcp}/update.issue.invalid.input/client",
+        "${mcp}/update.issue.invalid.input/server"})
+    public void shouldUpdateIssueInvalidInput() throws Exception
     {
         k3po.finish();
     }

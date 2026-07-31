@@ -221,6 +221,15 @@ public class McpHttpProxyIT
     }
 
     @Test
+    @Configuration("proxy.discovery.annotations.yaml")
+    @Specification({
+        "${mcp}/tools.list.with.annotations/client"})
+    public void shouldListToolsWithAnnotations() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.discovery.yaml")
     @Specification({
         "${mcp}/tools.list.unknown.session/client"})
@@ -533,6 +542,15 @@ public class McpHttpProxyIT
     @Specification({
         "${mcp}/create.pr.malformed.request/client"})
     public void shouldRejectToolWhenRequestMalformed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mcp}/update.issue.invalid.input/client"})
+    public void shouldRejectToolWhenInputInvalid() throws Exception
     {
         k3po.finish();
     }

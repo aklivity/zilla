@@ -312,10 +312,11 @@ public final class McpOpenapiClientFactory implements BindingHandler
             final long acknowledge = reset.acknowledge();
             final int maximum = reset.maximum();
             final long traceId = reset.traceId();
+            final OctetsFW extension = reset.extension();
 
             state = McpOpenapiState.closeReply(state);
 
-            http.doMcpHttpReset(sequence, acknowledge, maximum, traceId);
+            http.doMcpHttpReset(sequence, acknowledge, maximum, traceId, extension);
         }
 
         private void onMcpOpenapiWindow(
@@ -421,14 +422,15 @@ public final class McpOpenapiClientFactory implements BindingHandler
             long sequence,
             long acknowledge,
             int maximum,
-            long traceId)
+            long traceId,
+            OctetsFW extension)
         {
             if (!McpOpenapiState.initialClosed(state))
             {
                 state = McpOpenapiState.closeInitial(state);
 
                 McpOpenapiClientFactory.this.doReset(sender, originId, routedId, initialId, sequence, acknowledge, maximum,
-                    traceId, authorization);
+                    traceId, authorization, extension);
             }
         }
 
@@ -593,10 +595,11 @@ public final class McpOpenapiClientFactory implements BindingHandler
             final long acknowledge = reset.acknowledge();
             final int maximum = reset.maximum();
             final long traceId = reset.traceId();
+            final OctetsFW extension = reset.extension();
 
             state = McpOpenapiState.closeInitial(state);
 
-            delegate.doMcpOpenapiReset(sequence, acknowledge, maximum, traceId);
+            delegate.doMcpOpenapiReset(sequence, acknowledge, maximum, traceId, extension);
         }
 
         private void onMcpHttpWindow(
@@ -697,12 +700,13 @@ public final class McpOpenapiClientFactory implements BindingHandler
             long sequence,
             long acknowledge,
             int maximum,
-            long traceId)
+            long traceId,
+            OctetsFW extension)
         {
             if (!McpOpenapiState.replyClosed(state))
             {
                 McpOpenapiClientFactory.this.doReset(receiver, originId, routedId, replyId, sequence, acknowledge, maximum,
-                    traceId, authorization);
+                    traceId, authorization, extension);
 
                 state = McpOpenapiState.closeReply(state);
             }
@@ -943,7 +947,8 @@ public final class McpOpenapiClientFactory implements BindingHandler
         long acknowledge,
         int maximum,
         long traceId,
-        long authorization)
+        long authorization,
+        OctetsFW extension)
     {
         final ResetFW reset = resetRW.wrap(writeBuffer, 0, writeBuffer.capacity())
             .originId(originId)
@@ -954,7 +959,7 @@ public final class McpOpenapiClientFactory implements BindingHandler
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
-            .extension(EMPTY_OCTETS.buffer(), EMPTY_OCTETS.offset(), EMPTY_OCTETS.sizeof())
+            .extension(extension)
             .build();
 
         receiver.accept(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());

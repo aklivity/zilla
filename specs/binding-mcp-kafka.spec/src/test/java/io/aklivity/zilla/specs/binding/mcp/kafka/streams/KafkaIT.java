@@ -92,6 +92,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/consume.without.limit/client",
+        "${kafka}/consume.without.limit/server"})
+    public void shouldConsumeWithoutLimit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/produce.args.fragmented/client",
         "${kafka}/produce.args.fragmented/server"})
     public void shouldProduceArgsFragmented() throws Exception
@@ -113,6 +122,42 @@ public class KafkaIT
         "${kafka}/produce.topic.glob/client",
         "${kafka}/produce.topic.glob/server"})
     public void shouldProduceWhenTopicMatchesGlob() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/create.topics/client",
+        "${kafka}/create.topics/server"})
+    public void shouldCreateTopics() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/create.topics.negotiated/client",
+        "${kafka}/create.topics.negotiated/server"})
+    public void shouldCreateTopicsNegotiated() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/delete.topics/client",
+        "${kafka}/delete.topics/server"})
+    public void shouldDeleteTopics() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/delete.topics.negotiated/client",
+        "${kafka}/delete.topics.negotiated/server"})
+    public void shouldDeleteTopicsNegotiated() throws Exception
     {
         k3po.finish();
     }

@@ -48,6 +48,7 @@ import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.Object2ObjectHashMap;
 
 import io.aklivity.zilla.config.binding.mcp.http.McpHttpResourceConfig;
+import io.aklivity.zilla.config.binding.mcp.http.McpHttpToolAnnotationsConfig;
 import io.aklivity.zilla.config.binding.mcp.http.McpHttpToolConfig;
 import io.aklivity.zilla.config.binding.mcp.http.McpHttpWithConfig;
 import io.aklivity.zilla.config.engine.BindingConfig;
@@ -1228,6 +1229,11 @@ public final class McpHttpProxyFactory implements BindingHandler
                 case COMPLETED:
                     requestProjected = true;
                     progress = false;
+                    if (!requestPathReady())
+                    {
+                        delegate.doHttpAbort(traceId);
+                        doMcpReset(traceId, JSON_RPC_INVALID_PARAMS, "Invalid params");
+                    }
                     cleanupDecodeSlot();
                     break;
                 case REJECTED:
@@ -1765,6 +1771,7 @@ public final class McpHttpProxyFactory implements BindingHandler
             // prefix to reach some threshold
             mcp.responseStarted = true;
             mcp.responseBegin(traceId, responseStatus, responseContentType);
+            mcp.flushHttpWindow(traceId);
         }
 
         private void onHttpData(
@@ -1920,15 +1927,18 @@ public final class McpHttpProxyFactory implements BindingHandler
             long budgetId,
             int padding)
         {
-            final long newReplyAck = Math.max(replyAck, replySeq - decodeSlotOffset);
-            final int newReplyMax = Math.max(replyMax, decodePool.slotCapacity());
-
-            if (newReplyAck > replyAck || newReplyMax > replyMax || !McpHttpState.replyOpened(state))
+            if (McpHttpState.replyOpening(state))
             {
-                replyAck = newReplyAck;
-                replyMax = newReplyMax;
-                doWindow(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, mcp.authorization, budgetId, padding);
+                final long newReplyAck = Math.max(replyAck, replySeq - decodeSlotOffset);
+                final int newReplyMax = Math.max(replyMax, decodePool.slotCapacity());
+
+                if (newReplyAck > replyAck || newReplyMax > replyMax || !McpHttpState.replyOpened(state))
+                {
+                    replyAck = newReplyAck;
+                    replyMax = newReplyMax;
+                    doWindow(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                        traceId, mcp.authorization, budgetId, padding);
+                }
             }
         }
 
@@ -2462,9 +2472,46 @@ public final class McpHttpProxyFactory implements BindingHandler
             {
                 item.add("securitySchemes", toolSchemes);
             }
+            final JsonObject annotations = annotationsObject(tool.annotations);
+            if (annotations != null)
+            {
+                item.add("annotations", annotations);
+            }
             tools.add(item);
         }
         return compact(Json.createObjectBuilder().add("tools", tools).build());
+    }
+
+    private static JsonObject annotationsObject(
+        McpHttpToolAnnotationsConfig annotations)
+    {
+        JsonObject object = null;
+        if (annotations != null)
+        {
+            final JsonObjectBuilder builder = Json.createObjectBuilder();
+            if (annotations.title != null)
+            {
+                builder.add("title", annotations.title);
+            }
+            if (annotations.readOnlyHint != null)
+            {
+                builder.add("readOnlyHint", annotations.readOnlyHint);
+            }
+            if (annotations.destructiveHint != null)
+            {
+                builder.add("destructiveHint", annotations.destructiveHint);
+            }
+            if (annotations.idempotentHint != null)
+            {
+                builder.add("idempotentHint", annotations.idempotentHint);
+            }
+            if (annotations.openWorldHint != null)
+            {
+                builder.add("openWorldHint", annotations.openWorldHint);
+            }
+            object = builder.build();
+        }
+        return object;
     }
 
     private static JsonArrayBuilder securitySchemes(

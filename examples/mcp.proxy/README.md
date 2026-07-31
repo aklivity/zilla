@@ -36,7 +36,7 @@ This one configuration exercises all seven `mcp*` binding kinds:
 | `mcp_http` | `proxy` | Synthesizes MCP tools from hand-authored config, backed by a plain REST API (`github` toolkit) |
 | `mcp_openapi` | `client` | Synthesizes MCP tools from an OpenAPI document, backed by a plain REST API (`petstore` toolkit) |
 | `mcp_schema_registry` | `client` | Exposes a fixed, bundled tool set for the Karapace/Confluent Schema Registry REST API -- no operator-authored OpenAPI document, unlike `mcp_openapi` (`kafka_sr` toolkit) |
-| `mcp_kafka` | `client` | Exposes Kafka broker operations (`produce`/`consume`) as intrinsic MCP tools, generating its own `kafka_cache_client → kafka_client → tcp_client` pipeline against a real broker (`kafka` toolkit) |
+| `mcp_kafka` | `client` | Exposes Kafka broker operations (`produce`/`consume`/`create_topics`/`delete_topics`) as intrinsic MCP tools, generating its own `kafka_cache_client → kafka_client → tcp_client` pipeline against a real broker (`kafka` toolkit) |
 
 ## Authorization model
 
@@ -56,6 +56,8 @@ the pipeline, each demonstrating a different mechanism:
 | `mcp(proxy)` route for `kafka_sr` toolkit | `routes[].guarded` on the toolkit route | `kafka_sr:tools` |
 | `mcp_schema_registry(client)` route for `register_schema` | a second, tool-specific `routes[].guarded` on the binding's own `when.tool` route, layered under the toolkit-level gate above | `kafka_sr:tools` **and** `kafka_sr:write` |
 | `mcp(proxy)` route for `kafka` toolkit | `routes[].guarded` on the toolkit route | `kafka:tools` |
+| `mcp_kafka(client)` route for `produce` | a second, tool-specific `routes[].guarded` on the binding's own `when.tool` route, layered under the toolkit-level gate above | `kafka:tools` **and** `kafka:write` |
+| `mcp_kafka(client)` route for `create_topics` / `delete_topics` | a second, tool-specific `routes[].guarded` on the binding's own `when.tool` route (both tools coalesced into one route, since both need the same scope), layered under the toolkit-level gate above | `kafka:tools` **and** `kafka:admin` |
 
 `list_pets`, `list_featured_pets`, and `get_pet` declare no OpenAPI `security`
 of their own, so they need only the toolkit-level `petstore:tools` scope --
@@ -70,6 +72,17 @@ via an explicit `routes[].guarded` directly on the `mcp_schema_registry`
 binding itself: `list_subjects`, `describe_subject`, `get_schema`, and every
 other read-only tool need only the toolkit-level `kafka_sr:tools`
 scope, while `register_schema` additionally requires `kafka_sr:write`.
+
+`mcp_kafka` demonstrates the identical layering a third way, on its own
+`when.tool` route, and splits it further into read/write/admin: `consume`
+needs only the toolkit-level `kafka:tools` scope, `produce` additionally
+requires `kafka:write` since it mutates topic data, and the admin-risk
+`create_topics` and `delete_topics` route requires `kafka:admin` instead --
+same mechanism as `register_schema`, different toolkit, with a third tier
+for structural (not just data) mutation. `create_topics` and `delete_topics`
+share one route rather than two near-identical ones: a route's `when` list
+already matches by OR, so a second `- tool: delete_topics` entry under the
+same `create_topics` route reuses the one `kafka:admin` guard for both.
 
 The `everything` toolkit has no `guarded:` route at all, so it is reachable by
 any session that can complete `initialize` -- including one with no token.
@@ -129,7 +142,7 @@ export JWT_TOKEN=$(docker compose run --rm jwt-cli encode \
     --aud "https://api.example.com" \
     --exp=+1d \
     --no-iat \
-    --payload "scope=urlelicit:authorize github:tools github:pr:write petstore:tools pets:write kafka_sr:tools kafka_sr:write kafka:tools" \
+    --payload "scope=urlelicit:authorize github:tools github:pr:write petstore:tools pets:write kafka_sr:tools kafka_sr:write kafka:tools kafka:write kafka:admin" \
     --secret @/private.pem | tr -d '\r\n')
 ```
 
@@ -162,7 +175,7 @@ export JWT_TOKEN=$(docker compose run --rm jwt-cli encode \
     --alg "RS256" --kid "example" \
     --iss "https://auth.example.com" --aud "https://api.example.com" \
     --exp=+1d --no-iat \
-    --payload "scope=urlelicit:authorize github:tools github:pr:write petstore:tools pets:write kafka_sr:tools kafka_sr:write kafka:tools" \
+    --payload "scope=urlelicit:authorize github:tools github:pr:write petstore:tools pets:write kafka_sr:tools kafka_sr:write kafka:tools kafka:write kafka:admin" \
     --secret @/private.pem | tr -d '\r\n')
 docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" tools-list-client
 ```
@@ -172,8 +185,10 @@ docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" tools-list-client
 `options.cache.tools.eager` on `north_mcp_proxy` keeps only a fixed set of
 frequently used tools -- `everything__echo`, `urlelicit__authorize`,
 `github__create_pr`, `petstore__list_pets`, `petstore__search_pets`,
-`petstore__create_pet`, `kafka_sr__list_subjects`, and
-`kafka_sr__register_schema` -- eagerly listed in `tools/list`. Every other tool is
+`petstore__create_pet`, `kafka_sr__list_subjects`,
+`kafka_sr__register_schema`, `kafka__produce`, `kafka__consume`,
+`kafka__create_topics`, and `kafka__delete_topics` -- eagerly listed in
+`tools/list`. Every other tool is
 "cold": because `options.cache.tools.search` also configures a `toolkit`
 (`zilla` here), cold tools are omitted from `tools/list` entirely rather than
 crowding it out, and three fixed-purpose tools are advertised instead --
@@ -200,6 +215,10 @@ petstore__search_pets
 petstore__create_pet
 kafka_sr__list_subjects
 kafka_sr__register_schema
+kafka__produce
+kafka__consume
+kafka__create_topics
+kafka__delete_topics
 zilla__search_tools
 zilla__describe_tool
 zilla__execute_tool
@@ -443,7 +462,7 @@ docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
 # Compatibility check result: true
 ```
 
-### Produce and consume through a real Kafka broker
+### Produce, consume, and create/delete topics through a real Kafka broker
 
 `south_mcp_kafka_client` is an `mcp_kafka` `kind: client` binding -- unlike
 every other toolkit in this example, it does not proxy to a separate MCP or
@@ -489,6 +508,37 @@ rather than buffering the whole request or result in memory: arguments are
 parsed as they arrive, and consumed records are written to the reply as each
 one comes off the broker, so neither tool is bounded by how large a single
 value or a full result set happens to be.
+
+Unlike `produce`/`consume`, `create_topics` and `delete_topics` have no
+`topics` allow-list on their route -- each takes an array of topics as call
+arguments, not a single routed topic, and both share one route gated by
+`kafka:admin` (see "Authorization model" above) instead of a route each.
+Create a new topic with the full-scope `$JWT_TOKEN` from above:
+
+```bash
+docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
+    -e CALL_TOOL=kafka__create_topics \
+    -e CALL_ARGS='{"topics":[{"name":"widgets","partitions":1,"replicas":1}]}' \
+    tools-list-client
+# Created topic(s): widgets
+```
+
+`create_topics` accepts multiple topics in a single call -- each item's
+`name`, `partitions`, and `replicas` are required, with optional
+`assignments` (explicit partition-to-broker placement) and `configs`
+(per-topic config overrides).
+
+Delete it again -- `delete_topics` takes a flat array of topic names (no
+per-topic object, unlike `create_topics`) and needs the same `kafka:admin`
+scope, since it shares `create_topics`' route:
+
+```bash
+docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
+    -e CALL_TOOL=kafka__delete_topics \
+    -e CALL_ARGS='{"topics":["widgets"]}' \
+    tools-list-client
+# Deleted topic(s): widgets
+```
 
 ### Trigger a form elicitation round-trip
 

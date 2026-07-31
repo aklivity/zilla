@@ -41,6 +41,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.ResponseHead
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.delete_topics.DeleteTopicsRequestFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.delete_topics.DeleteTopicsRequestPart2FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.delete_topics.DeleteTopicsResponseFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.delete_topics.DeleteTopicsResponsePart2FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.delete_topics.TopicRequestFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.delete_topics.TopicResponseFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.AbortFW;
@@ -74,9 +75,10 @@ public final class KafkaClientDeleteTopicsFactory extends KafkaClientSaslHandsha
     private static final DirectBufferEx EMPTY_BUFFER = new UnsafeBufferEx();
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
+    private static final DirectBufferEx ZERO_TOPIC_ID = new UnsafeBufferEx(new byte[16]);
 
     private static final short DELETE_TOPICS_API_KEY = 20;
-    private static final short DELETE_TOPICS_API_VERSION = 3;
+    private static final short DELETE_TOPICS_API_VERSION = 6;
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -106,6 +108,7 @@ public final class KafkaClientDeleteTopicsFactory extends KafkaClientSaslHandsha
     private final ResponseHeaderFW responseHeaderRO = new ResponseHeaderFW();
     private final DeleteTopicsResponseFW deleteTopicsResponseRO = new DeleteTopicsResponseFW();
     private final TopicResponseFW topicResponseRO = new TopicResponseFW();
+    private final DeleteTopicsResponsePart2FW deleteTopicsResponsePart2RO = new DeleteTopicsResponsePart2FW();
 
     private final KafkaDeleteTopicsClientDecoder decodeSaslHandshakeResponse = this::decodeSaslHandshakeResponse;
     private final KafkaDeleteTopicsClientDecoder decodeSaslHandshake = this::decodeSaslHandshake;
@@ -518,6 +521,16 @@ public final class KafkaClientDeleteTopicsFactory extends KafkaClientSaslHandsha
                 responseTopics.add(new DeleteTopicsResponseInfo(
                     topic.name().asString(), topic.error()));
             }
+
+            final DeleteTopicsResponsePart2FW deleteTopicsResponsePart2 =
+                deleteTopicsResponsePart2RO.tryWrap(buffer, progress, limit);
+            if (deleteTopicsResponsePart2 == null)
+            {
+                client.decoder = decodeIgnoreAll;
+                break decode;
+            }
+
+            progress = deleteTopicsResponsePart2.limit();
 
             client.onDecodeDeleteTopicsResponse(traceId, authorization, throttle, responseTopics);
         }
@@ -1231,6 +1244,7 @@ public final class KafkaClientDeleteTopicsFactory extends KafkaClientSaslHandsha
 
             final DeleteTopicsRequestFW deleteTopicsRequest =
                 deleteTopicsRequestRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
+                    .taggedFields(0)
                     .topicCount(topics.size())
                     .build();
 
@@ -1239,7 +1253,9 @@ public final class KafkaClientDeleteTopicsFactory extends KafkaClientSaslHandsha
             for (String topic : topics)
             {
                 final TopicRequestFW topicRequest = topicRequestRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
-                    .topic(topic)
+                    .name(topic)
+                    .topicId(ZERO_TOPIC_ID, 0, 16)
+                    .taggedFields(0)
                     .build();
 
                 encodeProgress = topicRequest.limit();
@@ -1248,6 +1264,7 @@ public final class KafkaClientDeleteTopicsFactory extends KafkaClientSaslHandsha
             DeleteTopicsRequestPart2FW deleteTopicsRequestPart2 = deleteTopicsRequestPart2RW
                 .wrap(encodeBuffer, encodeProgress, encodeLimit)
                 .timeout(timeout)
+                .taggedFields(0)
                 .build();
 
             encodeProgress = deleteTopicsRequestPart2.limit();
