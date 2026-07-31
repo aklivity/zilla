@@ -521,7 +521,7 @@ public class McpOpenapiCompositeGeneratorTest
     }
 
     @Test
-    public void shouldGenerateProxyKindMcpHttpFromBindingLevelExit()
+    public void shouldGenerateProxyKindMcpHttpFromProxyKindExit()
     {
         lenient().when(context.supplyQName(eq(9L))).thenReturn("test:schema_registry0");
 
@@ -529,7 +529,7 @@ public class McpOpenapiCompositeGeneratorTest
             .namespace("test")
             .name("mcp_openapi0")
             .type("mcp_openapi")
-            .kind(CLIENT)
+            .kind(PROXY)
             .exit("schema_registry0")
             .options(McpOpenapiOptionsConfig.builder()
                 .spec()

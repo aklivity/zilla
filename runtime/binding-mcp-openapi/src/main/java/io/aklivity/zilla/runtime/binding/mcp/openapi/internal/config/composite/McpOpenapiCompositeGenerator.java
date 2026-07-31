@@ -14,8 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.openapi.internal.config.composite;
 
-import static io.aklivity.zilla.config.engine.KindConfig.CLIENT;
-import static io.aklivity.zilla.config.engine.KindConfig.PROXY;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.io.StringReader;
@@ -412,7 +410,7 @@ public final class McpOpenapiCompositeGenerator
         return namespace
             .binding(McpHttpBindingConfig::builder)
                 .name(BINDING_NAME)
-                .kind(binding.exit != null ? PROXY : CLIENT)
+                .kind(binding.kind)
                 .options(mcpHttpOptions(binding, routed))
                 .inject(b -> injectRoutes(b, binding, routed))
                 .build();
