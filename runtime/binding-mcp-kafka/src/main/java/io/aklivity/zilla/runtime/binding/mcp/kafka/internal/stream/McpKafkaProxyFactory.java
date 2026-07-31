@@ -1014,6 +1014,21 @@ public class McpKafkaProxyFactory implements BindingHandler
                 .add("required", Json.createArrayBuilder().add("controller_id").add("authorized_operations"))
                 .build();
             break;
+        default:
+            schema = buildConsumerGroupToolOutputSchema(tool);
+            break;
+        }
+
+        return schema;
+    }
+
+    private JsonObject buildConsumerGroupToolOutputSchema(
+        String tool)
+    {
+        JsonObject schema = null;
+
+        switch (tool)
+        {
         case TOOL_LIST_CONSUMER_GROUPS:
             schema = Json.createObjectBuilder()
                 .add("type", "object")
