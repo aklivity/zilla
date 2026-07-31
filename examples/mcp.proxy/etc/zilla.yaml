@@ -352,6 +352,8 @@ bindings:
               - kafka__consume
               - kafka__create_topics
               - kafka__delete_topics
+              - kafka__list_brokers
+              - kafka__describe_cluster
               - kafka__list_consumer_groups
               - kafka__describe_consumer_group
               - kafka__reset_offsets
@@ -623,8 +625,12 @@ bindings:
     # tool-specific scope under the toolkit-level kafka:tools guard above
     # (the same layering register_schema demonstrates for the kafka_sr
     # toolkit): kafka:admin for the admin-risk topic/offset mutations,
-    # kafka:write for writing data -- consume, list_consumer_groups, and
-    # describe_consumer_group need neither, only kafka:tools
+    # kafka:write for writing data -- consume, list_brokers, describe_cluster,
+    # list_consumer_groups, and describe_consumer_group need neither, only
+    # kafka:tools; list_brokers and describe_cluster are likewise read-only
+    # cluster introspection, with no topic to route on, so they share
+    # consume's unscoped kafka:tools-only route alongside the consumer-group
+    # introspection tools
     routes:
       - when:
           - tool: create_topics
@@ -643,6 +649,8 @@ bindings:
           - tool: consume
             topics: [orders]
       - when:
+          - tool: list_brokers
+          - tool: describe_cluster
           - tool: list_consumer_groups
           - tool: describe_consumer_group
 telemetry:

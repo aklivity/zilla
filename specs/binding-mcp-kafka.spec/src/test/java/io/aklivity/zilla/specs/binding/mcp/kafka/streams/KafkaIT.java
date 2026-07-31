@@ -164,6 +164,24 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/describe.cluster/client",
+        "${kafka}/describe.cluster/server"})
+    public void shouldDescribeCluster() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/describe.cluster.negotiated/client",
+        "${kafka}/describe.cluster.negotiated/server"})
+    public void shouldDescribeClusterNegotiated() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/list.consumer.groups/client",
         "${kafka}/list.consumer.groups/server"})
     public void shouldListConsumerGroups() throws Exception

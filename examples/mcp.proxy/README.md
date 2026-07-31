@@ -189,9 +189,9 @@ frequently used tools -- `everything__echo`, `urlelicit__authorize`,
 `github__create_pr`, `petstore__list_pets`, `petstore__search_pets`,
 `petstore__create_pet`, `kafka_sr__list_subjects`,
 `kafka_sr__register_schema`, `kafka__produce`, `kafka__consume`,
-`kafka__create_topics`, `kafka__delete_topics`,
-`kafka__list_consumer_groups`, `kafka__describe_consumer_group`, and
-`kafka__reset_offsets` -- eagerly listed in
+`kafka__create_topics`, `kafka__delete_topics`, `kafka__list_brokers`,
+`kafka__describe_cluster`, `kafka__list_consumer_groups`,
+`kafka__describe_consumer_group`, and `kafka__reset_offsets` -- eagerly listed in
 `tools/list`. Every other tool is
 "cold": because `options.cache.tools.search` also configures a `toolkit`
 (`zilla` here), cold tools are omitted from `tools/list` entirely rather than
@@ -223,6 +223,8 @@ kafka__produce
 kafka__consume
 kafka__create_topics
 kafka__delete_topics
+kafka__list_brokers
+kafka__describe_cluster
 kafka__list_consumer_groups
 kafka__describe_consumer_group
 kafka__reset_offsets
@@ -546,6 +548,34 @@ docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
     tools-list-client
 # Deleted topic(s): widgets
 ```
+
+### Introspect the real Kafka broker's cluster metadata
+
+`list_brokers` and `describe_cluster` are read-only cluster introspection --
+unlike `produce`/`consume` and `create_topics`/`delete_topics`, they take no
+arguments and have no topic to route on, so they share `consume`'s unscoped
+`kafka:tools`-only route rather than requiring `kafka:admin`. Both issue the
+same Kafka `DescribeCluster` request through `KafkaApiDescribeClusterClient`,
+differing only in how the response is shaped into each tool's result:
+
+```bash
+docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
+    -e CALL_TOOL=kafka__list_brokers \
+    tools-list-client
+# Brokers: 1@kafka.examples.dev:29092
+```
+
+```bash
+docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
+    -e CALL_TOOL=kafka__describe_cluster \
+    tools-list-client
+# Described cluster <cluster-id>, controller 1
+```
+
+The single node started by this example (`KAFKA_NODE_ID`/`KAFKA_BROKER_ID`
+both `1`) is both the only broker `list_brokers` reports and the controller
+`describe_cluster` reports -- `<cluster-id>` is a KRaft-generated identifier
+that varies per broker startup.
 
 ### Manage consumer group offsets through a real Kafka broker
 

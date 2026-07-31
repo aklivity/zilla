@@ -116,6 +116,46 @@ public class McpKafkaClientIT
     }
 
     @Test
+    @Configuration("client.list.brokers.yaml")
+    @Specification({
+        "${mcp}/list.brokers/client",
+        "${kafka}/describe.cluster/server"})
+    public void shouldListBrokers() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.list.brokers.yaml")
+    @Specification({
+        "${mcp}/list.brokers/client",
+        "${kafka}/describe.cluster.negotiated/server"})
+    public void shouldListBrokersNegotiated() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.describe.cluster.yaml")
+    @Specification({
+        "${mcp}/describe.cluster/client",
+        "${kafka}/describe.cluster/server"})
+    public void shouldDescribeCluster() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.describe.cluster.yaml")
+    @Specification({
+        "${mcp}/describe.cluster/client",
+        "${kafka}/describe.cluster.negotiated/server"})
+    public void shouldDescribeClusterNegotiated() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("client.list.consumer.groups.yaml")
     @Specification({
         "${mcp}/list.consumer.groups/client",
