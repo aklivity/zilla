@@ -19,6 +19,13 @@
 - common-json: stream object keys larger than the input window through the parser and all key-matching consumers [\#1954](https://github.com/aklivity/zilla/issues/1954) ([jfallows](https://github.com/jfallows))
 - feat\(binding-mcp\): validate tools/call arguments at the proxy against cached tools/list inputSchema [\#1962](https://github.com/aklivity/zilla/issues/1962) ([jfallows](https://github.com/jfallows))
 - binding-mcp-kafka: produce + consume \(data plane\) [\#2117](https://github.com/aklivity/zilla/issues/2117) ([jfallows](https://github.com/jfallows))
+- binding-mcp-kafka: topic administration \(create\_topics, delete\_topics\) [\#2121](https://github.com/aklivity/zilla/issues/2121) ([jfallows](https://github.com/jfallows))
+- binding-mcp-openapi / binding-mcp-http: derive and support tool annotations \(readOnlyHint, destructiveHint, idempotentHint, openWorldHint\) [\#2222](https://github.com/aklivity/zilla/issues/2222) ([jfallows](https://github.com/jfallows))
+
+**Fixed bugs:**
+
+- Invalid arguments to zilla\_\_execute\_tool cause hang/timeout instead of rejection [\#2216](https://github.com/aklivity/zilla/issues/2216) ([ankitk-me](https://github.com/ankitk-me))
+- `kafka__consume`: omitting limit increases response time [\#2217](https://github.com/aklivity/zilla/issues/2217) ([ankitk-me](https://github.com/ankitk-me))
 
 **Closed issues:**
 
@@ -109,6 +116,7 @@
 - guard-identity: rename to guard-inline, add Guard.aliases\(\) for backwards-compatible identity alias [\#2182](https://github.com/aklivity/zilla/issues/2182) ([jfallows](https://github.com/jfallows))
 - binding-kafka: remove per-topic route matching \(`when: topic`\) from the `client` kind [\#2199](https://github.com/aklivity/zilla/issues/2199) ([jfallows](https://github.com/jfallows))
 - guard-inline: support format-based splitting of identity and credentials from a compound session value [\#2201](https://github.com/aklivity/zilla/issues/2201) ([jfallows](https://github.com/jfallows))
+- Split binding / guard / vault / catalog / exporter / model / store config into standalone config/\*.conf modules [\#2203](https://github.com/aklivity/zilla/issues/2203) ([jfallows](https://github.com/jfallows))
 
 **Merged pull requests:**
 
@@ -353,9 +361,16 @@
 - feat\(guard-inline\): support format-based splitting of identity and credentials [\#2202](https://github.com/aklivity/zilla/pull/2202) ([jfallows](https://github.com/jfallows))
 - test\(binding-mcp-kafka\): add IT coverage for tools/list [\#2209](https://github.com/aklivity/zilla/pull/2209) ([jfallows](https://github.com/jfallows))
 - feat\(config\): modularize binding/catalog/guard/vault/exporter/model config into standalone modules [\#2210](https://github.com/aklivity/zilla/pull/2210) ([jfallows](https://github.com/jfallows))
+- binding-kafka: generic per-API request/response envelope with ApiVersions negotiation [\#2211](https://github.com/aklivity/zilla/pull/2211) ([jfallows](https://github.com/jfallows))
 - fix\(binding-tcp,binding-tls,engine,exporter-otlp\): unify phantom-reply address signaling + stale-binding metrics [\#2213](https://github.com/aklivity/zilla/pull/2213) ([akrambek](https://github.com/akrambek))
 - fix\(binding-mcp\): set content-type on deferred JSON-RPC error responses [\#2214](https://github.com/aklivity/zilla/pull/2214) ([jfallows](https://github.com/jfallows))
 - Add AsyncAPI channel-binding SPI, writer, and typed document builders [\#2215](https://github.com/aklivity/zilla/pull/2215) ([akrambek](https://github.com/akrambek))
+- fix\(binding-mcp-http, common-openapi\): reject/resolve missing tools/call args correctly \(\#2216\) [\#2218](https://github.com/aklivity/zilla/pull/2218) ([jfallows](https://github.com/jfallows))
+- fix\(examples/mcp.proxy\): give Karapace-backed test.sh calls the same retry budget as Kafka calls [\#2219](https://github.com/aklivity/zilla/pull/2219) ([jfallows](https://github.com/jfallows))
+- fix\(binding-mcp\): MCP spec-compliance fixes \(method-not-found, protocolVersion negotiation\) [\#2221](https://github.com/aklivity/zilla/pull/2221) ([jfallows](https://github.com/jfallows))
+- fix\(binding-mcp-kafka\): shorten consume timeout once caught up to latest offset [\#2223](https://github.com/aklivity/zilla/pull/2223) ([jfallows](https://github.com/jfallows))
+- docs\(agents\): fix flyweight-maven-plugin location in repo layout [\#2224](https://github.com/aklivity/zilla/pull/2224) ([jfallows](https://github.com/jfallows))
+- feat\(binding-mcp-openapi,binding-mcp-http\): support MCP tool annotations [\#2225](https://github.com/aklivity/zilla/pull/2225) ([jfallows](https://github.com/jfallows))
 
 ## [1.2.4](https://github.com/aklivity/zilla/tree/1.2.4) (2026-05-16)
 
@@ -730,8 +745,8 @@
 
 **Merged pull requests:**
 
-- Support `encoded` schema ID for validator [\#1604](https://github.com/aklivity/zilla/pull/1604) ([ankitk-me](https://github.com/ankitk-me))
 - Support catalog handler validate [\#1606](https://github.com/aklivity/zilla/pull/1606) ([jfallows](https://github.com/jfallows))
+- Support `encoded` schema ID for validator [\#1604](https://github.com/aklivity/zilla/pull/1604) ([ankitk-me](https://github.com/ankitk-me))
 
 ## [0.9.171](https://github.com/aklivity/zilla/tree/0.9.171) (2025-10-28)
 
@@ -2931,28 +2946,28 @@
 - Convert zilla spec config .json files to .yaml extension and syntax [\#165](https://github.com/aklivity/zilla/pull/165) ([ankitk-me](https://github.com/ankitk-me))
 - Provide http\(s\) configuration server for zilla.yaml [\#166](https://github.com/aklivity/zilla/pull/166) ([bmaidics](https://github.com/bmaidics))
 - Ignore shouldReconfigureWhenModifiedUsingComplexSymlinkChain [\#169](https://github.com/aklivity/zilla/pull/169) ([bmaidics](https://github.com/bmaidics))
-- `grpc` binding spec and implementation [\#174](https://github.com/aklivity/zilla/pull/174) ([akrambek](https://github.com/akrambek))
 - Support verbose schema output on startup [\#175](https://github.com/aklivity/zilla/pull/175) ([jfallows](https://github.com/jfallows))
 - Enhance kafka binding to notify transition from historical to live messages [\#181](https://github.com/aklivity/zilla/pull/181) ([ankitk-me](https://github.com/ankitk-me))
-- `grpc-kafka` mapping implementation [\#187](https://github.com/aklivity/zilla/pull/187) ([akrambek](https://github.com/akrambek))
 - Fix incorrect Assertion in KafkaFunctionsTest [\#192](https://github.com/aklivity/zilla/pull/192) ([bmaidics](https://github.com/bmaidics))
 - Change DumpCommandTest [\#194](https://github.com/aklivity/zilla/pull/194) ([bmaidics](https://github.com/bmaidics))
-- Fix typo and add missing dependency [\#197](https://github.com/aklivity/zilla/pull/197) ([akrambek](https://github.com/akrambek))
-- `kafka-grpc` mapping [\#198](https://github.com/aklivity/zilla/pull/198) ([akrambek](https://github.com/akrambek))
-- Support `options` in grpc-kafka [\#199](https://github.com/aklivity/zilla/pull/199) ([akrambek](https://github.com/akrambek))
-- Grpc one way streaming [\#205](https://github.com/aklivity/zilla/pull/205) ([akrambek](https://github.com/akrambek))
 - Include license header check [\#206](https://github.com/aklivity/zilla/pull/206) ([jfallows](https://github.com/jfallows))
-- Fix imports and null filter if both key and headers are not specified [\#208](https://github.com/aklivity/zilla/pull/208) ([akrambek](https://github.com/akrambek))
-- Fix number of signals in Kafka Grpc [\#210](https://github.com/aklivity/zilla/pull/210) ([akrambek](https://github.com/akrambek))
 - Support eager evaluation of all Kafka filters [\#212](https://github.com/aklivity/zilla/pull/212) ([ankitk-me](https://github.com/ankitk-me))
-- Encode kafka progress as last message id [\#216](https://github.com/aklivity/zilla/pull/216) ([akrambek](https://github.com/akrambek))
-- Move kafka-grpc options for grpc to with section of config [\#219](https://github.com/aklivity/zilla/pull/219) ([akrambek](https://github.com/akrambek))
 - CacheMergedIT.shouldFetchMergedMessageValues failure on GitHub Actions fix [\#221](https://github.com/aklivity/zilla/pull/221) ([ankitk-me](https://github.com/ankitk-me))
 - `grpc-kafka` feature baseline [\#225](https://github.com/aklivity/zilla/pull/225) ([jfallows](https://github.com/jfallows))
 - Enhance config [\#228](https://github.com/aklivity/zilla/pull/228) ([akrambek](https://github.com/akrambek))
 - Consumer group kafka function support [\#232](https://github.com/aklivity/zilla/pull/232) ([akrambek](https://github.com/akrambek))
 - Fix typo in flow control, use `responseMax` instead of `requestMax` [\#237](https://github.com/aklivity/zilla/pull/237) ([akrambek](https://github.com/akrambek))
 - Fix NPE caused by overrides [\#238](https://github.com/aklivity/zilla/pull/238) ([akrambek](https://github.com/akrambek))
+- `grpc` binding spec and implementation [\#174](https://github.com/aklivity/zilla/pull/174) ([akrambek](https://github.com/akrambek))
+- `grpc-kafka` mapping implementation [\#187](https://github.com/aklivity/zilla/pull/187) ([akrambek](https://github.com/akrambek))
+- Fix typo and add missing dependency [\#197](https://github.com/aklivity/zilla/pull/197) ([akrambek](https://github.com/akrambek))
+- `kafka-grpc` mapping [\#198](https://github.com/aklivity/zilla/pull/198) ([akrambek](https://github.com/akrambek))
+- Support `options` in grpc-kafka [\#199](https://github.com/aklivity/zilla/pull/199) ([akrambek](https://github.com/akrambek))
+- Grpc one way streaming [\#205](https://github.com/aklivity/zilla/pull/205) ([akrambek](https://github.com/akrambek))
+- Fix imports and null filter if both key and headers are not specified [\#208](https://github.com/aklivity/zilla/pull/208) ([akrambek](https://github.com/akrambek))
+- Fix number of signals in Kafka Grpc [\#210](https://github.com/aklivity/zilla/pull/210) ([akrambek](https://github.com/akrambek))
+- Encode kafka progress as last message id [\#216](https://github.com/aklivity/zilla/pull/216) ([akrambek](https://github.com/akrambek))
+- Move kafka-grpc options for grpc to with section of config [\#219](https://github.com/aklivity/zilla/pull/219) ([akrambek](https://github.com/akrambek))
 
 ## [0.9.42](https://github.com/aklivity/zilla/tree/0.9.42) (2023-01-28)
 
