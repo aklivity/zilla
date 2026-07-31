@@ -182,6 +182,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/reject.request.method.unknown/client",
+        "${app}/reject.request.method.unknown/server"})
+    public void shouldRejectRequestMethodUnknown() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/tools.call.10k/client",
         "${app}/tools.call.10k/server"})
     public void shouldCallToolWith10kParams() throws Exception

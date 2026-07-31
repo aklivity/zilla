@@ -105,6 +105,16 @@ public class McpServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/lifecycle.initialize.version.unsupported/client",
+        "${app}/lifecycle.initialize/server"})
+    public void shouldInitializeLifecycleWithUnsupportedVersionFallback() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/lifecycle.initialize.reject.bearer/client",
         "${app}/lifecycle.initialize.reject.bearer/server"})
     public void shouldRejectLifecycleInitializeWithBearerChallenge() throws Exception
@@ -728,6 +738,16 @@ public class McpServerIT
     @Specification({
         "${net}/reject.accept.unsupported/client"})
     public void shouldRejectAcceptUnsupported() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/reject.request.method.unknown/client",
+        "${app}/reject.request.method.unknown/server"})
+    public void shouldRejectRequestMethodUnknown() throws Exception
     {
         k3po.finish();
     }

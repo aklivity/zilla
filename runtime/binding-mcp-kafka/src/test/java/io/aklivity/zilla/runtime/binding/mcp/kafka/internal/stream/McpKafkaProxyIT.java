@@ -112,6 +112,16 @@ public class McpKafkaProxyIT
     }
 
     @Test
+    @Configuration("proxy.consume.yaml")
+    @Specification({
+        "${mcp}/consume.without.limit/client",
+        "${kafka}/consume.without.limit/server"})
+    public void shouldConsumeWithoutLimit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.produce.yaml")
     @Specification({
         "${mcp}/reject.invalid.args/client"})

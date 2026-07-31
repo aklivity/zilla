@@ -36,7 +36,10 @@ public final class McpKafkaClientFactory extends McpKafkaProxyFactory
     {
         super(config, context);
         this.context = context;
-        this.generator = new McpKafkaClientGenerator(config.cacheClientExit());
+        // cacheClientExit/clientExit default to null; tests override them to redirect the
+        // synthesized composite's exit onto a statically-declared double, mirroring
+        // McpOpenapiConfiguration.MCP_OPENAPI_HTTP_CLIENT_EXIT
+        this.generator = new McpKafkaClientGenerator(config.cacheClientExit(), config.clientExit());
         this.composites = new Long2ObjectHashMap<>();
     }
 
@@ -50,7 +53,7 @@ public final class McpKafkaClientFactory extends McpKafkaProxyFactory
         McpKafkaCompositeConfig composite = generator.generate(binding, context);
         for (McpKafkaRouteConfig route : attached.routes)
         {
-            route.id = composite.exitId;
+            route.id = bypassesCache(route) ? composite.clientExitId : composite.exitId;
         }
 
         composite.namespaces.forEach(context::attachComposite);

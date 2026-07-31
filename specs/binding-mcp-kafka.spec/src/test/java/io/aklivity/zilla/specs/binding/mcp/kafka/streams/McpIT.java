@@ -92,6 +92,15 @@ public class McpIT
 
     @Test
     @Specification({
+        "${mcp}/consume.without.limit/client",
+        "${mcp}/consume.without.limit/server"})
+    public void shouldConsumeWithoutLimit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mcp}/reject.invalid.args/client",
         "${mcp}/reject.invalid.args/server"})
     public void shouldRejectInvalidArgs() throws Exception
@@ -167,6 +176,24 @@ public class McpIT
         "${mcp}/tools.list/client",
         "${mcp}/tools.list/server"})
     public void shouldListTools() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mcp}/create.topics/client",
+        "${mcp}/create.topics/server"})
+    public void shouldCreateTopics() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mcp}/delete.topics/client",
+        "${mcp}/delete.topics/server"})
+    public void shouldDeleteTopics() throws Exception
     {
         k3po.finish();
     }

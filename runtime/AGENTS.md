@@ -528,7 +528,7 @@ exists, the runtime-side work is:
    configuration is needed. Add a corresponding `XxxConfigurationTest` that
    calls `shouldVerifyConstants()` (verifying property name strings match the
    `PropertyDef` names) to satisfy class coverage requirements
-8. Write unit tests covering the stream state machine (see below)
+8. Write k3po IT scripts covering the stream state machine (see below)
 
 The Maven plugin generates flyweight classes during `generate-sources`. Run
 `./mvnw generate-sources -pl runtime/binding-<n>` to regenerate after `.idl`
@@ -542,14 +542,32 @@ project — see [../specs/AGENTS.md](../specs/AGENTS.md).
 ## Unit tests
 
 - Live in `src/test/java/` within each module
-- Cover the stream handler state machine exhaustively: every state transition,
-  every error path, every flow-control edge case
-- Use `mockito` for collaborators; never spin up a real engine instance
-- Target: 100% branch coverage on all `stream/` classes
+- Reserved for logic that does not involve a stream handler's frame lifecycle:
+  `XxxConfiguration` property parsing, condition/predicate matchers, config
+  adapters, generators, and other pure-Java helper classes
+- **Never test a stream handler's (`XxxServerFactory`, `XxxClientFactory`,
+  `XxxProxyFactory`, etc.) state machine with a mocked `EngineContext`,
+  `Signaler`, or `MessageConsumer`.** A mock only proves the mock returns
+  what it was told to return — it does not exercise the real engine's frame
+  dispatch, flow control, or buffer lifecycle, so a passing mocked test can
+  coexist with a binding that is actually broken end-to-end. Every state
+  transition, error path, and flow-control edge case for a stream handler
+  belongs in a k3po IT instead (see below), run against a live `EngineRule`
+  and verified via the wire protocol (or the application-level stream
+  protocol for cross-protocol proxies), not through mocked collaborators
 - Run with: `./mvnw test -pl runtime/binding-<n>`
 
-Spec-based integration tests (the source of truth for protocol behaviour) are
-described in [../specs/AGENTS.md](../specs/AGENTS.md).
+Stream handler state machines are covered exhaustively — every state
+transition, every error path, every flow-control edge case — by k3po-based
+integration tests (`*IT.java`) driven by `.rpt` scripts against a live engine.
+This is the source of truth for protocol behaviour and the only place stream
+handler coverage should be exercised; see [../specs/AGENTS.md](../specs/AGENTS.md)
+for script conventions and required coverage. Every new scenario's scripts
+must be authored as a paired `client.rpt` / `server.rpt` — never a lone
+script — and must have a spec-level IT (`NetworkIT`/`ApplicationIT`, or the
+per-protocol equivalent for cross-protocol proxies) that runs the pair against
+each other to verify they are self-consistent, in addition to the binding IT
+that runs them against the live engine.
 
 ---
 

@@ -83,6 +83,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/lifecycle.initialize.version.unsupported/client",
+        "${net}/lifecycle.initialize.version.unsupported/server"})
+    public void shouldInitializeLifecycleWithUnsupportedVersionFallback() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/lifecycle.initialize.reject.bearer/client",
         "${net}/lifecycle.initialize.reject.bearer/server"})
     public void shouldRejectLifecycleInitializeOnUpstreamBearerChallenge() throws Exception
@@ -221,6 +230,15 @@ public class NetworkIT
         "${net}/reject.request.params.array/client",
         "${net}/reject.request.params.array/server"})
     public void shouldRejectRequestParamsWithArray() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/reject.request.method.unknown/client",
+        "${net}/reject.request.method.unknown/server"})
+    public void shouldRejectRequestMethodUnknown() throws Exception
     {
         k3po.finish();
     }

@@ -26,6 +26,7 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.LongUnaryOperator;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
@@ -97,6 +98,7 @@ import io.aklivity.zilla.runtime.engine.util.function.LongIntToLongFunction;
 public final class McpServerFactory implements McpStreamFactory
 {
     private static final String MCP_PROTOCOL_VERSION = "2025-11-25";
+    private static final Set<String> SUPPORTED_PROTOCOL_VERSIONS = Set.of("2025-06-18", MCP_PROTOCOL_VERSION);
 
     private static final String HTTP_TYPE_NAME = "http";
     private static final String MCP_TYPE_NAME = "mcp";
@@ -1036,7 +1038,7 @@ public final class McpServerFactory implements McpStreamFactory
                     server.decodedRequest = server::onDecodeNotifyCancelled;
                     break;
                 default:
-                    server.onDecodeParseError(traceId, authorization);
+                    server.onDecodeMethodNotFound(traceId, authorization);
                     server.decoder = decodeIgnore;
                     break decode;
                 }
@@ -2150,7 +2152,7 @@ public final class McpServerFactory implements McpStreamFactory
                 .inject(this::injectAltSvc)
                 .build());
             final String negotiatedVersion = decodedProtocolVersion != null &&
-                decodedProtocolVersion.compareTo(MCP_PROTOCOL_VERSION) <= 0
+                SUPPORTED_PROTOCOL_VERSIONS.contains(decodedProtocolVersion)
                     ? decodedProtocolVersion
                     : MCP_PROTOCOL_VERSION;
             final String capabilitiesSubscribe = (session.serverCapabilities & SERVER_RESOURCES_SUBSCRIBE.value()) != 0
@@ -2511,6 +2513,21 @@ public final class McpServerFactory implements McpStreamFactory
                     .build(),
                 -32600,
                 "Invalid request");
+        }
+
+        private void onDecodeMethodNotFound(
+            long traceId,
+            long authorization)
+        {
+            doEncodeResponseError(traceId, authorization,
+                httpBeginExRW.wrap(codecBuffer, 0, codecBuffer.capacity())
+                    .typeId(httpTypeId)
+                    .headersItem(h -> h.name(HTTP_HEADER_STATUS).value(STATUS_200))
+                    .headersItem(h -> h.name(HTTP_HEADER_CONTENT_TYPE).value(CONTENT_TYPE_JSON))
+                    .inject(this::injectAltSvc)
+                    .build(),
+                -32601,
+                "Method not found");
         }
 
         private void onAppChallenge(
