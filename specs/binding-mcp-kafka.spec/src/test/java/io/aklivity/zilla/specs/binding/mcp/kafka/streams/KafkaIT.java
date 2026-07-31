@@ -170,4 +170,40 @@ public class KafkaIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${kafka}/describe.consumer.group/client",
+        "${kafka}/describe.consumer.group/server"})
+    public void shouldDescribeConsumerGroup() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/find.coordinator.for.reset/client",
+        "${kafka}/find.coordinator.for.reset/server"})
+    public void shouldFindCoordinatorForReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/describe.groups.for.reset/client",
+        "${kafka}/describe.groups.for.reset/server"})
+    public void shouldDescribeGroupsForReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/find.coordinator.error/client",
+        "${kafka}/find.coordinator.error/server"})
+    public void shouldFindCoordinatorError() throws Exception
+    {
+        k3po.finish();
+    }
 }

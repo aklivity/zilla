@@ -4631,7 +4631,7 @@ public class McpKafkaProxyFactory implements BindingHandler
                 .typeId(kafkaTypeId)
                 .offsetCommit(o -> o
                     .topic(topic)
-                    .progress(p -> p.partitionId(partition).partitionOffset(offset))
+                    .progress(p -> p.partitionId(partition).partitionOffset(offset).metadata(""))
                     .generationId(-1)
                     .leaderEpoch(-1))
                 .build();
@@ -4711,9 +4711,6 @@ public class McpKafkaProxyFactory implements BindingHandler
                 peer.doMcpResult(traceId, apiResultGenerator.length(), encodeBuffer, !success);
 
                 encodePool.release(encodeSlot);
-
-                doKafkaAbort(traceId);
-                doKafkaReset(traceId);
             }
         }
 

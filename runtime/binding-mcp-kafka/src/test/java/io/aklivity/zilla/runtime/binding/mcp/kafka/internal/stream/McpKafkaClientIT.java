@@ -125,6 +125,26 @@ public class McpKafkaClientIT
         k3po.finish();
     }
 
+    @Test
+    @Configuration("client.describe.consumer.group.yaml")
+    @Specification({
+        "${mcp}/describe.consumer.group/client",
+        "${kafka}/describe.consumer.group/server"})
+    public void shouldDescribeConsumerGroup() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.reset.offsets.yaml")
+    @Specification({
+        "${mcp}/reset.offsets.coordinator.not.found/client",
+        "${kafka}/find.coordinator.error/server"})
+    public void shouldResetOffsetsCoordinatorNotFound() throws Exception
+    {
+        k3po.finish();
+    }
+
     public static String sessionId()
     {
         return "session-1";
