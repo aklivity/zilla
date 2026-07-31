@@ -260,4 +260,40 @@ public class McpIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${mcp}/list.consumer.groups/client",
+        "${mcp}/list.consumer.groups/server"})
+    public void shouldListConsumerGroups() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mcp}/describe.consumer.group/client",
+        "${mcp}/describe.consumer.group/server"})
+    public void shouldDescribeConsumerGroup() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mcp}/reset.offsets/client",
+        "${mcp}/reset.offsets/server"})
+    public void shouldResetOffsets() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mcp}/reset.offsets.coordinator.not.found/client",
+        "${mcp}/reset.offsets.coordinator.not.found/server"})
+    public void shouldResetOffsetsCoordinatorNotFound() throws Exception
+    {
+        k3po.finish();
+    }
 }

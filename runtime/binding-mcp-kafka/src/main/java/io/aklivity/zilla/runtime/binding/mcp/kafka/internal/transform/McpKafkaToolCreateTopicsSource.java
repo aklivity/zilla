@@ -55,11 +55,11 @@ import io.aklivity.zilla.runtime.common.json.JsonSource;
  *       }
  *     ],
  *     "timeout": 30000,
- *     "validateOnly": false
+ *     "validate_only": false
  *   }
  * }
  * }</pre>
- * {@code assignments}, {@code configs}, {@code timeout} and {@code validateOnly} are optional;
+ * {@code assignments}, {@code configs}, {@code timeout} and {@code validate_only} are optional;
  * {@code timeout} defaults to {@code zilla.binding.mcp.kafka.request.timeout} (default {@code PT30S}).
  */
 public final class McpKafkaToolCreateTopicsSource implements JsonSink, Source
@@ -357,7 +357,7 @@ public final class McpKafkaToolCreateTopicsSource implements JsonSink, Source
         case "timeout":
             timeoutMs = parseInt(value, defaultTimeoutMs);
             break;
-        case "validateOnly":
+        case "validate_only":
             validateOnly = Boolean.parseBoolean(value);
             break;
         default:

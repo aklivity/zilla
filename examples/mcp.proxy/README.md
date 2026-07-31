@@ -36,7 +36,7 @@ This one configuration exercises all seven `mcp*` binding kinds:
 | `mcp_http` | `proxy` | Synthesizes MCP tools from hand-authored config, backed by a plain REST API (`github` toolkit) |
 | `mcp_openapi` | `client` | Synthesizes MCP tools from an OpenAPI document, backed by a plain REST API (`petstore` toolkit) |
 | `mcp_schema_registry` | `client` | Exposes a fixed, bundled tool set for the Karapace/Confluent Schema Registry REST API -- no operator-authored OpenAPI document, unlike `mcp_openapi` (`kafka_sr` toolkit) |
-| `mcp_kafka` | `client` | Exposes Kafka broker operations (`produce`/`consume`/`create_topics`/`delete_topics`/`describe_configs`/`alter_configs`/`list_topics`/`describe_topic`/`cluster_overview`) as intrinsic MCP tools, generating its own `kafka_cache_client → kafka_client → tcp_client` pipeline against a real broker (`kafka` toolkit) |
+| `mcp_kafka` | `client` | Exposes Kafka broker operations (`produce`/`consume`/`create_topics`/`delete_topics`/`describe_configs`/`alter_configs`/`list_topics`/`describe_topic`/`cluster_overview`/`list_brokers`/`describe_cluster`/`list_consumer_groups`/`describe_consumer_group`/`reset_offsets`) as intrinsic MCP tools, generating its own `kafka_cache_client → kafka_client → tcp_client` pipeline against a real broker (`kafka` toolkit) |
 
 ## Authorization model
 
@@ -57,7 +57,7 @@ the pipeline, each demonstrating a different mechanism:
 | `mcp_schema_registry(client)` route for `register_schema` | a second, tool-specific `routes[].guarded` on the binding's own `when.tool` route, layered under the toolkit-level gate above | `kafka_sr:tools` **and** `kafka_sr:write` |
 | `mcp(proxy)` route for `kafka` toolkit | `routes[].guarded` on the toolkit route | `kafka:tools` |
 | `mcp_kafka(client)` route for `produce` | a second, tool-specific `routes[].guarded` on the binding's own `when.tool` route, layered under the toolkit-level gate above | `kafka:tools` **and** `kafka:write` |
-| `mcp_kafka(client)` route for `create_topics` / `delete_topics` / `alter_configs` | a second, tool-specific `routes[].guarded` on the binding's own `when.tool` route (all three tools coalesced into one route, since all three need the same scope), layered under the toolkit-level gate above | `kafka:tools` **and** `kafka:admin` |
+| `mcp_kafka(client)` route for `create_topics` / `delete_topics` / `alter_configs` / `reset_offsets` | a second, tool-specific `routes[].guarded` on the binding's own `when.tool` route (all four tools coalesced into one route, since all four need the same scope), layered under the toolkit-level gate above | `kafka:tools` **and** `kafka:admin` |
 
 `list_pets`, `list_featured_pets`, and `get_pet` declare no OpenAPI `security`
 of their own, so they need only the toolkit-level `petstore:tools` scope --
@@ -75,18 +75,21 @@ scope, while `register_schema` additionally requires `kafka_sr:write`.
 
 `mcp_kafka` demonstrates the identical layering a third way, on its own
 `when.tool` route, and splits it further into read/write/admin: `consume`,
-`describe_configs`, `list_topics`, `describe_topic`, and `cluster_overview`
-need only the toolkit-level `kafka:tools` scope (all read-only), `produce`
-additionally requires `kafka:write` since it mutates topic data, and the
-admin-risk `create_topics`, `delete_topics`, and `alter_configs` route
-requires `kafka:admin` instead -- same mechanism as `register_schema`,
-different toolkit, with a third tier for structural (not just data)
-mutation. `create_topics`, `delete_topics`, and `alter_configs` share one
-route rather than three near-identical ones: a route's `when` list already
-matches by OR, so a second `- tool: delete_topics` and third
-`- tool: alter_configs` entry under the same `create_topics` route reuses
-the one `kafka:admin` guard for all three. `list_topics`, `describe_topic`,
-and `cluster_overview` coalesce into one more shared route alongside
+`describe_configs`, `list_topics`, `describe_topic`, `cluster_overview`,
+`list_brokers`, `describe_cluster`, `list_consumer_groups`, and
+`describe_consumer_group` need only the toolkit-level `kafka:tools` scope
+(all read-only), `produce` additionally requires `kafka:write` since it
+mutates topic data, and the admin-risk `create_topics`, `delete_topics`,
+`alter_configs`, and `reset_offsets` route requires `kafka:admin` instead --
+same mechanism as `register_schema`, different toolkit, with a third tier
+for structural (not just data) mutation. `create_topics`, `delete_topics`,
+`alter_configs`, and `reset_offsets` share one route rather than four
+near-identical ones: a route's `when` list already matches by OR, so a
+second, third, and fourth `- tool: ...` entry under the same
+`create_topics` route reuses the one `kafka:admin` guard for all four.
+`describe_configs`, `list_topics`, `describe_topic`, `cluster_overview`,
+`list_brokers`, `describe_cluster`, `list_consumer_groups`, and
+`describe_consumer_group` coalesce into one more shared route alongside
 `consume`'s, this time with no `guarded:` block at all since the
 toolkit-level gate is already sufficient.
 
@@ -195,8 +198,9 @@ frequently used tools -- `everything__echo`, `urlelicit__authorize`,
 `kafka_sr__register_schema`, `kafka__produce`, `kafka__consume`,
 `kafka__create_topics`, `kafka__delete_topics`, `kafka__describe_configs`,
 `kafka__alter_configs`, `kafka__list_topics`, `kafka__describe_topic`,
-`kafka__cluster_overview`, `kafka__list_brokers`, and `kafka__describe_cluster`
--- eagerly listed in
+`kafka__cluster_overview`, `kafka__list_brokers`, `kafka__describe_cluster`,
+`kafka__list_consumer_groups`, `kafka__describe_consumer_group`, and
+`kafka__reset_offsets` -- eagerly listed in
 `tools/list`. Every other tool is
 "cold": because `options.cache.tools.search` also configures a `toolkit`
 (`zilla` here), cold tools are omitted from `tools/list` entirely rather than
@@ -235,6 +239,9 @@ kafka__describe_topic
 kafka__cluster_overview
 kafka__list_brokers
 kafka__describe_cluster
+kafka__list_consumer_groups
+kafka__describe_consumer_group
+kafka__reset_offsets
 zilla__search_tools
 zilla__describe_tool
 zilla__execute_tool
@@ -658,6 +665,69 @@ The single node started by this example (`KAFKA_NODE_ID`/`KAFKA_BROKER_ID`
 both `1`) is both the only broker `list_brokers` reports and the controller
 `describe_cluster` reports -- `<cluster-id>` is a KRaft-generated identifier
 that varies per broker startup.
+
+### Manage consumer group offsets through a real Kafka broker
+
+`list_consumer_groups`, `describe_consumer_group`, and `reset_offsets` round
+out `mcp_kafka` with consumer group management, against the same real broker
+as `produce`/`consume`/`create_topics`/`delete_topics` above.
+`list_consumer_groups` and `describe_consumer_group` are read-only, needing
+only the toolkit-level `kafka:tools` scope; `reset_offsets` shares
+`create_topics`/`delete_topics`' `kafka:admin`-gated route, since resetting a
+group's committed offsets is the same kind of structural, admin-risk
+mutation.
+
+Describe a group name that has never committed an offset on this broker --
+real Kafka reports its state as `Dead`, not an error, since the group simply
+does not exist yet:
+
+```bash
+docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
+    -e CALL_TOOL=kafka__describe_consumer_group \
+    -e CALL_ARGS='{"group_id":"orders-analytics"}' \
+    tools-list-client
+# Consumer group orders-analytics is Dead
+```
+
+`list_consumer_groups` takes no arguments and succeeds against the real
+broker the same way:
+
+```bash
+docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
+    -e CALL_TOOL=kafka__list_consumer_groups \
+    tools-list-client
+# No consumer groups found
+```
+
+`reset_offsets` is modeled as a real Kafka `OffsetCommit`
+(`generationId=-1`, `memberId=""`) -- the same "admin commit"
+`AdminClient.alterConsumerGroupOffsets()` makes against an inactive group in
+real Kafka, rather than a fictitious dedicated API. It resolves the group's
+coordinator broker (`FindCoordinator`), rejects if the group has active
+members (`DescribeGroups`), then commits directly:
+
+```bash
+docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
+    -e CALL_TOOL=kafka__reset_offsets \
+    -e CALL_ARGS='{"group":"orders-analytics","topic":"orders","partition":0,"offset":0}' \
+    tools-list-client
+```
+
+If `orders-analytics` had an active member consuming `orders` (state
+`Stable`, `PreparingRebalance`, or `CompletingRebalance` instead of `Empty`
+or `Dead`), `reset_offsets` would reject the call instead of committing,
+with `isError: true` and a message naming the group's actual state --
+resetting offsets out from under an active consumer is never attempted
+silently.
+
+**Known gap:** this example's automated test (`.github/test.sh`) exercises
+`reset_offsets`' `FindCoordinator` and `DescribeGroups` hops (the same
+`DescribeGroups` call `describe_consumer_group` makes) against the real
+broker, but not its final `OffsetCommit` hop -- driving that hop against a
+real broker surfaced a hang in how the `mcp_kafka` client's auto-generated
+composite routes an `OffsetCommit` stream to a dynamically resolved
+coordinator host/port (as opposed to the statically configured
+`options.servers`), tracked as a follow-up rather than papered over.
 
 ### Trigger a form elicitation round-trip
 
