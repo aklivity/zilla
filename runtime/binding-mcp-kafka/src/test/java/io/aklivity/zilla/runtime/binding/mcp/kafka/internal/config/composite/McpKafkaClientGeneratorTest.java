@@ -42,7 +42,7 @@ public class McpKafkaClientGeneratorTest
     private static final long CACHE_CLIENT_BINDING_ID = 42L;
 
     private final EngineContext context = mock(EngineContext.class);
-    private final McpKafkaClientGenerator generator = new McpKafkaClientGenerator("");
+    private final McpKafkaClientGenerator generator = new McpKafkaClientGenerator("", "");
 
     @Test
     public void shouldGenerateKafkaClientPipeline()
@@ -144,7 +144,7 @@ public class McpKafkaClientGeneratorTest
     @Test
     public void shouldOverrideCacheClientExit()
     {
-        McpKafkaClientGenerator overridden = new McpKafkaClientGenerator("test:kafka0");
+        McpKafkaClientGenerator overridden = new McpKafkaClientGenerator("test:kafka0", "");
 
         McpKafkaOptionsConfig options = McpKafkaOptionsConfig.builder()
             .server()

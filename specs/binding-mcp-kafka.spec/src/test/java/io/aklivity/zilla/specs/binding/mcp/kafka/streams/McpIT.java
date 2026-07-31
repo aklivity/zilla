@@ -179,4 +179,22 @@ public class McpIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${mcp}/create.topics/client",
+        "${mcp}/create.topics/server"})
+    public void shouldCreateTopics() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mcp}/delete.topics/client",
+        "${mcp}/delete.topics/server"})
+    public void shouldDeleteTopics() throws Exception
+    {
+        k3po.finish();
+    }
 }
