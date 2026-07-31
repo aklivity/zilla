@@ -33,6 +33,7 @@ import java.util.regex.Pattern;
 
 import jakarta.json.JsonValue;
 import jakarta.json.bind.JsonbBuilder;
+import jakarta.json.bind.JsonbException;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParserFactory;
 
@@ -2094,26 +2095,38 @@ public final class McpServerFactory implements McpStreamFactory
         {
             final DirectBufferInputStreamEx input = new DirectBufferInputStreamEx();
             input.wrap(buffer, offset, limit - offset);
-            final McpInitializeParams params = JsonbBuilder.create().fromJson(input, McpInitializeParams.class);
 
-            decodedProtocolVersion = params.protocolVersion;
-
-            int capabilities = 0;
-            final JsonValue elicitation = params.capabilities != null
-                ? params.capabilities.get("elicitation")
-                : null;
-            if (elicitation != null)
+            McpInitializeParams params = null;
+            try
             {
-                capabilities |= CLIENT_ELICITATION.value() | CLIENT_ELICITATION_FORM.value();
-                if (elicitation.getValueType() == JsonValue.ValueType.OBJECT &&
-                    elicitation.asJsonObject().containsKey("url"))
-                {
-                    capabilities |= CLIENT_ELICITATION_URL.value();
-                }
+                params = JsonbBuilder.create().fromJson(input, McpInitializeParams.class);
             }
-            decodedClientCapabilities = capabilities;
+            catch (JsonbException ex)
+            {
+                onDecodeInvalidParams(traceId, authorization);
+            }
 
-            onLifecycleInitialize(traceId, authorization);
+            if (params != null)
+            {
+                decodedProtocolVersion = params.protocolVersion;
+
+                int capabilities = 0;
+                final JsonValue elicitation = params.capabilities != null
+                    ? params.capabilities.get("elicitation")
+                    : null;
+                if (elicitation != null)
+                {
+                    capabilities |= CLIENT_ELICITATION.value() | CLIENT_ELICITATION_FORM.value();
+                    if (elicitation.getValueType() == JsonValue.ValueType.OBJECT &&
+                        elicitation.asJsonObject().containsKey("url"))
+                    {
+                        capabilities |= CLIENT_ELICITATION_URL.value();
+                    }
+                }
+                decodedClientCapabilities = capabilities;
+
+                onLifecycleInitialize(traceId, authorization);
+            }
 
             return limit;
         }
@@ -2459,6 +2472,21 @@ public final class McpServerFactory implements McpStreamFactory
                     .build(),
                 -32601,
                 "Method not found");
+        }
+
+        private void onDecodeInvalidParams(
+            long traceId,
+            long authorization)
+        {
+            doEncodeResponseError(traceId, authorization,
+                httpBeginExRW.wrap(codecBuffer, 0, codecBuffer.capacity())
+                    .typeId(httpTypeId)
+                    .headersItem(h -> h.name(HTTP_HEADER_STATUS).value(STATUS_200))
+                    .headersItem(h -> h.name(HTTP_HEADER_CONTENT_TYPE).value(CONTENT_TYPE_JSON))
+                    .inject(this::injectAltSvc)
+                    .build(),
+                -32602,
+                "Invalid params");
         }
 
         private void onAppChallenge(
