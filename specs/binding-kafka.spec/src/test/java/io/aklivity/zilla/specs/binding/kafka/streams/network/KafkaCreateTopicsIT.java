@@ -75,9 +75,9 @@ public class KafkaCreateTopicsIT
 
     @Test
     @Specification({
-        "${net}/create.topics.v7.reconnect.sticky/client",
-        "${net}/create.topics.v7.reconnect.sticky/server"})
-    public void shouldReconnectWithStickyExplicitApiVersions() throws Exception
+        "${net}/create.topics.v7.reconnect.no.probe/client",
+        "${net}/create.topics.v7.reconnect.no.probe/server"})
+    public void shouldReconnectWithoutReprobe() throws Exception
     {
         k3po.finish();
     }

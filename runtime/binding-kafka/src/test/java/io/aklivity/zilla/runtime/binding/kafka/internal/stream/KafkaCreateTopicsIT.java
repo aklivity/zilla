@@ -126,9 +126,9 @@ public class KafkaCreateTopicsIT
     @Configure(name = KAFKA_CLIENT_API_VERSIONS_NAME, value = "true")
     @Configure(name = KAFKA_CLIENT_RECONNECT_DELAY_NAME, value = "0")
     @Specification({
-        "${app}/create.topics.v7.reconnect.sticky/client",
-        "${net}/create.topics.v7.reconnect.sticky/server"})
-    public void shouldReconnectWithStickyExplicitApiVersions() throws Exception
+        "${app}/create.topics.v7.reconnect.no.probe/client",
+        "${net}/create.topics.v7.reconnect.no.probe/server"})
+    public void shouldReconnectWithoutReprobe() throws Exception
     {
         k3po.finish();
     }
