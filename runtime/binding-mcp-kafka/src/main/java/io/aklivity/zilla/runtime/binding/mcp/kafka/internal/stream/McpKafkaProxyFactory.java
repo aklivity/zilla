@@ -699,6 +699,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         for (String tool : TOOL_NAMES)
         {
             final JsonObjectBuilder item = Json.createObjectBuilder().add("name", tool);
+            item.add("title", buildToolTitle(tool));
             item.add("description", buildToolDescription(tool));
             final JsonObject inputSchema = buildToolInputSchema(tool);
             if (inputSchema != null)
@@ -722,6 +723,62 @@ public class McpKafkaProxyFactory implements BindingHandler
             .build();
 
         return toolsList.toString().getBytes(UTF_8);
+    }
+
+    private static String buildToolTitle(
+        String tool)
+    {
+        String title = null;
+
+        switch (tool)
+        {
+        case TOOL_PRODUCE:
+            title = "Produce Message";
+            break;
+        case TOOL_CONSUME:
+            title = "Consume Messages";
+            break;
+        case TOOL_CREATE_TOPICS:
+            title = "Create Topics";
+            break;
+        case TOOL_DELETE_TOPICS:
+            title = "Delete Topics";
+            break;
+        case TOOL_DESCRIBE_CONFIGS:
+            title = "Describe Configs";
+            break;
+        case TOOL_ALTER_CONFIGS:
+            title = "Alter Configs";
+            break;
+        case TOOL_LIST_TOPICS:
+            title = "List Topics";
+            break;
+        case TOOL_DESCRIBE_TOPIC:
+            title = "Describe Topic";
+            break;
+        case TOOL_CLUSTER_OVERVIEW:
+            title = "Cluster Overview";
+            break;
+        case TOOL_LIST_BROKERS:
+            title = "List Brokers";
+            break;
+        case TOOL_DESCRIBE_CLUSTER:
+            title = "Describe Cluster";
+            break;
+        case TOOL_LIST_CONSUMER_GROUPS:
+            title = "List Consumer Groups";
+            break;
+        case TOOL_DESCRIBE_CONSUMER_GROUP:
+            title = "Describe Consumer Group";
+            break;
+        case TOOL_RESET_OFFSETS:
+            title = "Reset Consumer Group Offsets";
+            break;
+        default:
+            break;
+        }
+
+        return title;
     }
 
     private static String buildToolDescription(
