@@ -40,7 +40,7 @@ public final class McpSchemaRegistryCompositeGenerator
     private static final String BUNDLED_SPEC_RESOURCE =
         "/io/aklivity/zilla/runtime/binding/mcp/schema/registry/internal/schema/karapace-schema-registry.openapi.json";
     private static final String CATALOG_NAME = "catalog0";
-    private static final String BINDING_NAME = "mcp_openapi0";
+    private static final String BINDING_NAME = "mcp-openapi0";
     private static final String SUBJECT_NAME = "schemaregistry";
 
     private static final List<String> TOOLS = List.of(
@@ -60,7 +60,7 @@ public final class McpSchemaRegistryCompositeGenerator
         final String server = binding.options != null ? binding.options.server : null;
 
         NamespaceConfig namespace = NamespaceConfig.builder()
-            .name("%s/mcp_openapi".formatted(binding.qname))
+            .name("%s/mcp-openapi".formatted(binding.qname))
             .catalog()
                 .name(CATALOG_NAME)
                 .type("inline")

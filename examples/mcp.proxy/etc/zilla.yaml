@@ -418,7 +418,7 @@ bindings:
           credentials: "Bearer {credentials}"
     exit: sys:http_client
   south_mcp_http_github:
-    type: mcp_http
+    type: mcp-http
     kind: proxy
     options:
       authorization:
@@ -508,7 +508,7 @@ bindings:
       host: ghapi
       port: 4001
   south_mcp_openapi_petstore:
-    type: mcp_openapi
+    type: mcp-openapi
     kind: client
     options:
       specs:
@@ -540,7 +540,7 @@ bindings:
           description: Add a new pet to the store.
           summary: "Added pet: ${result.name}"
           # explicit override of the auto-derived input/output schema,
-          # demonstrating the same schema-mapping mechanism as mcp_http,
+          # demonstrating the same schema-mapping mechanism as mcp-http,
           # this time optional rather than required
           input:
             model: json
@@ -593,7 +593,7 @@ bindings:
           spec: petstore
           operation: get_pet
   south_mcp_schema_registry_client:
-    type: mcp_schema_registry
+    type: mcp-schema-registry
     kind: client
     options:
       server: http://karapace-registry:8081
@@ -612,7 +612,7 @@ bindings:
       - when:
           - tool: "*"
   south_mcp_kafka_client:
-    type: mcp_kafka
+    type: mcp-kafka
     kind: client
     options:
       servers:

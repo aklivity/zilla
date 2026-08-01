@@ -118,7 +118,7 @@ public class McpKafkaClientFactoryTest
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("mcp0")
-            .type("mcp_kafka")
+            .type("mcp-kafka")
             .kind(KindConfig.CLIENT)
             .options(options)
             .routes(List.of(route))
