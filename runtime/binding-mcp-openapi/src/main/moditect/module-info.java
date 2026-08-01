@@ -31,4 +31,6 @@ module io.aklivity.zilla.runtime.binding.mcp.openapi
 
     provides io.aklivity.zilla.runtime.engine.event.EventFormatterFactorySpi
         with io.aklivity.zilla.runtime.binding.mcp.openapi.internal.event.McpOpenapiEventFormatterFactory;
+
+    opens io.aklivity.zilla.runtime.binding.mcp.openapi.internal.config.composite;
 }
