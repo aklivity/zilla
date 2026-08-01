@@ -588,6 +588,16 @@ public class McpServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/notifications.cancelled.missing.request.id/client",
+        "${app}/lifecycle.initialize/server"})
+    public void shouldAcceptCancelMissingRequestId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/prompts.list/client",
         "${app}/prompts.list/server"})
     public void shouldListPrompts() throws Exception
@@ -748,6 +758,15 @@ public class McpServerIT
         "${net}/reject.request.method.unknown/client",
         "${app}/reject.request.method.unknown/server"})
     public void shouldRejectRequestMethodUnknown() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/lifecycle.initialize.reject.capabilities.invalid/client"})
+    public void shouldRejectLifecycleInitializeCapabilitiesInvalid() throws Exception
     {
         k3po.finish();
     }

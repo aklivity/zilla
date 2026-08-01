@@ -245,6 +245,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/lifecycle.initialize.reject.capabilities.invalid/client",
+        "${net}/lifecycle.initialize.reject.capabilities.invalid/server"})
+    public void shouldRejectLifecycleInitializeCapabilitiesInvalid() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/reject.tools.call.without.content.length/client",
         "${net}/reject.tools.call.without.content.length/server"})
     public void shouldRejectToolsCallWithoutContentLength() throws Exception
@@ -437,6 +446,15 @@ public class NetworkIT
         "${net}/notifications.cancelled.unknown/client",
         "${net}/notifications.cancelled.unknown/server"})
     public void shouldAcceptCancelUnknownRequest() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/notifications.cancelled.missing.request.id/client",
+        "${net}/notifications.cancelled.missing.request.id/server"})
+    public void shouldAcceptCancelMissingRequestId() throws Exception
     {
         k3po.finish();
     }
