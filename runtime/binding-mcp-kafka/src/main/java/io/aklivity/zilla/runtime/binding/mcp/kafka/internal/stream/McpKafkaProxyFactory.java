@@ -699,6 +699,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         for (String tool : TOOL_NAMES)
         {
             final JsonObjectBuilder item = Json.createObjectBuilder().add("name", tool);
+            item.add("description", buildToolDescription(tool));
             final JsonObject inputSchema = buildToolInputSchema(tool);
             if (inputSchema != null)
             {
@@ -721,6 +722,62 @@ public class McpKafkaProxyFactory implements BindingHandler
             .build();
 
         return toolsList.toString().getBytes(UTF_8);
+    }
+
+    private static String buildToolDescription(
+        String tool)
+    {
+        String description = null;
+
+        switch (tool)
+        {
+        case TOOL_PRODUCE:
+            description = "Produce a message to a Kafka topic.";
+            break;
+        case TOOL_CONSUME:
+            description = "Consume messages from a Kafka topic partition.";
+            break;
+        case TOOL_CREATE_TOPICS:
+            description = "Create one or more Kafka topics.";
+            break;
+        case TOOL_DELETE_TOPICS:
+            description = "Delete one or more Kafka topics.";
+            break;
+        case TOOL_DESCRIBE_CONFIGS:
+            description = "Describe the configuration of a Kafka topic or broker resource.";
+            break;
+        case TOOL_ALTER_CONFIGS:
+            description = "Alter the configuration of a Kafka topic or broker resource.";
+            break;
+        case TOOL_LIST_TOPICS:
+            description = "List all Kafka topics in the cluster.";
+            break;
+        case TOOL_DESCRIBE_TOPIC:
+            description = "Describe the partitions and replicas of a Kafka topic.";
+            break;
+        case TOOL_CLUSTER_OVERVIEW:
+            description = "Summarize the health and size of the Kafka cluster.";
+            break;
+        case TOOL_LIST_BROKERS:
+            description = "List the brokers in the Kafka cluster.";
+            break;
+        case TOOL_DESCRIBE_CLUSTER:
+            description = "Describe the Kafka cluster id, controller, and authorized operations.";
+            break;
+        case TOOL_LIST_CONSUMER_GROUPS:
+            description = "List the Kafka consumer groups in the cluster.";
+            break;
+        case TOOL_DESCRIBE_CONSUMER_GROUP:
+            description = "Describe the members and state of a Kafka consumer group.";
+            break;
+        case TOOL_RESET_OFFSETS:
+            description = "Reset the committed offset for a Kafka consumer group topic partition.";
+            break;
+        default:
+            break;
+        }
+
+        return description;
     }
 
     private JsonObject buildToolInputSchema(
