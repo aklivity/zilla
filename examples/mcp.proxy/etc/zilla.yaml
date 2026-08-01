@@ -352,6 +352,16 @@ bindings:
               - kafka__consume
               - kafka__create_topics
               - kafka__delete_topics
+              - kafka__describe_configs
+              - kafka__alter_configs
+              - kafka__list_topics
+              - kafka__describe_topic
+              - kafka__cluster_overview
+              - kafka__list_brokers
+              - kafka__describe_cluster
+              - kafka__list_consumer_groups
+              - kafka__describe_consumer_group
+              - kafka__reset_offsets
           search:
             toolkit: zilla
     routes:
@@ -361,7 +371,7 @@ bindings:
       - exit: south_mcp_client_urlelicit
         when:
           - toolkit: urlelicit
-            tools: ["*"]
+            tool: ["*"]
         guarded:
           authn_jwt:
             - urlelicit:authorize
@@ -408,7 +418,7 @@ bindings:
           credentials: "Bearer {credentials}"
     exit: sys:http_client
   south_mcp_http_github:
-    type: mcp_http
+    type: mcp-http
     kind: proxy
     options:
       authorization:
@@ -498,7 +508,7 @@ bindings:
       host: ghapi
       port: 4001
   south_mcp_openapi_petstore:
-    type: mcp_openapi
+    type: mcp-openapi
     kind: client
     options:
       specs:
@@ -530,7 +540,7 @@ bindings:
           description: Add a new pet to the store.
           summary: "Added pet: ${result.name}"
           # explicit override of the auto-derived input/output schema,
-          # demonstrating the same schema-mapping mechanism as mcp_http,
+          # demonstrating the same schema-mapping mechanism as mcp-http,
           # this time optional rather than required
           input:
             model: json
@@ -583,7 +593,7 @@ bindings:
           spec: petstore
           operation: get_pet
   south_mcp_schema_registry_client:
-    type: mcp_schema_registry
+    type: mcp-schema-registry
     kind: client
     options:
       server: http://karapace-registry:8081
@@ -602,7 +612,7 @@ bindings:
       - when:
           - tool: "*"
   south_mcp_kafka_client:
-    type: mcp_kafka
+    type: mcp-kafka
     kind: client
     options:
       servers:
@@ -610,20 +620,31 @@ bindings:
     # tool + topics together restrict each route to an allow-list of topics
     # (exact names or *-glob patterns), not just a tool-name dispatch; a
     # produce/consume call naming any other topic has no matching route
-    # and is rejected. create_topics and delete_topics have no topics
-    # allow-list -- each takes an array of topics as call arguments rather
-    # than a single routed topic -- so they share one route, matching on
-    # tool name alone (multiple `when` entries OR together); both are
-    # equally admin-risk structural mutations, so one guard covers both.
-    # create_topics/delete_topics and produce each layer a tool-specific
-    # scope under the toolkit-level kafka:tools guard above (the same
-    # layering register_schema demonstrates for the kafka_sr toolkit):
-    # kafka:admin for the admin-risk topic create/delete, kafka:write for
-    # writing data -- consume needs neither, only kafka:tools
+    # and is rejected. create_topics, delete_topics, alter_configs, and
+    # reset_offsets have no topics allow-list -- each identifies its target
+    # (a resource name, a topics array, or a single group+topic pair) via
+    # call arguments rather than a routed topic -- so all four share one
+    # route, matching on tool name alone (multiple `when` entries OR
+    # together); all four are equally admin-risk mutations of cluster/topic/
+    # group state, so one guard covers all. describe_configs, list_topics,
+    # describe_topic, cluster_overview, list_brokers, describe_cluster,
+    # list_consumer_groups, and describe_consumer_group are likewise
+    # read-only, with no topic to route on, so they share one unscoped route
+    # needing no scope beyond the toolkit-level kafka:tools guard above.
+    # create_topics/delete_topics/alter_configs/reset_offsets and produce
+    # each layer a tool-specific scope under the toolkit-level kafka:tools
+    # guard above (the same layering register_schema demonstrates for the
+    # kafka_sr toolkit): kafka:admin for the admin-risk topic/config/offset
+    # mutations, kafka:write for writing data -- consume, describe_configs,
+    # list_topics, describe_topic, cluster_overview, list_brokers,
+    # describe_cluster, list_consumer_groups, and describe_consumer_group
+    # need neither, only kafka:tools
     routes:
       - when:
           - tool: create_topics
           - tool: delete_topics
+          - tool: alter_configs
+          - tool: reset_offsets
         guarded:
           authn_jwt:
             - kafka:admin
@@ -636,6 +657,22 @@ bindings:
       - when:
           - tool: consume
             topics: [orders]
+      # cluster/topic/group metadata tools -- read-only like consume, so no
+      # tool-specific guard beyond the toolkit-level kafka:tools above; all
+      # eight share one route since none of them take a topics allow-list
+      # (list_topics/cluster_overview/list_brokers/describe_cluster/
+      # list_consumer_groups describe the whole cluster, describe_topic and
+      # describe_consumer_group name their one topic/group as a call
+      # argument, describe_configs names a resource, not a route match)
+      - when:
+          - tool: describe_configs
+          - tool: list_topics
+          - tool: describe_topic
+          - tool: cluster_overview
+          - tool: list_brokers
+          - tool: describe_cluster
+          - tool: list_consumer_groups
+          - tool: describe_consumer_group
 telemetry:
   metrics:
     - mcp.initialize

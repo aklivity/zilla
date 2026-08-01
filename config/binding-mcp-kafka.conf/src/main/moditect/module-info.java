@@ -17,6 +17,7 @@ module io.aklivity.zilla.config.binding.mcp.kafka
     requires jakarta.json;
     requires jakarta.json.bind;
     requires io.aklivity.zilla.config.engine;
+    requires io.aklivity.zilla.runtime.common.json;
     requires transitive io.aklivity.zilla.config.binding.kafka;
 
     exports io.aklivity.zilla.config.binding.mcp.kafka;

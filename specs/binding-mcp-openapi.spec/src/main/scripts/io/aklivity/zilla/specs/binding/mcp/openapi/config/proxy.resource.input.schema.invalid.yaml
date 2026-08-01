@@ -56,7 +56,7 @@ catalogs:
             }
 bindings:
   app0:
-    type: mcp_openapi
+    type: mcp-openapi
     kind: client
     options:
       specs:

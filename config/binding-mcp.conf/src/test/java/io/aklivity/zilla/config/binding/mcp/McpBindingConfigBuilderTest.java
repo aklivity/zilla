@@ -43,7 +43,7 @@ public class McpBindingConfigBuilderTest
                 .build()
             .route()
                 .when()
-                    .tools(List.of("test"))
+                    .tool(List.of("test"))
                     .build()
                 .with()
                     .cache()
@@ -68,7 +68,7 @@ public class McpBindingConfigBuilderTest
 
         ConditionConfig condition = route.when.get(0);
         assertThat(condition, instanceOf(McpConditionConfig.class));
-        assertThat(((McpConditionConfig) condition).tools, equalTo(List.of("test")));
+        assertThat(((McpConditionConfig) condition).tool, equalTo(List.of("test")));
 
         WithConfig with = route.with;
         assertThat(with, instanceOf(McpWithConfig.class));

@@ -9,14 +9,14 @@
 #      (options.authorization on a mcp(client) binding)
 #   4. tools/list is filtered by the caller's JWT scopes: unauthorized toolkits
 #      and tools are absent from the result, layered per binding hop
-#      (mcp proxy toolkit routes, mcp_http per-tool route, mcp_openapi
+#      (mcp proxy toolkit routes, mcp-http per-tool route, mcp-openapi
 #      OpenAPI-native per-operation security)
-#   5. mcp_http's create_pr forwards call arguments as the request body via
+#   5. mcp-http's create_pr forwards call arguments as the request body via
 #      with.body, scoped to exclude args already consumed by the :path
-#   6. mcp_openapi's search_pets renames an argument via with.params before
+#   6. mcp-openapi's search_pets renames an argument via with.params before
 #      building the request (options.specs.petstore.server also overrides
 #      the OpenAPI document's declared server to the local mock)
-#   7. mcp_http's pull_by_number resource template ({owner}/{repo}/{number})
+#   7. mcp-http's pull_by_number resource template ({owner}/{repo}/{number})
 #      is read end-to-end, with captured path params surfacing as ${params.x}
 #   8. petstore__create_pet actually succeeds for a pets:write-scoped caller,
 #      not just listed
@@ -35,12 +35,12 @@
 #  14. the cold tool is still directly callable by name -- "cold" only ever
 #      changes what tools/list reports, never what tools/call accepts
 #  15. kafka__produce writes a record to a real, single-node KRaft Kafka
-#      broker (mcp_kafka kind:client's own generated cache_client/client/
+#      broker (mcp-kafka kind:client's own generated cache_client/client/
 #      tcp_client pipeline, not the engine's test double)
 #  16. kafka__consume reads that same record back, round-tripping the exact
 #      value through the real broker
 #  17. kafka_sr__register_schema registers a real schema against a
-#      real Karapace instance (mcp_schema_registry kind:client's own
+#      real Karapace instance (mcp-schema-registry kind:client's own
 #      generated composite, not a mock), with ${result.id} interpolated
 #      into the tool's summary
 #  18. kafka_sr__list_subjects and describe_subject confirm the
@@ -53,12 +53,12 @@
 #      set_compatibility is called at least once
 #  21. kafka_sr__check_compatibility validates a schema against the
 #      configured compatibility level
-#  22. mcp_schema_registry's own routes[].guarded layers a tool-specific
+#  22. mcp-schema-registry's own routes[].guarded layers a tool-specific
 #      scope (kafka_sr:write) under the toolkit-level scope
 #      (kafka_sr:tools) for register_schema only -- no OpenAPI
 #      security scheme is involved, unlike petstore's create_pet
 #  23. kafka__create_topics creates a real topic on the same broker
-#      (mcp_kafka kind:client's own generated pipeline, not the engine's
+#      (mcp-kafka kind:client's own generated pipeline, not the engine's
 #      test double), gated by its own tool-specific kafka:admin scope
 #      layered under the toolkit-level kafka:tools scope -- the same
 #      layering mechanism as register_schema/kafka_sr:write, demonstrated
@@ -67,12 +67,45 @@
 #      sharing create_topics' route (one `when` list, two `tool` entries)
 #      and its kafka:admin scope -- both are structural, admin-risk
 #      mutations, so one route/guard covers both instead of duplicating it
-#  25. a real MCP SDK client subscribes to an everything resource, triggers
+#  25. kafka__describe_configs reads back the real broker's effective
+#      config for the orders topic, including a config every topic
+#      carries by default -- needs no scope beyond the toolkit-level
+#      kafka:tools guard already exercised by consume
+#  26. kafka__alter_configs changes the orders topic's cleanup.policy on
+#      the same real broker, sharing create_topics/delete_topics' route
+#      and kafka:admin scope -- a third structural, admin-risk mutation
+#      coalesced onto the same route/guard
+#  27. kafka__list_topics lists the real topics on the same broker, gated
+#      by only the toolkit-level kafka:tools scope (no admin/write needed,
+#      same tier as consume)
+#  28. kafka__describe_topic describes the orders topic by name, reporting
+#      its partitions/leader/replicas/isr from the same real broker
+#  29. kafka__cluster_overview summarizes the same broker's topic/broker
+#      counts, sharing list_topics/describe_topic's read-only route
+#  30. kafka__list_brokers lists the real, single-node KRaft broker started
+#      by this example -- proving KafkaApiDescribeClusterClient's shared
+#      DescribeCluster request/response path (not the older, fully-decoded
+#      mechanism used elsewhere in binding-kafka) reaches a real broker
+#  31. kafka__describe_cluster reports that same broker as its controller --
+#      both tools share one route/guard (kafka:tools only, no admin scope),
+#      being read-only cluster introspection like consume
+#  32. kafka__describe_consumer_group, called against a group id that has
+#      never committed an offset, reports real broker state "Dead" -- Kafka's
+#      actual behavior for a group that does not yet exist, not an error --
+#      needing only the toolkit-level kafka:tools scope
+#  33. kafka__list_consumer_groups succeeds against the real broker, needing
+#      only the toolkit-level kafka:tools scope
+#  34. a real MCP SDK client subscribes to an everything resource, triggers
 #      the everything server's own toggle-subscriber-updates tool, and
 #      receives a relayed notifications/resources/updated -- exercising
 #      resources/subscribe, resources/unsubscribe, and the notification
 #      pass-through across mcp(server), mcp(proxy), and mcp(client)
 #      (aklivity/zilla#2220)
+#
+# kafka__reset_offsets' own OffsetCommit stage (the third hop of its
+# FindCoordinator -> DescribeGroups -> OffsetCommit flow) is a known,
+# tracked gap in this example's real-broker coverage -- see the note above
+# the kafka__list_consumer_groups check below.
 #
 # Streamable HTTP responses arrive as Server-Sent Events; checks grep the
 # streamed body / client output rather than asserting exact-string equality.
@@ -166,7 +199,7 @@ fi
 list_tools() {
   _token=$1
   docker compose run --rm --no-deps -e JWT_TOKEN="$_token" -e MCP_URL="http://zilla:$PORT/mcp" \
-      tools-list-client 2>/dev/null
+      tools-list-client 2>&1
 }
 
 # WHEN: a caller presents no JWT at all
@@ -258,9 +291,19 @@ assert_full_token() {
     echo "$TOOLS_FULL" | grep -q '^kafka__produce$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__consume$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__create_topics$' &&
-    echo "$TOOLS_FULL" | grep -q '^kafka__delete_topics$'
+    echo "$TOOLS_FULL" | grep -q '^kafka__delete_topics$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__describe_configs$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__alter_configs$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__list_topics$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__describe_topic$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__cluster_overview$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__list_brokers$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__describe_cluster$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__list_consumer_groups$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__describe_consumer_group$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__reset_offsets$'
 }
-retry_until 5 3 assert_full_token
+retry_until 10 5 assert_full_token
 echo "TOOLS_FULL=$TOOLS_FULL"
 if echo "$TOOLS_FULL" | grep -q '^everything__' &&
     echo "$TOOLS_FULL" | grep -q '^urlelicit__authorize$' &&
@@ -276,7 +319,17 @@ if echo "$TOOLS_FULL" | grep -q '^everything__' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__produce$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__consume$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__create_topics$' &&
-    echo "$TOOLS_FULL" | grep -q '^kafka__delete_topics$'; then
+    echo "$TOOLS_FULL" | grep -q '^kafka__delete_topics$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__describe_configs$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__alter_configs$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__list_topics$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__describe_topic$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__cluster_overview$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__list_brokers$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__describe_cluster$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__list_consumer_groups$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__describe_consumer_group$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__reset_offsets$'; then
   echo "✅ full scope: every toolkit's tools and resources are listed"
 else
   echo "❌ full scope did not unlock every toolkit"
@@ -435,7 +488,7 @@ read_resource() {
   _uri=$2
   docker compose run --rm --no-deps -e JWT_TOKEN="$_token" -e MCP_URL="http://zilla:$PORT/mcp" \
       -e READ_RESOURCE="$_uri" \
-      tools-list-client 2>/dev/null
+      tools-list-client 2>&1
 }
 
 # WHEN: a github:tools-scoped caller reads the pull_by_number resource template
@@ -464,7 +517,7 @@ read_featured_pets() {
   FEATURED_OUT=$(read_resource "$JWT_PARTIAL" "petstore+/pets/featured")
   echo "$FEATURED_OUT" | grep -q 'Bramble'
 }
-retry_until 5 3 read_featured_pets
+retry_until 10 5 read_featured_pets
 echo "FEATURED_OUT=$FEATURED_OUT"
 if echo "$FEATURED_OUT" | grep -q 'Bramble'; then
   echo "✅ petstore+/pets/featured read end-to-end"
@@ -475,7 +528,7 @@ fi
 
 # WHEN: a pets:write-scoped caller calls petstore__create_pet
 # THEN: the call actually succeeds against the petstore mock (not just listed
-#       as available) -- the mcp_openapi OpenAPI-native security requirement
+#       as available) -- the mcp-openapi OpenAPI-native security requirement
 #       permits the call, and the auto-derived request/response schemas round-trip
 call_create_pet() {
   CREATE_PET_OUT=$(docker compose run --rm --no-deps \
@@ -500,8 +553,8 @@ SR_SCHEMA='{\"type\":\"record\",\"name\":\"Order\",\"fields\":[{\"name\":\"id\",
 
 # WHEN: a kafka_sr:write-scoped caller calls kafka_sr__register_schema
 # THEN: the schema is registered against the real Karapace instance (not a
-#       mock) -- mcp_schema_registry kind:client's own generated composite
-#       (mcp_openapi -> mcp_http -> http_client) talks to an actual Schema
+#       mock) -- mcp-schema-registry kind:client's own generated composite
+#       (mcp-openapi -> mcp-http -> http_client) talks to an actual Schema
 #       Registry end to end, and the tool's summary interpolates the id
 #       Karapace actually assigned via ${result.id}
 call_register_schema() {
@@ -647,7 +700,7 @@ fi
 # WHEN: a kafka:write-scoped caller calls kafka__produce
 # THEN: the record reaches the real, single-node KRaft Kafka broker started by
 #       this example -- not the engine's `type: test` double specs/ITs use --
-#       proving mcp_kafka's kind:client composite generator (kafka_cache_client
+#       proving mcp-kafka's kind:client composite generator (kafka_cache_client
 #       -> kafka_client -> tcp_client) talks to an actual broker end to end
 call_kafka_produce() {
   KAFKA_PRODUCE_OUT=$(docker compose run --rm --no-deps \
@@ -685,6 +738,53 @@ if echo "$KAFKA_CONSUME_OUT" | grep -q 'hello from mcp-kafka'; then
   echo "✅ kafka__consume read the produced record back from the real Kafka broker"
 else
   echo "❌ kafka__consume did not read the produced record back"
+  EXIT=1
+fi
+
+# WHEN: that same caller calls kafka__describe_configs for the orders topic
+# THEN: the real broker's effective config comes back, including
+#       cleanup.policy -- a config every topic carries by default -- proving
+#       describe_configs is read-only and needs no scope beyond the
+#       toolkit-level kafka:tools guard already exercised by consume
+call_kafka_describe_configs() {
+  KAFKA_DESCRIBE_CONFIGS_OUT=$(docker compose run --rm --no-deps \
+      -e JWT_TOKEN="$JWT_FULL" \
+      -e MCP_URL="http://zilla:$PORT/mcp" \
+      -e CALL_TOOL="kafka__describe_configs" \
+      -e CALL_ARGS='{"resource_type":"topic","resource_name":"orders"}' \
+      tools-list-client 2>&1)
+  echo "$KAFKA_DESCRIBE_CONFIGS_OUT" | grep -q '"name":"cleanup.policy"'
+}
+retry_until 10 3 call_kafka_describe_configs
+echo "KAFKA_DESCRIBE_CONFIGS_OUT=$KAFKA_DESCRIBE_CONFIGS_OUT"
+if echo "$KAFKA_DESCRIBE_CONFIGS_OUT" | grep -q '"name":"cleanup.policy"'; then
+  echo "✅ kafka__describe_configs read the real broker's effective topic config"
+else
+  echo "❌ kafka__describe_configs did not return the expected config"
+  EXIT=1
+fi
+
+# WHEN: a kafka:admin-scoped caller calls kafka__alter_configs to change the
+#       orders topic's cleanup.policy
+# THEN: the real broker accepts the change -- proving alter_configs' shared
+#       route (coalesced with create_topics/delete_topics under kafka:admin,
+#       same reasoning as delete_topics above) is sufficient to actually
+#       invoke the tool, not just see it listed
+call_kafka_alter_configs() {
+  KAFKA_ALTER_CONFIGS_OUT=$(docker compose run --rm --no-deps \
+      -e JWT_TOKEN="$JWT_FULL" \
+      -e MCP_URL="http://zilla:$PORT/mcp" \
+      -e CALL_TOOL="kafka__alter_configs" \
+      -e CALL_ARGS='{"resource_type":"topic","resource_name":"orders","configs":{"cleanup.policy":"compact"}}' \
+      tools-list-client 2>&1)
+  echo "$KAFKA_ALTER_CONFIGS_OUT" | grep -q 'Updated configs for topic orders'
+}
+retry_until 10 3 call_kafka_alter_configs
+echo "KAFKA_ALTER_CONFIGS_OUT=$KAFKA_ALTER_CONFIGS_OUT"
+if echo "$KAFKA_ALTER_CONFIGS_OUT" | grep -q 'Updated configs for topic orders'; then
+  echo "✅ kafka__alter_configs updated the topic config on the real Kafka broker"
+else
+  echo "❌ kafka__alter_configs did not succeed against the real broker"
   EXIT=1
 fi
 
@@ -732,6 +832,176 @@ if echo "$KAFKA_DELETE_TOPICS_OUT" | grep -q 'Deleted topic(s): widgets'; then
   echo "✅ kafka__delete_topics deleted the topic from the real Kafka broker"
 else
   echo "❌ kafka__delete_topics did not succeed against the real broker"
+  EXIT=1
+fi
+
+# WHEN: a kafka:tools-scoped caller calls kafka__list_topics
+# THEN: the real topics on the same broker come back (at least the seeded
+#       orders topic) -- gated by only the toolkit-level kafka:tools scope,
+#       the same tier as consume, no admin/write scope needed
+call_kafka_list_topics() {
+  KAFKA_LIST_TOPICS_OUT=$(docker compose run --rm --no-deps \
+      -e JWT_TOKEN="$JWT_FULL" \
+      -e MCP_URL="http://zilla:$PORT/mcp" \
+      -e CALL_TOOL="kafka__list_topics" \
+      tools-list-client 2>&1)
+  echo "$KAFKA_LIST_TOPICS_OUT" | grep -q '"name":"orders"'
+}
+retry_until 10 3 call_kafka_list_topics
+echo "KAFKA_LIST_TOPICS_OUT=$KAFKA_LIST_TOPICS_OUT"
+if echo "$KAFKA_LIST_TOPICS_OUT" | grep -q '"name":"orders"'; then
+  echo "✅ kafka__list_topics listed the real orders topic from the real Kafka broker"
+else
+  echo "❌ kafka__list_topics did not list the orders topic as expected"
+  EXIT=1
+fi
+
+# WHEN: that same caller calls kafka__describe_topic for the orders topic
+# THEN: its real partition/leader/replica/isr metadata comes back from the
+#       same broker -- proving describe_topic's single-topic argument (not a
+#       route match) reaches the real Kafka Metadata API
+call_kafka_describe_topic() {
+  KAFKA_DESCRIBE_TOPIC_OUT=$(docker compose run --rm --no-deps \
+      -e JWT_TOKEN="$JWT_FULL" \
+      -e MCP_URL="http://zilla:$PORT/mcp" \
+      -e CALL_TOOL="kafka__describe_topic" \
+      -e CALL_ARGS='{"topic":"orders"}' \
+      tools-list-client 2>&1)
+  echo "$KAFKA_DESCRIBE_TOPIC_OUT" | grep -q 'Described topic orders'
+}
+retry_until 10 3 call_kafka_describe_topic
+echo "KAFKA_DESCRIBE_TOPIC_OUT=$KAFKA_DESCRIBE_TOPIC_OUT"
+if echo "$KAFKA_DESCRIBE_TOPIC_OUT" | grep -q 'Described topic orders' &&
+    echo "$KAFKA_DESCRIBE_TOPIC_OUT" | grep -q '"partition_id":0'; then
+  echo "✅ kafka__describe_topic described the real orders topic from the real Kafka broker"
+else
+  echo "❌ kafka__describe_topic did not describe the orders topic as expected"
+  EXIT=1
+fi
+
+# WHEN: that same caller calls kafka__cluster_overview
+# THEN: the same real broker's topic/broker counts come back -- sharing
+#       list_topics/describe_topic's read-only route (one `when` list, three
+#       `tool` entries, no guard beyond the toolkit-level kafka:tools)
+call_kafka_cluster_overview() {
+  KAFKA_CLUSTER_OVERVIEW_OUT=$(docker compose run --rm --no-deps \
+      -e JWT_TOKEN="$JWT_FULL" \
+      -e MCP_URL="http://zilla:$PORT/mcp" \
+      -e CALL_TOOL="kafka__cluster_overview" \
+      tools-list-client 2>&1)
+  echo "$KAFKA_CLUSTER_OVERVIEW_OUT" | grep -q 'Cluster overview:'
+}
+retry_until 10 3 call_kafka_cluster_overview
+echo "KAFKA_CLUSTER_OVERVIEW_OUT=$KAFKA_CLUSTER_OVERVIEW_OUT"
+if echo "$KAFKA_CLUSTER_OVERVIEW_OUT" | grep -q '"broker_count":1'; then
+  echo "✅ kafka__cluster_overview summarized the real Kafka broker"
+else
+  echo "❌ kafka__cluster_overview did not summarize the real broker as expected"
+  EXIT=1
+fi
+
+# WHEN: a kafka:tools-scoped caller calls kafka__list_brokers
+# THEN: the real, single-node KRaft broker started by this example (node id 1,
+#       advertised as kafka.examples.dev:29092 on the INTERNAL listener
+#       south_mcp_kafka_client connects on) comes back -- proving
+#       KafkaApiDescribeClusterClient's shared DescribeCluster request/response
+#       path (not the older, fully-decoded mechanism used elsewhere in
+#       binding-kafka) reaches a real broker, not the engine's test double
+call_kafka_list_brokers() {
+  KAFKA_LIST_BROKERS_OUT=$(docker compose run --rm --no-deps \
+      -e JWT_TOKEN="$JWT_FULL" \
+      -e MCP_URL="http://zilla:$PORT/mcp" \
+      -e CALL_TOOL="kafka__list_brokers" \
+      tools-list-client 2>&1)
+  echo "$KAFKA_LIST_BROKERS_OUT" | grep -q 'Brokers: 1@kafka.examples.dev:29092'
+}
+retry_until 10 3 call_kafka_list_brokers
+echo "KAFKA_LIST_BROKERS_OUT=$KAFKA_LIST_BROKERS_OUT"
+if echo "$KAFKA_LIST_BROKERS_OUT" | grep -q 'Brokers: 1@kafka.examples.dev:29092'; then
+  echo "✅ kafka__list_brokers listed the real Kafka broker"
+else
+  echo "❌ kafka__list_brokers did not list the real broker"
+  EXIT=1
+fi
+
+# WHEN: that same caller calls kafka__describe_cluster
+# THEN: the same single-node broker (node id 1) is reported as controller --
+#       proving describe_cluster and list_brokers share one route/guard
+#       (kafka:tools only, no admin scope), being read-only cluster
+#       introspection like consume rather than a structural mutation
+call_kafka_describe_cluster() {
+  KAFKA_DESCRIBE_CLUSTER_OUT=$(docker compose run --rm --no-deps \
+      -e JWT_TOKEN="$JWT_FULL" \
+      -e MCP_URL="http://zilla:$PORT/mcp" \
+      -e CALL_TOOL="kafka__describe_cluster" \
+      tools-list-client 2>&1)
+  echo "$KAFKA_DESCRIBE_CLUSTER_OUT" | grep -q 'Described cluster .*, controller 1'
+}
+retry_until 10 3 call_kafka_describe_cluster
+echo "KAFKA_DESCRIBE_CLUSTER_OUT=$KAFKA_DESCRIBE_CLUSTER_OUT"
+if echo "$KAFKA_DESCRIBE_CLUSTER_OUT" | grep -q 'Described cluster .*, controller 1'; then
+  echo "✅ kafka__describe_cluster reported the real broker as controller"
+else
+  echo "❌ kafka__describe_cluster did not succeed against the real broker"
+  EXIT=1
+fi
+
+CONSUMER_GROUP="orders-analytics"
+
+# WHEN: a kafka:tools-scoped caller calls kafka__describe_consumer_group for a
+#       group id that has never committed an offset on this broker
+# THEN: the real broker reports state "Dead" -- Kafka's actual behavior for a
+#       group that does not exist yet, not an error -- proving
+#       describe_consumer_group needs only the toolkit-level kafka:tools
+#       scope, no admin scope, to describe any group by name
+call_describe_group_before_reset() {
+  DESCRIBE_GROUP_BEFORE_OUT=$(docker compose run --rm --no-deps \
+      -e JWT_TOKEN="$JWT_FULL" \
+      -e MCP_URL="http://zilla:$PORT/mcp" \
+      -e CALL_TOOL="kafka__describe_consumer_group" \
+      -e CALL_ARGS="{\"group_id\":\"$CONSUMER_GROUP\"}" \
+      tools-list-client 2>&1)
+  echo "$DESCRIBE_GROUP_BEFORE_OUT" | grep -q "Consumer group $CONSUMER_GROUP is Dead"
+}
+retry_until 10 3 call_describe_group_before_reset
+echo "DESCRIBE_GROUP_BEFORE_OUT=$DESCRIBE_GROUP_BEFORE_OUT"
+if echo "$DESCRIBE_GROUP_BEFORE_OUT" | grep -q "Consumer group $CONSUMER_GROUP is Dead"; then
+  echo "✅ kafka__describe_consumer_group reported state Dead for a never-used group"
+else
+  echo "❌ kafka__describe_consumer_group did not report state Dead as expected"
+  EXIT=1
+fi
+
+# WHEN: a kafka:tools-scoped caller calls kafka__list_consumer_groups
+# THEN: the call succeeds against the real broker (an empty result is a
+#       correct, successful response -- no consumer group in this example
+#       ever runs a real consumer session)
+#
+# NOTE: kafka__reset_offsets' own OffsetCommit stage (the third hop of its
+# FindCoordinator -> DescribeGroups -> OffsetCommit flow) is not exercised
+# end to end against a real broker here -- driving it to a real broker
+# surfaced a hang distinct from the request-encoding bug fixed alongside
+# this test, in how the mcp-kafka client's auto-generated composite routes
+# an OffsetCommit stream to the dynamically resolved coordinator host/port
+# (as opposed to the statically configured options.servers). This is a
+# known gap, tracked for follow-up, not silently papered over: FindCoordinator
+# and DescribeGroups -- reset_offsets' first two hops -- are covered above
+# via kafka__describe_consumer_group, which shares the same DescribeGroups
+# call reset_offsets makes internally.
+call_kafka_list_consumer_groups() {
+  KAFKA_LIST_GROUPS_OUT=$(docker compose run --rm --no-deps \
+      -e JWT_TOKEN="$JWT_FULL" \
+      -e MCP_URL="http://zilla:$PORT/mcp" \
+      -e CALL_TOOL="kafka__list_consumer_groups" \
+      tools-list-client 2>&1)
+  echo "$KAFKA_LIST_GROUPS_OUT" | grep -qE "Consumer groups:|No consumer groups found"
+}
+retry_until 10 3 call_kafka_list_consumer_groups
+echo "KAFKA_LIST_GROUPS_OUT=$KAFKA_LIST_GROUPS_OUT"
+if echo "$KAFKA_LIST_GROUPS_OUT" | grep -qE "Consumer groups:|No consumer groups found"; then
+  echo "✅ kafka__list_consumer_groups succeeded against the real Kafka broker"
+else
+  echo "❌ kafka__list_consumer_groups did not succeed against the real broker"
   EXIT=1
 fi
 

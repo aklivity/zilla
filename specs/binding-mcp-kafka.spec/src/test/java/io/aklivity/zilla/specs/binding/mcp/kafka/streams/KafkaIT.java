@@ -161,4 +161,157 @@ public class KafkaIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${kafka}/describe.configs/client",
+        "${kafka}/describe.configs/server"})
+    public void shouldDescribeConfigs() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/describe.configs.negotiated/client",
+        "${kafka}/describe.configs.negotiated/server"})
+    public void shouldDescribeConfigsNegotiated() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/alter.configs/client",
+        "${kafka}/alter.configs/server"})
+    public void shouldAlterConfigs() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/alter.configs.negotiated/client",
+        "${kafka}/alter.configs.negotiated/server"})
+    public void shouldAlterConfigsNegotiated() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/list.topics/client",
+        "${kafka}/list.topics/server"})
+    public void shouldListTopics() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/list.topics.negotiated/client",
+        "${kafka}/list.topics.negotiated/server"})
+    public void shouldListTopicsNegotiated() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/describe.topic/client",
+        "${kafka}/describe.topic/server"})
+    public void shouldDescribeTopic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/describe.topic.negotiated/client",
+        "${kafka}/describe.topic.negotiated/server"})
+    public void shouldDescribeTopicNegotiated() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/cluster.overview/client",
+        "${kafka}/cluster.overview/server"})
+    public void shouldClusterOverview() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/cluster.overview.negotiated/client",
+        "${kafka}/cluster.overview.negotiated/server"})
+    public void shouldClusterOverviewNegotiated() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/describe.cluster/client",
+        "${kafka}/describe.cluster/server"})
+    public void shouldDescribeCluster() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/describe.cluster.negotiated/client",
+        "${kafka}/describe.cluster.negotiated/server"})
+    public void shouldDescribeClusterNegotiated() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/list.consumer.groups/client",
+        "${kafka}/list.consumer.groups/server"})
+    public void shouldListConsumerGroups() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/describe.consumer.group/client",
+        "${kafka}/describe.consumer.group/server"})
+    public void shouldDescribeConsumerGroup() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/find.coordinator.for.reset/client",
+        "${kafka}/find.coordinator.for.reset/server"})
+    public void shouldFindCoordinatorForReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/describe.groups.for.reset/client",
+        "${kafka}/describe.groups.for.reset/server"})
+    public void shouldDescribeGroupsForReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/find.coordinator.error/client",
+        "${kafka}/find.coordinator.error/server"})
+    public void shouldFindCoordinatorError() throws Exception
+    {
+        k3po.finish();
+    }
 }
