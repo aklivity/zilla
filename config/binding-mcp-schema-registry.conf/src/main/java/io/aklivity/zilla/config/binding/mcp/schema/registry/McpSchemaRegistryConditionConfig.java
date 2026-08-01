@@ -14,13 +14,14 @@
  */
 package io.aklivity.zilla.config.binding.mcp.schema.registry;
 
+import java.util.List;
 import java.util.function.Function;
 
 import io.aklivity.zilla.config.engine.ConditionConfig;
 
 public final class McpSchemaRegistryConditionConfig extends ConditionConfig
 {
-    public final String tool;
+    public final List<String> tool;
 
     public static McpSchemaRegistryConditionConfigBuilder<McpSchemaRegistryConditionConfig> builder()
     {
@@ -34,7 +35,7 @@ public final class McpSchemaRegistryConditionConfig extends ConditionConfig
     }
 
     McpSchemaRegistryConditionConfig(
-        String tool)
+        List<String> tool)
     {
         this.tool = tool;
     }

@@ -9,14 +9,14 @@
 #      (options.authorization on a mcp(client) binding)
 #   4. tools/list is filtered by the caller's JWT scopes: unauthorized toolkits
 #      and tools are absent from the result, layered per binding hop
-#      (mcp proxy toolkit routes, mcp_http per-tool route, mcp_openapi
+#      (mcp proxy toolkit routes, mcp-http per-tool route, mcp-openapi
 #      OpenAPI-native per-operation security)
-#   5. mcp_http's create_pr forwards call arguments as the request body via
+#   5. mcp-http's create_pr forwards call arguments as the request body via
 #      with.body, scoped to exclude args already consumed by the :path
-#   6. mcp_openapi's search_pets renames an argument via with.params before
+#   6. mcp-openapi's search_pets renames an argument via with.params before
 #      building the request (options.specs.petstore.server also overrides
 #      the OpenAPI document's declared server to the local mock)
-#   7. mcp_http's pull_by_number resource template ({owner}/{repo}/{number})
+#   7. mcp-http's pull_by_number resource template ({owner}/{repo}/{number})
 #      is read end-to-end, with captured path params surfacing as ${params.x}
 #   8. petstore__create_pet actually succeeds for a pets:write-scoped caller,
 #      not just listed
@@ -35,12 +35,12 @@
 #  14. the cold tool is still directly callable by name -- "cold" only ever
 #      changes what tools/list reports, never what tools/call accepts
 #  15. kafka__produce writes a record to a real, single-node KRaft Kafka
-#      broker (mcp_kafka kind:client's own generated cache_client/client/
+#      broker (mcp-kafka kind:client's own generated cache_client/client/
 #      tcp_client pipeline, not the engine's test double)
 #  16. kafka__consume reads that same record back, round-tripping the exact
 #      value through the real broker
 #  17. kafka_sr__register_schema registers a real schema against a
-#      real Karapace instance (mcp_schema_registry kind:client's own
+#      real Karapace instance (mcp-schema-registry kind:client's own
 #      generated composite, not a mock), with ${result.id} interpolated
 #      into the tool's summary
 #  18. kafka_sr__list_subjects and describe_subject confirm the
@@ -53,12 +53,12 @@
 #      set_compatibility is called at least once
 #  21. kafka_sr__check_compatibility validates a schema against the
 #      configured compatibility level
-#  22. mcp_schema_registry's own routes[].guarded layers a tool-specific
+#  22. mcp-schema-registry's own routes[].guarded layers a tool-specific
 #      scope (kafka_sr:write) under the toolkit-level scope
 #      (kafka_sr:tools) for register_schema only -- no OpenAPI
 #      security scheme is involved, unlike petstore's create_pet
 #  23. kafka__create_topics creates a real topic on the same broker
-#      (mcp_kafka kind:client's own generated pipeline, not the engine's
+#      (mcp-kafka kind:client's own generated pipeline, not the engine's
 #      test double), gated by its own tool-specific kafka:admin scope
 #      layered under the toolkit-level kafka:tools scope -- the same
 #      layering mechanism as register_schema/kafka_sr:write, demonstrated
@@ -535,7 +535,7 @@ fi
 
 # WHEN: a pets:write-scoped caller calls petstore__create_pet
 # THEN: the call actually succeeds against the petstore mock (not just listed
-#       as available) -- the mcp_openapi OpenAPI-native security requirement
+#       as available) -- the mcp-openapi OpenAPI-native security requirement
 #       permits the call, and the auto-derived request/response schemas round-trip
 call_create_pet() {
   CREATE_PET_OUT=$(docker compose run --rm --no-deps \
@@ -560,8 +560,8 @@ SR_SCHEMA='{\"type\":\"record\",\"name\":\"Order\",\"fields\":[{\"name\":\"id\",
 
 # WHEN: a kafka_sr:write-scoped caller calls kafka_sr__register_schema
 # THEN: the schema is registered against the real Karapace instance (not a
-#       mock) -- mcp_schema_registry kind:client's own generated composite
-#       (mcp_openapi -> mcp_http -> http_client) talks to an actual Schema
+#       mock) -- mcp-schema-registry kind:client's own generated composite
+#       (mcp-openapi -> mcp-http -> http_client) talks to an actual Schema
 #       Registry end to end, and the tool's summary interpolates the id
 #       Karapace actually assigned via ${result.id}
 call_register_schema() {
@@ -707,7 +707,7 @@ fi
 # WHEN: a kafka:write-scoped caller calls kafka__produce
 # THEN: the record reaches the real, single-node KRaft Kafka broker started by
 #       this example -- not the engine's `type: test` double specs/ITs use --
-#       proving mcp_kafka's kind:client composite generator (kafka_cache_client
+#       proving mcp-kafka's kind:client composite generator (kafka_cache_client
 #       -> kafka_client -> tcp_client) talks to an actual broker end to end
 call_kafka_produce() {
   KAFKA_PRODUCE_OUT=$(docker compose run --rm --no-deps \
@@ -1013,7 +1013,7 @@ fi
 # FindCoordinator -> DescribeGroups -> OffsetCommit flow) is not exercised
 # end to end against a real broker here -- driving it to a real broker
 # surfaced a hang distinct from the request-encoding bug fixed alongside
-# this test, in how the mcp_kafka client's auto-generated composite routes
+# this test, in how the mcp-kafka client's auto-generated composite routes
 # an OffsetCommit stream to the dynamically resolved coordinator host/port
 # (as opposed to the statically configured options.servers). This is a
 # known gap, tracked for follow-up, not silently papered over: FindCoordinator

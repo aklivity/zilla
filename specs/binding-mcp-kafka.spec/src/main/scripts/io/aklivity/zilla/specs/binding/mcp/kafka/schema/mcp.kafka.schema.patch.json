@@ -2,7 +2,7 @@
     {
         "op": "add",
         "path": "/$defs/binding/properties/type/enum/-",
-        "value": "mcp_kafka"
+        "value": "mcp-kafka"
     },
     {
         "op": "add",
@@ -15,7 +15,7 @@
                 {
                     "type":
                     {
-                        "const": "mcp_kafka"
+                        "const": "mcp-kafka"
                     },
                     "kind":
                     {
@@ -33,7 +33,7 @@
                 {
                     "type":
                     {
-                        "const": "mcp_kafka"
+                        "const": "mcp-kafka"
                     },
                     "kind":
                     {
@@ -63,7 +63,11 @@
                                             "tool":
                                             {
                                                 "title": "Tool Name",
-                                                "type": "string"
+                                                "oneOf":
+                                                [
+                                                    { "type": "string" },
+                                                    { "type": "array", "items": { "type": "string" } }
+                                                ]
                                             },
                                             "resource":
                                             {
@@ -105,7 +109,7 @@
                 {
                     "type":
                     {
-                        "const": "mcp_kafka"
+                        "const": "mcp-kafka"
                     },
                     "kind":
                     {
@@ -123,7 +127,7 @@
                 {
                     "type":
                     {
-                        "const": "mcp_kafka"
+                        "const": "mcp-kafka"
                     },
                     "kind":
                     {
@@ -202,7 +206,11 @@
                                             "tool":
                                             {
                                                 "title": "Tool Name",
-                                                "type": "string"
+                                                "oneOf":
+                                                [
+                                                    { "type": "string" },
+                                                    { "type": "array", "items": { "type": "string" } }
+                                                ]
                                             },
                                             "resource":
                                             {

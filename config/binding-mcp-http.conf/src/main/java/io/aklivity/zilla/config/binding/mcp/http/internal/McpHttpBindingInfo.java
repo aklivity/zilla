@@ -26,7 +26,7 @@ import io.aklivity.zilla.config.engine.WithConfig;
 
 public final class McpHttpBindingInfo implements BindingInfo
 {
-    public static final String TYPE = "mcp_http";
+    public static final String TYPE = "mcp-http";
 
     @Override
     public String type()

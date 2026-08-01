@@ -15,7 +15,7 @@ every `tools/list` response.
 client ── Authorization: Bearer ───►│                                                                                                                                            │
                                      │             ┬                     ┬                    ┬                   ┬                        ┬                          ┬           │
                                      │             ▼                     ▼                    ▼                   ▼                        ▼                          ▼           │
-                                     │    mcp(client)         mcp(client)             mcp_http(proxy)    mcp_openapi(client)  mcp_schema_registry(client)  mcp_kafka(client)      │
+                                     │    mcp(client)         mcp(client)             mcp-http(proxy)    mcp-openapi(client)  mcp-schema-registry(client)  mcp-kafka(client)      │
                                      │    everything          urlelicit               github toolkit     petstore toolkit     kafka_sr toolkit             kafka toolkit          │
                                      │    http →              http →                  http(client) →     http(client) →       http(client) →               kafka_cache_client →   │
                                      │    tcp                 tcp                     tcp                tcp                  tcp                          kafka_client → tcp     │
@@ -33,10 +33,10 @@ This one configuration exercises all seven `mcp*` binding kinds:
 | `mcp` | `server` | Terminates Streamable HTTP, authenticates the session with the `authn_jwt` guard |
 | `mcp` | `proxy` | Aggregates toolkits behind one endpoint, gates each toolkit's routes with `guarded:` |
 | `mcp` | `client` | Talks to an upstream server that is itself MCP (`everything`, `urlelicit`); `urlelicit` also forwards the caller's own JWT upstream |
-| `mcp_http` | `proxy` | Synthesizes MCP tools from hand-authored config, backed by a plain REST API (`github` toolkit) |
-| `mcp_openapi` | `client` | Synthesizes MCP tools from an OpenAPI document, backed by a plain REST API (`petstore` toolkit) |
-| `mcp_schema_registry` | `client` | Exposes a fixed, bundled tool set for the Karapace/Confluent Schema Registry REST API -- no operator-authored OpenAPI document, unlike `mcp_openapi` (`kafka_sr` toolkit) |
-| `mcp_kafka` | `client` | Exposes Kafka broker operations (`produce`/`consume`/`create_topics`/`delete_topics`/`describe_configs`/`alter_configs`/`list_topics`/`describe_topic`/`cluster_overview`/`list_brokers`/`describe_cluster`/`list_consumer_groups`/`describe_consumer_group`/`describe_consumer_group_lag`/`reset_offsets`) as intrinsic MCP tools, generating its own `kafka_cache_client → kafka_client → tcp_client` pipeline against a real broker (`kafka` toolkit) |
+| `mcp-http` | `proxy` | Synthesizes MCP tools from hand-authored config, backed by a plain REST API (`github` toolkit) |
+| `mcp-openapi` | `client` | Synthesizes MCP tools from an OpenAPI document, backed by a plain REST API (`petstore` toolkit) |
+| `mcp-schema-registry` | `client` | Exposes a fixed, bundled tool set for the Karapace/Confluent Schema Registry REST API -- no operator-authored OpenAPI document, unlike `mcp-openapi` (`kafka_sr` toolkit) |
+| `mcp-kafka` | `client` | Exposes Kafka broker operations (`produce`/`consume`/`create_topics`/`delete_topics`/`describe_configs`/`alter_configs`/`list_topics`/`describe_topic`/`cluster_overview`/`list_brokers`/`describe_cluster`/`list_consumer_groups`/`describe_consumer_group`/`describe_consumer_group_lag`/`reset_offsets`) as intrinsic MCP tools, generating its own `kafka_cache_client → kafka_client → tcp_client` pipeline against a real broker (`kafka` toolkit) |
 
 ## Authorization model
 
@@ -50,30 +50,30 @@ the pipeline, each demonstrating a different mechanism:
 | --- | --- | --- |
 | `mcp(proxy)` route for `urlelicit` toolkit | `routes[].guarded` on the toolkit route | `urlelicit:authorize` |
 | `mcp(proxy)` route for `github` toolkit | `routes[].guarded` on the toolkit route | `github:tools` |
-| `mcp_http(proxy)` route for `create_pr` | a second, tool-specific `routes[].guarded`, layered under the `mcp_http` binding's base guarded route | `github:tools` **and** `github:pr:write` |
+| `mcp-http(proxy)` route for `create_pr` | a second, tool-specific `routes[].guarded`, layered under the `mcp-http` binding's base guarded route | `github:tools` **and** `github:pr:write` |
 | `mcp(proxy)` route for `petstore` toolkit | `routes[].guarded` on the toolkit route | `petstore:tools` |
-| `mcp_openapi(client)` operation `create_pet` | the OpenAPI document's own `security` requirement, mapped to `authn_jwt` via `options.specs.petstore.security` | `petstore:tools` **and** `pets:write` |
+| `mcp-openapi(client)` operation `create_pet` | the OpenAPI document's own `security` requirement, mapped to `authn_jwt` via `options.specs.petstore.security` | `petstore:tools` **and** `pets:write` |
 | `mcp(proxy)` route for `kafka_sr` toolkit | `routes[].guarded` on the toolkit route | `kafka_sr:tools` |
-| `mcp_schema_registry(client)` route for `register_schema` | a second, tool-specific `routes[].guarded` on the binding's own `when.tool` route, layered under the toolkit-level gate above | `kafka_sr:tools` **and** `kafka_sr:write` |
+| `mcp-schema-registry(client)` route for `register_schema` | a second, tool-specific `routes[].guarded` on the binding's own `when.tool` route, layered under the toolkit-level gate above | `kafka_sr:tools` **and** `kafka_sr:write` |
 | `mcp(proxy)` route for `kafka` toolkit | `routes[].guarded` on the toolkit route | `kafka:tools` |
-| `mcp_kafka(client)` route for `produce` | a second, tool-specific `routes[].guarded` on the binding's own `when.tool` route, layered under the toolkit-level gate above | `kafka:tools` **and** `kafka:write` |
-| `mcp_kafka(client)` route for `create_topics` / `delete_topics` / `alter_configs` / `reset_offsets` | a second, tool-specific `routes[].guarded` on the binding's own `when.tool` route (all four tools coalesced into one route, since all four need the same scope), layered under the toolkit-level gate above | `kafka:tools` **and** `kafka:admin` |
+| `mcp-kafka(client)` route for `produce` | a second, tool-specific `routes[].guarded` on the binding's own `when.tool` route, layered under the toolkit-level gate above | `kafka:tools` **and** `kafka:write` |
+| `mcp-kafka(client)` route for `create_topics` / `delete_topics` / `alter_configs` / `reset_offsets` | a second, tool-specific `routes[].guarded` on the binding's own `when.tool` route (all four tools coalesced into one route, since all four need the same scope), layered under the toolkit-level gate above | `kafka:tools` **and** `kafka:admin` |
 
 `list_pets`, `list_featured_pets`, and `get_pet` declare no OpenAPI `security`
 of their own, so they need only the toolkit-level `petstore:tools` scope --
-the same "toolkit access is not tool access" layering `mcp_http` demonstrates
+the same "toolkit access is not tool access" layering `mcp-http` demonstrates
 with `github:pr:write`, expressed through OpenAPI's own security model
 instead of an explicit `guarded:` route.
 
-`mcp_schema_registry` has no OpenAPI document of its own to attach a
+`mcp-schema-registry` has no OpenAPI document of its own to attach a
 `security` requirement to at all -- the bundled spec declares none -- so its
 `register_schema` route demonstrates the same layering the other way around,
-via an explicit `routes[].guarded` directly on the `mcp_schema_registry`
+via an explicit `routes[].guarded` directly on the `mcp-schema-registry`
 binding itself: `list_subjects`, `describe_subject`, `get_schema`, and every
 other read-only tool need only the toolkit-level `kafka_sr:tools`
 scope, while `register_schema` additionally requires `kafka_sr:write`.
 
-`mcp_kafka` demonstrates the identical layering a third way, on its own
+`mcp-kafka` demonstrates the identical layering a third way, on its own
 `when.tool` route, and splits it further into read/write/admin: `consume`,
 `describe_configs`, `list_topics`, `describe_topic`, `cluster_overview`,
 `list_brokers`, `describe_cluster`, `list_consumer_groups`,
@@ -320,7 +320,7 @@ docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
 With the full-scope `$JWT_TOKEN` from above, calling `github__create_pr`
 reaches the `ghapi` mock and forwards the caller's own bearer credential and
 identity upstream (`options.authorization.credentials.headers` on the
-`mcp_http` binding):
+`mcp-http` binding):
 
 ```bash
 curl -N http://localhost:7114/mcp \
@@ -341,10 +341,10 @@ The response's `html_url` points at the fabricated `ghapi` pull request, and
 
 ### Schema-validated tool calls, and where the arguments go
 
-`mcp_http` requires every tool to declare an input schema
+`mcp-http` requires every tool to declare an input schema
 (`options.tools.create_pr.schemas.input`, backed by the `github_catalog`
 inline catalog) -- a call is validated against it before Zilla builds the
-upstream request at all. `mcp_openapi` makes the same `input`/`output`
+upstream request at all. `mcp-openapi` makes the same `input`/`output`
 override optional: `list_pets` relies on the schema auto-derived from the
 OpenAPI document, while `create_pet` explicitly overrides both
 (`options.tools.create_pet.input`/`output`, backed by `petstore_catalog`) to
@@ -362,7 +362,7 @@ remainder forwarded still needs an explicit `with.body` scoped to what's left.
 
 ### Browse petstore resources (static and templated)
 
-`mcp_openapi` maps OpenAPI `GET` operations to MCP resources instead of
+`mcp-openapi` maps OpenAPI `GET` operations to MCP resources instead of
 tools when the route's `when` says `resource:` instead of `tool:`. Whether
 the result is a fixed entry in `resources/list` or a `resources/templates`
 entry depends entirely on the OpenAPI path itself:
@@ -388,7 +388,7 @@ Read the templated resource for a specific pet with MCP Inspector's Resources
 tab, or with any MCP client that supports `resources/read` against
 `petstore+/pets/1`.
 
-### Redirect the outbound host, and rename an argument (mcp_openapi)
+### Redirect the outbound host, and rename an argument (mcp-openapi)
 
 The petstore OpenAPI document declares its public server as
 `https://api.petstore.example.com` -- a realistic, external-looking address,
@@ -414,9 +414,9 @@ said `category`, the request said `tag`.
 
 ### Register, look up, and configure schemas through a real Karapace instance
 
-`south_mcp_schema_registry_client` is an `mcp_schema_registry` `kind: client`
+`south_mcp_schema_registry_client` is an `mcp-schema-registry` `kind: client`
 binding -- like `petstore`, it proxies to a separate REST service, but unlike
-`mcp_openapi` there is no OpenAPI document to author at all: the tool set
+`mcp-openapi` there is no OpenAPI document to author at all: the tool set
 (`list_subjects`, `describe_subject`, `get_schema`, `register_schema`,
 `delete_subject`, `delete_schema_version`, `check_compatibility`,
 `get_compatibility`, `set_compatibility`) is bundled with the
@@ -490,7 +490,7 @@ docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
 
 ### Produce, consume, create/delete topics, describe/alter configs, and cluster introspection through a real Kafka broker
 
-`south_mcp_kafka_client` is an `mcp_kafka` `kind: client` binding -- unlike
+`south_mcp_kafka_client` is an `mcp-kafka` `kind: client` binding -- unlike
 every other toolkit in this example, it does not proxy to a separate MCP or
 REST server. It generates its own `kafka_cache_client → kafka_client →
 tcp_client` pipeline directly from `options.servers`, talking to the real,
@@ -672,7 +672,7 @@ that varies per broker startup.
 ### Manage consumer group offsets through a real Kafka broker
 
 `list_consumer_groups`, `describe_consumer_group`,
-`describe_consumer_group_lag`, and `reset_offsets` round out `mcp_kafka` with
+`describe_consumer_group_lag`, and `reset_offsets` round out `mcp-kafka` with
 consumer group management, against the same real broker as
 `produce`/`consume`/`create_topics`/`delete_topics` above.
 `list_consumer_groups`, `describe_consumer_group`, and
@@ -730,7 +730,7 @@ members (`DescribeGroups`), then commits directly:
 ```bash
 docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
     -e CALL_TOOL=kafka__reset_offsets \
-    -e CALL_ARGS='{"group":"orders-analytics","topic":"orders","partition":0,"offset":0}' \
+    -e CALL_ARGS='{"group_id":"orders-analytics","topic":"orders","partition":0,"offset":0}' \
     tools-list-client
 ```
 
@@ -745,7 +745,7 @@ silently.
 `reset_offsets`' `FindCoordinator` and `DescribeGroups` hops (the same
 `DescribeGroups` call `describe_consumer_group` makes) against the real
 broker, but not its final `OffsetCommit` hop -- driving that hop against a
-real broker surfaced a hang in how the `mcp_kafka` client's auto-generated
+real broker surfaced a hang in how the `mcp-kafka` client's auto-generated
 composite routes an `OffsetCommit` stream to a dynamically resolved
 coordinator host/port (as opposed to the statically configured
 `options.servers`), tracked as a follow-up rather than papered over.
@@ -846,7 +846,7 @@ docker compose logs urlelicit | grep authorization:
 
 Each line shows the exact JWT a given caller presented at the gateway. This
 is the `mcp(client)` binding's own credential-forwarding mechanism -- a
-narrower, single-header equivalent of `mcp_http`'s
+narrower, single-header equivalent of `mcp-http`'s
 `options.authorization.credentials.headers` map used for `github__create_pr`
 above, without needing to name the header or interpolate `{identity}`
 separately.

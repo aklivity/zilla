@@ -24,7 +24,7 @@ public final class McpKafkaConditionConfigBuilder<T> extends ConfigBuilder<T, Mc
 {
     private final Function<ConditionConfig, T> mapper;
 
-    private String tool;
+    private List<String> tool;
     private String resource;
     private List<String> topics;
 
@@ -42,7 +42,7 @@ public final class McpKafkaConditionConfigBuilder<T> extends ConfigBuilder<T, Mc
     }
 
     public McpKafkaConditionConfigBuilder<T> tool(
-        String tool)
+        List<String> tool)
     {
         this.tool = tool;
         return this;

@@ -23,7 +23,7 @@ guards:
         - admin
 bindings:
   mcp0:
-    type: mcp_kafka
+    type: mcp-kafka
     kind: proxy
     routes:
       - guarded:

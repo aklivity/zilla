@@ -14,9 +14,7 @@
  */
 package io.aklivity.zilla.config.binding.mcp.openapi.internal;
 
-import static java.util.List.of;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
@@ -55,7 +53,6 @@ public class McpOpenapiConditionConfigAdapterTest
         assertThat(condition, not(nullValue()));
         assertThat(condition.tool, equalTo("create_pr"));
         assertThat(condition.resource, nullValue());
-        assertThat(condition.capability, nullValue());
     }
 
     @Test
@@ -71,20 +68,6 @@ public class McpOpenapiConditionConfigAdapterTest
         assertThat(condition, not(nullValue()));
         assertThat(condition.tool, nullValue());
         assertThat(condition.resource, equalTo("repo://{owner}/{repo}"));
-    }
-
-    @Test
-    public void shouldReadConditionWithCapability()
-    {
-        String text =
-                "{" +
-                    "\"capability\": [\"fetch\", \"subscribe\"]" +
-                "}";
-
-        McpOpenapiConditionConfig condition = jsonb.fromJson(text, McpOpenapiConditionConfig.class);
-
-        assertThat(condition, not(nullValue()));
-        assertThat(condition.capability, contains("fetch", "subscribe"));
     }
 
     @Test
@@ -111,18 +94,5 @@ public class McpOpenapiConditionConfigAdapterTest
 
         assertThat(text, not(nullValue()));
         assertThat(text, equalTo("{\"resource\":\"repo://{owner}/{repo}\"}"));
-    }
-
-    @Test
-    public void shouldWriteConditionWithCapability()
-    {
-        McpOpenapiConditionConfig condition = McpOpenapiConditionConfig.builder()
-            .capability(of("fetch", "subscribe"))
-            .build();
-
-        String text = jsonb.toJson(condition);
-
-        assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"capability\":[\"fetch\",\"subscribe\"]}"));
     }
 }

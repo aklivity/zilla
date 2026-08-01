@@ -71,7 +71,7 @@ public class McpHttpBindingConfigTest
         BindingConfig config = GenericBindingConfig.builder()
             .namespace("test")
             .name("app0")
-            .type("mcp_http")
+            .type("mcp-http")
             .kind(KindConfig.PROXY)
             .routes(routes)
             .build();
@@ -181,7 +181,7 @@ public class McpHttpBindingConfigTest
         BindingConfig config = GenericBindingConfig.builder()
             .namespace("test")
             .name("app0")
-            .type("mcp_http")
+            .type("mcp-http")
             .kind(KindConfig.CLIENT)
             .routes(List.of(route))
             .build();
@@ -206,7 +206,7 @@ public class McpHttpBindingConfigTest
         BindingConfig config = GenericBindingConfig.builder()
             .namespace("test")
             .name("app0")
-            .type("mcp_http")
+            .type("mcp-http")
             .kind(KindConfig.CLIENT)
             .routes(List.of(route))
             .build();
@@ -232,7 +232,7 @@ public class McpHttpBindingConfigTest
         BindingConfig config = GenericBindingConfig.builder()
             .namespace("test")
             .name("app0")
-            .type("mcp_http")
+            .type("mcp-http")
             .kind(KindConfig.PROXY)
             .routes(List.of(route))
             .build();

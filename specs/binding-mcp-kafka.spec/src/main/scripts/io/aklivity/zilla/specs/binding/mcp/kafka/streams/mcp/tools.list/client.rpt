@@ -152,10 +152,10 @@ read  '{"tools":[{"name":"produce","inputSchema":{"type":"object","properties":'
         '"required":["group_id","partitions"]},'
         '"annotations":{"readOnlyHint":true,"destructiveHint":false,"idempotentHint":true}},'
         '{"name":"reset_offsets","inputSchema":{"type":"object","properties":'
-        '{"group":{"type":"string"},"topic":{"type":"string"},"partition":{"type":"integer"},'
-        '"offset":{"type":"integer"}},"required":["group","topic","partition","offset"]},'
-        '"outputSchema":{"type":"object","properties":{"group":{"type":"string"},'
-        '"topic":{"type":"string"},"reset":{"type":"boolean"}},"required":["group","topic","reset"]}}]}'
+        '{"group_id":{"type":"string"},"topic":{"type":"string"},"partition":{"type":"integer"},'
+        '"offset":{"type":"integer"}},"required":["group_id","topic","partition","offset"]},'
+        '"outputSchema":{"type":"object","properties":{"group_id":{"type":"string"},'
+        '"topic":{"type":"string"},"reset":{"type":"boolean"}},"required":["group_id","topic","reset"]}}]}'
 read closed
 
 write close

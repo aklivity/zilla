@@ -16,6 +16,7 @@ module io.aklivity.zilla.runtime.binding.mcp.kafka
 {
     requires io.aklivity.zilla.runtime.binding.kafka;
     requires io.aklivity.zilla.runtime.common.json;
+    requires io.aklivity.zilla.runtime.common.lang;
     requires io.aklivity.zilla.runtime.engine;
     requires io.aklivity.zilla.config.binding.mcp.kafka;
     requires io.aklivity.zilla.config.binding.kafka;
