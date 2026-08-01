@@ -67,27 +67,35 @@
 #      sharing create_topics' route (one `when` list, two `tool` entries)
 #      and its kafka:admin scope -- both are structural, admin-risk
 #      mutations, so one route/guard covers both instead of duplicating it
-#  25. kafka__list_topics lists the real topics on the same broker, gated
+#  25. kafka__describe_configs reads back the real broker's effective
+#      config for the orders topic, including a config every topic
+#      carries by default -- needs no scope beyond the toolkit-level
+#      kafka:tools guard already exercised by consume
+#  26. kafka__alter_configs changes the orders topic's cleanup.policy on
+#      the same real broker, sharing create_topics/delete_topics' route
+#      and kafka:admin scope -- a third structural, admin-risk mutation
+#      coalesced onto the same route/guard
+#  27. kafka__list_topics lists the real topics on the same broker, gated
 #      by only the toolkit-level kafka:tools scope (no admin/write needed,
 #      same tier as consume)
-#  26. kafka__describe_topic describes the orders topic by name, reporting
+#  28. kafka__describe_topic describes the orders topic by name, reporting
 #      its partitions/leader/replicas/isr from the same real broker
-#  27. kafka__cluster_overview summarizes the same broker's topic/broker
+#  29. kafka__cluster_overview summarizes the same broker's topic/broker
 #      counts, sharing list_topics/describe_topic's read-only route
-#  28. kafka__list_brokers lists the real, single-node KRaft broker started
+#  30. kafka__list_brokers lists the real, single-node KRaft broker started
 #      by this example -- proving KafkaApiDescribeClusterClient's shared
 #      DescribeCluster request/response path (not the older, fully-decoded
 #      mechanism used elsewhere in binding-kafka) reaches a real broker
-#  29. kafka__describe_cluster reports that same broker as its controller --
+#  31. kafka__describe_cluster reports that same broker as its controller --
 #      both tools share one route/guard (kafka:tools only, no admin scope),
 #      being read-only cluster introspection like consume
-#  30. kafka__describe_consumer_group, called against a group id that has
+#  32. kafka__describe_consumer_group, called against a group id that has
 #      never committed an offset, reports real broker state "Dead" -- Kafka's
 #      actual behavior for a group that does not yet exist, not an error --
 #      needing only the toolkit-level kafka:tools scope
-#  31. kafka__list_consumer_groups succeeds against the real broker, needing
+#  33. kafka__list_consumer_groups succeeds against the real broker, needing
 #      only the toolkit-level kafka:tools scope
-#  32. a real MCP SDK client subscribes to an everything resource, triggers
+#  34. a real MCP SDK client subscribes to an everything resource, triggers
 #      the everything server's own toggle-subscriber-updates tool, and
 #      receives a relayed notifications/resources/updated -- exercising
 #      resources/subscribe, resources/unsubscribe, and the notification
@@ -284,6 +292,8 @@ assert_full_token() {
     echo "$TOOLS_FULL" | grep -q '^kafka__consume$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__create_topics$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__delete_topics$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__describe_configs$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__alter_configs$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__list_topics$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__describe_topic$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__cluster_overview$' &&
@@ -310,6 +320,8 @@ if echo "$TOOLS_FULL" | grep -q '^everything__' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__consume$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__create_topics$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__delete_topics$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__describe_configs$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__alter_configs$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__list_topics$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__describe_topic$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__cluster_overview$' &&
@@ -726,6 +738,53 @@ if echo "$KAFKA_CONSUME_OUT" | grep -q 'hello from mcp-kafka'; then
   echo "✅ kafka__consume read the produced record back from the real Kafka broker"
 else
   echo "❌ kafka__consume did not read the produced record back"
+  EXIT=1
+fi
+
+# WHEN: that same caller calls kafka__describe_configs for the orders topic
+# THEN: the real broker's effective config comes back, including
+#       cleanup.policy -- a config every topic carries by default -- proving
+#       describe_configs is read-only and needs no scope beyond the
+#       toolkit-level kafka:tools guard already exercised by consume
+call_kafka_describe_configs() {
+  KAFKA_DESCRIBE_CONFIGS_OUT=$(docker compose run --rm --no-deps \
+      -e JWT_TOKEN="$JWT_FULL" \
+      -e MCP_URL="http://zilla:$PORT/mcp" \
+      -e CALL_TOOL="kafka__describe_configs" \
+      -e CALL_ARGS='{"resource_type":"topic","resource_name":"orders"}' \
+      tools-list-client 2>&1)
+  echo "$KAFKA_DESCRIBE_CONFIGS_OUT" | grep -q '"name":"cleanup.policy"'
+}
+retry_until 10 3 call_kafka_describe_configs
+echo "KAFKA_DESCRIBE_CONFIGS_OUT=$KAFKA_DESCRIBE_CONFIGS_OUT"
+if echo "$KAFKA_DESCRIBE_CONFIGS_OUT" | grep -q '"name":"cleanup.policy"'; then
+  echo "✅ kafka__describe_configs read the real broker's effective topic config"
+else
+  echo "❌ kafka__describe_configs did not return the expected config"
+  EXIT=1
+fi
+
+# WHEN: a kafka:admin-scoped caller calls kafka__alter_configs to change the
+#       orders topic's cleanup.policy
+# THEN: the real broker accepts the change -- proving alter_configs' shared
+#       route (coalesced with create_topics/delete_topics under kafka:admin,
+#       same reasoning as delete_topics above) is sufficient to actually
+#       invoke the tool, not just see it listed
+call_kafka_alter_configs() {
+  KAFKA_ALTER_CONFIGS_OUT=$(docker compose run --rm --no-deps \
+      -e JWT_TOKEN="$JWT_FULL" \
+      -e MCP_URL="http://zilla:$PORT/mcp" \
+      -e CALL_TOOL="kafka__alter_configs" \
+      -e CALL_ARGS='{"resource_type":"topic","resource_name":"orders","configs":{"cleanup.policy":"compact"}}' \
+      tools-list-client 2>&1)
+  echo "$KAFKA_ALTER_CONFIGS_OUT" | grep -q 'Updated configs for topic orders'
+}
+retry_until 10 3 call_kafka_alter_configs
+echo "KAFKA_ALTER_CONFIGS_OUT=$KAFKA_ALTER_CONFIGS_OUT"
+if echo "$KAFKA_ALTER_CONFIGS_OUT" | grep -q 'Updated configs for topic orders'; then
+  echo "✅ kafka__alter_configs updated the topic config on the real Kafka broker"
+else
+  echo "❌ kafka__alter_configs did not succeed against the real broker"
   EXIT=1
 fi
 

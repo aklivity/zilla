@@ -1,0 +1,55 @@
+#
+# Copyright 2021-2026 Aklivity Inc.
+#
+# Aklivity licenses this file to you under the Apache License,
+# version 2.0 (the "License"); you may not use this file except in compliance
+# with the License. You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+#
+
+property networkAcceptWindow 8192
+
+accept "zilla://streams/net0"
+  option zilla:window ${networkAcceptWindow}
+  option zilla:transmission "duplex"
+  option zilla:byteorder "network"
+
+accepted
+
+connected
+
+read  52                                # size
+      33s                               # alter configs
+      2s                                # v2
+      (int:newRequestId)
+      5s "zilla"                        # client id
+      [0x00]                            # tagged fields
+      [0x02]                            # resource count
+        [0x02]                          # type (topic)
+        [0x07] "events"                 # name
+        [0x02]                          # config count
+          [0x0f] "cleanup.policy"        # config name
+          [0x07] "delete"                # config value
+          [0x00]                         # tagged fields
+        [0x00]                           # tagged fields
+      [0x00]                             # validate only
+      [0x00]                             # tagged fields
+
+write 23                                 # size
+      ${newRequestId}
+      [0x00]                             # tagged fields
+      0                                  # throttle time ms
+      [0x02]                             # resources
+        0s                               # error code
+        [0x00]                           # error message
+        [0x02]                           # type (topic)
+        [0x07] "events"                  # name
+        [0x00]                           # tagged fields
+      [0x00]                             # tagged fields

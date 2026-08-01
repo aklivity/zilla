@@ -1007,6 +1007,150 @@ scope protocol
             }
         }
 
+        // Flexible (compact strings/arrays + tagged fields) counterpart of scope alter_configs,
+        // used only by the generic api envelope (KafkaApiRequestBeginEx/KafkaApiResponseBeginEx)
+        // path, mirroring create_topics/delete_topics' use of the first flexible version of their
+        // respective APIs rather than the older non-flexible version scope alter_configs targets.
+        scope alter_configs_v2
+        {
+            struct AlterConfigsRequest // v2
+            {
+                varuint32 taggedFields;
+                varuint32n resourceCount;
+            }
+
+            struct ResourceRequest
+            {
+                uint8 type;
+                varstring name;
+                varuint32n configCount;
+            }
+
+            struct ConfigRequest
+            {
+                varstring name;
+                varstring value = null;
+                varuint32 taggedFields;
+            }
+
+            struct ResourceRequestPart2
+            {
+                varuint32 taggedFields;
+            }
+
+            struct AlterConfigsRequestPart2
+            {
+                uint8 validate_only;
+                varuint32 taggedFields;
+            }
+
+            struct AlterConfigsResponse
+            {
+                varuint32 taggedFields;
+                int32 throttleTimeMillis;
+                varuint32n resourceCount;
+            }
+
+            struct ResourceResponse
+            {
+                int16 error;
+                varstring message = null;
+                uint8 type;
+                varstring name;
+                varuint32 taggedFields;
+            }
+
+            struct AlterConfigsResponsePart2
+            {
+                varuint32 taggedFields;
+            }
+        }
+
+        // Flexible (compact strings/arrays + tagged fields) counterpart of scope config's
+        // DescribeConfigs request/response, used only by the generic api envelope
+        // (KafkaApiRequestBeginEx/KafkaApiResponseBeginEx) path, mirroring create_topics/
+        // delete_topics' use of the first flexible version of their respective APIs rather than
+        // the older non-flexible version scope config targets. A null (rather than empty)
+        // configNamesCount requests every config for the resource; encoded as varuint32n value -1.
+        scope describe_configs_v4
+        {
+            struct DescribeConfigsRequest // v4
+            {
+                varuint32 taggedFields;
+                varuint32n resourceCount;
+            }
+
+            struct ResourceRequest
+            {
+                uint8 type;
+                varstring name;
+                varuint32n configNamesCount;
+            }
+
+            struct ResourceRequestPart2
+            {
+                varuint32 taggedFields;
+            }
+
+            struct DescribeConfigsRequestPart2
+            {
+                uint8 includeSynonyms;
+                uint8 includeDocumentation;
+                varuint32 taggedFields;
+            }
+
+            struct DescribeConfigsResponse
+            {
+                varuint32 taggedFields;
+                int32 throttleTimeMillis;
+                varuint32n resourceCount;
+            }
+
+            struct ResourceResponse
+            {
+                int16 error;
+                varstring message = null;
+                uint8 type;
+                varstring name;
+                varuint32n configCount;
+            }
+
+            struct ConfigResponse
+            {
+                varstring name;
+                varstring value = null;
+                uint8 readOnly;
+                int8 configSource;
+                uint8 isSensitive;
+                varuint32n synonymCount;
+            }
+
+            struct SynonymResponse
+            {
+                varstring name;
+                varstring value = null;
+                int8 source;
+                varuint32 taggedFields;
+            }
+
+            struct ConfigResponsePart2
+            {
+                int8 configType;
+                varstring documentation = null;
+                varuint32 taggedFields;
+            }
+
+            struct ResourceResponsePart2
+            {
+                varuint32 taggedFields;
+            }
+
+            struct DescribeConfigsResponsePart2
+            {
+                varuint32 taggedFields;
+            }
+        }
+
         scope api_versions
         {
             struct ApiVersionsResponse // v0

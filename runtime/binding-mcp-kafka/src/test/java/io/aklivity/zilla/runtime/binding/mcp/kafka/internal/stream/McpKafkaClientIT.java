@@ -116,6 +116,46 @@ public class McpKafkaClientIT
     }
 
     @Test
+    @Configuration("client.describe.configs.yaml")
+    @Specification({
+        "${mcp}/describe.configs/client",
+        "${kafka}/describe.configs/server"})
+    public void shouldDescribeConfigs() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.describe.configs.yaml")
+    @Specification({
+        "${mcp}/describe.configs/client",
+        "${kafka}/describe.configs.negotiated/server"})
+    public void shouldDescribeConfigsNegotiated() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.alter.configs.yaml")
+    @Specification({
+        "${mcp}/alter.configs/client",
+        "${kafka}/alter.configs/server"})
+    public void shouldAlterConfigs() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.alter.configs.yaml")
+    @Specification({
+        "${mcp}/alter.configs/client",
+        "${kafka}/alter.configs.negotiated/server"})
+    public void shouldAlterConfigsNegotiated() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("client.list.topics.yaml")
     @Specification({
         "${mcp}/list.topics/client",
