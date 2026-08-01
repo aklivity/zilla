@@ -1151,6 +1151,189 @@ scope protocol
             }
         }
 
+        // Flexible (compact strings/arrays + tagged fields) DescribeAcls v2, used only by the generic
+        // api envelope (KafkaApiRequestBeginEx/KafkaApiResponseBeginEx) path, mirroring
+        // alter_configs_v2/describe_configs_v4's use of each API's first flexible version. Unlike
+        // configs, DescribeAcls has a single filter (no repeated top-level request array); the
+        // response nests a variable-length Acls array per resource, mirroring describe_configs_v4's
+        // per-resource Config nesting.
+        scope describe_acls_v2
+        {
+            struct DescribeAclsRequest // v2
+            {
+                varuint32 taggedFields;
+                uint8 resourceTypeFilter;
+                varstring resourceNameFilter = null;
+                uint8 patternTypeFilter;
+                varstring principalFilter = null;
+                varstring hostFilter = null;
+                uint8 operation;
+                uint8 permissionType;
+            }
+
+            struct DescribeAclsRequestPart2
+            {
+                varuint32 taggedFields;
+            }
+
+            struct DescribeAclsResponse
+            {
+                varuint32 taggedFields;
+                int32 throttleTimeMillis;
+                int16 error;
+                varstring message = null;
+                varuint32n resourceCount;
+            }
+
+            struct ResourceResponse
+            {
+                uint8 type;
+                varstring name;
+                uint8 patternType;
+                varuint32n aclCount;
+            }
+
+            struct AclResponse
+            {
+                varstring principal;
+                varstring host;
+                uint8 operation;
+                uint8 permissionType;
+                varuint32 taggedFields;
+            }
+
+            struct ResourceResponsePart2
+            {
+                varuint32 taggedFields;
+            }
+
+            struct DescribeAclsResponsePart2
+            {
+                varuint32 taggedFields;
+            }
+        }
+
+        // Flexible (compact strings/arrays + tagged fields) CreateAcls v2, used only by the generic
+        // api envelope (KafkaApiRequestBeginEx/KafkaApiResponseBeginEx) path, mirroring
+        // alter_configs_v2's use of the first flexible AlterConfigs version. Each ACL creation is a
+        // flat entry (no nested array), so - unlike a resource's nested configs - a creation entry's
+        // own trailing tagged fields close the entry directly rather than needing a separate Part2
+        // struct.
+        scope create_acls_v2
+        {
+            struct CreateAclsRequest // v2
+            {
+                varuint32 taggedFields;
+                varuint32n creationCount;
+            }
+
+            struct AclCreationRequest
+            {
+                uint8 resourceType;
+                varstring resourceName;
+                uint8 resourcePatternType;
+                varstring principal;
+                varstring host;
+                uint8 operation;
+                uint8 permissionType;
+                varuint32 taggedFields;
+            }
+
+            struct CreateAclsRequestPart2
+            {
+                varuint32 taggedFields;
+            }
+
+            struct CreateAclsResponse
+            {
+                varuint32 taggedFields;
+                int32 throttleTimeMillis;
+                varuint32n resultCount;
+            }
+
+            struct AclCreationResultResponse
+            {
+                int16 error;
+                varstring message = null;
+                varuint32 taggedFields;
+            }
+
+            struct CreateAclsResponsePart2
+            {
+                varuint32 taggedFields;
+            }
+        }
+
+        // Flexible (compact strings/arrays + tagged fields) DeleteAcls v2, used only by the generic
+        // api envelope (KafkaApiRequestBeginEx/KafkaApiResponseBeginEx) path, mirroring
+        // describe_configs_v4's use of the first flexible DescribeConfigs version. Each filter is a
+        // flat request entry (own trailing tagged fields close it directly, like create_acls_v2's
+        // AclCreationRequest), but the response nests a variable-length MatchingAcls array per filter
+        // result, mirroring describe_configs_v4's per-resource Config nesting.
+        scope delete_acls_v2
+        {
+            struct DeleteAclsRequest // v2
+            {
+                varuint32 taggedFields;
+                varuint32n filterCount;
+            }
+
+            struct DeleteAclsFilterRequest
+            {
+                uint8 resourceTypeFilter;
+                varstring resourceNameFilter = null;
+                uint8 patternTypeFilter;
+                varstring principalFilter = null;
+                varstring hostFilter = null;
+                uint8 operation;
+                uint8 permissionType;
+                varuint32 taggedFields;
+            }
+
+            struct DeleteAclsRequestPart2
+            {
+                varuint32 taggedFields;
+            }
+
+            struct DeleteAclsResponse
+            {
+                varuint32 taggedFields;
+                int32 throttleTimeMillis;
+                varuint32n filterResultCount;
+            }
+
+            struct FilterResultResponse
+            {
+                int16 error;
+                varstring message = null;
+                varuint32n matchingAclCount;
+            }
+
+            struct MatchingAclResponse
+            {
+                int16 error;
+                varstring message = null;
+                uint8 resourceType;
+                varstring resourceName;
+                uint8 patternType;
+                varstring principal;
+                varstring host;
+                uint8 operation;
+                uint8 permissionType;
+                varuint32 taggedFields;
+            }
+
+            struct FilterResultResponsePart2
+            {
+                varuint32 taggedFields;
+            }
+
+            struct DeleteAclsResponsePart2
+            {
+                varuint32 taggedFields;
+            }
+        }
+
         scope api_versions
         {
             struct ApiVersionsResponse // v0

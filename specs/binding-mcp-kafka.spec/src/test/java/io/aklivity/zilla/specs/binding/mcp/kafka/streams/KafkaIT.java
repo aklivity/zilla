@@ -200,6 +200,60 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/list.acls/client",
+        "${kafka}/list.acls/server"})
+    public void shouldListAcls() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/list.acls.negotiated/client",
+        "${kafka}/list.acls.negotiated/server"})
+    public void shouldListAclsNegotiated() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/create.acls/client",
+        "${kafka}/create.acls/server"})
+    public void shouldCreateAcls() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/create.acls.negotiated/client",
+        "${kafka}/create.acls.negotiated/server"})
+    public void shouldCreateAclsNegotiated() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/delete.acls/client",
+        "${kafka}/delete.acls/server"})
+    public void shouldDeleteAcls() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/delete.acls.negotiated/client",
+        "${kafka}/delete.acls.negotiated/server"})
+    public void shouldDeleteAclsNegotiated() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/list.topics/client",
         "${kafka}/list.topics/server"})
     public void shouldListTopics() throws Exception

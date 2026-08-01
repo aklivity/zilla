@@ -36,7 +36,7 @@ This one configuration exercises all seven `mcp*` binding kinds:
 | `mcp_http` | `proxy` | Synthesizes MCP tools from hand-authored config, backed by a plain REST API (`github` toolkit) |
 | `mcp_openapi` | `client` | Synthesizes MCP tools from an OpenAPI document, backed by a plain REST API (`petstore` toolkit) |
 | `mcp_schema_registry` | `client` | Exposes a fixed, bundled tool set for the Karapace/Confluent Schema Registry REST API -- no operator-authored OpenAPI document, unlike `mcp_openapi` (`kafka_sr` toolkit) |
-| `mcp_kafka` | `client` | Exposes Kafka broker operations (`produce`/`consume`/`create_topics`/`delete_topics`/`describe_configs`/`alter_configs`/`list_topics`/`describe_topic`/`cluster_overview`/`list_brokers`/`describe_cluster`/`list_consumer_groups`/`describe_consumer_group`/`reset_offsets`) as intrinsic MCP tools, generating its own `kafka_cache_client → kafka_client → tcp_client` pipeline against a real broker (`kafka` toolkit) |
+| `mcp_kafka` | `client` | Exposes Kafka broker operations (`produce`/`consume`/`create_topics`/`delete_topics`/`describe_configs`/`alter_configs`/`list_acls`/`create_acls`/`delete_acls`/`list_topics`/`describe_topic`/`cluster_overview`/`list_brokers`/`describe_cluster`/`list_consumer_groups`/`describe_consumer_group`/`reset_offsets`) as intrinsic MCP tools, generating its own `kafka_cache_client → kafka_client → tcp_client` pipeline against a real broker (`kafka` toolkit) |
 
 ## Authorization model
 
@@ -58,6 +58,7 @@ the pipeline, each demonstrating a different mechanism:
 | `mcp(proxy)` route for `kafka` toolkit | `routes[].guarded` on the toolkit route | `kafka:tools` |
 | `mcp_kafka(client)` route for `produce` | a second, tool-specific `routes[].guarded` on the binding's own `when.tool` route, layered under the toolkit-level gate above | `kafka:tools` **and** `kafka:write` |
 | `mcp_kafka(client)` route for `create_topics` / `delete_topics` / `alter_configs` / `reset_offsets` | a second, tool-specific `routes[].guarded` on the binding's own `when.tool` route (all four tools coalesced into one route, since all four need the same scope), layered under the toolkit-level gate above | `kafka:tools` **and** `kafka:admin` |
+| `mcp_kafka(client)` route for `create_acls` / `delete_acls` | a second, tool-specific `routes[].guarded` on the binding's own `when.tool` route (both tools coalesced into one route), layered under the toolkit-level gate above, but with its own scope rather than reusing `kafka:admin` | `kafka:tools` **and** `kafka:acls` |
 
 `list_pets`, `list_featured_pets`, and `get_pet` declare no OpenAPI `security`
 of their own, so they need only the toolkit-level `petstore:tools` scope --
@@ -75,23 +76,37 @@ scope, while `register_schema` additionally requires `kafka_sr:write`.
 
 `mcp_kafka` demonstrates the identical layering a third way, on its own
 `when.tool` route, and splits it further into read/write/admin: `consume`,
-`describe_configs`, `list_topics`, `describe_topic`, `cluster_overview`,
-`list_brokers`, `describe_cluster`, `list_consumer_groups`, and
-`describe_consumer_group` need only the toolkit-level `kafka:tools` scope
-(all read-only), `produce` additionally requires `kafka:write` since it
-mutates topic data, and the admin-risk `create_topics`, `delete_topics`,
-`alter_configs`, and `reset_offsets` route requires `kafka:admin` instead --
-same mechanism as `register_schema`, different toolkit, with a third tier
-for structural (not just data) mutation. `create_topics`, `delete_topics`,
-`alter_configs`, and `reset_offsets` share one route rather than four
-near-identical ones: a route's `when` list already matches by OR, so a
-second, third, and fourth `- tool: ...` entry under the same
-`create_topics` route reuses the one `kafka:admin` guard for all four.
-`describe_configs`, `list_topics`, `describe_topic`, `cluster_overview`,
-`list_brokers`, `describe_cluster`, `list_consumer_groups`, and
-`describe_consumer_group` coalesce into one more shared route alongside
-`consume`'s, this time with no `guarded:` block at all since the
-toolkit-level gate is already sufficient.
+`describe_configs`, `list_acls`, `list_topics`, `describe_topic`,
+`cluster_overview`, `list_brokers`, `describe_cluster`,
+`list_consumer_groups`, and `describe_consumer_group` need only the
+toolkit-level `kafka:tools` scope (all read-only), `produce` additionally
+requires `kafka:write` since it mutates topic data, and the admin-risk
+`create_topics`, `delete_topics`, `alter_configs`, and `reset_offsets` route
+requires `kafka:admin` instead -- same mechanism as `register_schema`,
+different toolkit, with a third tier for structural (not just data)
+mutation. `create_topics`, `delete_topics`, `alter_configs`, and
+`reset_offsets` share one route rather than four near-identical ones: a
+route's `when` list already matches by OR, so a second, third, and fourth
+`- tool: ...` entry under the same `create_topics` route reuses the one
+`kafka:admin` guard for all four.
+
+`create_acls` and `delete_acls` add a **fourth** tier, `kafka:acls`, rather
+than folding into `kafka:admin`: KIP-1318 -- the same Kafka proposal these two
+tools implement -- classifies ACL mutation as "destructive-mutate" in its own
+right, distinct from a topic/config/offset change, on the reasoning that a
+wrongly-scoped `ALLOW` grant is itself a security incident, not just an
+operational one. An operator trusted with `kafka:admin` to create topics or
+change configs is not thereby also trusted to grant or revoke another
+principal's access -- so the two scopes are issued independently, and a
+caller needs `kafka:acls` specifically (on top of the toolkit-level
+`kafka:tools`) to call either tool. `list_acls` itself is read-only and needs
+no scope beyond `kafka:tools`, the same tier as `describe_configs`.
+
+`describe_configs`, `list_acls`, `list_topics`, `describe_topic`,
+`cluster_overview`, `list_brokers`, `describe_cluster`,
+`list_consumer_groups`, and `describe_consumer_group` coalesce into one more
+shared route alongside `consume`'s, this time with no `guarded:` block at all
+since the toolkit-level gate is already sufficient.
 
 The `everything` toolkit has no `guarded:` route at all, so it is reachable by
 any session that can complete `initialize` -- including one with no token.
@@ -151,7 +166,7 @@ export JWT_TOKEN=$(docker compose run --rm jwt-cli encode \
     --aud "https://api.example.com" \
     --exp=+1d \
     --no-iat \
-    --payload "scope=urlelicit:authorize github:tools github:pr:write petstore:tools pets:write kafka_sr:tools kafka_sr:write kafka:tools kafka:write kafka:admin" \
+    --payload "scope=urlelicit:authorize github:tools github:pr:write petstore:tools pets:write kafka_sr:tools kafka_sr:write kafka:tools kafka:write kafka:admin kafka:acls" \
     --secret @/private.pem | tr -d '\r\n')
 ```
 
@@ -184,7 +199,7 @@ export JWT_TOKEN=$(docker compose run --rm jwt-cli encode \
     --alg "RS256" --kid "example" \
     --iss "https://auth.example.com" --aud "https://api.example.com" \
     --exp=+1d --no-iat \
-    --payload "scope=urlelicit:authorize github:tools github:pr:write petstore:tools pets:write kafka_sr:tools kafka_sr:write kafka:tools kafka:write kafka:admin" \
+    --payload "scope=urlelicit:authorize github:tools github:pr:write petstore:tools pets:write kafka_sr:tools kafka_sr:write kafka:tools kafka:write kafka:admin kafka:acls" \
     --secret @/private.pem | tr -d '\r\n')
 docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" tools-list-client
 ```
@@ -197,7 +212,8 @@ frequently used tools -- `everything__echo`, `urlelicit__authorize`,
 `petstore__create_pet`, `kafka_sr__list_subjects`,
 `kafka_sr__register_schema`, `kafka__produce`, `kafka__consume`,
 `kafka__create_topics`, `kafka__delete_topics`, `kafka__describe_configs`,
-`kafka__alter_configs`, `kafka__list_topics`, `kafka__describe_topic`,
+`kafka__alter_configs`, `kafka__list_acls`, `kafka__create_acls`,
+`kafka__delete_acls`, `kafka__list_topics`, `kafka__describe_topic`,
 `kafka__cluster_overview`, `kafka__list_brokers`, `kafka__describe_cluster`,
 `kafka__list_consumer_groups`, `kafka__describe_consumer_group`, and
 `kafka__reset_offsets` -- eagerly listed in
@@ -234,6 +250,9 @@ kafka__create_topics
 kafka__delete_topics
 kafka__describe_configs
 kafka__alter_configs
+kafka__list_acls
+kafka__create_acls
+kafka__delete_acls
 kafka__list_topics
 kafka__describe_topic
 kafka__cluster_overview
@@ -591,7 +610,56 @@ docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
 # Updated configs for topic orders
 ```
 
-### List topics, describe a topic, and get a cluster overview
+`list_acls` is read-only, like `describe_configs`, so it needs only the
+toolkit-level `kafka:tools` scope and shares that route. Every filter field
+is optional -- an absent field matches any value, the same semantics as
+Kafka's own `AclBindingFilter`:
+
+```bash
+docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
+    -e CALL_TOOL=kafka__list_acls \
+    -e CALL_ARGS='{"resource_type":"topic","resource_name":"orders"}' \
+    tools-list-client
+```
+
+`create_acls` and `delete_acls` need the dedicated `kafka:acls` scope
+described in "Authorization model" above, on top of the toolkit-level
+`kafka:tools` -- neither reuses `kafka:admin`. `create_acls` accepts multiple
+bindings in a single call -- each item's `resource_type`, `resource_name`,
+`principal`, `operation`, and `permission_type` are required; `pattern_type`
+defaults to `literal` and `host` defaults to `*` (any host) when omitted.
+Grant `User:bob` read access to the `orders` topic:
+
+```bash
+docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
+    -e CALL_TOOL=kafka__create_acls \
+    -e CALL_ARGS='{"acls":[{"resource_type":"topic","resource_name":"orders","principal":"User:bob","operation":"read","permission_type":"allow"}]}' \
+    tools-list-client
+```
+
+Revoke it again -- `delete_acls` takes an array of *filter* objects (every
+field optional, matching-and-deleting every ACL binding that satisfies all
+the fields given) rather than the exact bindings `create_acls` took:
+
+```bash
+docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
+    -e CALL_TOOL=kafka__delete_acls \
+    -e CALL_ARGS='{"acls":[{"resource_type":"topic","resource_name":"orders","principal":"User:bob"}]}' \
+    tools-list-client
+```
+
+**Prerequisite:** unlike every other tool in this example, the three ACL
+tools require the broker itself to have an authorizer configured
+(`authorizer.class.name`, e.g. Kafka's built-in `StandardAuthorizer`) --
+Kafka rejects `DescribeAcls`/`CreateAcls`/`DeleteAcls` outright with
+`SecurityDisabledException` ("No Authorizer is configured on the broker")
+when none is set, which is this example's `kafka` service as shipped (it
+runs with no authorizer, so every other tool call is implicitly permitted
+regardless of Kafka-side ACLs). Enabling one is an operational decision with
+consequences -- once *any* ACL exists for a resource,
+`allow.everyone.if.no.acl.found` no longer applies to that resource for
+principals with no matching ALLOW ACL of their own -- so it is left to the
+operator to enable deliberately rather than defaulted on here.
 
 `list_topics`, `describe_topic`, and `cluster_overview` are read-only
 cluster/topic metadata tools built the same way `create_topics`/
