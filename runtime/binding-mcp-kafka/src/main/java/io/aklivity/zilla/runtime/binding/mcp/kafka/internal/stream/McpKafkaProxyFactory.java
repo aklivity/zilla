@@ -1408,8 +1408,11 @@ public class McpKafkaProxyFactory implements BindingHandler
                 .add("properties", Json.createObjectBuilder()
                     .add("group_id", Json.createObjectBuilder().add("type", "string"))
                     .add("topic", Json.createObjectBuilder().add("type", "string"))
+                    .add("partition", Json.createObjectBuilder().add("type", "integer"))
+                    .add("offset", Json.createObjectBuilder().add("type", "integer"))
                     .add("reset", Json.createObjectBuilder().add("type", "boolean")))
-                .add("required", Json.createArrayBuilder().add("group_id").add("topic").add("reset"))
+                .add("required", Json.createArrayBuilder()
+                    .add("group_id").add("topic").add("partition").add("offset").add("reset"))
                 .build();
             break;
         default:
@@ -8714,6 +8717,8 @@ public class McpKafkaProxyFactory implements BindingHandler
                     .writeStartObject("structuredContent")
                     .write("group_id", groupId)
                     .write("topic", topic)
+                    .write("partition", partition)
+                    .write("offset", offset)
                     .write("reset", success)
                     .writeEnd()
                     .writeStartArray("content")

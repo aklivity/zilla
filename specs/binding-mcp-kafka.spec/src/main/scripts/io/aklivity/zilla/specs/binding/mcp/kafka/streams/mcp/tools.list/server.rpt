@@ -198,7 +198,8 @@ write  '{"tools":[{"name":"produce","inputSchema":{"type":"object","properties":
         '{"group_id":{"type":"string"},"topic":{"type":"string"},"partition":{"type":"integer"},'
         '"offset":{"type":"integer"}},"required":["group_id","topic","partition","offset"]},'
         '"outputSchema":{"type":"object","properties":{"group_id":{"type":"string"},'
-        '"topic":{"type":"string"},"reset":{"type":"boolean"}},"required":["group_id","topic","reset"]}}]}'
+        '"topic":{"type":"string"},"partition":{"type":"integer"},"offset":{"type":"integer"},'
+        '"reset":{"type":"boolean"}},"required":["group_id","topic","partition","offset","reset"]}}]}'
 write flush
 
 write close
