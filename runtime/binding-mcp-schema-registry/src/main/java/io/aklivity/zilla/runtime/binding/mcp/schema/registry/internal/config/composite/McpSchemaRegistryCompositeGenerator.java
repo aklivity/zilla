@@ -19,7 +19,6 @@ import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.regex.Pattern;
 
 import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiBindingConfig;
 import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiBindingConfigBuilder;
@@ -34,6 +33,7 @@ import io.aklivity.zilla.runtime.binding.mcp.schema.registry.internal.config.Mcp
 import io.aklivity.zilla.runtime.binding.mcp.schema.registry.internal.config.McpSchemaRegistryCompositeConfig;
 import io.aklivity.zilla.runtime.binding.mcp.schema.registry.internal.config.McpSchemaRegistryCompositeRouteConfig;
 import io.aklivity.zilla.runtime.binding.mcp.schema.registry.internal.config.McpSchemaRegistryRouteConfig;
+import io.aklivity.zilla.runtime.common.lang.Matchers;
 
 public final class McpSchemaRegistryCompositeGenerator
 {
@@ -129,10 +129,10 @@ public final class McpSchemaRegistryCompositeGenerator
     }
 
     private static boolean matchesTool(
-        String pattern,
+        List<String> patterns,
         String tool)
     {
-        return compileGlob(pattern).matcher(tool).matches();
+        return Matchers.admits(Matchers.globAll(patterns), tool);
     }
 
     private <C> McpOpenapiRouteConfigBuilder<C> injectGuarded(
@@ -158,28 +158,6 @@ public final class McpSchemaRegistryCompositeGenerator
     {
         roles.forEach(guarded::role);
         return guarded;
-    }
-
-    private static Pattern compileGlob(
-        String glob)
-    {
-        StringBuilder regex = new StringBuilder();
-        String[] literals = glob.split("\\*", -1);
-
-        for (int index = 0; index < literals.length; index++)
-        {
-            if (index > 0)
-            {
-                regex.append(".*");
-            }
-
-            if (!literals[index].isEmpty())
-            {
-                regex.append(Pattern.quote(literals[index]));
-            }
-        }
-
-        return Pattern.compile(regex.toString());
     }
 
     private static String loadBundledSpec()

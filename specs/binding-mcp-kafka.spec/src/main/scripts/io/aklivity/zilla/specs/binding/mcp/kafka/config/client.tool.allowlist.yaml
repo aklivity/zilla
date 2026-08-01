@@ -16,12 +16,12 @@
 ---
 name: test
 bindings:
-  app0:
-    type: mcp_openapi
+  mcp0:
+    type: mcp_kafka
     kind: client
+    options:
+      servers:
+        - localhost:9092
     routes:
       - when:
-          - capability: [ bogus ]
-        with:
-          spec: github
-          tag: pulls
+          - tool: [produce, consume]

@@ -16,7 +16,6 @@ package io.aklivity.zilla.runtime.binding.mcp.openapi.internal.config.composite;
 
 import static io.aklivity.zilla.config.engine.KindConfig.CLIENT;
 import static io.aklivity.zilla.config.engine.KindConfig.PROXY;
-import static java.util.List.of;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
@@ -2709,7 +2708,7 @@ public class McpOpenapiCompositeGeneratorTest
     }
 
     @Test
-    public void shouldExcludeBulkOperationsFilteredOutByCapability()
+    public void shouldGenerateToolsForBulkTagRouteWithNoCondition()
     {
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
@@ -2729,52 +2728,6 @@ public class McpOpenapiCompositeGeneratorTest
                     .build()
                 .build())
             .route()
-                .when(McpOpenapiConditionConfig.builder()
-                    .capability(of("resource"))
-                    .build())
-                .with(McpOpenapiWithConfig.builder()
-                    .spec("openapi_github0")
-                    .tag("reads")
-                    .build())
-                .build()
-            .build();
-        binding.resolveId = resolveId;
-
-        McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
-
-        BindingConfig mcpHttp = composite.namespaces.get(0).bindings.stream()
-            .filter(b -> "mcp_http0".equals(b.name))
-            .findFirst()
-            .orElse(null);
-        McpHttpOptionsConfig mcpHttpOptions = (McpHttpOptionsConfig) mcpHttp.options;
-        assertThat(mcpHttpOptions.tools, nullValue());
-        assertThat(mcpHttpOptions.resources, nullValue());
-    }
-
-    @Test
-    public void shouldIncludeBulkOperationsAdmittedByCapability()
-    {
-        BindingConfig binding = GenericBindingConfig.builder()
-            .namespace("test")
-            .name("mcp_openapi0")
-            .type("mcp_openapi")
-            .kind(CLIENT)
-            .options(McpOpenapiOptionsConfig.builder()
-                .spec()
-                    .label("openapi_github0")
-                    .server("https://api.github.com")
-                    .catalog()
-                        .name("catalog0")
-                        .subject("rest-api")
-                        .version("latest")
-                        .build()
-                    .security(Map.of("bearerAuth", "guard0", "oauthScheme", "guard0"))
-                    .build()
-                .build())
-            .route()
-                .when(McpOpenapiConditionConfig.builder()
-                    .capability(of("tool"))
-                    .build())
                 .with(McpOpenapiWithConfig.builder()
                     .spec("openapi_github0")
                     .tag("reads")

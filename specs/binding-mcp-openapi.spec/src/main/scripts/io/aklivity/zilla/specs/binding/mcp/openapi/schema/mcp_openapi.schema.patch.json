@@ -305,17 +305,6 @@
                                             {
                                                 "title": "Resource",
                                                 "type": "string"
-                                            },
-                                            "capability":
-                                            {
-                                                "title": "Capability",
-                                                "type": "array",
-                                                "items":
-                                                {
-                                                    "enum": [ "tool", "resource" ]
-                                                },
-                                                "minItems": 1,
-                                                "uniqueItems": true
                                             }
                                         },
                                         "additionalProperties": false

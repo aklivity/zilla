@@ -28,7 +28,7 @@ public class McpKafkaConditionMatcherTest
     public void shouldMatchAnyTopicWhenTopicsNotGiven()
     {
         McpKafkaConditionConfig condition = McpKafkaConditionConfig.builder()
-            .tool("produce")
+            .tool(asList("produce"))
             .build();
         McpKafkaConditionMatcher matcher = new McpKafkaConditionMatcher(condition);
 
@@ -40,7 +40,7 @@ public class McpKafkaConditionMatcherTest
     public void shouldMatchTopicWithinAllowList()
     {
         McpKafkaConditionConfig condition = McpKafkaConditionConfig.builder()
-            .tool("produce")
+            .tool(asList("produce"))
             .topics(asList("orders", "shipments"))
             .build();
         McpKafkaConditionMatcher matcher = new McpKafkaConditionMatcher(condition);
@@ -53,7 +53,7 @@ public class McpKafkaConditionMatcherTest
     public void shouldNotMatchTopicOutsideAllowList()
     {
         McpKafkaConditionConfig condition = McpKafkaConditionConfig.builder()
-            .tool("produce")
+            .tool(asList("produce"))
             .topics(asList("orders", "shipments"))
             .build();
         McpKafkaConditionMatcher matcher = new McpKafkaConditionMatcher(condition);
@@ -65,7 +65,7 @@ public class McpKafkaConditionMatcherTest
     public void shouldMatchTopicByGlobPrefix()
     {
         McpKafkaConditionConfig condition = McpKafkaConditionConfig.builder()
-            .tool("produce")
+            .tool(asList("produce"))
             .topics(asList("orders*"))
             .build();
         McpKafkaConditionMatcher matcher = new McpKafkaConditionMatcher(condition);
@@ -80,7 +80,7 @@ public class McpKafkaConditionMatcherTest
     public void shouldMatchAnyTopicByBareWildcard()
     {
         McpKafkaConditionConfig condition = McpKafkaConditionConfig.builder()
-            .tool("produce")
+            .tool(asList("produce"))
             .topics(asList("*"))
             .build();
         McpKafkaConditionMatcher matcher = new McpKafkaConditionMatcher(condition);
@@ -93,7 +93,7 @@ public class McpKafkaConditionMatcherTest
     public void shouldEscapeRegexMetacharactersInLiteralSegments()
     {
         McpKafkaConditionConfig condition = McpKafkaConditionConfig.builder()
-            .tool("produce")
+            .tool(asList("produce"))
             .topics(asList("orders.eu"))
             .build();
         McpKafkaConditionMatcher matcher = new McpKafkaConditionMatcher(condition);
@@ -106,7 +106,7 @@ public class McpKafkaConditionMatcherTest
     public void shouldNotMatchAnyTopicWhenAllowListEmpty()
     {
         McpKafkaConditionConfig condition = McpKafkaConditionConfig.builder()
-            .tool("produce")
+            .tool(asList("produce"))
             .topics(asList())
             .build();
         McpKafkaConditionMatcher matcher = new McpKafkaConditionMatcher(condition);
@@ -118,7 +118,7 @@ public class McpKafkaConditionMatcherTest
     public void shouldMatchToolExactly()
     {
         McpKafkaConditionConfig condition = McpKafkaConditionConfig.builder()
-            .tool("produce")
+            .tool(asList("produce"))
             .build();
         McpKafkaConditionMatcher matcher = new McpKafkaConditionMatcher(condition);
 
@@ -135,5 +135,54 @@ public class McpKafkaConditionMatcherTest
 
         assertTrue(matcher.matchesTool("produce"));
         assertTrue(matcher.matchesTool("consume"));
+    }
+
+    @Test
+    public void shouldMatchToolWithinAllowList()
+    {
+        McpKafkaConditionConfig condition = McpKafkaConditionConfig.builder()
+            .tool(asList("produce", "consume"))
+            .build();
+        McpKafkaConditionMatcher matcher = new McpKafkaConditionMatcher(condition);
+
+        assertTrue(matcher.matchesTool("produce"));
+        assertTrue(matcher.matchesTool("consume"));
+        assertFalse(matcher.matchesTool("list_topics"));
+    }
+
+    @Test
+    public void shouldMatchToolByGlobPrefix()
+    {
+        McpKafkaConditionConfig condition = McpKafkaConditionConfig.builder()
+            .tool(asList("list_*"))
+            .build();
+        McpKafkaConditionMatcher matcher = new McpKafkaConditionMatcher(condition);
+
+        assertTrue(matcher.matchesTool("list_topics"));
+        assertTrue(matcher.matchesTool("list_brokers"));
+        assertFalse(matcher.matchesTool("produce"));
+    }
+
+    @Test
+    public void shouldMatchAnyToolByBareWildcard()
+    {
+        McpKafkaConditionConfig condition = McpKafkaConditionConfig.builder()
+            .tool(asList("*"))
+            .build();
+        McpKafkaConditionMatcher matcher = new McpKafkaConditionMatcher(condition);
+
+        assertTrue(matcher.matchesTool("produce"));
+        assertTrue(matcher.matchesTool("consume"));
+    }
+
+    @Test
+    public void shouldNotMatchAnyToolWhenAllowListEmpty()
+    {
+        McpKafkaConditionConfig condition = McpKafkaConditionConfig.builder()
+            .tool(asList())
+            .build();
+        McpKafkaConditionMatcher matcher = new McpKafkaConditionMatcher(condition);
+
+        assertFalse(matcher.matchesTool("produce"));
     }
 }

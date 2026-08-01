@@ -57,7 +57,11 @@
                                             "tool":
                                             {
                                                 "title": "Tool name or glob pattern",
-                                                "type": "string"
+                                                "oneOf":
+                                                [
+                                                    { "type": "string" },
+                                                    { "type": "array", "items": { "type": "string" }, "minItems": 1 }
+                                                ]
                                             }
                                         },
                                         "required": [ "tool" ],

@@ -63,7 +63,11 @@
                                             "tool":
                                             {
                                                 "title": "Tool Name",
-                                                "type": "string"
+                                                "oneOf":
+                                                [
+                                                    { "type": "string" },
+                                                    { "type": "array", "items": { "type": "string" } }
+                                                ]
                                             },
                                             "resource":
                                             {
@@ -202,7 +206,11 @@
                                             "tool":
                                             {
                                                 "title": "Tool Name",
-                                                "type": "string"
+                                                "oneOf":
+                                                [
+                                                    { "type": "string" },
+                                                    { "type": "array", "items": { "type": "string" } }
+                                                ]
                                             },
                                             "resource":
                                             {

@@ -98,8 +98,6 @@ public final class McpOpenapiCompositeGenerator
 {
     private static final String CATALOG_NAME = "catalog0";
     private static final String BINDING_NAME = "mcp_http0";
-    private static final String CAPABILITY_TOOL = "tool";
-    private static final String CAPABILITY_RESOURCE = "resource";
     private static final String ANNOTATIONS_EXTENSION_NAME = "x-mcp-annotations";
     private static final String METHOD_GET = "get";
     private static final String METHOD_HEAD = "head";
@@ -169,7 +167,6 @@ public final class McpOpenapiCompositeGenerator
 
             String tool = null;
             String resource = null;
-            List<String> capability = null;
             for (McpOpenapiConditionConfig when : route.when)
             {
                 if (when.tool != null)
@@ -180,16 +177,6 @@ public final class McpOpenapiCompositeGenerator
                 {
                     resource = when.resource;
                 }
-                if (when.capability != null)
-                {
-                    capability = when.capability;
-                }
-            }
-
-            final boolean wantsResource = resource != null;
-            if (capability != null && !capability.contains(wantsResource ? CAPABILITY_RESOURCE : CAPABILITY_TOOL))
-            {
-                continue;
             }
 
             if (tool != null)

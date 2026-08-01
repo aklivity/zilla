@@ -371,7 +371,7 @@ bindings:
       - exit: south_mcp_client_urlelicit
         when:
           - toolkit: urlelicit
-            tools: ["*"]
+            tool: ["*"]
         guarded:
           authn_jwt:
             - urlelicit:authorize
