@@ -93,17 +93,22 @@
 #      never committed an offset, reports real broker state "Dead" -- Kafka's
 #      actual behavior for a group that does not yet exist, not an error --
 #      needing only the toolkit-level kafka:tools scope
-#  33. kafka__list_consumer_groups succeeds against the real broker, needing
+#  33. kafka__describe_consumer_group_lag, called against that same
+#      never-used group, sequences a real OffsetFetch then ListOffsets and
+#      reports total lag 0 with an empty partitions array -- a group with no
+#      committed offsets has no lag to report, not an error -- sharing
+#      describe_consumer_group's read-only route/scope
+#  34. kafka__list_consumer_groups succeeds against the real broker, needing
 #      only the toolkit-level kafka:tools scope
-#  34. kafka__create_acls grants a real ACL on a dedicated test resource,
+#  35. kafka__create_acls grants a real ACL on a dedicated test resource,
 #      gated by its own kafka:acls scope -- deliberately distinct from
 #      kafka:admin per KIP-1318's "destructive-mutate" classification of ACL
 #      mutation (see the routes[] comment in etc/zilla.yaml)
-#  35. kafka__list_acls reads that same ACL back from the real broker,
+#  36. kafka__list_acls reads that same ACL back from the real broker,
 #      needing only the toolkit-level kafka:tools scope like describe_configs
-#  36. kafka__delete_acls revokes the ACL granted above, sharing
+#  37. kafka__delete_acls revokes the ACL granted above, sharing
 #      create_acls' route and kafka:acls scope
-#  37. a real MCP SDK client subscribes to an everything resource, triggers
+#  38. a real MCP SDK client subscribes to an everything resource, triggers
 #      the everything server's own toggle-subscriber-updates tool, and
 #      receives a relayed notifications/resources/updated -- exercising
 #      resources/subscribe, resources/unsubscribe, and the notification
@@ -312,6 +317,7 @@ assert_full_token() {
     echo "$TOOLS_FULL" | grep -q '^kafka__describe_cluster$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__list_consumer_groups$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__describe_consumer_group$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__describe_consumer_group_lag$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__reset_offsets$'
 }
 retry_until 10 5 assert_full_token
@@ -343,6 +349,7 @@ if echo "$TOOLS_FULL" | grep -q '^everything__' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__describe_cluster$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__list_consumer_groups$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__describe_consumer_group$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__describe_consumer_group_lag$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__reset_offsets$'; then
   echo "✅ full scope: every toolkit's tools and resources are listed"
 else
@@ -983,6 +990,31 @@ if echo "$DESCRIBE_GROUP_BEFORE_OUT" | grep -q "Consumer group $CONSUMER_GROUP i
   echo "✅ kafka__describe_consumer_group reported state Dead for a never-used group"
 else
   echo "❌ kafka__describe_consumer_group did not report state Dead as expected"
+  EXIT=1
+fi
+
+# WHEN: a kafka:tools-scoped caller calls kafka__describe_consumer_group_lag
+#       for that same never-used group id
+# THEN: the real broker's OffsetFetch reports no topics for the group, so the
+#       result carries an empty partitions array and total lag 0, not an
+#       error -- proving describe_consumer_group_lag needs only the
+#       toolkit-level kafka:tools scope, the same route/guard as
+#       describe_consumer_group
+call_describe_group_lag() {
+  DESCRIBE_GROUP_LAG_OUT=$(docker compose run --rm --no-deps \
+      -e JWT_TOKEN="$JWT_FULL" \
+      -e MCP_URL="http://zilla:$PORT/mcp" \
+      -e CALL_TOOL="kafka__describe_consumer_group_lag" \
+      -e CALL_ARGS="{\"group_id\":\"$CONSUMER_GROUP\"}" \
+      tools-list-client 2>&1)
+  echo "$DESCRIBE_GROUP_LAG_OUT" | grep -q "Consumer group $CONSUMER_GROUP has total lag 0"
+}
+retry_until 10 3 call_describe_group_lag
+echo "DESCRIBE_GROUP_LAG_OUT=$DESCRIBE_GROUP_LAG_OUT"
+if echo "$DESCRIBE_GROUP_LAG_OUT" | grep -q "Consumer group $CONSUMER_GROUP has total lag 0"; then
+  echo "✅ kafka__describe_consumer_group_lag reported total lag 0 for a never-used group"
+else
+  echo "❌ kafka__describe_consumer_group_lag did not report total lag 0 as expected"
   EXIT=1
 fi
 
