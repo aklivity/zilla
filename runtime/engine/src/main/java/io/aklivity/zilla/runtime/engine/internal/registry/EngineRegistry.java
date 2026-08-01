@@ -97,13 +97,17 @@ public class EngineRegistry
     public void attachNow(
         NamespaceConfig namespace)
     {
-        attach(namespace).run();
+        NamespaceTask task = attach(namespace);
+        task.run();
+        task.future().join();
     }
 
     public void detachNow(
         NamespaceConfig namespace)
     {
-        detach(namespace).run();
+        NamespaceTask task = detach(namespace);
+        task.run();
+        task.future().join();
     }
 
     public NamespaceTask attach(
