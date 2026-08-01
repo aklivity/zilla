@@ -133,6 +133,17 @@ public class McpProxyCacheIT
     }
 
     @Test
+    @Configuration("proxy.cache.toolkit.multi.yaml")
+    @Specification({
+        "${app}/cache.hydrate.toolkit.multi.title.collision/server",
+        "${app}/cache.hydrate.toolkit.multi.title.collision/client" })
+    @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
+    public void shouldHydrateToolkitMultiDisambiguatingCollidingTitles() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.cache.seeded.toolkit.multi.yaml")
     @Specification({
         "${app}/lifecycle.elicit.cached/client",

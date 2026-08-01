@@ -32,8 +32,8 @@ public class McpConditionMatcherTest
     {
         McpConditionConfig condition = McpConditionConfig.builder()
             .toolkit("github")
-            .tools(asList("create_*", "get_*"))
-            .resources(asList("repo://*"))
+            .tool(asList("create_*", "get_*"))
+            .resource(asList("repo://*"))
             .build();
         McpConditionMatcher matcher = new McpConditionMatcher(condition);
 
@@ -47,8 +47,8 @@ public class McpConditionMatcherTest
     {
         McpConditionConfig condition = McpConditionConfig.builder()
             .toolkit("github")
-            .tools(asList("create_*", "get_*"))
-            .resources(asList("repo://*"))
+            .tool(asList("create_*", "get_*"))
+            .resource(asList("repo://*"))
             .build();
         McpConditionMatcher matcher = new McpConditionMatcher(condition);
 
@@ -61,7 +61,7 @@ public class McpConditionMatcherTest
     {
         McpConditionConfig condition = McpConditionConfig.builder()
             .toolkit("github")
-            .tools(asList("*"))
+            .tool(asList("*"))
             .build();
         McpConditionMatcher matcher = new McpConditionMatcher(condition);
 
@@ -74,7 +74,7 @@ public class McpConditionMatcherTest
     {
         McpConditionConfig condition = McpConditionConfig.builder()
             .toolkit("slack")
-            .tools(emptyList())
+            .tool(emptyList())
             .build();
         McpConditionMatcher matcher = new McpConditionMatcher(condition);
 
@@ -86,7 +86,7 @@ public class McpConditionMatcherTest
     {
         McpConditionConfig condition = McpConditionConfig.builder()
             .toolkit("slack")
-            .tools(emptyList())
+            .tool(emptyList())
             .build();
         McpConditionMatcher matcher = new McpConditionMatcher(condition);
 
@@ -114,8 +114,8 @@ public class McpConditionMatcherTest
     {
         McpConditionConfig condition = McpConditionConfig.builder()
             .toolkit("github")
-            .tools(asList("get_*"))
-            .resources(asList("*"))
+            .tool(asList("get_*"))
+            .resource(asList("*"))
             .build();
         McpConditionMatcher matcher = new McpConditionMatcher(condition);
 
@@ -130,7 +130,7 @@ public class McpConditionMatcherTest
     {
         McpConditionConfig condition = McpConditionConfig.builder()
             .toolkit("github")
-            .tools(asList("get_*"))
+            .tool(asList("get_*"))
             .build();
         McpConditionMatcher matcher = new McpConditionMatcher(condition);
 
@@ -144,7 +144,7 @@ public class McpConditionMatcherTest
     {
         McpConditionConfig condition = McpConditionConfig.builder()
             .toolkit("github")
-            .tools(asList("*"))
+            .tool(asList("*"))
             .build();
         McpConditionMatcher matcher = new McpConditionMatcher(condition);
 
@@ -156,7 +156,7 @@ public class McpConditionMatcherTest
     {
         McpConditionConfig condition = McpConditionConfig.builder()
             .toolkit("github")
-            .resources(asList("*"))
+            .resource(asList("*"))
             .build();
         McpConditionMatcher matcher = new McpConditionMatcher(condition);
 

@@ -14,27 +14,21 @@
  */
 package io.aklivity.zilla.config.binding.mcp.internal;
 
-import static java.util.stream.Collectors.toList;
-
-import java.util.List;
-
 import jakarta.json.Json;
-import jakarta.json.JsonArray;
-import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.JsonString;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.binding.mcp.McpConditionConfig;
 import io.aklivity.zilla.config.engine.ConditionConfig;
+import io.aklivity.zilla.runtime.common.json.JsonStrings;
 
 public final class McpConditionConfigAdapter implements JsonbAdapter<ConditionConfig, JsonObject>
 {
     private static final String TOOLKIT_NAME = "toolkit";
-    private static final String TOOLS_NAME = "tools";
-    private static final String PROMPTS_NAME = "prompts";
-    private static final String RESOURCES_NAME = "resources";
+    private static final String TOOL_NAME = "tool";
+    private static final String PROMPT_NAME = "prompt";
+    private static final String RESOURCE_NAME = "resource";
 
     @Override
     public JsonObject adaptToJson(
@@ -49,26 +43,9 @@ public final class McpConditionConfigAdapter implements JsonbAdapter<ConditionCo
             object.add(TOOLKIT_NAME, mcpCondition.toolkit);
         }
 
-        if (mcpCondition.tools != null)
-        {
-            JsonArrayBuilder array = Json.createArrayBuilder();
-            mcpCondition.tools.forEach(array::add);
-            object.add(TOOLS_NAME, array);
-        }
-
-        if (mcpCondition.prompts != null)
-        {
-            JsonArrayBuilder array = Json.createArrayBuilder();
-            mcpCondition.prompts.forEach(array::add);
-            object.add(PROMPTS_NAME, array);
-        }
-
-        if (mcpCondition.resources != null)
-        {
-            JsonArrayBuilder array = Json.createArrayBuilder();
-            mcpCondition.resources.forEach(array::add);
-            object.add(RESOURCES_NAME, array);
-        }
+        JsonStrings.addStringOrArray(object, TOOL_NAME, mcpCondition.tool);
+        JsonStrings.addStringOrArray(object, PROMPT_NAME, mcpCondition.prompt);
+        JsonStrings.addStringOrArray(object, RESOURCE_NAME, mcpCondition.resource);
 
         return object.build();
     }
@@ -83,25 +60,9 @@ public final class McpConditionConfigAdapter implements JsonbAdapter<ConditionCo
 
         return McpConditionConfig.builder()
             .toolkit(toolkit)
-            .tools(asStringList(object, TOOLS_NAME))
-            .prompts(asStringList(object, PROMPTS_NAME))
-            .resources(asStringList(object, RESOURCES_NAME))
+            .tool(JsonStrings.asStringOrArray(object, TOOL_NAME))
+            .prompt(JsonStrings.asStringOrArray(object, PROMPT_NAME))
+            .resource(JsonStrings.asStringOrArray(object, RESOURCE_NAME))
             .build();
-    }
-
-    private static List<String> asStringList(
-        JsonObject object,
-        String name)
-    {
-        List<String> result = null;
-        if (object.containsKey(name))
-        {
-            JsonArray array = object.getJsonArray(name);
-            result = array.stream()
-                .map(JsonString.class::cast)
-                .map(JsonString::getString)
-                .collect(toList());
-        }
-        return result;
     }
 }

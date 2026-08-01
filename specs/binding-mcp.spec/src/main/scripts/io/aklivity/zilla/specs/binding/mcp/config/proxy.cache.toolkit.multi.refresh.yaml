@@ -30,8 +30,8 @@ bindings:
       - exit: app1
         when:
           - toolkit: bluesky
-            tools: ["*"]
+            tool: ["*"]
       - exit: app2
         when:
           - toolkit: quartz
-            tools: ["*"]
+            tool: ["*"]

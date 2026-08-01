@@ -20,7 +20,7 @@ import io.aklivity.zilla.runtime.engine.binding.Binding;
 
 public final class McpOpenapiBinding implements Binding
 {
-    public static final String TYPE = "mcp_openapi";
+    public static final String TYPE = "mcp-openapi";
 
     private final McpOpenapiConfiguration config;
 

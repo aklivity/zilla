@@ -2,7 +2,7 @@
     {
         "op": "add",
         "path": "/$defs/binding/properties/type/enum/-",
-        "value": "mcp_openapi"
+        "value": "mcp-openapi"
     },
     {
         "op": "add",
@@ -15,7 +15,7 @@
                 {
                     "type":
                     {
-                        "const": "mcp_openapi"
+                        "const": "mcp-openapi"
                     }
                 }
             },
@@ -25,7 +25,7 @@
                 {
                     "type":
                     {
-                        "const": "mcp_openapi"
+                        "const": "mcp-openapi"
                     },
                     "kind":
                     {
@@ -305,17 +305,6 @@
                                             {
                                                 "title": "Resource",
                                                 "type": "string"
-                                            },
-                                            "capability":
-                                            {
-                                                "title": "Capability",
-                                                "type": "array",
-                                                "items":
-                                                {
-                                                    "enum": [ "tool", "resource" ]
-                                                },
-                                                "minItems": 1,
-                                                "uniqueItems": true
                                             }
                                         },
                                         "additionalProperties": false

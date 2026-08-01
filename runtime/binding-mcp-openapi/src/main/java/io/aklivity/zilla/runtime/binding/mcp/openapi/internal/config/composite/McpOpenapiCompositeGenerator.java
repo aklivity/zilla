@@ -97,9 +97,7 @@ import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 public final class McpOpenapiCompositeGenerator
 {
     private static final String CATALOG_NAME = "catalog0";
-    private static final String BINDING_NAME = "mcp_http0";
-    private static final String CAPABILITY_TOOL = "tool";
-    private static final String CAPABILITY_RESOURCE = "resource";
+    private static final String BINDING_NAME = "mcp-http0";
     private static final String ANNOTATIONS_EXTENSION_NAME = "x-mcp-annotations";
     private static final String METHOD_GET = "get";
     private static final String METHOD_HEAD = "head";
@@ -169,7 +167,6 @@ public final class McpOpenapiCompositeGenerator
 
             String tool = null;
             String resource = null;
-            List<String> capability = null;
             for (McpOpenapiConditionConfig when : route.when)
             {
                 if (when.tool != null)
@@ -180,16 +177,6 @@ public final class McpOpenapiCompositeGenerator
                 {
                     resource = when.resource;
                 }
-                if (when.capability != null)
-                {
-                    capability = when.capability;
-                }
-            }
-
-            final boolean wantsResource = resource != null;
-            if (capability != null && !capability.contains(wantsResource ? CAPABILITY_RESOURCE : CAPABILITY_TOOL))
-            {
-                continue;
             }
 
             if (tool != null)
@@ -222,7 +209,7 @@ public final class McpOpenapiCompositeGenerator
         }
 
         final NamespaceConfig namespace = NamespaceConfig.builder()
-            .name("%s/mcp_http".formatted(binding.qname))
+            .name("%s/mcp-http".formatted(binding.qname))
             .inject(n -> injectCatalog(n, routed))
             .inject(n -> injectBinding(n, binding, routed))
             .build();
@@ -441,9 +428,9 @@ public final class McpOpenapiCompositeGenerator
                     : entry.operation.description != null
                         ? entry.operation.description
                         : entry.operation.id;
-                // mcp_http requires a non-null tool summary; prefer an authored override, then OpenAPI's
+                // mcp-http requires a non-null tool summary; prefer an authored override, then OpenAPI's
                 // own optional summary field, then a plain literal string naming the operation (not a
-                // ${...} template -- mcp_http only understands ${result.*} references, not operationId)
+                // ${...} template -- mcp-http only understands ${result.*} references, not operationId)
                 final String summary = entry.tool.summary != null
                     ? entry.tool.summary
                     : entry.operation.summary != null
@@ -1008,7 +995,7 @@ public final class McpOpenapiCompositeGenerator
     {
         // an authored schemas.input/output's catalog reference names a catalog in the caller's own
         // namespace (e.g. "catalog0"), but this ModelConfig is forwarded as-is into the generated
-        // mcp_http binding, which lives in its own freshly-generated namespace that has its own,
+        // mcp-http binding, which lives in its own freshly-generated namespace that has its own,
         // unrelated, same-named "catalog0" -- rewrite the reference to be namespace-qualified
         // (qname) so it resolves absolutely, against the caller's namespace, from anywhere
         ModelConfig qualified = model;
