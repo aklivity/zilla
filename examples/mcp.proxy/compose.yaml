@@ -118,6 +118,16 @@ services:
       test: ["CMD", "nc", "-z", "127.0.0.1", "4002"]
 
   # Real single-node Kafka broker (KRaft mode) backing the mcp-kafka "kafka" toolkit.
+  #
+  # authorizer.class.name enables the real DescribeAcls/CreateAcls/DeleteAcls
+  # APIs the kafka__list_acls/create_acls/delete_acls tools call -- without an
+  # authorizer configured, the broker rejects those RPCs outright regardless
+  # of caller scope. allow.everyone.if.no.acl.found keeps every existing
+  # produce/consume/admin check in this example working exactly as before:
+  # it only stops applying to a resource once an ACL is actually created for
+  # it (see kafka__create_acls in .github/test.sh, which deliberately targets
+  # a dedicated acl-test-topic rather than the orders topic those other
+  # checks depend on).
   kafka:
     image: apache/kafka:4.1.1
     restart: unless-stopped
@@ -145,6 +155,8 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_AUTHORIZER_CLASS_NAME: "org.apache.kafka.metadata.authorizer.StandardAuthorizer"
+      KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: "true"
 
   # One-shot topic setup; auto-create also covers this, but an explicit topic
   # documents intent the same way every other *.kafka.* example in this repo does.

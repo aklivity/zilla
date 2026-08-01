@@ -1,0 +1,75 @@
+#
+# Copyright 2021-2026 Aklivity Inc
+#
+# Licensed under the Aklivity Community License (the "License"); you may not use
+# this file except in compliance with the License.  You may obtain a copy of the
+# License at
+#
+#   https://www.aklivity.io/aklivity-community-license/
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations under the License.
+#
+
+connect "zilla://streams/app0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+
+write zilla:begin.ext ${mcp:beginEx()
+                           .typeId(zilla:id("mcp"))
+                           .lifecycle()
+                               .build()
+                           .build()}
+
+connected
+
+read zilla:begin.ext ${mcp:matchBeginEx()
+                          .typeId(zilla:id("mcp"))
+                          .lifecycle()
+                              .sessionId("session-1")
+                              .build()
+                          .build()}
+
+read notify LIFECYCLE_INITIALIZED
+
+connect await LIFECYCLE_INITIALIZED
+        "zilla://streams/app0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+
+write zilla:begin.ext ${mcp:beginEx()
+                           .typeId(zilla:id("mcp"))
+                           .toolsList()
+                               .sessionId("session-1")
+                               .build()
+                           .build()}
+
+connected
+
+# tools/list answered from the generated mcp_openapi config, without any call
+# reaching Kafka Connect -- the fixed eighteen-tool set is known statically from the
+# bundled spec's routes.
+read  '{"tools":[{"name":"list_connectors","description":"list_connectors","inputSchema":{"type":"object","properties":{}},"annotations":{"readOnlyHint":true,"destructiveHint":false,"idempotentHint":true,"openWorldHint":false}},'
+        '{"name":"create_connector","description":"create_connector","inputSchema":{"type":"object","properties":{"config":{"type":"object"},"name":{"type":"string"}}},"annotations":{"readOnlyHint":false,"destructiveHint":false,"idempotentHint":false,"openWorldHint":false}},'
+        '{"name":"describe_connector","description":"describe_connector","inputSchema":{"type":"object","properties":{"connector":{"type":"string"}},"required":["connector"]},"annotations":{"readOnlyHint":true,"destructiveHint":false,"idempotentHint":true,"openWorldHint":false}},'
+        '{"name":"delete_connector","description":"delete_connector","inputSchema":{"type":"object","properties":{"connector":{"type":"string"}},"required":["connector"]},"annotations":{"readOnlyHint":false,"destructiveHint":true,"idempotentHint":true,"openWorldHint":false}},'
+        '{"name":"describe_connector_config","description":"describe_connector_config","inputSchema":{"type":"object","properties":{"connector":{"type":"string"}},"required":["connector"]},"outputSchema":{"type":"object"},"annotations":{"readOnlyHint":true,"destructiveHint":false,"idempotentHint":true,"openWorldHint":false}},'
+        '{"name":"update_connector_config","description":"update_connector_config","inputSchema":{"type":"object","properties":{"connector":{"type":"string"},"connector.class":{"type":"string"},"tasks.max":{"type":"string"}},"required":["connector"]},"annotations":{"readOnlyHint":false,"destructiveHint":false,"idempotentHint":true,"openWorldHint":false}},'
+        '{"name":"validate_connector_config","description":"validate_connector_config","inputSchema":{"type":"object","properties":{"pluginName":{"type":"string"},"connector.class":{"type":"string"},"tasks.max":{"type":"string"}},"required":["pluginName"]},"annotations":{"readOnlyHint":true,"destructiveHint":false,"idempotentHint":true,"openWorldHint":false}},'
+        '{"name":"describe_connector_status","description":"describe_connector_status","inputSchema":{"type":"object","properties":{"connector":{"type":"string"}},"required":["connector"]},"annotations":{"readOnlyHint":true,"destructiveHint":false,"idempotentHint":true,"openWorldHint":false}},'
+        '{"name":"restart_connector","description":"restart_connector","inputSchema":{"type":"object","properties":{"connector":{"type":"string"}},"required":["connector"]},"annotations":{"readOnlyHint":false,"destructiveHint":false,"idempotentHint":false,"openWorldHint":false}},'
+        '{"name":"pause_connector","description":"pause_connector","inputSchema":{"type":"object","properties":{"connector":{"type":"string"}},"required":["connector"]},"annotations":{"readOnlyHint":false,"destructiveHint":false,"idempotentHint":true,"openWorldHint":false}},'
+        '{"name":"resume_connector","description":"resume_connector","inputSchema":{"type":"object","properties":{"connector":{"type":"string"}},"required":["connector"]},"annotations":{"readOnlyHint":false,"destructiveHint":false,"idempotentHint":true,"openWorldHint":false}},'
+        '{"name":"stop_connector","description":"stop_connector","inputSchema":{"type":"object","properties":{"connector":{"type":"string"}},"required":["connector"]},"annotations":{"readOnlyHint":false,"destructiveHint":false,"idempotentHint":true,"openWorldHint":false}},'
+        '{"name":"list_connector_tasks","description":"list_connector_tasks","inputSchema":{"type":"object","properties":{"connector":{"type":"string"}},"required":["connector"]},"annotations":{"readOnlyHint":true,"destructiveHint":false,"idempotentHint":true,"openWorldHint":false}},'
+        '{"name":"restart_connector_task","description":"restart_connector_task","inputSchema":{"type":"object","properties":{"connector":{"type":"string"},"task":{"type":"integer"}},"required":["connector","task"]},"outputSchema":{"type":"object"},"annotations":{"readOnlyHint":false,"destructiveHint":false,"idempotentHint":false,"openWorldHint":false}},'
+        '{"name":"describe_connector_offsets","description":"describe_connector_offsets","inputSchema":{"type":"object","properties":{"connector":{"type":"string"}},"required":["connector"]},"outputSchema":{"type":"object"},"annotations":{"readOnlyHint":true,"destructiveHint":false,"idempotentHint":true,"openWorldHint":false}},'
+        '{"name":"alter_connector_offsets","description":"alter_connector_offsets","inputSchema":{"type":"object","properties":{"connector":{"type":"string"},"offsets":{"type":"array"}},"required":["connector"]},"annotations":{"readOnlyHint":false,"destructiveHint":true,"idempotentHint":true,"openWorldHint":false}},'
+        '{"name":"reset_connector_offsets","description":"reset_connector_offsets","inputSchema":{"type":"object","properties":{"connector":{"type":"string"}},"required":["connector"]},"annotations":{"readOnlyHint":false,"destructiveHint":true,"idempotentHint":true,"openWorldHint":false}},'
+        '{"name":"list_connector_plugins","description":"list_connector_plugins","inputSchema":{"type":"object","properties":{}},"annotations":{"readOnlyHint":true,"destructiveHint":false,"idempotentHint":true,"openWorldHint":false}}'
+        ']}'
+read closed
+
+write close
