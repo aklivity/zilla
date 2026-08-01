@@ -30,7 +30,7 @@ catalogs:
             {"type":"object","properties":{"id":{"type":"string"}}}
 bindings:
   app0:
-    type: mcp_http
+    type: mcp-http
     kind: client
     options:
       tools:

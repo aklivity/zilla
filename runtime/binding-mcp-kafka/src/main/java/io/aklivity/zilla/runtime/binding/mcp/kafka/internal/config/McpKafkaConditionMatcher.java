@@ -16,81 +16,31 @@ package io.aklivity.zilla.runtime.binding.mcp.kafka.internal.config;
 
 import java.util.List;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 import io.aklivity.zilla.config.binding.mcp.kafka.McpKafkaConditionConfig;
+import io.aklivity.zilla.runtime.common.lang.Matchers;
 
 final class McpKafkaConditionMatcher
 {
-    private final String tool;
+    private final List<Pattern> tool;
     private final List<Pattern> topics;
 
     McpKafkaConditionMatcher(
         McpKafkaConditionConfig condition)
     {
-        this.tool = condition.tool;
-        this.topics = compile(condition.topics);
+        this.tool = Matchers.globAll(condition.tool);
+        this.topics = Matchers.globAll(condition.topics);
     }
 
     boolean matchesTool(
         String tool)
     {
-        return this.tool == null || this.tool.equals(tool);
+        return Matchers.admits(this.tool, tool);
     }
 
     boolean matchesTopic(
         String topic)
     {
-        return topic == null || admits(topics, topic);
-    }
-
-    private static boolean admits(
-        List<Pattern> allow,
-        String name)
-    {
-        boolean result = allow == null;
-
-        if (!result)
-        {
-            for (Pattern pattern : allow)
-            {
-                if (pattern.matcher(name).matches())
-                {
-                    result = true;
-                    break;
-                }
-            }
-        }
-
-        return result;
-    }
-
-    private static List<Pattern> compile(
-        List<String> globs)
-    {
-        return globs == null
-            ? null
-            : globs.stream()
-                .map(McpKafkaConditionMatcher::compile)
-                .collect(Collectors.toList());
-    }
-
-    private static Pattern compile(
-        String glob)
-    {
-        final StringBuilder regex = new StringBuilder();
-        final String[] literals = glob.split("\\*", -1);
-        for (int index = 0; index < literals.length; index++)
-        {
-            if (index > 0)
-            {
-                regex.append(".*");
-            }
-            if (!literals[index].isEmpty())
-            {
-                regex.append(Pattern.quote(literals[index]));
-            }
-        }
-        return Pattern.compile(regex.toString());
+        return topic == null || Matchers.admits(topics, topic);
     }
 }

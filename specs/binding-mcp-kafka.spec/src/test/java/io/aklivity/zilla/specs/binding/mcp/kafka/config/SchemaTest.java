@@ -157,4 +157,20 @@ public class SchemaTest
 
         assertThat(config, not(nullValue()));
     }
+
+    @Test
+    public void shouldValidateClientToolAllowlist()
+    {
+        JsonObject config = schema.validate("client.tool.allowlist.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateClientToolGlob()
+    {
+        JsonObject config = schema.validate("client.tool.glob.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
 }

@@ -479,6 +479,12 @@ public final class McpProxyCache
             fragments.put(prefix, items);
         }
 
+        public void disambiguateTitles(
+            Map<String, String> toolkitsByPrefix)
+        {
+            McpToolTitleDisambiguator.disambiguate(fragments, toolkitsByPrefix);
+        }
+
         public boolean fragmentsAbsent(
             List<String> orderedPrefixes)
         {

@@ -1,7 +1,7 @@
-// Minimal mock of the subset of the GitHub REST API used by the mcp_http
+// Minimal mock of the subset of the GitHub REST API used by the mcp-http
 // "github" toolkit. Requires a Bearer credential on every request -- Zilla
 // forwards the caller's own JWT via options.authorization.credentials.headers
-// on the mcp_http binding -- and echoes the forwarded x-user-identity header
+// on the mcp-http binding -- and echoes the forwarded x-user-identity header
 // into the response so the credential-forwarding path is directly observable.
 
 import express from "express";
@@ -51,7 +51,7 @@ app.post("/repos/:owner/:repo/pulls", (req, res) =>
     res.status(201).json(pull);
 });
 
-// Backs the mcp_http "pull_by_number" resource template
+// Backs the mcp-http "pull_by_number" resource template
 // (pr://{owner}/{repo}/{number}) -- read-only, so no credential check here,
 // mirroring petstore's read operations.
 app.get("/repos/:owner/:repo/pulls/:number", (req, res) =>
