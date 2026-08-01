@@ -2,7 +2,7 @@
     {
         "op": "add",
         "path": "/$defs/binding/properties/type/enum/-",
-        "value": "mcp_kafka"
+        "value": "mcp-kafka"
     },
     {
         "op": "add",
@@ -15,7 +15,7 @@
                 {
                     "type":
                     {
-                        "const": "mcp_kafka"
+                        "const": "mcp-kafka"
                     },
                     "kind":
                     {
@@ -33,7 +33,7 @@
                 {
                     "type":
                     {
-                        "const": "mcp_kafka"
+                        "const": "mcp-kafka"
                     },
                     "kind":
                     {
@@ -109,7 +109,7 @@
                 {
                     "type":
                     {
-                        "const": "mcp_kafka"
+                        "const": "mcp-kafka"
                     },
                     "kind":
                     {
@@ -127,7 +127,7 @@
                 {
                     "type":
                     {
-                        "const": "mcp_kafka"
+                        "const": "mcp-kafka"
                     },
                     "kind":
                     {

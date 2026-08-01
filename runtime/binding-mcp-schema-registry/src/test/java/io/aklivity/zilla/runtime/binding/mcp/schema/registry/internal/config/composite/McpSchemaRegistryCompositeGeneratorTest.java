@@ -83,7 +83,7 @@ public class McpSchemaRegistryCompositeGeneratorTest
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("app0")
-            .type("mcp_schema_registry")
+            .type("mcp-schema-registry")
             .kind(CLIENT)
             .options(McpSchemaRegistryOptionsConfig.builder()
                 .server("http://localhost:8080")
@@ -113,8 +113,8 @@ public class McpSchemaRegistryCompositeGeneratorTest
         assertThat(schema.schema, containsString("\"operationId\":\"list_subjects\""));
 
         BindingConfig mcpOpenapi = namespace.bindings.get(0);
-        assertThat(mcpOpenapi.name, equalTo("mcp_openapi0"));
-        assertThat(mcpOpenapi.type, equalTo("mcp_openapi"));
+        assertThat(mcpOpenapi.name, equalTo("mcp-openapi0"));
+        assertThat(mcpOpenapi.type, equalTo("mcp-openapi"));
         assertThat(mcpOpenapi.kind, equalTo(CLIENT));
 
         McpOpenapiOptionsConfig mcpOpenapiOptions = (McpOpenapiOptionsConfig) mcpOpenapi.options;
@@ -154,7 +154,7 @@ public class McpSchemaRegistryCompositeGeneratorTest
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("app0")
-            .type("mcp_schema_registry")
+            .type("mcp-schema-registry")
             .kind(CLIENT)
             .options(McpSchemaRegistryOptionsConfig.builder()
                 .server("http://localhost:8080")
@@ -190,7 +190,7 @@ public class McpSchemaRegistryCompositeGeneratorTest
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("app0")
-            .type("mcp_schema_registry")
+            .type("mcp-schema-registry")
             .kind(CLIENT)
             .options(McpSchemaRegistryOptionsConfig.builder()
                 .server("http://localhost:8080")
@@ -223,7 +223,7 @@ public class McpSchemaRegistryCompositeGeneratorTest
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("app0")
-            .type("mcp_schema_registry")
+            .type("mcp-schema-registry")
             .kind(CLIENT)
             .options(McpSchemaRegistryOptionsConfig.builder()
                 .server("http://localhost:8080")
@@ -264,7 +264,7 @@ public class McpSchemaRegistryCompositeGeneratorTest
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("app0")
-            .type("mcp_schema_registry")
+            .type("mcp-schema-registry")
             .kind(PROXY)
             .exit("http0")
             .build();
@@ -306,7 +306,7 @@ public class McpSchemaRegistryCompositeGeneratorTest
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("app0")
-            .type("mcp_schema_registry")
+            .type("mcp-schema-registry")
             .kind(CLIENT)
             .options(McpSchemaRegistryOptionsConfig.builder()
                 .server("http://localhost:8080")

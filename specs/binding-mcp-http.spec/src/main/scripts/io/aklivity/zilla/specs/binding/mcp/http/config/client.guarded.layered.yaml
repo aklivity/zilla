@@ -28,7 +28,7 @@ guards:
         - guest
 bindings:
   app0:
-    type: mcp_http
+    type: mcp-http
     kind: client
     options:
       tools:

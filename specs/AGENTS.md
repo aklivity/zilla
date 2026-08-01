@@ -110,7 +110,7 @@ The same pattern applies to all pluggable types:
 ### Schema conventions
 
 - Binding `type` values use the module artifact ID minus the `binding-` prefix
-  (e.g., `binding-http` → `type: http`; `binding-mcp-kafka` → `type: mcp_kafka`)
+  (e.g., `binding-http` → `type: http`; `binding-mcp-kafka` → `type: mcp-kafka`)
 - `options` is component-specific; fully described in that component's schema patch
 - `routes[].when` conditions are ordered — first match wins
 - `routes[].exit` names a downstream binding in the same namespace

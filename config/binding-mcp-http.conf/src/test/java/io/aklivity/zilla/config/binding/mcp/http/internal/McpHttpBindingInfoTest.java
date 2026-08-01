@@ -29,7 +29,7 @@ public class McpHttpBindingInfoTest
     @Test
     public void shouldResolveType()
     {
-        assertThat(info.type(), equalTo("mcp_http"));
+        assertThat(info.type(), equalTo("mcp-http"));
     }
 
     @Test

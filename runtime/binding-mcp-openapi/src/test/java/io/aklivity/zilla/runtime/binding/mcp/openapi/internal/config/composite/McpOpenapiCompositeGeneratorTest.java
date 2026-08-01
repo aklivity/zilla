@@ -431,8 +431,8 @@ public class McpOpenapiCompositeGeneratorTest
     {
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
-            .name("mcp_openapi0")
-            .type("mcp_openapi")
+            .name("mcp-openapi0")
+            .type("mcp-openapi")
             .kind(CLIENT)
             .options(McpOpenapiOptionsConfig.builder()
                 .spec()
@@ -475,12 +475,12 @@ public class McpOpenapiCompositeGeneratorTest
 
         NamespaceConfig namespace = composite.namespaces.get(0);
         BindingConfig mcpHttp = namespace.bindings.stream()
-            .filter(b -> "mcp_http0".equals(b.name))
+            .filter(b -> "mcp-http0".equals(b.name))
             .findFirst()
             .orElse(null);
 
         assertThat(mcpHttp, notNullValue());
-        assertThat(mcpHttp.type, equalTo("mcp_http"));
+        assertThat(mcpHttp.type, equalTo("mcp-http"));
         assertThat(mcpHttp.kind, equalTo(CLIENT));
 
         McpHttpOptionsConfig mcpHttpOptions = (McpHttpOptionsConfig) mcpHttp.options;
@@ -526,8 +526,8 @@ public class McpOpenapiCompositeGeneratorTest
 
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
-            .name("mcp_openapi0")
-            .type("mcp_openapi")
+            .name("mcp-openapi0")
+            .type("mcp-openapi")
             .kind(PROXY)
             .exit("schema_registry0")
             .options(McpOpenapiOptionsConfig.builder()
@@ -562,7 +562,7 @@ public class McpOpenapiCompositeGeneratorTest
 
         NamespaceConfig namespace = composite.namespaces.get(0);
         BindingConfig mcpHttp = namespace.bindings.stream()
-            .filter(b -> "mcp_http0".equals(b.name))
+            .filter(b -> "mcp-http0".equals(b.name))
             .findFirst()
             .orElse(null);
 
@@ -577,8 +577,8 @@ public class McpOpenapiCompositeGeneratorTest
     {
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
-            .name("mcp_openapi0")
-            .type("mcp_openapi")
+            .name("mcp-openapi0")
+            .type("mcp-openapi")
             .kind(CLIENT)
             .options(McpOpenapiOptionsConfig.builder()
                 .authorization(new McpOpenapiAuthorizationConfig("guard0", Map.of("authorization", "Bearer {credentials}")))
@@ -608,7 +608,7 @@ public class McpOpenapiCompositeGeneratorTest
 
         NamespaceConfig namespace = composite.namespaces.get(0);
         BindingConfig mcpHttp = namespace.bindings.stream()
-            .filter(b -> "mcp_http0".equals(b.name))
+            .filter(b -> "mcp-http0".equals(b.name))
             .findFirst()
             .orElse(null);
 
@@ -626,8 +626,8 @@ public class McpOpenapiCompositeGeneratorTest
 
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
-            .name("mcp_openapi0")
-            .type("mcp_openapi")
+            .name("mcp-openapi0")
+            .type("mcp-openapi")
             .kind(CLIENT)
             .options(McpOpenapiOptionsConfig.builder()
                 .spec()
@@ -661,7 +661,7 @@ public class McpOpenapiCompositeGeneratorTest
 
         NamespaceConfig namespace = composite.namespaces.get(0);
         BindingConfig mcpHttp = namespace.bindings.stream()
-            .filter(b -> "mcp_http0".equals(b.name))
+            .filter(b -> "mcp-http0".equals(b.name))
             .findFirst()
             .orElse(null);
 
@@ -675,8 +675,8 @@ public class McpOpenapiCompositeGeneratorTest
     {
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
-            .name("mcp_openapi0")
-            .type("mcp_openapi")
+            .name("mcp-openapi0")
+            .type("mcp-openapi")
             .kind(CLIENT)
             .options(McpOpenapiOptionsConfig.builder()
                 .spec()
@@ -740,8 +740,8 @@ public class McpOpenapiCompositeGeneratorTest
 
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
-            .name("mcp_openapi0")
-            .type("mcp_openapi")
+            .name("mcp-openapi0")
+            .type("mcp-openapi")
             .kind(CLIENT)
             .options(McpOpenapiOptionsConfig.builder()
                 .spec()
@@ -775,7 +775,7 @@ public class McpOpenapiCompositeGeneratorTest
         McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
         BindingConfig mcpHttp = composite.namespaces.get(0).bindings.stream()
-            .filter(b -> "mcp_http0".equals(b.name))
+            .filter(b -> "mcp-http0".equals(b.name))
             .findFirst()
             .orElse(null);
         McpHttpOptionsConfig mcpHttpOptions = (McpHttpOptionsConfig) mcpHttp.options;
@@ -793,8 +793,8 @@ public class McpOpenapiCompositeGeneratorTest
     {
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
-            .name("mcp_openapi0")
-            .type("mcp_openapi")
+            .name("mcp-openapi0")
+            .type("mcp-openapi")
             .kind(CLIENT)
             .options(McpOpenapiOptionsConfig.builder()
                 .spec()
@@ -828,7 +828,7 @@ public class McpOpenapiCompositeGeneratorTest
         McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
         BindingConfig mcpHttp = composite.namespaces.get(0).bindings.stream()
-            .filter(b -> "mcp_http0".equals(b.name))
+            .filter(b -> "mcp-http0".equals(b.name))
             .findFirst()
             .orElse(null);
         McpHttpOptionsConfig mcpHttpOptions = (McpHttpOptionsConfig) mcpHttp.options;
@@ -855,8 +855,8 @@ public class McpOpenapiCompositeGeneratorTest
 
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
-            .name("mcp_openapi0")
-            .type("mcp_openapi")
+            .name("mcp-openapi0")
+            .type("mcp-openapi")
             .kind(CLIENT)
             .options(McpOpenapiOptionsConfig.builder()
                 .spec()
@@ -891,7 +891,7 @@ public class McpOpenapiCompositeGeneratorTest
 
         NamespaceConfig namespace = composite.namespaces.get(0);
         BindingConfig mcpHttp = namespace.bindings.stream()
-            .filter(b -> "mcp_http0".equals(b.name))
+            .filter(b -> "mcp-http0".equals(b.name))
             .findFirst()
             .orElse(null);
         McpHttpOptionsConfig mcpHttpOptions = (McpHttpOptionsConfig) mcpHttp.options;
@@ -904,7 +904,7 @@ public class McpOpenapiCompositeGeneratorTest
         assertThat(tool.input.model, equalTo("json"));
         assertThat(tool.input.cataloged, hasSize(1));
         // the authored reference names the bare "catalog0" from the caller's own namespace; forwarded
-        // into the generated mcp_http0 binding's own (different) namespace, it must be qualified
+        // into the generated mcp-http0 binding's own (different) namespace, it must be qualified
         // ("test:catalog0"), otherwise it would resolve against that namespace's own local "catalog0"
         assertThat(tool.input.cataloged.get(0).name, equalTo("test:catalog0"));
         assertThat(tool.input.cataloged.get(0).schemas.get(0).subject, equalTo("create_pr_input"));
@@ -917,8 +917,8 @@ public class McpOpenapiCompositeGeneratorTest
 
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
-            .name("mcp_openapi0")
-            .type("mcp_openapi")
+            .name("mcp-openapi0")
+            .type("mcp-openapi")
             .kind(CLIENT)
             .options(McpOpenapiOptionsConfig.builder()
                 .spec()
@@ -952,7 +952,7 @@ public class McpOpenapiCompositeGeneratorTest
         McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
         BindingConfig mcpHttp = composite.namespaces.get(0).bindings.stream()
-            .filter(b -> "mcp_http0".equals(b.name))
+            .filter(b -> "mcp-http0".equals(b.name))
             .findFirst()
             .orElse(null);
         McpHttpOptionsConfig mcpHttpOptions = (McpHttpOptionsConfig) mcpHttp.options;
@@ -970,8 +970,8 @@ public class McpOpenapiCompositeGeneratorTest
     {
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
-            .name("mcp_openapi0")
-            .type("mcp_openapi")
+            .name("mcp-openapi0")
+            .type("mcp-openapi")
             .kind(CLIENT)
             .options(McpOpenapiOptionsConfig.builder()
                 .spec()
@@ -1004,7 +1004,7 @@ public class McpOpenapiCompositeGeneratorTest
         McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
         BindingConfig mcpHttp = composite.namespaces.get(0).bindings.stream()
-            .filter(b -> "mcp_http0".equals(b.name))
+            .filter(b -> "mcp-http0".equals(b.name))
             .findFirst()
             .orElse(null);
         McpHttpOptionsConfig mcpHttpOptions = (McpHttpOptionsConfig) mcpHttp.options;
@@ -1021,8 +1021,8 @@ public class McpOpenapiCompositeGeneratorTest
     {
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
-            .name("mcp_openapi0")
-            .type("mcp_openapi")
+            .name("mcp-openapi0")
+            .type("mcp-openapi")
             .kind(CLIENT)
             .options(McpOpenapiOptionsConfig.builder()
                 .spec()
@@ -1051,7 +1051,7 @@ public class McpOpenapiCompositeGeneratorTest
         McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
         BindingConfig mcpHttp = composite.namespaces.get(0).bindings.stream()
-            .filter(b -> "mcp_http0".equals(b.name))
+            .filter(b -> "mcp-http0".equals(b.name))
             .findFirst()
             .orElse(null);
         McpHttpOptionsConfig mcpHttpOptions = (McpHttpOptionsConfig) mcpHttp.options;
@@ -1067,8 +1067,8 @@ public class McpOpenapiCompositeGeneratorTest
 
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
-            .name("mcp_openapi0")
-            .type("mcp_openapi")
+            .name("mcp-openapi0")
+            .type("mcp-openapi")
             .kind(CLIENT)
             .options(McpOpenapiOptionsConfig.builder()
                 .spec()
@@ -1096,7 +1096,7 @@ public class McpOpenapiCompositeGeneratorTest
         McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
         BindingConfig mcpHttp = composite.namespaces.get(0).bindings.stream()
-            .filter(b -> "mcp_http0".equals(b.name))
+            .filter(b -> "mcp-http0".equals(b.name))
             .findFirst()
             .orElse(null);
         McpHttpOptionsConfig mcpHttpOptions = (McpHttpOptionsConfig) mcpHttp.options;
@@ -1109,8 +1109,8 @@ public class McpOpenapiCompositeGeneratorTest
     {
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
-            .name("mcp_openapi0")
-            .type("mcp_openapi")
+            .name("mcp-openapi0")
+            .type("mcp-openapi")
             .kind(CLIENT)
             .options(McpOpenapiOptionsConfig.builder()
                 .spec()
@@ -1139,7 +1139,7 @@ public class McpOpenapiCompositeGeneratorTest
         McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
         BindingConfig mcpHttp = composite.namespaces.get(0).bindings.stream()
-            .filter(b -> "mcp_http0".equals(b.name))
+            .filter(b -> "mcp-http0".equals(b.name))
             .findFirst()
             .orElse(null);
         McpHttpOptionsConfig mcpHttpOptions = (McpHttpOptionsConfig) mcpHttp.options;
@@ -1156,8 +1156,8 @@ public class McpOpenapiCompositeGeneratorTest
 
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
-            .name("mcp_openapi0")
-            .type("mcp_openapi")
+            .name("mcp-openapi0")
+            .type("mcp-openapi")
             .kind(CLIENT)
             .options(McpOpenapiOptionsConfig.builder()
                 .spec()
@@ -1185,7 +1185,7 @@ public class McpOpenapiCompositeGeneratorTest
         McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
         BindingConfig mcpHttp = composite.namespaces.get(0).bindings.stream()
-            .filter(b -> "mcp_http0".equals(b.name))
+            .filter(b -> "mcp-http0".equals(b.name))
             .findFirst()
             .orElse(null);
         McpHttpOptionsConfig mcpHttpOptions = (McpHttpOptionsConfig) mcpHttp.options;
@@ -1202,8 +1202,8 @@ public class McpOpenapiCompositeGeneratorTest
 
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
-            .name("mcp_openapi0")
-            .type("mcp_openapi")
+            .name("mcp-openapi0")
+            .type("mcp-openapi")
             .kind(CLIENT)
             .options(McpOpenapiOptionsConfig.builder()
                 .spec()
@@ -1231,7 +1231,7 @@ public class McpOpenapiCompositeGeneratorTest
         McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
         BindingConfig mcpHttp = composite.namespaces.get(0).bindings.stream()
-            .filter(b -> "mcp_http0".equals(b.name))
+            .filter(b -> "mcp-http0".equals(b.name))
             .findFirst()
             .orElse(null);
         McpHttpOptionsConfig mcpHttpOptions = (McpHttpOptionsConfig) mcpHttp.options;
@@ -1245,8 +1245,8 @@ public class McpOpenapiCompositeGeneratorTest
     {
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
-            .name("mcp_openapi0")
-            .type("mcp_openapi")
+            .name("mcp-openapi0")
+            .type("mcp-openapi")
             .kind(CLIENT)
             .options(McpOpenapiOptionsConfig.builder()
                 .spec()
@@ -1275,7 +1275,7 @@ public class McpOpenapiCompositeGeneratorTest
         McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
         BindingConfig mcpHttp = composite.namespaces.get(0).bindings.stream()
-            .filter(b -> "mcp_http0".equals(b.name))
+            .filter(b -> "mcp-http0".equals(b.name))
             .findFirst()
             .orElse(null);
         McpHttpOptionsConfig mcpHttpOptions = (McpHttpOptionsConfig) mcpHttp.options;
@@ -1292,8 +1292,8 @@ public class McpOpenapiCompositeGeneratorTest
     {
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
-            .name("mcp_openapi0")
-            .type("mcp_openapi")
+            .name("mcp-openapi0")
+            .type("mcp-openapi")
             .kind(CLIENT)
             .options(McpOpenapiOptionsConfig.builder()
                 .spec()
@@ -1322,7 +1322,7 @@ public class McpOpenapiCompositeGeneratorTest
         McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
         BindingConfig mcpHttp = composite.namespaces.get(0).bindings.stream()
-            .filter(b -> "mcp_http0".equals(b.name))
+            .filter(b -> "mcp-http0".equals(b.name))
             .findFirst()
             .orElse(null);
         McpHttpOptionsConfig mcpHttpOptions = (McpHttpOptionsConfig) mcpHttp.options;
@@ -1340,8 +1340,8 @@ public class McpOpenapiCompositeGeneratorTest
     {
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
-            .name("mcp_openapi0")
-            .type("mcp_openapi")
+            .name("mcp-openapi0")
+            .type("mcp-openapi")
             .kind(CLIENT)
             .options(McpOpenapiOptionsConfig.builder()
                 .spec()
@@ -1370,7 +1370,7 @@ public class McpOpenapiCompositeGeneratorTest
         McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
         BindingConfig mcpHttp = composite.namespaces.get(0).bindings.stream()
-            .filter(b -> "mcp_http0".equals(b.name))
+            .filter(b -> "mcp-http0".equals(b.name))
             .findFirst()
             .orElse(null);
         McpHttpOptionsConfig mcpHttpOptions = (McpHttpOptionsConfig) mcpHttp.options;
@@ -1388,8 +1388,8 @@ public class McpOpenapiCompositeGeneratorTest
     {
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
-            .name("mcp_openapi0")
-            .type("mcp_openapi")
+            .name("mcp-openapi0")
+            .type("mcp-openapi")
             .kind(CLIENT)
             .options(McpOpenapiOptionsConfig.builder()
                 .spec()
@@ -1418,7 +1418,7 @@ public class McpOpenapiCompositeGeneratorTest
         McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
         BindingConfig mcpHttp = composite.namespaces.get(0).bindings.stream()
-            .filter(b -> "mcp_http0".equals(b.name))
+            .filter(b -> "mcp-http0".equals(b.name))
             .findFirst()
             .orElse(null);
         McpHttpWithConfig with = mcpHttp.routes.stream()
@@ -1437,8 +1437,8 @@ public class McpOpenapiCompositeGeneratorTest
     {
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
-            .name("mcp_openapi0")
-            .type("mcp_openapi")
+            .name("mcp-openapi0")
+            .type("mcp-openapi")
             .kind(CLIENT)
             .options(McpOpenapiOptionsConfig.builder()
                 .spec()
@@ -1468,7 +1468,7 @@ public class McpOpenapiCompositeGeneratorTest
         McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
         BindingConfig mcpHttp = composite.namespaces.get(0).bindings.stream()
-            .filter(b -> "mcp_http0".equals(b.name))
+            .filter(b -> "mcp-http0".equals(b.name))
             .findFirst()
             .orElse(null);
         McpHttpWithConfig with = mcpHttp.routes.stream()
@@ -1485,8 +1485,8 @@ public class McpOpenapiCompositeGeneratorTest
     {
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
-            .name("mcp_openapi0")
-            .type("mcp_openapi")
+            .name("mcp-openapi0")
+            .type("mcp-openapi")
             .kind(CLIENT)
             .options(McpOpenapiOptionsConfig.builder()
                 .spec()
@@ -1518,7 +1518,7 @@ public class McpOpenapiCompositeGeneratorTest
         McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
         BindingConfig mcpHttp = composite.namespaces.get(0).bindings.stream()
-            .filter(b -> "mcp_http0".equals(b.name))
+            .filter(b -> "mcp-http0".equals(b.name))
             .findFirst()
             .orElse(null);
         McpHttpWithConfig with = mcpHttp.routes.stream()
@@ -1539,8 +1539,8 @@ public class McpOpenapiCompositeGeneratorTest
     {
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
-            .name("mcp_openapi0")
-            .type("mcp_openapi")
+            .name("mcp-openapi0")
+            .type("mcp-openapi")
             .kind(CLIENT)
             .options(McpOpenapiOptionsConfig.builder()
                 .spec()
@@ -1570,7 +1570,7 @@ public class McpOpenapiCompositeGeneratorTest
         McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
         BindingConfig mcpHttp = composite.namespaces.get(0).bindings.stream()
-            .filter(b -> "mcp_http0".equals(b.name))
+            .filter(b -> "mcp-http0".equals(b.name))
             .findFirst()
             .orElse(null);
         McpHttpWithConfig with = mcpHttp.routes.stream()
@@ -1587,8 +1587,8 @@ public class McpOpenapiCompositeGeneratorTest
     {
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
-            .name("mcp_openapi0")
-            .type("mcp_openapi")
+            .name("mcp-openapi0")
+            .type("mcp-openapi")
             .kind(CLIENT)
             .options(McpOpenapiOptionsConfig.builder()
                 .spec()
@@ -1618,7 +1618,7 @@ public class McpOpenapiCompositeGeneratorTest
         McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
         BindingConfig mcpHttp = composite.namespaces.get(0).bindings.stream()
-            .filter(b -> "mcp_http0".equals(b.name))
+            .filter(b -> "mcp-http0".equals(b.name))
             .findFirst()
             .orElse(null);
         McpHttpWithConfig with = mcpHttp.routes.stream()
@@ -1635,8 +1635,8 @@ public class McpOpenapiCompositeGeneratorTest
     {
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
-            .name("mcp_openapi0")
-            .type("mcp_openapi")
+            .name("mcp-openapi0")
+            .type("mcp-openapi")
             .kind(CLIENT)
             .options(McpOpenapiOptionsConfig.builder()
                 .spec()
@@ -1666,7 +1666,7 @@ public class McpOpenapiCompositeGeneratorTest
         McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
         BindingConfig mcpHttp = composite.namespaces.get(0).bindings.stream()
-            .filter(b -> "mcp_http0".equals(b.name))
+            .filter(b -> "mcp-http0".equals(b.name))
             .findFirst()
             .orElse(null);
         McpHttpWithConfig with = mcpHttp.routes.stream()
@@ -1683,8 +1683,8 @@ public class McpOpenapiCompositeGeneratorTest
     {
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
-            .name("mcp_openapi0")
-            .type("mcp_openapi")
+            .name("mcp-openapi0")
+            .type("mcp-openapi")
             .kind(CLIENT)
             .options(McpOpenapiOptionsConfig.builder()
                 .spec()
@@ -1714,7 +1714,7 @@ public class McpOpenapiCompositeGeneratorTest
         McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
         BindingConfig mcpHttp = composite.namespaces.get(0).bindings.stream()
-            .filter(b -> "mcp_http0".equals(b.name))
+            .filter(b -> "mcp-http0".equals(b.name))
             .findFirst()
             .orElse(null);
         McpHttpWithConfig with = mcpHttp.routes.stream()
@@ -1733,8 +1733,8 @@ public class McpOpenapiCompositeGeneratorTest
 
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
-            .name("mcp_openapi0")
-            .type("mcp_openapi")
+            .name("mcp-openapi0")
+            .type("mcp-openapi")
             .kind(CLIENT)
             .options(McpOpenapiOptionsConfig.builder()
                 .spec()
@@ -1785,7 +1785,7 @@ public class McpOpenapiCompositeGeneratorTest
         assertThat(composite.routes.size(), equalTo(1));
 
         BindingConfig mcpHttp = composite.namespaces.get(0).bindings.stream()
-            .filter(b -> "mcp_http0".equals(b.name))
+            .filter(b -> "mcp-http0".equals(b.name))
             .findFirst()
             .orElse(null);
         McpHttpOptionsConfig mcpHttpOptions = (McpHttpOptionsConfig) mcpHttp.options;
@@ -1821,8 +1821,8 @@ public class McpOpenapiCompositeGeneratorTest
     {
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
-            .name("mcp_openapi0")
-            .type("mcp_openapi")
+            .name("mcp-openapi0")
+            .type("mcp-openapi")
             .kind(CLIENT)
             .options(McpOpenapiOptionsConfig.builder()
                 .spec()
@@ -1851,7 +1851,7 @@ public class McpOpenapiCompositeGeneratorTest
         McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
         BindingConfig mcpHttp = composite.namespaces.get(0).bindings.stream()
-            .filter(b -> "mcp_http0".equals(b.name))
+            .filter(b -> "mcp-http0".equals(b.name))
             .findFirst()
             .orElse(null);
         RouteConfig postRoute = mcpHttp.routes.stream()
@@ -1869,8 +1869,8 @@ public class McpOpenapiCompositeGeneratorTest
     {
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
-            .name("mcp_openapi0")
-            .type("mcp_openapi")
+            .name("mcp-openapi0")
+            .type("mcp-openapi")
             .kind(CLIENT)
             .options(McpOpenapiOptionsConfig.builder()
                 .spec()
@@ -1899,7 +1899,7 @@ public class McpOpenapiCompositeGeneratorTest
         McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
         BindingConfig mcpHttp = composite.namespaces.get(0).bindings.stream()
-            .filter(b -> "mcp_http0".equals(b.name))
+            .filter(b -> "mcp-http0".equals(b.name))
             .findFirst()
             .orElse(null);
         RouteConfig postRoute = mcpHttp.routes.stream()
@@ -1916,8 +1916,8 @@ public class McpOpenapiCompositeGeneratorTest
     {
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
-            .name("mcp_openapi0")
-            .type("mcp_openapi")
+            .name("mcp-openapi0")
+            .type("mcp-openapi")
             .kind(CLIENT)
             .options(McpOpenapiOptionsConfig.builder()
                 .spec()
@@ -1946,7 +1946,7 @@ public class McpOpenapiCompositeGeneratorTest
         McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
         BindingConfig mcpHttp = composite.namespaces.get(0).bindings.stream()
-            .filter(b -> "mcp_http0".equals(b.name))
+            .filter(b -> "mcp-http0".equals(b.name))
             .findFirst()
             .orElse(null);
         RouteConfig putRoute = mcpHttp.routes.stream()
@@ -1964,8 +1964,8 @@ public class McpOpenapiCompositeGeneratorTest
     {
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
-            .name("mcp_openapi0")
-            .type("mcp_openapi")
+            .name("mcp-openapi0")
+            .type("mcp-openapi")
             .kind(CLIENT)
             .options(McpOpenapiOptionsConfig.builder()
                 .spec()
@@ -1997,7 +1997,7 @@ public class McpOpenapiCompositeGeneratorTest
         McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
         BindingConfig mcpHttp = composite.namespaces.get(0).bindings.stream()
-            .filter(b -> "mcp_http0".equals(b.name))
+            .filter(b -> "mcp-http0".equals(b.name))
             .findFirst()
             .orElse(null);
         RouteConfig getRoute = mcpHttp.routes.stream()
@@ -2015,8 +2015,8 @@ public class McpOpenapiCompositeGeneratorTest
     {
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
-            .name("mcp_openapi0")
-            .type("mcp_openapi")
+            .name("mcp-openapi0")
+            .type("mcp-openapi")
             .kind(CLIENT)
             .options(McpOpenapiOptionsConfig.builder()
                 .spec()
@@ -2049,7 +2049,7 @@ public class McpOpenapiCompositeGeneratorTest
         McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
         BindingConfig mcpHttp = composite.namespaces.get(0).bindings.stream()
-            .filter(b -> "mcp_http0".equals(b.name))
+            .filter(b -> "mcp-http0".equals(b.name))
             .findFirst()
             .orElse(null);
         RouteConfig postRoute = mcpHttp.routes.stream()
@@ -2071,8 +2071,8 @@ public class McpOpenapiCompositeGeneratorTest
     {
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
-            .name("mcp_openapi0")
-            .type("mcp_openapi")
+            .name("mcp-openapi0")
+            .type("mcp-openapi")
             .kind(CLIENT)
             .options(McpOpenapiOptionsConfig.builder()
                 .spec()
@@ -2105,7 +2105,7 @@ public class McpOpenapiCompositeGeneratorTest
         McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
         BindingConfig mcpHttp = composite.namespaces.get(0).bindings.stream()
-            .filter(b -> "mcp_http0".equals(b.name))
+            .filter(b -> "mcp-http0".equals(b.name))
             .findFirst()
             .orElse(null);
         RouteConfig postRoute = mcpHttp.routes.stream()
@@ -2123,8 +2123,8 @@ public class McpOpenapiCompositeGeneratorTest
     {
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
-            .name("mcp_openapi0")
-            .type("mcp_openapi")
+            .name("mcp-openapi0")
+            .type("mcp-openapi")
             .kind(CLIENT)
             .options(McpOpenapiOptionsConfig.builder()
                 .spec()
@@ -2153,7 +2153,7 @@ public class McpOpenapiCompositeGeneratorTest
         McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
         BindingConfig mcpHttp = composite.namespaces.get(0).bindings.stream()
-            .filter(b -> "mcp_http0".equals(b.name))
+            .filter(b -> "mcp-http0".equals(b.name))
             .findFirst()
             .orElse(null);
         RouteConfig putRoute = mcpHttp.routes.stream()
@@ -2172,8 +2172,8 @@ public class McpOpenapiCompositeGeneratorTest
     {
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
-            .name("mcp_openapi0")
-            .type("mcp_openapi")
+            .name("mcp-openapi0")
+            .type("mcp-openapi")
             .kind(CLIENT)
             .options(McpOpenapiOptionsConfig.builder()
                 .spec()
@@ -2202,7 +2202,7 @@ public class McpOpenapiCompositeGeneratorTest
         McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
         BindingConfig mcpHttp = composite.namespaces.get(0).bindings.stream()
-            .filter(b -> "mcp_http0".equals(b.name))
+            .filter(b -> "mcp-http0".equals(b.name))
             .findFirst()
             .orElse(null);
         RouteConfig postRoute = mcpHttp.routes.stream()
@@ -2221,8 +2221,8 @@ public class McpOpenapiCompositeGeneratorTest
     {
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
-            .name("mcp_openapi0")
-            .type("mcp_openapi")
+            .name("mcp-openapi0")
+            .type("mcp-openapi")
             .kind(CLIENT)
             .options(McpOpenapiOptionsConfig.builder()
                 .spec()
@@ -2251,7 +2251,7 @@ public class McpOpenapiCompositeGeneratorTest
         McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
         BindingConfig mcpHttp = composite.namespaces.get(0).bindings.stream()
-            .filter(b -> "mcp_http0".equals(b.name))
+            .filter(b -> "mcp-http0".equals(b.name))
             .findFirst()
             .orElse(null);
         RouteConfig getRoute = mcpHttp.routes.stream()
@@ -2268,8 +2268,8 @@ public class McpOpenapiCompositeGeneratorTest
     {
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
-            .name("mcp_openapi0")
-            .type("mcp_openapi")
+            .name("mcp-openapi0")
+            .type("mcp-openapi")
             .kind(CLIENT)
             .options(McpOpenapiOptionsConfig.builder()
                 .spec()
@@ -2297,7 +2297,7 @@ public class McpOpenapiCompositeGeneratorTest
         McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
         BindingConfig mcpHttp = composite.namespaces.get(0).bindings.stream()
-            .filter(b -> "mcp_http0".equals(b.name))
+            .filter(b -> "mcp-http0".equals(b.name))
             .findFirst()
             .orElse(null);
         RouteConfig postRoute = mcpHttp.routes.stream()
@@ -2314,8 +2314,8 @@ public class McpOpenapiCompositeGeneratorTest
     {
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
-            .name("mcp_openapi0")
-            .type("mcp_openapi")
+            .name("mcp-openapi0")
+            .type("mcp-openapi")
             .kind(CLIENT)
             .options(McpOpenapiOptionsConfig.builder()
                 .spec()
@@ -2344,7 +2344,7 @@ public class McpOpenapiCompositeGeneratorTest
         McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
         BindingConfig mcpHttp = composite.namespaces.get(0).bindings.stream()
-            .filter(b -> "mcp_http0".equals(b.name))
+            .filter(b -> "mcp-http0".equals(b.name))
             .findFirst()
             .orElse(null);
         RouteConfig putRoute = mcpHttp.routes.stream()
@@ -2364,8 +2364,8 @@ public class McpOpenapiCompositeGeneratorTest
     {
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
-            .name("mcp_openapi0")
-            .type("mcp_openapi")
+            .name("mcp-openapi0")
+            .type("mcp-openapi")
             .kind(CLIENT)
             .options(McpOpenapiOptionsConfig.builder()
                 .spec()
@@ -2393,7 +2393,7 @@ public class McpOpenapiCompositeGeneratorTest
         McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
         BindingConfig mcpHttp = composite.namespaces.get(0).bindings.stream()
-            .filter(b -> "mcp_http0".equals(b.name))
+            .filter(b -> "mcp-http0".equals(b.name))
             .findFirst()
             .orElse(null);
         RouteConfig getRoute = mcpHttp.routes.stream()
@@ -2411,8 +2411,8 @@ public class McpOpenapiCompositeGeneratorTest
 
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
-            .name("mcp_openapi0")
-            .type("mcp_openapi")
+            .name("mcp-openapi0")
+            .type("mcp-openapi")
             .kind(CLIENT)
             .options(McpOpenapiOptionsConfig.builder()
                 .spec()
@@ -2441,7 +2441,7 @@ public class McpOpenapiCompositeGeneratorTest
         McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
         BindingConfig mcpHttp = composite.namespaces.get(0).bindings.stream()
-            .filter(b -> "mcp_http0".equals(b.name))
+            .filter(b -> "mcp-http0".equals(b.name))
             .findFirst()
             .orElse(null);
         RouteConfig getRoute = mcpHttp.routes.stream()
@@ -2458,8 +2458,8 @@ public class McpOpenapiCompositeGeneratorTest
     {
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
-            .name("mcp_openapi0")
-            .type("mcp_openapi")
+            .name("mcp-openapi0")
+            .type("mcp-openapi")
             .kind(CLIENT)
             .options(McpOpenapiOptionsConfig.builder()
                 .spec()
@@ -2488,7 +2488,7 @@ public class McpOpenapiCompositeGeneratorTest
         McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
         BindingConfig mcpHttp = composite.namespaces.get(0).bindings.stream()
-            .filter(b -> "mcp_http0".equals(b.name))
+            .filter(b -> "mcp-http0".equals(b.name))
             .findFirst()
             .orElse(null);
         assertThat(mcpHttp.routes.get(0).guarded, empty());
@@ -2499,8 +2499,8 @@ public class McpOpenapiCompositeGeneratorTest
     {
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
-            .name("mcp_openapi0")
-            .type("mcp_openapi")
+            .name("mcp-openapi0")
+            .type("mcp-openapi")
             .kind(CLIENT)
             .options(McpOpenapiOptionsConfig.builder()
                 .spec()
@@ -2526,7 +2526,7 @@ public class McpOpenapiCompositeGeneratorTest
         McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
         BindingConfig mcpHttp = composite.namespaces.get(0).bindings.stream()
-            .filter(b -> "mcp_http0".equals(b.name))
+            .filter(b -> "mcp-http0".equals(b.name))
             .findFirst()
             .orElse(null);
         McpHttpOptionsConfig mcpHttpOptions = (McpHttpOptionsConfig) mcpHttp.options;
@@ -2539,8 +2539,8 @@ public class McpOpenapiCompositeGeneratorTest
     {
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
-            .name("mcp_openapi0")
-            .type("mcp_openapi")
+            .name("mcp-openapi0")
+            .type("mcp-openapi")
             .kind(CLIENT)
             .options(McpOpenapiOptionsConfig.builder()
                 .spec()
@@ -2565,7 +2565,7 @@ public class McpOpenapiCompositeGeneratorTest
         McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
         BindingConfig mcpHttp = composite.namespaces.get(0).bindings.stream()
-            .filter(b -> "mcp_http0".equals(b.name))
+            .filter(b -> "mcp-http0".equals(b.name))
             .findFirst()
             .orElse(null);
         McpHttpOptionsConfig mcpHttpOptions = (McpHttpOptionsConfig) mcpHttp.options;
@@ -2580,8 +2580,8 @@ public class McpOpenapiCompositeGeneratorTest
     {
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
-            .name("mcp_openapi0")
-            .type("mcp_openapi")
+            .name("mcp-openapi0")
+            .type("mcp-openapi")
             .kind(CLIENT)
             .options(McpOpenapiOptionsConfig.builder()
                 .spec()
@@ -2607,7 +2607,7 @@ public class McpOpenapiCompositeGeneratorTest
         McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
         BindingConfig mcpHttp = composite.namespaces.get(0).bindings.stream()
-            .filter(b -> "mcp_http0".equals(b.name))
+            .filter(b -> "mcp-http0".equals(b.name))
             .findFirst()
             .orElse(null);
         McpHttpOptionsConfig mcpHttpOptions = (McpHttpOptionsConfig) mcpHttp.options;
@@ -2620,8 +2620,8 @@ public class McpOpenapiCompositeGeneratorTest
     {
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
-            .name("mcp_openapi0")
-            .type("mcp_openapi")
+            .name("mcp-openapi0")
+            .type("mcp-openapi")
             .kind(CLIENT)
             .options(McpOpenapiOptionsConfig.builder()
                 .spec()
@@ -2647,7 +2647,7 @@ public class McpOpenapiCompositeGeneratorTest
         McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
         BindingConfig mcpHttp = composite.namespaces.get(0).bindings.stream()
-            .filter(b -> "mcp_http0".equals(b.name))
+            .filter(b -> "mcp-http0".equals(b.name))
             .findFirst()
             .orElse(null);
         McpHttpOptionsConfig mcpHttpOptions = (McpHttpOptionsConfig) mcpHttp.options;
@@ -2662,8 +2662,8 @@ public class McpOpenapiCompositeGeneratorTest
     {
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
-            .name("mcp_openapi0")
-            .type("mcp_openapi")
+            .name("mcp-openapi0")
+            .type("mcp-openapi")
             .kind(CLIENT)
             .options(McpOpenapiOptionsConfig.builder()
                 .spec()
@@ -2698,7 +2698,7 @@ public class McpOpenapiCompositeGeneratorTest
         McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
         BindingConfig mcpHttp = composite.namespaces.get(0).bindings.stream()
-            .filter(b -> "mcp_http0".equals(b.name))
+            .filter(b -> "mcp-http0".equals(b.name))
             .findFirst()
             .orElse(null);
         McpHttpOptionsConfig mcpHttpOptions = (McpHttpOptionsConfig) mcpHttp.options;
@@ -2712,8 +2712,8 @@ public class McpOpenapiCompositeGeneratorTest
     {
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
-            .name("mcp_openapi0")
-            .type("mcp_openapi")
+            .name("mcp-openapi0")
+            .type("mcp-openapi")
             .kind(CLIENT)
             .options(McpOpenapiOptionsConfig.builder()
                 .spec()
@@ -2739,7 +2739,7 @@ public class McpOpenapiCompositeGeneratorTest
         McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
         BindingConfig mcpHttp = composite.namespaces.get(0).bindings.stream()
-            .filter(b -> "mcp_http0".equals(b.name))
+            .filter(b -> "mcp-http0".equals(b.name))
             .findFirst()
             .orElse(null);
         McpHttpOptionsConfig mcpHttpOptions = (McpHttpOptionsConfig) mcpHttp.options;
@@ -2755,8 +2755,8 @@ public class McpOpenapiCompositeGeneratorTest
 
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
-            .name("mcp_openapi0")
-            .type("mcp_openapi")
+            .name("mcp-openapi0")
+            .type("mcp-openapi")
             .kind(CLIENT)
             .options(McpOpenapiOptionsConfig.builder()
                 .spec()
@@ -2780,7 +2780,7 @@ public class McpOpenapiCompositeGeneratorTest
         McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
         BindingConfig mcpHttp = composite.namespaces.get(0).bindings.stream()
-            .filter(b -> "mcp_http0".equals(b.name))
+            .filter(b -> "mcp-http0".equals(b.name))
             .findFirst()
             .orElse(null);
         McpHttpOptionsConfig mcpHttpOptions = (McpHttpOptionsConfig) mcpHttp.options;
@@ -2796,8 +2796,8 @@ public class McpOpenapiCompositeGeneratorTest
 
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
-            .name("mcp_openapi0")
-            .type("mcp_openapi")
+            .name("mcp-openapi0")
+            .type("mcp-openapi")
             .kind(CLIENT)
             .options(McpOpenapiOptionsConfig.builder()
                 .spec()
@@ -2826,7 +2826,7 @@ public class McpOpenapiCompositeGeneratorTest
 
         NamespaceConfig namespace = composite.namespaces.get(0);
         BindingConfig mcpHttp = namespace.bindings.stream()
-            .filter(b -> "mcp_http0".equals(b.name))
+            .filter(b -> "mcp-http0".equals(b.name))
             .findFirst()
             .orElse(null);
         McpHttpOptionsConfig mcpHttpOptions = (McpHttpOptionsConfig) mcpHttp.options;
@@ -2867,8 +2867,8 @@ public class McpOpenapiCompositeGeneratorTest
 
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
-            .name("mcp_openapi0")
-            .type("mcp_openapi")
+            .name("mcp-openapi0")
+            .type("mcp-openapi")
             .kind(CLIENT)
             .options(McpOpenapiOptionsConfig.builder()
                 .spec()
@@ -2901,7 +2901,7 @@ public class McpOpenapiCompositeGeneratorTest
         McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
         BindingConfig mcpHttp = composite.namespaces.get(0).bindings.stream()
-            .filter(b -> "mcp_http0".equals(b.name))
+            .filter(b -> "mcp-http0".equals(b.name))
             .findFirst()
             .orElse(null);
         McpHttpOptionsConfig mcpHttpOptions = (McpHttpOptionsConfig) mcpHttp.options;
@@ -2923,8 +2923,8 @@ public class McpOpenapiCompositeGeneratorTest
 
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
-            .name("mcp_openapi0")
-            .type("mcp_openapi")
+            .name("mcp-openapi0")
+            .type("mcp-openapi")
             .kind(CLIENT)
             .options(McpOpenapiOptionsConfig.builder()
                 .spec()
@@ -2948,7 +2948,7 @@ public class McpOpenapiCompositeGeneratorTest
         McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
         BindingConfig mcpHttp = composite.namespaces.get(0).bindings.stream()
-            .filter(b -> "mcp_http0".equals(b.name))
+            .filter(b -> "mcp-http0".equals(b.name))
             .findFirst()
             .orElse(null);
         McpHttpOptionsConfig mcpHttpOptions = (McpHttpOptionsConfig) mcpHttp.options;
@@ -2986,8 +2986,8 @@ public class McpOpenapiCompositeGeneratorTest
 
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
-            .name("mcp_openapi0")
-            .type("mcp_openapi")
+            .name("mcp-openapi0")
+            .type("mcp-openapi")
             .kind(CLIENT)
             .options(McpOpenapiOptionsConfig.builder()
                 .spec()
@@ -3015,7 +3015,7 @@ public class McpOpenapiCompositeGeneratorTest
         McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
         BindingConfig mcpHttp = composite.namespaces.get(0).bindings.stream()
-            .filter(b -> "mcp_http0".equals(b.name))
+            .filter(b -> "mcp-http0".equals(b.name))
             .findFirst()
             .orElse(null);
         McpHttpOptionsConfig mcpHttpOptions = (McpHttpOptionsConfig) mcpHttp.options;
@@ -3036,8 +3036,8 @@ public class McpOpenapiCompositeGeneratorTest
 
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
-            .name("mcp_openapi0")
-            .type("mcp_openapi")
+            .name("mcp-openapi0")
+            .type("mcp-openapi")
             .kind(CLIENT)
             .options(McpOpenapiOptionsConfig.builder()
                 .spec()
@@ -3072,7 +3072,7 @@ public class McpOpenapiCompositeGeneratorTest
         McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
         BindingConfig mcpHttp = composite.namespaces.get(0).bindings.stream()
-            .filter(b -> "mcp_http0".equals(b.name))
+            .filter(b -> "mcp-http0".equals(b.name))
             .findFirst()
             .orElse(null);
         McpHttpOptionsConfig mcpHttpOptions = (McpHttpOptionsConfig) mcpHttp.options;

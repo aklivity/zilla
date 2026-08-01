@@ -172,7 +172,7 @@ public class McpKafkaProxyFactoryTest
         final BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("mcp0")
-            .type("mcp_kafka")
+            .type("mcp-kafka")
             .kind(KindConfig.PROXY)
             .routes(List.of(route))
             .build();

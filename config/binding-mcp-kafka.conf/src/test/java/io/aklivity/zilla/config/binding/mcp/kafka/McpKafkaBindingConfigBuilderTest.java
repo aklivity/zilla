@@ -35,7 +35,7 @@ public class McpKafkaBindingConfigBuilderTest
     {
         McpKafkaBindingConfig binding = McpKafkaBindingConfig.builder()
             .namespace("test")
-            .name("mcp_kafka0")
+            .name("mcp-kafka0")
             .kind(SERVER)
             .options()
                 .server()
@@ -51,7 +51,7 @@ public class McpKafkaBindingConfigBuilderTest
             .build();
 
         assertThat(binding.namespace, equalTo("test"));
-        assertThat(binding.name, equalTo("mcp_kafka0"));
+        assertThat(binding.name, equalTo("mcp-kafka0"));
         assertThat(binding.type, equalTo(McpKafkaBindingInfo.TYPE));
         assertThat(binding.kind, equalTo(SERVER));
 

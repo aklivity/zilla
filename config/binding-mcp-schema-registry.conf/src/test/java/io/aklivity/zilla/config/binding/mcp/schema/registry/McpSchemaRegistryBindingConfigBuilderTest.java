@@ -35,7 +35,7 @@ public class McpSchemaRegistryBindingConfigBuilderTest
     {
         McpSchemaRegistryBindingConfig binding = McpSchemaRegistryBindingConfig.builder()
             .namespace("test")
-            .name("mcp_schema_registry0")
+            .name("mcp-schema-registry0")
             .kind(SERVER)
             .options()
                 .server("test")
@@ -48,7 +48,7 @@ public class McpSchemaRegistryBindingConfigBuilderTest
             .build();
 
         assertThat(binding.namespace, equalTo("test"));
-        assertThat(binding.name, equalTo("mcp_schema_registry0"));
+        assertThat(binding.name, equalTo("mcp-schema-registry0"));
         assertThat(binding.type, equalTo(McpSchemaRegistryBindingInfo.TYPE));
         assertThat(binding.kind, equalTo(SERVER));
 
