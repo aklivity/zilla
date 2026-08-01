@@ -135,4 +135,75 @@ public class McpToolTitleDisambiguatorTest
         assertEquals("{\"name\":\"bluesky__send_message\"}", fragments.get("bluesky__"));
         assertEquals("{\"name\":\"quartz__send_message\",\"title\":\"Send Message\"}", fragments.get("quartz__"));
     }
+
+    @Test
+    public void shouldFallBackToAnnotationsTitleWhenTopLevelTitleAbsent()
+    {
+        final Map<String, String> fragments = new LinkedHashMap<>();
+        fragments.put("bluesky__",
+            "{\"name\":\"bluesky__send_message\",\"annotations\":{\"title\":\"Send Message\",\"readOnlyHint\":true}}");
+        fragments.put("quartz__", "{\"name\":\"quartz__send_message\",\"annotations\":{\"title\":\"Send Message\"}}");
+        final Map<String, String> toolkits = Map.of("bluesky__", "bluesky", "quartz__", "quartz");
+
+        McpToolTitleDisambiguator.disambiguate(fragments, toolkits);
+
+        assertEquals(
+            "{\"name\":\"bluesky__send_message\"," +
+            "\"annotations\":{\"title\":\"Send Message (bluesky)\",\"readOnlyHint\":true}}",
+            fragments.get("bluesky__"));
+        assertEquals(
+            "{\"name\":\"quartz__send_message\",\"annotations\":{\"title\":\"Send Message (quartz)\"}}",
+            fragments.get("quartz__"));
+    }
+
+    @Test
+    public void shouldPreferTopLevelTitleOverAnnotationsTitleForCollisionAndRewrite()
+    {
+        final Map<String, String> fragments = new LinkedHashMap<>();
+        fragments.put("bluesky__",
+            "{\"name\":\"bluesky__send_message\",\"title\":\"Send Message\"," +
+            "\"annotations\":{\"title\":\"Different Title\"}}");
+        fragments.put("quartz__", "{\"name\":\"quartz__send_message\",\"title\":\"Send Message\"}");
+        final Map<String, String> toolkits = Map.of("bluesky__", "bluesky", "quartz__", "quartz");
+
+        McpToolTitleDisambiguator.disambiguate(fragments, toolkits);
+
+        assertEquals(
+            "{\"name\":\"bluesky__send_message\",\"title\":\"Send Message (bluesky)\"," +
+            "\"annotations\":{\"title\":\"Different Title\"}}",
+            fragments.get("bluesky__"));
+        assertEquals("{\"name\":\"quartz__send_message\",\"title\":\"Send Message (quartz)\"}", fragments.get("quartz__"));
+    }
+
+    @Test
+    public void shouldDisambiguateAcrossTopLevelTitleAndAnnotationsTitleFallback()
+    {
+        final Map<String, String> fragments = new LinkedHashMap<>();
+        fragments.put("bluesky__", "{\"name\":\"bluesky__send_message\",\"title\":\"Send Message\"}");
+        fragments.put("quartz__", "{\"name\":\"quartz__send_message\",\"annotations\":{\"title\":\"Send Message\"}}");
+        final Map<String, String> toolkits = Map.of("bluesky__", "bluesky", "quartz__", "quartz");
+
+        McpToolTitleDisambiguator.disambiguate(fragments, toolkits);
+
+        assertEquals("{\"name\":\"bluesky__send_message\",\"title\":\"Send Message (bluesky)\"}", fragments.get("bluesky__"));
+        assertEquals(
+            "{\"name\":\"quartz__send_message\",\"annotations\":{\"title\":\"Send Message (quartz)\"}}",
+            fragments.get("quartz__"));
+    }
+
+    @Test
+    public void shouldLeaveItemsWithoutTitleOrAnnotationsTitleUnchanged()
+    {
+        final Map<String, String> fragments = new LinkedHashMap<>();
+        fragments.put("bluesky__", "{\"name\":\"bluesky__send_message\",\"annotations\":{\"readOnlyHint\":true}}");
+        fragments.put("quartz__", "{\"name\":\"quartz__send_message\",\"annotations\":{\"title\":\"Send Message\"}}");
+        final Map<String, String> toolkits = Map.of("bluesky__", "bluesky", "quartz__", "quartz");
+
+        McpToolTitleDisambiguator.disambiguate(fragments, toolkits);
+
+        assertEquals("{\"name\":\"bluesky__send_message\",\"annotations\":{\"readOnlyHint\":true}}", fragments.get("bluesky__"));
+        assertEquals(
+            "{\"name\":\"quartz__send_message\",\"annotations\":{\"title\":\"Send Message\"}}",
+            fragments.get("quartz__"));
+    }
 }
