@@ -507,6 +507,41 @@ public class McpKafkaProxyFactory implements BindingHandler
         receiver.accept(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof());
     }
 
+    /**
+     * Windowed variant of {@link #doBegin}, threading real {@code sequence}/{@code acknowledge}/
+     * {@code maximum} through instead of hardcoding zero - required by any reply the caller's
+     * granted window might not fit in a single frame, e.g. {@link McpToolsListProxy}. Mirrors
+     * {@code McpProxyListFactory}'s own {@code doBegin} in {@code binding-mcp}.
+     */
+    private void doBegin(
+        MessageConsumer receiver,
+        long originId,
+        long routedId,
+        long streamId,
+        long sequence,
+        long acknowledge,
+        int maximum,
+        long traceId,
+        long authorization,
+        long affinity,
+        Flyweight extension)
+    {
+        final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+            .originId(originId)
+            .routedId(routedId)
+            .streamId(streamId)
+            .sequence(sequence)
+            .acknowledge(acknowledge)
+            .maximum(maximum)
+            .traceId(traceId)
+            .authorization(authorization)
+            .affinity(affinity)
+            .extension(extension.buffer(), extension.offset(), extension.sizeof())
+            .build();
+
+        receiver.accept(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof());
+    }
+
     private void doData(
         MessageConsumer receiver,
         long originId,
@@ -559,6 +594,46 @@ public class McpKafkaProxyFactory implements BindingHandler
         receiver.accept(data.typeId(), data.buffer(), data.offset(), data.sizeof());
     }
 
+    /**
+     * Windowed variant of {@link #doData}, threading real {@code sequence}/{@code acknowledge}/
+     * {@code maximum} through instead of hardcoding zero - see {@link #doBegin} above.
+     */
+    private void doData(
+        MessageConsumer receiver,
+        long originId,
+        long routedId,
+        long streamId,
+        long sequence,
+        long acknowledge,
+        int maximum,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int flags,
+        int reserved,
+        DirectBufferEx payload,
+        int offset,
+        int length)
+    {
+        final DataFW data = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+            .originId(originId)
+            .routedId(routedId)
+            .streamId(streamId)
+            .sequence(sequence)
+            .acknowledge(acknowledge)
+            .maximum(maximum)
+            .traceId(traceId)
+            .authorization(authorization)
+            .flags(flags)
+            .budgetId(budgetId)
+            .reserved(reserved)
+            .payload(payload, offset, length)
+            .extension(emptyRO.buffer(), emptyRO.offset(), emptyRO.sizeof())
+            .build();
+
+        receiver.accept(data.typeId(), data.buffer(), data.offset(), data.sizeof());
+    }
+
     private void doEnd(
         MessageConsumer receiver,
         long originId,
@@ -589,6 +664,36 @@ public class McpKafkaProxyFactory implements BindingHandler
             .traceId(traceId)
             .authorization(authorization)
             .extension(extension.buffer(), extension.offset(), extension.sizeof())
+            .build();
+
+        receiver.accept(end.typeId(), end.buffer(), end.offset(), end.sizeof());
+    }
+
+    /**
+     * Windowed variant of {@link #doEnd}, threading real {@code sequence}/{@code acknowledge}/
+     * {@code maximum} through instead of hardcoding zero - see {@link #doBegin} above.
+     */
+    private void doEnd(
+        MessageConsumer receiver,
+        long originId,
+        long routedId,
+        long streamId,
+        long sequence,
+        long acknowledge,
+        int maximum,
+        long traceId,
+        long authorization)
+    {
+        final EndFW end = endRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+            .originId(originId)
+            .routedId(routedId)
+            .streamId(streamId)
+            .sequence(sequence)
+            .acknowledge(acknowledge)
+            .maximum(maximum)
+            .traceId(traceId)
+            .authorization(authorization)
+            .extension(emptyRO.buffer(), emptyRO.offset(), emptyRO.sizeof())
             .build();
 
         receiver.accept(end.typeId(), end.buffer(), end.offset(), end.sizeof());
@@ -1707,6 +1812,13 @@ public class McpKafkaProxyFactory implements BindingHandler
         }
     }
 
+    /**
+     * Streams {@link #toolsListPayload} to the caller across as many {@code DATA} frames as the
+     * caller's granted reply window requires, rather than assuming the whole payload always fits
+     * one frame - mirrors {@code McpProxyListFactory}'s real {@code sequence}/{@code acknowledge}/
+     * {@code maximum} tracking in {@code binding-mcp}, via the windowed {@link #doBegin}/{@link
+     * #doData}/{@link #doEnd} overloads above.
+     */
     private final class McpToolsListProxy
     {
         private final MessageConsumer mcp;
@@ -1718,6 +1830,13 @@ public class McpKafkaProxyFactory implements BindingHandler
         private final long affinity;
 
         private int state;
+
+        private long replySeq;
+        private long replyAck;
+        private int replyMax;
+        private long replyBud;
+        private int replyPad;
+        private int toolsListProgress;
 
         private McpToolsListProxy(
             MessageConsumer mcp,
@@ -1753,6 +1872,9 @@ public class McpKafkaProxyFactory implements BindingHandler
             case AbortFW.TYPE_ID:
                 onMcpAbort(abortRO.wrap(buffer, index, index + length));
                 break;
+            case WindowFW.TYPE_ID:
+                onMcpWindow(windowRO.wrap(buffer, index, index + length));
+                break;
             case ResetFW.TYPE_ID:
                 onMcpReset(resetRO.wrap(buffer, index, index + length));
                 break;
@@ -1769,7 +1891,7 @@ public class McpKafkaProxyFactory implements BindingHandler
             state = McpKafkaState.openingInitial(state);
 
             doWindow(mcp, originId, routedId, initialId, traceId, authorization, 0L, writeBuffer.capacity(), 0);
-            doToolsListReply(traceId);
+            doToolsListReplyBegin(traceId);
         }
 
         private void onMcpEnd(
@@ -1784,20 +1906,64 @@ public class McpKafkaProxyFactory implements BindingHandler
             state = McpKafkaState.closedInitial(state);
         }
 
+        private void onMcpWindow(
+            WindowFW window)
+        {
+            final long traceId = window.traceId();
+
+            replyAck = window.acknowledge();
+            replyMax = window.maximum();
+            replyBud = window.budgetId();
+            replyPad = window.padding();
+
+            flushToolsList(traceId);
+        }
+
         private void onMcpReset(
             ResetFW reset)
         {
             state = McpKafkaState.closedReply(state);
         }
 
-        private void doToolsListReply(
+        private void doToolsListReplyBegin(
             long traceId)
         {
-            doBegin(mcp, originId, routedId, replyId, traceId, authorization, affinity, emptyRO);
-            doData(mcp, originId, routedId, replyId, traceId, authorization, 0L, FLAGS_COMPLETE,
-                toolsListPayload.length, toolsListBuffer, 0, toolsListPayload.length);
-            doEnd(mcp, originId, routedId, replyId, traceId, authorization);
-            state = McpKafkaState.closedReply(state);
+            state = McpKafkaState.openingReply(state);
+            doBegin(mcp, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization, affinity,
+                emptyRO);
+        }
+
+        /**
+         * Sends as much of {@link #toolsListPayload} (starting at {@link #toolsListProgress}) as the
+         * most recently granted reply window allows, advancing {@link #replySeq}/{@link
+         * #toolsListProgress} by however much fit; waits for the next {@code WINDOW} if that isn't
+         * the whole remainder. Every fragment uses {@code FLAGS_COMPLETE} - matching
+         * {@code McpProxyListFactory#encode} in {@code binding-mcp} - since this transport
+         * concatenates reply payload bytes across frames rather than reassembling by INIT/FIN flag.
+         */
+        private void flushToolsList(
+            long traceId)
+        {
+            final int replyWin = replyMax - (int) (replySeq - replyAck) - replyPad;
+            final int remaining = toolsListPayload.length - toolsListProgress;
+            final int length = Math.min(Math.max(replyWin, 0), remaining);
+
+            if (length > 0)
+            {
+                final boolean last = toolsListProgress + length == toolsListPayload.length;
+
+                doData(mcp, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization,
+                    replyBud, FLAGS_COMPLETE, length, toolsListBuffer, toolsListProgress, length);
+
+                replySeq += length;
+                toolsListProgress += length;
+
+                if (last)
+                {
+                    doEnd(mcp, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization);
+                    state = McpKafkaState.closedReply(state);
+                }
+            }
         }
     }
 

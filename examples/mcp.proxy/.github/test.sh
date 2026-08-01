@@ -95,7 +95,15 @@
 #      needing only the toolkit-level kafka:tools scope
 #  33. kafka__list_consumer_groups succeeds against the real broker, needing
 #      only the toolkit-level kafka:tools scope
-#  34. a real MCP SDK client subscribes to an everything resource, triggers
+#  34. kafka__create_acls grants a real ACL on a dedicated test resource,
+#      gated by its own kafka:acls scope -- deliberately distinct from
+#      kafka:admin per KIP-1318's "destructive-mutate" classification of ACL
+#      mutation (see the routes[] comment in etc/zilla.yaml)
+#  35. kafka__list_acls reads that same ACL back from the real broker,
+#      needing only the toolkit-level kafka:tools scope like describe_configs
+#  36. kafka__delete_acls revokes the ACL granted above, sharing
+#      create_acls' route and kafka:acls scope
+#  37. a real MCP SDK client subscribes to an everything resource, triggers
 #      the everything server's own toggle-subscriber-updates tool, and
 #      receives a relayed notifications/resources/updated -- exercising
 #      resources/subscribe, resources/unsubscribe, and the notification
@@ -138,7 +146,7 @@ encode_jwt() {
 JWT_NONE=""
 JWT_URLELICIT=$(encode_jwt "urlelicit:authorize")
 JWT_PARTIAL=$(encode_jwt "github:tools petstore:tools kafka_sr:tools")
-JWT_FULL=$(encode_jwt "urlelicit:authorize github:tools github:pr:write petstore:tools pets:write kafka_sr:tools kafka_sr:write kafka:tools kafka:write kafka:admin")
+JWT_FULL=$(encode_jwt "urlelicit:authorize github:tools github:pr:write petstore:tools pets:write kafka_sr:tools kafka_sr:write kafka:tools kafka:write kafka:admin kafka:acls")
 
 # WHEN: a url-elicitation-capable client initializes against the gateway
 # THEN: the gateway negotiates protocol version 2025-11-25 in the response
@@ -293,6 +301,9 @@ assert_full_token() {
     echo "$TOOLS_FULL" | grep -q '^kafka__create_topics$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__delete_topics$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__describe_configs$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__list_acls$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__create_acls$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__delete_acls$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__alter_configs$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__list_topics$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__describe_topic$' &&
@@ -321,6 +332,9 @@ if echo "$TOOLS_FULL" | grep -q '^everything__' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__create_topics$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__delete_topics$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__describe_configs$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__list_acls$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__create_acls$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__delete_acls$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__alter_configs$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__list_topics$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__describe_topic$' &&
@@ -1002,6 +1016,83 @@ if echo "$KAFKA_LIST_GROUPS_OUT" | grep -qE "Consumer groups:|No consumer groups
   echo "✅ kafka__list_consumer_groups succeeded against the real Kafka broker"
 else
   echo "❌ kafka__list_consumer_groups did not succeed against the real broker"
+  EXIT=1
+fi
+
+ACL_PRINCIPAL="User:acl-test-user"
+
+# WHEN: a kafka:acls-scoped caller calls kafka__create_acls for a dedicated
+#       test resource (not the orders topic other checks above depend on --
+#       once any ACL exists for a resource, StandardAuthorizer stops
+#       implicitly allowing every other principal against that same
+#       resource, so a shared resource would risk breaking the produce/
+#       consume/admin checks above)
+# THEN: the real broker accepts the grant -- proving create_acls' own
+#       kafka:acls scope (deliberately distinct from kafka:admin per
+#       KIP-1318, see the routes[] comment in etc/zilla.yaml) is sufficient
+#       to actually invoke the tool, not just see it listed
+call_kafka_create_acls() {
+  KAFKA_CREATE_ACLS_OUT=$(docker compose run --rm --no-deps \
+      -e JWT_TOKEN="$JWT_FULL" \
+      -e MCP_URL="http://zilla:$PORT/mcp" \
+      -e CALL_TOOL="kafka__create_acls" \
+      -e CALL_ARGS="{\"acls\":[{\"resource_type\":\"topic\",\"resource_name\":\"acl-test-topic\",\"pattern_type\":\"literal\",\"principal\":\"$ACL_PRINCIPAL\",\"host\":\"*\",\"operation\":\"read\",\"permission_type\":\"allow\"}]}" \
+      tools-list-client 2>&1)
+  echo "$KAFKA_CREATE_ACLS_OUT" | grep -q 'Created 1 ACL(s)'
+}
+retry_until 10 3 call_kafka_create_acls
+echo "KAFKA_CREATE_ACLS_OUT=$KAFKA_CREATE_ACLS_OUT"
+if echo "$KAFKA_CREATE_ACLS_OUT" | grep -q 'Created 1 ACL(s)'; then
+  echo "✅ kafka__create_acls granted a real ACL on the real Kafka broker"
+else
+  echo "❌ kafka__create_acls did not succeed against the real broker"
+  EXIT=1
+fi
+
+# WHEN: a kafka:tools-scoped caller (list_acls needs no scope beyond the
+#       toolkit-level guard, sharing describe_configs' read-only route) calls
+#       kafka__list_acls filtered to the principal just granted above
+# THEN: the real broker reports the ACL created above -- proving list_acls
+#       reaches the real DescribeAcls API, not just a cached/local view
+call_kafka_list_acls() {
+  KAFKA_LIST_ACLS_OUT=$(docker compose run --rm --no-deps \
+      -e JWT_TOKEN="$JWT_FULL" \
+      -e MCP_URL="http://zilla:$PORT/mcp" \
+      -e CALL_TOOL="kafka__list_acls" \
+      -e CALL_ARGS="{\"principal\":\"$ACL_PRINCIPAL\"}" \
+      tools-list-client 2>&1)
+  echo "$KAFKA_LIST_ACLS_OUT" | grep -q "\"principal\":\"$ACL_PRINCIPAL\""
+}
+retry_until 10 3 call_kafka_list_acls
+echo "KAFKA_LIST_ACLS_OUT=$KAFKA_LIST_ACLS_OUT"
+if echo "$KAFKA_LIST_ACLS_OUT" | grep -q "\"principal\":\"$ACL_PRINCIPAL\"" &&
+    echo "$KAFKA_LIST_ACLS_OUT" | grep -q '"resource_name":"acl-test-topic"'; then
+  echo "✅ kafka__list_acls read the real ACL back from the real Kafka broker"
+else
+  echo "❌ kafka__list_acls did not report the ACL created above"
+  EXIT=1
+fi
+
+# WHEN: that same kafka:acls-scoped caller calls kafka__delete_acls for the
+#       same filter, cleaning up the ACL granted above
+# THEN: the real broker revokes it -- proving delete_acls' shared route with
+#       create_acls (one `when` list, both tools, same kafka:acls scope) is
+#       sufficient to actually invoke the tool, not just see it listed
+call_kafka_delete_acls() {
+  KAFKA_DELETE_ACLS_OUT=$(docker compose run --rm --no-deps \
+      -e JWT_TOKEN="$JWT_FULL" \
+      -e MCP_URL="http://zilla:$PORT/mcp" \
+      -e CALL_TOOL="kafka__delete_acls" \
+      -e CALL_ARGS="{\"acls\":[{\"resource_type\":\"topic\",\"resource_name\":\"acl-test-topic\",\"pattern_type\":\"literal\",\"principal\":\"$ACL_PRINCIPAL\",\"operation\":\"read\",\"permission_type\":\"allow\"}]}" \
+      tools-list-client 2>&1)
+  echo "$KAFKA_DELETE_ACLS_OUT" | grep -q 'Deleted 1 ACL(s)'
+}
+retry_until 10 3 call_kafka_delete_acls
+echo "KAFKA_DELETE_ACLS_OUT=$KAFKA_DELETE_ACLS_OUT"
+if echo "$KAFKA_DELETE_ACLS_OUT" | grep -q 'Deleted 1 ACL(s)'; then
+  echo "✅ kafka__delete_acls revoked the real ACL on the real Kafka broker"
+else
+  echo "❌ kafka__delete_acls did not succeed against the real broker"
   EXIT=1
 fi
 

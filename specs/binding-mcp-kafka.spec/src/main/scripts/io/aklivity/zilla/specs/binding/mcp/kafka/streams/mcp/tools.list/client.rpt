@@ -39,7 +39,7 @@ read notify LIFECYCLE_INITIALIZED
 
 connect await LIFECYCLE_INITIALIZED
         "zilla://streams/mcp0"
-        option zilla:window 16384
+        option zilla:window 3000
         option zilla:transmission "half-duplex"
         option zilla:authorization ${authorization}
 

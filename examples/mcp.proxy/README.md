@@ -650,16 +650,18 @@ docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
 
 **Prerequisite:** unlike every other tool in this example, the three ACL
 tools require the broker itself to have an authorizer configured
-(`authorizer.class.name`, e.g. Kafka's built-in `StandardAuthorizer`) --
-Kafka rejects `DescribeAcls`/`CreateAcls`/`DeleteAcls` outright with
-`SecurityDisabledException` ("No Authorizer is configured on the broker")
-when none is set, which is this example's `kafka` service as shipped (it
-runs with no authorizer, so every other tool call is implicitly permitted
-regardless of Kafka-side ACLs). Enabling one is an operational decision with
-consequences -- once *any* ACL exists for a resource,
-`allow.everyone.if.no.acl.found` no longer applies to that resource for
-principals with no matching ALLOW ACL of their own -- so it is left to the
-operator to enable deliberately rather than defaulted on here.
+(`authorizer.class.name`) -- Kafka rejects `DescribeAcls`/`CreateAcls`/
+`DeleteAcls` outright with `SecurityDisabledException` ("No Authorizer is
+configured on the broker") when none is set. This example's `kafka` service
+enables Kafka's built-in `StandardAuthorizer` with
+`allow.everyone.if.no.acl.found: true`, so every other tool call remains
+implicitly permitted exactly as before -- the rule only stops applying to a
+resource once an ACL actually exists for it. `create_acls` above deliberately
+targets the `orders` topic to demonstrate that consequence directly: once
+`User:bob`'s grant exists, a caller with no matching ALLOW ACL of their own
+is no longer implicitly permitted against `orders`, so revoke it with
+`delete_acls` when you are done experimenting, or subsequent `produce`/
+`consume` calls in this same broker session may be denied.
 
 `list_topics`, `describe_topic`, and `cluster_overview` are read-only
 cluster/topic metadata tools built the same way `create_topics`/
