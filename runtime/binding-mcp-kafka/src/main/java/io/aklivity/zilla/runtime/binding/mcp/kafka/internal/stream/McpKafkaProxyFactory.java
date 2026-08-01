@@ -1467,8 +1467,11 @@ public class McpKafkaProxyFactory implements BindingHandler
 
     // omits any hint that equals the MCP spec's own default (readOnlyHint: false, destructiveHint: true,
     // idempotentHint: false, openWorldHint: true) -- asserting a default-equal value costs bytes on every
-    // tools/list response for zero information a compliant client wouldn't already assume; produce and
-    // delete_topics match every default, so they emit no annotations object at all
+    // tools/list response for zero information a compliant client wouldn't already assume; produce matches
+    // every default, so it emits no annotations object at all, and create_topics only deviates on
+    // destructiveHint. delete_topics, alter_configs and reset_offsets previously relied on this same
+    // omission but shipped with a missing or incorrect destructiveHint as a result (see #2247) -- all three
+    // now declare their hints explicitly.
     private JsonObject buildToolAnnotations(
         String tool)
     {
@@ -1484,9 +1487,27 @@ public class McpKafkaProxyFactory implements BindingHandler
                 .build();
             break;
         case TOOL_CREATE_TOPICS:
-        case TOOL_ALTER_CONFIGS:
             annotations = Json.createObjectBuilder()
                 .add("destructiveHint", false)
+                .build();
+            break;
+        case TOOL_DELETE_TOPICS:
+            annotations = Json.createObjectBuilder()
+                .add("destructiveHint", true)
+                .add("idempotentHint", true)
+                .build();
+            break;
+        case TOOL_ALTER_CONFIGS:
+            annotations = Json.createObjectBuilder()
+                .add("readOnlyHint", false)
+                .add("destructiveHint", true)
+                .build();
+            break;
+        case TOOL_RESET_OFFSETS:
+            annotations = Json.createObjectBuilder()
+                .add("readOnlyHint", false)
+                .add("destructiveHint", true)
+                .add("idempotentHint", true)
                 .build();
             break;
         case TOOL_DESCRIBE_CONFIGS:
