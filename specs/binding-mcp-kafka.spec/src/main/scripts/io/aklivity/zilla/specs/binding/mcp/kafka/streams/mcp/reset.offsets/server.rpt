@@ -46,17 +46,17 @@ read zilla:begin.ext ${mcp:matchBeginEx()
                           .toolsCall()
                               .sessionId("session-1")
                               .name("reset_offsets")
-                              .contentLength(103)
+                              .contentLength(106)
                               .build()
                           .build()}
 
 connected
 
-read '{"name":"reset_offsets","arguments":{"group":"my-group","topic":"my-topic","partition":0,"offset":100}}'
+read '{"name":"reset_offsets","arguments":{"group_id":"my-group","topic":"my-topic","partition":0,"offset":100}}'
 
 write flush
 
-write '{"structuredContent":{"group":"my-group","topic":"my-topic","reset":false},'
+write '{"structuredContent":{"group_id":"my-group","topic":"my-topic","reset":false},'
       '"content":[{"type":"text","text":"Consumer group my-group has active members (state Stable); cannot reset offsets"}],'
       '"isError":true}'
 write flush
