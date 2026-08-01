@@ -25,7 +25,7 @@ import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public final class McpKafkaBindingInfo implements BindingInfo
 {
-    public static final String TYPE = "mcp_kafka";
+    public static final String TYPE = "mcp-kafka";
 
     @Override
     public String type()

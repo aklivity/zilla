@@ -48,7 +48,7 @@ write zilla:begin.ext ${mcp:beginEx()
 
 connected
 
-# tools/list answered from the generated mcp_openapi config, without any call
+# tools/list answered from the generated mcp-openapi config, without any call
 # reaching Karapace -- the fixed nine-tool set is known statically from the
 # bundled spec's routes.
 read  '{"tools":[{"name":"list_subjects","description":"list_subjects","inputSchema":{"type":"object","properties":{}},'

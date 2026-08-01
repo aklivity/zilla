@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.config.binding.mcp.schema.registry;
 
+import java.util.List;
 import java.util.function.Function;
 
 import io.aklivity.zilla.config.engine.ConditionConfig;
@@ -24,7 +25,7 @@ public final class McpSchemaRegistryConditionConfigBuilder<T> extends
 {
     private final Function<ConditionConfig, T> mapper;
 
-    private String tool;
+    private List<String> tool;
 
     McpSchemaRegistryConditionConfigBuilder(
         Function<ConditionConfig, T> mapper)
@@ -40,7 +41,7 @@ public final class McpSchemaRegistryConditionConfigBuilder<T> extends
     }
 
     public McpSchemaRegistryConditionConfigBuilder<T> tool(
-        String tool)
+        List<String> tool)
     {
         this.tool = tool;
         return this;

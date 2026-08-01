@@ -48,7 +48,7 @@ catalogs:
             }
 bindings:
   app0:
-    type: mcp_http
+    type: mcp-http
     kind: proxy
     options:
       tools:

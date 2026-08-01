@@ -20,7 +20,7 @@ import io.aklivity.zilla.runtime.engine.binding.Binding;
 
 public final class McpSchemaRegistryBinding implements Binding
 {
-    public static final String TYPE = "mcp_schema_registry";
+    public static final String TYPE = "mcp-schema-registry";
 
     private final McpSchemaRegistryConfiguration config;
 
