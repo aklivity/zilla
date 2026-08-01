@@ -850,11 +850,11 @@ public class McpKafkaProxyFactory implements BindingHandler
             schema = Json.createObjectBuilder()
                 .add("type", "object")
                 .add("properties", Json.createObjectBuilder()
-                    .add("group", Json.createObjectBuilder().add("type", "string"))
+                    .add("group_id", Json.createObjectBuilder().add("type", "string"))
                     .add("topic", Json.createObjectBuilder().add("type", "string"))
                     .add("partition", Json.createObjectBuilder().add("type", "integer"))
                     .add("offset", Json.createObjectBuilder().add("type", "integer")))
-                .add("required", Json.createArrayBuilder().add("group").add("topic").add("partition").add("offset"))
+                .add("required", Json.createArrayBuilder().add("group_id").add("topic").add("partition").add("offset"))
                 .build();
             break;
         default:
@@ -1073,10 +1073,10 @@ public class McpKafkaProxyFactory implements BindingHandler
             schema = Json.createObjectBuilder()
                 .add("type", "object")
                 .add("properties", Json.createObjectBuilder()
-                    .add("group", Json.createObjectBuilder().add("type", "string"))
+                    .add("group_id", Json.createObjectBuilder().add("type", "string"))
                     .add("topic", Json.createObjectBuilder().add("type", "string"))
                     .add("reset", Json.createObjectBuilder().add("type", "boolean")))
-                .add("required", Json.createArrayBuilder().add("group").add("topic").add("reset"))
+                .add("required", Json.createArrayBuilder().add("group_id").add("topic").add("reset"))
                 .build();
             break;
         default:
@@ -1088,8 +1088,11 @@ public class McpKafkaProxyFactory implements BindingHandler
 
     // omits any hint that equals the MCP spec's own default (readOnlyHint: false, destructiveHint: true,
     // idempotentHint: false, openWorldHint: true) -- asserting a default-equal value costs bytes on every
-    // tools/list response for zero information a compliant client wouldn't already assume; produce and
-    // delete_topics match every default, so they emit no annotations object at all
+    // tools/list response for zero information a compliant client wouldn't already assume; produce matches
+    // every default, so it emits no annotations object at all, and create_topics only deviates on
+    // destructiveHint. delete_topics, alter_configs and reset_offsets previously relied on this same
+    // omission but shipped with a missing or incorrect destructiveHint as a result (see #2247) -- all three
+    // now declare their hints explicitly.
     private JsonObject buildToolAnnotations(
         String tool)
     {
@@ -1105,9 +1108,27 @@ public class McpKafkaProxyFactory implements BindingHandler
                 .build();
             break;
         case TOOL_CREATE_TOPICS:
-        case TOOL_ALTER_CONFIGS:
             annotations = Json.createObjectBuilder()
                 .add("destructiveHint", false)
+                .build();
+            break;
+        case TOOL_DELETE_TOPICS:
+            annotations = Json.createObjectBuilder()
+                .add("destructiveHint", true)
+                .add("idempotentHint", true)
+                .build();
+            break;
+        case TOOL_ALTER_CONFIGS:
+            annotations = Json.createObjectBuilder()
+                .add("readOnlyHint", false)
+                .add("destructiveHint", true)
+                .build();
+            break;
+        case TOOL_RESET_OFFSETS:
+            annotations = Json.createObjectBuilder()
+                .add("readOnlyHint", false)
+                .add("destructiveHint", true)
+                .add("idempotentHint", true)
                 .build();
             break;
         case TOOL_DESCRIBE_CONFIGS:
@@ -2150,12 +2171,12 @@ public class McpKafkaProxyFactory implements BindingHandler
         private void completeResetOffsetsArgs(
             long traceId)
         {
-            final String group = capturedArgs.get("arguments.group");
+            final String groupId = capturedArgs.get("arguments.group_id");
             final String topic = capturedArgs.get("arguments.topic");
             final int partition = parseInt(capturedArgs.get("arguments.partition"), -1);
             final long offset = parseLong(capturedArgs.get("arguments.offset"), -1L);
 
-            if (group != null && topic != null && partition >= 0 && offset >= 0)
+            if (groupId != null && topic != null && partition >= 0 && offset >= 0)
             {
                 final McpKafkaRouteConfig route = binding.resolve(authorization, tool, null);
                 if (route != null)
@@ -2163,7 +2184,7 @@ public class McpKafkaProxyFactory implements BindingHandler
                     resolvedId = route.id;
 
                     final KafkaApiResetOffsetsClient client = new KafkaApiResetOffsetsClient(
-                        this, originId, resolvedId, affinity, authorization, group, topic, partition, offset);
+                        this, originId, resolvedId, affinity, authorization, groupId, topic, partition, offset);
                     client.doKafkaBegin(traceId);
                     kafka = client;
                 }
@@ -6452,7 +6473,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         private final long resolvedId;
         private final long affinity;
         private final long authorization;
-        private final String group;
+        private final String groupId;
         private final String topic;
         private final int partition;
         private final long offset;
@@ -6485,7 +6506,7 @@ public class McpKafkaProxyFactory implements BindingHandler
             long resolvedId,
             long affinity,
             long authorization,
-            String group,
+            String groupId,
             String topic,
             int partition,
             long offset)
@@ -6495,12 +6516,12 @@ public class McpKafkaProxyFactory implements BindingHandler
             this.resolvedId = resolvedId;
             this.affinity = affinity;
             this.authorization = authorization;
-            this.group = group;
+            this.groupId = groupId;
             this.topic = topic;
             this.partition = partition;
             this.offset = offset;
-            this.describeGroupsSource = new SingleGroupSource(group);
-            this.findCoordinatorRequestLength = KafkaFindCoordinatorRequest.sizeof(group, FIND_COORDINATOR_API_VERSION);
+            this.describeGroupsSource = new SingleGroupSource(groupId);
+            this.findCoordinatorRequestLength = KafkaFindCoordinatorRequest.sizeof(groupId, FIND_COORDINATOR_API_VERSION);
             this.describeGroupsRequestLength =
                 KafkaDescribeGroupsRequest.sizeof(describeGroupsSource, DESCRIBE_GROUPS_API_VERSION);
             this.stage = STAGE_FIND_COORDINATOR;
@@ -6654,7 +6675,7 @@ public class McpKafkaProxyFactory implements BindingHandler
 
             if (response.error() != 0)
             {
-                emitResult(traceId, false, "Group coordinator not found for " + group + " (error " + response.error() + ")");
+                emitResult(traceId, false, "Group coordinator not found for " + groupId + " (error " + response.error() + ")");
             }
             else
             {
@@ -6688,12 +6709,12 @@ public class McpKafkaProxyFactory implements BindingHandler
 
             if (groupError != 0)
             {
-                emitResult(traceId, false, "Failed to describe consumer group " + group + " (error " + groupError + ")");
+                emitResult(traceId, false, "Failed to describe consumer group " + groupId + " (error " + groupError + ")");
             }
             else if (!RESETTABLE_GROUP_STATES.contains(groupState))
             {
                 emitResult(traceId, false,
-                    "Consumer group " + group + " has active members (state " + groupState + "); cannot reset offsets");
+                    "Consumer group " + groupId + " has active members (state " + groupState + "); cannot reset offsets");
             }
             else
             {
@@ -6736,7 +6757,7 @@ public class McpKafkaProxyFactory implements BindingHandler
             final KafkaBeginExFW kafkaBeginEx = kafkaBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(kafkaTypeId)
                 .offsetCommit(o -> o
-                    .groupId(group)
+                    .groupId(groupId)
                     .memberId("")
                     .instanceId("")
                     .host(coordinatorHost)
@@ -6817,7 +6838,7 @@ public class McpKafkaProxyFactory implements BindingHandler
                 final MutableDirectBufferEx slot = encodePool.buffer(encodeSlot);
                 final boolean fits = findCoordinatorRequestLength <= slot.capacity();
                 findCoordinatorRequestGenerator.wrap(slot, 0, slot.capacity());
-                final boolean built = fits && findCoordinatorRequestGenerator.generate(group);
+                final boolean built = fits && findCoordinatorRequestGenerator.generate(groupId);
 
                 if (built)
                 {
@@ -6901,7 +6922,7 @@ public class McpKafkaProxyFactory implements BindingHandler
                     : null;
                 final int error = kafkaResetEx != null ? kafkaResetEx.error() : 0;
 
-                emitResult(traceId, false, "Failed to reset offset for group " + group + " (error " + error + ")");
+                emitResult(traceId, false, "Failed to reset offset for group " + groupId + " (error " + error + ")");
             }
             else
             {
@@ -6926,12 +6947,12 @@ public class McpKafkaProxyFactory implements BindingHandler
                 apiResultGenerator.wrap(encodeBuffer, 0, encodeBuffer.capacity());
 
                 final String text = success
-                    ? "Reset offset for group " + group + " topic " + topic + " partition " + partition + " to " + offset
+                    ? "Reset offset for group " + groupId + " topic " + topic + " partition " + partition + " to " + offset
                     : failureMessage;
 
                 apiResultGenerator.writeStartObject()
                     .writeStartObject("structuredContent")
-                    .write("group", group)
+                    .write("group_id", groupId)
                     .write("topic", topic)
                     .write("reset", success)
                     .writeEnd()
