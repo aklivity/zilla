@@ -25,6 +25,7 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpFlu
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.LongFunction;
@@ -296,6 +297,7 @@ public final class McpProxyCacheHydrater
         private final HandlerImpl handler;
         private final int kind;
         private final List<String> prefixes;
+        private final Map<String, String> toolkitsByPrefix;
         private final List<McpListRouteSink> sinks;
 
         private int pending;
@@ -308,6 +310,7 @@ public final class McpProxyCacheHydrater
             this.handler = handler;
             this.kind = kind;
             this.prefixes = new ArrayList<>();
+            this.toolkitsByPrefix = new HashMap<>();
             this.sinks = new ArrayList<>();
         }
 
@@ -358,7 +361,9 @@ public final class McpProxyCacheHydrater
 
             for (McpRoutePrefix route : routes)
             {
-                prefixes.add(route.prefix().asString());
+                final String prefix = route.prefix().asString();
+                prefixes.add(prefix);
+                toolkitsByPrefix.put(prefix, route.route().toolkit());
             }
 
             if (routes.isEmpty())
@@ -411,6 +416,10 @@ public final class McpProxyCacheHydrater
             }
             else
             {
+                if (kind == KIND_TOOLS_LIST)
+                {
+                    listCache.disambiguateTitles(toolkitsByPrefix);
+                }
                 final McpProxyListFactory listFactory = listFactories.get(kind);
                 listCache.putAssembled(listFactory.hydrationPrelude(), listFactory.hydrationClose(),
                     prefixes, k -> terminal(failedAny));
