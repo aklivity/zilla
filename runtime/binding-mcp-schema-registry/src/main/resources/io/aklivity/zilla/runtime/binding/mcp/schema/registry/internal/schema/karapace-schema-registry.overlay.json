@@ -1,0 +1,108 @@
+{
+    "overlay": "1.0.0",
+    "info": {
+        "title": "Schema Registry API MCP annotations",
+        "version": "1.0"
+    },
+    "actions": [
+        {
+            "target": "$.paths['/subjects'].get",
+            "update": {
+                "x-mcp-annotations": {
+                    "title": "List Subjects",
+                    "readOnlyHint": true,
+                    "destructiveHint": false,
+                    "idempotentHint": true
+                }
+            }
+        },
+        {
+            "target": "$.paths['/subjects/{subject}/versions'].get",
+            "update": {
+                "x-mcp-annotations": {
+                    "title": "Describe Subject",
+                    "readOnlyHint": true,
+                    "destructiveHint": false,
+                    "idempotentHint": true
+                }
+            }
+        },
+        {
+            "target": "$.paths['/subjects/{subject}/versions'].post",
+            "update": {
+                "x-mcp-annotations": {
+                    "title": "Register Schema",
+                    "readOnlyHint": false,
+                    "destructiveHint": false,
+                    "idempotentHint": false
+                }
+            }
+        },
+        {
+            "target": "$.paths['/subjects/{subject}/versions/{version}'].get",
+            "update": {
+                "x-mcp-annotations": {
+                    "title": "Get Schema",
+                    "readOnlyHint": true,
+                    "destructiveHint": false,
+                    "idempotentHint": true
+                }
+            }
+        },
+        {
+            "target": "$.paths['/subjects/{subject}/versions/{version}'].delete",
+            "update": {
+                "x-mcp-annotations": {
+                    "title": "Delete Schema Version",
+                    "readOnlyHint": false,
+                    "destructiveHint": true,
+                    "idempotentHint": true
+                }
+            }
+        },
+        {
+            "target": "$.paths['/subjects/{subject}'].delete",
+            "update": {
+                "x-mcp-annotations": {
+                    "title": "Delete Subject",
+                    "readOnlyHint": false,
+                    "destructiveHint": true,
+                    "idempotentHint": true
+                }
+            }
+        },
+        {
+            "target": "$.paths['/compatibility/subjects/{subject}/versions/{version}'].post",
+            "update": {
+                "x-mcp-annotations": {
+                    "title": "Check Compatibility",
+                    "readOnlyHint": true,
+                    "destructiveHint": false,
+                    "idempotentHint": true
+                }
+            }
+        },
+        {
+            "target": "$.paths['/config/{subject}'].get",
+            "update": {
+                "x-mcp-annotations": {
+                    "title": "Get Compatibility",
+                    "readOnlyHint": true,
+                    "destructiveHint": false,
+                    "idempotentHint": true
+                }
+            }
+        },
+        {
+            "target": "$.paths['/config/{subject}'].put",
+            "update": {
+                "x-mcp-annotations": {
+                    "title": "Set Compatibility",
+                    "readOnlyHint": false,
+                    "destructiveHint": false,
+                    "idempotentHint": true
+                }
+            }
+        }
+    ]
+}

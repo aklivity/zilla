@@ -39,19 +39,24 @@ public final class McpSchemaRegistryCompositeGenerator
 {
     private static final String BUNDLED_SPEC_RESOURCE =
         "/io/aklivity/zilla/runtime/binding/mcp/schema/registry/internal/schema/karapace-schema-registry.openapi.json";
-    private static final String CATALOG_NAME = "catalog0";
+    private static final String BUNDLED_OVERLAY_RESOURCE =
+        "/io/aklivity/zilla/runtime/binding/mcp/schema/registry/internal/schema/karapace-schema-registry.overlay.json";
+    private static final String CATALOG_NAME = "specs";
+    private static final String OVERLAY_CATALOG_NAME = "overlays";
     private static final String BINDING_NAME = "mcp-openapi0";
-    private static final String SUBJECT_NAME = "schemaregistry";
+    private static final String SUBJECT_NAME = "schema-registry";
 
     private static final List<String> TOOLS = List.of(
         "list_subjects", "describe_subject", "get_schema", "register_schema", "delete_subject",
         "delete_schema_version", "check_compatibility", "get_compatibility", "set_compatibility");
 
     private final String bundledSpec;
+    private final String bundledOverlay;
 
     public McpSchemaRegistryCompositeGenerator()
     {
-        this.bundledSpec = loadBundledSpec();
+        this.bundledSpec = loadBundledResource(BUNDLED_SPEC_RESOURCE);
+        this.bundledOverlay = loadBundledResource(BUNDLED_OVERLAY_RESOURCE);
     }
 
     public McpSchemaRegistryCompositeConfig generate(
@@ -72,6 +77,17 @@ public final class McpSchemaRegistryCompositeGenerator
                         .build()
                     .build()
                 .build()
+            .catalog()
+                .name(OVERLAY_CATALOG_NAME)
+                .type("inline")
+                .options(InlineOptionsConfig::builder)
+                    .schema()
+                        .subject(SUBJECT_NAME)
+                        .version("latest")
+                        .schema(bundledOverlay)
+                        .build()
+                    .build()
+                .build()
             .binding(McpOpenapiBindingConfig::builder)
                 .name(BINDING_NAME)
                 .kind(binding.kind)
@@ -82,6 +98,11 @@ public final class McpSchemaRegistryCompositeGenerator
                         .server(server)
                         .catalog()
                             .name(CATALOG_NAME)
+                            .subject(SUBJECT_NAME)
+                            .version("latest")
+                            .build()
+                        .overlay()
+                            .name(OVERLAY_CATALOG_NAME)
                             .subject(SUBJECT_NAME)
                             .version("latest")
                             .build()
@@ -160,17 +181,18 @@ public final class McpSchemaRegistryCompositeGenerator
         return guarded;
     }
 
-    private static String loadBundledSpec()
+    private static String loadBundledResource(
+        String resource)
     {
-        String schema;
-        try (InputStream input = McpSchemaRegistryCompositeGenerator.class.getResourceAsStream(BUNDLED_SPEC_RESOURCE))
+        String content;
+        try (InputStream input = McpSchemaRegistryCompositeGenerator.class.getResourceAsStream(resource))
         {
-            schema = new String(input.readAllBytes(), StandardCharsets.UTF_8);
+            content = new String(input.readAllBytes(), StandardCharsets.UTF_8);
         }
         catch (IOException ex)
         {
             throw new UncheckedIOException(ex);
         }
-        return schema;
+        return content;
     }
 }

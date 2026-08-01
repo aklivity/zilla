@@ -39,9 +39,12 @@ public final class McpKafkaConnectCompositeGenerator
 {
     private static final String BUNDLED_SPEC_RESOURCE =
         "/io/aklivity/zilla/runtime/binding/mcp/kafka/connect/internal/schema/kafka-connect.openapi.json";
-    private static final String CATALOG_NAME = "catalog0";
+    private static final String BUNDLED_OVERLAY_RESOURCE =
+        "/io/aklivity/zilla/runtime/binding/mcp/kafka/connect/internal/schema/kafka-connect.overlay.json";
+    private static final String CATALOG_NAME = "specs";
+    private static final String OVERLAY_CATALOG_NAME = "overlays";
     private static final String BINDING_NAME = "mcp-openapi0";
-    private static final String SUBJECT_NAME = "kafkaconnect";
+    private static final String SUBJECT_NAME = "kafka-connect";
 
     private static final List<String> TOOLS = List.of(
         "list_connectors", "create_connector", "describe_connector", "delete_connector",
@@ -52,10 +55,12 @@ public final class McpKafkaConnectCompositeGenerator
         "list_connector_plugins");
 
     private final String bundledSpec;
+    private final String bundledOverlay;
 
     public McpKafkaConnectCompositeGenerator()
     {
-        this.bundledSpec = loadBundledSpec();
+        this.bundledSpec = loadBundledResource(BUNDLED_SPEC_RESOURCE);
+        this.bundledOverlay = loadBundledResource(BUNDLED_OVERLAY_RESOURCE);
     }
 
     public McpKafkaConnectCompositeConfig generate(
@@ -76,6 +81,17 @@ public final class McpKafkaConnectCompositeGenerator
                         .build()
                     .build()
                 .build()
+            .catalog()
+                .name(OVERLAY_CATALOG_NAME)
+                .type("inline")
+                .options(InlineOptionsConfig::builder)
+                    .schema()
+                        .subject(SUBJECT_NAME)
+                        .version("latest")
+                        .schema(bundledOverlay)
+                        .build()
+                    .build()
+                .build()
             .binding(McpOpenapiBindingConfig::builder)
                 .name(BINDING_NAME)
                 .kind(binding.kind)
@@ -86,6 +102,11 @@ public final class McpKafkaConnectCompositeGenerator
                         .server(server)
                         .catalog()
                             .name(CATALOG_NAME)
+                            .subject(SUBJECT_NAME)
+                            .version("latest")
+                            .build()
+                        .overlay()
+                            .name(OVERLAY_CATALOG_NAME)
                             .subject(SUBJECT_NAME)
                             .version("latest")
                             .build()
@@ -164,17 +185,18 @@ public final class McpKafkaConnectCompositeGenerator
         return guarded;
     }
 
-    private static String loadBundledSpec()
+    private static String loadBundledResource(
+        String resource)
     {
-        String schema;
-        try (InputStream input = McpKafkaConnectCompositeGenerator.class.getResourceAsStream(BUNDLED_SPEC_RESOURCE))
+        String content;
+        try (InputStream input = McpKafkaConnectCompositeGenerator.class.getResourceAsStream(resource))
         {
-            schema = new String(input.readAllBytes(), StandardCharsets.UTF_8);
+            content = new String(input.readAllBytes(), StandardCharsets.UTF_8);
         }
         catch (IOException ex)
         {
             throw new UncheckedIOException(ex);
         }
-        return schema;
+        return content;
     }
 }
