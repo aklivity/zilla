@@ -24,6 +24,7 @@ public final class McpHttpToolConfigBuilder<T> extends ConfigBuilder<T, McpHttpT
     private final Function<McpHttpToolConfig, T> mapper;
 
     private String name;
+    private String title;
     private String summary;
     private String description;
     private ModelConfig input;
@@ -48,6 +49,13 @@ public final class McpHttpToolConfigBuilder<T> extends ConfigBuilder<T, McpHttpT
         String name)
     {
         this.name = name;
+        return this;
+    }
+
+    public McpHttpToolConfigBuilder<T> title(
+        String title)
+    {
+        this.title = title;
         return this;
     }
 
@@ -97,6 +105,6 @@ public final class McpHttpToolConfigBuilder<T> extends ConfigBuilder<T, McpHttpT
     public T build()
     {
         return mapper.apply(new McpHttpToolConfig(
-            name, summary, description, input, output, outputMaybeWrapped, annotations));
+            name, title, summary, description, input, output, outputMaybeWrapped, annotations));
     }
 }

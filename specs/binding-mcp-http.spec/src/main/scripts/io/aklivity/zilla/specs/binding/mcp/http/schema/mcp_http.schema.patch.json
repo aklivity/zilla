@@ -88,6 +88,11 @@
                                         "type": "object",
                                         "properties":
                                         {
+                                            "title":
+                                            {
+                                                "title": "Tool Title",
+                                                "type": "string"
+                                            },
                                             "description":
                                             {
                                                 "title": "Tool Description",

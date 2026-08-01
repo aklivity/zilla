@@ -88,6 +88,10 @@ public final class McpHttpOptionsConfigAdapter implements JsonbAdapter<OptionsCo
             for (McpHttpToolConfig tool : tools)
             {
                 JsonObjectBuilder toolObject = Json.createObjectBuilder();
+                if (tool.title != null)
+                {
+                    toolObject.add(TITLE_NAME, tool.title);
+                }
                 if (tool.summary != null)
                 {
                     toolObject.add(SUMMARY_NAME, tool.summary);
@@ -187,6 +191,10 @@ public final class McpHttpOptionsConfigAdapter implements JsonbAdapter<OptionsCo
             for (String name : toolsObject.keySet())
             {
                 JsonObject toolObject = toolsObject.getJsonObject(name);
+                String title = toolObject.containsKey(TITLE_NAME)
+                    ? toolObject.getString(TITLE_NAME)
+                    : null;
+
                 String summary = toolObject.containsKey(SUMMARY_NAME)
                     ? toolObject.getString(SUMMARY_NAME)
                     : null;
@@ -216,6 +224,7 @@ public final class McpHttpOptionsConfigAdapter implements JsonbAdapter<OptionsCo
 
                 tools.add(McpHttpToolConfig.builder()
                     .name(name)
+                    .title(title)
                     .summary(summary)
                     .description(description)
                     .input(input)

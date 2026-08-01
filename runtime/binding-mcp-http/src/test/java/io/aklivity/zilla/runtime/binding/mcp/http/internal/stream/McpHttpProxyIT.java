@@ -230,6 +230,24 @@ public class McpHttpProxyIT
     }
 
     @Test
+    @Configuration("proxy.discovery.title.yaml")
+    @Specification({
+        "${mcp}/tools.list.with.title/client"})
+    public void shouldListToolsWithTitle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.discovery.title.and.annotations.yaml")
+    @Specification({
+        "${mcp}/tools.list.with.title.and.annotations/client"})
+    public void shouldListToolsWithTitleAndAnnotations() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.discovery.yaml")
     @Specification({
         "${mcp}/tools.list.unknown.session/client"})

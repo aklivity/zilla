@@ -177,6 +177,7 @@ public class McpHttpOptionsConfigAdapterTest
         assertThat(options.tools, hasSize(1));
         McpHttpToolConfig tool = options.tools.get(0);
         assertThat(tool.name, equalTo("ping"));
+        assertThat(tool.title, nullValue());
         assertThat(tool.description, nullValue());
         assertThat(tool.summary, nullValue());
         assertThat(tool.input, nullValue());
@@ -214,6 +215,69 @@ public class McpHttpOptionsConfigAdapterTest
         assertThat(text, not(containsString("authorization")));
         assertThat(text, not(containsString("tools")));
         assertThat(text, not(containsString("resources")));
+    }
+
+    @Test
+    public void shouldReadOptionsWithToolTitle()
+    {
+        String yaml =
+                """
+                tools:
+                  create_pr:
+                    title: Create Pull Request
+                    summary: "Created pull request #${result.number}"
+                    schemas:
+                      input:
+                        model: test
+                """;
+
+        McpHttpOptionsConfig options = jsonb.fromJson(yaml, McpHttpOptionsConfig.class);
+
+        McpHttpToolConfig tool = options.tools.get(0);
+        assertThat(tool.title, equalTo("Create Pull Request"));
+        assertThat(tool.annotations, nullValue());
+    }
+
+    @Test
+    public void shouldWriteOptionsWithToolTitle()
+    {
+        McpHttpOptionsConfig options = McpHttpOptionsConfig.builder()
+            .tool(McpHttpToolConfig.builder()
+                .name("create_pr")
+                .title("Create Pull Request")
+                .summary("Created pull request #${result.number}")
+                .build())
+            .build();
+
+        String text = jsonb.toJson(options);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, containsString("title: \"Create Pull Request\""));
+    }
+
+    @Test
+    public void shouldReadOptionsWithToolTitleAndAnnotationsTitle()
+    {
+        String yaml =
+                """
+                tools:
+                  create_pr:
+                    title: Create Pull Request
+                    summary: "Created pull request #${result.number}"
+                    schemas:
+                      input:
+                        model: test
+                    annotations:
+                      title: Open a New Pull Request
+                      readOnlyHint: false
+                """;
+
+        McpHttpOptionsConfig options = jsonb.fromJson(yaml, McpHttpOptionsConfig.class);
+
+        McpHttpToolConfig tool = options.tools.get(0);
+        assertThat(tool.title, equalTo("Create Pull Request"));
+        assertThat(tool.annotations, not(nullValue()));
+        assertThat(tool.annotations.title, equalTo("Open a New Pull Request"));
     }
 
     @Test

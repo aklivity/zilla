@@ -232,6 +232,24 @@ public class McpHttpClientIT
     }
 
     @Test
+    @Configuration("client.discovery.title.yaml")
+    @Specification({
+        "${mcp}/tools.list.with.title/client"})
+    public void shouldListToolsWithTitle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.discovery.title.and.annotations.yaml")
+    @Specification({
+        "${mcp}/tools.list.with.title.and.annotations/client"})
+    public void shouldListToolsWithTitleAndAnnotations() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("client.discovery.yaml")
     @Specification({
         "${mcp}/tools.list.unknown.session/client"})

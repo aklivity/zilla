@@ -2455,6 +2455,10 @@ public final class McpHttpProxyFactory implements BindingHandler
         {
             final JsonObjectBuilder item = Json.createObjectBuilder()
                 .add("name", tool.name);
+            if (tool.title != null)
+            {
+                item.add("title", tool.title);
+            }
             if (tool.description != null)
             {
                 item.add("description", tool.description);
