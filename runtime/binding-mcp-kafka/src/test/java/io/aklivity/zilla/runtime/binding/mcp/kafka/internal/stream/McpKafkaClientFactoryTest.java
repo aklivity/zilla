@@ -111,7 +111,7 @@ public class McpKafkaClientFactoryTest
 
         RouteConfig route = RouteConfig.builder()
             .when(McpKafkaConditionConfig.builder()
-                .tool("produce")
+                .tool(List.of("produce"))
                 .build())
             .build();
 

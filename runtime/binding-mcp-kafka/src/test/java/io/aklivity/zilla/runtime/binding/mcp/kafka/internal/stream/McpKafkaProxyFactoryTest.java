@@ -164,7 +164,7 @@ public class McpKafkaProxyFactoryTest
         final RouteConfig route = RouteConfig.builder()
             .exit("kafka0")
             .when(McpKafkaConditionConfig.builder()
-                .tool(tool)
+                .tool(List.of(tool))
                 .build())
             .build();
         route.id = ROUTE_ID;

@@ -17,24 +17,10 @@
 name: test
 bindings:
   app0:
-    type: mcp_openapi
+    type: mcp_schema_registry
     kind: client
     options:
-      specs:
-        github:
-          catalog:
-            catalog0:
-              subject: github
-              version: latest
+      server: http://localhost:8080
     routes:
-      - with:
-          spec: github
-      - with:
-          spec: github
-          tag: pulls
-      - with:
-          spec: github
-          operation: "pulls/*"
-      - with:
-          spec: github
-          tag: issues
+      - when:
+          - tool: [list_subjects, get_schema]
