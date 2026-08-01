@@ -709,7 +709,7 @@ members (`DescribeGroups`), then commits directly:
 ```bash
 docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
     -e CALL_TOOL=kafka__reset_offsets \
-    -e CALL_ARGS='{"group":"orders-analytics","topic":"orders","partition":0,"offset":0}' \
+    -e CALL_ARGS='{"group_id":"orders-analytics","topic":"orders","partition":0,"offset":0}' \
     tools-list-client
 ```
 

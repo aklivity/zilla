@@ -26,7 +26,7 @@ import io.aklivity.zilla.runtime.common.json.JsonSource;
  * Terminal {@link JsonSink} that captures the fixed set of scalar tool-call argument fields
  * mcp-kafka's flat-argument tools accept ({@code produce}/{@code consume}: {@code arguments.topic},
  * {@code arguments.key}, {@code arguments.value}, {@code arguments.partition},
- * {@code arguments.offset}, {@code arguments.limit}; {@code describe_consumer_group} and
+ * {@code arguments.offset}, {@code arguments.limit}; {@code describe_consumer_group},
  * {@code reset_offsets}: {@code arguments.group_id}) as the request body
  * streams in, without buffering the whole body first. There is no downstream stage -- captured
  * values are read back from {@code captured} once the pipeline reports {@link Status#COMPLETED}
