@@ -868,6 +868,8 @@ public class McpKafkaProxyFactory implements BindingHandler
         for (String tool : TOOL_NAMES)
         {
             final JsonObjectBuilder item = Json.createObjectBuilder().add("name", tool);
+            item.add("title", buildToolTitle(tool));
+            item.add("description", buildToolDescription(tool));
             final JsonObject inputSchema = buildToolInputSchema(tool);
             if (inputSchema != null)
             {
@@ -890,6 +892,142 @@ public class McpKafkaProxyFactory implements BindingHandler
             .build();
 
         return toolsList.toString().getBytes(UTF_8);
+    }
+
+    private static String buildToolTitle(
+        String tool)
+    {
+        String title = null;
+
+        switch (tool)
+        {
+        case TOOL_PRODUCE:
+            title = "Produce Message";
+            break;
+        case TOOL_CONSUME:
+            title = "Consume Messages";
+            break;
+        case TOOL_CREATE_TOPICS:
+            title = "Create Topics";
+            break;
+        case TOOL_DELETE_TOPICS:
+            title = "Delete Topics";
+            break;
+        case TOOL_DESCRIBE_CONFIGS:
+            title = "Describe Configs";
+            break;
+        case TOOL_ALTER_CONFIGS:
+            title = "Alter Configs";
+            break;
+        case TOOL_LIST_TOPICS:
+            title = "List Topics";
+            break;
+        case TOOL_DESCRIBE_TOPIC:
+            title = "Describe Topic";
+            break;
+        case TOOL_CLUSTER_OVERVIEW:
+            title = "Cluster Overview";
+            break;
+        case TOOL_LIST_BROKERS:
+            title = "List Brokers";
+            break;
+        case TOOL_DESCRIBE_CLUSTER:
+            title = "Describe Cluster";
+            break;
+        case TOOL_LIST_CONSUMER_GROUPS:
+            title = "List Consumer Groups";
+            break;
+        case TOOL_DESCRIBE_CONSUMER_GROUP:
+            title = "Describe Consumer Group";
+            break;
+        case TOOL_DESCRIBE_CONSUMER_GROUP_LAG:
+            title = "Describe Consumer Group Lag";
+            break;
+        case TOOL_RESET_OFFSETS:
+            title = "Reset Consumer Group Offsets";
+            break;
+        case TOOL_LIST_ACLS:
+            title = "List ACLs";
+            break;
+        case TOOL_CREATE_ACLS:
+            title = "Create ACLs";
+            break;
+        case TOOL_DELETE_ACLS:
+            title = "Delete ACLs";
+            break;
+        default:
+            break;
+        }
+
+        return title;
+    }
+
+    private static String buildToolDescription(
+        String tool)
+    {
+        String description = null;
+
+        switch (tool)
+        {
+        case TOOL_PRODUCE:
+            description = "Produce a message to a Kafka topic.";
+            break;
+        case TOOL_CONSUME:
+            description = "Consume messages from a Kafka topic partition.";
+            break;
+        case TOOL_CREATE_TOPICS:
+            description = "Create one or more Kafka topics.";
+            break;
+        case TOOL_DELETE_TOPICS:
+            description = "Delete one or more Kafka topics.";
+            break;
+        case TOOL_DESCRIBE_CONFIGS:
+            description = "Describe the configuration of a Kafka topic or broker resource.";
+            break;
+        case TOOL_ALTER_CONFIGS:
+            description = "Alter the configuration of a Kafka topic or broker resource.";
+            break;
+        case TOOL_LIST_TOPICS:
+            description = "List all Kafka topics in the cluster.";
+            break;
+        case TOOL_DESCRIBE_TOPIC:
+            description = "Describe the partitions and replicas of a Kafka topic.";
+            break;
+        case TOOL_CLUSTER_OVERVIEW:
+            description = "Summarize the health and size of the Kafka cluster.";
+            break;
+        case TOOL_LIST_BROKERS:
+            description = "List the brokers in the Kafka cluster.";
+            break;
+        case TOOL_DESCRIBE_CLUSTER:
+            description = "Describe the Kafka cluster id, controller, and authorized operations.";
+            break;
+        case TOOL_LIST_CONSUMER_GROUPS:
+            description = "List the Kafka consumer groups in the cluster.";
+            break;
+        case TOOL_DESCRIBE_CONSUMER_GROUP:
+            description = "Describe the members and state of a Kafka consumer group.";
+            break;
+        case TOOL_DESCRIBE_CONSUMER_GROUP_LAG:
+            description = "Describe the per-partition lag of a Kafka consumer group.";
+            break;
+        case TOOL_RESET_OFFSETS:
+            description = "Reset the committed offset for a Kafka consumer group topic partition.";
+            break;
+        case TOOL_LIST_ACLS:
+            description = "List Kafka ACL bindings matching a filter.";
+            break;
+        case TOOL_CREATE_ACLS:
+            description = "Create one or more Kafka ACL bindings.";
+            break;
+        case TOOL_DELETE_ACLS:
+            description = "Delete Kafka ACL bindings matching a filter.";
+            break;
+        default:
+            break;
+        }
+
+        return description;
     }
 
     // Shared enum value lists for the three ACL tools' JSON schemas - built fresh per call since a
