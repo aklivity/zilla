@@ -65,6 +65,14 @@ public class SchemaTest
         assertThat(config, not(nullValue()));
     }
 
+    @Test
+    public void shouldValidateProxyToolkitFilterShorthand()
+    {
+        JsonObject config = schema.validate("proxy.toolkit.filter.shorthand.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
     @Test(expected = JsonException.class)
     public void shouldRejectProxyRouteMissingToolkit()
     {

@@ -62,7 +62,7 @@ public class McpKafkaClientGeneratorTest
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("mcp0")
-            .type("mcp_kafka")
+            .type("mcp-kafka")
             .kind(KindConfig.CLIENT)
             .options(options)
             .build();
@@ -126,7 +126,7 @@ public class McpKafkaClientGeneratorTest
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("mcp0")
-            .type("mcp_kafka")
+            .type("mcp-kafka")
             .kind(KindConfig.CLIENT)
             .options(options)
             .build();
@@ -156,7 +156,7 @@ public class McpKafkaClientGeneratorTest
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("mcp0")
-            .type("mcp_kafka")
+            .type("mcp-kafka")
             .kind(KindConfig.CLIENT)
             .options(options)
             .build();
@@ -189,7 +189,7 @@ public class McpKafkaClientGeneratorTest
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("mcp0")
-            .type("mcp_kafka")
+            .type("mcp-kafka")
             .kind(KindConfig.CLIENT)
             .options(options)
             .build();
@@ -234,7 +234,7 @@ public class McpKafkaClientGeneratorTest
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("mcp0")
-            .type("mcp_kafka")
+            .type("mcp-kafka")
             .kind(KindConfig.CLIENT)
             .options(options)
             .build();
@@ -269,7 +269,7 @@ public class McpKafkaClientGeneratorTest
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("mcp0")
-            .type("mcp_kafka")
+            .type("mcp-kafka")
             .kind(KindConfig.CLIENT)
             .vault("vault0")
             .options(options)
@@ -304,7 +304,7 @@ public class McpKafkaClientGeneratorTest
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("mcp0")
-            .type("mcp_kafka")
+            .type("mcp-kafka")
             .kind(KindConfig.CLIENT)
             .options(options)
             .build();

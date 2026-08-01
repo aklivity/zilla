@@ -55,7 +55,7 @@ public class McpKafkaConditionConfigAdapterTest
         McpKafkaConditionConfig condition = jsonb.fromJson(text, McpKafkaConditionConfig.class);
 
         assertThat(condition, not(nullValue()));
-        assertThat(condition.tool, equalTo("produce"));
+        assertThat(condition.tool, contains("produce"));
         assertThat(condition.resource, equalTo("orders"));
         assertThat(condition.topics, contains("orders", "shipments"));
     }
@@ -64,7 +64,7 @@ public class McpKafkaConditionConfigAdapterTest
     public void shouldWriteCondition()
     {
         McpKafkaConditionConfig condition = McpKafkaConditionConfig.builder()
-            .tool("produce")
+            .tool(asList("produce"))
             .resource("orders")
             .topics(asList("orders", "shipments"))
             .build();
@@ -73,5 +73,29 @@ public class McpKafkaConditionConfigAdapterTest
 
         assertThat(text, not(nullValue()));
         assertThat(text, equalTo("{\"tool\":\"produce\",\"resource\":\"orders\",\"topics\":[\"orders\",\"shipments\"]}"));
+    }
+
+    @Test
+    public void shouldReadToolArray()
+    {
+        String text = "{\"tool\": [\"produce\", \"consume\"]}";
+
+        McpKafkaConditionConfig condition = jsonb.fromJson(text, McpKafkaConditionConfig.class);
+
+        assertThat(condition, not(nullValue()));
+        assertThat(condition.tool, contains("produce", "consume"));
+    }
+
+    @Test
+    public void shouldWriteToolArray()
+    {
+        McpKafkaConditionConfig condition = McpKafkaConditionConfig.builder()
+            .tool(asList("produce", "consume"))
+            .build();
+
+        String text = jsonb.toJson(condition);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, equalTo("{\"tool\":[\"produce\",\"consume\"]}"));
     }
 }

@@ -25,7 +25,7 @@ import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public final class McpSchemaRegistryBindingInfo implements BindingInfo
 {
-    public static final String TYPE = "mcp_schema_registry";
+    public static final String TYPE = "mcp-schema-registry";
 
     @Override
     public String type()

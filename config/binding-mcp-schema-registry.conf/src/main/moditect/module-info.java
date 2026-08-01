@@ -17,6 +17,7 @@ module io.aklivity.zilla.config.binding.mcp.schema.registry
     requires jakarta.json;
     requires jakarta.json.bind;
     requires io.aklivity.zilla.config.engine;
+    requires io.aklivity.zilla.runtime.common.json;
 
     exports io.aklivity.zilla.config.binding.mcp.schema.registry;
 

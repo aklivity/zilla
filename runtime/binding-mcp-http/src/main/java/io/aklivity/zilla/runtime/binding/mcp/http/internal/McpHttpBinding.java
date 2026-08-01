@@ -19,7 +19,7 @@ import io.aklivity.zilla.runtime.engine.binding.Binding;
 
 public final class McpHttpBinding implements Binding
 {
-    public static final String TYPE = "mcp_http";
+    public static final String TYPE = "mcp-http";
 
     private final McpHttpConfiguration config;
 

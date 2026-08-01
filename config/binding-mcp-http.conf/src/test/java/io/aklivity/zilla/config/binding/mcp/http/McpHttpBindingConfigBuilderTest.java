@@ -34,7 +34,7 @@ public class McpHttpBindingConfigBuilderTest
     {
         McpHttpBindingConfig binding = McpHttpBindingConfig.builder()
             .namespace("test")
-            .name("mcp_http0")
+            .name("mcp-http0")
             .kind(PROXY)
             .options()
                 .tool(McpHttpToolConfig.builder()
@@ -52,7 +52,7 @@ public class McpHttpBindingConfigBuilderTest
             .build();
 
         assertThat(binding.namespace, equalTo("test"));
-        assertThat(binding.name, equalTo("mcp_http0"));
+        assertThat(binding.name, equalTo("mcp-http0"));
         assertThat(binding.type, equalTo(McpHttpBindingInfo.TYPE));
         assertThat(binding.kind, equalTo(PROXY));
 

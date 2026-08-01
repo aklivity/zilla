@@ -21,7 +21,7 @@ import io.aklivity.zilla.config.engine.ConditionConfig;
 
 public final class McpKafkaConditionConfig extends ConditionConfig
 {
-    public final String tool;
+    public final List<String> tool;
     public final String resource;
     public final List<String> topics;
 
@@ -37,7 +37,7 @@ public final class McpKafkaConditionConfig extends ConditionConfig
     }
 
     McpKafkaConditionConfig(
-        String tool,
+        List<String> tool,
         String resource,
         List<String> topics)
     {
