@@ -35,14 +35,14 @@ bindings:
     routes:
       - exit: net0
         when:
-          - tools:
+          - tool:
               - get_weather
         guarded:
           test0:
             - read
       - exit: net0
         when:
-          - tools:
+          - tool:
               - get_status
         guarded:
           test1:

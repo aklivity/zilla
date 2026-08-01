@@ -83,7 +83,7 @@ services:
       - ./url-elicit:/app
     entrypoint: ["node", "/app/client.mjs"]
 
-  # Mock GitHub REST API backing the mcp_http "github" toolkit.
+  # Mock GitHub REST API backing the mcp-http "github" toolkit.
   ghapi:
     image: node:20-alpine
     hostname: ghapi
@@ -100,7 +100,7 @@ services:
       retries: 20
       test: ["CMD", "nc", "-z", "127.0.0.1", "4001"]
 
-  # Mock Petstore REST API backing the mcp_openapi "petstore" toolkit.
+  # Mock Petstore REST API backing the mcp-openapi "petstore" toolkit.
   petstore:
     image: node:20-alpine
     hostname: petstore
@@ -117,7 +117,7 @@ services:
       retries: 20
       test: ["CMD", "nc", "-z", "127.0.0.1", "4002"]
 
-  # Real single-node Kafka broker (KRaft mode) backing the mcp_kafka "kafka" toolkit.
+  # Real single-node Kafka broker (KRaft mode) backing the mcp-kafka "kafka" toolkit.
   #
   # authorizer.class.name enables the real DescribeAcls/CreateAcls/DeleteAcls
   # APIs the kafka__list_acls/create_acls/delete_acls tools call -- without an
@@ -181,7 +181,7 @@ services:
         echo "Successfully created the following topics:";
         /opt/kafka/bin/kafka-topics.sh --bootstrap-server $${KAFKA_BOOTSTRAP_SERVER} --list --exclude-internal;
 
-  # Real Karapace Schema Registry backing the mcp_schema_registry
+  # Real Karapace Schema Registry backing the mcp-schema-registry
   # "schemaregistry" toolkit -- talks to the same real Kafka broker as the
   # "kafka" toolkit above, storing schemas in its own _schemas topic.
   karapace-registry:

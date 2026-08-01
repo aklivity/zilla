@@ -34,7 +34,7 @@ public class McpOpenapiBindingConfigBuilderTest
     {
         McpOpenapiBindingConfig binding = McpOpenapiBindingConfig.builder()
             .namespace("test")
-            .name("mcp_openapi0")
+            .name("mcp-openapi0")
             .kind(CLIENT)
             .options()
                 .spec()
@@ -54,7 +54,7 @@ public class McpOpenapiBindingConfigBuilderTest
             .build();
 
         assertThat(binding.namespace, equalTo("test"));
-        assertThat(binding.name, equalTo("mcp_openapi0"));
+        assertThat(binding.name, equalTo("mcp-openapi0"));
         assertThat(binding.type, equalTo(McpOpenapiBindingInfo.TYPE));
         assertThat(binding.kind, equalTo(CLIENT));
 

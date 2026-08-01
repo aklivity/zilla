@@ -66,7 +66,7 @@ public class McpBindingConfigTest
             .exit("test")
             .when(McpConditionConfig.builder()
                 .toolkit(toolkit)
-                .tools(tools)
+                .tool(tools)
                 .build())
             .guarded()
                 .name(guardName)
@@ -85,7 +85,7 @@ public class McpBindingConfigTest
             .exit("test")
             .when(McpConditionConfig.builder()
                 .toolkit("alpha")
-                .tools(List.of("*"))
+                .tool(List.of("*"))
                 .build());
         if (withCredentials != null)
         {
