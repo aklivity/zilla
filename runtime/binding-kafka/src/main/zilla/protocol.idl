@@ -1151,6 +1151,149 @@ scope protocol
             }
         }
 
+        // Flexible (compact strings/arrays + tagged fields) OffsetFetch, targeting the earliest
+        // flexible version (v6, per the Kafka protocol spec), used only by the generic api envelope
+        // (KafkaApiRequestBeginEx/KafkaApiResponseBeginEx) path. A null (rather than empty)
+        // topicCount requests committed offsets for every topic the group has, encoded as
+        // varuint32n value -1, mirroring describe_configs_v4's null configNamesCount.
+        scope offset_fetch_v6
+        {
+            struct OffsetFetchRequest // v6
+            {
+                varuint32 taggedFields;
+                varstring groupId;
+                varuint32n topicCount;
+            }
+
+            struct TopicRequest
+            {
+                varstring name;
+                varuint32n partitionCount;
+            }
+
+            struct PartitionRequest
+            {
+                int32 partitionIndex;
+            }
+
+            struct TopicRequestPart2
+            {
+                varuint32 taggedFields;
+            }
+
+            struct OffsetFetchRequestPart2
+            {
+                varuint32 taggedFields;
+            }
+
+            struct OffsetFetchResponse
+            {
+                varuint32 taggedFields;
+                int32 throttleTimeMillis;
+                varuint32n topicCount;
+            }
+
+            struct TopicResponse
+            {
+                varstring name;
+                varuint32n partitionCount;
+            }
+
+            struct PartitionResponse
+            {
+                int32 partitionIndex;
+                int64 committedOffset;
+                int32 committedLeaderEpoch = -1;
+                varstring metadata = null;
+                int16 errorCode;
+                varuint32 taggedFields;
+            }
+
+            struct TopicResponsePart2
+            {
+                varuint32 taggedFields;
+            }
+
+            struct OffsetFetchResponsePart2
+            {
+                int16 errorCode;
+                varuint32 taggedFields;
+            }
+        }
+
+        // Flexible (compact strings/arrays + tagged fields) ListOffsets, targeting the earliest
+        // flexible version (v6, per the Kafka protocol spec), used only by the generic api envelope
+        // (KafkaApiRequestBeginEx/KafkaApiResponseBeginEx) path. No list_offsets scope exists
+        // elsewhere in this file; scope offsets (non-flexible v2) is a distinct, legacy mechanism
+        // used only by KafkaClientFetchFactory.
+        scope list_offsets_v6
+        {
+            struct ListOffsetsRequest // v6
+            {
+                varuint32 taggedFields;
+                int32 replicaId = -1;
+                int8 isolationLevel;
+                varuint32n topicCount;
+            }
+
+            struct TopicRequest
+            {
+                varstring name;
+                varuint32n partitionCount;
+            }
+
+            struct PartitionRequest
+            {
+                int32 partitionIndex;
+                int32 currentLeaderEpoch = -1;
+                int64 timestamp;
+                varuint32 taggedFields;
+            }
+
+            struct TopicRequestPart2
+            {
+                varuint32 taggedFields;
+            }
+
+            struct ListOffsetsRequestPart2
+            {
+                varuint32 taggedFields;
+            }
+
+            struct ListOffsetsResponse
+            {
+                varuint32 taggedFields;
+                int32 throttleTimeMillis;
+                varuint32n topicCount;
+            }
+
+            struct TopicResponse
+            {
+                varstring name;
+                varuint32n partitionCount;
+            }
+
+            struct PartitionResponse
+            {
+                int32 partitionIndex;
+                int16 errorCode;
+                int64 timestamp = -1;
+                int64 endOffset = -1;
+                int32 leaderEpoch = -1;
+                varuint32 taggedFields;
+            }
+
+            struct TopicResponsePart2
+            {
+                varuint32 taggedFields;
+            }
+
+            struct ListOffsetsResponsePart2
+            {
+                varuint32 taggedFields;
+            }
+        }
+
         scope api_versions
         {
             struct ApiVersionsResponse // v0
