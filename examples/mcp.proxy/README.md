@@ -540,36 +540,109 @@ docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
 ### Manage connectors through a real Kafka Connect worker
 
 `south_mcp_kafka_connect_client` is an `mcp-kafka-connect` `kind: client`
-binding -- like `kafka_sr`, it proxies to a separate REST service with a
-fixed, bundled tool set (`list_connectors`, `create_connector`,
-`describe_connector`, `delete_connector`, `describe_connector_config`,
-`update_connector_config`, `validate_connector_config`,
-`describe_connector_status`, `restart_connector`, `pause_connector`,
-`resume_connector`, `stop_connector`, `list_connector_tasks`,
-`restart_connector_task`, `describe_connector_offsets`,
-`alter_connector_offsets`, `reset_connector_offsets`,
-`list_connector_plugins`) derived from a bundled Kafka Connect OpenAPI
-document, and `options.server` is the only required configuration. This
-example points it at `kafka-connect`, a real Kafka Connect distributed
-worker (not a mock) started against the same real Kafka broker the `kafka`
-toolkit talks to, using the broker distribution's own bundled
-`FileStreamSourceConnector`/`FileStreamSinkConnector` plugins -- no
-separate connector plugin download.
+binding -- like `mcp-schema-registry`, its tool set
+(`list_connectors`/`create_connector`/`describe_connector`/`delete_connector`/
+`describe_connector_config`/`update_connector_config`/
+`validate_connector_config`/`describe_connector_status`/`restart_connector`/
+`pause_connector`/`resume_connector`/`stop_connector`/`list_connector_tasks`/
+`restart_connector_task`/`describe_connector_offsets`/
+`alter_connector_offsets`/`reset_connector_offsets`/`list_connector_plugins`)
+is bundled with the binding itself, with `options.server` the only required
+configuration. This example points it at `kafka-connect`, a real Kafka
+Connect distributed worker (`apache/kafka:4.1.1`'s own
+`connect-distributed.sh`, not a mock) that stores its own config/offset/status
+state in three internal compacted topics on the same Kafka broker the `kafka`
+toolkit above talks to.
 
-**Known gap:** the `kafka_connect` toolkit's tools never appear in
-`tools/list` and were verified end to end against the real worker directly
-(`docker compose exec kafka-connect` plus raw HTTP requests from inside the
-`zilla` container both confirm the worker itself is reachable and correctly
-answers `GET /connectors`, `GET /connector-plugins`, connector create/pause/
-resume/restart/delete), but `north_mcp_proxy` never hydrates this toolkit's
-tools into its cache the way it does for the structurally-identical
-`kafka_sr` toolkit, even after a full `options.cache.ttl` cycle. The
-binding's own `McpKafkaConnectClientIT` k3po suite passes cleanly in
-isolation, and its composite-generation code is byte-identical to the
-working `mcp-schema-registry` implementation, so the gap is tracked as
-[aklivity/zilla#2273](https://github.com/aklivity/zilla/issues/2273) rather
-than papered over -- the binding and route configuration below reflect the
-intended, documented usage once that issue is resolved.
+`list_connector_plugins` lists the bundled FileStream source/sink connector
+plugins -- proof `plugin.path` resolved the broker distribution's own `libs/`
+directory rather than a separately downloaded plugin:
+
+```bash
+docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
+    -e CALL_TOOL=kafka_connect__list_connector_plugins tools-list-client
+# org.apache.kafka.connect.file.FileStreamSinkConnector
+# org.apache.kafka.connect.file.FileStreamSourceConnector
+```
+
+`create_connector` creates a real `FileStreamSourceConnector` reading a file
+already seeded inside the worker container, gated by its own tool-specific
+`kafka_connect:admin` scope layered under the toolkit-level
+`kafka_connect:tools` scope -- the same layering mechanism as
+`register_schema`/`kafka_sr:write`:
+
+```bash
+docker compose exec kafka-connect sh -c \
+    "echo 'hello from mcp-kafka-connect' > /tmp/kc-source.txt"
+
+docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
+    -e CALL_TOOL=kafka_connect__create_connector \
+    -e CALL_ARGS='{"name":"file-source-demo","config":{"connector.class":"org.apache.kafka.connect.file.FileStreamSourceConnector","tasks.max":"1","file":"/tmp/kc-source.txt","topic":"connect-demo"}}' \
+    tools-list-client
+# Created connector file-source-demo
+```
+
+`list_connectors` and `describe_connector_status` confirm it is now real,
+running worker state, not just an echoed request:
+
+```bash
+docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
+    -e CALL_TOOL=kafka_connect__list_connectors tools-list-client
+# ["file-source-demo"]
+
+docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
+    -e CALL_TOOL=kafka_connect__describe_connector_status \
+    -e CALL_ARGS='{"connector":"file-source-demo"}' \
+    tools-list-client
+# Connector file-source-demo is RUNNING
+```
+
+`pause_connector` and `resume_connector` transition the connector and its one
+task between `PAUSED` and `RUNNING` on the real worker, each confirmed by a
+follow-up `describe_connector_status` call:
+
+```bash
+docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
+    -e CALL_TOOL=kafka_connect__pause_connector \
+    -e CALL_ARGS='{"connector":"file-source-demo"}' \
+    tools-list-client
+docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
+    -e CALL_TOOL=kafka_connect__describe_connector_status \
+    -e CALL_ARGS='{"connector":"file-source-demo"}' \
+    tools-list-client
+# Connector file-source-demo is PAUSED
+
+docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
+    -e CALL_TOOL=kafka_connect__resume_connector \
+    -e CALL_ARGS='{"connector":"file-source-demo"}' \
+    tools-list-client
+docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
+    -e CALL_TOOL=kafka_connect__describe_connector_status \
+    -e CALL_ARGS='{"connector":"file-source-demo"}' \
+    tools-list-client
+# Connector file-source-demo is RUNNING
+```
+
+`restart_connector` succeeds against the running connector, sharing
+`pause_connector`/`resume_connector`'s `kafka_connect:admin`-gated route.
+`delete_connector` then removes it, confirmed by `list_connectors` reporting
+none remaining:
+
+```bash
+docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
+    -e CALL_TOOL=kafka_connect__restart_connector \
+    -e CALL_ARGS='{"connector":"file-source-demo"}' \
+    tools-list-client
+
+docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
+    -e CALL_TOOL=kafka_connect__delete_connector \
+    -e CALL_ARGS='{"connector":"file-source-demo"}' \
+    tools-list-client
+
+docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
+    -e CALL_TOOL=kafka_connect__list_connectors tools-list-client
+# []
+```
 
 ### Produce, consume, create/delete topics, describe/alter configs, and cluster introspection through a real Kafka broker
 
