@@ -57,58 +57,83 @@
 #      scope (kafka_sr:write) under the toolkit-level scope
 #      (kafka_sr:tools) for register_schema only -- no OpenAPI
 #      security scheme is involved, unlike petstore's create_pet
-#  23. kafka__create_topics creates a real topic on the same broker
+#  23. kafka_connect__list_connector_plugins lists the bundled FileStream
+#      source/sink connector plugins from a real Kafka Connect distributed
+#      worker (mcp-kafka-connect kind:client's own generated composite
+#      -- mcp-openapi -> mcp-http -> http_client -- not a mock)
+#  24. kafka_connect__create_connector creates a real FileStreamSourceConnector
+#      reading a file inside the worker container, gated by its own
+#      tool-specific kafka_connect:admin scope layered under the
+#      toolkit-level kafka_connect:tools scope -- the same layering
+#      mechanism as register_schema/kafka_sr:write, demonstrated on a
+#      third toolkit
+#  25. kafka_connect__list_connectors and describe_connector confirm the
+#      connector created above is real, running worker state, not just
+#      an echoed request
+#  26. kafka_connect__describe_connector_status reports the connector and
+#      its one task as RUNNING against the real worker
+#  27. kafka_connect__pause_connector then describe_connector_status
+#      confirm the connector transitions to PAUSED on the real worker
+#  28. kafka_connect__resume_connector then describe_connector_status
+#      confirm it transitions back to RUNNING
+#  29. kafka_connect__restart_connector succeeds against the running
+#      connector, sharing pause_connector/resume_connector's
+#      kafka_connect:admin-gated route
+#  30. kafka_connect__delete_connector removes the connector, confirmed by
+#      list_connectors reporting none remaining, sharing create_connector's
+#      kafka_connect:admin-gated route
+#  31. kafka__create_topics creates a real topic on the same broker
 #      (mcp-kafka kind:client's own generated pipeline, not the engine's
 #      test double), gated by its own tool-specific kafka:admin scope
 #      layered under the toolkit-level kafka:tools scope -- the same
-#      layering mechanism as register_schema/kafka_sr:write, demonstrated
-#      on a different toolkit
-#  24. kafka__delete_topics deletes that same topic on the same broker,
+#      layering mechanism as register_schema/kafka_sr:write and
+#      kafka_connect's admin-tier tools, demonstrated on a fourth toolkit
+#  32. kafka__delete_topics deletes that same topic on the same broker,
 #      sharing create_topics' route (one `when` list, two `tool` entries)
 #      and its kafka:admin scope -- both are structural, admin-risk
 #      mutations, so one route/guard covers both instead of duplicating it
-#  25. kafka__describe_configs reads back the real broker's effective
+#  33. kafka__describe_configs reads back the real broker's effective
 #      config for the orders topic, including a config every topic
 #      carries by default -- needs no scope beyond the toolkit-level
 #      kafka:tools guard already exercised by consume
-#  26. kafka__alter_configs changes the orders topic's cleanup.policy on
+#  34. kafka__alter_configs changes the orders topic's cleanup.policy on
 #      the same real broker, sharing create_topics/delete_topics' route
 #      and kafka:admin scope -- a third structural, admin-risk mutation
 #      coalesced onto the same route/guard
-#  27. kafka__list_topics lists the real topics on the same broker, gated
+#  35. kafka__list_topics lists the real topics on the same broker, gated
 #      by only the toolkit-level kafka:tools scope (no admin/write needed,
 #      same tier as consume)
-#  28. kafka__describe_topic describes the orders topic by name, reporting
+#  36. kafka__describe_topic describes the orders topic by name, reporting
 #      its partitions/leader/replicas/isr from the same real broker
-#  29. kafka__cluster_overview summarizes the same broker's topic/broker
+#  37. kafka__cluster_overview summarizes the same broker's topic/broker
 #      counts, sharing list_topics/describe_topic's read-only route
-#  30. kafka__list_brokers lists the real, single-node KRaft broker started
+#  38. kafka__list_brokers lists the real, single-node KRaft broker started
 #      by this example -- proving KafkaApiDescribeClusterClient's shared
 #      DescribeCluster request/response path (not the older, fully-decoded
 #      mechanism used elsewhere in binding-kafka) reaches a real broker
-#  31. kafka__describe_cluster reports that same broker as its controller --
+#  39. kafka__describe_cluster reports that same broker as its controller --
 #      both tools share one route/guard (kafka:tools only, no admin scope),
 #      being read-only cluster introspection like consume
-#  32. kafka__describe_consumer_group, called against a group id that has
+#  40. kafka__describe_consumer_group, called against a group id that has
 #      never committed an offset, reports real broker state "Dead" -- Kafka's
 #      actual behavior for a group that does not yet exist, not an error --
 #      needing only the toolkit-level kafka:tools scope
-#  33. kafka__describe_consumer_group_lag, called against that same
+#  41. kafka__describe_consumer_group_lag, called against that same
 #      never-used group, sequences a real OffsetFetch then ListOffsets and
 #      reports total lag 0 with an empty partitions array -- a group with no
 #      committed offsets has no lag to report, not an error -- sharing
 #      describe_consumer_group's read-only route/scope
-#  34. kafka__list_consumer_groups succeeds against the real broker, needing
+#  42. kafka__list_consumer_groups succeeds against the real broker, needing
 #      only the toolkit-level kafka:tools scope
-#  35. kafka__create_acls grants a real ACL on a dedicated test resource,
+#  43. kafka__create_acls grants a real ACL on a dedicated test resource,
 #      gated by its own kafka:acls scope -- deliberately distinct from
 #      kafka:admin per KIP-1318's "destructive-mutate" classification of ACL
 #      mutation (see the routes[] comment in etc/zilla.yaml)
-#  36. kafka__list_acls reads that same ACL back from the real broker,
+#  44. kafka__list_acls reads that same ACL back from the real broker,
 #      needing only the toolkit-level kafka:tools scope like describe_configs
-#  37. kafka__delete_acls revokes the ACL granted above, sharing
+#  45. kafka__delete_acls revokes the ACL granted above, sharing
 #      create_acls' route and kafka:acls scope
-#  38. a real MCP SDK client subscribes to an everything resource, triggers
+#  46. a real MCP SDK client subscribes to an everything resource, triggers
 #      the everything server's own toggle-subscriber-updates tool, and
 #      receives a relayed notifications/resources/updated -- exercising
 #      resources/subscribe, resources/unsubscribe, and the notification
@@ -150,8 +175,8 @@ encode_jwt() {
 
 JWT_NONE=""
 JWT_URLELICIT=$(encode_jwt "urlelicit:authorize")
-JWT_PARTIAL=$(encode_jwt "github:tools petstore:tools kafka_sr:tools")
-JWT_FULL=$(encode_jwt "urlelicit:authorize github:tools github:pr:write petstore:tools pets:write kafka_sr:tools kafka_sr:write kafka:tools kafka:write kafka:admin kafka:acls")
+JWT_PARTIAL=$(encode_jwt "github:tools petstore:tools kafka_sr:tools kafka_connect:tools")
+JWT_FULL=$(encode_jwt "urlelicit:authorize github:tools github:pr:write petstore:tools pets:write kafka_sr:tools kafka_sr:write kafka_connect:tools kafka_connect:admin kafka:tools kafka:write kafka:admin kafka:acls")
 
 # WHEN: a url-elicitation-capable client initializes against the gateway
 # THEN: the gateway negotiates protocol version 2025-11-25 in the response
@@ -225,6 +250,7 @@ assert_no_token() {
     ! echo "$TOOLS_NONE" | grep -q '^github__' &&
     ! echo "$TOOLS_NONE" | grep -q '^petstore__' &&
     ! echo "$TOOLS_NONE" | grep -q '^kafka_sr__' &&
+    ! echo "$TOOLS_NONE" | grep -q '^kafka_connect__' &&
     ! echo "$TOOLS_NONE" | grep -q '^kafka__' &&
     ! echo "$TOOLS_NONE" | grep -q 'petstore+' &&
     ! echo "$TOOLS_NONE" | grep -q 'github+'
@@ -235,6 +261,7 @@ if echo "$TOOLS_NONE" | grep -q '^everything__' &&
     ! echo "$TOOLS_NONE" | grep -q '^urlelicit__' &&
     ! echo "$TOOLS_NONE" | grep -q '^github__' &&
     ! echo "$TOOLS_NONE" | grep -q '^petstore__' &&
+    ! echo "$TOOLS_NONE" | grep -q '^kafka_connect__' &&
     ! echo "$TOOLS_NONE" | grep -q '^kafka__' &&
     ! echo "$TOOLS_NONE" | grep -q 'petstore+' &&
     ! echo "$TOOLS_NONE" | grep -q 'github+'; then
@@ -245,14 +272,17 @@ else
 fi
 
 # WHEN: a caller has toolkit-level scopes (github:tools, petstore:tools,
-#       kafka_sr:tools) but none of the finer-grained operation scopes
+#       kafka_sr:tools, kafka_connect:tools) but none of the finer-grained
+#       operation scopes
 # THEN: petstore__list_pets, both petstore resources, github's
-#       pull_by_number template, and kafka_sr__list_subjects are listed
-#       (none of them declare an extra scope beyond toolkit access) but
-#       petstore__create_pet, github__create_pr, and
-#       kafka_sr__register_schema are not (they require pets:write /
-#       github:pr:write / kafka_sr:write respectively) -- proof that
-#       toolkit access alone does not imply access to every tool/resource in it
+#       pull_by_number template, kafka_sr__list_subjects, and
+#       kafka_connect__list_connector_plugins are listed (none of them
+#       declare an extra scope beyond toolkit access) but
+#       petstore__create_pet, github__create_pr, kafka_sr__register_schema,
+#       and kafka_connect__create_connector are not (they require
+#       pets:write / github:pr:write / kafka_sr:write / kafka_connect:admin
+#       respectively) -- proof that toolkit access alone does not imply
+#       access to every tool/resource in it
 assert_partial_token() {
   TOOLS_PARTIAL=$(list_tools "$JWT_PARTIAL")
   echo "$TOOLS_PARTIAL" | grep -q '^petstore__list_pets$' &&
@@ -261,9 +291,11 @@ assert_partial_token() {
     echo "$TOOLS_PARTIAL" | grep -q '^template:petstore+/pets/{petId}$' &&
     echo "$TOOLS_PARTIAL" | grep -q '^template:github+pr://{owner}/{repo}/{number}$' &&
     echo "$TOOLS_PARTIAL" | grep -q '^kafka_sr__list_subjects$' &&
+    echo "$TOOLS_PARTIAL" | grep -q '^kafka_connect__list_connector_plugins$' &&
     ! echo "$TOOLS_PARTIAL" | grep -q '^petstore__create_pet$' &&
     ! echo "$TOOLS_PARTIAL" | grep -q '^github__create_pr$' &&
     ! echo "$TOOLS_PARTIAL" | grep -q '^kafka_sr__register_schema$' &&
+    ! echo "$TOOLS_PARTIAL" | grep -q '^kafka_connect__create_connector$' &&
     ! echo "$TOOLS_PARTIAL" | grep -q '^urlelicit__' &&
     ! echo "$TOOLS_PARTIAL" | grep -q '^kafka__'
 }
@@ -275,12 +307,14 @@ if echo "$TOOLS_PARTIAL" | grep -q '^petstore__list_pets$' &&
     echo "$TOOLS_PARTIAL" | grep -q '^template:petstore+/pets/{petId}$' &&
     echo "$TOOLS_PARTIAL" | grep -q '^template:github+pr://{owner}/{repo}/{number}$' &&
     echo "$TOOLS_PARTIAL" | grep -q '^kafka_sr__list_subjects$' &&
+    echo "$TOOLS_PARTIAL" | grep -q '^kafka_connect__list_connector_plugins$' &&
     ! echo "$TOOLS_PARTIAL" | grep -q '^petstore__create_pet$' &&
     ! echo "$TOOLS_PARTIAL" | grep -q '^github__create_pr$' &&
     ! echo "$TOOLS_PARTIAL" | grep -q '^kafka_sr__register_schema$' &&
+    ! echo "$TOOLS_PARTIAL" | grep -q '^kafka_connect__create_connector$' &&
     ! echo "$TOOLS_PARTIAL" | grep -q '^urlelicit__' &&
     ! echo "$TOOLS_PARTIAL" | grep -q '^kafka__'; then
-  echo "✅ toolkit-only scope: sees list_pets, search_pets, list_subjects, and all three read-only resources, but not create_pet, create_pr, or register_schema"
+  echo "✅ toolkit-only scope: sees list_pets, search_pets, list_subjects, list_connector_plugins, and all three read-only resources, but not create_pet, create_pr, register_schema, or create_connector"
 else
   echo "❌ toolkit-only scope did not layer as expected"
   EXIT=1
@@ -301,6 +335,11 @@ assert_full_token() {
     echo "$TOOLS_FULL" | grep -q '^template:github+pr://{owner}/{repo}/{number}$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka_sr__list_subjects$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka_sr__register_schema$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka_connect__list_connector_plugins$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka_connect__list_connectors$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka_connect__describe_connector$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka_connect__create_connector$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka_connect__delete_connector$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__produce$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__consume$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__create_topics$' &&
@@ -333,6 +372,11 @@ if echo "$TOOLS_FULL" | grep -q '^everything__' &&
     echo "$TOOLS_FULL" | grep -q '^template:github+pr://{owner}/{repo}/{number}$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka_sr__list_subjects$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka_sr__register_schema$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka_connect__list_connector_plugins$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka_connect__list_connectors$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka_connect__describe_connector$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka_connect__create_connector$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka_connect__delete_connector$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__produce$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__consume$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__create_topics$' &&
@@ -715,6 +759,228 @@ if echo "$CHECK_COMPAT_OUT" | grep -q 'Compatibility check result: true'; then
   echo "✅ kafka_sr__check_compatibility reported the identical schema as compatible"
 else
   echo "❌ kafka_sr__check_compatibility did not succeed as expected"
+  EXIT=1
+fi
+
+KC_CONNECTOR="file-source-demo"
+
+# WHEN: a kafka_connect:tools-scoped caller calls kafka_connect__list_connector_plugins
+# THEN: the bundled FileStream source/sink connector plugins come back from a
+#       real Kafka Connect distributed worker (mcp-kafka-connect kind:client's
+#       own generated composite -- mcp-openapi -> mcp-http -> http_client --
+#       not a mock), proving the worker's plugin.path resolved the broker
+#       distribution's own libs/ directory
+call_kafka_connect_list_plugins() {
+  KC_LIST_PLUGINS_OUT=$(docker compose run --rm --no-deps \
+      -e JWT_TOKEN="$JWT_FULL" \
+      -e MCP_URL="http://zilla:$PORT/mcp" \
+      -e CALL_TOOL="kafka_connect__list_connector_plugins" \
+      tools-list-client 2>&1)
+  echo "$KC_LIST_PLUGINS_OUT" | grep -q 'FileStreamSourceConnector'
+}
+retry_until 10 3 call_kafka_connect_list_plugins
+echo "KC_LIST_PLUGINS_OUT=$KC_LIST_PLUGINS_OUT"
+if echo "$KC_LIST_PLUGINS_OUT" | grep -q 'FileStreamSourceConnector'; then
+  echo "✅ kafka_connect__list_connector_plugins listed the bundled FileStreamSourceConnector from the real worker"
+else
+  echo "❌ kafka_connect__list_connector_plugins did not list the bundled FileStreamSourceConnector"
+  EXIT=1
+fi
+
+# WHEN: a kafka_connect:admin-scoped caller calls kafka_connect__create_connector
+#       to create a FileStreamSourceConnector reading a file already seeded
+#       inside the kafka-connect container
+# THEN: the connector is created against the real worker, gated by its own
+#       tool-specific kafka_connect:admin scope layered under the
+#       toolkit-level kafka_connect:tools scope -- the same layering
+#       mechanism as register_schema/kafka_sr:write, demonstrated on a
+#       third toolkit
+docker compose exec -T kafka-connect sh -c "echo 'hello from mcp-kafka-connect' > /tmp/kc-source.txt"
+call_kafka_connect_create_connector() {
+  KC_CREATE_OUT=$(docker compose run --rm --no-deps \
+      -e JWT_TOKEN="$JWT_FULL" \
+      -e MCP_URL="http://zilla:$PORT/mcp" \
+      -e CALL_TOOL="kafka_connect__create_connector" \
+      -e CALL_ARGS="{\"name\":\"$KC_CONNECTOR\",\"config\":{\"connector.class\":\"org.apache.kafka.connect.file.FileStreamSourceConnector\",\"tasks.max\":\"1\",\"file\":\"/tmp/kc-source.txt\",\"topic\":\"connect-demo\"}}" \
+      tools-list-client 2>&1)
+  echo "$KC_CREATE_OUT" | grep -q "$KC_CONNECTOR"
+}
+retry_until 10 3 call_kafka_connect_create_connector
+echo "KC_CREATE_OUT=$KC_CREATE_OUT"
+if echo "$KC_CREATE_OUT" | grep -q "$KC_CONNECTOR"; then
+  echo "✅ kafka_connect__create_connector created a real connector on the real worker"
+else
+  echo "❌ kafka_connect__create_connector did not succeed against the real worker"
+  EXIT=1
+fi
+
+# WHEN: that same caller calls kafka_connect__list_connectors and describe_connector
+# THEN: the connector created above comes back as real, running worker state --
+#       not just an echo of the create call
+call_kafka_connect_list_connectors() {
+  KC_LIST_OUT=$(docker compose run --rm --no-deps \
+      -e JWT_TOKEN="$JWT_FULL" \
+      -e MCP_URL="http://zilla:$PORT/mcp" \
+      -e CALL_TOOL="kafka_connect__list_connectors" \
+      tools-list-client 2>&1)
+  echo "$KC_LIST_OUT" | grep -q "$KC_CONNECTOR"
+}
+retry_until 10 3 call_kafka_connect_list_connectors
+echo "KC_LIST_OUT=$KC_LIST_OUT"
+if echo "$KC_LIST_OUT" | grep -q "$KC_CONNECTOR"; then
+  echo "✅ kafka_connect__list_connectors saw the created connector in real worker state"
+else
+  echo "❌ kafka_connect__list_connectors did not see the created connector"
+  EXIT=1
+fi
+
+call_kafka_connect_describe_connector() {
+  KC_DESCRIBE_OUT=$(docker compose run --rm --no-deps \
+      -e JWT_TOKEN="$JWT_FULL" \
+      -e MCP_URL="http://zilla:$PORT/mcp" \
+      -e CALL_TOOL="kafka_connect__describe_connector" \
+      -e CALL_ARGS="{\"connector\":\"$KC_CONNECTOR\"}" \
+      tools-list-client 2>&1)
+  echo "$KC_DESCRIBE_OUT" | grep -q 'FileStreamSourceConnector'
+}
+retry_until 10 3 call_kafka_connect_describe_connector
+echo "KC_DESCRIBE_OUT=$KC_DESCRIBE_OUT"
+if echo "$KC_DESCRIBE_OUT" | grep -q 'FileStreamSourceConnector'; then
+  echo "✅ kafka_connect__describe_connector read back the real connector's configuration"
+else
+  echo "❌ kafka_connect__describe_connector did not read back the connector's configuration"
+  EXIT=1
+fi
+
+# WHEN: that same caller calls kafka_connect__describe_connector_status
+# THEN: the connector and its one task report RUNNING against the real worker
+call_kafka_connect_status_running() {
+  KC_STATUS_OUT=$(docker compose run --rm --no-deps \
+      -e JWT_TOKEN="$JWT_FULL" \
+      -e MCP_URL="http://zilla:$PORT/mcp" \
+      -e CALL_TOOL="kafka_connect__describe_connector_status" \
+      -e CALL_ARGS="{\"connector\":\"$KC_CONNECTOR\"}" \
+      tools-list-client 2>&1)
+  echo "$KC_STATUS_OUT" | grep -q 'RUNNING'
+}
+retry_until 10 3 call_kafka_connect_status_running
+echo "KC_STATUS_OUT=$KC_STATUS_OUT"
+if echo "$KC_STATUS_OUT" | grep -q 'RUNNING'; then
+  echo "✅ kafka_connect__describe_connector_status reported the real connector as RUNNING"
+else
+  echo "❌ kafka_connect__describe_connector_status did not report RUNNING"
+  EXIT=1
+fi
+
+# WHEN: that same caller calls kafka_connect__pause_connector then
+#       describe_connector_status
+# THEN: the real connector transitions to PAUSED
+call_kafka_connect_pause() {
+  KC_PAUSE_OUT=$(docker compose run --rm --no-deps \
+      -e JWT_TOKEN="$JWT_FULL" \
+      -e MCP_URL="http://zilla:$PORT/mcp" \
+      -e CALL_TOOL="kafka_connect__pause_connector" \
+      -e CALL_ARGS="{\"connector\":\"$KC_CONNECTOR\"}" \
+      tools-list-client 2>&1)
+  KC_STATUS_PAUSED_OUT=$(docker compose run --rm --no-deps \
+      -e JWT_TOKEN="$JWT_FULL" \
+      -e MCP_URL="http://zilla:$PORT/mcp" \
+      -e CALL_TOOL="kafka_connect__describe_connector_status" \
+      -e CALL_ARGS="{\"connector\":\"$KC_CONNECTOR\"}" \
+      tools-list-client 2>&1)
+  echo "$KC_STATUS_PAUSED_OUT" | grep -q 'PAUSED'
+}
+retry_until 10 3 call_kafka_connect_pause
+echo "KC_PAUSE_OUT=$KC_PAUSE_OUT"
+echo "KC_STATUS_PAUSED_OUT=$KC_STATUS_PAUSED_OUT"
+if echo "$KC_STATUS_PAUSED_OUT" | grep -q 'PAUSED'; then
+  echo "✅ kafka_connect__pause_connector transitioned the real connector to PAUSED"
+else
+  echo "❌ kafka_connect__pause_connector did not transition the real connector to PAUSED"
+  EXIT=1
+fi
+
+# WHEN: that same caller calls kafka_connect__resume_connector then
+#       describe_connector_status
+# THEN: the real connector transitions back to RUNNING
+call_kafka_connect_resume() {
+  KC_RESUME_OUT=$(docker compose run --rm --no-deps \
+      -e JWT_TOKEN="$JWT_FULL" \
+      -e MCP_URL="http://zilla:$PORT/mcp" \
+      -e CALL_TOOL="kafka_connect__resume_connector" \
+      -e CALL_ARGS="{\"connector\":\"$KC_CONNECTOR\"}" \
+      tools-list-client 2>&1)
+  KC_STATUS_RESUMED_OUT=$(docker compose run --rm --no-deps \
+      -e JWT_TOKEN="$JWT_FULL" \
+      -e MCP_URL="http://zilla:$PORT/mcp" \
+      -e CALL_TOOL="kafka_connect__describe_connector_status" \
+      -e CALL_ARGS="{\"connector\":\"$KC_CONNECTOR\"}" \
+      tools-list-client 2>&1)
+  echo "$KC_STATUS_RESUMED_OUT" | grep -q 'RUNNING'
+}
+retry_until 10 3 call_kafka_connect_resume
+echo "KC_RESUME_OUT=$KC_RESUME_OUT"
+echo "KC_STATUS_RESUMED_OUT=$KC_STATUS_RESUMED_OUT"
+if echo "$KC_STATUS_RESUMED_OUT" | grep -q 'RUNNING'; then
+  echo "✅ kafka_connect__resume_connector transitioned the real connector back to RUNNING"
+else
+  echo "❌ kafka_connect__resume_connector did not transition the real connector back to RUNNING"
+  EXIT=1
+fi
+
+# WHEN: that same caller calls kafka_connect__restart_connector
+# THEN: the real, running connector restarts successfully, sharing
+#       pause_connector/resume_connector's kafka_connect:admin-gated route
+call_kafka_connect_restart() {
+  KC_RESTART_OUT=$(docker compose run --rm --no-deps \
+      -e JWT_TOKEN="$JWT_FULL" \
+      -e MCP_URL="http://zilla:$PORT/mcp" \
+      -e CALL_TOOL="kafka_connect__restart_connector" \
+      -e CALL_ARGS="{\"connector\":\"$KC_CONNECTOR\"}" \
+      tools-list-client 2>&1)
+  KC_STATUS_RESTARTED_OUT=$(docker compose run --rm --no-deps \
+      -e JWT_TOKEN="$JWT_FULL" \
+      -e MCP_URL="http://zilla:$PORT/mcp" \
+      -e CALL_TOOL="kafka_connect__describe_connector_status" \
+      -e CALL_ARGS="{\"connector\":\"$KC_CONNECTOR\"}" \
+      tools-list-client 2>&1)
+  echo "$KC_STATUS_RESTARTED_OUT" | grep -q 'RUNNING'
+}
+retry_until 10 3 call_kafka_connect_restart
+echo "KC_RESTART_OUT=$KC_RESTART_OUT"
+echo "KC_STATUS_RESTARTED_OUT=$KC_STATUS_RESTARTED_OUT"
+if echo "$KC_STATUS_RESTARTED_OUT" | grep -q 'RUNNING'; then
+  echo "✅ kafka_connect__restart_connector left the real connector RUNNING"
+else
+  echo "❌ kafka_connect__restart_connector did not leave the real connector RUNNING"
+  EXIT=1
+fi
+
+# WHEN: that same caller calls kafka_connect__delete_connector
+# THEN: the real connector is removed, confirmed by list_connectors
+#       reporting none remaining -- sharing create_connector's
+#       kafka_connect:admin-gated route
+call_kafka_connect_delete_connector() {
+  KC_DELETE_OUT=$(docker compose run --rm --no-deps \
+      -e JWT_TOKEN="$JWT_FULL" \
+      -e MCP_URL="http://zilla:$PORT/mcp" \
+      -e CALL_TOOL="kafka_connect__delete_connector" \
+      -e CALL_ARGS="{\"connector\":\"$KC_CONNECTOR\"}" \
+      tools-list-client 2>&1)
+  KC_LIST_AFTER_DELETE_OUT=$(docker compose run --rm --no-deps \
+      -e JWT_TOKEN="$JWT_FULL" \
+      -e MCP_URL="http://zilla:$PORT/mcp" \
+      -e CALL_TOOL="kafka_connect__list_connectors" \
+      tools-list-client 2>&1)
+  ! echo "$KC_LIST_AFTER_DELETE_OUT" | grep -q "$KC_CONNECTOR"
+}
+retry_until 10 3 call_kafka_connect_delete_connector
+echo "KC_DELETE_OUT=$KC_DELETE_OUT"
+echo "KC_LIST_AFTER_DELETE_OUT=$KC_LIST_AFTER_DELETE_OUT"
+if ! echo "$KC_LIST_AFTER_DELETE_OUT" | grep -q "$KC_CONNECTOR"; then
+  echo "✅ kafka_connect__delete_connector removed the real connector"
+else
+  echo "❌ kafka_connect__delete_connector did not remove the real connector"
   EXIT=1
 fi
 
