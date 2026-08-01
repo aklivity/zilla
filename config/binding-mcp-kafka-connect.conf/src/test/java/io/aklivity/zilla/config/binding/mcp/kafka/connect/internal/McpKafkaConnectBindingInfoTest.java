@@ -29,7 +29,7 @@ public class McpKafkaConnectBindingInfoTest
     @Test
     public void shouldResolveType()
     {
-        assertThat(info.type(), equalTo("mcp_kafka_connect"));
+        assertThat(info.type(), equalTo("mcp-kafka-connect"));
     }
 
     @Test

@@ -57,7 +57,6 @@
       <groupId>${project.groupId}</groupId>
       <artifactId>common-json</artifactId>
       <version>${project.version}</version>
-      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>junit</groupId>

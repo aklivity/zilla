@@ -74,4 +74,12 @@ public class SchemaTest
     {
         schema.validate("proxy.route.with.invalid.yaml");
     }
+
+    @Test
+    public void shouldValidateRouteWithToolArray()
+    {
+        JsonObject config = schema.validate("proxy.routes.tool.array.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
 }

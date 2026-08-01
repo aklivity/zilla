@@ -87,7 +87,7 @@ public class McpKafkaConnectCompositeGeneratorTest
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("app0")
-            .type("mcp_kafka_connect")
+            .type("mcp-kafka-connect")
             .kind(CLIENT)
             .options(McpKafkaConnectOptionsConfig.builder()
                 .server("http://localhost:8083")
@@ -117,8 +117,8 @@ public class McpKafkaConnectCompositeGeneratorTest
         assertThat(schema.schema, containsString("\"operationId\": \"list_connectors\""));
 
         BindingConfig mcpOpenapi = namespace.bindings.get(0);
-        assertThat(mcpOpenapi.name, equalTo("mcp_openapi0"));
-        assertThat(mcpOpenapi.type, equalTo("mcp_openapi"));
+        assertThat(mcpOpenapi.name, equalTo("mcp-openapi0"));
+        assertThat(mcpOpenapi.type, equalTo("mcp-openapi"));
         assertThat(mcpOpenapi.kind, equalTo(CLIENT));
 
         McpOpenapiOptionsConfig mcpOpenapiOptions = (McpOpenapiOptionsConfig) mcpOpenapi.options;
@@ -158,19 +158,19 @@ public class McpKafkaConnectCompositeGeneratorTest
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("app0")
-            .type("mcp_kafka_connect")
+            .type("mcp-kafka-connect")
             .kind(CLIENT)
             .options(McpKafkaConnectOptionsConfig.builder()
                 .server("http://localhost:8083")
                 .build())
             .route()
                 .when(McpKafkaConnectConditionConfig.builder()
-                    .tool("list_*")
+                    .tool(List.of("list_*"))
                     .build())
                 .build()
             .route()
                 .when(McpKafkaConnectConditionConfig.builder()
-                    .tool("describe_connector")
+                    .tool(List.of("describe_connector"))
                     .build())
                 .build()
             .build();
@@ -190,6 +190,37 @@ public class McpKafkaConnectCompositeGeneratorTest
     }
 
     @Test
+    public void shouldMatchAnyToolNameWithinSingleRouteAllowlist()
+    {
+        BindingConfig binding = GenericBindingConfig.builder()
+            .namespace("test")
+            .name("app0")
+            .type("mcp-kafka-connect")
+            .kind(CLIENT)
+            .options(McpKafkaConnectOptionsConfig.builder()
+                .server("http://localhost:8083")
+                .build())
+            .route()
+                .when(McpKafkaConnectConditionConfig.builder()
+                    .tool(List.of("list_connectors", "describe_connector"))
+                    .build())
+                .build()
+            .build();
+
+        McpKafkaConnectBindingConfig attached = new McpKafkaConnectBindingConfig(context, binding);
+
+        McpKafkaConnectCompositeConfig composite = generator.generate(attached);
+
+        BindingConfig mcpOpenapi = composite.namespaces.get(0).bindings.get(0);
+        List<String> routedTools = mcpOpenapi.routes.stream()
+            .map(route -> ((McpOpenapiConditionConfig) route.when.get(0)).tool)
+            .toList();
+
+        assertThat(routedTools, hasSize(2));
+        assertThat(routedTools, equalTo(List.of("list_connectors", "describe_connector")));
+    }
+
+    @Test
     public void shouldGuardDeclaredRoute()
     {
         when(context.supplyQName(eq(3L))).thenReturn("test:jwt0");
@@ -197,14 +228,14 @@ public class McpKafkaConnectCompositeGeneratorTest
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("app0")
-            .type("mcp_kafka_connect")
+            .type("mcp-kafka-connect")
             .kind(CLIENT)
             .options(McpKafkaConnectOptionsConfig.builder()
                 .server("http://localhost:8083")
                 .build())
             .route()
                 .when(McpKafkaConnectConditionConfig.builder()
-                    .tool("create_connector")
+                    .tool(List.of("create_connector"))
                     .build())
                 .guarded()
                     .name("jwt0")
@@ -238,7 +269,7 @@ public class McpKafkaConnectCompositeGeneratorTest
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("app0")
-            .type("mcp_kafka_connect")
+            .type("mcp-kafka-connect")
             .kind(PROXY)
             .exit("http0")
             .build();
@@ -280,14 +311,14 @@ public class McpKafkaConnectCompositeGeneratorTest
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("app0")
-            .type("mcp_kafka_connect")
+            .type("mcp-kafka-connect")
             .kind(CLIENT)
             .options(McpKafkaConnectOptionsConfig.builder()
                 .server("http://localhost:8083")
                 .build())
             .route()
                 .when(McpKafkaConnectConditionConfig.builder()
-                    .tool("nonexistent_tool")
+                    .tool(List.of("nonexistent_tool"))
                     .build())
                 .build()
             .build();

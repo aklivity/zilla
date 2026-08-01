@@ -21,6 +21,7 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.binding.mcp.kafka.connect.McpKafkaConnectConditionConfig;
 import io.aklivity.zilla.config.engine.ConditionConfig;
+import io.aklivity.zilla.runtime.common.json.JsonStrings;
 
 public final class McpKafkaConnectConditionConfigAdapter implements JsonbAdapter<ConditionConfig, JsonObject>
 {
@@ -30,14 +31,11 @@ public final class McpKafkaConnectConditionConfigAdapter implements JsonbAdapter
     public JsonObject adaptToJson(
         ConditionConfig condition)
     {
-        McpKafkaConnectConditionConfig schemaRegistryCondition = (McpKafkaConnectConditionConfig) condition;
+        McpKafkaConnectConditionConfig kafkaConnectCondition = (McpKafkaConnectConditionConfig) condition;
 
         JsonObjectBuilder object = Json.createObjectBuilder();
 
-        if (schemaRegistryCondition.tool != null)
-        {
-            object.add(TOOL_NAME, schemaRegistryCondition.tool);
-        }
+        JsonStrings.addStringOrArray(object, TOOL_NAME, kafkaConnectCondition.tool);
 
         return object.build();
     }
@@ -46,12 +44,8 @@ public final class McpKafkaConnectConditionConfigAdapter implements JsonbAdapter
     public ConditionConfig adaptFromJson(
         JsonObject object)
     {
-        String tool = object.containsKey(TOOL_NAME)
-            ? object.getString(TOOL_NAME)
-            : null;
-
         return McpKafkaConnectConditionConfig.builder()
-            .tool(tool)
+            .tool(JsonStrings.asStringOrArray(object, TOOL_NAME))
             .build();
     }
 }

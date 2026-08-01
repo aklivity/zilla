@@ -19,7 +19,6 @@ import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.regex.Pattern;
 
 import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiBindingConfig;
 import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiBindingConfigBuilder;
@@ -34,13 +33,14 @@ import io.aklivity.zilla.runtime.binding.mcp.kafka.connect.internal.config.McpKa
 import io.aklivity.zilla.runtime.binding.mcp.kafka.connect.internal.config.McpKafkaConnectCompositeConfig;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.connect.internal.config.McpKafkaConnectCompositeRouteConfig;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.connect.internal.config.McpKafkaConnectRouteConfig;
+import io.aklivity.zilla.runtime.common.lang.Matchers;
 
 public final class McpKafkaConnectCompositeGenerator
 {
     private static final String BUNDLED_SPEC_RESOURCE =
         "/io/aklivity/zilla/runtime/binding/mcp/kafka/connect/internal/schema/kafka-connect.openapi.json";
     private static final String CATALOG_NAME = "catalog0";
-    private static final String BINDING_NAME = "mcp_openapi0";
+    private static final String BINDING_NAME = "mcp-openapi0";
     private static final String SUBJECT_NAME = "kafkaconnect";
 
     private static final List<String> TOOLS = List.of(
@@ -64,7 +64,7 @@ public final class McpKafkaConnectCompositeGenerator
         final String server = binding.options != null ? binding.options.server : null;
 
         NamespaceConfig namespace = NamespaceConfig.builder()
-            .name("%s/mcp_openapi".formatted(binding.qname))
+            .name("%s/mcp-openapi".formatted(binding.qname))
             .catalog()
                 .name(CATALOG_NAME)
                 .type("inline")
@@ -133,10 +133,10 @@ public final class McpKafkaConnectCompositeGenerator
     }
 
     private static boolean matchesTool(
-        String pattern,
+        List<String> patterns,
         String tool)
     {
-        return compileGlob(pattern).matcher(tool).matches();
+        return Matchers.admits(Matchers.globAll(patterns), tool);
     }
 
     private <C> McpOpenapiRouteConfigBuilder<C> injectGuarded(
@@ -162,28 +162,6 @@ public final class McpKafkaConnectCompositeGenerator
     {
         roles.forEach(guarded::role);
         return guarded;
-    }
-
-    private static Pattern compileGlob(
-        String glob)
-    {
-        StringBuilder regex = new StringBuilder();
-        String[] literals = glob.split("\\*", -1);
-
-        for (int index = 0; index < literals.length; index++)
-        {
-            if (index > 0)
-            {
-                regex.append(".*");
-            }
-
-            if (!literals[index].isEmpty())
-            {
-                regex.append(Pattern.quote(literals[index]));
-            }
-        }
-
-        return Pattern.compile(regex.toString());
     }
 
     private static String loadBundledSpec()

@@ -14,7 +14,9 @@
  */
 package io.aklivity.zilla.config.binding.mcp.kafka.connect.internal;
 
+import static java.util.Arrays.asList;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
@@ -45,25 +47,49 @@ public class McpKafkaConnectConditionConfigAdapterTest
     {
         String text =
                 "{" +
-                    "\"tool\": \"list_subjects\"" +
+                    "\"tool\": \"list_connectors\"" +
                 "}";
 
         McpKafkaConnectConditionConfig condition = jsonb.fromJson(text, McpKafkaConnectConditionConfig.class);
 
         assertThat(condition, not(nullValue()));
-        assertThat(condition.tool, equalTo("list_subjects"));
+        assertThat(condition.tool, contains("list_connectors"));
     }
 
     @Test
     public void shouldWriteCondition()
     {
         McpKafkaConnectConditionConfig condition = McpKafkaConnectConditionConfig.builder()
-            .tool("list_subjects")
+            .tool(asList("list_connectors"))
             .build();
 
         String text = jsonb.toJson(condition);
 
         assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"tool\":\"list_subjects\"}"));
+        assertThat(text, equalTo("{\"tool\":\"list_connectors\"}"));
+    }
+
+    @Test
+    public void shouldReadToolArray()
+    {
+        String text = "{\"tool\": [\"list_connectors\", \"describe_connector\"]}";
+
+        McpKafkaConnectConditionConfig condition = jsonb.fromJson(text, McpKafkaConnectConditionConfig.class);
+
+        assertThat(condition, not(nullValue()));
+        assertThat(condition.tool, contains("list_connectors", "describe_connector"));
+    }
+
+    @Test
+    public void shouldWriteToolArray()
+    {
+        McpKafkaConnectConditionConfig condition = McpKafkaConnectConditionConfig.builder()
+            .tool(asList("list_connectors", "describe_connector"))
+            .build();
+
+        String text = jsonb.toJson(condition);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, equalTo("{\"tool\":[\"list_connectors\",\"describe_connector\"]}"));
     }
 }

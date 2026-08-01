@@ -16,8 +16,8 @@
 ---
 name: test
 bindings:
-  mcp_kafka_connect0:
-    type: mcp_kafka_connect
+  mcp-kafka-connect0:
+    type: mcp-kafka-connect
     kind: proxy
     options:
       server: http://localhost:8083

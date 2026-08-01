@@ -20,6 +20,8 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 
+import java.util.List;
+
 import org.junit.Test;
 
 import io.aklivity.zilla.config.binding.mcp.kafka.connect.internal.McpKafkaConnectBindingInfo;
@@ -33,20 +35,20 @@ public class McpKafkaConnectBindingConfigBuilderTest
     {
         McpKafkaConnectBindingConfig binding = McpKafkaConnectBindingConfig.builder()
             .namespace("test")
-            .name("mcp_kafka_connect0")
+            .name("mcp-kafka-connect0")
             .kind(SERVER)
             .options()
                 .server("test")
                 .build()
             .route()
                 .when()
-                    .tool("test")
+                    .tool(List.of("test"))
                     .build()
                 .build()
             .build();
 
         assertThat(binding.namespace, equalTo("test"));
-        assertThat(binding.name, equalTo("mcp_kafka_connect0"));
+        assertThat(binding.name, equalTo("mcp-kafka-connect0"));
         assertThat(binding.type, equalTo(McpKafkaConnectBindingInfo.TYPE));
         assertThat(binding.kind, equalTo(SERVER));
 
@@ -60,6 +62,6 @@ public class McpKafkaConnectBindingConfigBuilderTest
 
         ConditionConfig condition = route.when.get(0);
         assertThat(condition, instanceOf(McpKafkaConnectConditionConfig.class));
-        assertThat(((McpKafkaConnectConditionConfig) condition).tool, equalTo("test"));
+        assertThat(((McpKafkaConnectConditionConfig) condition).tool, equalTo(List.of("test")));
     }
 }

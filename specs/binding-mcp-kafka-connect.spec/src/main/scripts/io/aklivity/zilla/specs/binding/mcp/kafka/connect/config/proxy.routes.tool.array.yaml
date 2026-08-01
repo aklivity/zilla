@@ -18,6 +18,9 @@ name: test
 bindings:
   app0:
     type: mcp-kafka-connect
-    kind: server
+    kind: client
     options:
       server: http://localhost:8083
+    routes:
+      - when:
+          - tool: [list_connectors, describe_connector]
