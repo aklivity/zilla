@@ -45,20 +45,23 @@ read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .toolsCall()
                               .sessionId("session-1")
-                              .name("reset_offsets")
-                              .contentLength(106)
+                              .name("list_acls")
+                              .contentLength(83)
                               .build()
                           .build()}
 
 connected
 
-read '{"name":"reset_offsets","arguments":{"group_id":"my-group","topic":"my-topic","partition":0,"offset":100}}'
+read '{"name":"list_acls","arguments":{"resource_type":"topic","resource_name":"events"}}'
 
 write flush
 
-write '{"structuredContent":{"group_id":"my-group","topic":"my-topic","partition":0,"offset":100,"reset":false},'
-      '"content":[{"type":"text","text":"Consumer group my-group has active members (state Stable); cannot reset offsets"}],'
-      '"isError":true}'
+write '{"structuredContent":{"acls":[{"resource_type":"topic","resource_name":"events",'
+      '"pattern_type":"literal","principal":"User:alice","host":"*","operation":"read",'
+      '"permission_type":"allow"},{"resource_type":"topic","resource_name":"events",'
+      '"pattern_type":"literal","principal":"User:bob","host":"*","operation":"write",'
+      '"permission_type":"deny"}]},"content":[{"type":"text","text":"Found 2 ACL(s)"}],'
+      '"isError":false}'
 write flush
 
 write close

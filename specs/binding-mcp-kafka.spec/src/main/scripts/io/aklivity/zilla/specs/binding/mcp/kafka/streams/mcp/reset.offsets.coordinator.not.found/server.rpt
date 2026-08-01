@@ -56,7 +56,7 @@ read '{"name":"reset_offsets","arguments":{"group_id":"my-group","topic":"my-top
 
 write flush
 
-write '{"structuredContent":{"group_id":"my-group","topic":"my-topic","reset":false},'
+write '{"structuredContent":{"group_id":"my-group","topic":"my-topic","partition":0,"offset":100,"reset":false},'
       '"content":[{"type":"text","text":"Group coordinator not found for my-group (error 15)"}],'
       '"isError":true}'
 write flush

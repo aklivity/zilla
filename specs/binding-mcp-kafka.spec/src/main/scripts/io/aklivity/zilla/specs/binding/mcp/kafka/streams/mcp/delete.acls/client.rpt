@@ -47,18 +47,20 @@ write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .toolsCall()
                                .sessionId("session-1")
-                               .name("reset_offsets")
-                               .contentLength(106)
+                               .name("delete_acls")
+                               .contentLength(121)
                                .build()
                            .build()}
 
 connected
 
-write '{"name":"reset_offsets","arguments":{"group_id":"my-group","topic":"my-topic","partition":0,"offset":100}}'
+write '{"name":"delete_acls","arguments":{"acls":[{"resource_type":"topic","resource_name":"events",'
+      '"principal":"User:alice"}]}}'
 
-read '{"structuredContent":{"group_id":"my-group","topic":"my-topic","partition":0,"offset":100,"reset":false},'
-     '"content":[{"type":"text","text":"Group coordinator not found for my-group (error 15)"}],'
-     '"isError":true}'
+read '{"structuredContent":{"deleted":[{"resource_type":"topic","resource_name":"events",'
+     '"pattern_type":"literal","principal":"User:alice","host":"*","operation":"read",'
+     '"permission_type":"allow","error":0}]},'
+     '"content":[{"type":"text","text":"Deleted 1 ACL(s)"}],"isError":false}'
 read closed
 
 write close
