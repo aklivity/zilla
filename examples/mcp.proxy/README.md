@@ -537,6 +537,40 @@ docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
 # Compatibility check result: true
 ```
 
+### Manage connectors through a real Kafka Connect worker
+
+`south_mcp_kafka_connect_client` is an `mcp-kafka-connect` `kind: client`
+binding -- like `kafka_sr`, it proxies to a separate REST service with a
+fixed, bundled tool set (`list_connectors`, `create_connector`,
+`describe_connector`, `delete_connector`, `describe_connector_config`,
+`update_connector_config`, `validate_connector_config`,
+`describe_connector_status`, `restart_connector`, `pause_connector`,
+`resume_connector`, `stop_connector`, `list_connector_tasks`,
+`restart_connector_task`, `describe_connector_offsets`,
+`alter_connector_offsets`, `reset_connector_offsets`,
+`list_connector_plugins`) derived from a bundled Kafka Connect OpenAPI
+document, and `options.server` is the only required configuration. This
+example points it at `kafka-connect`, a real Kafka Connect distributed
+worker (not a mock) started against the same real Kafka broker the `kafka`
+toolkit talks to, using the broker distribution's own bundled
+`FileStreamSourceConnector`/`FileStreamSinkConnector` plugins -- no
+separate connector plugin download.
+
+**Known gap:** the `kafka_connect` toolkit's tools never appear in
+`tools/list` and were verified end to end against the real worker directly
+(`docker compose exec kafka-connect` plus raw HTTP requests from inside the
+`zilla` container both confirm the worker itself is reachable and correctly
+answers `GET /connectors`, `GET /connector-plugins`, connector create/pause/
+resume/restart/delete), but `north_mcp_proxy` never hydrates this toolkit's
+tools into its cache the way it does for the structurally-identical
+`kafka_sr` toolkit, even after a full `options.cache.ttl` cycle. The
+binding's own `McpKafkaConnectClientIT` k3po suite passes cleanly in
+isolation, and its composite-generation code is byte-identical to the
+working `mcp-schema-registry` implementation, so the gap is tracked as
+[aklivity/zilla#2273](https://github.com/aklivity/zilla/issues/2273) rather
+than papered over -- the binding and route configuration below reflect the
+intended, documented usage once that issue is resolved.
+
 ### Produce, consume, create/delete topics, describe/alter configs, and cluster introspection through a real Kafka broker
 
 `south_mcp_kafka_client` is an `mcp-kafka` `kind: client` binding -- unlike
