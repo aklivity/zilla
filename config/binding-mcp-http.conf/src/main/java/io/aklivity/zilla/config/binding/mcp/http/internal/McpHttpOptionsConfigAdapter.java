@@ -287,10 +287,6 @@ public final class McpHttpOptionsConfigAdapter implements JsonbAdapter<OptionsCo
         McpHttpToolAnnotationsConfig annotations)
     {
         JsonObjectBuilder annotationsObject = Json.createObjectBuilder();
-        if (annotations.title != null)
-        {
-            annotationsObject.add(TITLE_NAME, annotations.title);
-        }
         if (annotations.readOnlyHint != null)
         {
             annotationsObject.add(READ_ONLY_HINT_NAME, annotations.readOnlyHint);
@@ -313,9 +309,6 @@ public final class McpHttpOptionsConfigAdapter implements JsonbAdapter<OptionsCo
     private static McpHttpToolAnnotationsConfig toolAnnotations(
         JsonObject annotationsObject)
     {
-        String title = annotationsObject.containsKey(TITLE_NAME)
-            ? annotationsObject.getString(TITLE_NAME)
-            : null;
         Boolean readOnlyHint = annotationsObject.containsKey(READ_ONLY_HINT_NAME)
             ? annotationsObject.getBoolean(READ_ONLY_HINT_NAME)
             : null;
@@ -330,7 +323,6 @@ public final class McpHttpOptionsConfigAdapter implements JsonbAdapter<OptionsCo
             : null;
 
         return McpHttpToolAnnotationsConfig.builder()
-            .title(title)
             .readOnlyHint(readOnlyHint)
             .destructiveHint(destructiveHint)
             .idempotentHint(idempotentHint)

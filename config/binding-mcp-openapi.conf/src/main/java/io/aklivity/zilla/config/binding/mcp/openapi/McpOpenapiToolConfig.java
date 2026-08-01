@@ -21,6 +21,7 @@ import io.aklivity.zilla.config.engine.ModelConfig;
 public final class McpOpenapiToolConfig
 {
     public final String name;
+    public final String title;
     public final String description;
     public final String summary;
     public final ModelConfig input;
@@ -40,6 +41,7 @@ public final class McpOpenapiToolConfig
 
     McpOpenapiToolConfig(
         String name,
+        String title,
         String description,
         String summary,
         ModelConfig input,
@@ -47,6 +49,7 @@ public final class McpOpenapiToolConfig
         McpOpenapiToolAnnotationsConfig annotations)
     {
         this.name = name;
+        this.title = title;
         this.description = description;
         this.summary = summary;
         this.input = input;

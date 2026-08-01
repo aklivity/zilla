@@ -116,7 +116,7 @@ public class McpKafkaConnectCompositeGeneratorTest
         assertThat(schema.subject, equalTo("kafka-connect"));
         assertThat(schema.version, equalTo("latest"));
         assertThat(schema.schema, containsString("\"operationId\": \"list_connectors\""));
-        assertThat(schema.schema, not(containsString("x-mcp-annotations")));
+        assertThat(schema.schema, not(containsString("x-zilla-mcp")));
 
         CatalogConfig overlayCatalog = namespace.catalogs.get(1);
         assertThat(overlayCatalog.name, equalTo("overlays"));
@@ -128,7 +128,7 @@ public class McpKafkaConnectCompositeGeneratorTest
         InlineSchemaConfig overlaySchema = overlayCatalogOptions.subjects.get(0);
         assertThat(overlaySchema.subject, equalTo("kafka-connect"));
         assertThat(overlaySchema.version, equalTo("latest"));
-        assertThat(overlaySchema.schema, containsString("x-mcp-annotations"));
+        assertThat(overlaySchema.schema, containsString("x-zilla-mcp"));
         assertThat(overlaySchema.schema, containsString("List Connectors"));
 
         BindingConfig mcpOpenapi = namespace.bindings.get(0);

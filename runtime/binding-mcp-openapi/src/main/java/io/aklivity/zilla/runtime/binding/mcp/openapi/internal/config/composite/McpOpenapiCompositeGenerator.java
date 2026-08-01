@@ -98,7 +98,7 @@ public final class McpOpenapiCompositeGenerator
 {
     private static final String CATALOG_NAME = "catalog0";
     private static final String BINDING_NAME = "mcp-http0";
-    private static final String ANNOTATIONS_EXTENSION_NAME = "x-mcp-annotations";
+    private static final String MCP_EXTENSION_NAME = "x-zilla-mcp";
     private static final String METHOD_GET = "get";
     private static final String METHOD_HEAD = "head";
     private static final String METHOD_PUT = "put";
@@ -122,7 +122,7 @@ public final class McpOpenapiCompositeGenerator
 
         final OpenapiParser parser = new OpenapiParserFactory()
             .withExtension(OpenapiExtension.of(OpenapiExtension.Scope.OPERATION,
-                ANNOTATIONS_EXTENSION_NAME, McpAnnotationsEx.class))
+                MCP_EXTENSION_NAME, McpEx.class))
             .createParser();
         final Map<String, OpenapiView> specsByLabel = new LinkedHashMap<>();
         final Map<String, Map<String, String>> securityByLabel = new LinkedHashMap<>();
@@ -274,7 +274,8 @@ public final class McpOpenapiCompositeGenerator
             binding.options.tools.stream()
                 .filter(t -> name.equals(t.name))
                 .findFirst()
-                .ifPresent(override -> tool.description(override.description)
+                .ifPresent(override -> tool.title(override.title)
+                    .description(override.description)
                     .summary(override.summary)
                     .input(override.input)
                     .output(override.output)
@@ -438,6 +439,7 @@ public final class McpOpenapiCompositeGenerator
                         : "Call %s".formatted(entry.operation.id);
                 tools.add(McpHttpToolConfig.builder()
                     .name(entry.tool.name)
+                    .title(toolTitle(entry.tool, entry.operation))
                     .summary(summary)
                     .description(description)
                     .input(input)
@@ -471,7 +473,21 @@ public final class McpOpenapiCompositeGenerator
             .build();
     }
 
-    // Precedence, per field: authored override (options.tools.<name>.annotations) > x-mcp-annotations
+    // Title precedence: authored override (options.tools.<name>.title) > x-zilla-mcp.title OpenAPI
+    // vendor extension > null. Title lives only at the top level (McpHttpToolConfig.title) -- neither
+    // the authored override nor the vendor extension carries a title inside annotations any more.
+    private String toolTitle(
+        McpOpenapiToolConfig tool,
+        OpenapiOperationView operation)
+    {
+        final McpEx extension = operation.extension(MCP_EXTENSION_NAME, McpEx.class).orElse(null);
+
+        return tool.title != null
+            ? tool.title
+            : extension != null ? extension.title : null;
+    }
+
+    // Precedence, per hint: authored override (options.tools.<name>.annotations) > x-zilla-mcp.annotations
     // OpenAPI vendor extension > HTTP-method-derived default. OpenAPI has no native "destructive"/"idempotent"
     // concept, so the derived defaults are heuristics (matching the HTTP spec's own idempotency guarantee
     // for PUT/DELETE) rather than anything read from the operation itself.
@@ -480,32 +496,28 @@ public final class McpOpenapiCompositeGenerator
         OpenapiOperationView operation)
     {
         final McpOpenapiToolAnnotationsConfig override = tool.annotations;
-        final McpAnnotationsEx extension = operation.extension(ANNOTATIONS_EXTENSION_NAME, McpAnnotationsEx.class)
-            .orElse(null);
+        final McpEx extension = operation.extension(MCP_EXTENSION_NAME, McpEx.class).orElse(null);
+        final McpToolAnnotationsEx extensionAnnotations = extension != null ? extension.annotations : null;
         final String method = operation.method;
 
-        final String title = override != null && override.title != null
-            ? override.title
-            : extension != null ? extension.title : null;
         final Boolean readOnlyHint = resolveHint(
             override != null ? override.readOnlyHint : null,
-            extension != null ? extension.readOnlyHint : null,
+            extensionAnnotations != null ? extensionAnnotations.readOnlyHint : null,
             defaultReadOnlyHint(method));
         final Boolean destructiveHint = resolveHint(
             override != null ? override.destructiveHint : null,
-            extension != null ? extension.destructiveHint : null,
+            extensionAnnotations != null ? extensionAnnotations.destructiveHint : null,
             defaultDestructiveHint(method));
         final Boolean idempotentHint = resolveHint(
             override != null ? override.idempotentHint : null,
-            extension != null ? extension.idempotentHint : null,
+            extensionAnnotations != null ? extensionAnnotations.idempotentHint : null,
             defaultIdempotentHint(method));
         final Boolean openWorldHint = resolveHint(
             override != null ? override.openWorldHint : null,
-            extension != null ? extension.openWorldHint : null,
+            extensionAnnotations != null ? extensionAnnotations.openWorldHint : null,
             Boolean.FALSE);
 
         return McpHttpToolAnnotationsConfig.builder()
-            .title(title)
             .readOnlyHint(readOnlyHint)
             .destructiveHint(destructiveHint)
             .idempotentHint(idempotentHint)

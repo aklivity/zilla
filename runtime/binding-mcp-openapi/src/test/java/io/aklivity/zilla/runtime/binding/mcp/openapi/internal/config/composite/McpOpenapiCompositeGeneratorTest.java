@@ -378,12 +378,14 @@ public class McpOpenapiCompositeGeneratorTest
             "/items/{id}/annotated": {
               "post": {
                 "operationId": "items/annotated",
-                "x-mcp-annotations": {
+                "x-zilla-mcp": {
                   "title": "Annotated Item Action",
-                  "readOnlyHint": true,
-                  "destructiveHint": true,
-                  "idempotentHint": true,
-                  "openWorldHint": true
+                  "annotations": {
+                    "readOnlyHint": true,
+                    "destructiveHint": true,
+                    "idempotentHint": true,
+                    "openWorldHint": true
+                  }
                 },
                 "parameters": [
                   { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
@@ -3020,8 +3022,8 @@ public class McpOpenapiCompositeGeneratorTest
             .orElse(null);
         McpHttpOptionsConfig mcpHttpOptions = (McpHttpOptionsConfig) mcpHttp.options;
 
+        assertThat(tool(mcpHttpOptions, "annotated_action").title, equalTo("Annotated Item Action"));
         McpHttpToolAnnotationsConfig annotations = toolAnnotations(mcpHttpOptions, "annotated_action");
-        assertThat(annotations.title, equalTo("Annotated Item Action"));
         assertThat(annotations.readOnlyHint, equalTo(true));
         assertThat(annotations.destructiveHint, equalTo(true));
         assertThat(annotations.idempotentHint, equalTo(true));
@@ -3051,8 +3053,8 @@ public class McpOpenapiCompositeGeneratorTest
                     .build()
                 .tool()
                     .name("annotated_action")
+                    .title("Custom Title")
                     .annotations(McpOpenapiToolAnnotationsConfig.builder()
-                        .title("Custom Title")
                         .readOnlyHint(false)
                         .build())
                     .build()
@@ -3077,18 +3079,19 @@ public class McpOpenapiCompositeGeneratorTest
             .orElse(null);
         McpHttpOptionsConfig mcpHttpOptions = (McpHttpOptionsConfig) mcpHttp.options;
 
-        // title/readOnlyHint come from the authored override; destructiveHint/idempotentHint/openWorldHint
-        // fall through the override (unset) to the x-mcp-annotations extension, never reaching the
-        // HTTP-method-derived default
+        // title comes from the authored top-level override, not the x-zilla-mcp.title extension;
+        // readOnlyHint comes from the authored annotations override; destructiveHint/idempotentHint/
+        // openWorldHint fall through the override (unset) to the x-zilla-mcp.annotations extension,
+        // never reaching the HTTP-method-derived default
+        assertThat(tool(mcpHttpOptions, "annotated_action").title, equalTo("Custom Title"));
         McpHttpToolAnnotationsConfig annotations = toolAnnotations(mcpHttpOptions, "annotated_action");
-        assertThat(annotations.title, equalTo("Custom Title"));
         assertThat(annotations.readOnlyHint, equalTo(false));
         assertThat(annotations.destructiveHint, equalTo(true));
         assertThat(annotations.idempotentHint, equalTo(true));
         assertThat(annotations.openWorldHint, equalTo(true));
     }
 
-    private static McpHttpToolAnnotationsConfig toolAnnotations(
+    private static McpHttpToolConfig tool(
         McpHttpOptionsConfig options,
         String name)
     {
@@ -3097,6 +3100,14 @@ public class McpOpenapiCompositeGeneratorTest
             .findFirst()
             .orElse(null);
         assertThat(tool, notNullValue());
+        return tool;
+    }
+
+    private static McpHttpToolAnnotationsConfig toolAnnotations(
+        McpHttpOptionsConfig options,
+        String name)
+    {
+        McpHttpToolConfig tool = tool(options, name);
         assertThat(tool.annotations, notNullValue());
         return tool.annotations;
     }

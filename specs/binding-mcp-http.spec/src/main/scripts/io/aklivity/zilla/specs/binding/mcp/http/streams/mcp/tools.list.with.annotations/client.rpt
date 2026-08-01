@@ -51,7 +51,7 @@ connected
 # tools/list is answered entirely from config; no upstream HTTP call
 read  '{"tools":[{"name":"get_item","description":"Get an item",'
       '"inputSchema":{"type":"object","properties":{"id":{"type":"string"}}},'
-      '"annotations":{"title":"Get Item","readOnlyHint":true,"destructiveHint":false,'
+      '"annotations":{"readOnlyHint":true,"destructiveHint":false,'
       '"idempotentHint":true,"openWorldHint":false}}]}'
 read closed
 

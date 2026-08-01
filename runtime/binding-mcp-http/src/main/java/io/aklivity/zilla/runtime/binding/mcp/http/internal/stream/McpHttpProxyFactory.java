@@ -2495,10 +2495,6 @@ public final class McpHttpProxyFactory implements BindingHandler
         if (annotations != null)
         {
             final JsonObjectBuilder builder = Json.createObjectBuilder();
-            if (annotations.title != null)
-            {
-                builder.add("title", annotations.title);
-            }
             if (annotations.readOnlyHint != null)
             {
                 builder.add("readOnlyHint", annotations.readOnlyHint);

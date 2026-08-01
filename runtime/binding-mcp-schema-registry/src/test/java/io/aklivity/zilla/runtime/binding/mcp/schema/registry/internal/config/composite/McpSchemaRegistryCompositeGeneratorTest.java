@@ -112,7 +112,7 @@ public class McpSchemaRegistryCompositeGeneratorTest
         assertThat(schema.subject, equalTo("schema-registry"));
         assertThat(schema.version, equalTo("latest"));
         assertThat(schema.schema, containsString("\"operationId\":\"list_subjects\""));
-        assertThat(schema.schema, not(containsString("x-mcp-annotations")));
+        assertThat(schema.schema, not(containsString("x-zilla-mcp")));
 
         CatalogConfig overlayCatalog = namespace.catalogs.get(1);
         assertThat(overlayCatalog.name, equalTo("overlays"));
@@ -124,7 +124,7 @@ public class McpSchemaRegistryCompositeGeneratorTest
         InlineSchemaConfig overlaySchema = overlayCatalogOptions.subjects.get(0);
         assertThat(overlaySchema.subject, equalTo("schema-registry"));
         assertThat(overlaySchema.version, equalTo("latest"));
-        assertThat(overlaySchema.schema, containsString("x-mcp-annotations"));
+        assertThat(overlaySchema.schema, containsString("x-zilla-mcp"));
         assertThat(overlaySchema.schema, containsString("List Subjects"));
 
         BindingConfig mcpOpenapi = namespace.bindings.get(0);

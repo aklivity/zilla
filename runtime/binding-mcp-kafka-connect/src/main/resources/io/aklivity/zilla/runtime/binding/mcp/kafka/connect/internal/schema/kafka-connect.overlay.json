@@ -8,198 +8,234 @@
         {
             "target": "$.paths['/connectors'].get",
             "update": {
-                "x-mcp-annotations": {
+                "x-zilla-mcp": {
                     "title": "List Connectors",
-                    "readOnlyHint": true,
-                    "destructiveHint": false,
-                    "idempotentHint": true
+                    "annotations": {
+                        "readOnlyHint": true,
+                        "destructiveHint": false,
+                        "idempotentHint": true
+                    }
                 }
             }
         },
         {
             "target": "$.paths['/connectors'].post",
             "update": {
-                "x-mcp-annotations": {
+                "x-zilla-mcp": {
                     "title": "Create Connector",
-                    "readOnlyHint": false,
-                    "destructiveHint": false,
-                    "idempotentHint": false
+                    "annotations": {
+                        "readOnlyHint": false,
+                        "destructiveHint": false,
+                        "idempotentHint": false
+                    }
                 }
             }
         },
         {
             "target": "$.paths['/connectors/{connector}'].get",
             "update": {
-                "x-mcp-annotations": {
+                "x-zilla-mcp": {
                     "title": "Describe Connector",
-                    "readOnlyHint": true,
-                    "destructiveHint": false,
-                    "idempotentHint": true
+                    "annotations": {
+                        "readOnlyHint": true,
+                        "destructiveHint": false,
+                        "idempotentHint": true
+                    }
                 }
             }
         },
         {
             "target": "$.paths['/connectors/{connector}'].delete",
             "update": {
-                "x-mcp-annotations": {
+                "x-zilla-mcp": {
                     "title": "Delete Connector",
-                    "readOnlyHint": false,
-                    "destructiveHint": true,
-                    "idempotentHint": true
+                    "annotations": {
+                        "readOnlyHint": false,
+                        "destructiveHint": true,
+                        "idempotentHint": true
+                    }
                 }
             }
         },
         {
             "target": "$.paths['/connectors/{connector}/config'].get",
             "update": {
-                "x-mcp-annotations": {
+                "x-zilla-mcp": {
                     "title": "Describe Connector Config",
-                    "readOnlyHint": true,
-                    "destructiveHint": false,
-                    "idempotentHint": true
+                    "annotations": {
+                        "readOnlyHint": true,
+                        "destructiveHint": false,
+                        "idempotentHint": true
+                    }
                 }
             }
         },
         {
             "target": "$.paths['/connectors/{connector}/config'].put",
             "update": {
-                "x-mcp-annotations": {
+                "x-zilla-mcp": {
                     "title": "Update Connector Config",
-                    "readOnlyHint": false,
-                    "destructiveHint": false,
-                    "idempotentHint": true
+                    "annotations": {
+                        "readOnlyHint": false,
+                        "destructiveHint": false,
+                        "idempotentHint": true
+                    }
                 }
             }
         },
         {
             "target": "$.paths['/connector-plugins/{pluginName}/config/validate'].put",
             "update": {
-                "x-mcp-annotations": {
+                "x-zilla-mcp": {
                     "title": "Validate Connector Config",
-                    "readOnlyHint": true,
-                    "destructiveHint": false,
-                    "idempotentHint": true
+                    "annotations": {
+                        "readOnlyHint": true,
+                        "destructiveHint": false,
+                        "idempotentHint": true
+                    }
                 }
             }
         },
         {
             "target": "$.paths['/connectors/{connector}/status'].get",
             "update": {
-                "x-mcp-annotations": {
+                "x-zilla-mcp": {
                     "title": "Describe Connector Status",
-                    "readOnlyHint": true,
-                    "destructiveHint": false,
-                    "idempotentHint": true
+                    "annotations": {
+                        "readOnlyHint": true,
+                        "destructiveHint": false,
+                        "idempotentHint": true
+                    }
                 }
             }
         },
         {
             "target": "$.paths['/connectors/{connector}/restart'].post",
             "update": {
-                "x-mcp-annotations": {
+                "x-zilla-mcp": {
                     "title": "Restart Connector",
-                    "readOnlyHint": false,
-                    "destructiveHint": false,
-                    "idempotentHint": false
+                    "annotations": {
+                        "readOnlyHint": false,
+                        "destructiveHint": false,
+                        "idempotentHint": false
+                    }
                 }
             }
         },
         {
             "target": "$.paths['/connectors/{connector}/pause'].put",
             "update": {
-                "x-mcp-annotations": {
+                "x-zilla-mcp": {
                     "title": "Pause Connector",
-                    "readOnlyHint": false,
-                    "destructiveHint": false,
-                    "idempotentHint": true
+                    "annotations": {
+                        "readOnlyHint": false,
+                        "destructiveHint": false,
+                        "idempotentHint": true
+                    }
                 }
             }
         },
         {
             "target": "$.paths['/connectors/{connector}/resume'].put",
             "update": {
-                "x-mcp-annotations": {
+                "x-zilla-mcp": {
                     "title": "Resume Connector",
-                    "readOnlyHint": false,
-                    "destructiveHint": false,
-                    "idempotentHint": true
+                    "annotations": {
+                        "readOnlyHint": false,
+                        "destructiveHint": false,
+                        "idempotentHint": true
+                    }
                 }
             }
         },
         {
             "target": "$.paths['/connectors/{connector}/stop'].put",
             "update": {
-                "x-mcp-annotations": {
+                "x-zilla-mcp": {
                     "title": "Stop Connector",
-                    "readOnlyHint": false,
-                    "destructiveHint": false,
-                    "idempotentHint": true
+                    "annotations": {
+                        "readOnlyHint": false,
+                        "destructiveHint": false,
+                        "idempotentHint": true
+                    }
                 }
             }
         },
         {
             "target": "$.paths['/connectors/{connector}/tasks'].get",
             "update": {
-                "x-mcp-annotations": {
+                "x-zilla-mcp": {
                     "title": "List Connector Tasks",
-                    "readOnlyHint": true,
-                    "destructiveHint": false,
-                    "idempotentHint": true
+                    "annotations": {
+                        "readOnlyHint": true,
+                        "destructiveHint": false,
+                        "idempotentHint": true
+                    }
                 }
             }
         },
         {
             "target": "$.paths['/connectors/{connector}/tasks/{task}/restart'].post",
             "update": {
-                "x-mcp-annotations": {
+                "x-zilla-mcp": {
                     "title": "Restart Connector Task",
-                    "readOnlyHint": false,
-                    "destructiveHint": false,
-                    "idempotentHint": false
+                    "annotations": {
+                        "readOnlyHint": false,
+                        "destructiveHint": false,
+                        "idempotentHint": false
+                    }
                 }
             }
         },
         {
             "target": "$.paths['/connectors/{connector}/offsets'].get",
             "update": {
-                "x-mcp-annotations": {
+                "x-zilla-mcp": {
                     "title": "Describe Connector Offsets",
-                    "readOnlyHint": true,
-                    "destructiveHint": false,
-                    "idempotentHint": true
+                    "annotations": {
+                        "readOnlyHint": true,
+                        "destructiveHint": false,
+                        "idempotentHint": true
+                    }
                 }
             }
         },
         {
             "target": "$.paths['/connectors/{connector}/offsets'].patch",
             "update": {
-                "x-mcp-annotations": {
+                "x-zilla-mcp": {
                     "title": "Alter Connector Offsets",
-                    "readOnlyHint": false,
-                    "destructiveHint": true,
-                    "idempotentHint": true
+                    "annotations": {
+                        "readOnlyHint": false,
+                        "destructiveHint": true,
+                        "idempotentHint": true
+                    }
                 }
             }
         },
         {
             "target": "$.paths['/connectors/{connector}/offsets'].delete",
             "update": {
-                "x-mcp-annotations": {
+                "x-zilla-mcp": {
                     "title": "Reset Connector Offsets",
-                    "readOnlyHint": false,
-                    "destructiveHint": true,
-                    "idempotentHint": true
+                    "annotations": {
+                        "readOnlyHint": false,
+                        "destructiveHint": true,
+                        "idempotentHint": true
+                    }
                 }
             }
         },
         {
             "target": "$.paths['/connector-plugins'].get",
             "update": {
-                "x-mcp-annotations": {
+                "x-zilla-mcp": {
                     "title": "List Connector Plugins",
-                    "readOnlyHint": true,
-                    "destructiveHint": false,
-                    "idempotentHint": true
+                    "annotations": {
+                        "readOnlyHint": true,
+                        "destructiveHint": false,
+                        "idempotentHint": true
+                    }
                 }
             }
         }

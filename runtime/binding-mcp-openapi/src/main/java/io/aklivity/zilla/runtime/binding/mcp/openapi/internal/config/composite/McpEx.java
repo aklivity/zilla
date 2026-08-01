@@ -14,11 +14,8 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.openapi.internal.config.composite;
 
-public class McpAnnotationsEx
+public class McpEx
 {
     public String title;
-    public Boolean readOnlyHint;
-    public Boolean destructiveHint;
-    public Boolean idempotentHint;
-    public Boolean openWorldHint;
+    public McpToolAnnotationsEx annotations;
 }

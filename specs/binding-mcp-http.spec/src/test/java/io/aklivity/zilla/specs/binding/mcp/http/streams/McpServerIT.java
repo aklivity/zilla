@@ -182,15 +182,6 @@ public class McpServerIT
 
     @Test
     @Specification({
-        "${mcp}/tools.list.with.title.and.annotations/client",
-        "${mcp}/tools.list.with.title.and.annotations/server"})
-    public void shouldListToolsWithTitleAndAnnotations() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${mcp}/resources.list/client",
         "${mcp}/resources.list/server"})
     public void shouldListResources() throws Exception
