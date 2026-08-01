@@ -296,4 +296,13 @@ public class McpIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${mcp}/describe.consumer.group.lag/client",
+        "${mcp}/describe.consumer.group.lag/server"})
+    public void shouldDescribeConsumerGroupLag() throws Exception
+    {
+        k3po.finish();
+    }
 }

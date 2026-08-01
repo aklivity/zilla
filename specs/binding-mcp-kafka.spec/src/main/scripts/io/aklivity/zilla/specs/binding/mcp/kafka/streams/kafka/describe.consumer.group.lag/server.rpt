@@ -1,0 +1,138 @@
+#
+# Copyright 2021-2026 Aklivity Inc
+#
+# Licensed under the Aklivity Community License (the "License"); you may not use
+# this file except in compliance with the License.  You may obtain a copy of the
+# License at
+#
+#   https://www.aklivity.io/aklivity-community-license/
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations under the License.
+#
+
+property serverAddress "zilla://streams/kafka0"
+
+accept ${serverAddress}
+    option zilla:window 8192
+    option zilla:transmission "half-duplex"
+    option zilla:byteorder "network"
+
+accepted
+
+read zilla:begin.ext ${kafka:matchBeginEx()
+                               .typeId(zilla:id("kafka"))
+                               .apiRequest()
+                                 .length(12)
+                                 .api(9)
+                                 .version(6)
+                                 .clientId("zilla")
+                                 .build()
+                                .build()}
+
+connected
+
+read  [0x00]                            # request header tagged fields
+      [0x09] "my-group"                 # group id
+      [0x00]                            # topic count (null, all topics)
+      [0x00]                            # tagged fields
+
+write zilla:begin.ext ${kafka:beginEx()
+                               .typeId(zilla:id("kafka"))
+                               .apiResponse()
+                                 .length(60)
+                                 .version(6)
+                                 .build()
+                                .build()}
+
+write [0x00]                             # tagged fields
+      0                                  # throttle time ms
+      [0x02]                             # topics
+        [0x09] "my-topic"                # topic name
+        [0x03]                           # partitions
+          [0x00 0x00 0x00 0x00]                        # partition index 0
+          [0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x2a]    # committed offset 42
+          [0x00 0x00 0x00 0x03]                        # committed leader epoch 3
+          [0x00]                                       # metadata (null)
+          0s                                           # error code
+          [0x00]                                       # partition tagged fields
+          [0x00 0x00 0x00 0x01]                        # partition index 1
+          [0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x0a]    # committed offset 10
+          [0x00 0x00 0x00 0x03]                        # committed leader epoch 3
+          [0x00]                                       # metadata (null)
+          0s                                           # error code
+          [0x00]                                       # partition tagged fields
+        [0x00]                           # topic tagged fields
+      0s                                 # group error code
+      [0x00]                             # tagged fields
+
+write flush
+
+read closed
+write close
+
+accepted
+
+read zilla:begin.ext ${kafka:matchBeginEx()
+                               .typeId(zilla:id("kafka"))
+                               .apiRequest()
+                                 .length(53)
+                                 .api(2)
+                                 .version(6)
+                                 .clientId("zilla")
+                                 .build()
+                                .build()}
+
+connected
+
+read  [0x00]                            # request header tagged fields
+      [0xff 0xff 0xff 0xff]             # replica id (-1, consumer)
+      [0x00]                            # isolation level (read uncommitted)
+      [0x02]                            # topics
+        [0x09] "my-topic"               # topic name
+        [0x03]                          # partitions
+          [0x00 0x00 0x00 0x00]                        # partition index 0
+          [0xff 0xff 0xff 0xff]                        # current leader epoch (-1)
+          [0xff 0xff 0xff 0xff 0xff 0xff 0xff 0xff]    # timestamp (-1, latest)
+          [0x00]                                       # partition tagged fields
+          [0x00 0x00 0x00 0x01]                        # partition index 1
+          [0xff 0xff 0xff 0xff]                        # current leader epoch (-1)
+          [0xff 0xff 0xff 0xff 0xff 0xff 0xff 0xff]    # timestamp (-1, latest)
+          [0x00]                                       # partition tagged fields
+        [0x00]                          # topic tagged fields
+      [0x00]                            # tagged fields
+
+write zilla:begin.ext ${kafka:beginEx()
+                               .typeId(zilla:id("kafka"))
+                               .apiResponse()
+                                 .length(72)
+                                 .version(6)
+                                 .build()
+                                .build()}
+
+write [0x00]                             # tagged fields
+      0                                  # throttle time ms
+      [0x02]                             # topics
+        [0x09] "my-topic"                # topic name
+        [0x03]                           # partitions
+          [0x00 0x00 0x00 0x00]                        # partition index 0
+          0s                                           # error code
+          [0xff 0xff 0xff 0xff 0xff 0xff 0xff 0xff]    # timestamp (-1)
+          [0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x64]    # end offset 100
+          [0x00 0x00 0x00 0x05]                        # leader epoch 5
+          [0x00]                                       # partition tagged fields
+          [0x00 0x00 0x00 0x01]                        # partition index 1
+          0s                                           # error code
+          [0xff 0xff 0xff 0xff 0xff 0xff 0xff 0xff]    # timestamp (-1)
+          [0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x3c]    # end offset 60
+          [0x00 0x00 0x00 0x05]                        # leader epoch 5
+          [0x00]                                       # partition tagged fields
+        [0x00]                           # topic tagged fields
+      [0x00]                             # tagged fields
+
+write flush
+
+read closed
+write close
