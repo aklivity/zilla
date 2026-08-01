@@ -1,0 +1,554 @@
+{
+    "openapi": "3.0.1",
+    "info": {
+        "title": "Kafka Connect API",
+        "version": "1.0"
+    },
+    "servers": [
+        {
+            "url": "http://localhost:8083"
+        }
+    ],
+    "paths": {
+        "/connectors": {
+            "get": {
+                "operationId": "list_connectors",
+                "summary": "Listed connectors",
+                "responses": {
+                    "200": {
+                        "description": "ok"
+                    }
+                },
+                "x-mcp-annotations": {
+                    "readOnlyHint": true,
+                    "destructiveHint": false,
+                    "idempotentHint": true
+                }
+            },
+            "post": {
+                "operationId": "create_connector",
+                "summary": "Created connector ${result.name}",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "config": {
+                                        "type": "object",
+                                        "additionalProperties": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "created"
+                    }
+                },
+                "x-mcp-annotations": {
+                    "readOnlyHint": false,
+                    "destructiveHint": false,
+                    "idempotentHint": false
+                }
+            }
+        },
+        "/connectors/{connector}": {
+            "get": {
+                "operationId": "describe_connector",
+                "summary": "Retrieved connector ${result.name}",
+                "parameters": [
+                    {
+                        "name": "connector",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "ok"
+                    }
+                },
+                "x-mcp-annotations": {
+                    "readOnlyHint": true,
+                    "destructiveHint": false,
+                    "idempotentHint": true
+                }
+            },
+            "delete": {
+                "operationId": "delete_connector",
+                "summary": "Deleted connector ${result.name}",
+                "parameters": [
+                    {
+                        "name": "connector",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "ok"
+                    }
+                },
+                "x-mcp-annotations": {
+                    "readOnlyHint": false,
+                    "destructiveHint": true,
+                    "idempotentHint": true
+                }
+            }
+        },
+        "/connectors/{connector}/config": {
+            "get": {
+                "operationId": "describe_connector_config",
+                "summary": "Retrieved connector config",
+                "parameters": [
+                    {
+                        "name": "connector",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "ok",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "x-mcp-annotations": {
+                    "readOnlyHint": true,
+                    "destructiveHint": false,
+                    "idempotentHint": true
+                }
+            },
+            "put": {
+                "operationId": "update_connector_config",
+                "summary": "Updated connector config for ${result.name}",
+                "parameters": [
+                    {
+                        "name": "connector",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "connector.class": {
+                                        "type": "string"
+                                    },
+                                    "tasks.max": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "ok"
+                    }
+                },
+                "x-mcp-annotations": {
+                    "readOnlyHint": false,
+                    "destructiveHint": false,
+                    "idempotentHint": true
+                }
+            }
+        },
+        "/connector-plugins/{pluginName}/config/validate": {
+            "put": {
+                "operationId": "validate_connector_config",
+                "summary": "Validated connector config with ${result.error_count} errors",
+                "parameters": [
+                    {
+                        "name": "pluginName",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "connector.class": {
+                                        "type": "string"
+                                    },
+                                    "tasks.max": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "ok"
+                    }
+                },
+                "x-mcp-annotations": {
+                    "readOnlyHint": true,
+                    "destructiveHint": false,
+                    "idempotentHint": true
+                }
+            }
+        },
+        "/connectors/{connector}/status": {
+            "get": {
+                "operationId": "describe_connector_status",
+                "summary": "Connector ${result.name} is ${result.connector.state}",
+                "parameters": [
+                    {
+                        "name": "connector",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "ok"
+                    }
+                },
+                "x-mcp-annotations": {
+                    "readOnlyHint": true,
+                    "destructiveHint": false,
+                    "idempotentHint": true
+                }
+            }
+        },
+        "/connectors/{connector}/restart": {
+            "post": {
+                "operationId": "restart_connector",
+                "summary": "Restarted connector ${result.name}",
+                "parameters": [
+                    {
+                        "name": "connector",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "ok"
+                    }
+                },
+                "x-mcp-annotations": {
+                    "readOnlyHint": false,
+                    "destructiveHint": false,
+                    "idempotentHint": false
+                }
+            }
+        },
+        "/connectors/{connector}/pause": {
+            "put": {
+                "operationId": "pause_connector",
+                "summary": "Paused connector ${result.name}",
+                "parameters": [
+                    {
+                        "name": "connector",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "accepted"
+                    }
+                },
+                "x-mcp-annotations": {
+                    "readOnlyHint": false,
+                    "destructiveHint": false,
+                    "idempotentHint": true
+                }
+            }
+        },
+        "/connectors/{connector}/resume": {
+            "put": {
+                "operationId": "resume_connector",
+                "summary": "Resumed connector ${result.name}",
+                "parameters": [
+                    {
+                        "name": "connector",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "accepted"
+                    }
+                },
+                "x-mcp-annotations": {
+                    "readOnlyHint": false,
+                    "destructiveHint": false,
+                    "idempotentHint": true
+                }
+            }
+        },
+        "/connectors/{connector}/stop": {
+            "put": {
+                "operationId": "stop_connector",
+                "summary": "Stopped connector ${result.name}",
+                "parameters": [
+                    {
+                        "name": "connector",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "accepted"
+                    }
+                },
+                "x-mcp-annotations": {
+                    "readOnlyHint": false,
+                    "destructiveHint": false,
+                    "idempotentHint": true
+                }
+            }
+        },
+        "/connectors/{connector}/tasks": {
+            "get": {
+                "operationId": "list_connector_tasks",
+                "summary": "Listed connector tasks",
+                "parameters": [
+                    {
+                        "name": "connector",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "ok"
+                    }
+                },
+                "x-mcp-annotations": {
+                    "readOnlyHint": true,
+                    "destructiveHint": false,
+                    "idempotentHint": true
+                }
+            }
+        },
+        "/connectors/{connector}/tasks/{task}/restart": {
+            "post": {
+                "operationId": "restart_connector_task",
+                "summary": "Restarted connector task",
+                "parameters": [
+                    {
+                        "name": "connector",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "task",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "ok",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "x-mcp-annotations": {
+                    "readOnlyHint": false,
+                    "destructiveHint": false,
+                    "idempotentHint": false
+                }
+            }
+        },
+        "/connectors/{connector}/offsets": {
+            "get": {
+                "operationId": "describe_connector_offsets",
+                "summary": "Retrieved connector offsets",
+                "parameters": [
+                    {
+                        "name": "connector",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "ok",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "x-mcp-annotations": {
+                    "readOnlyHint": true,
+                    "destructiveHint": false,
+                    "idempotentHint": true
+                }
+            },
+            "patch": {
+                "operationId": "alter_connector_offsets",
+                "summary": "${result.message}",
+                "parameters": [
+                    {
+                        "name": "connector",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "offsets": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "object",
+                                            "properties": {
+                                                "partition": {
+                                                    "type": "object"
+                                                },
+                                                "offset": {
+                                                    "type": "object"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "ok"
+                    }
+                },
+                "x-mcp-annotations": {
+                    "readOnlyHint": false,
+                    "destructiveHint": true,
+                    "idempotentHint": true
+                }
+            },
+            "delete": {
+                "operationId": "reset_connector_offsets",
+                "summary": "${result.message}",
+                "parameters": [
+                    {
+                        "name": "connector",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "ok"
+                    }
+                },
+                "x-mcp-annotations": {
+                    "readOnlyHint": false,
+                    "destructiveHint": true,
+                    "idempotentHint": true
+                }
+            }
+        },
+        "/connector-plugins": {
+            "get": {
+                "operationId": "list_connector_plugins",
+                "summary": "Listed connector plugins",
+                "responses": {
+                    "200": {
+                        "description": "ok"
+                    }
+                },
+                "x-mcp-annotations": {
+                    "readOnlyHint": true,
+                    "destructiveHint": false,
+                    "idempotentHint": true
+                }
+            }
+        }
+    }
+}

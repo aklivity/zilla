@@ -156,6 +156,66 @@ public class McpKafkaClientIT
     }
 
     @Test
+    @Configuration("client.list.acls.yaml")
+    @Specification({
+        "${mcp}/list.acls/client",
+        "${kafka}/list.acls/server"})
+    public void shouldListAcls() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.list.acls.yaml")
+    @Specification({
+        "${mcp}/list.acls/client",
+        "${kafka}/list.acls.negotiated/server"})
+    public void shouldListAclsNegotiated() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.create.acls.yaml")
+    @Specification({
+        "${mcp}/create.acls/client",
+        "${kafka}/create.acls/server"})
+    public void shouldCreateAcls() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.create.acls.yaml")
+    @Specification({
+        "${mcp}/create.acls/client",
+        "${kafka}/create.acls.negotiated/server"})
+    public void shouldCreateAclsNegotiated() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.delete.acls.yaml")
+    @Specification({
+        "${mcp}/delete.acls/client",
+        "${kafka}/delete.acls/server"})
+    public void shouldDeleteAcls() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.delete.acls.yaml")
+    @Specification({
+        "${mcp}/delete.acls/client",
+        "${kafka}/delete.acls.negotiated/server"})
+    public void shouldDeleteAclsNegotiated() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("client.list.topics.yaml")
     @Specification({
         "${mcp}/list.topics/client",
