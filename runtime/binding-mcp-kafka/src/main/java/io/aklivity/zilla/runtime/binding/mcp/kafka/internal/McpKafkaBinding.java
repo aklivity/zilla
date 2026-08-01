@@ -19,7 +19,7 @@ import io.aklivity.zilla.runtime.engine.binding.Binding;
 
 public final class McpKafkaBinding implements Binding
 {
-    public static final String TYPE = "mcp_kafka";
+    public static final String TYPE = "mcp-kafka";
 
     private final McpKafkaConfiguration config;
 

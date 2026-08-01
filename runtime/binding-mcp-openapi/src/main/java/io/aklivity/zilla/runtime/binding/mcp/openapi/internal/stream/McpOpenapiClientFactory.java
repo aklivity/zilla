@@ -383,7 +383,7 @@ public final class McpOpenapiClientFactory implements BindingHandler
             long traceId,
             OctetsFW extension)
         {
-            // an END must always be deliverable even if the reply was never opened (e.g. mcp_http0 ends its
+            // an END must always be deliverable even if the reply was never opened (e.g. mcp-http0 ends its
             // reply before ever sending a BEGIN) — open the reply first, mirroring doMcpOpenapiAbort below
             doMcpOpenapiBegin(sequence, acknowledge, maximum, traceId, extension);
 
@@ -403,7 +403,7 @@ public final class McpOpenapiClientFactory implements BindingHandler
             long traceId,
             OctetsFW extension)
         {
-            // an ABORT must always be deliverable even if the reply was never opened — e.g. mcp_http0's
+            // an ABORT must always be deliverable even if the reply was never opened — e.g. mcp-http0's
             // upstream aborts before ever sending a response, so no reply BEGIN has gone out yet. Without
             // opening the reply first, this abort is silently dropped and the real client hangs forever
             // waiting for any reply frame at all

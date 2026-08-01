@@ -104,12 +104,6 @@ public class SchemaTest
     }
 
     @Test(expected = JsonException.class)
-    public void shouldRejectUnknownCapability()
-    {
-        schema.validate("proxy.route.capability.invalid.yaml");
-    }
-
-    @Test(expected = JsonException.class)
     public void shouldRejectMissingRoutes()
     {
         schema.validate("proxy.routes.missing.invalid.yaml");

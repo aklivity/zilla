@@ -17,6 +17,6 @@
 name: test
 bindings:
   app0:
-    type: mcp_schema_registry
+    type: mcp-schema-registry
     kind: proxy
     exit: http0

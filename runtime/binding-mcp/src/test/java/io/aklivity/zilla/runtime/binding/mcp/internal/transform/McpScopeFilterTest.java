@@ -131,7 +131,7 @@ public class McpScopeFilterTest
     public void shouldPreserveFieldsPrecedingNameKey()
     {
         // a real upstream MCP resource commonly orders "uri" before "name" (unlike Zilla's own
-        // mcp_http/mcp_openapi-generated lists, which always emit "name" first) -- fields preceding "name"
+        // mcp-http/mcp-openapi-generated lists, which always emit "name" first) -- fields preceding "name"
         // must still reach the output once the item is admitted, not be silently dropped or forwarded
         // without their key
         String json = """

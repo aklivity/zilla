@@ -29,7 +29,7 @@ public class McpSchemaRegistryBindingInfoTest
     @Test
     public void shouldResolveType()
     {
-        assertThat(info.type(), equalTo("mcp_schema_registry"));
+        assertThat(info.type(), equalTo("mcp-schema-registry"));
     }
 
     @Test

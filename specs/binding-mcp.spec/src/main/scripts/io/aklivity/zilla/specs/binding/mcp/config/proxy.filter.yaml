@@ -23,9 +23,9 @@ bindings:
       - exit: app1
         when:
           - toolkit: github
-            tools: ["create_*", "get_*"]
-            resources: ["repo://*"]
+            tool: ["create_*", "get_*"]
+            resource: ["repo://*"]
       - exit: app2
         when:
           - toolkit: slack
-            tools: []
+            tool: []

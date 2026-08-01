@@ -22,20 +22,20 @@ import io.aklivity.zilla.config.engine.ConditionConfig;
 public final class McpConditionConfig extends ConditionConfig
 {
     public final String toolkit;
-    public final List<String> tools;
-    public final List<String> prompts;
-    public final List<String> resources;
+    public final List<String> tool;
+    public final List<String> prompt;
+    public final List<String> resource;
 
     McpConditionConfig(
         String toolkit,
-        List<String> tools,
-        List<String> prompts,
-        List<String> resources)
+        List<String> tool,
+        List<String> prompt,
+        List<String> resource)
     {
         this.toolkit = toolkit;
-        this.tools = tools;
-        this.prompts = prompts;
-        this.resources = resources;
+        this.tool = tool;
+        this.prompt = prompt;
+        this.resource = resource;
     }
 
     public static McpConditionConfigBuilder<McpConditionConfig> builder()

@@ -182,32 +182,32 @@
                                                     "type": "object",
                                                     "properties":
                                                     {
-                                                        "tools":
+                                                        "tool":
                                                         {
-                                                            "title": "Tools",
-                                                            "type": "array",
-                                                            "items":
-                                                            {
-                                                                "type": "string"
-                                                            }
+                                                            "title": "Tool",
+                                                            "oneOf":
+                                                            [
+                                                                { "type": "string" },
+                                                                { "type": "array", "items": { "type": "string" } }
+                                                            ]
                                                         },
-                                                        "prompts":
+                                                        "prompt":
                                                         {
-                                                            "title": "Prompts",
-                                                            "type": "array",
-                                                            "items":
-                                                            {
-                                                                "type": "string"
-                                                            }
+                                                            "title": "Prompt",
+                                                            "oneOf":
+                                                            [
+                                                                { "type": "string" },
+                                                                { "type": "array", "items": { "type": "string" } }
+                                                            ]
                                                         },
-                                                        "resources":
+                                                        "resource":
                                                         {
-                                                            "title": "Resources",
-                                                            "type": "array",
-                                                            "items":
-                                                            {
-                                                                "type": "string"
-                                                            }
+                                                            "title": "Resource",
+                                                            "oneOf":
+                                                            [
+                                                                { "type": "string" },
+                                                                { "type": "array", "items": { "type": "string" } }
+                                                            ]
                                                         }
                                                     },
                                                     "additionalProperties": false
@@ -426,32 +426,32 @@
                                                             "title": "Toolkit",
                                                             "type": "string"
                                                         },
-                                                        "tools":
+                                                        "tool":
                                                         {
-                                                            "title": "Tools",
-                                                            "type": "array",
-                                                            "items":
-                                                            {
-                                                                "type": "string"
-                                                            }
+                                                            "title": "Tool",
+                                                            "oneOf":
+                                                            [
+                                                                { "type": "string" },
+                                                                { "type": "array", "items": { "type": "string" } }
+                                                            ]
                                                         },
-                                                        "prompts":
+                                                        "prompt":
                                                         {
-                                                            "title": "Prompts",
-                                                            "type": "array",
-                                                            "items":
-                                                            {
-                                                                "type": "string"
-                                                            }
+                                                            "title": "Prompt",
+                                                            "oneOf":
+                                                            [
+                                                                { "type": "string" },
+                                                                { "type": "array", "items": { "type": "string" } }
+                                                            ]
                                                         },
-                                                        "resources":
+                                                        "resource":
                                                         {
-                                                            "title": "Resources",
-                                                            "type": "array",
-                                                            "items":
-                                                            {
-                                                                "type": "string"
-                                                            }
+                                                            "title": "Resource",
+                                                            "oneOf":
+                                                            [
+                                                                { "type": "string" },
+                                                                { "type": "array", "items": { "type": "string" } }
+                                                            ]
                                                         }
                                                     },
                                                     "required": [ "toolkit" ],

@@ -21,6 +21,7 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.binding.mcp.schema.registry.McpSchemaRegistryConditionConfig;
 import io.aklivity.zilla.config.engine.ConditionConfig;
+import io.aklivity.zilla.runtime.common.json.JsonStrings;
 
 public final class McpSchemaRegistryConditionConfigAdapter implements JsonbAdapter<ConditionConfig, JsonObject>
 {
@@ -34,10 +35,7 @@ public final class McpSchemaRegistryConditionConfigAdapter implements JsonbAdapt
 
         JsonObjectBuilder object = Json.createObjectBuilder();
 
-        if (schemaRegistryCondition.tool != null)
-        {
-            object.add(TOOL_NAME, schemaRegistryCondition.tool);
-        }
+        JsonStrings.addStringOrArray(object, TOOL_NAME, schemaRegistryCondition.tool);
 
         return object.build();
     }
@@ -46,12 +44,8 @@ public final class McpSchemaRegistryConditionConfigAdapter implements JsonbAdapt
     public ConditionConfig adaptFromJson(
         JsonObject object)
     {
-        String tool = object.containsKey(TOOL_NAME)
-            ? object.getString(TOOL_NAME)
-            : null;
-
         return McpSchemaRegistryConditionConfig.builder()
-            .tool(tool)
+            .tool(JsonStrings.asStringOrArray(object, TOOL_NAME))
             .build();
     }
 }

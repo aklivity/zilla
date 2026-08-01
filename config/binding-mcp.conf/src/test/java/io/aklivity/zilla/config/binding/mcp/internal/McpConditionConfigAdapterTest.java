@@ -53,9 +53,9 @@ public class McpConditionConfigAdapterTest
 
         assertThat(condition, not(nullValue()));
         assertThat(condition.toolkit, equalTo("github"));
-        assertThat(condition.tools, nullValue());
-        assertThat(condition.prompts, nullValue());
-        assertThat(condition.resources, nullValue());
+        assertThat(condition.tool, nullValue());
+        assertThat(condition.prompt, nullValue());
+        assertThat(condition.resource, nullValue());
     }
 
     @Test
@@ -75,15 +75,15 @@ public class McpConditionConfigAdapterTest
     public void shouldReadFilterCondition()
     {
         String text = "{\"toolkit\":\"github\"," +
-            "\"tools\":[\"create_*\",\"get_*\"],\"resources\":[\"repo://*\"]}";
+            "\"tool\":[\"create_*\",\"get_*\"],\"resource\":[\"repo://*\"]}";
 
         McpConditionConfig condition = jsonb.fromJson(text, McpConditionConfig.class);
 
         assertThat(condition, not(nullValue()));
         assertThat(condition.toolkit, equalTo("github"));
-        assertThat(condition.tools, contains("create_*", "get_*"));
-        assertThat(condition.resources, contains("repo://*"));
-        assertThat(condition.prompts, nullValue());
+        assertThat(condition.tool, contains("create_*", "get_*"));
+        assertThat(condition.resource, contains("repo://*"));
+        assertThat(condition.prompt, nullValue());
     }
 
     @Test
@@ -91,28 +91,28 @@ public class McpConditionConfigAdapterTest
     {
         McpConditionConfig condition = McpConditionConfig.builder()
                 .toolkit("github")
-                .tools(asList("create_*", "get_*"))
-                .resources(asList("repo://*"))
+                .tool(asList("create_*", "get_*"))
+                .resource(asList("repo://*"))
                 .build();
 
         String text = jsonb.toJson(condition);
 
         assertThat(text, not(nullValue()));
         assertThat(text, equalTo("{\"toolkit\":\"github\"," +
-            "\"tools\":[\"create_*\",\"get_*\"],\"resources\":[\"repo://*\"]}"));
+            "\"tool\":[\"create_*\",\"get_*\"],\"resource\":\"repo://*\"}"));
     }
 
     @Test
     public void shouldReadEmptyFilterCondition()
     {
-        String text = "{\"toolkit\":\"slack\",\"tools\":[]}";
+        String text = "{\"toolkit\":\"slack\",\"tool\":[]}";
 
         McpConditionConfig condition = jsonb.fromJson(text, McpConditionConfig.class);
 
         assertThat(condition, not(nullValue()));
-        assertThat(condition.tools, empty());
-        assertThat(condition.prompts, nullValue());
-        assertThat(condition.resources, nullValue());
+        assertThat(condition.tool, empty());
+        assertThat(condition.prompt, nullValue());
+        assertThat(condition.resource, nullValue());
     }
 
     @Test
@@ -120,12 +120,59 @@ public class McpConditionConfigAdapterTest
     {
         McpConditionConfig condition = McpConditionConfig.builder()
                 .toolkit("slack")
-                .tools(emptyList())
+                .tool(emptyList())
                 .build();
 
         String text = jsonb.toJson(condition);
 
         assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"toolkit\":\"slack\",\"tools\":[]}"));
+        assertThat(text, equalTo("{\"toolkit\":\"slack\",\"tool\":[]}"));
+    }
+
+    @Test
+    public void shouldReadBareStringShorthandForSingleTool()
+    {
+        String text = "{\"toolkit\":\"github\",\"tool\":\"get_weather\"}";
+
+        McpConditionConfig condition = jsonb.fromJson(text, McpConditionConfig.class);
+
+        assertThat(condition, not(nullValue()));
+        assertThat(condition.tool, contains("get_weather"));
+    }
+
+    @Test
+    public void shouldWriteSingleToolAsBareStringShorthand()
+    {
+        McpConditionConfig condition = McpConditionConfig.builder()
+                .toolkit("github")
+                .tool(asList("get_weather"))
+                .build();
+
+        String text = jsonb.toJson(condition);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, equalTo("{\"toolkit\":\"github\",\"tool\":\"get_weather\"}"));
+    }
+
+    @Test
+    public void shouldReadBareStringShorthandForSinglePrompt()
+    {
+        String text = "{\"toolkit\":\"github\",\"prompt\":\"summarize\"}";
+
+        McpConditionConfig condition = jsonb.fromJson(text, McpConditionConfig.class);
+
+        assertThat(condition, not(nullValue()));
+        assertThat(condition.prompt, contains("summarize"));
+    }
+
+    @Test
+    public void shouldReadBareStringShorthandForSingleResource()
+    {
+        String text = "{\"toolkit\":\"github\",\"resource\":\"repo://acme/widgets\"}";
+
+        McpConditionConfig condition = jsonb.fromJson(text, McpConditionConfig.class);
+
+        assertThat(condition, not(nullValue()));
+        assertThat(condition.resource, contains("repo://acme/widgets"));
     }
 }

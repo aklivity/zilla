@@ -26,7 +26,7 @@ import io.aklivity.zilla.config.engine.WithConfig;
 
 public final class McpOpenapiBindingInfo implements BindingInfo
 {
-    public static final String TYPE = "mcp_openapi";
+    public static final String TYPE = "mcp-openapi";
 
     @Override
     public String type()
