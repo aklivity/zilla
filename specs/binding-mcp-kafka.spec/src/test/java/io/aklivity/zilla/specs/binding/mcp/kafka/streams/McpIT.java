@@ -218,6 +218,33 @@ public class McpIT
 
     @Test
     @Specification({
+        "${mcp}/list.acls/client",
+        "${mcp}/list.acls/server"})
+    public void shouldListAcls() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mcp}/create.acls/client",
+        "${mcp}/create.acls/server"})
+    public void shouldCreateAcls() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mcp}/delete.acls/client",
+        "${mcp}/delete.acls/server"})
+    public void shouldDeleteAcls() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mcp}/list.topics/client",
         "${mcp}/list.topics/server"})
     public void shouldListTopics() throws Exception

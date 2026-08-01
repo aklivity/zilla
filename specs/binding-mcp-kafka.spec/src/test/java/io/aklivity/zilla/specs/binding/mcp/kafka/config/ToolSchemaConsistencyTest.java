@@ -48,10 +48,11 @@ public class ToolSchemaConsistencyTest
     private static final String TOOLS_LIST_FIXTURE =
         "/io/aklivity/zilla/specs/binding/mcp/kafka/streams/mcp/tools.list/server.rpt";
 
-    // produce is the only tool whose effective annotations match every MCP spec default
-    // (readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true) and is
-    // therefore allowed to omit the annotations object entirely -- see McpKafkaProxyFactory#buildToolAnnotations.
-    private static final Set<String> DEFAULT_ANNOTATIONS_ALLOWLIST = Set.of("produce");
+    // produce, create_acls and delete_acls are the only tools whose effective annotations match every MCP
+    // spec default (readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true)
+    // and are therefore allowed to omit the annotations object entirely -- see
+    // McpKafkaProxyFactory#buildToolAnnotations.
+    private static final Set<String> DEFAULT_ANNOTATIONS_ALLOWLIST = Set.of("produce", "create_acls", "delete_acls");
 
     // known synonym groups: a field name banned in this binding's tool schemas, mapped to the name every
     // tool must use instead. Seeded from https://github.com/aklivity/zilla/issues/2248 (reset_offsets used

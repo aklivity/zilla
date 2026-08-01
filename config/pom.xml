@@ -34,6 +34,7 @@
     <module>binding-mcp.conf</module>
     <module>binding-mcp-http.conf</module>
     <module>binding-mcp-kafka.conf</module>
+    <module>binding-mcp-kafka-connect.conf</module>
     <module>binding-mcp-openapi.conf</module>
     <module>binding-mcp-schema-registry.conf</module>
     <module>binding-mqtt.conf</module>

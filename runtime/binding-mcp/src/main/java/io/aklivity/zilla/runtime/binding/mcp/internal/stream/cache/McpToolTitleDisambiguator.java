@@ -40,12 +40,16 @@ import jakarta.json.JsonWriter;
 // distinct toolkits. A route with no toolkit configured has no identifier to disambiguate with, so
 // its items never contribute to collision detection and are never themselves rewritten -- a title
 // shared with only one other toolkit-identified route (or with a toolkit-less route) is left alone.
+// Per the MCP spec's own display precedence order (title, then annotations.title, then name), the
+// effective title checked for a collision -- and the one rewritten -- is the top-level "title" when
+// present, falling back to "annotations.title" only when the tool has no top-level title at all.
 // This runs once per cache hydration cycle (not on the request hot path), so the jakarta.json object
 // model is used freely, mirroring McpProxyCacheHydrater's own per-item JSON rewrites (nameFirst,
 // injectToolScopes).
 final class McpToolTitleDisambiguator
 {
     private static final String TITLE = "title";
+    private static final String ANNOTATIONS = "annotations";
 
     private McpToolTitleDisambiguator()
     {
@@ -75,7 +79,7 @@ final class McpToolTitleDisambiguator
             {
                 for (JsonObject item : parsed)
                 {
-                    final String title = item.getString(TITLE, null);
+                    final String title = effectiveTitle(item);
                     if (title != null)
                     {
                         toolkitsByTitle.computeIfAbsent(title, t -> new LinkedHashSet<>()).add(toolkit);
@@ -120,7 +124,7 @@ final class McpToolTitleDisambiguator
 
         for (JsonObject item : items)
         {
-            final String title = item.getString(TITLE, null);
+            final String title = effectiveTitle(item);
             if (title != null && collidingTitles.contains(title))
             {
                 rewritten.add(withDisambiguatedTitle(item, title, toolkit));
@@ -135,16 +139,39 @@ final class McpToolTitleDisambiguator
         return changed ? writeItems(rewritten) : null;
     }
 
+    private static String effectiveTitle(
+        JsonObject item)
+    {
+        final String title = item.getString(TITLE, null);
+        return title != null ? title : annotationsTitle(item);
+    }
+
+    private static String annotationsTitle(
+        JsonObject item)
+    {
+        return item.get(ANNOTATIONS) instanceof JsonObject annotations ? annotations.getString(TITLE, null) : null;
+    }
+
     private static JsonObject withDisambiguatedTitle(
         JsonObject item,
         String title,
         String toolkit)
     {
         final String disambiguated = title + " (" + toolkit + ")";
+        return item.containsKey(TITLE)
+            ? withField(item, TITLE, Json.createValue(disambiguated))
+            : withField(item, ANNOTATIONS, withField(item.getJsonObject(ANNOTATIONS), TITLE, Json.createValue(disambiguated)));
+    }
+
+    private static JsonObject withField(
+        JsonObject object,
+        String key,
+        JsonValue value)
+    {
         final JsonObjectBuilder builder = Json.createObjectBuilder();
-        for (Map.Entry<String, JsonValue> field : item.entrySet())
+        for (Map.Entry<String, JsonValue> field : object.entrySet())
         {
-            builder.add(field.getKey(), TITLE.equals(field.getKey()) ? Json.createValue(disambiguated) : field.getValue());
+            builder.add(field.getKey(), key.equals(field.getKey()) ? value : field.getValue());
         }
         return builder.build();
     }
