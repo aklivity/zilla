@@ -36,7 +36,7 @@ This one configuration exercises all seven `mcp*` binding kinds:
 | `mcp-http` | `proxy` | Synthesizes MCP tools from hand-authored config, backed by a plain REST API (`github` toolkit) |
 | `mcp-openapi` | `client` | Synthesizes MCP tools from an OpenAPI document, backed by a plain REST API (`petstore` toolkit) |
 | `mcp-schema-registry` | `client` | Exposes a fixed, bundled tool set for the Karapace/Confluent Schema Registry REST API -- no operator-authored OpenAPI document, unlike `mcp-openapi` (`kafka_sr` toolkit) |
-| `mcp-kafka` | `client` | Exposes Kafka broker operations (`produce`/`consume`/`create_topics`/`delete_topics`/`describe_configs`/`alter_configs`/`list_acls`/`create_acls`/`delete_acls`/`list_topics`/`describe_topic`/`cluster_overview`/`list_brokers`/`describe_cluster`/`list_consumer_groups`/`describe_consumer_group`/`reset_offsets`) as intrinsic MCP tools, generating its own `kafka_cache_client → kafka_client → tcp_client` pipeline against a real broker (`kafka` toolkit) |
+| `mcp-kafka` | `client` | Exposes Kafka broker operations (`produce`/`consume`/`create_topics`/`delete_topics`/`describe_configs`/`alter_configs`/`list_acls`/`create_acls`/`delete_acls`/`list_topics`/`describe_topic`/`cluster_overview`/`list_brokers`/`describe_cluster`/`list_consumer_groups`/`describe_consumer_group`/`describe_consumer_group_lag`/`reset_offsets`) as intrinsic MCP tools, generating its own `kafka_cache_client → kafka_client → tcp_client` pipeline against a real broker (`kafka` toolkit) |
 
 ## Authorization model
 
@@ -78,7 +78,8 @@ scope, while `register_schema` additionally requires `kafka_sr:write`.
 `when.tool` route, and splits it further into read/write/admin: `consume`,
 `describe_configs`, `list_acls`, `list_topics`, `describe_topic`,
 `cluster_overview`, `list_brokers`, `describe_cluster`,
-`list_consumer_groups`, and `describe_consumer_group` need only the
+`list_consumer_groups`, `describe_consumer_group`, and
+`describe_consumer_group_lag` need only the
 toolkit-level `kafka:tools` scope (all read-only), `produce` additionally
 requires `kafka:write` since it mutates topic data, and the admin-risk
 `create_topics`, `delete_topics`, `alter_configs`, and `reset_offsets` route
@@ -104,9 +105,10 @@ no scope beyond `kafka:tools`, the same tier as `describe_configs`.
 
 `describe_configs`, `list_acls`, `list_topics`, `describe_topic`,
 `cluster_overview`, `list_brokers`, `describe_cluster`,
-`list_consumer_groups`, and `describe_consumer_group` coalesce into one more
-shared route alongside `consume`'s, this time with no `guarded:` block at all
-since the toolkit-level gate is already sufficient.
+`list_consumer_groups`, `describe_consumer_group`, and
+`describe_consumer_group_lag` coalesce into one more shared route alongside
+`consume`'s, this time with no `guarded:` block at all since the
+toolkit-level gate is already sufficient.
 
 The `everything` toolkit has no `guarded:` route at all, so it is reachable by
 any session that can complete `initialize` -- including one with no token.
@@ -215,7 +217,8 @@ frequently used tools -- `everything__echo`, `urlelicit__authorize`,
 `kafka__alter_configs`, `kafka__list_acls`, `kafka__create_acls`,
 `kafka__delete_acls`, `kafka__list_topics`, `kafka__describe_topic`,
 `kafka__cluster_overview`, `kafka__list_brokers`, `kafka__describe_cluster`,
-`kafka__list_consumer_groups`, `kafka__describe_consumer_group`, and
+`kafka__list_consumer_groups`, `kafka__describe_consumer_group`,
+`kafka__describe_consumer_group_lag`, and
 `kafka__reset_offsets` -- eagerly listed in
 `tools/list`. Every other tool is
 "cold": because `options.cache.tools.search` also configures a `toolkit`
@@ -260,6 +263,7 @@ kafka__list_brokers
 kafka__describe_cluster
 kafka__list_consumer_groups
 kafka__describe_consumer_group
+kafka__describe_consumer_group_lag
 kafka__reset_offsets
 zilla__search_tools
 zilla__describe_tool
@@ -738,14 +742,15 @@ that varies per broker startup.
 
 ### Manage consumer group offsets through a real Kafka broker
 
-`list_consumer_groups`, `describe_consumer_group`, and `reset_offsets` round
-out `mcp-kafka` with consumer group management, against the same real broker
-as `produce`/`consume`/`create_topics`/`delete_topics` above.
-`list_consumer_groups` and `describe_consumer_group` are read-only, needing
-only the toolkit-level `kafka:tools` scope; `reset_offsets` shares
-`create_topics`/`delete_topics`' `kafka:admin`-gated route, since resetting a
-group's committed offsets is the same kind of structural, admin-risk
-mutation.
+`list_consumer_groups`, `describe_consumer_group`,
+`describe_consumer_group_lag`, and `reset_offsets` round out `mcp-kafka` with
+consumer group management, against the same real broker as
+`produce`/`consume`/`create_topics`/`delete_topics` above.
+`list_consumer_groups`, `describe_consumer_group`, and
+`describe_consumer_group_lag` are read-only, needing only the toolkit-level
+`kafka:tools` scope; `reset_offsets` shares `create_topics`/`delete_topics`'
+`kafka:admin`-gated route, since resetting a group's committed offsets is the
+same kind of structural, admin-risk mutation.
 
 Describe a group name that has never committed an offset on this broker --
 real Kafka reports its state as `Dead`, not an error, since the group simply
@@ -767,6 +772,23 @@ docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
     -e CALL_TOOL=kafka__list_consumer_groups \
     tools-list-client
 # No consumer groups found
+```
+
+`describe_consumer_group_lag` sequences a real `OffsetFetch` then a real
+`ListOffsets` against the broker (`lag = endOffset - committedOffset` per
+partition), the same generic `apiRequest`/`apiResponse` envelope
+`describe_consumer_group`'s `DescribeGroups` call uses rather than a
+coordinator-targeted or fictitious dedicated API. Against the same
+never-used group, `OffsetFetch` reports no topics, so the result carries an
+empty `partitions` array rather than an error -- a group with no committed
+offsets simply has no lag to report yet:
+
+```bash
+docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
+    -e CALL_TOOL=kafka__describe_consumer_group_lag \
+    -e CALL_ARGS='{"group_id":"orders-analytics"}' \
+    tools-list-client
+# Consumer group orders-analytics has total lag 0
 ```
 
 `reset_offsets` is modeled as a real Kafka `OffsetCommit`

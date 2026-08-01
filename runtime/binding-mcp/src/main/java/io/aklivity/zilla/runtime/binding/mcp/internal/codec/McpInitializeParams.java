@@ -15,9 +15,29 @@
 package io.aklivity.zilla.runtime.binding.mcp.internal.codec;
 
 import jakarta.json.JsonObject;
+import jakarta.json.JsonString;
+import jakarta.json.JsonValue;
 
-public class McpInitializeParams
+public record McpInitializeParams(
+    String protocolVersion,
+    JsonObject capabilities)
 {
-    public String protocolVersion;
-    public JsonObject capabilities;
+    public static McpInitializeParams parse(
+        JsonObject params)
+    {
+        final JsonValue protocolVersionValue = params.get("protocolVersion");
+        final JsonValue capabilitiesValue = params.get("capabilities");
+        final boolean capabilitiesValid = capabilitiesValue == null ||
+            capabilitiesValue.getValueType() == JsonValue.ValueType.OBJECT;
+
+        final String protocolVersion = protocolVersionValue != null &&
+            protocolVersionValue.getValueType() == JsonValue.ValueType.STRING
+                ? ((JsonString) protocolVersionValue).getString()
+                : null;
+        final JsonObject capabilities = capabilitiesValid && capabilitiesValue != null
+            ? capabilitiesValue.asJsonObject()
+            : null;
+
+        return capabilitiesValid ? new McpInitializeParams(protocolVersion, capabilities) : null;
+    }
 }

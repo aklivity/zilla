@@ -345,6 +345,16 @@ public class McpKafkaClientIT
         k3po.finish();
     }
 
+    @Test
+    @Configuration("client.describe.consumer.group.lag.yaml")
+    @Specification({
+        "${mcp}/describe.consumer.group.lag/client",
+        "${kafka}/describe.consumer.group.lag/server"})
+    public void shouldDescribeConsumerGroupLag() throws Exception
+    {
+        k3po.finish();
+    }
+
     public static String sessionId()
     {
         return "session-1";

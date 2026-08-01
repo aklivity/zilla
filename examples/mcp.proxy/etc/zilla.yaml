@@ -364,6 +364,7 @@ bindings:
               - kafka__describe_cluster
               - kafka__list_consumer_groups
               - kafka__describe_consumer_group
+              - kafka__describe_consumer_group_lag
               - kafka__reset_offsets
           search:
             toolkit: zilla
@@ -631,17 +632,18 @@ bindings:
     # together); all four are equally admin-risk mutations of cluster/topic/
     # group state, so one guard covers all. describe_configs, list_acls,
     # list_topics, describe_topic, cluster_overview, list_brokers,
-    # describe_cluster, list_consumer_groups, and describe_consumer_group are
-    # likewise read-only, with no topic to route on, so they share one
-    # unscoped route needing no scope beyond the toolkit-level kafka:tools
-    # guard above. create_topics/delete_topics/alter_configs/reset_offsets and
-    # produce each layer a tool-specific scope under the toolkit-level
-    # kafka:tools guard above (the same layering register_schema demonstrates
-    # for the kafka_sr toolkit): kafka:admin for the admin-risk topic/config/
-    # offset mutations, kafka:write for writing data -- consume,
-    # describe_configs, list_acls, list_topics, describe_topic,
-    # cluster_overview, list_brokers, describe_cluster, list_consumer_groups,
-    # and describe_consumer_group need neither, only kafka:tools.
+    # describe_cluster, list_consumer_groups, describe_consumer_group, and
+    # describe_consumer_group_lag are likewise read-only, with no topic to
+    # route on, so they share one unscoped route needing no scope beyond the
+    # toolkit-level kafka:tools guard above. create_topics/delete_topics/
+    # alter_configs/reset_offsets and produce each layer a tool-specific scope
+    # under the toolkit-level kafka:tools guard above (the same layering
+    # register_schema demonstrates for the kafka_sr toolkit): kafka:admin for
+    # the admin-risk topic/config/offset mutations, kafka:write for writing
+    # data -- consume, describe_configs, list_acls, list_topics,
+    # describe_topic, cluster_overview, list_brokers, describe_cluster,
+    # list_consumer_groups, describe_consumer_group, and
+    # describe_consumer_group_lag need neither, only kafka:tools.
     # create_acls and delete_acls get their own dedicated kafka:acls scope
     # rather than reusing kafka:admin: KIP-1318 classifies ACL mutation as a
     # security decision in its own right (a wrongly-scoped ALLOW grant is
@@ -676,10 +678,10 @@ bindings:
       # tool-specific guard beyond the toolkit-level kafka:tools above; all
       # nine share one route since none of them take a topics allow-list
       # (list_topics/cluster_overview/list_brokers/describe_cluster/
-      # list_consumer_groups describe the whole cluster, describe_topic and
-      # describe_consumer_group name their one topic/group as a call
-      # argument, describe_configs and list_acls name a resource/filter, not
-      # a route match)
+      # list_consumer_groups describe the whole cluster, describe_topic,
+      # describe_consumer_group, and describe_consumer_group_lag name their
+      # one topic/group as a call argument, describe_configs and list_acls
+      # name a resource/filter, not a route match)
       - when:
           - tool: describe_configs
           - tool: list_acls
@@ -690,6 +692,7 @@ bindings:
           - tool: describe_cluster
           - tool: list_consumer_groups
           - tool: describe_consumer_group
+          - tool: describe_consumer_group_lag
 telemetry:
   metrics:
     - mcp.initialize

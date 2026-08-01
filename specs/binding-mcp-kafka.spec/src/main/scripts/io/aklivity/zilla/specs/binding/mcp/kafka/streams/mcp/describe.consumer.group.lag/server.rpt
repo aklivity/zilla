@@ -1,0 +1,67 @@
+#
+# Copyright 2021-2026 Aklivity Inc
+#
+# Licensed under the Aklivity Community License (the "License"); you may not use
+# this file except in compliance with the License.  You may obtain a copy of the
+# License at
+#
+#   https://www.aklivity.io/aklivity-community-license/
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations under the License.
+#
+
+property serverAddress "zilla://streams/mcp0"
+property authorization 0L
+
+accept ${serverAddress}
+       option zilla:window 8192
+       option zilla:transmission "half-duplex"
+       option zilla:authorization ${authorization}
+
+accepted
+
+read zilla:begin.ext ${mcp:matchBeginEx()
+                          .typeId(zilla:id("mcp"))
+                          .lifecycle()
+                              .build()
+                          .build()}
+
+connected
+
+write zilla:begin.ext ${mcp:beginEx()
+                           .typeId(zilla:id("mcp"))
+                           .lifecycle()
+                               .sessionId("session-1")
+                               .build()
+                           .build()}
+write flush
+
+accepted
+
+read zilla:begin.ext ${mcp:matchBeginEx()
+                          .typeId(zilla:id("mcp"))
+                          .toolsCall()
+                              .sessionId("session-1")
+                              .name("describe_consumer_group_lag")
+                              .contentLength(74)
+                              .build()
+                          .build()}
+
+connected
+
+read '{"name":"describe_consumer_group_lag","arguments":{"group_id":"my-group"}}'
+
+write flush
+
+write '{"structuredContent":{"group_id":"my-group","partitions":'
+      '[{"topic":"my-topic","partition":0,"committed_offset":42,"end_offset":100,"lag":58},'
+      '{"topic":"my-topic","partition":1,"committed_offset":10,"end_offset":60,"lag":50}]},'
+      '"content":[{"type":"text","text":"Consumer group my-group has total lag 108"}],"isError":false}'
+write flush
+
+write close
+
+read closed

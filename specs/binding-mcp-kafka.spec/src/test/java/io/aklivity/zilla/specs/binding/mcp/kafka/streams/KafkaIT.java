@@ -368,4 +368,31 @@ public class KafkaIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${kafka}/offset.fetch.for.lag/client",
+        "${kafka}/offset.fetch.for.lag/server"})
+    public void shouldFetchOffsetsForLag() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/list.offsets.for.lag/client",
+        "${kafka}/list.offsets.for.lag/server"})
+    public void shouldListOffsetsForLag() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/describe.consumer.group.lag/client",
+        "${kafka}/describe.consumer.group.lag/server"})
+    public void shouldDescribeConsumerGroupLag() throws Exception
+    {
+        k3po.finish();
+    }
 }

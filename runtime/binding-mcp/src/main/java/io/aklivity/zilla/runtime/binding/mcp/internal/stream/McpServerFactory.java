@@ -32,8 +32,9 @@ import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import jakarta.json.Json;
+import jakarta.json.JsonObject;
 import jakarta.json.JsonValue;
-import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParserFactory;
 
@@ -2116,26 +2117,34 @@ public final class McpServerFactory implements McpStreamFactory
         {
             final DirectBufferInputStreamEx input = new DirectBufferInputStreamEx();
             input.wrap(buffer, offset, limit - offset);
-            final McpInitializeParams params = JsonbBuilder.create().fromJson(input, McpInitializeParams.class);
+            final JsonObject paramsObject = Json.createReader(input).readObject();
+            final McpInitializeParams params = McpInitializeParams.parse(paramsObject);
 
-            decodedProtocolVersion = params.protocolVersion;
-
-            int capabilities = 0;
-            final JsonValue elicitation = params.capabilities != null
-                ? params.capabilities.get("elicitation")
-                : null;
-            if (elicitation != null)
+            if (params != null)
             {
-                capabilities |= CLIENT_ELICITATION.value() | CLIENT_ELICITATION_FORM.value();
-                if (elicitation.getValueType() == JsonValue.ValueType.OBJECT &&
-                    elicitation.asJsonObject().containsKey("url"))
-                {
-                    capabilities |= CLIENT_ELICITATION_URL.value();
-                }
-            }
-            decodedClientCapabilities = capabilities;
+                decodedProtocolVersion = params.protocolVersion();
 
-            onLifecycleInitialize(traceId, authorization);
+                int capabilities = 0;
+                final JsonValue elicitation = params.capabilities() != null
+                    ? params.capabilities().get("elicitation")
+                    : null;
+                if (elicitation != null)
+                {
+                    capabilities |= CLIENT_ELICITATION.value() | CLIENT_ELICITATION_FORM.value();
+                    if (elicitation.getValueType() == JsonValue.ValueType.OBJECT &&
+                        elicitation.asJsonObject().containsKey("url"))
+                    {
+                        capabilities |= CLIENT_ELICITATION_URL.value();
+                    }
+                }
+                decodedClientCapabilities = capabilities;
+
+                onLifecycleInitialize(traceId, authorization);
+            }
+            else
+            {
+                onDecodeInvalidParams(traceId, authorization);
+            }
 
             return limit;
         }
@@ -2434,11 +2443,14 @@ public final class McpServerFactory implements McpStreamFactory
         {
             DirectBufferInputStreamEx input = new DirectBufferInputStreamEx();
             input.wrap(buffer, offset, limit - offset);
-            McpNotifyCanceledParams params = JsonbBuilder.create().fromJson(input, McpNotifyCanceledParams.class);
+            JsonObject paramsObject = Json.createReader(input).readObject();
+            McpNotifyCanceledParams params = McpNotifyCanceledParams.parse(paramsObject);
 
             assert session != null;
 
-            McpRequestStream request = session.requests.get(params.requestId.toString());
+            McpRequestStream request = params.requestId() != null
+                ? session.requests.get(params.requestId().toString())
+                : null;
             if (request != null)
             {
                 request.doAppCancel(traceId, authorization);
@@ -2528,6 +2540,21 @@ public final class McpServerFactory implements McpStreamFactory
                     .build(),
                 -32601,
                 "Method not found");
+        }
+
+        private void onDecodeInvalidParams(
+            long traceId,
+            long authorization)
+        {
+            doEncodeResponseError(traceId, authorization,
+                httpBeginExRW.wrap(codecBuffer, 0, codecBuffer.capacity())
+                    .typeId(httpTypeId)
+                    .headersItem(h -> h.name(HTTP_HEADER_STATUS).value(STATUS_200))
+                    .headersItem(h -> h.name(HTTP_HEADER_CONTENT_TYPE).value(CONTENT_TYPE_JSON))
+                    .inject(this::injectAltSvc)
+                    .build(),
+                -32602,
+                "Invalid params");
         }
 
         private void onAppChallenge(
