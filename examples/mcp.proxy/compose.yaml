@@ -219,7 +219,7 @@ services:
   kafka-connect:
     image: apache/kafka:4.1.1
     restart: unless-stopped
-    hostname: kafka-connect.examples.dev
+    hostname: kafka-connect
     ports:
       - 8083:8083
     depends_on:
@@ -250,7 +250,7 @@ services:
         status.storage.topic=connect-status
         status.storage.replication.factor=1
         listeners=HTTP://0.0.0.0:8083
-        rest.advertised.host.name=kafka-connect.examples.dev
+        rest.advertised.host.name=kafka-connect
         plugin.path=/opt/kafka/libs
         EOF
         exec /opt/kafka/bin/connect-distributed.sh /tmp/connect-distributed.properties

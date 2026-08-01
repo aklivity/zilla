@@ -330,7 +330,7 @@ bindings:
         # works fine since real calls use the caller's own JWT, not this one
         authorization:
           authn_jwt:
-            credentials: "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImtpZCI6ImV4YW1wbGUifQ.eyJhdWQiOiJodHRwczovL2FwaS5leGFtcGxlLmNvbSIsImV4cCI6NDkzODM1MDk3OSwiaXNzIjoiaHR0cHM6Ly9hdXRoLmV4YW1wbGUuY29tIiwic2NvcGUiOiJnaXRodWI6dG9vbHMgcGV0c3RvcmU6dG9vbHMgdXJsZWxpY2l0OmF1dGhvcml6ZSBrYWZrYTp0b29scyBrYWZrYV9zcjp0b29scyBrYWZrYWNvbm5lY3Q6dG9vbHMifQ.Dchcpcn5_IS5sTkdabpi81NQ2wvFyB-vMXHQULELilIe7aGog26s2ixnscfUzmOV1eGBsbswkRnBevEl9agolEr4NM4owCWNae7XUfAoob0WZlpivEvqqgMRcFADHD9R_6hePY3Ej-6GyJXkkOUDBaOpO4Hx3zLOfSOJRn67uliUWWJ2g4cOLS58AaG7S4Si_9_S509DGoskEYU6XE5E0s0al-TjczlXSR-OdKfiZD9ZmBPkr798uKEH9Pcda33kRHZkg4qeFE1LsP5OjUVGAJm50OZQKWOYZaJjera9bVFXKjyK70U_ALBR44mf_CATdZQnPneeCFm7IzkZobTeew"
+            credentials: "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImtpZCI6ImV4YW1wbGUifQ.eyJhdWQiOiJodHRwczovL2FwaS5leGFtcGxlLmNvbSIsImV4cCI6NDkzODM1MDk3OSwiaXNzIjoiaHR0cHM6Ly9hdXRoLmV4YW1wbGUuY29tIiwic2NvcGUiOiJnaXRodWI6dG9vbHMgcGV0c3RvcmU6dG9vbHMgdXJsZWxpY2l0OmF1dGhvcml6ZSBrYWZrYTp0b29scyBrYWZrYV9zcjp0b29scyBrYWZrYV9jb25uZWN0OnRvb2xzIn0.e5n0XM_a0wb1BYhJiWXvPnSXaWOJyYbAj_1e3dMdNOVFBwmWv5BwHm-LYdf7DbbJk5u09I0MtgBqVnLsntwrnxcNIPzsKSs2U17Yb6NnPz6K41TljV9HCP4nAR6KK7Lt7uwJbpuSz-yY91FqjDQFjGuOGv79oPygMaomyzz4NchnAECUysrvlYlFun-X4klQsMr3h5ik-M5hDJ5rHjkefBFBR1JZOKvJEQpgSQ9Z2i4x9KiLTV4V-UfUmYrLwFuQaHalU20Rmkl8sEJ8L16PU5tuXRnUGdLyg68_i_BV-Wc0PuAHMYIWxERIfoCBrPDrVpeK1zlNYZ4lWfgbN_onLA"
         # a fixed handful of frequently used tools stay eagerly listed; every other
         # tool across every toolkit (the "everything" reference server's dozen-plus
         # demo tools, most visibly) is omitted from tools/list -- because the search
@@ -630,7 +630,7 @@ bindings:
     type: mcp-kafka-connect
     kind: client
     options:
-      server: http://kafka-connect.examples.dev:8083
+      server: http://kafka-connect:8083
     # a second, tool-specific guard layered under the toolkit-level
     # kafka_connect:tools gate above -- every tool that mutates connector,
     # task, or offset state additionally requires kafka_connect:admin, while
