@@ -29,7 +29,7 @@ public class McpOpenapiBindingInfoTest
     @Test
     public void shouldResolveType()
     {
-        assertThat(info.type(), equalTo("mcp_openapi"));
+        assertThat(info.type(), equalTo("mcp-openapi"));
     }
 
     @Test

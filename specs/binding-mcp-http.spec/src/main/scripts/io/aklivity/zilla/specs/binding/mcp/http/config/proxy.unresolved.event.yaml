@@ -26,7 +26,7 @@ telemetry:
             name: ENGINE_STARTED
             message: Engine Started.
           - qname: test:app0
-            id: binding.mcp_http.schema.accessor.unresolved
+            id: binding.mcp.http.schema.accessor.unresolved
             name: BINDING_MCP_HTTP_SCHEMA_ACCESSOR_UNRESOLVED
             message: Expression "args.ownerr" is unresolved against the schema for "create_pr".
 catalogs:
@@ -117,7 +117,7 @@ catalogs:
             }
 bindings:
   app0:
-    type: mcp_http
+    type: mcp-http
     kind: proxy
     options:
       tools:

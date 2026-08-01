@@ -2,7 +2,7 @@
     {
         "op": "add",
         "path": "/$defs/binding/properties/type/enum/-",
-        "value": "mcp_http"
+        "value": "mcp-http"
     },
     {
         "op": "add",
@@ -15,7 +15,7 @@
                 {
                     "type":
                     {
-                        "const": "mcp_http"
+                        "const": "mcp-http"
                     }
                 }
             },
@@ -25,7 +25,7 @@
                 {
                     "type":
                     {
-                        "const": "mcp_http"
+                        "const": "mcp-http"
                     },
                     "kind":
                     {
