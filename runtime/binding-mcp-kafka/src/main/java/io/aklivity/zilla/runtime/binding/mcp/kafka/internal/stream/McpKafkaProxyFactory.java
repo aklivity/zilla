@@ -33,6 +33,7 @@ import java.util.Map;
 import java.util.PrimitiveIterator;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.IntConsumer;
 import java.util.function.LongUnaryOperator;
 import java.util.function.Supplier;
 
@@ -79,9 +80,15 @@ import io.aklivity.zilla.runtime.binding.kafka.api.KafkaFindCoordinatorResponseV
 import io.aklivity.zilla.runtime.binding.kafka.api.KafkaListGroupsRequest;
 import io.aklivity.zilla.runtime.binding.kafka.api.KafkaListGroupsResponse;
 import io.aklivity.zilla.runtime.binding.kafka.api.KafkaListGroupsResponseV4FW;
+import io.aklivity.zilla.runtime.binding.kafka.api.KafkaListOffsetsRequest;
+import io.aklivity.zilla.runtime.binding.kafka.api.KafkaListOffsetsResponse;
+import io.aklivity.zilla.runtime.binding.kafka.api.KafkaListOffsetsResponseV6FW;
 import io.aklivity.zilla.runtime.binding.kafka.api.KafkaMetadataRequest;
 import io.aklivity.zilla.runtime.binding.kafka.api.KafkaMetadataResponse;
 import io.aklivity.zilla.runtime.binding.kafka.api.KafkaMetadataResponseV9FW;
+import io.aklivity.zilla.runtime.binding.kafka.api.KafkaOffsetFetchRequest;
+import io.aklivity.zilla.runtime.binding.kafka.api.KafkaOffsetFetchResponse;
+import io.aklivity.zilla.runtime.binding.kafka.api.KafkaOffsetFetchResponseV6FW;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.McpKafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.config.McpKafkaBindingConfig;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.config.McpKafkaRouteConfig;
@@ -153,6 +160,7 @@ public class McpKafkaProxyFactory implements BindingHandler
     private static final String TOOL_DESCRIBE_CLUSTER = "describe_cluster";
     private static final String TOOL_LIST_CONSUMER_GROUPS = "list_consumer_groups";
     private static final String TOOL_DESCRIBE_CONSUMER_GROUP = "describe_consumer_group";
+    private static final String TOOL_DESCRIBE_CONSUMER_GROUP_LAG = "describe_consumer_group_lag";
     private static final String TOOL_RESET_OFFSETS = "reset_offsets";
 
     private static final String[] TOOL_NAMES =
@@ -173,6 +181,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         TOOL_DESCRIBE_CLUSTER,
         TOOL_LIST_CONSUMER_GROUPS,
         TOOL_DESCRIBE_CONSUMER_GROUP,
+        TOOL_DESCRIBE_CONSUMER_GROUP_LAG,
         TOOL_RESET_OFFSETS
     };
 
@@ -199,6 +208,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         TOOL_DESCRIBE_CLUSTER,
         TOOL_LIST_CONSUMER_GROUPS,
         TOOL_DESCRIBE_CONSUMER_GROUP,
+        TOOL_DESCRIBE_CONSUMER_GROUP_LAG,
         TOOL_RESET_OFFSETS);
 
     private static final short CREATE_TOPICS_API_KEY = 19;
@@ -225,6 +235,10 @@ public class McpKafkaProxyFactory implements BindingHandler
     private static final short DESCRIBE_GROUPS_API_VERSION = 5;
     private static final short FIND_COORDINATOR_API_KEY = 10;
     private static final short FIND_COORDINATOR_API_VERSION = 3;
+    private static final short OFFSET_FETCH_API_KEY = 9;
+    private static final short OFFSET_FETCH_API_VERSION = 6;
+    private static final short LIST_OFFSETS_API_KEY = 2;
+    private static final short LIST_OFFSETS_API_VERSION = 6;
 
     // Kafka group states for which a group is safe to reset offsets on directly - no active members
     // are consuming, whether the group never existed ("Dead", auto-created Empty on commit) or all
@@ -305,6 +319,8 @@ public class McpKafkaProxyFactory implements BindingHandler
     private final KafkaListGroupsRequest.Generator listGroupsRequestGenerator;
     private final KafkaDescribeGroupsRequest.Generator describeGroupsRequestGenerator;
     private final KafkaFindCoordinatorRequest.Generator findCoordinatorRequestGenerator;
+    private final KafkaOffsetFetchRequest.Generator offsetFetchRequestGenerator;
+    private final KafkaListOffsetsRequest.Generator listOffsetsRequestGenerator;
     private final JsonGeneratorEx apiResultGenerator;
     private final KafkaCreateTopicsResponseV7FW createTopicsResponseRO;
     private final KafkaDeleteTopicsResponseV6FW deleteTopicsResponseRO;
@@ -318,6 +334,8 @@ public class McpKafkaProxyFactory implements BindingHandler
     private final KafkaListGroupsResponseV4FW listGroupsResponseRO;
     private final KafkaDescribeGroupsResponseV5FW describeGroupsResponseRO;
     private final KafkaFindCoordinatorResponseV3FW findCoordinatorResponseRO;
+    private final KafkaOffsetFetchResponseV6FW offsetFetchResponseRO;
+    private final KafkaListOffsetsResponseV6FW listOffsetsResponseRO;
     private final int createTopicsRequestTimeoutMs;
 
     protected final Long2ObjectHashMap<McpKafkaBindingConfig> bindings;
@@ -352,6 +370,8 @@ public class McpKafkaProxyFactory implements BindingHandler
         this.listGroupsRequestGenerator = new KafkaListGroupsRequest.Generator();
         this.describeGroupsRequestGenerator = new KafkaDescribeGroupsRequest.Generator();
         this.findCoordinatorRequestGenerator = new KafkaFindCoordinatorRequest.Generator();
+        this.offsetFetchRequestGenerator = new KafkaOffsetFetchRequest.Generator();
+        this.listOffsetsRequestGenerator = new KafkaListOffsetsRequest.Generator();
         this.apiResultGenerator = JsonEx.createGenerator();
         this.createTopicsResponseRO = new KafkaCreateTopicsResponseV7FW();
         this.deleteTopicsResponseRO = new KafkaDeleteTopicsResponseV6FW();
@@ -365,6 +385,8 @@ public class McpKafkaProxyFactory implements BindingHandler
         this.listGroupsResponseRO = new KafkaListGroupsResponseV4FW();
         this.describeGroupsResponseRO = new KafkaDescribeGroupsResponseV5FW();
         this.findCoordinatorResponseRO = new KafkaFindCoordinatorResponseV3FW();
+        this.offsetFetchResponseRO = new KafkaOffsetFetchResponseV6FW();
+        this.listOffsetsResponseRO = new KafkaListOffsetsResponseV6FW();
         this.createTopicsRequestTimeoutMs = (int) config.requestTimeout().toMillis();
     }
 
@@ -1050,6 +1072,7 @@ public class McpKafkaProxyFactory implements BindingHandler
                 .build();
             break;
         case TOOL_DESCRIBE_CONSUMER_GROUP:
+        case TOOL_DESCRIBE_CONSUMER_GROUP_LAG:
             schema = Json.createObjectBuilder()
                 .add("type", "object")
                 .add("properties", Json.createObjectBuilder()
@@ -1402,6 +1425,26 @@ public class McpKafkaProxyFactory implements BindingHandler
                 .add("required", Json.createArrayBuilder().add("group_id").add("state").add("members"))
                 .build();
             break;
+        case TOOL_DESCRIBE_CONSUMER_GROUP_LAG:
+            schema = Json.createObjectBuilder()
+                .add("type", "object")
+                .add("properties", Json.createObjectBuilder()
+                    .add("group_id", Json.createObjectBuilder().add("type", "string"))
+                    .add("partitions", Json.createObjectBuilder()
+                        .add("type", "array")
+                        .add("items", Json.createObjectBuilder()
+                            .add("type", "object")
+                            .add("properties", Json.createObjectBuilder()
+                                .add("topic", Json.createObjectBuilder().add("type", "string"))
+                                .add("partition", Json.createObjectBuilder().add("type", "integer"))
+                                .add("committed_offset", Json.createObjectBuilder().add("type", "integer"))
+                                .add("end_offset", Json.createObjectBuilder().add("type", "integer"))
+                                .add("lag", Json.createObjectBuilder().add("type", "integer")))
+                            .add("required", Json.createArrayBuilder()
+                                .add("topic").add("partition").add("committed_offset").add("end_offset").add("lag")))))
+                .add("required", Json.createArrayBuilder().add("group_id").add("partitions"))
+                .build();
+            break;
         case TOOL_RESET_OFFSETS:
             schema = Json.createObjectBuilder()
                 .add("type", "object")
@@ -1455,6 +1498,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         case TOOL_DESCRIBE_CLUSTER:
         case TOOL_LIST_CONSUMER_GROUPS:
         case TOOL_DESCRIBE_CONSUMER_GROUP:
+        case TOOL_DESCRIBE_CONSUMER_GROUP_LAG:
             annotations = Json.createObjectBuilder()
                 .add("readOnlyHint", true)
                 .add("destructiveHint", false)
@@ -2335,6 +2379,10 @@ public class McpKafkaProxyFactory implements BindingHandler
             {
                 completeDescribeConsumerGroupArgs(traceId);
             }
+            else if (TOOL_DESCRIBE_CONSUMER_GROUP_LAG.equals(tool))
+            {
+                completeDescribeConsumerGroupLagArgs(traceId);
+            }
             else if (TOOL_RESET_OFFSETS.equals(tool))
             {
                 completeResetOffsetsArgs(traceId);
@@ -2642,6 +2690,33 @@ public class McpKafkaProxyFactory implements BindingHandler
                     resolvedId = route.id;
 
                     final KafkaApiDescribeGroupsClient client = new KafkaApiDescribeGroupsClient(
+                        this, originId, resolvedId, affinity, authorization, groupId);
+                    client.doKafkaBegin(traceId);
+                    kafka = client;
+                }
+                else
+                {
+                    doMcpReset(traceId);
+                }
+            }
+            else
+            {
+                doMcpReset(traceId, buildInvalidParamsResetEx());
+            }
+        }
+
+        private void completeDescribeConsumerGroupLagArgs(
+            long traceId)
+        {
+            final String groupId = capturedArgs.get("arguments.group_id");
+            if (groupId != null)
+            {
+                final McpKafkaRouteConfig route = binding.resolve(authorization, tool, null);
+                if (route != null)
+                {
+                    resolvedId = route.id;
+
+                    final KafkaApiDescribeConsumerGroupLagClient client = new KafkaApiDescribeConsumerGroupLagClient(
                         this, originId, resolvedId, affinity, authorization, groupId);
                     client.doKafkaBegin(traceId);
                     kafka = client;
@@ -8825,6 +8900,721 @@ public class McpKafkaProxyFactory implements BindingHandler
                 state = McpKafkaState.closedReply(state);
                 doReset(kafka, originId, resolvedId, kafkaReplyId, traceId, authorization);
             }
+        }
+    }
+
+    /**
+     * Reports per-partition consumer lag ({@code lag = endOffset - committedOffset}) for a consumer
+     * group. Two sequential Kafka round trips against the same broker connection ({@code resolvedId}),
+     * both through the generic api envelope: OffsetFetch for every topic-partition the group has
+     * committed an offset on, then ListOffsets at the latest timestamp for exactly those
+     * topic-partitions. A partition missing from either response contributes no lag entry.
+     */
+    private final class KafkaApiDescribeConsumerGroupLagClient implements KafkaDownstream
+    {
+        private static final int STAGE_OFFSET_FETCH = 0;
+        private static final int STAGE_LIST_OFFSETS = 1;
+
+        private final McpProxy peer;
+        private final long originId;
+        private final long resolvedId;
+        private final long affinity;
+        private final long authorization;
+        private final String groupId;
+        private final ConsumerGroupLagSource source;
+        private final int offsetFetchRequestLength;
+
+        private long kafkaInitialId;
+        private long kafkaReplyId;
+        private MessageConsumer kafka;
+        private int state;
+        private int stage;
+        private boolean mcpBegun;
+        private int listOffsetsRequestLength;
+
+        private long initialSeq;
+        private long initialAck;
+        private int initialMax;
+        private boolean requestSent;
+
+        private int decodeSlot = NO_SLOT;
+        private int decodeSlotOffset;
+        private int responseLength = -1;
+
+        private KafkaApiDescribeConsumerGroupLagClient(
+            McpProxy peer,
+            long originId,
+            long resolvedId,
+            long affinity,
+            long authorization,
+            String groupId)
+        {
+            this.peer = peer;
+            this.originId = originId;
+            this.resolvedId = resolvedId;
+            this.affinity = affinity;
+            this.authorization = authorization;
+            this.groupId = groupId;
+            this.source = new ConsumerGroupLagSource();
+            this.offsetFetchRequestLength = KafkaOffsetFetchRequest.sizeof(groupId, OFFSET_FETCH_API_VERSION);
+            this.stage = STAGE_OFFSET_FETCH;
+        }
+
+        private void onKafkaMessage(
+            int msgTypeId,
+            DirectBufferEx buffer,
+            int index,
+            int length)
+        {
+            switch (msgTypeId)
+            {
+            case BeginFW.TYPE_ID:
+                final BeginFW begin = beginRO.wrap(buffer, index, index + length);
+                onKafkaBegin(begin);
+                break;
+            case DataFW.TYPE_ID:
+                final DataFW data = dataRO.wrap(buffer, index, index + length);
+                onKafkaData(data);
+                break;
+            case EndFW.TYPE_ID:
+                final EndFW end = endRO.wrap(buffer, index, index + length);
+                onKafkaEnd(end);
+                break;
+            case AbortFW.TYPE_ID:
+                final AbortFW abort = abortRO.wrap(buffer, index, index + length);
+                onKafkaAbort(abort);
+                break;
+            case WindowFW.TYPE_ID:
+                final WindowFW window = windowRO.wrap(buffer, index, index + length);
+                onKafkaWindow(window);
+                break;
+            case ResetFW.TYPE_ID:
+                final ResetFW reset = resetRO.wrap(buffer, index, index + length);
+                onKafkaReset(reset);
+                break;
+            case ChallengeFW.TYPE_ID:
+                final ChallengeFW challenge = challengeRO.wrap(buffer, index, index + length);
+                onKafkaChallenge(challenge);
+                break;
+            default:
+                break;
+            }
+        }
+
+        private void onKafkaChallenge(
+            ChallengeFW challenge)
+        {
+            final long traceId = challenge.traceId();
+            final short version = stage == STAGE_OFFSET_FETCH ? OFFSET_FETCH_API_VERSION : LIST_OFFSETS_API_VERSION;
+
+            final KafkaFlushExFW kafkaFlushEx = kafkaFlushExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(kafkaTypeId)
+                .apiFlush(f -> f.version(version))
+                .build();
+
+            doFlush(kafka, originId, resolvedId, kafkaInitialId, traceId, authorization, kafkaFlushEx);
+        }
+
+        private void onKafkaBegin(
+            BeginFW begin)
+        {
+            final long traceId = begin.traceId();
+            final OctetsFW extension = begin.extension();
+            final KafkaBeginExFW kafkaBeginEx = extension.sizeof() != 0
+                ? kafkaBeginExRO.tryWrap(extension.buffer(), extension.offset(), extension.limit())
+                : null;
+
+            responseLength = kafkaBeginEx != null && kafkaBeginEx.kind() == KafkaBeginExFW.KIND_API_RESPONSE
+                ? kafkaBeginEx.apiResponse().length()
+                : -1;
+
+            state = McpKafkaState.openedReply(state);
+
+            if (!mcpBegun)
+            {
+                mcpBegun = true;
+                peer.doMcpBegin(traceId);
+            }
+
+            doKafkaWindow(traceId, 0, writeBuffer.capacity(), 0);
+        }
+
+        private void onKafkaData(
+            DataFW data)
+        {
+            final long traceId = data.traceId();
+            final OctetsFW payload = data.payload();
+
+            if (payload != null)
+            {
+                appendResponse(traceId, payload.buffer(), payload.offset(), payload.sizeof());
+            }
+        }
+
+        private void appendResponse(
+            long traceId,
+            DirectBufferEx buffer,
+            int offset,
+            int length)
+        {
+            if (decodeSlot == NO_SLOT)
+            {
+                decodeSlot = decodePool.acquire(kafkaReplyId);
+            }
+
+            if (decodeSlot == NO_SLOT)
+            {
+                cleanupConsumerGroupLag(traceId);
+            }
+            else
+            {
+                final MutableDirectBufferEx slot = decodePool.buffer(decodeSlot);
+                slot.putBytes(decodeSlotOffset, buffer, offset, length);
+                decodeSlotOffset += length;
+
+                if (responseLength >= 0 && decodeSlotOffset >= responseLength)
+                {
+                    if (stage == STAGE_OFFSET_FETCH)
+                    {
+                        completeOffsetFetch(traceId);
+                    }
+                    else
+                    {
+                        completeListOffsets(traceId);
+                    }
+                }
+            }
+        }
+
+        /**
+         * Captures every committed topic-partition into {@link #source}. The response's own
+         * {@code Topic}/{@code Partition} views are only valid until the next {@code next()} call, so the
+         * topic name is copied out eagerly and the partitions are accumulated as they are visited.
+         */
+        private void completeOffsetFetch(
+            long traceId)
+        {
+            final MutableDirectBufferEx slot = decodePool.buffer(decodeSlot);
+            final KafkaOffsetFetchResponseV6FW response = offsetFetchResponseRO.wrap(slot, 0, responseLength);
+
+            String topicName = null;
+            TopicLag topic = null;
+
+            while (response.hasNext())
+            {
+                if (response.next() == KafkaOffsetFetchResponse.Kind.TOPIC)
+                {
+                    final KafkaOffsetFetchResponse.Topic fetched = response.topic();
+                    topicName = fetched.buffer().getStringWithoutLengthUtf8(fetched.nameOffset(), fetched.nameLength());
+                    topic = null;
+                }
+                else
+                {
+                    final KafkaOffsetFetchResponse.Partition partition = response.partition();
+                    if (partition.errorCode() == 0 && topicName != null)
+                    {
+                        if (topic == null)
+                        {
+                            topic = source.topic(topicName);
+                        }
+                        topic.partition(partition.partitionIndex(), partition.committedOffset());
+                    }
+                }
+            }
+
+            final short error = response.error();
+
+            cleanupDecodeSlot();
+
+            if (error != 0)
+            {
+                emitResult(traceId,
+                    "Failed to fetch committed offsets for consumer group " + groupId + " (error " + error + ")");
+            }
+            else if (source.topicCount() == 0)
+            {
+                emitResult(traceId, null);
+            }
+            else
+            {
+                advanceToListOffsets(traceId);
+            }
+        }
+
+        private void completeListOffsets(
+            long traceId)
+        {
+            final MutableDirectBufferEx slot = decodePool.buffer(decodeSlot);
+            final KafkaListOffsetsResponseV6FW response = listOffsetsResponseRO.wrap(slot, 0, responseLength);
+
+            TopicLag topic = null;
+
+            while (response.hasNext())
+            {
+                if (response.next() == KafkaListOffsetsResponse.Kind.TOPIC)
+                {
+                    final KafkaListOffsetsResponse.Topic listed = response.topic();
+                    final String name = listed.buffer()
+                        .getStringWithoutLengthUtf8(listed.nameOffset(), listed.nameLength());
+                    topic = source.find(name);
+                }
+                else if (topic != null)
+                {
+                    final KafkaListOffsetsResponse.Partition partition = response.partition();
+                    if (partition.errorCode() == 0)
+                    {
+                        topic.endOffset(partition.partitionIndex(), partition.endOffset());
+                    }
+                }
+            }
+
+            cleanupDecodeSlot();
+
+            emitResult(traceId, null);
+        }
+
+        private void advanceToListOffsets(
+            long traceId)
+        {
+            doEnd(kafka, originId, resolvedId, kafkaInitialId, traceId, authorization);
+
+            stage = STAGE_LIST_OFFSETS;
+            requestSent = false;
+            responseLength = -1;
+            listOffsetsRequestLength = KafkaListOffsetsRequest.sizeof(source, LIST_OFFSETS_API_VERSION);
+
+            final KafkaBeginExFW kafkaBeginEx = kafkaBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(kafkaTypeId)
+                .apiRequest(a -> a
+                    .length(listOffsetsRequestLength)
+                    .api(LIST_OFFSETS_API_KEY)
+                    .version(LIST_OFFSETS_API_VERSION)
+                    .clientId("zilla"))
+                .build();
+
+            kafkaInitialId = supplyInitialId.applyAsLong(resolvedId);
+            kafkaReplyId = supplyReplyId.applyAsLong(kafkaInitialId);
+            kafka = newKafkaStream(this::onKafkaMessage, originId, resolvedId, kafkaInitialId,
+                traceId, authorization, affinity, kafkaBeginEx);
+        }
+
+        /**
+         * Only the reply of the stage currently in flight closes the MCP reply; the previous stage's
+         * reply END arrives after {@link #advanceToListOffsets} has already opened the next stream.
+         */
+        private void onKafkaEnd(
+            EndFW end)
+        {
+            final long traceId = end.traceId();
+
+            if (end.streamId() == kafkaReplyId)
+            {
+                state = McpKafkaState.closedReply(state);
+
+                if (mcpBegun)
+                {
+                    peer.doMcpEnd(traceId);
+                }
+            }
+        }
+
+        private void onKafkaAbort(
+            AbortFW abort)
+        {
+            final long traceId = abort.traceId();
+
+            state = McpKafkaState.closedReply(state);
+
+            cleanupDecodeSlot();
+            peer.doMcpAbort(traceId);
+        }
+
+        private void onKafkaWindow(
+            WindowFW window)
+        {
+            final long traceId = window.traceId();
+            final long budgetId = window.budgetId();
+            final int credit = window.maximum();
+
+            initialAck = window.acknowledge();
+
+            if (!requestSent && credit > 0)
+            {
+                requestSent = true;
+
+                if (stage == STAGE_OFFSET_FETCH)
+                {
+                    sendOffsetFetchRequest(traceId, budgetId);
+                }
+                else
+                {
+                    sendListOffsetsRequest(traceId, budgetId);
+                }
+            }
+
+            initialMax = credit;
+        }
+
+        private void sendOffsetFetchRequest(
+            long traceId,
+            long budgetId)
+        {
+            final int encodeSlot = encodePool.acquire(kafkaInitialId);
+            if (encodeSlot == NO_SLOT)
+            {
+                cleanupConsumerGroupLag(traceId);
+            }
+            else
+            {
+                final MutableDirectBufferEx slot = encodePool.buffer(encodeSlot);
+                final boolean fits = offsetFetchRequestLength <= slot.capacity();
+                offsetFetchRequestGenerator.wrap(slot, 0, slot.capacity());
+                final boolean built = fits && offsetFetchRequestGenerator.generate(groupId);
+
+                if (built)
+                {
+                    doData(kafka, originId, resolvedId, kafkaInitialId, traceId, authorization,
+                        budgetId, FLAGS_COMPLETE, offsetFetchRequestLength, slot, 0, offsetFetchRequestLength);
+                    initialSeq += offsetFetchRequestLength;
+                }
+                else
+                {
+                    cleanupConsumerGroupLag(traceId);
+                }
+
+                encodePool.release(encodeSlot);
+            }
+        }
+
+        private void sendListOffsetsRequest(
+            long traceId,
+            long budgetId)
+        {
+            final int encodeSlot = encodePool.acquire(kafkaInitialId);
+            if (encodeSlot == NO_SLOT)
+            {
+                cleanupConsumerGroupLag(traceId);
+            }
+            else
+            {
+                final MutableDirectBufferEx slot = encodePool.buffer(encodeSlot);
+                final boolean fits = listOffsetsRequestLength <= slot.capacity();
+                listOffsetsRequestGenerator.wrap(slot, 0, slot.capacity());
+                final boolean built = fits && listOffsetsRequestGenerator.generate(source);
+
+                if (built)
+                {
+                    doData(kafka, originId, resolvedId, kafkaInitialId, traceId, authorization,
+                        budgetId, FLAGS_COMPLETE, listOffsetsRequestLength, slot, 0, listOffsetsRequestLength);
+                    initialSeq += listOffsetsRequestLength;
+                }
+                else
+                {
+                    cleanupConsumerGroupLag(traceId);
+                }
+
+                encodePool.release(encodeSlot);
+            }
+        }
+
+        private void onKafkaReset(
+            ResetFW reset)
+        {
+            final long traceId = reset.traceId();
+
+            state = McpKafkaState.closedInitial(state);
+
+            cleanupDecodeSlot();
+            peer.doMcpReset(traceId);
+        }
+
+        private void emitResult(
+            long traceId,
+            String failureMessage)
+        {
+            final int encodeSlot = encodePool.acquire(kafkaReplyId);
+            if (encodeSlot == NO_SLOT)
+            {
+                cleanupConsumerGroupLag(traceId);
+            }
+            else
+            {
+                final MutableDirectBufferEx encodeBuffer = encodePool.buffer(encodeSlot);
+                apiResultGenerator.reset();
+                apiResultGenerator.wrap(encodeBuffer, 0, encodeBuffer.capacity());
+
+                final boolean isError = failureMessage != null;
+
+                apiResultGenerator.writeStartObject()
+                    .writeStartObject("structuredContent")
+                    .write("group_id", groupId)
+                    .writeStartArray("partitions");
+
+                final long totalLag = isError ? 0L : writePartitionLag();
+
+                final String text = isError
+                    ? failureMessage
+                    : "Consumer group " + groupId + " has total lag " + totalLag;
+
+                apiResultGenerator
+                    .writeEnd()
+                    .writeEnd()
+                    .writeStartArray("content")
+                    .writeStartObject()
+                    .write("type", "text")
+                    .write("text", text)
+                    .writeEnd()
+                    .writeEnd()
+                    .write("isError", isError)
+                    .writeEnd();
+
+                if (!mcpBegun)
+                {
+                    mcpBegun = true;
+                    peer.doMcpBegin(traceId);
+                }
+
+                peer.doMcpResult(traceId, apiResultGenerator.length(), encodeBuffer, isError);
+
+                encodePool.release(encodeSlot);
+            }
+        }
+
+        private long writePartitionLag()
+        {
+            long totalLag = 0L;
+
+            for (TopicLag topic : source.topics)
+            {
+                for (PartitionLag partition : topic.partitions)
+                {
+                    if (partition.endOffset != PartitionLag.NO_END_OFFSET)
+                    {
+                        final long lag = partition.endOffset - partition.committedOffset;
+                        totalLag += lag;
+
+                        apiResultGenerator.writeStartObject()
+                            .write("topic", topic.name)
+                            .write("partition", partition.partition)
+                            .write("committed_offset", partition.committedOffset)
+                            .write("end_offset", partition.endOffset)
+                            .write("lag", lag)
+                            .writeEnd();
+                    }
+                }
+            }
+
+            return totalLag;
+        }
+
+        private void cleanupConsumerGroupLag(
+            long traceId)
+        {
+            cleanupDecodeSlot();
+            doKafkaAbort(traceId);
+            doKafkaReset(traceId);
+            peer.doMcpAbort(traceId);
+        }
+
+        private void cleanupDecodeSlot()
+        {
+            if (decodeSlot != NO_SLOT)
+            {
+                decodePool.release(decodeSlot);
+                decodeSlot = NO_SLOT;
+                decodeSlotOffset = 0;
+            }
+        }
+
+        private void doKafkaBegin(
+            long traceId)
+        {
+            state = McpKafkaState.openingInitial(state);
+
+            final KafkaBeginExFW kafkaBeginEx = kafkaBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(kafkaTypeId)
+                .apiRequest(a -> a
+                    .length(offsetFetchRequestLength)
+                    .api(OFFSET_FETCH_API_KEY)
+                    .version(OFFSET_FETCH_API_VERSION)
+                    .clientId("zilla"))
+                .build();
+
+            kafkaInitialId = supplyInitialId.applyAsLong(resolvedId);
+            kafkaReplyId = supplyReplyId.applyAsLong(kafkaInitialId);
+            kafka = newKafkaStream(this::onKafkaMessage, originId, resolvedId, kafkaInitialId,
+                traceId, authorization, affinity, kafkaBeginEx);
+        }
+
+        @Override
+        public void doKafkaEnd(
+            long traceId)
+        {
+            if (kafka != null && !McpKafkaState.initialClosed(state))
+            {
+                state = McpKafkaState.closedInitial(state);
+                doEnd(kafka, originId, resolvedId, kafkaInitialId, traceId, authorization);
+            }
+        }
+
+        @Override
+        public void doKafkaAbort(
+            long traceId)
+        {
+            if (kafka != null && !McpKafkaState.initialClosed(state))
+            {
+                state = McpKafkaState.closedInitial(state);
+                doAbort(kafka, originId, resolvedId, kafkaInitialId, traceId, authorization);
+            }
+        }
+
+        @Override
+        public void doKafkaWindow(
+            long traceId,
+            long budgetId,
+            int credit,
+            int padding)
+        {
+            if (kafka != null)
+            {
+                doWindow(kafka, originId, resolvedId, kafkaReplyId, traceId, authorization, budgetId, credit, padding);
+            }
+        }
+
+        @Override
+        public void doKafkaReset(
+            long traceId)
+        {
+            if (kafka != null && !McpKafkaState.replyClosed(state))
+            {
+                state = McpKafkaState.closedReply(state);
+                doReset(kafka, originId, resolvedId, kafkaReplyId, traceId, authorization);
+            }
+        }
+    }
+
+    /**
+     * The topic-partitions an OffsetFetch response reported committed offsets for, in the shape the
+     * follow-on ListOffsets request generator consumes, and the place the matching log end offsets
+     * are recorded once that response arrives.
+     */
+    private static final class ConsumerGroupLagSource implements KafkaListOffsetsRequest.Source
+    {
+        private final List<TopicLag> topics;
+
+        private ConsumerGroupLagSource()
+        {
+            this.topics = new ArrayList<>();
+        }
+
+        private TopicLag topic(
+            String name)
+        {
+            final TopicLag topic = new TopicLag(name);
+            topics.add(topic);
+            return topic;
+        }
+
+        private TopicLag find(
+            String name)
+        {
+            TopicLag found = null;
+
+            for (TopicLag topic : topics)
+            {
+                if (topic.name.equals(name))
+                {
+                    found = topic;
+                    break;
+                }
+            }
+
+            return found;
+        }
+
+        @Override
+        public int topicCount()
+        {
+            return topics.size();
+        }
+
+        @Override
+        public void forEach(
+            TopicConsumer consumer)
+        {
+            topics.forEach(consumer::accept);
+        }
+    }
+
+    private static final class TopicLag implements KafkaListOffsetsRequest.Source.Topic
+    {
+        private final String name;
+        private final List<PartitionLag> partitions;
+
+        private TopicLag(
+            String name)
+        {
+            this.name = name;
+            this.partitions = new ArrayList<>();
+        }
+
+        private void partition(
+            int partitionIndex,
+            long committedOffset)
+        {
+            partitions.add(new PartitionLag(partitionIndex, committedOffset));
+        }
+
+        private void endOffset(
+            int partitionIndex,
+            long endOffset)
+        {
+            for (PartitionLag partition : partitions)
+            {
+                if (partition.partition == partitionIndex)
+                {
+                    partition.endOffset = endOffset;
+                    break;
+                }
+            }
+        }
+
+        @Override
+        public String name()
+        {
+            return name;
+        }
+
+        @Override
+        public int partitionCount()
+        {
+            return partitions.size();
+        }
+
+        @Override
+        public void forEachPartition(
+            IntConsumer consumer)
+        {
+            partitions.forEach(partition -> consumer.accept(partition.partition));
+        }
+    }
+
+    private static final class PartitionLag
+    {
+        private static final long NO_END_OFFSET = -1L;
+
+        private final int partition;
+        private final long committedOffset;
+
+        private long endOffset;
+
+        private PartitionLag(
+            int partition,
+            long committedOffset)
+        {
+            this.partition = partition;
+            this.committedOffset = committedOffset;
+            this.endOffset = NO_END_OFFSET;
         }
     }
 
