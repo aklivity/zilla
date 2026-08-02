@@ -63,16 +63,9 @@ write '{'
         '}'
       '}'
 
-read  '{'
-        '"content":'
-        '['
-          '{'
-            '"type": "text",'
-            '"text": "Produced record to orders-eu topic"'
-          '}'
-        '],'
-        '"isError": false'
-      '}'
+read '{"structuredContent":{"topic":"orders-eu","partition":1,"offset":0,"timestamp":1700000000000},'
+     '"content":[{"type":"text","text":"Produced record to orders-eu topic"}],'
+     '"isError":false}'
 read closed
 
 write close

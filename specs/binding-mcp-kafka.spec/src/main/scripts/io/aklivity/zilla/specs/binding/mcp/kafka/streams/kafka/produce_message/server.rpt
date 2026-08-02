@@ -39,5 +39,15 @@ read zilla:data.ext ${kafka:matchDataEx()
                            .build()}
 read "hello"
 
+write advise zilla:flush ${kafka:flushEx()
+                              .typeId(zilla:id("kafka"))
+                              .merged()
+                                .produce()
+                                  .partitionId(0)
+                                  .partitionOffset(0)
+                                  .timestamp(1700000000000)
+                                  .build()
+                              .build()}
+
 read closed
 write close
