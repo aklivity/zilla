@@ -17,5 +17,6 @@ package io.aklivity.zilla.runtime.binding.mcp.openapi.internal.config.composite;
 public class McpEx
 {
     public String title;
+    public String description;
     public McpToolAnnotationsEx annotations;
 }
