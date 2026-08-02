@@ -104,7 +104,9 @@ import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.transform.McpKafkaTo
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.transform.McpKafkaToolDescribeConfigsSource;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.transform.McpKafkaToolDescribeTopicSource;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.transform.McpKafkaToolListAclsSource;
+import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.Flyweight;
+import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.KafkaHeaderFW;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.KafkaKeyFW;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.KafkaOffsetFW;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.OctetsFW;
@@ -118,6 +120,7 @@ import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.stream.KafkaBe
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.stream.KafkaDataExFW;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.stream.KafkaFlushExFW;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.stream.KafkaMergedFetchDataExFW;
+import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.stream.KafkaMergedProduceFlushExFW;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.stream.KafkaResetExFW;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.stream.McpBeginExFW;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.stream.McpEndExFW;
@@ -145,7 +148,7 @@ public class McpKafkaProxyFactory implements BindingHandler
     private static final String MCP_TYPE_NAME = "mcp";
     private static final String KAFKA_TYPE_NAME = "kafka";
 
-    private static final String TOOL_PRODUCE = "produce";
+    private static final String TOOL_PRODUCE_MESSAGE = "produce_message";
     private static final String TOOL_CONSUME = "consume";
     private static final String TOOL_CREATE_TOPICS = "create_topics";
     private static final String TOOL_DELETE_TOPICS = "delete_topics";
@@ -166,7 +169,7 @@ public class McpKafkaProxyFactory implements BindingHandler
 
     private static final String[] TOOL_NAMES =
     {
-        TOOL_PRODUCE,
+        TOOL_PRODUCE_MESSAGE,
         TOOL_CONSUME,
         TOOL_CREATE_TOPICS,
         TOOL_DELETE_TOPICS,
@@ -272,6 +275,7 @@ public class McpKafkaProxyFactory implements BindingHandler
     private final DataFW dataRO = new DataFW();
     private final EndFW endRO = new EndFW();
     private final AbortFW abortRO = new AbortFW();
+    private final FlushFW flushRO = new FlushFW();
     private final WindowFW windowRO = new WindowFW();
     private final ResetFW resetRO = new ResetFW();
     private final SignalFW signalRO = new SignalFW();
@@ -279,6 +283,7 @@ public class McpKafkaProxyFactory implements BindingHandler
     private final McpBeginExFW mcpBeginExRO = new McpBeginExFW();
     private final KafkaBeginExFW kafkaBeginExRO = new KafkaBeginExFW();
     private final KafkaDataExFW kafkaDataExRO = new KafkaDataExFW();
+    private final KafkaFlushExFW kafkaFlushExRO = new KafkaFlushExFW();
     private final KafkaResetExFW kafkaResetExRO = new KafkaResetExFW();
 
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
@@ -422,7 +427,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         McpKafkaRouteConfig route)
     {
         final boolean matchesApiTool = API_TOOLS.stream().anyMatch(tool -> route.matches(tool, null));
-        final boolean matchesMergedTool = route.matches(TOOL_PRODUCE, null) || route.matches(TOOL_CONSUME, null);
+        final boolean matchesMergedTool = route.matches(TOOL_PRODUCE_MESSAGE, null) || route.matches(TOOL_CONSUME, null);
 
         return matchesApiTool && !matchesMergedTool;
     }
@@ -941,7 +946,7 @@ public class McpKafkaProxyFactory implements BindingHandler
 
         switch (tool)
         {
-        case TOOL_PRODUCE:
+        case TOOL_PRODUCE_MESSAGE:
             title = "Produce Message";
             break;
         case TOOL_CONSUME:
@@ -1009,7 +1014,7 @@ public class McpKafkaProxyFactory implements BindingHandler
 
         switch (tool)
         {
-        case TOOL_PRODUCE:
+        case TOOL_PRODUCE_MESSAGE:
             description = "Produce a message to a Kafka topic.";
             break;
         case TOOL_CONSUME:
@@ -1150,14 +1155,19 @@ public class McpKafkaProxyFactory implements BindingHandler
                 .add("additionalProperties", false)
                 .build();
             break;
-        case TOOL_PRODUCE:
+        case TOOL_PRODUCE_MESSAGE:
             schema = Json.createObjectBuilder()
                 .add("type", "object")
                 .add("properties", Json.createObjectBuilder()
                     .add("topic", Json.createObjectBuilder().add("type", "string"))
                     .add("value", Json.createObjectBuilder().add("type", "string"))
                     .add("key", Json.createObjectBuilder().add("type", "string"))
-                    .add("partition", Json.createObjectBuilder().add("type", "integer")))
+                    .add("partition", Json.createObjectBuilder().add("type", "integer"))
+                    .add("headers", Json.createObjectBuilder()
+                        .add("type", "array")
+                        .add("items", Json.createObjectBuilder()
+                            .add("type", "object")
+                            .add("additionalProperties", Json.createObjectBuilder().add("type", "string")))))
                 .add("required", Json.createArrayBuilder().add("topic").add("value"))
                 .build();
             break;
@@ -1563,6 +1573,18 @@ public class McpKafkaProxyFactory implements BindingHandler
 
         switch (tool)
         {
+        case TOOL_PRODUCE_MESSAGE:
+            schema = Json.createObjectBuilder()
+                .add("type", "object")
+                .add("properties", Json.createObjectBuilder()
+                    .add("topic", Json.createObjectBuilder().add("type", "string"))
+                    .add("partition", Json.createObjectBuilder().add("type", "integer"))
+                    .add("offset", Json.createObjectBuilder().add("type", "integer"))
+                    .add("timestamp", Json.createObjectBuilder().add("type", "integer")))
+                .add("required", Json.createArrayBuilder()
+                    .add("topic").add("partition").add("offset").add("timestamp"))
+                .build();
+            break;
         case TOOL_LIST_CONSUMER_GROUPS:
             schema = Json.createObjectBuilder()
                 .add("type", "object")
@@ -1717,13 +1739,15 @@ public class McpKafkaProxyFactory implements BindingHandler
 
     private static McpKafkaToolArgs buildToolArgs(
         String tool,
-        Map<String, String> captured)
+        Map<String, String> captured,
+        List<String[]> headers)
     {
-        return TOOL_PRODUCE.equals(tool) ? buildProduceArgs(captured) : buildConsumeArgs(captured);
+        return TOOL_PRODUCE_MESSAGE.equals(tool) ? buildProduceArgs(captured, headers) : buildConsumeArgs(captured);
     }
 
     private static McpKafkaToolArgs buildProduceArgs(
-        Map<String, String> captured)
+        Map<String, String> captured,
+        List<String[]> headers)
     {
         McpKafkaToolArgs args = null;
         final String topic = captured.get("arguments.topic");
@@ -1736,6 +1760,7 @@ public class McpKafkaProxyFactory implements BindingHandler
             args.value = value;
             args.key = captured.get("arguments.key");
             args.partitionId = parseInt(captured.get("arguments.partition"), -1);
+            args.headers = headers;
         }
 
         return args;
@@ -1847,7 +1872,7 @@ public class McpKafkaProxyFactory implements BindingHandler
 
         switch (tool != null ? tool : "")
         {
-        case TOOL_PRODUCE:
+        case TOOL_PRODUCE_MESSAGE:
             builder.merged(m -> m
                 .capabilities(c -> c.set(PRODUCE_ONLY))
                 .topic(resource)
@@ -1882,6 +1907,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         private int partitionId = -1;
         private long partitionOffset = -2L;
         private int limit = 10;
+        private List<String[]> headers = List.of();
 
         private void key(
             KafkaKeyFW.Builder builder)
@@ -1890,6 +1916,21 @@ public class McpKafkaProxyFactory implements BindingHandler
             {
                 final byte[] bytes = key.getBytes(UTF_8);
                 builder.length(bytes.length).value(new UnsafeBufferEx(bytes), 0, bytes.length);
+            }
+        }
+
+        private void headers(
+            Array32FW.Builder<KafkaHeaderFW.Builder, KafkaHeaderFW> builder)
+        {
+            for (String[] header : headers)
+            {
+                final byte[] nameBytes = header[0].getBytes(UTF_8);
+                final byte[] valueBytes = header[1].getBytes(UTF_8);
+                builder.item(i -> i
+                    .nameLen(nameBytes.length)
+                    .name(new UnsafeBufferEx(nameBytes), 0, nameBytes.length)
+                    .valueLen(valueBytes.length)
+                    .value(new UnsafeBufferEx(valueBytes), 0, valueBytes.length));
             }
         }
     }
@@ -2235,6 +2276,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         private long resolvedId;
         private JsonPipeline argsPipeline;
         private Map<String, String> capturedArgs;
+        private List<String[]> capturedHeaders;
         private McpKafkaToolCreateTopicsSource createTopicsSource;
         private McpKafkaToolDeleteTopicsSource deleteTopicsSource;
         private McpKafkaToolDescribeConfigsSource describeConfigsSource;
@@ -2272,7 +2314,7 @@ public class McpKafkaProxyFactory implements BindingHandler
             this.authorization = authorization;
             this.tool = tool;
             this.timeout = timeout;
-            this.awaitingArgs = TOOL_PRODUCE.equals(tool) || TOOL_CONSUME.equals(tool) || API_TOOLS.contains(tool);
+            this.awaitingArgs = TOOL_PRODUCE_MESSAGE.equals(tool) || TOOL_CONSUME.equals(tool) || API_TOOLS.contains(tool);
         }
 
         private void onMcpMessage(
@@ -2369,7 +2411,9 @@ public class McpKafkaProxyFactory implements BindingHandler
                 else
                 {
                     capturedArgs = new HashMap<>();
-                    argsPipeline = JsonEx.stream(JsonEx.createParser()).into(new McpKafkaArguments(capturedArgs));
+                    capturedHeaders = new ArrayList<>();
+                    argsPipeline = JsonEx.stream(JsonEx.createParser())
+                        .into(new McpKafkaArguments(capturedArgs, capturedHeaders));
                 }
                 argsPipeline.reset();
                 doMcpWindow(traceId, 0, decodePool.slotCapacity(), 0);
@@ -2600,7 +2644,7 @@ public class McpKafkaProxyFactory implements BindingHandler
         private void completeToolArgs(
             long traceId)
         {
-            final McpKafkaToolArgs args = buildToolArgs(tool, capturedArgs);
+            final McpKafkaToolArgs args = buildToolArgs(tool, capturedArgs, capturedHeaders);
 
             if (args != null)
             {
@@ -3121,6 +3165,9 @@ public class McpKafkaProxyFactory implements BindingHandler
 
         private McpKafkaToolArgs pendingProduceArgs;
         private boolean produceDone;
+        private int ackPartitionId = -1;
+        private long ackOffset = -1L;
+        private long ackTimestamp = -1L;
 
         private int encodeSlot = NO_SLOT;
         private int encodeSlotOffset;
@@ -3155,7 +3202,7 @@ public class McpKafkaProxyFactory implements BindingHandler
             this.authorization = authorization;
             this.kafkaInitialId = supplyInitialId.applyAsLong(resolvedId);
             this.kafkaReplyId = supplyReplyId.applyAsLong(kafkaInitialId);
-            this.produce = TOOL_PRODUCE.equals(tool);
+            this.produce = TOOL_PRODUCE_MESSAGE.equals(tool);
             this.consume = TOOL_CONSUME.equals(tool);
             this.topic = args != null ? args.topic : null;
             this.consumeLimit = args != null ? args.limit : 0;
@@ -3186,6 +3233,10 @@ public class McpKafkaProxyFactory implements BindingHandler
                 final AbortFW abort = abortRO.wrap(buffer, index, index + length);
                 onKafkaAbort(abort);
                 break;
+            case FlushFW.TYPE_ID:
+                final FlushFW flush = flushRO.wrap(buffer, index, index + length);
+                onKafkaFlush(flush);
+                break;
             case WindowFW.TYPE_ID:
                 final WindowFW window = windowRO.wrap(buffer, index, index + length);
                 onKafkaWindow(window);
@@ -3200,6 +3251,21 @@ public class McpKafkaProxyFactory implements BindingHandler
                 break;
             default:
                 break;
+            }
+        }
+
+        private void onKafkaFlush(
+            FlushFW flush)
+        {
+            if (produce)
+            {
+                final OctetsFW extension = flush.extension();
+                final KafkaFlushExFW kafkaFlushEx = extension.get(kafkaFlushExRO::wrap);
+                final KafkaMergedProduceFlushExFW kafkaProduceFlushEx = kafkaFlushEx.merged().produce();
+
+                ackPartitionId = kafkaProduceFlushEx.partitionId();
+                ackOffset = kafkaProduceFlushEx.partitionOffset();
+                ackTimestamp = kafkaProduceFlushEx.timestamp();
             }
         }
 
@@ -3387,12 +3453,53 @@ public class McpKafkaProxyFactory implements BindingHandler
             if (!produceDone)
             {
                 produceDone = true;
-                final String text = success
-                    ? "Produced record to " + topic + " topic"
-                    : error == KAFKA_ERROR_INVALID_RECORD
+                if (success)
+                {
+                    emitProduceResult(traceId);
+                }
+                else
+                {
+                    final String text = error == KAFKA_ERROR_INVALID_RECORD
                         ? "Record for " + topic + " topic failed schema validation"
                         : "Failed to produce record to " + topic + " topic";
-                peer.doMcpResult(traceId, text, !success);
+                    peer.doMcpResult(traceId, text, true);
+                }
+            }
+        }
+
+        private void emitProduceResult(
+            long traceId)
+        {
+            final int encodeSlot = encodePool.acquire(kafkaReplyId);
+            if (encodeSlot == NO_SLOT)
+            {
+                peer.doMcpResult(traceId, "Produced record to " + topic + " topic", false);
+            }
+            else
+            {
+                final MutableDirectBufferEx encodeBuffer = encodePool.buffer(encodeSlot);
+                apiResultGenerator.reset();
+                apiResultGenerator.wrap(encodeBuffer, 0, encodeBuffer.capacity());
+
+                apiResultGenerator.writeStartObject()
+                    .writeStartObject("structuredContent")
+                    .write("topic", topic)
+                    .write("partition", ackPartitionId)
+                    .write("offset", ackOffset)
+                    .write("timestamp", ackTimestamp)
+                    .writeEnd()
+                    .writeStartArray("content")
+                    .writeStartObject()
+                    .write("type", "text")
+                    .write("text", "Produced record to " + topic + " topic")
+                    .writeEnd()
+                    .writeEnd()
+                    .write("isError", false)
+                    .writeEnd();
+
+                peer.doMcpResult(traceId, apiResultGenerator.length(), encodeBuffer, false);
+
+                encodePool.release(encodeSlot);
             }
         }
 
@@ -3650,7 +3757,8 @@ public class McpKafkaProxyFactory implements BindingHandler
                     .deferred(0)
                     .timestamp(System.currentTimeMillis())
                     .partition(pt -> pt.partitionId(-1).partitionOffset(-1))
-                    .key(args::key)))
+                    .key(args::key)
+                    .headers(args::headers)))
                 .build();
 
             doData(kafka, originId, resolvedId, kafkaInitialId, traceId, authorization,

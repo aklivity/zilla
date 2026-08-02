@@ -47,7 +47,7 @@ write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .toolsCall()
                                .sessionId("session-1")
-                               .name("produce")
+                               .name("produce_message")
                                .contentLength(64)
                                .build()
                            .build()}
@@ -57,5 +57,5 @@ connected
 # "other" is not in the route's topic allowlist (see proxy.produce.topic.allowlist.yaml): the
 # route only matches once the real topic is known, after args are captured, so this is rejected
 # with a plain reset (no ext) from completeArgs, not the earlier tool-name-only pre-check
-write '{"name":"produce","arguments":{"topic":"other","value":"hello"}}'
+write '{"name":"produce_message","arguments":{"topic":"other","value":"hello"}}'
 

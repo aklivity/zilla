@@ -377,6 +377,8 @@ scope kafka
         {
             KafkaKey hashKey;
             int32 partitionId = -1;
+            int64 partitionOffset = -1;
+            int64 timestamp = -1;
         }
 
         struct KafkaMetaBeginEx
@@ -437,6 +439,7 @@ scope kafka
             KafkaOffset partition;
             KafkaKey key;
             int32 error = 0;
+            int64 timestamp = -1;
         }
 
         struct KafkaProduceBeginEx

@@ -514,6 +514,9 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
         private int reconnectAttempt;
         private int memberIndex;
 
+        private long ackPartitionOffset = -1L;
+        private long ackTimestamp = -1L;
+
         private KafkaCacheServerProduceFan(
             long originId,
             long routedId,
@@ -868,6 +871,10 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
                 final AbortFW abort = abortRO.wrap(buffer, index, index + length);
                 onServerFanReplyAbort(abort);
                 break;
+            case FlushFW.TYPE_ID:
+                final FlushFW flush = flushRO.wrap(buffer, index, index + length);
+                onServerFanReplyFlush(flush);
+                break;
             case ResetFW.TYPE_ID:
                 final ResetFW reset = resetRO.wrap(buffer, index, index + length);
                 onServerFanInitialReset(reset);
@@ -879,6 +886,17 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
             default:
                 break;
             }
+        }
+
+        private void onServerFanReplyFlush(
+            FlushFW flush)
+        {
+            final OctetsFW extension = flush.extension();
+            final KafkaFlushExFW kafkaFlushEx = extension.get(kafkaFlushExRO::wrap);
+            final KafkaProduceFlushExFW kafkaProduceFlushEx = kafkaFlushEx.produce();
+
+            this.ackPartitionOffset = kafkaProduceFlushEx.partition().partitionOffset();
+            this.ackTimestamp = kafkaProduceFlushEx.timestamp();
         }
 
         private void onServerFanReplyBegin(
@@ -1475,13 +1493,16 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
             long traceId)
         {
             isProgressing = error == NO_ERROR;
+            final long ackPartitionOffset = fan.ackPartitionOffset >= 0 ? fan.ackPartitionOffset : partitionOffset;
+            final long ackTimestamp = fan.ackTimestamp;
             doFlush(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, 0L, SIZE_OF_FLUSH_WITH_EXTENSION,
                 ex -> ex.set((b, o, l) -> kafkaFlushExRW.wrap(b, o, l)
                                                         .typeId(kafkaTypeId)
                                                         .produce(f -> f.partition(p -> p.partitionId(partition.id())
-                                                                                        .partitionOffset(partitionOffset))
-                                                                       .error(error))
+                                                                                        .partitionOffset(ackPartitionOffset))
+                                                                       .error(error)
+                                                                       .timestamp(ackTimestamp))
                                                         .build()
                                                         .sizeof()));
         }

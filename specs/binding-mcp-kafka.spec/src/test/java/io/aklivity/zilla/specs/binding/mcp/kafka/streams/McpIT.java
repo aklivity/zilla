@@ -38,8 +38,8 @@ public class McpIT
 
     @Test
     @Specification({
-        "${mcp}/produce/client",
-        "${mcp}/produce/server"})
+        "${mcp}/produce_message/client",
+        "${mcp}/produce_message/server"})
     public void shouldProduce() throws Exception
     {
         k3po.finish();
@@ -47,8 +47,8 @@ public class McpIT
 
     @Test
     @Specification({
-        "${mcp}/produce.rejected/client",
-        "${mcp}/produce.rejected/server"})
+        "${mcp}/produce_message.rejected/client",
+        "${mcp}/produce_message.rejected/server"})
     public void shouldRejectProduce() throws Exception
     {
         k3po.finish();
@@ -56,8 +56,8 @@ public class McpIT
 
     @Test
     @Specification({
-        "${mcp}/produce.rejected.invalid.record/client",
-        "${mcp}/produce.rejected.invalid.record/server"})
+        "${mcp}/produce_message.rejected.invalid.record/client",
+        "${mcp}/produce_message.rejected.invalid.record/server"})
     public void shouldRejectProduceWithInvalidRecord() throws Exception
     {
         k3po.finish();
@@ -110,8 +110,8 @@ public class McpIT
 
     @Test
     @Specification({
-        "${mcp}/produce.args.fragmented/client",
-        "${mcp}/produce.args.fragmented/server"})
+        "${mcp}/produce_message.args.fragmented/client",
+        "${mcp}/produce_message.args.fragmented/server"})
     public void shouldProduceArgsFragmented() throws Exception
     {
         k3po.finish();
@@ -146,8 +146,8 @@ public class McpIT
 
     @Test
     @Specification({
-        "${mcp}/produce.topic.glob/client",
-        "${mcp}/produce.topic.glob/server"})
+        "${mcp}/produce_message.topic.glob/client",
+        "${mcp}/produce_message.topic.glob/server"})
     public void shouldProduceWhenTopicMatchesGlob() throws Exception
     {
         k3po.finish();
@@ -155,8 +155,8 @@ public class McpIT
 
     @Test
     @Specification({
-        "${mcp}/produce.abort/client",
-        "${mcp}/produce.abort/server"})
+        "${mcp}/produce_message.abort/client",
+        "${mcp}/produce_message.abort/server"})
     public void shouldAbortMidProduce() throws Exception
     {
         k3po.finish();

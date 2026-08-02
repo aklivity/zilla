@@ -45,18 +45,18 @@ read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .toolsCall()
                               .sessionId("session-1")
-                              .name("produce")
-                              .contentLength(68)
+                              .name("produce_message")
+                              .contentLength(65)
                               .build()
                           .build()}
 
 connected
 
 read  '{'
-        '"name":"produce",'
+        '"name":"produce_message",'
         '"arguments":'
         '{'
-          '"topic":"orders-eu",'
+          '"topic":"orders",'
           '"value":"hello"'
         '}'
       '}'
@@ -68,13 +68,17 @@ write '{'
         '['
           '{'
             '"type": "text",'
-            '"text": "Produced record to orders-eu topic"'
+            '"text": "Failed to produce record to orders topic"'
           '}'
         '],'
-        '"isError": false'
+        '"isError": true'
       '}'
 write flush
 
+write zilla:end.ext ${mcp:endEx()
+                         .typeId(zilla:id("mcp"))
+                         .outcome("ERROR")
+                         .build()}
 write close
 
 read closed

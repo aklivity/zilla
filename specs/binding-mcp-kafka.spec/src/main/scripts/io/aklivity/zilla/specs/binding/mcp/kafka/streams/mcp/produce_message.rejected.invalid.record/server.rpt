@@ -45,7 +45,7 @@ read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .toolsCall()
                               .sessionId("session-1")
-                              .name("produce")
+                              .name("produce_message")
                               .contentLength(65)
                               .build()
                           .build()}
@@ -53,7 +53,7 @@ read zilla:begin.ext ${mcp:matchBeginEx()
 connected
 
 read  '{'
-        '"name":"produce",'
+        '"name":"produce_message",'
         '"arguments":'
         '{'
           '"topic":"orders",'
@@ -68,7 +68,7 @@ write '{'
         '['
           '{'
             '"type": "text",'
-            '"text": "Failed to produce record to orders topic"'
+            '"text": "Record for orders topic failed schema validation"'
           '}'
         '],'
         '"isError": true'

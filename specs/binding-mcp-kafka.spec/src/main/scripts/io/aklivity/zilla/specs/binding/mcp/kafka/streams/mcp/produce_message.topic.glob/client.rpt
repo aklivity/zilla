@@ -13,68 +13,66 @@
 # specific language governing permissions and limitations under the License.
 #
 
-property serverAddress "zilla://streams/mcp0"
 property authorization 0L
 
-accept ${serverAddress}
-       option zilla:window 8192
-       option zilla:transmission "half-duplex"
-       option zilla:authorization ${authorization}
-
-accepted
-
-read zilla:begin.ext ${mcp:matchBeginEx()
-                          .typeId(zilla:id("mcp"))
-                          .lifecycle()
-                              .build()
-                          .build()}
-
-connected
+connect "zilla://streams/mcp0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+        option zilla:authorization ${authorization}
 
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .lifecycle()
-                               .sessionId("session-1")
                                .build()
                            .build()}
-write flush
-
-accepted
-
-read zilla:begin.ext ${mcp:matchBeginEx()
-                          .typeId(zilla:id("mcp"))
-                          .toolsCall()
-                              .sessionId("session-1")
-                              .name("produce")
-                              .contentLength(65)
-                              .build()
-                          .build()}
 
 connected
 
-read  '{'
-        '"name":"produce",'
+read zilla:begin.ext ${mcp:matchBeginEx()
+                          .typeId(zilla:id("mcp"))
+                          .lifecycle()
+                              .sessionId("session-1")
+                              .build()
+                          .build()}
+
+read notify LIFECYCLE_INITIALIZED
+
+connect await LIFECYCLE_INITIALIZED
+        "zilla://streams/mcp0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+        option zilla:authorization ${authorization}
+
+write zilla:begin.ext ${mcp:beginEx()
+                           .typeId(zilla:id("mcp"))
+                           .toolsCall()
+                               .sessionId("session-1")
+                               .name("produce_message")
+                               .contentLength(68)
+                               .build()
+                           .build()}
+
+connected
+
+write '{'
+        '"name":"produce_message",'
         '"arguments":'
         '{'
-          '"topic":"orders",'
+          '"topic":"orders-eu",'
           '"value":"hello"'
         '}'
       '}'
 
-write flush
-
-write '{'
+read  '{'
         '"content":'
         '['
           '{'
             '"type": "text",'
-            '"text": "Produced record to orders topic"'
+            '"text": "Produced record to orders-eu topic"'
           '}'
         '],'
         '"isError": false'
       '}'
-write flush
+read closed
 
 write close
-
-read closed
