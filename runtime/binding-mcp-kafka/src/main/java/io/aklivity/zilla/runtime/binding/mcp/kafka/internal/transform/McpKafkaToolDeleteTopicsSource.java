@@ -38,13 +38,13 @@ import io.aklivity.zilla.runtime.common.json.JsonSource;
  * <pre>{@code
  * {
  *   "arguments": {
- *     "topics": ["events", "snapshots"],
- *     "timeout": 30000
+ *     "topics": ["events", "snapshots"]
  *   }
  * }
  * }</pre>
- * {@code timeout} is optional, defaulting to {@code zilla.binding.mcp.kafka.request.timeout}
- * (default {@code PT30S}).
+ * The underlying Kafka request timeout is not caller-configurable -- it is fixed by
+ * {@code zilla.binding.mcp.kafka.request.timeout} (default {@code PT30S}) for consistency with every
+ * other tool, none of which exposes a per-call timeout either.
  */
 public final class McpKafkaToolDeleteTopicsSource implements JsonSink, Source
 {
@@ -61,7 +61,6 @@ public final class McpKafkaToolDeleteTopicsSource implements JsonSink, Source
     private final StringBuilder text = new StringBuilder();
 
     private String key;
-    private int timeoutMs;
     private boolean completed;
 
     public McpKafkaToolDeleteTopicsSource(
@@ -91,7 +90,7 @@ public final class McpKafkaToolDeleteTopicsSource implements JsonSink, Source
     @Override
     public int timeoutMs()
     {
-        return timeoutMs;
+        return defaultTimeoutMs;
     }
 
     @Override
@@ -101,7 +100,6 @@ public final class McpKafkaToolDeleteTopicsSource implements JsonSink, Source
         topics.clear();
         text.setLength(0);
         key = null;
-        timeoutMs = defaultTimeoutMs;
         completed = false;
     }
 
@@ -212,29 +210,8 @@ public final class McpKafkaToolDeleteTopicsSource implements JsonSink, Source
         case TOPICS:
             topics.add(value);
             break;
-        case ARGUMENTS:
-            if ("timeout".equals(key))
-            {
-                timeoutMs = parseInt(value, defaultTimeoutMs);
-            }
-            break;
         default:
             break;
         }
-    }
-
-    private static int parseInt(
-        String value,
-        int defaultValue)
-    {
-        int parsed = defaultValue;
-        try
-        {
-            parsed = Integer.parseInt(value);
-        }
-        catch (NumberFormatException ex)
-        {
-        }
-        return parsed;
     }
 }
