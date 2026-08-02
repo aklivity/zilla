@@ -182,6 +182,15 @@ public class McpIT
 
     @Test
     @Specification({
+        "${mcp}/tools.list.security.schemes/client",
+        "${mcp}/tools.list.security.schemes/server"})
+    public void shouldListToolsSecuritySchemes() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mcp}/create.topics/client",
         "${mcp}/create.topics/server"})
     public void shouldCreateTopics() throws Exception

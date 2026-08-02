@@ -16,9 +16,11 @@ package io.aklivity.zilla.runtime.binding.mcp.kafka.internal.config;
 
 import static java.util.stream.Collectors.toList;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.config.engine.GuardedConfig;
 import io.aklivity.zilla.config.engine.KindConfig;
 
 public final class McpKafkaBindingConfig
@@ -27,6 +29,9 @@ public final class McpKafkaBindingConfig
     public final String name;
     public final KindConfig kind;
     public final List<McpKafkaRouteConfig> routes;
+
+    // memoized tools/list reply; derived solely from static binding config, built once on first request
+    private byte[] toolsListJson;
 
     public McpKafkaBindingConfig(
         BindingConfig binding)
@@ -46,5 +51,30 @@ public final class McpKafkaBindingConfig
             .filter(r -> r.matches(tool, topic) && r.authorized(authorization))
             .findFirst()
             .orElse(null);
+    }
+
+    public List<GuardedConfig> toolGuarded(
+        String name)
+    {
+        final List<GuardedConfig> result = new ArrayList<>();
+        for (McpKafkaRouteConfig route : routes)
+        {
+            if (route.matches(name, null))
+            {
+                result.addAll(route.guarded);
+            }
+        }
+        return result;
+    }
+
+    public byte[] toolsListJson()
+    {
+        return toolsListJson;
+    }
+
+    public void toolsListJson(
+        byte[] json)
+    {
+        this.toolsListJson = json;
     }
 }

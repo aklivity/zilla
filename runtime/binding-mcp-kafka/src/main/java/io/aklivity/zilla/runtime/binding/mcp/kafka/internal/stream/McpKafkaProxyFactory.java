@@ -45,6 +45,7 @@ import jakarta.json.JsonObjectBuilder;
 import org.agrona.collections.Long2ObjectHashMap;
 
 import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.config.engine.GuardedConfig;
 import io.aklivity.zilla.runtime.binding.kafka.api.KafkaAclTypes;
 import io.aklivity.zilla.runtime.binding.kafka.api.KafkaAlterConfigsRequest;
 import io.aklivity.zilla.runtime.binding.kafka.api.KafkaAlterConfigsResponse;
@@ -303,8 +304,6 @@ public class McpKafkaProxyFactory implements BindingHandler
     private final Signaler signaler;
     private final int mcpTypeId;
     private final int kafkaTypeId;
-    private final byte[] toolsListPayload;
-    private final UnsafeBufferEx toolsListBuffer;
     private final BufferPool decodePool;
     private final BufferPool encodePool;
     private final KafkaCreateTopicsRequest.Generator createTopicsRequestGenerator;
@@ -354,8 +353,6 @@ public class McpKafkaProxyFactory implements BindingHandler
         this.bindings = new Long2ObjectHashMap<>();
         this.mcpTypeId = context.supplyTypeId(MCP_TYPE_NAME);
         this.kafkaTypeId = context.supplyTypeId(KAFKA_TYPE_NAME);
-        this.toolsListPayload = buildToolsList();
-        this.toolsListBuffer = new UnsafeBufferEx(toolsListPayload);
         this.decodePool = context.bufferPool();
         this.encodePool = context.bufferPool().duplicate();
         this.createTopicsRequestGenerator = new KafkaCreateTopicsRequest.Generator();
@@ -469,7 +466,7 @@ public class McpKafkaProxyFactory implements BindingHandler
                 case KIND_TOOLS_LIST:
                 {
                     final McpToolsListProxy toolsList = new McpToolsListProxy(
-                        sender, originId, routedId, initialId, authorization, affinity);
+                        sender, originId, routedId, initialId, binding, authorization, affinity);
                     newStream = toolsList::onMcpMessage;
                     break;
                 }
@@ -862,7 +859,20 @@ public class McpKafkaProxyFactory implements BindingHandler
         receiver.accept(window.typeId(), window.buffer(), window.offset(), window.sizeof());
     }
 
-    private byte[] buildToolsList()
+    private byte[] toolsList(
+        McpKafkaBindingConfig binding)
+    {
+        byte[] json = binding.toolsListJson();
+        if (json == null)
+        {
+            json = buildToolsList(binding);
+            binding.toolsListJson(json);
+        }
+        return json;
+    }
+
+    private byte[] buildToolsList(
+        McpKafkaBindingConfig binding)
     {
         final JsonArrayBuilder tools = Json.createArrayBuilder();
         for (String tool : TOOL_NAMES)
@@ -880,6 +890,11 @@ public class McpKafkaProxyFactory implements BindingHandler
             {
                 item.add("outputSchema", outputSchema);
             }
+            final JsonArrayBuilder toolSchemes = securitySchemes(binding.toolGuarded(tool));
+            if (toolSchemes != null)
+            {
+                item.add("securitySchemes", toolSchemes);
+            }
             final JsonObject annotations = buildToolAnnotations(tool);
             if (annotations != null)
             {
@@ -892,6 +907,31 @@ public class McpKafkaProxyFactory implements BindingHandler
             .build();
 
         return toolsList.toString().getBytes(UTF_8);
+    }
+
+    private static JsonArrayBuilder securitySchemes(
+        List<GuardedConfig> guarded)
+    {
+        JsonArrayBuilder schemes = null;
+        for (GuardedConfig g : guarded)
+        {
+            if (!g.roles.isEmpty())
+            {
+                if (schemes == null)
+                {
+                    schemes = Json.createArrayBuilder();
+                }
+                final JsonArrayBuilder scopes = Json.createArrayBuilder();
+                for (String role : g.roles)
+                {
+                    scopes.add(role);
+                }
+                schemes.add(Json.createObjectBuilder()
+                    .add("type", "oauth2")
+                    .add("scopes", scopes));
+            }
+        }
+        return schemes;
     }
 
     private static String buildToolTitle(
@@ -2034,6 +2074,8 @@ public class McpKafkaProxyFactory implements BindingHandler
         private final long replyId;
         private final long authorization;
         private final long affinity;
+        private final byte[] toolsListPayload;
+        private final UnsafeBufferEx toolsListBuffer;
 
         private int state;
 
@@ -2049,6 +2091,7 @@ public class McpKafkaProxyFactory implements BindingHandler
             long originId,
             long routedId,
             long initialId,
+            McpKafkaBindingConfig binding,
             long authorization,
             long affinity)
         {
@@ -2059,6 +2102,8 @@ public class McpKafkaProxyFactory implements BindingHandler
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.authorization = authorization;
             this.affinity = affinity;
+            this.toolsListPayload = toolsList(binding);
+            this.toolsListBuffer = new UnsafeBufferEx(toolsListPayload);
         }
 
         private void onMcpMessage(
