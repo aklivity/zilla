@@ -349,7 +349,7 @@ bindings:
               - kafka_sr__list_subjects
               - kafka_sr__register_schema
               - kafka__produce
-              - kafka__consume
+              - kafka__consume_messages
               - kafka__create_topics
               - kafka__delete_topics
               - kafka__describe_configs
@@ -666,7 +666,7 @@ bindings:
         - kafka.examples.dev:29092
     # tool + topics together restrict each route to an allow-list of topics
     # (exact names or *-glob patterns), not just a tool-name dispatch; a
-    # produce/consume call naming any other topic has no matching route
+    # produce/consume_messages call naming any other topic has no matching route
     # and is rejected. create_topics, delete_topics, alter_configs, and
     # reset_offsets have no topics allow-list -- each identifies its target
     # (a resource name, a topics array, or a single group+topic pair) via
@@ -683,7 +683,7 @@ bindings:
     # under the toolkit-level kafka:tools guard above (the same layering
     # register_schema demonstrates for the kafka_sr toolkit): kafka:admin for
     # the admin-risk topic/config/offset mutations, kafka:write for writing
-    # data -- consume, describe_configs, list_acls, list_topics,
+    # data -- consume_messages, describe_configs, list_acls, list_topics,
     # describe_topic, cluster_overview, list_brokers, describe_cluster,
     # list_consumer_groups, describe_consumer_group, and
     # describe_consumer_group_lag need neither, only kafka:tools.
@@ -715,9 +715,9 @@ bindings:
           authn_jwt:
             - kafka:write
       - when:
-          - tool: consume
+          - tool: consume_messages
             topics: [orders]
-      # cluster/topic/group metadata tools -- read-only like consume, so no
+      # cluster/topic/group metadata tools -- read-only like consume_messages, so no
       # tool-specific guard beyond the toolkit-level kafka:tools above; all
       # nine share one route since none of them take a topics allow-list
       # (list_topics/cluster_overview/list_brokers/describe_cluster/

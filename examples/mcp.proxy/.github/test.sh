@@ -37,7 +37,7 @@
 #  15. kafka__produce writes a record to a real, single-node KRaft Kafka
 #      broker (mcp-kafka kind:client's own generated cache_client/client/
 #      tcp_client pipeline, not the engine's test double)
-#  16. kafka__consume reads that same record back, round-tripping the exact
+#  16. kafka__consume_messages reads that same record back, round-tripping the exact
 #      value through the real broker
 #  17. kafka_sr__register_schema registers a real schema against a
 #      real Karapace instance (mcp-schema-registry kind:client's own
@@ -95,14 +95,14 @@
 #  33. kafka__describe_configs reads back the real broker's effective
 #      config for the orders topic, including a config every topic
 #      carries by default -- needs no scope beyond the toolkit-level
-#      kafka:tools guard already exercised by consume
+#      kafka:tools guard already exercised by consume_messages
 #  34. kafka__alter_configs changes the orders topic's cleanup.policy on
 #      the same real broker, sharing create_topics/delete_topics' route
 #      and kafka:admin scope -- a third structural, admin-risk mutation
 #      coalesced onto the same route/guard
 #  35. kafka__list_topics lists the real topics on the same broker, gated
 #      by only the toolkit-level kafka:tools scope (no admin/write needed,
-#      same tier as consume)
+#      same tier as consume_messages)
 #  36. kafka__describe_topic describes the orders topic by name, reporting
 #      its partitions/leader/replicas/isr from the same real broker
 #  37. kafka__cluster_overview summarizes the same broker's topic/broker
@@ -113,7 +113,7 @@
 #      mechanism used elsewhere in binding-kafka) reaches a real broker
 #  39. kafka__describe_cluster reports that same broker as its controller --
 #      both tools share one route/guard (kafka:tools only, no admin scope),
-#      being read-only cluster introspection like consume
+#      being read-only cluster introspection like consume_messages
 #  40. kafka__describe_consumer_group, called against a group id that has
 #      never committed an offset, reports real broker state "Dead" -- Kafka's
 #      actual behavior for a group that does not yet exist, not an error --
@@ -341,7 +341,7 @@ assert_full_token() {
     echo "$TOOLS_FULL" | grep -q '^kafka_connect__create_connector$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka_connect__delete_connector$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__produce$' &&
-    echo "$TOOLS_FULL" | grep -q '^kafka__consume$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__consume_messages$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__create_topics$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__delete_topics$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__describe_configs$' &&
@@ -378,7 +378,7 @@ if echo "$TOOLS_FULL" | grep -q '^everything__' &&
     echo "$TOOLS_FULL" | grep -q '^kafka_connect__create_connector$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka_connect__delete_connector$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__produce$' &&
-    echo "$TOOLS_FULL" | grep -q '^kafka__consume$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__consume_messages$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__create_topics$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__delete_topics$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__describe_configs$' &&
@@ -1007,24 +1007,24 @@ else
   EXIT=1
 fi
 
-# WHEN: that same caller calls kafka__consume for the same topic
+# WHEN: that same caller calls kafka__consume_messages for the same topic
 # THEN: the exact value produced above comes back in structuredContent.messages
 #       -- round-tripping through the real broker, not just proving a count
-call_kafka_consume() {
+call_kafka_consume_messages() {
   KAFKA_CONSUME_OUT=$(docker compose run --rm --no-deps \
       -e JWT_TOKEN="$JWT_FULL" \
       -e MCP_URL="http://zilla:$PORT/mcp" \
-      -e CALL_TOOL="kafka__consume" \
+      -e CALL_TOOL="kafka__consume_messages" \
       -e CALL_ARGS='{"topic":"orders","limit":1}' \
       tools-list-client 2>&1)
   echo "$KAFKA_CONSUME_OUT" | grep -q 'hello from mcp-kafka'
 }
-retry_until 10 3 call_kafka_consume
+retry_until 10 3 call_kafka_consume_messages
 echo "KAFKA_CONSUME_OUT=$KAFKA_CONSUME_OUT"
 if echo "$KAFKA_CONSUME_OUT" | grep -q 'hello from mcp-kafka'; then
-  echo "✅ kafka__consume read the produced record back from the real Kafka broker"
+  echo "✅ kafka__consume_messages read the produced record back from the real Kafka broker"
 else
-  echo "❌ kafka__consume did not read the produced record back"
+  echo "❌ kafka__consume_messages did not read the produced record back"
   EXIT=1
 fi
 
@@ -1032,7 +1032,7 @@ fi
 # THEN: the real broker's effective config comes back, including
 #       cleanup.policy -- a config every topic carries by default -- proving
 #       describe_configs is read-only and needs no scope beyond the
-#       toolkit-level kafka:tools guard already exercised by consume
+#       toolkit-level kafka:tools guard already exercised by consume_messages
 call_kafka_describe_configs() {
   KAFKA_DESCRIBE_CONFIGS_OUT=$(docker compose run --rm --no-deps \
       -e JWT_TOKEN="$JWT_FULL" \
@@ -1078,7 +1078,7 @@ fi
 # WHEN: a kafka:admin-scoped caller calls kafka__create_topics
 # THEN: a new topic is created on the real Kafka broker -- proving the
 #       tool-specific kafka:admin scope (layered under the toolkit-level
-#       kafka:tools guard already exercised above by produce/consume) is
+#       kafka:tools guard already exercised above by produce/consume_messages) is
 #       sufficient to actually invoke the tool, not just see it listed
 call_kafka_create_topics() {
   KAFKA_CREATE_TOPICS_OUT=$(docker compose run --rm --no-deps \
@@ -1125,7 +1125,7 @@ fi
 # WHEN: a kafka:tools-scoped caller calls kafka__list_topics
 # THEN: the real topics on the same broker come back (at least the seeded
 #       orders topic) -- gated by only the toolkit-level kafka:tools scope,
-#       the same tier as consume, no admin/write scope needed
+#       the same tier as consume_messages, no admin/write scope needed
 call_kafka_list_topics() {
   KAFKA_LIST_TOPICS_OUT=$(docker compose run --rm --no-deps \
       -e JWT_TOKEN="$JWT_FULL" \
@@ -1215,7 +1215,7 @@ fi
 # THEN: the same single-node broker (node id 1) is reported as controller --
 #       proving describe_cluster and list_brokers share one route/guard
 #       (kafka:tools only, no admin scope), being read-only cluster
-#       introspection like consume rather than a structural mutation
+#       introspection like consume_messages rather than a structural mutation
 call_kafka_describe_cluster() {
   KAFKA_DESCRIBE_CLUSTER_OUT=$(docker compose run --rm --no-deps \
       -e JWT_TOKEN="$JWT_FULL" \
@@ -1324,7 +1324,7 @@ ACL_PRINCIPAL="User:acl-test-user"
 #       once any ACL exists for a resource, StandardAuthorizer stops
 #       implicitly allowing every other principal against that same
 #       resource, so a shared resource would risk breaking the produce/
-#       consume/admin checks above)
+#       consume_messages/admin checks above)
 # THEN: the real broker accepts the grant -- proving create_acls' own
 #       kafka:acls scope (deliberately distinct from kafka:admin per
 #       KIP-1318, see the routes[] comment in etc/zilla.yaml) is sufficient

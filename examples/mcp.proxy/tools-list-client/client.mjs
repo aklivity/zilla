@@ -15,7 +15,7 @@
 // through unchanged, so it prints exactly like calling that tool directly;
 // every other tool's result prints its text content as-is, followed by a
 // second line with the raw structuredContent JSON if the result carries one
-// (e.g. mcp-kafka's consume tool) -- or READ_RESOURCE
+// (e.g. mcp-kafka's consume_messages tool) -- or READ_RESOURCE
 // (a concrete URI, with any {template} placeholders already substituted) to
 // read one resource and print its contents. Optionally carries a bearer
 // token on the initial request so .github/test.sh can observe how the result
