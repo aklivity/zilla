@@ -54,9 +54,9 @@ write zilla:begin.ext ${mcp:beginEx()
 
 connected
 
-write '{"name":"create_topics","arguments":{"topics":[{"name":"events","partitions":1,"replicas":1,"assignments":[{"partition":0,"brokers":[0]}],"configs":{"cleanup.policy":"delete"}},{"name":"snapshots","partitions":1,"replicas":1,"assignments":[{"partition":0,"brokers":[0]}],"configs":{"cleanup.policy":"compact"}}]}}'
+write '{"name":"create_topics","arguments":{"topics":[{"topic":"events","partitions":1,"replicas":1,"assignments":[{"partition":0,"brokers":[0]}],"configs":{"cleanup.policy":"delete"}},{"topic":"snapshots","partitions":1,"replicas":1,"assignments":[{"partition":0,"brokers":[0]}],"configs":{"cleanup.policy":"compact"}}]}}'
 
-read '{"structuredContent":{"topics":[{"name":"events","error":0},{"name":"snapshots","error":0}]},'
+read '{"structuredContent":{"topics":[{"topic":"events","error":0},{"topic":"snapshots","error":0}]},'
      '"content":[{"type":"text","text":"Created topic(s): events, snapshots"}],"isError":false}'
 read closed
 
