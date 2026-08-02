@@ -47,7 +47,7 @@ import io.aklivity.zilla.runtime.common.json.JsonSource;
  *   "arguments": {
  *     "topics": [
  *       {
- *         "name": "events",
+ *         "topic": "events",
  *         "partitions": 1,
  *         "replicas": 1,
  *         "assignments": [ { "partition": 0, "brokers": [0] } ],
@@ -334,7 +334,7 @@ public final class McpKafkaToolCreateTopicsSource implements JsonSink, Source
     {
         switch (key)
         {
-        case "name":
+        case "topic":
             topicName = value;
             break;
         case "partitions":

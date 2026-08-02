@@ -56,7 +56,7 @@ read '{"name":"delete_topics","arguments":{"topics":["events","snapshots"]}}'
 
 write flush
 
-write '{"structuredContent":{"topics":[{"name":"events","error":0},{"name":"snapshots","error":0}]},'
+write '{"structuredContent":{"topics":[{"topic":"events","error":0},{"topic":"snapshots","error":0}]},'
       '"content":[{"type":"text","text":"Deleted topic(s): events, snapshots"}],"isError":false}'
 write flush
 

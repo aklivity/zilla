@@ -1085,7 +1085,7 @@ call_kafka_create_topics() {
       -e JWT_TOKEN="$JWT_FULL" \
       -e MCP_URL="http://zilla:$PORT/mcp" \
       -e CALL_TOOL="kafka__create_topics" \
-      -e CALL_ARGS='{"topics":[{"name":"widgets","partitions":1,"replicas":1}]}' \
+      -e CALL_ARGS='{"topics":[{"topic":"widgets","partitions":1,"replicas":1}]}' \
       tools-list-client 2>&1)
   echo "$KAFKA_CREATE_TOPICS_OUT" | grep -q 'Created topic(s): widgets'
 }
@@ -1132,11 +1132,11 @@ call_kafka_list_topics() {
       -e MCP_URL="http://zilla:$PORT/mcp" \
       -e CALL_TOOL="kafka__list_topics" \
       tools-list-client 2>&1)
-  echo "$KAFKA_LIST_TOPICS_OUT" | grep -q '"name":"orders"'
+  echo "$KAFKA_LIST_TOPICS_OUT" | grep -q '"topic":"orders"'
 }
 retry_until 10 3 call_kafka_list_topics
 echo "KAFKA_LIST_TOPICS_OUT=$KAFKA_LIST_TOPICS_OUT"
-if echo "$KAFKA_LIST_TOPICS_OUT" | grep -q '"name":"orders"'; then
+if echo "$KAFKA_LIST_TOPICS_OUT" | grep -q '"topic":"orders"'; then
   echo "✅ kafka__list_topics listed the real orders topic from the real Kafka broker"
 else
   echo "❌ kafka__list_topics did not list the orders topic as expected"
@@ -1159,7 +1159,7 @@ call_kafka_describe_topic() {
 retry_until 10 3 call_kafka_describe_topic
 echo "KAFKA_DESCRIBE_TOPIC_OUT=$KAFKA_DESCRIBE_TOPIC_OUT"
 if echo "$KAFKA_DESCRIBE_TOPIC_OUT" | grep -q 'Described topic orders' &&
-    echo "$KAFKA_DESCRIBE_TOPIC_OUT" | grep -q '"partition_id":0'; then
+    echo "$KAFKA_DESCRIBE_TOPIC_OUT" | grep -q '"partition":0'; then
   echo "✅ kafka__describe_topic described the real orders topic from the real Kafka broker"
 else
   echo "❌ kafka__describe_topic did not describe the orders topic as expected"

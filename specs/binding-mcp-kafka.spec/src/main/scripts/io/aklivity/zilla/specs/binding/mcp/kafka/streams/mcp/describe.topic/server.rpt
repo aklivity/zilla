@@ -56,7 +56,7 @@ read '{"name":"describe_topic","arguments":{"topic":"events"}}'
 
 write flush
 
-write '{"structuredContent":{"name":"events","partitions":[{"partition_id":0,"leader":1,"replicas":[1],"isr":[1]}]},'
+write '{"structuredContent":{"topic":"events","partitions":[{"partition":0,"leader":1,"replicas":[1],"isr":[1]}]},'
       '"content":[{"type":"text","text":"Described topic events"}],"isError":false}'
 write flush
 
