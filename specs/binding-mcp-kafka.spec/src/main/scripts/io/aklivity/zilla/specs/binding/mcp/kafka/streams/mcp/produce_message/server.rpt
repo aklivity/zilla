@@ -63,16 +63,9 @@ read  '{'
 
 write flush
 
-write '{'
-        '"content":'
-        '['
-          '{'
-            '"type": "text",'
-            '"text": "Produced record to orders topic"'
-          '}'
-        '],'
-        '"isError": false'
-      '}'
+write '{"structuredContent":{"topic":"orders","partition":0,"offset":0,"timestamp":1700000000000},'
+     '"content":[{"type":"text","text":"Produced record to orders topic"}],'
+     '"isError":false}'
 write flush
 
 write close
