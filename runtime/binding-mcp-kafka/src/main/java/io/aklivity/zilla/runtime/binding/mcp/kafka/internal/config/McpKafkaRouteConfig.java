@@ -21,12 +21,14 @@ import java.util.List;
 import java.util.function.UnaryOperator;
 
 import io.aklivity.zilla.config.binding.mcp.kafka.McpKafkaConditionConfig;
+import io.aklivity.zilla.config.engine.GuardedConfig;
 import io.aklivity.zilla.config.engine.RouteConfig;
 import io.aklivity.zilla.runtime.common.lang.util.function.LongObjectPredicate;
 
 public final class McpKafkaRouteConfig
 {
     public long id;
+    public final List<GuardedConfig> guarded;
 
     private final List<McpKafkaConditionMatcher> when;
     private final LongObjectPredicate<UnaryOperator<String>> authorized;
@@ -35,6 +37,7 @@ public final class McpKafkaRouteConfig
         RouteConfig route)
     {
         this.id = route.id;
+        this.guarded = route.guarded;
         this.when = route.when.stream()
             .map(McpKafkaConditionConfig.class::cast)
             .map(McpKafkaConditionMatcher::new)

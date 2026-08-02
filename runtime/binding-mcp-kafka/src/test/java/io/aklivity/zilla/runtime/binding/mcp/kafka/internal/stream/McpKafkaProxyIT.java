@@ -207,6 +207,15 @@ public class McpKafkaProxyIT
         k3po.finish();
     }
 
+    @Test
+    @Configuration("proxy.guarded.layered.yaml")
+    @Specification({
+        "${mcp}/tools.list.security.schemes/client"})
+    public void shouldListToolsSecuritySchemes() throws Exception
+    {
+        k3po.finish();
+    }
+
     public static String sessionId()
     {
         return "session-1";
