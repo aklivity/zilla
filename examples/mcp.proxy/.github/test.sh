@@ -1347,6 +1347,22 @@ else
   EXIT=1
 fi
 
+# by this point in the script, options.cache.ttl (PT5M) has very plausibly
+# already elapsed at least once since the upfront cache_hydrated wait -- the
+# cache is shared and filtered per caller (not re-hydrated per caller, so an
+# anonymous caller sees it exactly as fast as JWT_FULL did earlier), but a
+# TTL-driven refresh is a second, later warm-up window the upfront check
+# cannot see coming. Re-check freshly right before the one assertion that
+# still depends on it, rather than re-adding a retry around the assertion
+# itself for what is really the same one-time-per-window race as before
+retry_until 60 5 cache_hydrated
+if echo "$CACHE_INIT_BODY" | grep -q '"subscribe":true' && full_toolset_present; then
+  echo "✅ tools/resources/prompts cache is still hydrated ahead of the resources/subscribe round-trip"
+else
+  echo "❌ cache went cold again (options.cache.ttl elapsed) and did not re-hydrate in time"
+  EXIT=1
+fi
+
 # WHEN: a real MCP SDK client subscribes to an everything resource, calls
 #       everything__toggle-subscriber-updates to start the reference server's
 #       simulated per-session update interval, and waits for the resulting
