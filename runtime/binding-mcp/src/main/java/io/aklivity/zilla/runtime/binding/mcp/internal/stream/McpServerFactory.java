@@ -4020,6 +4020,8 @@ public final class McpServerFactory implements McpStreamFactory
 
             assert replyAck <= replySeq;
 
+            touch();
+
             if (replySeq > replyAck + decodeMax)
             {
                 cleanupApp(traceId, authorization);

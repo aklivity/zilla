@@ -198,6 +198,78 @@ else
   EXIT=1
 fi
 
+list_tools() {
+  _token=$1
+  docker compose run --rm --no-deps -e JWT_TOKEN="$_token" -e MCP_URL="http://zilla:$PORT/mcp" \
+      tools-list-client 2>&1
+}
+
+# north_mcp_proxy aggregates each south binding's real capabilities (learned
+# from that binding's own initialize handshake) and hydrates its tools /
+# resources / prompts caches asynchronously, both settling only a short time
+# after startup -- see "Observe the cache" and the resources.subscribe note
+# in the README. Every assertion below that reads tools/list, a cached
+# search/describe/execute result, or resources/subscribe's capability is
+# racing that same one-time warm-up, not its own independent condition, so
+# wait for it here, once, instead of retrying each assertion individually.
+full_toolset_present() {
+  echo "$TOOLS_FULL" | grep -q '^everything__' &&
+    # the everything toolkit's resources have their own hydration lag distinct
+    # from its tools -- observed to still be empty for a moment after
+    # everything__* tools and every other toolkit are already fully listed
+    echo "$TOOLS_FULL" | grep -qE '^resource:everything\+' &&
+    echo "$TOOLS_FULL" | grep -q '^urlelicit__authorize$' &&
+    echo "$TOOLS_FULL" | grep -q '^github__create_pr$' &&
+    echo "$TOOLS_FULL" | grep -q '^petstore__list_pets$' &&
+    echo "$TOOLS_FULL" | grep -q '^petstore__search_pets$' &&
+    echo "$TOOLS_FULL" | grep -q '^petstore__create_pet$' &&
+    echo "$TOOLS_FULL" | grep -q '^resource:petstore+/pets/featured$' &&
+    echo "$TOOLS_FULL" | grep -q '^template:petstore+/pets/{petId}$' &&
+    echo "$TOOLS_FULL" | grep -q '^template:github+pr://{owner}/{repo}/{number}$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka_sr__list_subjects$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka_sr__register_schema$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka_connect__list_connector_plugins$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka_connect__list_connectors$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka_connect__describe_connector$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka_connect__create_connector$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka_connect__delete_connector$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__produce$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__consume_messages$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__create_topics$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__delete_topics$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__describe_configs$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__list_acls$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__create_acls$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__delete_acls$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__alter_configs$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__list_topics$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__describe_topic$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__cluster_overview$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__list_brokers$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__describe_cluster$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__list_consumer_groups$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__describe_consumer_group$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__describe_consumer_group_lag$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__reset_offsets$'
+}
+cache_hydrated() {
+  CACHE_INIT_BODY=$(curl -sS -N --max-time 10 \
+      -X POST "http://localhost:$PORT/mcp" \
+      -H "Content-Type: application/json" \
+      -H "Accept: application/json, text/event-stream" \
+      -d "$INITIALIZE")
+  echo "$CACHE_INIT_BODY" | grep -q '"subscribe":true' &&
+    TOOLS_FULL=$(list_tools "$JWT_FULL") &&
+    full_toolset_present
+}
+retry_until 60 5 cache_hydrated
+if echo "$CACHE_INIT_BODY" | grep -q '"subscribe":true' && full_toolset_present; then
+  echo "✅ tools/resources/prompts cache and resources.subscribe capability are hydrated"
+else
+  echo "❌ cache never finished hydrating -- every cache-backed assertion below would just be racing this"
+  EXIT=1
+fi
+
 # WHEN: a real MCP SDK client (method-first envelopes, elicitation.url capability)
 #       calls the urlelicit toolkit's authorize tool through the gateway, with
 #       a JWT scoped to exactly what the urlelicit toolkit route requires
@@ -234,28 +306,10 @@ else
   EXIT=1
 fi
 
-list_tools() {
-  _token=$1
-  docker compose run --rm --no-deps -e JWT_TOKEN="$_token" -e MCP_URL="http://zilla:$PORT/mcp" \
-      tools-list-client 2>&1
-}
-
 # WHEN: a caller presents no JWT at all
 # THEN: the ungated "everything" toolkit is listed, every guarded toolkit --
 #       and its resources -- is not
-assert_no_token() {
-  TOOLS_NONE=$(list_tools "$JWT_NONE")
-  echo "$TOOLS_NONE" | grep -q '^everything__' &&
-    ! echo "$TOOLS_NONE" | grep -q '^urlelicit__' &&
-    ! echo "$TOOLS_NONE" | grep -q '^github__' &&
-    ! echo "$TOOLS_NONE" | grep -q '^petstore__' &&
-    ! echo "$TOOLS_NONE" | grep -q '^kafka_sr__' &&
-    ! echo "$TOOLS_NONE" | grep -q '^kafka_connect__' &&
-    ! echo "$TOOLS_NONE" | grep -q '^kafka__' &&
-    ! echo "$TOOLS_NONE" | grep -q 'petstore+' &&
-    ! echo "$TOOLS_NONE" | grep -q 'github+'
-}
-retry_until 5 3 assert_no_token
+TOOLS_NONE=$(list_tools "$JWT_NONE")
 echo "TOOLS_NONE=$TOOLS_NONE"
 if echo "$TOOLS_NONE" | grep -q '^everything__' &&
     ! echo "$TOOLS_NONE" | grep -q '^urlelicit__' &&
@@ -283,23 +337,7 @@ fi
 #       pets:write / github:pr:write / kafka_sr:write / kafka_connect:admin
 #       respectively) -- proof that toolkit access alone does not imply
 #       access to every tool/resource in it
-assert_partial_token() {
-  TOOLS_PARTIAL=$(list_tools "$JWT_PARTIAL")
-  echo "$TOOLS_PARTIAL" | grep -q '^petstore__list_pets$' &&
-    echo "$TOOLS_PARTIAL" | grep -q '^petstore__search_pets$' &&
-    echo "$TOOLS_PARTIAL" | grep -q '^resource:petstore+/pets/featured$' &&
-    echo "$TOOLS_PARTIAL" | grep -q '^template:petstore+/pets/{petId}$' &&
-    echo "$TOOLS_PARTIAL" | grep -q '^template:github+pr://{owner}/{repo}/{number}$' &&
-    echo "$TOOLS_PARTIAL" | grep -q '^kafka_sr__list_subjects$' &&
-    echo "$TOOLS_PARTIAL" | grep -q '^kafka_connect__list_connector_plugins$' &&
-    ! echo "$TOOLS_PARTIAL" | grep -q '^petstore__create_pet$' &&
-    ! echo "$TOOLS_PARTIAL" | grep -q '^github__create_pr$' &&
-    ! echo "$TOOLS_PARTIAL" | grep -q '^kafka_sr__register_schema$' &&
-    ! echo "$TOOLS_PARTIAL" | grep -q '^kafka_connect__create_connector$' &&
-    ! echo "$TOOLS_PARTIAL" | grep -q '^urlelicit__' &&
-    ! echo "$TOOLS_PARTIAL" | grep -q '^kafka__'
-}
-retry_until 5 3 assert_partial_token
+TOOLS_PARTIAL=$(list_tools "$JWT_PARTIAL")
 echo "TOOLS_PARTIAL=$TOOLS_PARTIAL"
 if echo "$TOOLS_PARTIAL" | grep -q '^petstore__list_pets$' &&
     echo "$TOOLS_PARTIAL" | grep -q '^petstore__search_pets$' &&
@@ -322,79 +360,10 @@ fi
 
 # WHEN: a caller has every scope required by every guarded route
 # THEN: every tool, resource, and resource template across every toolkit is listed
-assert_full_token() {
-  TOOLS_FULL=$(list_tools "$JWT_FULL")
-  echo "$TOOLS_FULL" | grep -q '^everything__' &&
-    echo "$TOOLS_FULL" | grep -q '^urlelicit__authorize$' &&
-    echo "$TOOLS_FULL" | grep -q '^github__create_pr$' &&
-    echo "$TOOLS_FULL" | grep -q '^petstore__list_pets$' &&
-    echo "$TOOLS_FULL" | grep -q '^petstore__search_pets$' &&
-    echo "$TOOLS_FULL" | grep -q '^petstore__create_pet$' &&
-    echo "$TOOLS_FULL" | grep -q '^resource:petstore+/pets/featured$' &&
-    echo "$TOOLS_FULL" | grep -q '^template:petstore+/pets/{petId}$' &&
-    echo "$TOOLS_FULL" | grep -q '^template:github+pr://{owner}/{repo}/{number}$' &&
-    echo "$TOOLS_FULL" | grep -q '^kafka_sr__list_subjects$' &&
-    echo "$TOOLS_FULL" | grep -q '^kafka_sr__register_schema$' &&
-    echo "$TOOLS_FULL" | grep -q '^kafka_connect__list_connector_plugins$' &&
-    echo "$TOOLS_FULL" | grep -q '^kafka_connect__list_connectors$' &&
-    echo "$TOOLS_FULL" | grep -q '^kafka_connect__describe_connector$' &&
-    echo "$TOOLS_FULL" | grep -q '^kafka_connect__create_connector$' &&
-    echo "$TOOLS_FULL" | grep -q '^kafka_connect__delete_connector$' &&
-    echo "$TOOLS_FULL" | grep -q '^kafka__produce$' &&
-    echo "$TOOLS_FULL" | grep -q '^kafka__consume_messages$' &&
-    echo "$TOOLS_FULL" | grep -q '^kafka__create_topics$' &&
-    echo "$TOOLS_FULL" | grep -q '^kafka__delete_topics$' &&
-    echo "$TOOLS_FULL" | grep -q '^kafka__describe_configs$' &&
-    echo "$TOOLS_FULL" | grep -q '^kafka__list_acls$' &&
-    echo "$TOOLS_FULL" | grep -q '^kafka__create_acls$' &&
-    echo "$TOOLS_FULL" | grep -q '^kafka__delete_acls$' &&
-    echo "$TOOLS_FULL" | grep -q '^kafka__alter_configs$' &&
-    echo "$TOOLS_FULL" | grep -q '^kafka__list_topics$' &&
-    echo "$TOOLS_FULL" | grep -q '^kafka__describe_topic$' &&
-    echo "$TOOLS_FULL" | grep -q '^kafka__cluster_overview$' &&
-    echo "$TOOLS_FULL" | grep -q '^kafka__list_brokers$' &&
-    echo "$TOOLS_FULL" | grep -q '^kafka__describe_cluster$' &&
-    echo "$TOOLS_FULL" | grep -q '^kafka__list_consumer_groups$' &&
-    echo "$TOOLS_FULL" | grep -q '^kafka__describe_consumer_group$' &&
-    echo "$TOOLS_FULL" | grep -q '^kafka__describe_consumer_group_lag$' &&
-    echo "$TOOLS_FULL" | grep -q '^kafka__reset_offsets$'
-}
-retry_until 10 5 assert_full_token
+# $TOOLS_FULL was already populated (and validated) by cache_hydrated above --
+# same token, same route, nothing about the response changes by re-fetching it
 echo "TOOLS_FULL=$TOOLS_FULL"
-if echo "$TOOLS_FULL" | grep -q '^everything__' &&
-    echo "$TOOLS_FULL" | grep -q '^urlelicit__authorize$' &&
-    echo "$TOOLS_FULL" | grep -q '^github__create_pr$' &&
-    echo "$TOOLS_FULL" | grep -q '^petstore__list_pets$' &&
-    echo "$TOOLS_FULL" | grep -q '^petstore__search_pets$' &&
-    echo "$TOOLS_FULL" | grep -q '^petstore__create_pet$' &&
-    echo "$TOOLS_FULL" | grep -q '^resource:petstore+/pets/featured$' &&
-    echo "$TOOLS_FULL" | grep -q '^template:petstore+/pets/{petId}$' &&
-    echo "$TOOLS_FULL" | grep -q '^template:github+pr://{owner}/{repo}/{number}$' &&
-    echo "$TOOLS_FULL" | grep -q '^kafka_sr__list_subjects$' &&
-    echo "$TOOLS_FULL" | grep -q '^kafka_sr__register_schema$' &&
-    echo "$TOOLS_FULL" | grep -q '^kafka_connect__list_connector_plugins$' &&
-    echo "$TOOLS_FULL" | grep -q '^kafka_connect__list_connectors$' &&
-    echo "$TOOLS_FULL" | grep -q '^kafka_connect__describe_connector$' &&
-    echo "$TOOLS_FULL" | grep -q '^kafka_connect__create_connector$' &&
-    echo "$TOOLS_FULL" | grep -q '^kafka_connect__delete_connector$' &&
-    echo "$TOOLS_FULL" | grep -q '^kafka__produce$' &&
-    echo "$TOOLS_FULL" | grep -q '^kafka__consume_messages$' &&
-    echo "$TOOLS_FULL" | grep -q '^kafka__create_topics$' &&
-    echo "$TOOLS_FULL" | grep -q '^kafka__delete_topics$' &&
-    echo "$TOOLS_FULL" | grep -q '^kafka__describe_configs$' &&
-    echo "$TOOLS_FULL" | grep -q '^kafka__list_acls$' &&
-    echo "$TOOLS_FULL" | grep -q '^kafka__create_acls$' &&
-    echo "$TOOLS_FULL" | grep -q '^kafka__delete_acls$' &&
-    echo "$TOOLS_FULL" | grep -q '^kafka__alter_configs$' &&
-    echo "$TOOLS_FULL" | grep -q '^kafka__list_topics$' &&
-    echo "$TOOLS_FULL" | grep -q '^kafka__describe_topic$' &&
-    echo "$TOOLS_FULL" | grep -q '^kafka__cluster_overview$' &&
-    echo "$TOOLS_FULL" | grep -q '^kafka__list_brokers$' &&
-    echo "$TOOLS_FULL" | grep -q '^kafka__describe_cluster$' &&
-    echo "$TOOLS_FULL" | grep -q '^kafka__list_consumer_groups$' &&
-    echo "$TOOLS_FULL" | grep -q '^kafka__describe_consumer_group$' &&
-    echo "$TOOLS_FULL" | grep -q '^kafka__describe_consumer_group_lag$' &&
-    echo "$TOOLS_FULL" | grep -q '^kafka__reset_offsets$'; then
+if full_toolset_present; then
   echo "✅ full scope: every toolkit's tools and resources are listed"
 else
   echo "❌ full scope did not unlock every toolkit"
@@ -418,16 +387,12 @@ fi
 # WHEN: that same caller calls zilla__search_tools for "sum"
 # THEN: the cold everything__get-sum tool comes back in structuredContent.tools --
 #       proving a tool omitted from tools/list is discoverable by keyword, not gone
-search_cold_tool() {
-  SEARCH_OUT=$(docker compose run --rm --no-deps \
-      -e JWT_TOKEN="$JWT_FULL" \
-      -e MCP_URL="http://zilla:$PORT/mcp" \
-      -e CALL_TOOL="zilla__search_tools" \
-      -e CALL_ARGS='{"query":"sum"}' \
-      tools-list-client 2>&1)
-  echo "$SEARCH_OUT" | grep -q 'everything__get-sum'
-}
-retry_until 5 3 search_cold_tool
+SEARCH_OUT=$(docker compose run --rm --no-deps \
+    -e JWT_TOKEN="$JWT_FULL" \
+    -e MCP_URL="http://zilla:$PORT/mcp" \
+    -e CALL_TOOL="zilla__search_tools" \
+    -e CALL_ARGS='{"query":"sum"}' \
+    tools-list-client 2>&1)
 echo "SEARCH_OUT=$SEARCH_OUT"
 if echo "$SEARCH_OUT" | grep -q 'everything__get-sum'; then
   echo "✅ zilla__search_tools surfaced the cold everything__get-sum tool by keyword"
@@ -439,16 +404,12 @@ fi
 # WHEN: that same caller calls zilla__describe_tool for the cold tool found above
 # THEN: the full cached definition (schema included) comes back -- the same
 #       shape tools/list would show were it not cold, resolved by exact name
-describe_cold_tool() {
-  DESCRIBE_OUT=$(docker compose run --rm --no-deps \
-      -e JWT_TOKEN="$JWT_FULL" \
-      -e MCP_URL="http://zilla:$PORT/mcp" \
-      -e CALL_TOOL="zilla__describe_tool" \
-      -e CALL_ARGS='{"name":"everything__get-sum"}' \
-      tools-list-client 2>&1)
-  echo "$DESCRIBE_OUT" | grep -q 'inputSchema'
-}
-retry_until 5 3 describe_cold_tool
+DESCRIBE_OUT=$(docker compose run --rm --no-deps \
+    -e JWT_TOKEN="$JWT_FULL" \
+    -e MCP_URL="http://zilla:$PORT/mcp" \
+    -e CALL_TOOL="zilla__describe_tool" \
+    -e CALL_ARGS='{"name":"everything__get-sum"}' \
+    tools-list-client 2>&1)
 echo "DESCRIBE_OUT=$DESCRIBE_OUT"
 if echo "$DESCRIBE_OUT" | grep -q 'inputSchema' && echo "$DESCRIBE_OUT" | grep -q 'everything__get-sum'; then
   echo "✅ zilla__describe_tool resolved the cold everything__get-sum tool's full definition"
@@ -460,16 +421,12 @@ fi
 # WHEN: that same caller calls zilla__execute_tool naming the cold tool found above
 # THEN: it actually invokes it -- the same result as calling everything__get-sum
 #       directly, proving execute_tool dispatches through the real tools/call path
-execute_cold_tool() {
-  EXECUTE_OUT=$(docker compose run --rm --no-deps \
-      -e JWT_TOKEN="$JWT_FULL" \
-      -e MCP_URL="http://zilla:$PORT/mcp" \
-      -e CALL_TOOL="zilla__execute_tool" \
-      -e CALL_ARGS='{"name":"everything__get-sum","arguments":{"a":2,"b":3}}' \
-      tools-list-client 2>&1)
-  echo "$EXECUTE_OUT" | grep -q 'The sum of 2 and 3 is 5'
-}
-retry_until 5 3 execute_cold_tool
+EXECUTE_OUT=$(docker compose run --rm --no-deps \
+    -e JWT_TOKEN="$JWT_FULL" \
+    -e MCP_URL="http://zilla:$PORT/mcp" \
+    -e CALL_TOOL="zilla__execute_tool" \
+    -e CALL_ARGS='{"name":"everything__get-sum","arguments":{"a":2,"b":3}}' \
+    tools-list-client 2>&1)
 echo "EXECUTE_OUT=$EXECUTE_OUT"
 if echo "$EXECUTE_OUT" | grep -q 'The sum of 2 and 3 is 5'; then
   echo "✅ zilla__execute_tool invoked the cold everything__get-sum tool by name"
@@ -482,16 +439,12 @@ fi
 #       it never appearing in tools/list above
 # THEN: the call still succeeds -- options.cache.tools.eager only changes what
 #       tools/list reports, never what tools/call accepts
-call_cold_tool() {
-  COLD_CALL_OUT=$(docker compose run --rm --no-deps \
-      -e JWT_TOKEN="$JWT_FULL" \
-      -e MCP_URL="http://zilla:$PORT/mcp" \
-      -e CALL_TOOL="everything__get-sum" \
-      -e CALL_ARGS='{"a":2,"b":3}' \
-      tools-list-client 2>&1)
-  echo "$COLD_CALL_OUT" | grep -q 'The sum of 2 and 3 is 5'
-}
-retry_until 5 3 call_cold_tool
+COLD_CALL_OUT=$(docker compose run --rm --no-deps \
+    -e JWT_TOKEN="$JWT_FULL" \
+    -e MCP_URL="http://zilla:$PORT/mcp" \
+    -e CALL_TOOL="everything__get-sum" \
+    -e CALL_ARGS='{"a":2,"b":3}' \
+    tools-list-client 2>&1)
 echo "COLD_CALL_OUT=$COLD_CALL_OUT"
 if echo "$COLD_CALL_OUT" | grep -q 'The sum of 2 and 3 is 5'; then
   echo "✅ everything__get-sum, though cold, still succeeded when called directly by name"
@@ -770,6 +723,15 @@ KC_CONNECTOR="file-source-demo"
 #       own generated composite -- mcp-openapi -> mcp-http -> http_client --
 #       not a mock), proving the worker's plugin.path resolved the broker
 #       distribution's own libs/ directory
+#
+# kafka-connect's healthcheck (`nc -z 127.0.0.1 8083`) only proves the REST
+# port is listening -- it says nothing about the worker's own async
+# plugin.path scan, which populates /connector-plugins on its own schedule
+# and can still be running well after the port accepts connections. This is
+# the first call in the script to touch Kafka Connect, so it is the one place
+# that race is actually observable; give it the same generous, one-time
+# startup budget as cache_hydrated rather than the standard retry budget used
+# once the worker is already known to be fully up.
 call_kafka_connect_list_plugins() {
   KC_LIST_PLUGINS_OUT=$(docker compose run --rm --no-deps \
       -e JWT_TOKEN="$JWT_FULL" \
@@ -778,7 +740,7 @@ call_kafka_connect_list_plugins() {
       tools-list-client 2>&1)
   echo "$KC_LIST_PLUGINS_OUT" | grep -q 'FileStreamSourceConnector'
 }
-retry_until 10 3 call_kafka_connect_list_plugins
+retry_until 30 5 call_kafka_connect_list_plugins
 echo "KC_LIST_PLUGINS_OUT=$KC_LIST_PLUGINS_OUT"
 if echo "$KC_LIST_PLUGINS_OUT" | grep -q 'FileStreamSourceConnector'; then
   echo "✅ kafka_connect__list_connector_plugins listed the bundled FileStreamSourceConnector from the real worker"
@@ -1394,6 +1356,22 @@ else
   EXIT=1
 fi
 
+# by this point in the script, options.cache.ttl (PT5M) has very plausibly
+# already elapsed at least once since the upfront cache_hydrated wait -- the
+# cache is shared and filtered per caller (not re-hydrated per caller, so an
+# anonymous caller sees it exactly as fast as JWT_FULL did earlier), but a
+# TTL-driven refresh is a second, later warm-up window the upfront check
+# cannot see coming. Re-check freshly right before the one assertion that
+# still depends on it, rather than re-adding a retry around the assertion
+# itself for what is really the same one-time-per-window race as before
+retry_until 60 5 cache_hydrated
+if echo "$CACHE_INIT_BODY" | grep -q '"subscribe":true' && full_toolset_present; then
+  echo "✅ tools/resources/prompts cache is still hydrated ahead of the resources/subscribe round-trip"
+else
+  echo "❌ cache went cold again (options.cache.ttl elapsed) and did not re-hydrate in time"
+  EXIT=1
+fi
+
 # WHEN: a real MCP SDK client subscribes to an everything resource, calls
 #       everything__toggle-subscriber-updates to start the reference server's
 #       simulated per-session update interval, and waits for the resulting
@@ -1403,11 +1381,26 @@ fi
 #       and north_mcp_server -- proving resources/subscribe,
 #       resources/unsubscribe, and the update notification all pass through
 #       every mcp binding kind (aklivity/zilla#2220)
+#
+# Retried: this client opens its persistent SSE stream and its first
+# resources/list request as two nearly-simultaneous connections against the
+# same fresh session, and has intermittently (twice, real CI only, never
+# reproduced locally) hit an empty-body 200 on resources/list --
+# "Unexpected end of JSON input" -- with the cache confirmed warm
+# immediately beforehand, so this is not the cache-hydration race above.
+# Deep review of McpServerFactory (mcp(server)) and the proxy's cache-served
+# list path (McpProxyListFactory/McpProxyLifecycleFactory) did not turn up a
+# root cause: per-exchange state is properly isolated, stream ids don't
+# collide, and doServerEnd() is structurally gated on data already having
+# been queued/flushed, so nothing found there can produce End-before-Data.
+# Retrying here is a bounded mitigation for a real but rare (not
+# reproduced outside CI) race that would need live packet capture to pin
+# down further, not a fix for a race whose cause is understood.
 subscribe_resource() {
   SUBSCRIBE_OUT=$(docker compose run --rm --no-deps resource-subscribe-client 2>&1)
   echo "$SUBSCRIBE_OUT" | grep -q 'OK resource subscription relayed end-to-end'
 }
-retry_until 5 3 subscribe_resource
+retry_until 3 5 subscribe_resource
 echo "SUBSCRIBE_OUT=$SUBSCRIBE_OUT"
 if echo "$SUBSCRIBE_OUT" | grep -q 'OK resource subscription relayed end-to-end'; then
   echo "✅ resources/subscribe, notifications/resources/updated, and resources/unsubscribe relayed end-to-end"
