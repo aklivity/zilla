@@ -1496,11 +1496,12 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
             int error,
             long traceId)
         {
+            final boolean unacknowledged = error == NO_ERROR && fan.ackPartitionOffset < 0;
             final boolean alreadyFlushed = error == NO_ERROR &&
                 fan.ackPartitionOffset >= 0 &&
                 fan.ackPartitionOffset == fan.flushedAckPartitionOffset;
 
-            if (!alreadyFlushed)
+            if (!unacknowledged && !alreadyFlushed)
             {
                 isProgressing = error == NO_ERROR;
                 final long ackPartitionOffset = fan.ackPartitionOffset >= 0 ? fan.ackPartitionOffset : partitionOffset;
