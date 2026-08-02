@@ -8,9 +8,9 @@
         {
             "target": "$.paths['/connectors'].get",
             "update": {
-                "description": "List the names of every connector on the worker.",
                 "x-zilla-mcp": {
                     "title": "List Connectors",
+                    "description": "List the names of every connector on the worker.",
                     "annotations": {
                         "readOnlyHint": true,
                         "destructiveHint": false,
@@ -22,9 +22,9 @@
         {
             "target": "$.paths['/connectors'].post",
             "update": {
-                "description": "Create a new connector.",
                 "x-zilla-mcp": {
                     "title": "Create Connector",
+                    "description": "Create a new connector.",
                     "annotations": {
                         "readOnlyHint": false,
                         "destructiveHint": false,
@@ -36,9 +36,9 @@
         {
             "target": "$.paths['/connectors/{connector}'].get",
             "update": {
-                "description": "Read the configuration and task list of a connector.",
                 "x-zilla-mcp": {
                     "title": "Describe Connector",
+                    "description": "Read the configuration and task list of a connector.",
                     "annotations": {
                         "readOnlyHint": true,
                         "destructiveHint": false,
@@ -50,9 +50,9 @@
         {
             "target": "$.paths['/connectors/{connector}'].delete",
             "update": {
-                "description": "Delete a connector.",
                 "x-zilla-mcp": {
                     "title": "Delete Connector",
+                    "description": "Delete a connector.",
                     "annotations": {
                         "readOnlyHint": false,
                         "destructiveHint": true,
@@ -64,9 +64,9 @@
         {
             "target": "$.paths['/connectors/{connector}/config'].get",
             "update": {
-                "description": "Read the effective configuration of a connector.",
                 "x-zilla-mcp": {
                     "title": "Describe Connector Config",
+                    "description": "Read the effective configuration of a connector.",
                     "annotations": {
                         "readOnlyHint": true,
                         "destructiveHint": false,
@@ -78,9 +78,9 @@
         {
             "target": "$.paths['/connectors/{connector}/config'].put",
             "update": {
-                "description": "Create or update a connector by setting its full configuration.",
                 "x-zilla-mcp": {
                     "title": "Update Connector Config",
+                    "description": "Create or update a connector by setting its full configuration.",
                     "annotations": {
                         "readOnlyHint": false,
                         "destructiveHint": false,
@@ -92,9 +92,9 @@
         {
             "target": "$.paths['/connector-plugins/{pluginName}/config/validate'].put",
             "update": {
-                "description": "Validate a connector configuration against a plugin configuration definition, without creating or updating any connector.",
                 "x-zilla-mcp": {
                     "title": "Validate Connector Config",
+                    "description": "Validate a connector configuration against a plugin configuration definition, without creating or updating any connector.",
                     "annotations": {
                         "readOnlyHint": true,
                         "destructiveHint": false,
@@ -106,9 +106,9 @@
         {
             "target": "$.paths['/connectors/{connector}/status'].get",
             "update": {
-                "description": "Read the current state of a connector and the state of each of its tasks.",
                 "x-zilla-mcp": {
                     "title": "Describe Connector Status",
+                    "description": "Read the current state of a connector and the state of each of its tasks.",
                     "annotations": {
                         "readOnlyHint": true,
                         "destructiveHint": false,
@@ -120,9 +120,9 @@
         {
             "target": "$.paths['/connectors/{connector}/restart'].post",
             "update": {
-                "description": "Restart a connector.",
                 "x-zilla-mcp": {
                     "title": "Restart Connector",
+                    "description": "Restart a connector.",
                     "annotations": {
                         "readOnlyHint": false,
                         "destructiveHint": false,
@@ -134,9 +134,9 @@
         {
             "target": "$.paths['/connectors/{connector}/pause'].put",
             "update": {
-                "description": "Pause a connector and all of its tasks.",
                 "x-zilla-mcp": {
                     "title": "Pause Connector",
+                    "description": "Pause a connector and all of its tasks.",
                     "annotations": {
                         "readOnlyHint": false,
                         "destructiveHint": false,
@@ -148,9 +148,9 @@
         {
             "target": "$.paths['/connectors/{connector}/resume'].put",
             "update": {
-                "description": "Resume a paused connector and all of its tasks.",
                 "x-zilla-mcp": {
                     "title": "Resume Connector",
+                    "description": "Resume a paused connector and all of its tasks.",
                     "annotations": {
                         "readOnlyHint": false,
                         "destructiveHint": false,
@@ -162,9 +162,9 @@
         {
             "target": "$.paths['/connectors/{connector}/stop'].put",
             "update": {
-                "description": "Stop a connector and shut down all of its tasks, without deleting the connector.",
                 "x-zilla-mcp": {
                     "title": "Stop Connector",
+                    "description": "Stop a connector and shut down all of its tasks, without deleting the connector.",
                     "annotations": {
                         "readOnlyHint": false,
                         "destructiveHint": false,
@@ -176,9 +176,9 @@
         {
             "target": "$.paths['/connectors/{connector}/tasks'].get",
             "update": {
-                "description": "List every task belonging to a connector.",
                 "x-zilla-mcp": {
                     "title": "List Connector Tasks",
+                    "description": "List every task belonging to a connector.",
                     "annotations": {
                         "readOnlyHint": true,
                         "destructiveHint": false,
@@ -190,9 +190,9 @@
         {
             "target": "$.paths['/connectors/{connector}/tasks/{task}/restart'].post",
             "update": {
-                "description": "Restart a single task belonging to a connector.",
                 "x-zilla-mcp": {
                     "title": "Restart Connector Task",
+                    "description": "Restart a single task belonging to a connector.",
                     "annotations": {
                         "readOnlyHint": false,
                         "destructiveHint": false,
@@ -204,9 +204,9 @@
         {
             "target": "$.paths['/connectors/{connector}/offsets'].get",
             "update": {
-                "description": "Read the current source or sink offsets of a connector.",
                 "x-zilla-mcp": {
                     "title": "Describe Connector Offsets",
+                    "description": "Read the current source or sink offsets of a connector.",
                     "annotations": {
                         "readOnlyHint": true,
                         "destructiveHint": false,
@@ -218,9 +218,9 @@
         {
             "target": "$.paths['/connectors/{connector}/offsets'].patch",
             "update": {
-                "description": "Overwrite the source or sink offsets of a connector. The connector must be stopped first.",
                 "x-zilla-mcp": {
                     "title": "Alter Connector Offsets",
+                    "description": "Overwrite the source or sink offsets of a connector. The connector must be stopped first.",
                     "annotations": {
                         "readOnlyHint": false,
                         "destructiveHint": true,
@@ -232,9 +232,9 @@
         {
             "target": "$.paths['/connectors/{connector}/offsets'].delete",
             "update": {
-                "description": "Reset the source or sink offsets of a connector to their initial state. The connector must be stopped first.",
                 "x-zilla-mcp": {
                     "title": "Reset Connector Offsets",
+                    "description": "Reset the source or sink offsets of a connector to their initial state. The connector must be stopped first.",
                     "annotations": {
                         "readOnlyHint": false,
                         "destructiveHint": true,
@@ -246,9 +246,9 @@
         {
             "target": "$.paths['/connector-plugins'].get",
             "update": {
-                "description": "List every connector plugin installed on the worker.",
                 "x-zilla-mcp": {
                     "title": "List Connector Plugins",
+                    "description": "List every connector plugin installed on the worker.",
                     "annotations": {
                         "readOnlyHint": true,
                         "destructiveHint": false,
