@@ -819,6 +819,18 @@ public class McpServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/lifecycle.timeout.events.resources.updated/client",
+        "${app}/lifecycle.timeout.events.resources.updated/server"})
+    @Configure(name = MCP_INACTIVITY_TIMEOUT_NAME, value = "PT3S")
+    @Configure(name = MCP_SSE_KEEPALIVE_INTERVAL_NAME, value = "PT2S")
+    public void shouldLifecycleTimeoutEventsResourcesUpdated() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/lifecycle.notify.tools.list.changed/client",
         "${app}/lifecycle.notify.tools.list.changed/server"})
     @Configure(name = MCP_SSE_KEEPALIVE_INTERVAL_NAME, value = "PT30S")

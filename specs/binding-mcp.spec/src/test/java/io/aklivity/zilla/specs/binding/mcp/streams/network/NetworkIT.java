@@ -677,6 +677,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/lifecycle.timeout.events.resources.updated/client",
+        "${net}/lifecycle.timeout.events.resources.updated/server"})
+    public void shouldLifecycleTimeoutEventsResourcesUpdated() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/lifecycle.suspend.events/client",
         "${net}/lifecycle.suspend.events/server"})
     public void shouldLifecycleSuspendEvents() throws Exception
