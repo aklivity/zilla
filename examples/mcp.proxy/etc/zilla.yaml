@@ -330,7 +330,7 @@ bindings:
         # works fine since real calls use the caller's own JWT, not this one
         authorization:
           authn_jwt:
-            credentials: "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImtpZCI6ImV4YW1wbGUifQ.eyJhdWQiOiJodHRwczovL2FwaS5leGFtcGxlLmNvbSIsImV4cCI6NDkzODM1MDk3OSwiaXNzIjoiaHR0cHM6Ly9hdXRoLmV4YW1wbGUuY29tIiwic2NvcGUiOiJnaXRodWI6dG9vbHMgcGV0c3RvcmU6dG9vbHMgdXJsZWxpY2l0OmF1dGhvcml6ZSBrYWZrYTp0b29scyBrYWZrYV9zcjp0b29scyJ9.YVgIJhaeJKXJqvXufzQbczxq6i7RiKa8WWt424ApOqQNeSNoX00IRoABHrb-SQHd9za5O9OJke0-VC7FdOlYpSXlF9fAJin4DDI2EPu3xGKGJt4PnZJCc6QUbQlOIcVHH3cldIveb9fYT4D152tL-b4njJ7lofcsyUHcTfXJ5OsDHX1lGnIyEKWeF7AeC6T7C5K5fzw5WqmC-P8owujfjqt8SgKjexoJxjKmsPdaC9rakPnP54wSUQcPpGB2bMJk1MU2sxxlGXYJ8YAa3Ms2V4P7X5eG-AbPTFk-_xOicEXDR0TOP11UE2J9ifDCi8_oH-88lSm9EXToQ865eDNxBg"
+            credentials: "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImtpZCI6ImV4YW1wbGUifQ.eyJhdWQiOiJodHRwczovL2FwaS5leGFtcGxlLmNvbSIsImV4cCI6NDkzODM1MDk3OSwiaXNzIjoiaHR0cHM6Ly9hdXRoLmV4YW1wbGUuY29tIiwic2NvcGUiOiJnaXRodWI6dG9vbHMgcGV0c3RvcmU6dG9vbHMgdXJsZWxpY2l0OmF1dGhvcml6ZSBrYWZrYTp0b29scyBrYWZrYV9zcjp0b29scyBrYWZrYV9jb25uZWN0OnRvb2xzIn0.e5n0XM_a0wb1BYhJiWXvPnSXaWOJyYbAj_1e3dMdNOVFBwmWv5BwHm-LYdf7DbbJk5u09I0MtgBqVnLsntwrnxcNIPzsKSs2U17Yb6NnPz6K41TljV9HCP4nAR6KK7Lt7uwJbpuSz-yY91FqjDQFjGuOGv79oPygMaomyzz4NchnAECUysrvlYlFun-X4klQsMr3h5ik-M5hDJ5rHjkefBFBR1JZOKvJEQpgSQ9Z2i4x9KiLTV4V-UfUmYrLwFuQaHalU20Rmkl8sEJ8L16PU5tuXRnUGdLyg68_i_BV-Wc0PuAHMYIWxERIfoCBrPDrVpeK1zlNYZ4lWfgbN_onLA"
         # a fixed handful of frequently used tools stay eagerly listed; every other
         # tool across every toolkit (the "everything" reference server's dozen-plus
         # demo tools, most visibly) is omitted from tools/list -- because the search
@@ -366,6 +366,11 @@ bindings:
               - kafka__describe_consumer_group
               - kafka__describe_consumer_group_lag
               - kafka__reset_offsets
+              - kafka_connect__list_connector_plugins
+              - kafka_connect__list_connectors
+              - kafka_connect__describe_connector
+              - kafka_connect__create_connector
+              - kafka_connect__delete_connector
           search:
             toolkit: zilla
     routes:
@@ -397,6 +402,12 @@ bindings:
         guarded:
           authn_jwt:
             - kafka_sr:tools
+      - exit: south_mcp_kafka_connect_client
+        when:
+          - toolkit: kafka_connect
+        guarded:
+          authn_jwt:
+            - kafka_connect:tools
       - exit: south_mcp_kafka_client
         when:
           - toolkit: kafka
@@ -613,6 +624,38 @@ bindings:
         guarded:
           authn_jwt:
             - kafka_sr:write
+      - when:
+          - tool: "*"
+  south_mcp_kafka_connect_client:
+    type: mcp-kafka-connect
+    kind: client
+    options:
+      server: http://kafka-connect:8083
+    # a second, tool-specific guard layered under the toolkit-level
+    # kafka_connect:tools gate above -- every tool that mutates connector,
+    # task, or offset state additionally requires kafka_connect:admin, while
+    # every read-only tool (list_connectors, describe_connector,
+    # describe_connector_config, validate_connector_config,
+    # describe_connector_status, list_connector_tasks,
+    # describe_connector_offsets, list_connector_plugins) needs no scope
+    # beyond the toolkit-level gate above, sharing the catch-all glob route.
+    # Order matters: routes match in declaration order, so the admin-tier
+    # route must come before the catch-all glob or its guard would never apply
+    routes:
+      - when:
+          - tool: create_connector
+          - tool: delete_connector
+          - tool: update_connector_config
+          - tool: restart_connector
+          - tool: pause_connector
+          - tool: resume_connector
+          - tool: stop_connector
+          - tool: restart_connector_task
+          - tool: alter_connector_offsets
+          - tool: reset_connector_offsets
+        guarded:
+          authn_jwt:
+            - kafka_connect:admin
       - when:
           - tool: "*"
   south_mcp_kafka_client:
