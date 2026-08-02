@@ -440,6 +440,7 @@ scope kafka
             KafkaKey key;
             int32 error = 0;
             int64 timestamp = -1;
+            int64 ackOffset = -1;
         }
 
         struct KafkaProduceBeginEx

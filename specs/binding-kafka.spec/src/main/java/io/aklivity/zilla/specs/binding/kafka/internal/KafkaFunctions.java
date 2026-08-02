@@ -4158,6 +4158,13 @@ public final class KafkaFunctions
                 return this;
             }
 
+            public KafkaProduceFlushExBuilder ackOffset(
+                long ackOffset)
+            {
+                produceFlushExRW.ackOffset(ackOffset);
+                return this;
+            }
+
             public KafkaFlushExBuilder build()
             {
                 final KafkaProduceFlushExFW produceFlushEx = produceFlushExRW.build();

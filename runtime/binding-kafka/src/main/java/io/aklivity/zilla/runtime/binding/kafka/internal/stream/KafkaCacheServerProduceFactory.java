@@ -1504,16 +1504,17 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
             if (!unacknowledged && !alreadyFlushed)
             {
                 isProgressing = error == NO_ERROR;
-                final long ackPartitionOffset = fan.ackPartitionOffset >= 0 ? fan.ackPartitionOffset : partitionOffset;
+                final long ackOffset = fan.ackPartitionOffset;
                 final long ackTimestamp = fan.ackTimestamp;
                 doFlush(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
                         traceId, authorization, 0L, SIZE_OF_FLUSH_WITH_EXTENSION,
                     ex -> ex.set((b, o, l) -> kafkaFlushExRW.wrap(b, o, l)
                                                             .typeId(kafkaTypeId)
                                                             .produce(f -> f.partition(p -> p.partitionId(partition.id())
-                                                                                            .partitionOffset(ackPartitionOffset))
+                                                                                            .partitionOffset(partitionOffset))
                                                                            .error(error)
-                                                                           .timestamp(ackTimestamp))
+                                                                           .timestamp(ackTimestamp)
+                                                                           .ackOffset(ackOffset))
                                                             .build()
                                                             .sizeof()));
 
