@@ -56,8 +56,8 @@ connected
 
 write '{"name":"list_topics","arguments":{}}'
 
-read '{"structuredContent":{"topics":[{"name":"events","partition_count":1,"replication_factor":1},'
-     '{"name":"snapshots","partition_count":1,"replication_factor":1}]},'
+read '{"structuredContent":{"topics":[{"topic":"events","partition_count":1,"replication_factor":1},'
+     '{"topic":"snapshots","partition_count":1,"replication_factor":1}]},'
      '"content":[{"type":"text","text":"Found 2 topic(s)"}],"isError":false}'
 read closed
 

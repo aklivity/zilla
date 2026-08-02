@@ -393,6 +393,20 @@ public class McpOpenapiCompositeGeneratorTest
                 "responses": { "200": { "description": "ok",
                   "content": { "application/json": { "schema": { "type": "object" } } } } }
               }
+            },
+            "/items/{id}/described": {
+              "post": {
+                "operationId": "items/described",
+                "description": "Native operation description.",
+                "x-zilla-mcp": {
+                  "description": "MCP-specific description overriding the native one."
+                },
+                "parameters": [
+                  { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+                ],
+                "responses": { "200": { "description": "ok",
+                  "content": { "application/json": { "schema": { "type": "object" } } } } }
+              }
             }
           }
         }
@@ -3089,6 +3103,101 @@ public class McpOpenapiCompositeGeneratorTest
         assertThat(annotations.destructiveHint, equalTo(true));
         assertThat(annotations.idempotentHint, equalTo(true));
         assertThat(annotations.openWorldHint, equalTo(true));
+    }
+
+    @Test
+    public void shouldReadToolDescriptionFromOpenapiExtension()
+    {
+        lenient().when(catalog.resolve(eq("annotations-api"), eq("latest"))).thenReturn(44);
+        lenient().when(catalog.resolve(eq(44))).thenReturn(ANNOTATIONS_SPEC);
+
+        BindingConfig binding = GenericBindingConfig.builder()
+            .namespace("test")
+            .name("mcp-openapi0")
+            .type("mcp-openapi")
+            .kind(CLIENT)
+            .options(McpOpenapiOptionsConfig.builder()
+                .spec()
+                    .label("annotations")
+                    .server("https://api.annotations.example")
+                    .catalog()
+                        .name("catalog0")
+                        .subject("annotations-api")
+                        .version("latest")
+                        .build()
+                    .build()
+                .build())
+            .route()
+                .when(McpOpenapiConditionConfig.builder()
+                    .tool("described_action")
+                    .build())
+                .with(McpOpenapiWithConfig.builder()
+                    .spec("annotations")
+                    .operation("items/described")
+                    .build())
+                .build()
+            .build();
+        binding.resolveId = resolveId;
+
+        McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
+
+        BindingConfig mcpHttp = composite.namespaces.get(0).bindings.stream()
+            .filter(b -> "mcp-http0".equals(b.name))
+            .findFirst()
+            .orElse(null);
+        McpHttpOptionsConfig mcpHttpOptions = (McpHttpOptionsConfig) mcpHttp.options;
+
+        assertThat(tool(mcpHttpOptions, "described_action").description,
+            equalTo("MCP-specific description overriding the native one."));
+    }
+
+    @Test
+    public void shouldOverrideToolDescriptionOverExtensionAndOperation()
+    {
+        lenient().when(catalog.resolve(eq("annotations-api"), eq("latest"))).thenReturn(44);
+        lenient().when(catalog.resolve(eq(44))).thenReturn(ANNOTATIONS_SPEC);
+
+        BindingConfig binding = GenericBindingConfig.builder()
+            .namespace("test")
+            .name("mcp-openapi0")
+            .type("mcp-openapi")
+            .kind(CLIENT)
+            .options(McpOpenapiOptionsConfig.builder()
+                .spec()
+                    .label("annotations")
+                    .server("https://api.annotations.example")
+                    .catalog()
+                        .name("catalog0")
+                        .subject("annotations-api")
+                        .version("latest")
+                        .build()
+                    .build()
+                .tool()
+                    .name("described_action")
+                    .description("Authored override description.")
+                    .build()
+                .build())
+            .route()
+                .when(McpOpenapiConditionConfig.builder()
+                    .tool("described_action")
+                    .build())
+                .with(McpOpenapiWithConfig.builder()
+                    .spec("annotations")
+                    .operation("items/described")
+                    .build())
+                .build()
+            .build();
+        binding.resolveId = resolveId;
+
+        McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
+
+        BindingConfig mcpHttp = composite.namespaces.get(0).bindings.stream()
+            .filter(b -> "mcp-http0".equals(b.name))
+            .findFirst()
+            .orElse(null);
+        McpHttpOptionsConfig mcpHttpOptions = (McpHttpOptionsConfig) mcpHttp.options;
+
+        assertThat(tool(mcpHttpOptions, "described_action").description, equalTo("Authored override description."));
     }
 
     private static McpHttpToolConfig tool(

@@ -424,11 +424,7 @@ public final class McpOpenapiCompositeGenerator
                 final ModelConfig output = entry.tool.output != null
                     ? qualifyModel(binding, entry.tool.output)
                     : jsonModel("%s-output".formatted(name));
-                final String description = entry.tool.description != null
-                    ? entry.tool.description
-                    : entry.operation.description != null
-                        ? entry.operation.description
-                        : entry.operation.id;
+                final String description = toolDescription(entry.tool, entry.operation);
                 // mcp-http requires a non-null tool summary; prefer an authored override, then OpenAPI's
                 // own optional summary field, then a plain literal string naming the operation (not a
                 // ${...} template -- mcp-http only understands ${result.*} references, not operationId)
@@ -471,6 +467,25 @@ public final class McpOpenapiCompositeGenerator
             .tools(tools.isEmpty() ? null : tools)
             .resources(resources.isEmpty() ? null : resources)
             .build();
+    }
+
+    // Description precedence: authored override (options.tools.<name>.description) > x-zilla-mcp.description
+    // OpenAPI vendor extension > native OpenAPI operation.description > bare operationId fallback. The
+    // extension lets a bundled spec with no native operation descriptions (or an undesirable one) carry an
+    // MCP-specific description without editing the vendored spec itself.
+    private String toolDescription(
+        McpOpenapiToolConfig tool,
+        OpenapiOperationView operation)
+    {
+        final McpEx extension = operation.extension(MCP_EXTENSION_NAME, McpEx.class).orElse(null);
+
+        return tool.description != null
+            ? tool.description
+            : extension != null && extension.description != null
+                ? extension.description
+                : operation.description != null
+                    ? operation.description
+                    : operation.id;
     }
 
     // Title precedence: authored override (options.tools.<name>.title) > x-zilla-mcp.title OpenAPI
