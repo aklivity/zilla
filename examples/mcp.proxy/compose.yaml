@@ -125,7 +125,7 @@ services:
   # APIs the kafka__list_acls/create_acls/delete_acls tools call -- without an
   # authorizer configured, the broker rejects those RPCs outright regardless
   # of caller scope. allow.everyone.if.no.acl.found keeps every existing
-  # produce/consume/admin check in this example working exactly as before:
+  # produce_message/consume/admin check in this example working exactly as before:
   # it only stops applying to a resource once an ACL is actually created for
   # it (see kafka__create_acls in .github/test.sh, which deliberately targets
   # a dedicated acl-test-topic rather than the orders topic those other

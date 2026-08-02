@@ -348,7 +348,7 @@ bindings:
               - petstore__create_pet
               - kafka_sr__list_subjects
               - kafka_sr__register_schema
-              - kafka__produce
+              - kafka__produce_message
               - kafka__consume
               - kafka__create_topics
               - kafka__delete_topics
@@ -666,7 +666,7 @@ bindings:
         - kafka.examples.dev:29092
     # tool + topics together restrict each route to an allow-list of topics
     # (exact names or *-glob patterns), not just a tool-name dispatch; a
-    # produce/consume call naming any other topic has no matching route
+    # produce_message/consume call naming any other topic has no matching route
     # and is rejected. create_topics, delete_topics, alter_configs, and
     # reset_offsets have no topics allow-list -- each identifies its target
     # (a resource name, a topics array, or a single group+topic pair) via
@@ -679,7 +679,7 @@ bindings:
     # describe_consumer_group_lag are likewise read-only, with no topic to
     # route on, so they share one unscoped route needing no scope beyond the
     # toolkit-level kafka:tools guard above. create_topics/delete_topics/
-    # alter_configs/reset_offsets and produce each layer a tool-specific scope
+    # alter_configs/reset_offsets and produce_message each layer a tool-specific scope
     # under the toolkit-level kafka:tools guard above (the same layering
     # register_schema demonstrates for the kafka_sr toolkit): kafka:admin for
     # the admin-risk topic/config/offset mutations, kafka:write for writing
@@ -709,7 +709,7 @@ bindings:
           authn_jwt:
             - kafka:acls
       - when:
-          - tool: produce
+          - tool: produce_message
             topics: [orders]
         guarded:
           authn_jwt:
