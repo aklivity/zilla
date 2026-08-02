@@ -498,7 +498,7 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
             assert acknowledge <= sequence;
             assert sequence <= replySeq;
             assert acknowledge >= replyAck;
-            assert maximum >= replyMax;
+            assert maximum + acknowledge >= replyMax + replyAck;
 
             replyAck = acknowledge;
             replyMax = maximum;
@@ -750,7 +750,7 @@ public final class AsyncapiClientFactory implements AsyncapiStreamFactory
 
             assert acknowledge <= sequence;
             assert acknowledge >= delegate.initialAck;
-            assert maximum >= delegate.initialMax;
+            assert maximum + acknowledge >= delegate.initialMax + delegate.initialAck;
 
             initialAck = acknowledge;
             initialMax = maximum;
