@@ -32,6 +32,8 @@ services:
         condition: service_healthy
       karapace-registry:
         condition: service_started
+      kafka-connect:
+        condition: service_healthy
       kafka:
         condition: service_healthy
       kafka-init:
@@ -206,6 +208,52 @@ services:
       KARAPACE_TOPIC_NAME: _schemas
       KARAPACE_LOG_LEVEL: WARNING
       KARAPACE_COMPATIBILITY: BACKWARD
+
+  # Real Kafka Connect distributed worker backing the mcp-kafka-connect
+  # "kafkaconnect" toolkit -- talks to the same real Kafka broker as the
+  # "kafka" toolkit above, storing its own config/offset/status state in
+  # three internal compacted topics rather than a separate database.
+  # plugin.path points at the broker distribution's own libs/ directory,
+  # which bundles the FileStreamSource/FileStreamSinkConnector classes this
+  # example's test.sh exercises -- no separate connector plugin download.
+  kafka-connect:
+    image: apache/kafka:4.1.1
+    restart: unless-stopped
+    hostname: kafka-connect
+    ports:
+      - 8083:8083
+    depends_on:
+      kafka:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "nc", "-z", "127.0.0.1", "8083"]
+      interval: 2s
+      timeout: 5s
+      retries: 60
+      start_period: 20s
+    environment:
+      KAFKA_BOOTSTRAP_SERVER: kafka.examples.dev:29092
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        cat > /tmp/connect-distributed.properties <<EOF
+        bootstrap.servers=$${KAFKA_BOOTSTRAP_SERVER}
+        group.id=connect-cluster
+        key.converter=org.apache.kafka.connect.json.JsonConverter
+        value.converter=org.apache.kafka.connect.json.JsonConverter
+        key.converter.schemas.enable=false
+        value.converter.schemas.enable=false
+        offset.storage.topic=connect-offsets
+        offset.storage.replication.factor=1
+        config.storage.topic=connect-configs
+        config.storage.replication.factor=1
+        status.storage.topic=connect-status
+        status.storage.replication.factor=1
+        listeners=HTTP://0.0.0.0:8083
+        rest.advertised.host.name=kafka-connect
+        plugin.path=/opt/kafka/libs
+        EOF
+        exec /opt/kafka/bin/connect-distributed.sh /tmp/connect-distributed.properties
 
   # Mints JWTs for the authn_jwt guard. Run on demand, e.g.:
   #   docker compose run --rm jwt-cli encode --alg RS256 --kid example \

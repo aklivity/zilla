@@ -10,23 +10,23 @@ synthesized `zilla__search_tools` keyword-search tool instead of crowding out
 every `tools/list` response.
 
 ```text
-                                     ┌────────────────────────────────────────────────────────────────── Zilla ───────────────────────────────────────────────────────────────────┐
-                                     │ tcp(7114) → http → mcp(server, jwt) → mcp(proxy, guarded routes)                                                                           │
-client ── Authorization: Bearer ───►│                                                                                                                                            │
-                                     │             ┬                     ┬                    ┬                   ┬                        ┬                          ┬           │
-                                     │             ▼                     ▼                    ▼                   ▼                        ▼                          ▼           │
-                                     │    mcp(client)         mcp(client)             mcp-http(proxy)    mcp-openapi(client)  mcp-schema-registry(client)  mcp-kafka(client)      │
-                                     │    everything          urlelicit               github toolkit     petstore toolkit     kafka_sr toolkit             kafka toolkit          │
-                                     │    http →              http →                  http(client) →     http(client) →       http(client) →               kafka_cache_client →   │
-                                     │    tcp                 tcp                     tcp                tcp                  tcp                          kafka_client → tcp     │
-                                     └─────────────┼─────────────────────┼────────────────────┼───────────────────┼────────────────────────┼──────────────────────────┼───────────┘
-                                                   ▼                     ▼                    ▼                   ▼                        ▼                          ▼
-                                          everything:3001     urlelicit:3003          ghapi:4001         petstore:4002        karapace-registry:8081       kafka.examples.dev:9092
-                                          (reference server)  (url-mode elicitation)  (mock GitHub API)  (mock REST API,      (real Karapace               (real, single-node
-                                                                                                         OpenAPI-described)   schema registry)             KRaft Kafka broker)
+                                     ┌────────────────────────────────────────────────────────────────────────────────── Zilla ──────────────────────────────────────────────────────────────────────────────────┐
+                                     │ tcp(7114) → http → mcp(server, jwt) → mcp(proxy, guarded routes)                                                                                                          │
+client ── Authorization: Bearer ───►│                                                                                                                                                                          │
+                                     │         ┬                     ┬                     ┬                   ┬                        ┬                              ┬                            ┬            │
+                                     │         ▼                     ▼                     ▼                   ▼                        ▼                              ▼                            ▼            │
+                                     │ mcp(client)         mcp(client)             mcp-http(proxy)    mcp-openapi(client)  mcp-schema-registry(client)  mcp-kafka-connect(client)        mcp-kafka(client)       │
+                                     │ everything          urlelicit               github toolkit     petstore toolkit     kafka_sr toolkit             kafka_connect toolkit             kafka toolkit           │
+                                     │ http →              http →                  http(client) →     http(client) →       http(client) →               http(client) →                   kafka_cache_client →    │
+                                     │ tcp                 tcp                     tcp                tcp                  tcp                          tcp                              kafka_client → tcp      │
+                                     └─────────┼─────────────────────┼─────────────────────┼───────────────────┼────────────────────────┼──────────────────────────────┼────────────────────────────┼────────────┘
+                                               ▼                     ▼                     ▼                   ▼                        ▼                              ▼                            ▼           
+                                       everything:3001     urlelicit:3003          ghapi:4001         petstore:4002        karapace-registry:8081       kafka-connect.examples.dev:8083  kafka.examples.dev:9092
+                                       (reference server)  (url-mode elicitation)  (mock GitHub API)  (mock REST API,      (real Karapace               (real Kafka Connect              (real, single-node
+                                                                                                      OpenAPI-described)   schema registry)             worker)                          KRaft Kafka broker)
 ```
 
-This one configuration exercises all seven `mcp*` binding kinds:
+This one configuration exercises all eight `mcp*` binding kinds:
 
 | Binding | Kind | Role in this example |
 | --- | --- | --- |
@@ -36,6 +36,7 @@ This one configuration exercises all seven `mcp*` binding kinds:
 | `mcp-http` | `proxy` | Synthesizes MCP tools from hand-authored config, backed by a plain REST API (`github` toolkit) |
 | `mcp-openapi` | `client` | Synthesizes MCP tools from an OpenAPI document, backed by a plain REST API (`petstore` toolkit) |
 | `mcp-schema-registry` | `client` | Exposes a fixed, bundled tool set for the Karapace/Confluent Schema Registry REST API -- no operator-authored OpenAPI document, unlike `mcp-openapi` (`kafka_sr` toolkit) |
+| `mcp-kafka-connect` | `client` | Exposes a fixed, bundled tool set for the Kafka Connect REST API (`list_connectors`/`create_connector`/`describe_connector`/`delete_connector`/`describe_connector_config`/`update_connector_config`/`validate_connector_config`/`describe_connector_status`/`restart_connector`/`pause_connector`/`resume_connector`/`stop_connector`/`list_connector_tasks`/`restart_connector_task`/`describe_connector_offsets`/`alter_connector_offsets`/`reset_connector_offsets`/`list_connector_plugins`) as intrinsic MCP tools against a real Kafka Connect worker (`kafka_connect` toolkit) |
 | `mcp-kafka` | `client` | Exposes Kafka broker operations (`produce`/`consume`/`create_topics`/`delete_topics`/`describe_configs`/`alter_configs`/`list_acls`/`create_acls`/`delete_acls`/`list_topics`/`describe_topic`/`cluster_overview`/`list_brokers`/`describe_cluster`/`list_consumer_groups`/`describe_consumer_group`/`describe_consumer_group_lag`/`reset_offsets`) as intrinsic MCP tools, generating its own `kafka_cache_client → kafka_client → tcp_client` pipeline against a real broker (`kafka` toolkit) |
 
 ## Authorization model
@@ -55,6 +56,8 @@ the pipeline, each demonstrating a different mechanism:
 | `mcp-openapi(client)` operation `create_pet` | the OpenAPI document's own `security` requirement, mapped to `authn_jwt` via `options.specs.petstore.security` | `petstore:tools` **and** `pets:write` |
 | `mcp(proxy)` route for `kafka_sr` toolkit | `routes[].guarded` on the toolkit route | `kafka_sr:tools` |
 | `mcp-schema-registry(client)` route for `register_schema` | a second, tool-specific `routes[].guarded` on the binding's own `when.tool` route, layered under the toolkit-level gate above | `kafka_sr:tools` **and** `kafka_sr:write` |
+| `mcp(proxy)` route for `kafka_connect` toolkit | `routes[].guarded` on the toolkit route | `kafka_connect:tools` |
+| `mcp-kafka-connect(client)` route for connector/task/offset-mutating tools | a second, tool-specific `routes[].guarded` on the binding's own `when.tool` route (every mutating tool coalesced into one route), layered under the toolkit-level gate above | `kafka_connect:tools` **and** `kafka_connect:admin` |
 | `mcp(proxy)` route for `kafka` toolkit | `routes[].guarded` on the toolkit route | `kafka:tools` |
 | `mcp-kafka(client)` route for `produce` | a second, tool-specific `routes[].guarded` on the binding's own `when.tool` route, layered under the toolkit-level gate above | `kafka:tools` **and** `kafka:write` |
 | `mcp-kafka(client)` route for `create_topics` / `delete_topics` / `alter_configs` / `reset_offsets` | a second, tool-specific `routes[].guarded` on the binding's own `when.tool` route (all four tools coalesced into one route, since all four need the same scope), layered under the toolkit-level gate above | `kafka:tools` **and** `kafka:admin` |
@@ -73,6 +76,20 @@ via an explicit `routes[].guarded` directly on the `mcp-schema-registry`
 binding itself: `list_subjects`, `describe_subject`, `get_schema`, and every
 other read-only tool need only the toolkit-level `kafka_sr:tools`
 scope, while `register_schema` additionally requires `kafka_sr:write`.
+
+`mcp-kafka-connect` demonstrates the same layering on a fixed, bundled tool
+set for the Kafka Connect REST API rather than a schema registry: every tool
+that creates, deletes, or otherwise mutates connector, task, or offset state
+(`create_connector`, `delete_connector`, `update_connector_config`,
+`restart_connector`, `pause_connector`, `resume_connector`, `stop_connector`,
+`restart_connector_task`, `alter_connector_offsets`,
+`reset_connector_offsets`) shares one route requiring `kafka_connect:admin` in
+addition to the toolkit-level `kafka_connect:tools`, while every read-only
+tool (`list_connectors`, `describe_connector`, `describe_connector_config`,
+`validate_connector_config`, `describe_connector_status`,
+`list_connector_tasks`, `describe_connector_offsets`,
+`list_connector_plugins`) needs only the toolkit-level scope, sharing the
+catch-all glob route.
 
 `mcp-kafka` demonstrates the identical layering a third way, on its own
 `when.tool` route, and splits it further into read/write/admin: `consume`,
@@ -128,15 +145,18 @@ exist.
 docker compose up -d
 ```
 
-This starts Zilla plus six locally-reachable upstream services: a Node
+This starts Zilla plus seven locally-reachable upstream services: a Node
 `everything` reference MCP server on `:3001`, a minimal `urlelicit` MCP server
 on `:3003` demonstrating url-mode elicitation, two plain REST mocks --
 `ghapi` on `:4001` (subset of the GitHub API) and `petstore` on `:4002`
 (a small Petstore API, described by an inline OpenAPI document) -- a real,
 single-node KRaft-mode Kafka broker on `:9092` (`kafka.examples.dev`), with an
-`orders` topic created by the one-shot `kafka-init` service, and a real
+`orders` topic created by the one-shot `kafka-init` service, a real
 Karapace Schema Registry on `:8081` (`karapace-registry`), storing schemas in
-its own `_schemas` topic on that same broker.
+its own `_schemas` topic on that same broker, and a real Kafka Connect
+distributed worker on `:8083` (`kafka-connect.examples.dev`), storing its own
+config/offset/status state in three internal compacted topics on that same
+broker.
 
 ## Verify
 
@@ -168,7 +188,7 @@ export JWT_TOKEN=$(docker compose run --rm jwt-cli encode \
     --aud "https://api.example.com" \
     --exp=+1d \
     --no-iat \
-    --payload "scope=urlelicit:authorize github:tools github:pr:write petstore:tools pets:write kafka_sr:tools kafka_sr:write kafka:tools kafka:write kafka:admin kafka:acls" \
+    --payload "scope=urlelicit:authorize github:tools github:pr:write petstore:tools pets:write kafka_sr:tools kafka_sr:write kafka_connect:tools kafka_connect:admin kafka:tools kafka:write kafka:admin kafka:acls" \
     --secret @/private.pem | tr -d '\r\n')
 ```
 
@@ -183,16 +203,17 @@ name per line -- pass a token (or none) as `JWT_TOKEN`:
 # No token: only the ungated "everything" toolkit is visible
 docker compose run --rm tools-list-client
 
-# Toolkit-level scopes only, no operation-level scopes: petstore__list_pets
-# and kafka_sr__list_subjects appear (neither requires an extra scope
-# beyond toolkit access) but petstore__create_pet, github__create_pr, and
-# kafka_sr__register_schema do not -- toolkit access alone is not tool
+# Toolkit-level scopes only, no operation-level scopes: petstore__list_pets,
+# kafka_sr__list_subjects, and kafka_connect__list_connector_plugins appear
+# (none of them require an extra scope beyond toolkit access) but
+# petstore__create_pet, github__create_pr, kafka_sr__register_schema, and
+# kafka_connect__create_connector do not -- toolkit access alone is not tool
 # access
 export JWT_TOKEN=$(docker compose run --rm jwt-cli encode \
     --alg "RS256" --kid "example" \
     --iss "https://auth.example.com" --aud "https://api.example.com" \
     --exp=+1d --no-iat \
-    --payload "scope=github:tools petstore:tools kafka_sr:tools" \
+    --payload "scope=github:tools petstore:tools kafka_sr:tools kafka_connect:tools" \
     --secret @/private.pem | tr -d '\r\n')
 docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" tools-list-client
 
@@ -201,7 +222,7 @@ export JWT_TOKEN=$(docker compose run --rm jwt-cli encode \
     --alg "RS256" --kid "example" \
     --iss "https://auth.example.com" --aud "https://api.example.com" \
     --exp=+1d --no-iat \
-    --payload "scope=urlelicit:authorize github:tools github:pr:write petstore:tools pets:write kafka_sr:tools kafka_sr:write kafka:tools kafka:write kafka:admin kafka:acls" \
+    --payload "scope=urlelicit:authorize github:tools github:pr:write petstore:tools pets:write kafka_sr:tools kafka_sr:write kafka_connect:tools kafka_connect:admin kafka:tools kafka:write kafka:admin kafka:acls" \
     --secret @/private.pem | tr -d '\r\n')
 docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" tools-list-client
 ```
@@ -212,7 +233,10 @@ docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" tools-list-client
 frequently used tools -- `everything__echo`, `urlelicit__authorize`,
 `github__create_pr`, `petstore__list_pets`, `petstore__search_pets`,
 `petstore__create_pet`, `kafka_sr__list_subjects`,
-`kafka_sr__register_schema`, `kafka__produce`, `kafka__consume`,
+`kafka_sr__register_schema`, `kafka_connect__list_connector_plugins`,
+`kafka_connect__list_connectors`, `kafka_connect__describe_connector`,
+`kafka_connect__create_connector`, `kafka_connect__delete_connector`,
+`kafka__produce`, `kafka__consume`,
 `kafka__create_topics`, `kafka__delete_topics`, `kafka__describe_configs`,
 `kafka__alter_configs`, `kafka__list_acls`, `kafka__create_acls`,
 `kafka__delete_acls`, `kafka__list_topics`, `kafka__describe_topic`,
@@ -247,6 +271,11 @@ petstore__search_pets
 petstore__create_pet
 kafka_sr__list_subjects
 kafka_sr__register_schema
+kafka_connect__list_connector_plugins
+kafka_connect__list_connectors
+kafka_connect__describe_connector
+kafka_connect__create_connector
+kafka_connect__delete_connector
 kafka__produce
 kafka__consume
 kafka__create_topics
@@ -506,6 +535,113 @@ docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
     -e CALL_ARGS='{"subject":"orders-value","version":"1","schemaType":"AVRO","schema":"{\"type\":\"record\",\"name\":\"Order\",\"fields\":[{\"name\":\"id\",\"type\":\"string\"}]}"}' \
     tools-list-client
 # Compatibility check result: true
+```
+
+### Manage connectors through a real Kafka Connect worker
+
+`south_mcp_kafka_connect_client` is an `mcp-kafka-connect` `kind: client`
+binding -- like `mcp-schema-registry`, its tool set
+(`list_connectors`/`create_connector`/`describe_connector`/`delete_connector`/
+`describe_connector_config`/`update_connector_config`/
+`validate_connector_config`/`describe_connector_status`/`restart_connector`/
+`pause_connector`/`resume_connector`/`stop_connector`/`list_connector_tasks`/
+`restart_connector_task`/`describe_connector_offsets`/
+`alter_connector_offsets`/`reset_connector_offsets`/`list_connector_plugins`)
+is bundled with the binding itself, with `options.server` the only required
+configuration. This example points it at `kafka-connect`, a real Kafka
+Connect distributed worker (`apache/kafka:4.1.1`'s own
+`connect-distributed.sh`, not a mock) that stores its own config/offset/status
+state in three internal compacted topics on the same Kafka broker the `kafka`
+toolkit above talks to.
+
+`list_connector_plugins` lists the bundled FileStream source/sink connector
+plugins -- proof `plugin.path` resolved the broker distribution's own `libs/`
+directory rather than a separately downloaded plugin:
+
+```bash
+docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
+    -e CALL_TOOL=kafka_connect__list_connector_plugins tools-list-client
+# org.apache.kafka.connect.file.FileStreamSinkConnector
+# org.apache.kafka.connect.file.FileStreamSourceConnector
+```
+
+`create_connector` creates a real `FileStreamSourceConnector` reading a file
+already seeded inside the worker container, gated by its own tool-specific
+`kafka_connect:admin` scope layered under the toolkit-level
+`kafka_connect:tools` scope -- the same layering mechanism as
+`register_schema`/`kafka_sr:write`:
+
+```bash
+docker compose exec kafka-connect sh -c \
+    "echo 'hello from mcp-kafka-connect' > /tmp/kc-source.txt"
+
+docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
+    -e CALL_TOOL=kafka_connect__create_connector \
+    -e CALL_ARGS='{"name":"file-source-demo","config":{"connector.class":"org.apache.kafka.connect.file.FileStreamSourceConnector","tasks.max":"1","file":"/tmp/kc-source.txt","topic":"connect-demo"}}' \
+    tools-list-client
+# Created connector file-source-demo
+```
+
+`list_connectors` and `describe_connector_status` confirm it is now real,
+running worker state, not just an echoed request:
+
+```bash
+docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
+    -e CALL_TOOL=kafka_connect__list_connectors tools-list-client
+# ["file-source-demo"]
+
+docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
+    -e CALL_TOOL=kafka_connect__describe_connector_status \
+    -e CALL_ARGS='{"connector":"file-source-demo"}' \
+    tools-list-client
+# Connector file-source-demo is RUNNING
+```
+
+`pause_connector` and `resume_connector` transition the connector and its one
+task between `PAUSED` and `RUNNING` on the real worker, each confirmed by a
+follow-up `describe_connector_status` call:
+
+```bash
+docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
+    -e CALL_TOOL=kafka_connect__pause_connector \
+    -e CALL_ARGS='{"connector":"file-source-demo"}' \
+    tools-list-client
+docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
+    -e CALL_TOOL=kafka_connect__describe_connector_status \
+    -e CALL_ARGS='{"connector":"file-source-demo"}' \
+    tools-list-client
+# Connector file-source-demo is PAUSED
+
+docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
+    -e CALL_TOOL=kafka_connect__resume_connector \
+    -e CALL_ARGS='{"connector":"file-source-demo"}' \
+    tools-list-client
+docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
+    -e CALL_TOOL=kafka_connect__describe_connector_status \
+    -e CALL_ARGS='{"connector":"file-source-demo"}' \
+    tools-list-client
+# Connector file-source-demo is RUNNING
+```
+
+`restart_connector` succeeds against the running connector, sharing
+`pause_connector`/`resume_connector`'s `kafka_connect:admin`-gated route.
+`delete_connector` then removes it, confirmed by `list_connectors` reporting
+none remaining:
+
+```bash
+docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
+    -e CALL_TOOL=kafka_connect__restart_connector \
+    -e CALL_ARGS='{"connector":"file-source-demo"}' \
+    tools-list-client
+
+docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
+    -e CALL_TOOL=kafka_connect__delete_connector \
+    -e CALL_ARGS='{"connector":"file-source-demo"}' \
+    tools-list-client
+
+docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
+    -e CALL_TOOL=kafka_connect__list_connectors tools-list-client
+# []
 ```
 
 ### Produce, consume, create/delete topics, describe/alter configs, and cluster introspection through a real Kafka broker
@@ -967,6 +1103,7 @@ docker compose down -v
 - [Zilla docs -- `mcp` bindings](https://docs.aklivity.io/zilla/latest/reference/config/bindings/mcp/README.html)
 - [Zilla docs -- `mcp-http` binding](https://docs.aklivity.io/zilla/latest/reference/config/bindings/mcp-http/README.html)
 - [Zilla docs -- `mcp-kafka` binding](https://docs.aklivity.io/zilla/latest/reference/config/bindings/mcp-kafka/README.html)
+- [Zilla docs -- `mcp-kafka-connect` binding](https://docs.aklivity.io/zilla/latest/reference/config/bindings/mcp-kafka-connect/README.html)
 - [Zilla docs -- `jwt` guard](https://docs.aklivity.io/zilla/latest/reference/config/guards/jwt.html)
 - [MCP -- Streamable HTTP transport](https://modelcontextprotocol.io/docs/concepts/transports)
 - [MCP -- elicitation](https://modelcontextprotocol.io/specification/2025-11-25/client/elicitation)
