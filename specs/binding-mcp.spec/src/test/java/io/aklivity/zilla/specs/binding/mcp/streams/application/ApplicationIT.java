@@ -515,6 +515,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/lifecycle.timeout.events.resources.updated/client",
+        "${app}/lifecycle.timeout.events.resources.updated/server"})
+    public void shouldLifecycleTimeoutEventsResourcesUpdated() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/lifecycle.notify.tools.list.changed/client",
         "${app}/lifecycle.notify.tools.list.changed/server"})
     public void shouldNotifyToolsListChanged() throws Exception
