@@ -454,10 +454,10 @@ public class McpKafkaProxyFactoryTest
     @Test
     public void shouldRejectConsumeArgsMissingTopic() throws Exception
     {
-        factory.attach(newBinding("consume"));
+        factory.attach(newBinding("consume_messages"));
 
-        final String body = "{\"name\":\"consume\",\"arguments\":{\"limit\":2}}";
-        final MessageConsumer stream = beginToolsCall("consume", body.length(), 0L);
+        final String body = "{\"name\":\"consume_messages\",\"arguments\":{\"limit\":2}}";
+        final MessageConsumer stream = beginToolsCall("consume_messages", body.length(), 0L);
 
         data(stream, INITIAL_ID, body);
 
@@ -468,10 +468,10 @@ public class McpKafkaProxyFactoryTest
     @Test
     public void shouldClampConsumeLimitAndOpenFetchOnlyStream() throws Exception
     {
-        factory.attach(newBinding("consume"));
+        factory.attach(newBinding("consume_messages"));
 
-        final String body = "{\"name\":\"consume\",\"arguments\":{\"topic\":\"orders\",\"limit\":500,\"offset\":7}}";
-        final MessageConsumer stream = beginToolsCall("consume", body.length(), 0L);
+        final String body = "{\"name\":\"consume_messages\",\"arguments\":{\"topic\":\"orders\",\"limit\":500,\"offset\":7}}";
+        final MessageConsumer stream = beginToolsCall("consume_messages", body.length(), 0L);
 
         data(stream, INITIAL_ID, body);
 
@@ -487,10 +487,10 @@ public class McpKafkaProxyFactoryTest
     @Test
     public void shouldClampConsumeLimitToOneHundredWhenReceivingMoreRecords() throws Exception
     {
-        factory.attach(newBinding("consume"));
+        factory.attach(newBinding("consume_messages"));
 
-        final String body = "{\"name\":\"consume\",\"arguments\":{\"topic\":\"orders\",\"limit\":500}}";
-        final MessageConsumer stream = beginToolsCall("consume", body.length(), 0L);
+        final String body = "{\"name\":\"consume_messages\",\"arguments\":{\"topic\":\"orders\",\"limit\":500}}";
+        final MessageConsumer stream = beginToolsCall("consume_messages", body.length(), 0L);
 
         data(stream, INITIAL_ID, body);
 
@@ -542,10 +542,10 @@ public class McpKafkaProxyFactoryTest
     @Test
     public void shouldFinishConsumeOnceLimitIsReached() throws Exception
     {
-        factory.attach(newBinding("consume"));
+        factory.attach(newBinding("consume_messages"));
 
-        final String body = "{\"name\":\"consume\",\"arguments\":{\"topic\":\"orders\",\"limit\":2}}";
-        final MessageConsumer stream = beginToolsCall("consume", body.length(), 0L);
+        final String body = "{\"name\":\"consume_messages\",\"arguments\":{\"topic\":\"orders\",\"limit\":2}}";
+        final MessageConsumer stream = beginToolsCall("consume_messages", body.length(), 0L);
 
         data(stream, INITIAL_ID, body);
 
@@ -560,8 +560,10 @@ public class McpKafkaProxyFactoryTest
         assertEquals(1, countOf(kafkaSent, EndFW.TYPE_ID));
 
         final String result = payloadText(nthOf(mcpSent, DataFW.TYPE_ID, 1));
-        assertEquals("{\"structuredContent\":{\"topic\":\"orders\",\"messages\":[{\"key\":null,\"headers\":[]," +
-            "\"value\":\"value-1\"},{\"key\":null,\"headers\":[],\"value\":\"value-2\"}],\"count\":2}," +
+        assertEquals("{\"structuredContent\":{\"topic\":\"orders\",\"messages\":[{\"key\":null," +
+            "\"value\":\"value-1\",\"partition\":-1,\"offset\":-1,\"timestamp\":0,\"headers\":[]}," +
+            "{\"key\":null,\"value\":\"value-2\",\"partition\":-1,\"offset\":-1,\"timestamp\":0,\"headers\":[]}]," +
+            "\"count\":2}," +
             "\"content\":[{\"type\":\"text\",\"text\":\"Consumed 2 messages from topic orders\"}],\"isError\":false}",
             result);
 
@@ -573,10 +575,10 @@ public class McpKafkaProxyFactoryTest
     @Test
     public void shouldFinishConsumeOnTimeoutSignalWithPartialResults() throws Exception
     {
-        factory.attach(newBinding("consume"));
+        factory.attach(newBinding("consume_messages"));
 
-        final String body = "{\"name\":\"consume\",\"arguments\":{\"topic\":\"orders\",\"limit\":5}}";
-        final MessageConsumer stream = beginToolsCall("consume", body.length(), 200L);
+        final String body = "{\"name\":\"consume_messages\",\"arguments\":{\"topic\":\"orders\",\"limit\":5}}";
+        final MessageConsumer stream = beginToolsCall("consume_messages", body.length(), 200L);
 
         data(stream, INITIAL_ID, body);
 
@@ -595,8 +597,9 @@ public class McpKafkaProxyFactoryTest
         assertEquals(1, countOf(kafkaSent, EndFW.TYPE_ID));
 
         final String result = payloadText(nthOf(mcpSent, DataFW.TYPE_ID, 1));
-        assertEquals("{\"structuredContent\":{\"topic\":\"orders\",\"messages\":[{\"key\":null,\"headers\":[]," +
-            "\"value\":\"value-1\"}],\"count\":1}," +
+        assertEquals("{\"structuredContent\":{\"topic\":\"orders\",\"messages\":[{\"key\":null," +
+            "\"value\":\"value-1\",\"partition\":-1,\"offset\":-1,\"timestamp\":0,\"headers\":[]}]," +
+            "\"count\":1}," +
             "\"content\":[{\"type\":\"text\",\"text\":\"Consumed 1 messages from topic orders\"}],\"isError\":false}",
             result);
 
@@ -608,10 +611,10 @@ public class McpKafkaProxyFactoryTest
     @Test
     public void shouldFinishConsumeWithZeroRecordsOnImmediateTimeout() throws Exception
     {
-        factory.attach(newBinding("consume"));
+        factory.attach(newBinding("consume_messages"));
 
-        final String body = "{\"name\":\"consume\",\"arguments\":{\"topic\":\"orders\",\"limit\":5}}";
-        final MessageConsumer stream = beginToolsCall("consume", body.length(), 200L);
+        final String body = "{\"name\":\"consume_messages\",\"arguments\":{\"topic\":\"orders\",\"limit\":5}}";
+        final MessageConsumer stream = beginToolsCall("consume_messages", body.length(), 200L);
 
         data(stream, INITIAL_ID, body);
 
@@ -646,7 +649,7 @@ public class McpKafkaProxyFactoryTest
     {
         factory.attach(newBinding("produce"));
 
-        final MessageConsumer stream = beginToolsCall("consume", 10, 0L);
+        final MessageConsumer stream = beginToolsCall("consume_messages", 10, 0L);
 
         assertNull(stream);
         assertEquals(0, countOf(kafkaSent, BeginFW.TYPE_ID));

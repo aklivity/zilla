@@ -45,13 +45,13 @@ read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .toolsCall()
                               .sessionId("session-1")
-                              .name("consume")
-                              .contentLength(59)
+                              .name("consume_messages")
+                              .contentLength(68)
                               .build()
                           .build()}
 
 connected
 
-read '{"name":"consume","arguments":{"topic":"orders","limit":5}}'
+read '{"name":"consume_messages","arguments":{"topic":"orders","limit":5}}'
 
 write abort

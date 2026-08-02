@@ -45,15 +45,15 @@ read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .toolsCall()
                               .sessionId("session-1")
-                              .name("consume")
-                              .contentLength(59)
+                              .name("consume_messages")
+                              .contentLength(68)
                               .build()
                           .build()}
 
 connected
 
 read  '{'
-        '"name":"consume",'
+        '"name":"consume_messages",'
         '"arguments":'
         '{'
           '"topic":"orders",'
@@ -71,13 +71,19 @@ write '{'
             '['
               '{'
                 '"key":"key-1",'
-                '"headers":[{"name":"h1","value":"hv1"}],'
-                '"value":"value-1"'
+                '"value":"value-1",'
+                '"partition":0,'
+                '"offset":0,'
+                '"timestamp":1000,'
+                '"headers":[{"h1":"hv1","h2":"hv2"},{"h1":"hv1b"}]'
               '},'
               '{'
                 '"key":null,'
-                '"headers":[],'
-                '"value":"value-2"'
+                '"value":"value-2",'
+                '"partition":0,'
+                '"offset":1,'
+                '"timestamp":2000,'
+                '"headers":[]'
               '}'
             '],'
             '"count":2'

@@ -55,7 +55,7 @@ connected
 # produce matches two distinct tool-scoped routes (test1/admin, test0/write:kafka), so its
 # securitySchemes aggregate both, in route declaration order -- proving toolGuarded accumulates
 # across every route whose condition applies to the tool rather than stopping at the first match.
-# consume matches neither route, so it carries no securitySchemes field at all.
+# consume_messages matches neither route, so it carries no securitySchemes field at all.
 read  '{"tools":[{"name":"produce","title":"Produce Message",'
         '"description":"Produce a message to a Kafka topic.",'
         '"inputSchema":{"type":"object","properties":'
@@ -63,11 +63,19 @@ read  '{"tools":[{"name":"produce","title":"Produce Message",'
         '"partition":{"type":"integer"}},"required":["topic","value"]},'
         '"securitySchemes":[{"type":"oauth2","scopes":["admin"]},'
         '{"type":"oauth2","scopes":["write:kafka"]}]},'
-        '{"name":"consume","title":"Consume Messages",'
+        '{"name":"consume_messages","title":"Consume Messages",'
         '"description":"Consume messages from a Kafka topic partition.",'
         '"inputSchema":{"type":"object","properties":'
         '{"topic":{"type":"string"},"partition":{"type":"integer"},"offset":{"type":"integer"},'
         '"limit":{"type":"integer"}},"required":["topic"]},'
+        '"outputSchema":{"type":"object","properties":{"topic":{"type":"string"},'
+        '"messages":{"type":"array","items":{"type":"object","properties":'
+        '{"key":{"type":["string","null"]},"value":{"type":"string"},'
+        '"partition":{"type":"integer"},"offset":{"type":"integer"},'
+        '"timestamp":{"type":"integer"},"headers":{"type":"array","items":'
+        '{"type":"object","additionalProperties":{"type":"string"}}}},"required":'
+        '["value","partition","offset","timestamp","headers"]}},"count":{"type":"integer"}},'
+        '"required":["topic","messages","count"]},'
         '"annotations":{"readOnlyHint":true,"destructiveHint":false,"idempotentHint":true}},'
         '{"name":"create_topics","title":"Create Topics",'
         '"description":"Create one or more Kafka topics.",'
