@@ -145,7 +145,7 @@ write flush
 read advised zilla:flush ${kafka:flushEx()
                              .typeId(zilla:id("kafka"))
                              .produce()
-                                 .partition(0, 20)
+                                 .partition(0, 0)
                                  .timestamp(newTimestamp)
                                  .build()
                              .build()}

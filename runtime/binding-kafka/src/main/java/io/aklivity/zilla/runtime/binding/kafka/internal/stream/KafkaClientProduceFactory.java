@@ -402,6 +402,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
+                .budgetId(0L)
                 .reserved(reserved)
                 .extension(extension)
                 .build();

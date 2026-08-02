@@ -891,12 +891,15 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
         private void onServerFanReplyFlush(
             FlushFW flush)
         {
+            final long traceId = flush.traceId();
             final OctetsFW extension = flush.extension();
             final KafkaFlushExFW kafkaFlushEx = extension.get(kafkaFlushExRO::wrap);
             final KafkaProduceFlushExFW kafkaProduceFlushEx = kafkaFlushEx.produce();
 
             this.ackPartitionOffset = kafkaProduceFlushEx.partition().partitionOffset();
             this.ackTimestamp = kafkaProduceFlushEx.timestamp();
+
+            members.forEach(s -> s.doFlushServerReplyIfNecessary(NO_ERROR, traceId));
         }
 
         private void onServerFanReplyBegin(

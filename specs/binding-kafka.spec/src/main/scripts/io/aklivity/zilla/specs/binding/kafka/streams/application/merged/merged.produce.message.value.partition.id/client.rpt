@@ -75,7 +75,7 @@ read advised zilla:flush ${kafka:flushEx()
                               .merged()
                                 .produce()
                                   .partitionId(0)
-                                  .partitionOffset(20)
+                                  .partitionOffset(0)
                                   .timestamp(newTimestamp)
                                   .build()
                               .build()}

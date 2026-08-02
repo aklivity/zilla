@@ -124,5 +124,13 @@ write zilla:data.ext ${kafka:dataEx()
 write "Hello, Again"
 write flush
 
+read advised zilla:flush ${kafka:flushEx()
+                             .typeId(zilla:id("kafka"))
+                             .produce()
+                                 .partition(0, 0)
+                                 .timestamp(newTimestamp)
+                                 .build()
+                             .build()}
+
 write close
 read closed
