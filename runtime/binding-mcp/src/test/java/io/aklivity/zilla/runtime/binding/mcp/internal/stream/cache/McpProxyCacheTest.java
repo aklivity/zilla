@@ -22,14 +22,17 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.List.of;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Map;
+import java.util.function.Consumer;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -49,15 +52,24 @@ import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 public class McpProxyCacheTest
 {
     private GuardHandler guard;
+    private StoreHandler store;
     private McpProxyCache cache;
 
     @Before
     public void setup()
     {
         guard = mock(GuardHandler.class);
+        store = mock(StoreHandler.class);
+        doAnswer(invocation ->
+        {
+            final String key = invocation.getArgument(0);
+            final Consumer<String> completion = invocation.getArgument(3);
+            completion.accept(key);
+            return null;
+        }).when(store).put(anyString(), anyString(), any(), any());
 
         EngineContext context = mock(EngineContext.class);
-        when(context.supplyStore(anyLong())).thenReturn(mock(StoreHandler.class));
+        when(context.supplyStore(anyLong())).thenReturn(store);
         when(context.supplyGuard(anyLong())).thenReturn(guard);
 
         BindingConfig binding = GenericBindingConfig.builder()
@@ -231,6 +243,47 @@ public class McpProxyCacheTest
         assertThat(delete.hasDescription(), equalTo(true));
         assertThat(new String(bytes, delete.descriptionOffset(), delete.descriptionLength(), UTF_8),
             equalTo("Delete a repository"));
+    }
+
+    // a worker that loses the hydration lock must not answer a fresh session's initialize
+    // (register()'s awaiter) until it has independently learned this binding's real server
+    // capabilities -- see McpProxyCacheHydrater.establishCapabilitiesIndependently -- even once
+    // every list kind's content has already settled via the shared store's watch mechanism
+    @Test
+    public void shouldDeferRegisterUntilCapabilitiesSettled()
+    {
+        cache.markCapabilitiesPending();
+        for (McpListCache listCache : cache.caches().values())
+        {
+            listCache.put("{}", completion -> {});
+        }
+
+        boolean[] ran = { false };
+        cache.register(() -> ran[0] = true);
+
+        assertThat(ran[0], equalTo(false));
+
+        cache.markCapabilitiesSettled();
+
+        assertThat(ran[0], equalTo(true));
+    }
+
+    // the lock-winning worker never calls markCapabilitiesPending() -- capabilities are already
+    // known by the time content settles there (McpLifecycleClient.onClientBegin() always records
+    // a route's capabilities before that route's list content becomes available), so register()
+    // must keep firing as soon as content settles, exactly as before this gate existed
+    @Test
+    public void shouldRegisterImmediatelyWhenCapabilitiesNeverMarkedPending()
+    {
+        for (McpListCache listCache : cache.caches().values())
+        {
+            listCache.put("{}", completion -> {});
+        }
+
+        boolean[] ran = { false };
+        cache.register(() -> ran[0] = true);
+
+        assertThat(ran[0], equalTo(true));
     }
 
     @Test

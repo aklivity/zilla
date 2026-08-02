@@ -228,6 +228,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
         private int state;
         private boolean resumePending;
         private int pendingClients;
+        private Runnable capabilityCompletion;
 
         private long initialSeq;
         private long initialAck;
@@ -526,6 +527,37 @@ final class McpProxyLifecycleFactory implements BindingHandler
             doServerBeginDeferred(traceId);
         }
 
+        // opens a real, capability-learning-only lifecycle connection to every aggregate route,
+        // reusing the same McpLifecycleClient.onClientBegin() -> recordServerCapabilities() path
+        // McpListClient already exercises as a side effect of content hydration -- for a worker that
+        // never wins the hydration lock (and therefore never drives McpListClient at all), this is
+        // the only way that worker's own realCapabilitiesByRoute is ever populated. onSettled fires
+        // once every route has settled, success or failure, mirroring doEstablishToolkitClients'
+        // pendingClients bookkeeping below.
+        void establishCapabilityClients(
+            long traceId,
+            Runnable onSettled)
+        {
+            final McpAggregateRoute[] routes = binding.aggregateRoutes;
+            if (routes.length == 0)
+            {
+                onSettled.run();
+            }
+            else
+            {
+                capabilityCompletion = onSettled;
+                pendingClients = routes.length;
+                for (McpAggregateRoute route : routes)
+                {
+                    final long routedId = route.routedId();
+                    if (!clients.containsKey(routedId))
+                    {
+                        supplyClient(routedId).doClientBegin(traceId);
+                    }
+                }
+            }
+        }
+
         void driveHydrationEnd(
             long traceId)
         {
@@ -574,9 +606,18 @@ final class McpProxyLifecycleFactory implements BindingHandler
             if (pendingClients > 0)
             {
                 pendingClients--;
-                if (pendingClients == 0 && !McpState.initialClosed(state) && !McpState.replyClosed(state))
+                if (pendingClients == 0)
                 {
-                    doServerBeginDeferred(traceId);
+                    if (!McpState.initialClosed(state) && !McpState.replyClosed(state))
+                    {
+                        doServerBeginDeferred(traceId);
+                    }
+                    if (capabilityCompletion != null)
+                    {
+                        final Runnable completion = capabilityCompletion;
+                        capabilityCompletion = null;
+                        completion.run();
+                    }
                 }
             }
         }
@@ -1270,6 +1311,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
             assert replyAck <= replySeq;
 
             state = McpState.closedReply(state);
+            settleLifecycle(traceId);
             settleRequests(traceId);
             doClientEnd(traceId);
             server.clients.remove(routedId, this);
@@ -1292,6 +1334,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
             assert replyAck <= replySeq;
 
             state = McpState.closedReply(state);
+            settleLifecycle(traceId);
             settleRequests(traceId);
             doClientAbort(traceId);
             server.clients.remove(routedId, this);
@@ -1343,16 +1386,10 @@ final class McpProxyLifecycleFactory implements BindingHandler
             server.clients.remove(routedId, this);
 
             final boolean bearer = extension.sizeof() > 0;
-            if (!(server.hydration && sessionId == null))
+            settleLifecycle(traceId);
+            if (!bearer && !(server.hydration && sessionId == null))
             {
-                if (bearer)
-                {
-                    settleLifecycle(traceId);
-                }
-                else
-                {
-                    server.doServerReset(traceId, extension);
-                }
+                server.doServerReset(traceId, extension);
             }
         }
     }

@@ -73,6 +73,13 @@ public final class McpProxyCacheHydrater
     private static final String OAUTH2 = "oauth2";
     private static final String NOAUTH = "noauth";
 
+    // capability-only hydration streams discard their own synthetic Begin response --
+    // only the real south McpLifecycleClient connections they open (see
+    // McpLifecycleServer.establishCapabilityClients) matter
+    private static final MessageConsumer NOOP_SINK = (msgTypeId, buffer, index, length) ->
+    {
+    };
+
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
     private final EndFW endRO = new EndFW();
@@ -115,9 +122,11 @@ public final class McpProxyCacheHydrater
         private final McpProxyCacheListener listener;
 
         private McpLifecycleServer lifecycle;
+        private McpLifecycleServer capabilityLifecycle;
         private boolean lifecycleOpened;
         private boolean stopped;
         private boolean closedNotified;
+        private boolean capabilitiesEstablished;
 
         HandlerImpl(
             McpProxyCache cache,
@@ -145,6 +154,12 @@ public final class McpProxyCacheHydrater
                 final long traceId = supplyTraceId.getAsLong();
                 lifecycle.driveHydrationAbort(traceId);
                 lifecycle = null;
+            }
+            if (capabilityLifecycle != null)
+            {
+                final long traceId = supplyTraceId.getAsLong();
+                capabilityLifecycle.driveHydrationAbort(traceId);
+                capabilityLifecycle = null;
             }
             cache.releaseLock(k -> {});
         }
@@ -188,8 +203,32 @@ public final class McpProxyCacheHydrater
                 }
                 else
                 {
+                    establishCapabilitiesIndependently();
                     notifyClosed();
                 }
+            }
+        }
+
+        // this worker lost the race for the shared hydration lock, so it never drives
+        // McpListClient's south connections and would otherwise never learn this binding's real,
+        // dynamic server capabilities (e.g. resources.subscribe) -- only the lock-winning worker's
+        // content hydration does that today, as a side effect of fetching tools/resources/prompts.
+        // Runs at most once per worker: repeated lock-acquisition retries (see notifyClosed()'s
+        // backoff) must not keep opening additional south lifecycle connections for the same routes.
+        private void establishCapabilitiesIndependently()
+        {
+            if (!capabilitiesEstablished)
+            {
+                capabilitiesEstablished = true;
+                final long traceId = supplyTraceId.getAsLong();
+                final McpBindingConfig binding = supplyBinding.apply(cache.bindingId);
+                final long authorization = cache.guard != null
+                    ? cache.guard.reauthorize(traceId, cache.bindingId, 0L, cache.credentials)
+                    : 0L;
+                cache.markCapabilitiesPending();
+                capabilityLifecycle = lifecycleFactory.newHydrationLifecycle(
+                    binding, NOOP_SINK, cache.bindingId, authorization);
+                capabilityLifecycle.establishCapabilityClients(traceId, cache::markCapabilitiesSettled);
             }
         }
 

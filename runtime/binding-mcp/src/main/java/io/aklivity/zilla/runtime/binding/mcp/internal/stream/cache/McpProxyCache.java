@@ -105,6 +105,16 @@ public final class McpProxyCache
 
     public boolean populated;
 
+    // gates checkReady()/populated for a worker that lost the hydration lock: that worker never
+    // opens the real per-route lifecycle connections McpListClient establishes as a side effect of
+    // content hydration (the only place recordServerCapabilities() is ever invoked), so without an
+    // independent capability handshake (see McpProxyCacheHydrater.establishCapabilitiesIndependently)
+    // its own realCapabilitiesByRoute -- and hence resources.subscribe and friends -- would silently
+    // stay empty forever. Defaults true: the lock-winning worker never touches this flag, since
+    // McpLifecycleClient.onClientBegin() always records a route's capabilities before that route's
+    // content becomes available, so capabilities are already known by the time populated flips there.
+    private boolean capabilitiesSettled = true;
+
     Runnable onReady;
     public ListChangedListener onSettled = (kind, changed, value) -> {};
 
@@ -292,8 +302,27 @@ public final class McpProxyCache
         }
     }
 
+    public void markCapabilitiesPending()
+    {
+        capabilitiesSettled = false;
+    }
+
+    public void markCapabilitiesSettled()
+    {
+        if (!capabilitiesSettled)
+        {
+            capabilitiesSettled = true;
+            checkReady();
+        }
+    }
+
     private void checkReady()
     {
+        if (!capabilitiesSettled)
+        {
+            return;
+        }
+
         for (McpListCache cache : caches.values())
         {
             if (!cache.settled())
