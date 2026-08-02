@@ -1198,7 +1198,6 @@ public class McpKafkaProxyFactory implements BindingHandler
                                     .add("type", "object")
                                     .add("additionalProperties", Json.createObjectBuilder().add("type", "string"))))
                             .add("required", Json.createArrayBuilder().add("name").add("partitions").add("replicas"))))
-                    .add("timeout", Json.createObjectBuilder().add("type", "integer"))
                     .add("validate_only", Json.createObjectBuilder().add("type", "boolean")))
                 .add("required", Json.createArrayBuilder().add("topics"))
                 .build();
@@ -1209,8 +1208,7 @@ public class McpKafkaProxyFactory implements BindingHandler
                 .add("properties", Json.createObjectBuilder()
                     .add("topics", Json.createObjectBuilder()
                         .add("type", "array")
-                        .add("items", Json.createObjectBuilder().add("type", "string")))
-                    .add("timeout", Json.createObjectBuilder().add("type", "integer")))
+                        .add("items", Json.createObjectBuilder().add("type", "string"))))
                 .add("required", Json.createArrayBuilder().add("topics"))
                 .build();
             break;
