@@ -1181,12 +1181,12 @@ public class McpKafkaProxyFactory implements BindingHandler
                         .add("items", Json.createObjectBuilder()
                             .add("type", "object")
                             .add("properties", Json.createObjectBuilder()
-                                .add("name", Json.createObjectBuilder().add("type", "string"))
+                                .add("topic", Json.createObjectBuilder().add("type", "string"))
                                 .add("partitions", Json.createObjectBuilder().add("type", "integer"))
                                 .add("replicas", Json.createObjectBuilder().add("type", "integer"))
                                 .add("assignments", Json.createObjectBuilder().add("type", "array"))
                                 .add("configs", Json.createObjectBuilder().add("type", "object")))
-                            .add("required", Json.createArrayBuilder().add("name").add("partitions").add("replicas"))))
+                            .add("required", Json.createArrayBuilder().add("topic").add("partitions").add("replicas"))))
                     .add("timeout", Json.createObjectBuilder().add("type", "integer"))
                     .add("validate_only", Json.createObjectBuilder().add("type", "boolean")))
                 .add("required", Json.createArrayBuilder().add("topics"))
@@ -1247,6 +1247,7 @@ public class McpKafkaProxyFactory implements BindingHandler
             schema = Json.createObjectBuilder()
                 .add("type", "object")
                 .add("properties", Json.createObjectBuilder())
+                .add("additionalProperties", false)
                 .build();
             break;
         case TOOL_DESCRIBE_CONSUMER_GROUP:
@@ -1370,10 +1371,10 @@ public class McpKafkaProxyFactory implements BindingHandler
                         .add("items", Json.createObjectBuilder()
                             .add("type", "object")
                             .add("properties", Json.createObjectBuilder()
-                                .add("name", Json.createObjectBuilder().add("type", "string"))
+                                .add("topic", Json.createObjectBuilder().add("type", "string"))
                                 .add("error", Json.createObjectBuilder().add("type", "integer"))
                                 .add("error_message", Json.createObjectBuilder().add("type", "string")))
-                            .add("required", Json.createArrayBuilder().add("name").add("error")))))
+                            .add("required", Json.createArrayBuilder().add("topic").add("error")))))
                 .add("required", Json.createArrayBuilder().add("topics"))
                 .build();
             break;
@@ -1386,10 +1387,10 @@ public class McpKafkaProxyFactory implements BindingHandler
                         .add("items", Json.createObjectBuilder()
                             .add("type", "object")
                             .add("properties", Json.createObjectBuilder()
-                                .add("name", Json.createObjectBuilder().add("type", "string"))
+                                .add("topic", Json.createObjectBuilder().add("type", "string"))
                                 .add("error", Json.createObjectBuilder().add("type", "integer"))
                                 .add("error_message", Json.createObjectBuilder().add("type", "string")))
-                            .add("required", Json.createArrayBuilder().add("name").add("error")))))
+                            .add("required", Json.createArrayBuilder().add("topic").add("error")))))
                 .add("required", Json.createArrayBuilder().add("topics"))
                 .build();
             break;
@@ -1476,11 +1477,11 @@ public class McpKafkaProxyFactory implements BindingHandler
                         .add("items", Json.createObjectBuilder()
                             .add("type", "object")
                             .add("properties", Json.createObjectBuilder()
-                                .add("name", Json.createObjectBuilder().add("type", "string"))
+                                .add("topic", Json.createObjectBuilder().add("type", "string"))
                                 .add("partition_count", Json.createObjectBuilder().add("type", "integer"))
                                 .add("replication_factor", Json.createObjectBuilder().add("type", "integer")))
                             .add("required", Json.createArrayBuilder()
-                                .add("name").add("partition_count").add("replication_factor")))))
+                                .add("topic").add("partition_count").add("replication_factor")))))
                 .add("required", Json.createArrayBuilder().add("topics"))
                 .build();
             break;
@@ -1488,13 +1489,13 @@ public class McpKafkaProxyFactory implements BindingHandler
             schema = Json.createObjectBuilder()
                 .add("type", "object")
                 .add("properties", Json.createObjectBuilder()
-                    .add("name", Json.createObjectBuilder().add("type", "string"))
+                    .add("topic", Json.createObjectBuilder().add("type", "string"))
                     .add("partitions", Json.createObjectBuilder()
                         .add("type", "array")
                         .add("items", Json.createObjectBuilder()
                             .add("type", "object")
                             .add("properties", Json.createObjectBuilder()
-                                .add("partition_id", Json.createObjectBuilder().add("type", "integer"))
+                                .add("partition", Json.createObjectBuilder().add("type", "integer"))
                                 .add("leader", Json.createObjectBuilder().add("type", "integer"))
                                 .add("replicas", Json.createObjectBuilder()
                                     .add("type", "array")
@@ -1503,8 +1504,8 @@ public class McpKafkaProxyFactory implements BindingHandler
                                     .add("type", "array")
                                     .add("items", Json.createObjectBuilder().add("type", "integer"))))
                             .add("required", Json.createArrayBuilder()
-                                .add("partition_id").add("leader").add("replicas").add("isr")))))
-                .add("required", Json.createArrayBuilder().add("name").add("partitions"))
+                                .add("partition").add("leader").add("replicas").add("isr")))))
+                .add("required", Json.createArrayBuilder().add("topic").add("partitions"))
                 .build();
             break;
         case TOOL_CLUSTER_OVERVIEW:
@@ -3970,7 +3971,7 @@ public class McpKafkaProxyFactory implements BindingHandler
                         text.append(name);
 
                         apiResultGenerator.writeStartObject()
-                            .write("name", name)
+                            .write("topic", name)
                             .write("error", error);
 
                         if (error != 0)
@@ -4375,7 +4376,7 @@ public class McpKafkaProxyFactory implements BindingHandler
                     text.append(name);
 
                     apiResultGenerator.writeStartObject()
-                        .write("name", name)
+                        .write("topic", name)
                         .write("error", error);
 
                     if (error != 0)
@@ -6906,7 +6907,7 @@ public class McpKafkaProxyFactory implements BindingHandler
                     topicCount++;
 
                     apiResultGenerator.writeStartObject()
-                        .write("name", name)
+                        .write("topic", name)
                         .write("partition_count", topic.partitionCount());
 
                     awaitingFactor = topic.partitionCount() != 0;
@@ -6957,7 +6958,7 @@ public class McpKafkaProxyFactory implements BindingHandler
                 {
                     final KafkaMetadataResponse.Topic topic = response.topic();
                     name = response.buffer().getStringWithoutLengthUtf8(topic.nameOffset(), topic.nameLength());
-                    apiResultGenerator.write("name", name);
+                    apiResultGenerator.write("topic", name);
 
                     isError = topic.error() != 0;
                     if (!isError)
@@ -6970,7 +6971,7 @@ public class McpKafkaProxyFactory implements BindingHandler
                 {
                     final KafkaMetadataResponse.Partition partition = response.partition();
                     apiResultGenerator.writeStartObject()
-                        .write("partition_id", partition.partitionId())
+                        .write("partition", partition.partitionId())
                         .write("leader", partition.leader())
                         .writeStartArray("replicas");
 
