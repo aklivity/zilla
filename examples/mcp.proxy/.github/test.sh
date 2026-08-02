@@ -214,6 +214,10 @@ list_tools() {
 # wait for it here, once, instead of retrying each assertion individually.
 full_toolset_present() {
   echo "$TOOLS_FULL" | grep -q '^everything__' &&
+    # the everything toolkit's resources have their own hydration lag distinct
+    # from its tools -- observed to still be empty for a moment after
+    # everything__* tools and every other toolkit are already fully listed
+    echo "$TOOLS_FULL" | grep -qE '^resource:everything\+' &&
     echo "$TOOLS_FULL" | grep -q '^urlelicit__authorize$' &&
     echo "$TOOLS_FULL" | grep -q '^github__create_pr$' &&
     echo "$TOOLS_FULL" | grep -q '^petstore__list_pets$' &&
@@ -258,7 +262,7 @@ cache_hydrated() {
     TOOLS_FULL=$(list_tools "$JWT_FULL") &&
     full_toolset_present
 }
-retry_until 20 3 cache_hydrated
+retry_until 60 5 cache_hydrated
 if echo "$CACHE_INIT_BODY" | grep -q '"subscribe":true' && full_toolset_present; then
   echo "✅ tools/resources/prompts cache and resources.subscribe capability are hydrated"
 else
