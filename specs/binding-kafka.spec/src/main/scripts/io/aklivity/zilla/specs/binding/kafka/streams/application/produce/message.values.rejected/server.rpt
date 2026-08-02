@@ -117,7 +117,7 @@ read option zilla:ack 12
 write advise zilla:flush ${kafka:flushEx()
                               .typeId(zilla:id("kafka"))
                               .produce()
-                                  .partition(0, 0)
+                                  .partition(0, 1)
                                   .timestamp(newTimestamp)
                                   .build()
                               .build()}
