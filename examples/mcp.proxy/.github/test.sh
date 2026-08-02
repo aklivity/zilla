@@ -723,6 +723,15 @@ KC_CONNECTOR="file-source-demo"
 #       own generated composite -- mcp-openapi -> mcp-http -> http_client --
 #       not a mock), proving the worker's plugin.path resolved the broker
 #       distribution's own libs/ directory
+#
+# kafka-connect's healthcheck (`nc -z 127.0.0.1 8083`) only proves the REST
+# port is listening -- it says nothing about the worker's own async
+# plugin.path scan, which populates /connector-plugins on its own schedule
+# and can still be running well after the port accepts connections. This is
+# the first call in the script to touch Kafka Connect, so it is the one place
+# that race is actually observable; give it the same generous, one-time
+# startup budget as cache_hydrated rather than the standard retry budget used
+# once the worker is already known to be fully up.
 call_kafka_connect_list_plugins() {
   KC_LIST_PLUGINS_OUT=$(docker compose run --rm --no-deps \
       -e JWT_TOKEN="$JWT_FULL" \
@@ -731,7 +740,7 @@ call_kafka_connect_list_plugins() {
       tools-list-client 2>&1)
   echo "$KC_LIST_PLUGINS_OUT" | grep -q 'FileStreamSourceConnector'
 }
-retry_until 10 3 call_kafka_connect_list_plugins
+retry_until 30 5 call_kafka_connect_list_plugins
 echo "KC_LIST_PLUGINS_OUT=$KC_LIST_PLUGINS_OUT"
 if echo "$KC_LIST_PLUGINS_OUT" | grep -q 'FileStreamSourceConnector'; then
   echo "✅ kafka_connect__list_connector_plugins listed the bundled FileStreamSourceConnector from the real worker"
