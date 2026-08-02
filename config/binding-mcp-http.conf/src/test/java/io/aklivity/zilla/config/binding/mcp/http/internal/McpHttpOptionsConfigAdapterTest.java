@@ -177,6 +177,7 @@ public class McpHttpOptionsConfigAdapterTest
         assertThat(options.tools, hasSize(1));
         McpHttpToolConfig tool = options.tools.get(0);
         assertThat(tool.name, equalTo("ping"));
+        assertThat(tool.title, nullValue());
         assertThat(tool.description, nullValue());
         assertThat(tool.summary, nullValue());
         assertThat(tool.input, nullValue());
@@ -217,6 +218,44 @@ public class McpHttpOptionsConfigAdapterTest
     }
 
     @Test
+    public void shouldReadOptionsWithToolTitle()
+    {
+        String yaml =
+                """
+                tools:
+                  create_pr:
+                    title: Create Pull Request
+                    summary: "Created pull request #${result.number}"
+                    schemas:
+                      input:
+                        model: test
+                """;
+
+        McpHttpOptionsConfig options = jsonb.fromJson(yaml, McpHttpOptionsConfig.class);
+
+        McpHttpToolConfig tool = options.tools.get(0);
+        assertThat(tool.title, equalTo("Create Pull Request"));
+        assertThat(tool.annotations, nullValue());
+    }
+
+    @Test
+    public void shouldWriteOptionsWithToolTitle()
+    {
+        McpHttpOptionsConfig options = McpHttpOptionsConfig.builder()
+            .tool(McpHttpToolConfig.builder()
+                .name("create_pr")
+                .title("Create Pull Request")
+                .summary("Created pull request #${result.number}")
+                .build())
+            .build();
+
+        String text = jsonb.toJson(options);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, containsString("title: \"Create Pull Request\""));
+    }
+
+    @Test
     public void shouldReadOptionsWithToolAnnotations()
     {
         String yaml =
@@ -228,7 +267,6 @@ public class McpHttpOptionsConfigAdapterTest
                       input:
                         model: test
                     annotations:
-                      title: Create Pull Request
                       readOnlyHint: false
                       destructiveHint: false
                       idempotentHint: false
@@ -240,7 +278,6 @@ public class McpHttpOptionsConfigAdapterTest
         McpHttpToolConfig tool = options.tools.get(0);
         McpHttpToolAnnotationsConfig annotations = tool.annotations;
         assertThat(annotations, not(nullValue()));
-        assertThat(annotations.title, equalTo("Create Pull Request"));
         assertThat(annotations.readOnlyHint, equalTo(false));
         assertThat(annotations.destructiveHint, equalTo(false));
         assertThat(annotations.idempotentHint, equalTo(false));
@@ -255,7 +292,6 @@ public class McpHttpOptionsConfigAdapterTest
                 .name("create_pr")
                 .summary("Created pull request #${result.number}")
                 .annotations(McpHttpToolAnnotationsConfig.builder()
-                    .title("Create Pull Request")
                     .readOnlyHint(false)
                     .destructiveHint(false)
                     .idempotentHint(false)
@@ -268,7 +304,6 @@ public class McpHttpOptionsConfigAdapterTest
 
         assertThat(text, not(nullValue()));
         assertThat(text, containsString("annotations:"));
-        assertThat(text, containsString("title: \"Create Pull Request\""));
         assertThat(text, containsString("readOnlyHint: false"));
         assertThat(text, containsString("destructiveHint: false"));
         assertThat(text, containsString("idempotentHint: false"));

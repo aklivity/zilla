@@ -21,6 +21,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
@@ -97,20 +98,34 @@ public class McpSchemaRegistryCompositeGeneratorTest
         assertThat(composite.namespaces, hasSize(1));
 
         NamespaceConfig namespace = composite.namespaces.get(0);
-        assertThat(namespace.catalogs, hasSize(1));
+        assertThat(namespace.catalogs, hasSize(2));
         assertThat(namespace.bindings, hasSize(1));
 
         CatalogConfig catalog = namespace.catalogs.get(0);
-        assertThat(catalog.name, equalTo("catalog0"));
+        assertThat(catalog.name, equalTo("specs"));
         assertThat(catalog.type, equalTo("inline"));
 
         InlineOptionsConfig catalogOptions = (InlineOptionsConfig) catalog.options;
         assertThat(catalogOptions.subjects, hasSize(1));
 
         InlineSchemaConfig schema = catalogOptions.subjects.get(0);
-        assertThat(schema.subject, equalTo("schemaregistry"));
+        assertThat(schema.subject, equalTo("schema-registry"));
         assertThat(schema.version, equalTo("latest"));
         assertThat(schema.schema, containsString("\"operationId\":\"list_subjects\""));
+        assertThat(schema.schema, not(containsString("x-zilla-mcp")));
+
+        CatalogConfig overlayCatalog = namespace.catalogs.get(1);
+        assertThat(overlayCatalog.name, equalTo("overlays"));
+        assertThat(overlayCatalog.type, equalTo("inline"));
+
+        InlineOptionsConfig overlayCatalogOptions = (InlineOptionsConfig) overlayCatalog.options;
+        assertThat(overlayCatalogOptions.subjects, hasSize(1));
+
+        InlineSchemaConfig overlaySchema = overlayCatalogOptions.subjects.get(0);
+        assertThat(overlaySchema.subject, equalTo("schema-registry"));
+        assertThat(overlaySchema.version, equalTo("latest"));
+        assertThat(overlaySchema.schema, containsString("x-zilla-mcp"));
+        assertThat(overlaySchema.schema, containsString("List Subjects"));
 
         BindingConfig mcpOpenapi = namespace.bindings.get(0);
         assertThat(mcpOpenapi.name, equalTo("mcp-openapi0"));
@@ -121,14 +136,20 @@ public class McpSchemaRegistryCompositeGeneratorTest
         assertThat(mcpOpenapiOptions.specs, hasSize(1));
 
         McpOpenapiSpecificationConfig spec = mcpOpenapiOptions.specs.get(0);
-        assertThat(spec.label, equalTo("schemaregistry"));
+        assertThat(spec.label, equalTo("schema-registry"));
         assertThat(spec.server, equalTo("http://localhost:8080"));
         assertThat(spec.catalogs, hasSize(1));
 
         McpOpenapiCatalogConfig specCatalog = spec.catalogs.get(0);
-        assertThat(specCatalog.name, equalTo("catalog0"));
-        assertThat(specCatalog.subject, equalTo("schemaregistry"));
+        assertThat(specCatalog.name, equalTo("specs"));
+        assertThat(specCatalog.subject, equalTo("schema-registry"));
         assertThat(specCatalog.version, equalTo("latest"));
+
+        McpOpenapiCatalogConfig specOverlay = spec.overlay;
+        assertThat(specOverlay, notNullValue());
+        assertThat(specOverlay.name, equalTo("overlays"));
+        assertThat(specOverlay.subject, equalTo("schema-registry"));
+        assertThat(specOverlay.version, equalTo("latest"));
 
         assertThat(mcpOpenapi.routes, hasSize(TOOLS.size()));
         for (int i = 0; i < TOOLS.size(); i++)
@@ -140,7 +161,7 @@ public class McpSchemaRegistryCompositeGeneratorTest
             assertThat(when.tool, equalTo(TOOLS.get(i)));
 
             McpOpenapiWithConfig with = (McpOpenapiWithConfig) route.with;
-            assertThat(with.spec, equalTo("schemaregistry"));
+            assertThat(with.spec, equalTo("schema-registry"));
             assertThat(with.operation, equalTo(TOOLS.get(i)));
         }
 

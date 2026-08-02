@@ -23,7 +23,6 @@ public final class McpHttpToolAnnotationsConfigBuilder<T> extends
 {
     private final Function<McpHttpToolAnnotationsConfig, T> mapper;
 
-    private String title;
     private Boolean readOnlyHint;
     private Boolean destructiveHint;
     private Boolean idempotentHint;
@@ -40,13 +39,6 @@ public final class McpHttpToolAnnotationsConfigBuilder<T> extends
     protected Class<McpHttpToolAnnotationsConfigBuilder<T>> thisType()
     {
         return (Class<McpHttpToolAnnotationsConfigBuilder<T>>) getClass();
-    }
-
-    public McpHttpToolAnnotationsConfigBuilder<T> title(
-        String title)
-    {
-        this.title = title;
-        return this;
     }
 
     public McpHttpToolAnnotationsConfigBuilder<T> readOnlyHint(
@@ -81,6 +73,6 @@ public final class McpHttpToolAnnotationsConfigBuilder<T> extends
     public T build()
     {
         return mapper.apply(new McpHttpToolAnnotationsConfig(
-            title, readOnlyHint, destructiveHint, idempotentHint, openWorldHint));
+            readOnlyHint, destructiveHint, idempotentHint, openWorldHint));
     }
 }

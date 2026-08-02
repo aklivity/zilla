@@ -27,10 +27,11 @@ catalogs:
 bindings:
   app0:
     type: mcp-http
-    kind: proxy
+    kind: client
     options:
       tools:
         get_item:
+          title: Get Item
           description: "Get an item"
           summary: "Item retrieved"
           schemas:
@@ -40,15 +41,9 @@ bindings:
                 test0:
                   - subject: get_item_params
                     version: latest
-          annotations:
-            readOnlyHint: true
-            destructiveHint: false
-            idempotentHint: true
-            openWorldHint: false
     routes:
       - when:
           - tool: get_item
-        exit: http0
         with:
           headers:
             ":method": GET

@@ -49,10 +49,8 @@ write zilla:begin.ext ${mcp:beginEx()
 connected
 
 # tools/list is answered entirely from config; no upstream HTTP call
-read  '{"tools":[{"name":"get_item","description":"Get an item",'
-      '"inputSchema":{"type":"object","properties":{"id":{"type":"string"}}},'
-      '"annotations":{"readOnlyHint":true,"destructiveHint":false,'
-      '"idempotentHint":true,"openWorldHint":false}}]}'
+read  '{"tools":[{"name":"get_item","title":"Get Item","description":"Get an item",'
+      '"inputSchema":{"type":"object","properties":{"id":{"type":"string"}}}}]}'
 read closed
 
 write close

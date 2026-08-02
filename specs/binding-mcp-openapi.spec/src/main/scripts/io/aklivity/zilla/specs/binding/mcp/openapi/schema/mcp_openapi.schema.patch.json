@@ -182,6 +182,11 @@
                                         "type": "object",
                                         "properties":
                                         {
+                                            "title":
+                                            {
+                                                "title": "Tool Title",
+                                                "type": "string"
+                                            },
                                             "description":
                                             {
                                                 "title": "Tool Description",
@@ -208,11 +213,6 @@
                                                 "type": "object",
                                                 "properties":
                                                 {
-                                                    "title":
-                                                    {
-                                                        "title": "Title",
-                                                        "type": "string"
-                                                    },
                                                     "readOnlyHint":
                                                     {
                                                         "title": "Read-Only Hint",

@@ -18,7 +18,6 @@ import java.util.function.Function;
 
 public final class McpHttpToolAnnotationsConfig
 {
-    public final String title;
     public final Boolean readOnlyHint;
     public final Boolean destructiveHint;
     public final Boolean idempotentHint;
@@ -36,13 +35,11 @@ public final class McpHttpToolAnnotationsConfig
     }
 
     McpHttpToolAnnotationsConfig(
-        String title,
         Boolean readOnlyHint,
         Boolean destructiveHint,
         Boolean idempotentHint,
         Boolean openWorldHint)
     {
-        this.title = title;
         this.readOnlyHint = readOnlyHint;
         this.destructiveHint = destructiveHint;
         this.idempotentHint = idempotentHint;

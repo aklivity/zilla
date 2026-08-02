@@ -48,10 +48,8 @@ read zilla:begin.ext ${mcp:matchBeginEx()
 
 connected
 
-write '{"tools":[{"name":"get_item","description":"Get an item",'
-      '"inputSchema":{"type":"object","properties":{"id":{"type":"string"}}},'
-      '"annotations":{"readOnlyHint":true,"destructiveHint":false,'
-      '"idempotentHint":true,"openWorldHint":false}}]}'
+write '{"tools":[{"name":"get_item","title":"Get Item","description":"Get an item",'
+      '"inputSchema":{"type":"object","properties":{"id":{"type":"string"}}}}]}'
 write flush
 
 write close

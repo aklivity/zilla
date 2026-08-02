@@ -296,15 +296,15 @@ public class McpOpenapiOptionsConfigAdapterTest
     }
 
     @Test
-    public void shouldReadOptionsWithToolAnnotations()
+    public void shouldReadOptionsWithToolTitleAndAnnotations()
     {
         String text =
             """
             {
               "tools": {
                 "create_pr": {
+                  "title": "Create Pull Request",
                   "annotations": {
-                    "title": "Create Pull Request",
                     "readOnlyHint": false,
                     "destructiveHint": false,
                     "idempotentHint": false,
@@ -318,9 +318,9 @@ public class McpOpenapiOptionsConfigAdapterTest
         McpOpenapiOptionsConfig options = jsonb.fromJson(text, McpOpenapiOptionsConfig.class);
 
         assertThat(options.tools, not(nullValue()));
+        assertThat(options.tools.get(0).title, equalTo("Create Pull Request"));
         McpOpenapiToolAnnotationsConfig annotations = options.tools.get(0).annotations;
         assertThat(annotations, not(nullValue()));
-        assertThat(annotations.title, equalTo("Create Pull Request"));
         assertThat(annotations.readOnlyHint, equalTo(false));
         assertThat(annotations.destructiveHint, equalTo(false));
         assertThat(annotations.idempotentHint, equalTo(false));
@@ -328,17 +328,17 @@ public class McpOpenapiOptionsConfigAdapterTest
     }
 
     @Test
-    public void shouldWriteOptionsWithToolAnnotations()
+    public void shouldWriteOptionsWithToolTitleAndAnnotations()
     {
         String expected =
-            "{\"tools\":{\"create_pr\":{\"annotations\":{\"title\":\"Create Pull Request\"," +
+            "{\"tools\":{\"create_pr\":{\"title\":\"Create Pull Request\",\"annotations\":{" +
             "\"readOnlyHint\":false,\"destructiveHint\":false,\"idempotentHint\":false,\"openWorldHint\":true}}}}";
 
         McpOpenapiOptionsConfig options = McpOpenapiOptionsConfig.builder()
             .tool()
                 .name("create_pr")
+                .title("Create Pull Request")
                 .annotations(McpOpenapiToolAnnotationsConfig.builder()
-                    .title("Create Pull Request")
                     .readOnlyHint(false)
                     .destructiveHint(false)
                     .idempotentHint(false)

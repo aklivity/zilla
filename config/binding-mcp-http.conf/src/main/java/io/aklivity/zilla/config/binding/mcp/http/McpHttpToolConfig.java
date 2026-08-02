@@ -21,6 +21,7 @@ import io.aklivity.zilla.config.engine.ModelConfig;
 public final class McpHttpToolConfig
 {
     public final String name;
+    public final String title;
     public final String summary;
     public final String description;
     public final ModelConfig input;
@@ -47,6 +48,7 @@ public final class McpHttpToolConfig
     // wraps (never possible to be an object)
     McpHttpToolConfig(
         String name,
+        String title,
         String summary,
         String description,
         ModelConfig input,
@@ -55,6 +57,7 @@ public final class McpHttpToolConfig
         McpHttpToolAnnotationsConfig annotations)
     {
         this.name = name;
+        this.title = title;
         this.summary = summary;
         this.description = description;
         this.input = input;

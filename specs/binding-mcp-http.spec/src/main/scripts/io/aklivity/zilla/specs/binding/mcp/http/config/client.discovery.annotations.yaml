@@ -41,7 +41,6 @@ bindings:
                   - subject: get_item_params
                     version: latest
           annotations:
-            title: Get Item
             readOnlyHint: true
             destructiveHint: false
             idempotentHint: true
