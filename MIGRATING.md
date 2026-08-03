@@ -78,7 +78,7 @@ two environment variables in both forms to show that migrating is just
 relocating them, not re-provisioning anything:
 
 ```yaml
-# deprecated
+# 1.x
 bindings:
   app0:
     type: kafka
@@ -93,7 +93,7 @@ bindings:
     routes:
       - exit: net0
 
-# preferred
+# 2.x
 guards:
   guard0:
     type: inline
