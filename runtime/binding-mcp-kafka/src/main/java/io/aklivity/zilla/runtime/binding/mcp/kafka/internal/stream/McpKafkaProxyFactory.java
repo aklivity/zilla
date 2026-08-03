@@ -149,7 +149,7 @@ public class McpKafkaProxyFactory implements BindingHandler
     private static final String KAFKA_TYPE_NAME = "kafka";
 
     private static final String TOOL_PRODUCE_MESSAGE = "produce_message";
-    private static final String TOOL_CONSUME = "consume";
+    private static final String TOOL_CONSUME = "consume_messages";
     private static final String TOOL_CREATE_TOPICS = "create_topics";
     private static final String TOOL_DELETE_TOPICS = "delete_topics";
     private static final String TOOL_DESCRIBE_CONFIGS = "describe_configs";
@@ -1595,6 +1595,34 @@ public class McpKafkaProxyFactory implements BindingHandler
                     .add("topic").add("partition").add("offset").add("timestamp"))
                 .build();
             break;
+        case TOOL_CONSUME:
+            schema = Json.createObjectBuilder()
+                .add("type", "object")
+                .add("properties", Json.createObjectBuilder()
+                    .add("topic", Json.createObjectBuilder().add("type", "string"))
+                    .add("messages", Json.createObjectBuilder()
+                        .add("type", "array")
+                        .add("items", Json.createObjectBuilder()
+                            .add("type", "object")
+                            .add("properties", Json.createObjectBuilder()
+                                .add("key", Json.createObjectBuilder()
+                                    .add("type", Json.createArrayBuilder().add("string").add("null")))
+                                .add("value", Json.createObjectBuilder().add("type", "string"))
+                                .add("partition", Json.createObjectBuilder().add("type", "integer"))
+                                .add("offset", Json.createObjectBuilder().add("type", "integer"))
+                                .add("timestamp", Json.createObjectBuilder().add("type", "integer"))
+                                .add("headers", Json.createObjectBuilder()
+                                    .add("type", "array")
+                                    .add("items", Json.createObjectBuilder()
+                                        .add("type", "object")
+                                        .add("additionalProperties", Json.createObjectBuilder()
+                                            .add("type", "string")))))
+                            .add("required", Json.createArrayBuilder()
+                                .add("value").add("partition").add("offset").add("timestamp").add("headers"))))
+                    .add("count", Json.createObjectBuilder().add("type", "integer")))
+                .add("required", Json.createArrayBuilder().add("topic").add("messages").add("count"))
+                .build();
+            break;
         case TOOL_LIST_CONSUMER_GROUPS:
             schema = Json.createObjectBuilder()
                 .add("type", "object")
@@ -1950,15 +1978,24 @@ public class McpKafkaProxyFactory implements BindingHandler
         private final String key;
         private final List<String[]> headers;
         private final String value;
+        private final int partition;
+        private final long offset;
+        private final long timestamp;
 
         private PendingRecord(
             String key,
             List<String[]> headers,
-            String value)
+            String value,
+            int partition,
+            long offset,
+            long timestamp)
         {
             this.key = key;
             this.headers = headers;
             this.value = value;
+            this.partition = partition;
+            this.offset = offset;
+            this.timestamp = timestamp;
         }
     }
 
@@ -3323,6 +3360,9 @@ public class McpKafkaProxyFactory implements BindingHandler
             {
                 final String key;
                 final List<String[]> headers = new ArrayList<>();
+                final int partition;
+                final long offset;
+                final long timestamp;
 
                 if (fetchDataEx != null)
                 {
@@ -3333,15 +3373,21 @@ public class McpKafkaProxyFactory implements BindingHandler
                         octetsAsString(h.nameLen(), h.name()),
                         octetsAsString(h.valueLen(), h.value())
                     }));
+                    partition = fetchDataEx.partition().partitionId();
+                    offset = fetchDataEx.partition().partitionOffset();
+                    timestamp = fetchDataEx.timestamp();
                 }
                 else
                 {
                     key = null;
+                    partition = -1;
+                    offset = -1L;
+                    timestamp = 0L;
                 }
 
                 final String value = payload.buffer().getStringWithoutLengthUtf8(payload.offset(), payload.sizeof());
 
-                consumeQueue.add(new PendingRecord(key, headers, value));
+                consumeQueue.add(new PendingRecord(key, headers, value, partition, offset, timestamp));
                 consumeCount++;
 
                 if (consumeCount >= consumeLimit)
@@ -3607,7 +3653,8 @@ public class McpKafkaProxyFactory implements BindingHandler
                     {
                         final MutableDirectBufferEx slot = encodePool.buffer(encodeSlot);
                         consumeGenerator.wrap(slot, encodeSlotOffset, encodePool.slotCapacity());
-                        status = consumeResult.record(next.key, next.headers, next.value);
+                        status = consumeResult.record(next.key, next.headers, next.value,
+                            next.partition, next.offset, next.timestamp);
                         encodeSlotOffset += consumeGenerator.length();
                     }
                     else
