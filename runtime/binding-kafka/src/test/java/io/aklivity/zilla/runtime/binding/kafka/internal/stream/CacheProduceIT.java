@@ -216,6 +216,17 @@ public class CacheProduceIT
     @Test
     @Configuration("cache.yaml")
     @Specification({
+        "${app}/message.value.after.fan.reply.abort/client",
+        "${app}/message.value.after.fan.reply.abort/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldSendMessageValueAfterFanReplyAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.yaml")
+    @Specification({
         "${app}/message.value.10k/client",
         "${app}/message.value.10k/server"})
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
