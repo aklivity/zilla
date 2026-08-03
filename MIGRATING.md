@@ -164,7 +164,6 @@ this document:
 
 | Item | Deprecated in favor of | Notes |
 | --- | --- | --- |
-| `guard-inline`'s `identity` type alias | `type: inline` | Leftover from an in-development rename ahead of 2.0.0; never shipped in a 1.x release, so not a migration concern, but still dead weight in the schema/codebase |
 | `binding-kafka` `options.sasl` | `options.authorization` (guard-based) | Schema still marks it `deprecated: true` but continues to validate and function |
 
 None of these are removed by this document — they require their own review
