@@ -98,22 +98,15 @@ public final class KafkaBindingConfig
     public KafkaSaslConfig sasl()
     {
         KafkaSaslConfig sasl = null;
-        if (options != null)
+        if (options != null && options.authorization != null && guard != null)
         {
-            if (options.sasl != null)
-            {
-                sasl = options.sasl;
-            }
-            else if (options.authorization != null && guard != null)
-            {
-                KafkaSaslCredentialsConfig credentials = options.authorization.credentials;
-                sasl = KafkaSaslConfig.builder()
-                    .mechanism(credentials.mechanism)
-                    .username(credentials.username)
-                    .password(credentials.password)
-                    .token(credentials.token)
-                    .build();
-            }
+            KafkaSaslCredentialsConfig credentials = options.authorization.credentials;
+            sasl = KafkaSaslConfig.builder()
+                .mechanism(credentials.mechanism)
+                .username(credentials.username)
+                .password(credentials.password)
+                .token(credentials.token)
+                .build();
         }
         return sasl;
     }

@@ -35,7 +35,6 @@ public final class KafkaOptionsConfigAdapter implements JsonbAdapter<OptionsConf
     private static final String BOOTSTRAP_NAME = "bootstrap";
     private static final String SERVERS_NAME = "servers";
     private static final String TOPICS_NAME = "topics";
-    private static final String SASL_NAME = "sasl";
     private static final String SASL_MECHANISM_NAME = "mechanism";
     private static final String SASL_PLAIN_USERNAME_NAME = "username";
     private static final String SASL_PLAIN_PASSWORD_NAME = "password";
@@ -79,17 +78,6 @@ public final class KafkaOptionsConfigAdapter implements JsonbAdapter<OptionsConf
             kafkaOptions.servers.forEach(s -> entries.add(String.format("%s:%d", s.host, s.port)));
 
             object.add(SERVERS_NAME, entries);
-        }
-
-        if (kafkaOptions.sasl != null)
-        {
-            JsonObjectBuilder sasl = Json.createObjectBuilder();
-
-            sasl.add(SASL_MECHANISM_NAME, kafkaOptions.sasl.mechanism);
-            sasl.add(SASL_PLAIN_USERNAME_NAME, kafkaOptions.sasl.username);
-            sasl.add(SASL_PLAIN_PASSWORD_NAME, kafkaOptions.sasl.password);
-
-            object.add(SASL_NAME, sasl);
         }
 
         if (kafkaOptions.authorization != null)
@@ -153,17 +141,6 @@ public final class KafkaOptionsConfigAdapter implements JsonbAdapter<OptionsConf
                         .host(m.group(1))
                         .port(Integer.parseInt(m.group(2)))
                         .build());
-        }
-
-        if (object.containsKey(SASL_NAME))
-        {
-            JsonObject sasl = object.getJsonObject(SASL_NAME);
-            String mechanism = sasl.getString(SASL_MECHANISM_NAME);
-            options.sasl()
-                .mechanism(mechanism)
-                .username(sasl.getString(SASL_PLAIN_USERNAME_NAME))
-                .password(sasl.getString(SASL_PLAIN_PASSWORD_NAME))
-                .build();
         }
 
         if (object.containsKey(AUTHORIZATION_NAME))
