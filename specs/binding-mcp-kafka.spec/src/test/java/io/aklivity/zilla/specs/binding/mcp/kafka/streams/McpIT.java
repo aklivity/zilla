@@ -209,18 +209,36 @@ public class McpIT
 
     @Test
     @Specification({
-        "${mcp}/describe.configs/client",
-        "${mcp}/describe.configs/server"})
-    public void shouldDescribeConfigs() throws Exception
+        "${mcp}/describe.topic.configs/client",
+        "${mcp}/describe.topic.configs/server"})
+    public void shouldDescribeTopicConfigs() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${mcp}/alter.configs/client",
-        "${mcp}/alter.configs/server"})
-    public void shouldAlterConfigs() throws Exception
+        "${mcp}/describe.broker.configs/client",
+        "${mcp}/describe.broker.configs/server"})
+    public void shouldDescribeBrokerConfigs() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mcp}/alter.topic.configs/client",
+        "${mcp}/alter.topic.configs/server"})
+    public void shouldAlterTopicConfigs() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mcp}/alter.broker.configs/client",
+        "${mcp}/alter.broker.configs/server"})
+    public void shouldAlterBrokerConfigs() throws Exception
     {
         k3po.finish();
     }

@@ -127,17 +127,33 @@ public class SchemaTest
     }
 
     @Test
-    public void shouldValidateClientDescribeConfigs()
+    public void shouldValidateClientDescribeTopicConfigs()
     {
-        JsonObject config = schema.validate("client.describe.configs.yaml");
+        JsonObject config = schema.validate("client.describe.topic.configs.yaml");
 
         assertThat(config, not(nullValue()));
     }
 
     @Test
-    public void shouldValidateClientAlterConfigs()
+    public void shouldValidateClientDescribeBrokerConfigs()
     {
-        JsonObject config = schema.validate("client.alter.configs.yaml");
+        JsonObject config = schema.validate("client.describe.broker.configs.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateClientAlterTopicConfigs()
+    {
+        JsonObject config = schema.validate("client.alter.topic.configs.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateClientAlterBrokerConfigs()
+    {
+        JsonObject config = schema.validate("client.alter.broker.configs.yaml");
 
         assertThat(config, not(nullValue()));
     }

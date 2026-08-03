@@ -116,41 +116,61 @@ public class McpKafkaClientIT
     }
 
     @Test
-    @Configuration("client.describe.configs.yaml")
+    @Configuration("client.describe.topic.configs.yaml")
     @Specification({
-        "${mcp}/describe.configs/client",
+        "${mcp}/describe.topic.configs/client",
         "${kafka}/describe.configs/server"})
-    public void shouldDescribeConfigs() throws Exception
+    public void shouldDescribeTopicConfigs() throws Exception
     {
         k3po.finish();
     }
 
     @Test
-    @Configuration("client.describe.configs.yaml")
+    @Configuration("client.describe.topic.configs.yaml")
     @Specification({
-        "${mcp}/describe.configs/client",
+        "${mcp}/describe.topic.configs/client",
         "${kafka}/describe.configs.negotiated/server"})
-    public void shouldDescribeConfigsNegotiated() throws Exception
+    public void shouldDescribeTopicConfigsNegotiated() throws Exception
     {
         k3po.finish();
     }
 
     @Test
-    @Configuration("client.alter.configs.yaml")
+    @Configuration("client.describe.broker.configs.yaml")
     @Specification({
-        "${mcp}/alter.configs/client",
+        "${mcp}/describe.broker.configs/client",
+        "${kafka}/describe.broker.configs/server"})
+    public void shouldDescribeBrokerConfigs() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.alter.topic.configs.yaml")
+    @Specification({
+        "${mcp}/alter.topic.configs/client",
         "${kafka}/alter.configs/server"})
-    public void shouldAlterConfigs() throws Exception
+    public void shouldAlterTopicConfigs() throws Exception
     {
         k3po.finish();
     }
 
     @Test
-    @Configuration("client.alter.configs.yaml")
+    @Configuration("client.alter.topic.configs.yaml")
     @Specification({
-        "${mcp}/alter.configs/client",
+        "${mcp}/alter.topic.configs/client",
         "${kafka}/alter.configs.negotiated/server"})
-    public void shouldAlterConfigsNegotiated() throws Exception
+    public void shouldAlterTopicConfigsNegotiated() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.alter.broker.configs.yaml")
+    @Specification({
+        "${mcp}/alter.broker.configs/client",
+        "${kafka}/alter.broker.configs/server"})
+    public void shouldAlterBrokerConfigs() throws Exception
     {
         k3po.finish();
     }

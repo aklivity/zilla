@@ -200,6 +200,24 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/describe.broker.configs/client",
+        "${kafka}/describe.broker.configs/server"})
+    public void shouldDescribeBrokerConfigs() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/alter.broker.configs/client",
+        "${kafka}/alter.broker.configs/server"})
+    public void shouldAlterBrokerConfigs() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/list.acls/client",
         "${kafka}/list.acls/server"})
     public void shouldListAcls() throws Exception
