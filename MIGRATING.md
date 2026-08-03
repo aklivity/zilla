@@ -148,6 +148,181 @@ zilla start -Pzilla.engine.service.hostname=mqtt-1.example.com
 the `service.hostname` engine configuration property instead (it is not a
 `zilla.yaml` binding option).
 
+### `binding-mqtt`: `kind: server` now requires `options.store`
+
+Session state for a `kind: server` mqtt binding is now backed by a
+referenced `store` binding instead of living only in engine memory, so
+`options.store` is required (and `options` itself must be present).
+
+```yaml
+# 1.x
+bindings:
+  mqtt_server0:
+    type: mqtt
+    kind: server
+    options:
+      versions: [v5]
+    exit: app0
+
+# 2.x
+bindings:
+  mqtt_server0:
+    type: mqtt
+    kind: server
+    options:
+      versions: [v5]
+      store: store0
+    exit: app0
+stores:
+  store0:
+    type: memory   # or another store implementation
+```
+
+**Action:** add `options.store` (referencing a configured `store` binding,
+e.g. `store-memory`) to every `mqtt` binding with `kind: server`.
+
+### `binding-tcp`: `routes[].exit` is now actually enforced for `kind: server`
+
+A 1.x schema authoring bug wrote `routes: { required: [exit] }` directly on
+the array-typed `routes` schema, where `required` has no effect — a
+`kind: server` tcp binding could have a route with no `exit` and still pass
+validation. 2.x fixes the schema to place `required: [exit]` on each route
+item instead, and requires the array to be non-empty. A config that relied
+on the old, unenforced schema would already misbehave at runtime (a route
+with nowhere to send the stream), so this only surfaces a pre-existing
+problem earlier, at validation time.
+
+**Action:** if a 2.x tcp `kind: server` binding fails validation on
+`routes`, add an `exit` to every route item.
+
+### `binding-openapi` / `binding-asyncapi` / `binding-openapi-asyncapi`: `options.specs.<name>.servers` is now a list of strings, and required
+
+`options.specs.<name>.servers` used to be a list of server objects
+(`{ url, host, pathname }` for asyncapi/openapi-asyncapi; `{ url }` for
+openapi). It is now a list of plain strings, and `servers` itself is
+required under every `specs` entry (it was optional in 1.x).
+
+```yaml
+# 1.x
+options:
+  specs:
+    petstore:
+      servers:
+        - url: api.example.com:443
+
+# 2.x
+options:
+  specs:
+    petstore:
+      servers:
+        - api.example.com:443
+```
+
+**Action:** change every `options.specs.<name>.servers` entry from a list
+of `{url: ...}` objects to a list of plain URL strings, and make sure
+`servers` is present under every `specs` entry — it can no longer be
+omitted.
+
+### `binding-asyncapi` / `binding-openapi-asyncapi`: route conditions renamed, `kind: client` no longer routes
+
+Unlike `binding-openapi` (which never supported `routes` in 1.x — routing
+there is new in 2.x, not a rename of anything), `binding-asyncapi` and
+`binding-openapi-asyncapi` did support `routes[].when[].api-id` /
+`operation-id` (and the equivalent `routes[].with.api-id` / `operation-id`)
+in 1.x. In 2.x these are renamed to `spec` / `operation` (plus a new `tag`
+and per-route `servers` condition), and the old property names are now
+rejected outright rather than silently ignored. `routes[].with` is also no
+longer accepted on a `kind: server` route. Additionally, `kind: client`
+bindings no longer accept `routes` at all — 1.x allowed a client-kind
+`routes` list (with `exit` forbidden per item); 2.x rejects `routes`
+entirely for `kind: client`.
+
+```yaml
+# 1.x
+bindings:
+  asyncapi0:
+    type: asyncapi
+    kind: server
+    routes:
+      - when:
+          - api-id: petstore
+            operation-id: getPets
+        exit: app0
+
+# 2.x
+bindings:
+  asyncapi0:
+    type: asyncapi
+    kind: server
+    routes:
+      - when:
+          - spec: petstore
+            operation: getPets
+        exit: app0
+```
+
+**Action:** rename `api-id`/`operation-id` to `spec`/`operation` in every
+`routes[].when[]` (and drop `routes[].with.api-id`/`operation-id`, which no
+longer resolves) for `asyncapi` and `openapi-asyncapi` bindings; if a
+`kind: client` binding has a `routes` list, remove it — client bindings
+must use a plain `exit` instead.
+
+### `binding-mcp`: options and routes restructured
+
+The 1.x `mcp` binding's options and routing model has changed:
+
+- `options.prompts` (a local, inline list of prompt name/description
+  entries) has been removed entirely — no config-level replacement.
+- `options.authorization` changes from `{ name: <guardName> }` to a
+  guard-name-keyed map: `{ <guardName>: { credentials: ... } }`.
+- `routes[].when[].capability` (an enum array of `tools`/`prompts`/
+  `resources`) is replaced by separate `tool` / `prompt` / `resource`
+  condition keys (each a string or array of strings).
+- `kind: server` bindings no longer accept `routes` at all.
+- `kind: client` bindings now require a new `options.server` (a URI).
+
+```yaml
+# 1.x
+bindings:
+  mcp_server0:
+    type: mcp
+    kind: server
+    options:
+      authorization:
+        name: guard0
+    routes:
+      - when:
+          - capability: [tools]
+        exit: app0
+
+# 2.x — kind: server can no longer route; move dispatch to the exit binding
+bindings:
+  mcp_server0:
+    type: mcp
+    kind: server
+    options:
+      authorization:
+        guard0:
+          credentials: "Bearer {credentials}"
+    exit: app0
+```
+
+**Action:** treat this as a from-scratch reconfiguration per `kind` rather
+than a field rename — drop `options.prompts`, re-key `options.authorization`
+by guard name, replace `capability` route conditions with
+`tool`/`prompt`/`resource`, remove `routes` from `kind: server` bindings,
+and add `options.server` to `kind: client` bindings.
+
+## Guards
+
+### `guard-jwt`: `kind` is no longer accepted
+
+The guard-level `kind` property (already meaningless for guards, and
+already rejected for `guard-aws-cognito`) is now explicitly disallowed for
+`type: jwt` too. This only affects a config that literally set `kind:` on a
+jwt guard entry — unusual, and not something any shipped spec or example
+did.
+
 ## Apache Kafka compatibility
 
 Zilla 2.x's Kafka client and cache targets **Apache Kafka 2.8.0 or higher**.
