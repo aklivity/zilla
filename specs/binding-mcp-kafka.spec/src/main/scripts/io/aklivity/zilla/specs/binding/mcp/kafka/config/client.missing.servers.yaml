@@ -22,4 +22,4 @@ bindings:
     options: {}
     routes:
       - when:
-          - tool: produce
+          - tool: produce_message

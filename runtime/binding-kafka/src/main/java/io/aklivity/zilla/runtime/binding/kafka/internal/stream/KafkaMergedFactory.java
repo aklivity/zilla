@@ -89,6 +89,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaMerged
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaMergedProduceFlushExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaMetaDataExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaOffsetFetchDataExFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaProduceFlushExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaResetExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaTopicPartitionFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaTopicPartitionOffsetFW;
@@ -1403,7 +1404,7 @@ public final class KafkaMergedFactory implements BindingHandler
 
             final int partitionId = nextPartitionData(hashKey, EMPTY_KEY);
 
-            doMergedProduceReplyFlush(traceId, partitionId);
+            doMergedProduceReplyFlush(traceId, partitionId, -1L, -1L);
         }
 
         private void onMergedFetchFlush(
@@ -1873,11 +1874,16 @@ public final class KafkaMergedFactory implements BindingHandler
 
         private void doMergedProduceReplyFlush(
             long traceId,
-            int partitionId)
+            int partitionId,
+            long partitionOffset,
+            long timestamp)
         {
             final KafkaFlushExFW kafkaFlushExFW = kafkaFlushExRW.wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(kafkaTypeId)
-                .merged(mc -> mc.produce(c -> c.partitionId(partitionId)))
+                .merged(mc -> mc.produce(c -> c
+                    .partitionId(partitionId)
+                    .partitionOffset(partitionOffset)
+                    .timestamp(timestamp)))
                 .build();
 
             doFlush(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
@@ -4169,6 +4175,10 @@ public final class KafkaMergedFactory implements BindingHandler
                 final AbortFW abort = abortRO.wrap(buffer, index, index + length);
                 onProduceReplyAbort(abort);
                 break;
+            case FlushFW.TYPE_ID:
+                final FlushFW flush = flushRO.wrap(buffer, index, index + length);
+                onProduceReplyFlush(flush);
+                break;
             case ResetFW.TYPE_ID:
                 final ResetFW reset = resetRO.wrap(buffer, index, index + length);
                 onProduceInitialReset(reset);
@@ -4180,6 +4190,19 @@ public final class KafkaMergedFactory implements BindingHandler
             default:
                 break;
             }
+        }
+
+        private void onProduceReplyFlush(
+            FlushFW flush)
+        {
+            final long traceId = flush.traceId();
+            final OctetsFW extension = flush.extension();
+            final KafkaFlushExFW kafkaFlushEx = extension.get(kafkaFlushExRO::wrap);
+            final KafkaProduceFlushExFW kafkaProduceFlushEx = kafkaFlushEx.produce();
+            final long partitionOffset = kafkaProduceFlushEx.partition().partitionOffset();
+            final long timestamp = kafkaProduceFlushEx.timestamp();
+
+            merged.doMergedProduceReplyFlush(traceId, partitionId, partitionOffset, timestamp);
         }
 
         private void onProduceReplyBegin(

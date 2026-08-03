@@ -45,14 +45,14 @@ read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .toolsCall()
                               .sessionId("session-1")
-                              .name("produce")
+                              .name("produce_message")
                               .contentLength(65)
                               .build()
                           .build()}
 
 connected
 
-read '{"name":"produce","arguments":{"topic":"orders","value":"hello"}}'
+read '{"name":"produce_message","arguments":{"topic":"orders","value":"hello"}}'
 
 write notify KAFKA_PRODUCE_READY
 

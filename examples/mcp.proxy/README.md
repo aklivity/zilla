@@ -37,7 +37,7 @@ This one configuration exercises all eight `mcp*` binding kinds:
 | `mcp-openapi` | `client` | Synthesizes MCP tools from an OpenAPI document, backed by a plain REST API (`petstore` toolkit) |
 | `mcp-schema-registry` | `client` | Exposes a fixed, bundled tool set for the Karapace/Confluent Schema Registry REST API -- no operator-authored OpenAPI document, unlike `mcp-openapi` (`kafka_sr` toolkit) |
 | `mcp-kafka-connect` | `client` | Exposes a fixed, bundled tool set for the Kafka Connect REST API (`list_connectors`/`create_connector`/`describe_connector`/`delete_connector`/`describe_connector_config`/`update_connector_config`/`validate_connector_config`/`describe_connector_status`/`restart_connector`/`pause_connector`/`resume_connector`/`stop_connector`/`list_connector_tasks`/`restart_connector_task`/`describe_connector_offsets`/`alter_connector_offsets`/`reset_connector_offsets`/`list_connector_plugins`) as intrinsic MCP tools against a real Kafka Connect worker (`kafka_connect` toolkit) |
-| `mcp-kafka` | `client` | Exposes Kafka broker operations (`produce`/`consume_messages`/`create_topics`/`delete_topics`/`describe_configs`/`alter_configs`/`list_acls`/`create_acls`/`delete_acls`/`list_topics`/`describe_topic`/`cluster_overview`/`list_brokers`/`describe_cluster`/`list_consumer_groups`/`describe_consumer_group`/`describe_consumer_group_lag`/`reset_offsets`) as intrinsic MCP tools, generating its own `kafka_cache_client → kafka_client → tcp_client` pipeline against a real broker (`kafka` toolkit) |
+| `mcp-kafka` | `client` | Exposes Kafka broker operations (`produce_message`/`consume_messages`/`create_topics`/`delete_topics`/`describe_configs`/`alter_configs`/`list_acls`/`create_acls`/`delete_acls`/`list_topics`/`describe_topic`/`cluster_overview`/`list_brokers`/`describe_cluster`/`list_consumer_groups`/`describe_consumer_group`/`describe_consumer_group_lag`/`reset_offsets`) as intrinsic MCP tools, generating its own `kafka_cache_client → kafka_client → tcp_client` pipeline against a real broker (`kafka` toolkit) |
 
 ## Authorization model
 
@@ -59,7 +59,7 @@ the pipeline, each demonstrating a different mechanism:
 | `mcp(proxy)` route for `kafka_connect` toolkit | `routes[].guarded` on the toolkit route | `kafka_connect:tools` |
 | `mcp-kafka-connect(client)` route for connector/task/offset-mutating tools | a second, tool-specific `routes[].guarded` on the binding's own `when.tool` route (every mutating tool coalesced into one route), layered under the toolkit-level gate above | `kafka_connect:tools` **and** `kafka_connect:admin` |
 | `mcp(proxy)` route for `kafka` toolkit | `routes[].guarded` on the toolkit route | `kafka:tools` |
-| `mcp-kafka(client)` route for `produce` | a second, tool-specific `routes[].guarded` on the binding's own `when.tool` route, layered under the toolkit-level gate above | `kafka:tools` **and** `kafka:write` |
+| `mcp-kafka(client)` route for `produce_message` | a second, tool-specific `routes[].guarded` on the binding's own `when.tool` route, layered under the toolkit-level gate above | `kafka:tools` **and** `kafka:write` |
 | `mcp-kafka(client)` route for `create_topics` / `delete_topics` / `alter_configs` / `reset_offsets` | a second, tool-specific `routes[].guarded` on the binding's own `when.tool` route (all four tools coalesced into one route, since all four need the same scope), layered under the toolkit-level gate above | `kafka:tools` **and** `kafka:admin` |
 | `mcp-kafka(client)` route for `create_acls` / `delete_acls` | a second, tool-specific `routes[].guarded` on the binding's own `when.tool` route (both tools coalesced into one route), layered under the toolkit-level gate above, but with its own scope rather than reusing `kafka:admin` | `kafka:tools` **and** `kafka:acls` |
 
@@ -97,7 +97,7 @@ catch-all glob route.
 `cluster_overview`, `list_brokers`, `describe_cluster`,
 `list_consumer_groups`, `describe_consumer_group`, and
 `describe_consumer_group_lag` need only the
-toolkit-level `kafka:tools` scope (all read-only), `produce` additionally
+toolkit-level `kafka:tools` scope (all read-only), `produce_message` additionally
 requires `kafka:write` since it mutates topic data, and the admin-risk
 `create_topics`, `delete_topics`, `alter_configs`, and `reset_offsets` route
 requires `kafka:admin` instead -- same mechanism as `register_schema`,
@@ -236,7 +236,7 @@ frequently used tools -- `everything__echo`, `urlelicit__authorize`,
 `kafka_sr__register_schema`, `kafka_connect__list_connector_plugins`,
 `kafka_connect__list_connectors`, `kafka_connect__describe_connector`,
 `kafka_connect__create_connector`, `kafka_connect__delete_connector`,
-`kafka__produce`, `kafka__consume_messages`,
+`kafka__produce_message`, `kafka__consume_messages`,
 `kafka__create_topics`, `kafka__delete_topics`, `kafka__describe_configs`,
 `kafka__alter_configs`, `kafka__list_acls`, `kafka__create_acls`,
 `kafka__delete_acls`, `kafka__list_topics`, `kafka__describe_topic`,
@@ -276,7 +276,7 @@ kafka_connect__list_connectors
 kafka_connect__describe_connector
 kafka_connect__create_connector
 kafka_connect__delete_connector
-kafka__produce
+kafka__produce_message
 kafka__consume_messages
 kafka__create_topics
 kafka__delete_topics
@@ -653,18 +653,18 @@ tcp_client` pipeline directly from `options.servers`, talking to the real,
 single-node KRaft-mode Kafka broker this example starts
 (`kafka.examples.dev:9092`, the `kafka` compose service; the `orders` topic
 is created by the one-shot `kafka-init` service, though
-`KAFKA_AUTO_CREATE_TOPICS_ENABLE` would create it anyway on first produce).
+`KAFKA_AUTO_CREATE_TOPICS_ENABLE` would create it anyway on first produce_message call).
 
 Both routes below restrict their tool to exactly the `orders` topic --
 `tool` and `topics` together in one `when` form an allow-list (exact names or
-`*`-glob patterns), not just a dispatch by tool name; a `produce`/`consume_messages`
+`*`-glob patterns), not just a dispatch by tool name; a `produce_message`/`consume_messages`
 call naming any other topic has no matching route and is rejected.
 
 Produce a record with the full-scope `$JWT_TOKEN` from above:
 
 ```bash
 docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
-    -e CALL_TOOL=kafka__produce \
+    -e CALL_TOOL=kafka__produce_message \
     -e CALL_ARGS='{"topic":"orders","value":"hello from mcp-kafka"}' \
     tools-list-client
 # Produced record to orders topic
@@ -684,15 +684,15 @@ docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
 ```
 
 The second line is the tool result's raw `structuredContent` -- each message
-carries its Kafka `key` (`null` here, since `produce` was not given one),
-`value`, `partition`, `offset`, `timestamp`, and `headers`. Both `produce` and
+carries its Kafka `key` (`null` here, since `produce_message` was not given one),
+`value`, `partition`, `offset`, `timestamp`, and `headers`. Both `produce_message` and
 `consume_messages` stream incrementally
 rather than buffering the whole request or result in memory: arguments are
 parsed as they arrive, and consumed records are written to the reply as each
 one comes off the broker, so neither tool is bounded by how large a single
 value or a full result set happens to be.
 
-Unlike `produce`/`consume_messages`, `create_topics` and `delete_topics` have no
+Unlike `produce_message`/`consume_messages`, `create_topics` and `delete_topics` have no
 `topics` allow-list on their route -- each takes an array of topics as call
 arguments, not a single routed topic, and both share one route gated by
 `kafka:admin` (see "Authorization model" above) instead of a route each.
@@ -801,13 +801,13 @@ resource once an ACL actually exists for it. `create_acls` above deliberately
 targets the `orders` topic to demonstrate that consequence directly: once
 `User:bob`'s grant exists, a caller with no matching ALLOW ACL of their own
 is no longer implicitly permitted against `orders`, so revoke it with
-`delete_acls` when you are done experimenting, or subsequent `produce`/
+`delete_acls` when you are done experimenting, or subsequent `produce_message`/
 `consume_messages` calls in this same broker session may be denied.
 
 `list_topics`, `describe_topic`, and `cluster_overview` are read-only
 cluster/topic metadata tools built the same way `create_topics`/
 `delete_topics` are -- against the real Kafka broker's Metadata API, not a
-mock. Unlike `produce`/`consume_messages`, none of the three take a `topics`
+mock. Unlike `produce_message`/`consume_messages`, none of the three take a `topics`
 allow-list on their route: `list_topics` and `cluster_overview` request
 metadata for every topic on the broker, and `describe_topic` names its one
 topic as a call argument rather than a route match. All three need only the
@@ -852,7 +852,7 @@ docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
 ### List brokers and describe the cluster
 
 `list_brokers` and `describe_cluster` are read-only cluster introspection --
-unlike `produce`/`consume_messages` and `create_topics`/`delete_topics`, they take no
+unlike `produce_message`/`consume_messages` and `create_topics`/`delete_topics`, they take no
 arguments and have no topic to route on, so they share `consume_messages`'s unscoped
 `kafka:tools`-only route rather than requiring `kafka:admin`. Both issue the
 same Kafka `DescribeCluster` request through `KafkaApiDescribeClusterClient`,
@@ -882,7 +882,7 @@ that varies per broker startup.
 `list_consumer_groups`, `describe_consumer_group`,
 `describe_consumer_group_lag`, and `reset_offsets` round out `mcp-kafka` with
 consumer group management, against the same real broker as
-`produce`/`consume_messages`/`create_topics`/`delete_topics` above.
+`produce_message`/`consume_messages`/`create_topics`/`delete_topics` above.
 `list_consumer_groups`, `describe_consumer_group`, and
 `describe_consumer_group_lag` are read-only, needing only the toolkit-level
 `kafka:tools` scope; `reset_offsets` shares `create_topics`/`delete_topics`'

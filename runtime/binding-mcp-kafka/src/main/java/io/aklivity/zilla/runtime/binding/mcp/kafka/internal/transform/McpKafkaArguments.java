@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.kafka.internal.transform;
 
+import java.util.List;
 import java.util.Map;
 
 import io.aklivity.zilla.runtime.common.json.JsonController;
@@ -24,13 +25,18 @@ import io.aklivity.zilla.runtime.common.json.JsonSource;
 
 /**
  * Terminal {@link JsonSink} that captures the fixed set of scalar tool-call argument fields
- * mcp-kafka's flat-argument tools accept ({@code produce}/{@code consume}: {@code arguments.topic},
+ * mcp-kafka's flat-argument tools accept ({@code produce_message}/{@code consume}: {@code arguments.topic},
  * {@code arguments.key}, {@code arguments.value}, {@code arguments.partition},
  * {@code arguments.offset}, {@code arguments.limit}; {@code describe_consumer_group},
  * {@code reset_offsets}: {@code arguments.group_id}) as the request body
  * streams in, without buffering the whole body first. There is no downstream stage -- captured
  * values are read back from {@code captured} once the pipeline reports {@link Status#COMPLETED}
  * -- so every event is observed here and never forwarded.
+ *
+ * {@code produce_message}'s {@code arguments.headers} is handled separately from the scalar
+ * {@code PATHS}: it is an array of objects (collision-splitting representation, see #2281), so
+ * matching it walks into array/object capture instead of a single scalar value, flattening every
+ * {@code name}/{@code value} pair across all array elements into {@code headers} in document order.
  */
 public final class McpKafkaArguments implements JsonSink
 {
@@ -45,24 +51,37 @@ public final class McpKafkaArguments implements JsonSink
         "arguments.group_id"
     };
 
+    private static final String HEADERS_PATH = "arguments.headers";
+    private static final int HEADERS_AWAITING = -2;
+
     private final Map<String, String> captured;
+    private final List<String[]> headers;
     private final String[][] segments;
     private final int[] matched;
+    private final String[] headersSegments;
     private final StringBuilder text = new StringBuilder();
+    private final StringBuilder headerValue = new StringBuilder();
 
     private int depth;
     private int awaiting = -1;
+    private int headersMatched;
+    private boolean inHeaders;
+    private int headersArrayDepth;
+    private String headerName;
 
     public McpKafkaArguments(
-        Map<String, String> captured)
+        Map<String, String> captured,
+        List<String[]> headers)
     {
         this.captured = captured;
+        this.headers = headers;
         this.segments = new String[PATHS.length][];
         for (int i = 0; i < PATHS.length; i++)
         {
             this.segments[i] = PATHS[i].split("\\.");
         }
         this.matched = new int[PATHS.length];
+        this.headersSegments = HEADERS_PATH.split("\\.");
     }
 
     @Override
@@ -71,6 +90,12 @@ public final class McpKafkaArguments implements JsonSink
         depth = 0;
         awaiting = -1;
         text.setLength(0);
+        headerValue.setLength(0);
+        headersMatched = 0;
+        inHeaders = false;
+        headersArrayDepth = 0;
+        headerName = null;
+        headers.clear();
         for (int i = 0; i < matched.length; i++)
         {
             matched[i] = 0;
@@ -89,9 +114,23 @@ public final class McpKafkaArguments implements JsonSink
         JsonSource source,
         JsonEvent event)
     {
-        if (awaiting != -1)
+        if (awaiting == HEADERS_AWAITING)
+        {
+            if (event == JsonEvent.START_ARRAY)
+            {
+                inHeaders = true;
+                headersArrayDepth = depth + 1;
+            }
+            awaiting = -1;
+        }
+        else if (awaiting != -1)
         {
             capture(awaiting, event, source);
+        }
+
+        if (inHeaders)
+        {
+            onHeadersEvent(event, source);
         }
 
         Status status = Status.ADVANCED;
@@ -149,6 +188,17 @@ public final class McpKafkaArguments implements JsonSink
                 }
             }
         }
+
+        if (headersMatched < headersSegments.length &&
+            depth == headersMatched + 1 &&
+            headersSegments[headersMatched].contentEquals(source.getStringView()))
+        {
+            headersMatched++;
+            if (headersMatched == headersSegments.length)
+            {
+                awaiting = HEADERS_AWAITING;
+            }
+        }
     }
 
     private void capture(
@@ -178,6 +228,43 @@ public final class McpKafkaArguments implements JsonSink
             break;
         default:
             awaiting = -1;
+            break;
+        }
+    }
+
+    private void onHeadersEvent(
+        JsonEvent event,
+        JsonSource source)
+    {
+        switch (event)
+        {
+        case KEY_NAME:
+            if (depth == headersArrayDepth + 1)
+            {
+                headerName = source.getStringView().toString();
+            }
+            break;
+        case VALUE_STRING:
+        case VALUE_NUMBER:
+            if (headerName != null && depth == headersArrayDepth + 1)
+            {
+                headerValue.append(source.getStringView());
+                if (!source.deferredBytes())
+                {
+                    headers.add(new String[] { headerName, headerValue.toString() });
+                    headerValue.setLength(0);
+                    headerName = null;
+                }
+            }
+            break;
+        case END_ARRAY:
+            if (depth == headersArrayDepth)
+            {
+                inHeaders = false;
+                headerName = null;
+            }
+            break;
+        default:
             break;
         }
     }

@@ -38,8 +38,8 @@ public class KafkaIT
 
     @Test
     @Specification({
-        "${kafka}/produce/client",
-        "${kafka}/produce/server"})
+        "${kafka}/produce_message/client",
+        "${kafka}/produce_message/server"})
     public void shouldProduce() throws Exception
     {
         k3po.finish();
@@ -47,8 +47,8 @@ public class KafkaIT
 
     @Test
     @Specification({
-        "${kafka}/produce.rejected/client",
-        "${kafka}/produce.rejected/server"})
+        "${kafka}/produce_message.rejected/client",
+        "${kafka}/produce_message.rejected/server"})
     public void shouldRejectProduce() throws Exception
     {
         k3po.finish();
@@ -56,8 +56,8 @@ public class KafkaIT
 
     @Test
     @Specification({
-        "${kafka}/produce.rejected.invalid.record/client",
-        "${kafka}/produce.rejected.invalid.record/server"})
+        "${kafka}/produce_message.rejected.invalid.record/client",
+        "${kafka}/produce_message.rejected.invalid.record/server"})
     public void shouldRejectProduceWithInvalidRecord() throws Exception
     {
         k3po.finish();
@@ -101,8 +101,8 @@ public class KafkaIT
 
     @Test
     @Specification({
-        "${kafka}/produce.args.fragmented/client",
-        "${kafka}/produce.args.fragmented/server"})
+        "${kafka}/produce_message.args.fragmented/client",
+        "${kafka}/produce_message.args.fragmented/server"})
     public void shouldProduceArgsFragmented() throws Exception
     {
         k3po.finish();
@@ -119,8 +119,8 @@ public class KafkaIT
 
     @Test
     @Specification({
-        "${kafka}/produce.topic.glob/client",
-        "${kafka}/produce.topic.glob/server"})
+        "${kafka}/produce_message.topic.glob/client",
+        "${kafka}/produce_message.topic.glob/server"})
     public void shouldProduceWhenTopicMatchesGlob() throws Exception
     {
         k3po.finish();

@@ -24,4 +24,4 @@ bindings:
         - localhost:9092
     routes:
       - when:
-          - tool: [produce, consume_messages]
+          - tool: [produce_message, consume_messages]

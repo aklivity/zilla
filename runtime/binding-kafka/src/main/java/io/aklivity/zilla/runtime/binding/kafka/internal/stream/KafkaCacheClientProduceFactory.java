@@ -917,7 +917,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
 
                 onClientFanInitialClosed();
 
-                ackOffsetHighWatermark(error, traceId, offsetHighWatermark);
+                ackOffsetHighWatermark(error, traceId, offsetHighWatermark, -1L, -1L);
             }
         }
 
@@ -1090,9 +1090,11 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
             final KafkaOffsetFW partition = kafkaProduceFlushEx.partition();
             final long partitionOffset = partition.partitionOffset();
             final int error = kafkaProduceFlushEx.error();
+            final long timestamp = kafkaProduceFlushEx.timestamp();
+            final long ackOffset = kafkaProduceFlushEx.ackOffset();
 
             final long currentLastAckOffsetHighWatermark = lastAckOffsetHighWatermark;
-            ackOffsetHighWatermark(error, traceId, partitionOffset);
+            ackOffsetHighWatermark(error, traceId, partitionOffset, ackOffset, timestamp);
 
             if (lastAckOffsetHighWatermark > currentLastAckOffsetHighWatermark)
             {
@@ -1103,11 +1105,19 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
         private void ackOffsetHighWatermark(
             int error,
             long traceId,
-            long partitionOffset)
+            long partitionOffset,
+            long ackOffset,
+            long timestamp)
         {
             while (lastAckOffsetHighWatermark <= partitionOffset)
             {
                 final KafkaCacheEntryFW entry = markEntryDirty(traceId, lastAckOffsetHighWatermark);
+                if (entry == null)
+                {
+                    lastAckOffsetHighWatermark++;
+                    continue;
+                }
+                final long entryAckOffset = lastAckOffsetHighWatermark == partitionOffset ? ackOffset : -1L;
                 final long memberStreamId = entry.ownerId();
                 final KafkaCacheClientProduceStream member = members.get(memberStreamId);
                 if (member != null)
@@ -1118,7 +1128,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                     }
                     else
                     {
-                        member.onMessageAck(traceId, entry.offset$(), entry.acknowledge());
+                        member.onMessageAck(traceId, entry.offset$(), entry.acknowledge(), entryAckOffset, timestamp);
                     }
                 }
                 lastAckOffsetHighWatermark++;
@@ -1518,6 +1528,24 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                         .sizeof()));
         }
 
+        private void doClientReplyFlush(
+            long traceId,
+            long partitionOffset,
+            long timestamp)
+        {
+            doFlush(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                    traceId, authorization, 0L, SIZE_OF_FLUSH_WITH_EXTENSION,
+                ex -> ex.set((b, o, l) -> kafkaFlushExRW.wrap(b, o, l)
+                        .typeId(kafkaTypeId)
+                        .produce(p -> p
+                            .partition(par -> par
+                                .partitionId(fan.partition.id())
+                                .partitionOffset(partitionOffset))
+                            .timestamp(timestamp))
+                        .build()
+                        .sizeof()));
+        }
+
         private void doClientReplyEnd(
             long traceId)
         {
@@ -1600,11 +1628,17 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
         private void onMessageAck(
             long traceId,
             long partitionOffset,
-            long acknowledge)
+            long acknowledge,
+            long ackOffset,
+            long timestamp)
         {
             cursor.advance(partitionOffset);
             doClientInitialWindow(traceId, initialSeq - acknowledge,
                 Math.max(initialMax - (int) (acknowledge - initialAck), initialBudgetMax));
+            if (ackOffset >= 0)
+            {
+                doClientReplyFlush(traceId, ackOffset, timestamp);
+            }
 
             if (KafkaState.initialClosed(state) && partitionOffset == this.partitionOffset)
             {

@@ -34,7 +34,7 @@
 #      the same result as calling it directly
 #  14. the cold tool is still directly callable by name -- "cold" only ever
 #      changes what tools/list reports, never what tools/call accepts
-#  15. kafka__produce writes a record to a real, single-node KRaft Kafka
+#  15. kafka__produce_message writes a record to a real, single-node KRaft Kafka
 #      broker (mcp-kafka kind:client's own generated cache_client/client/
 #      tcp_client pipeline, not the engine's test double)
 #  16. kafka__consume_messages reads that same record back, round-tripping the exact
@@ -233,7 +233,7 @@ full_toolset_present() {
     echo "$TOOLS_FULL" | grep -q '^kafka_connect__describe_connector$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka_connect__create_connector$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka_connect__delete_connector$' &&
-    echo "$TOOLS_FULL" | grep -q '^kafka__produce$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__produce_message$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__consume_messages$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__create_topics$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__delete_topics$' &&
@@ -946,7 +946,7 @@ else
   EXIT=1
 fi
 
-# WHEN: a kafka:write-scoped caller calls kafka__produce
+# WHEN: a kafka:write-scoped caller calls kafka__produce_message
 # THEN: the record reaches the real, single-node KRaft Kafka broker started by
 #       this example -- not the engine's `type: test` double specs/ITs use --
 #       proving mcp-kafka's kind:client composite generator (kafka_cache_client
@@ -955,7 +955,7 @@ call_kafka_produce() {
   KAFKA_PRODUCE_OUT=$(docker compose run --rm --no-deps \
       -e JWT_TOKEN="$JWT_FULL" \
       -e MCP_URL="http://zilla:$PORT/mcp" \
-      -e CALL_TOOL="kafka__produce" \
+      -e CALL_TOOL="kafka__produce_message" \
       -e CALL_ARGS='{"topic":"orders","value":"hello from mcp-kafka"}' \
       tools-list-client 2>&1)
   echo "$KAFKA_PRODUCE_OUT" | grep -q 'Produced record to orders topic'
@@ -963,9 +963,9 @@ call_kafka_produce() {
 retry_until 10 3 call_kafka_produce
 echo "KAFKA_PRODUCE_OUT=$KAFKA_PRODUCE_OUT"
 if echo "$KAFKA_PRODUCE_OUT" | grep -q 'Produced record to orders topic'; then
-  echo "✅ kafka__produce wrote a record to the real Kafka broker"
+  echo "✅ kafka__produce_message wrote a record to the real Kafka broker"
 else
-  echo "❌ kafka__produce did not succeed against the real broker"
+  echo "❌ kafka__produce_message did not succeed against the real broker"
   EXIT=1
 fi
 
@@ -1040,7 +1040,7 @@ fi
 # WHEN: a kafka:admin-scoped caller calls kafka__create_topics
 # THEN: a new topic is created on the real Kafka broker -- proving the
 #       tool-specific kafka:admin scope (layered under the toolkit-level
-#       kafka:tools guard already exercised above by produce/consume_messages) is
+#       kafka:tools guard already exercised above by produce_message/consume_messages) is
 #       sufficient to actually invoke the tool, not just see it listed
 call_kafka_create_topics() {
   KAFKA_CREATE_TOPICS_OUT=$(docker compose run --rm --no-deps \
@@ -1285,7 +1285,7 @@ ACL_PRINCIPAL="User:acl-test-user"
 #       test resource (not the orders topic other checks above depend on --
 #       once any ACL exists for a resource, StandardAuthorizer stops
 #       implicitly allowing every other principal against that same
-#       resource, so a shared resource would risk breaking the produce/
+#       resource, so a shared resource would risk breaking the produce_message/
 #       consume_messages/admin checks above)
 # THEN: the real broker accepts the grant -- proving create_acls' own
 #       kafka:acls scope (deliberately distinct from kafka:admin per

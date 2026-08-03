@@ -56,11 +56,15 @@ connected
 # securitySchemes aggregate both, in route declaration order -- proving toolGuarded accumulates
 # across every route whose condition applies to the tool rather than stopping at the first match.
 # consume_messages matches neither route, so it carries no securitySchemes field at all.
-read  '{"tools":[{"name":"produce","title":"Produce Message",'
+read  '{"tools":[{"name":"produce_message","title":"Produce Message",'
         '"description":"Produce a message to a Kafka topic.",'
         '"inputSchema":{"type":"object","properties":'
         '{"topic":{"type":"string"},"value":{"type":"string"},"key":{"type":"string"},'
-        '"partition":{"type":"integer"}},"required":["topic","value"]},'
+        '"partition":{"type":"integer"},"headers":{"type":"array","items":{"type":"object",'
+        '"additionalProperties":{"type":"string"}}}},"required":["topic","value"]},'
+        '"outputSchema":{"type":"object","properties":{"topic":{"type":"string"},'
+        '"partition":{"type":"integer"},"offset":{"type":"integer"},"timestamp":{"type":"integer"}},'
+        '"required":["topic","partition","offset","timestamp"]},'
         '"securitySchemes":[{"type":"oauth2","scopes":["admin"]},'
         '{"type":"oauth2","scopes":["write:kafka"]}]},'
         '{"name":"consume_messages","title":"Consume Messages",'

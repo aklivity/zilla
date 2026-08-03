@@ -54,8 +54,8 @@ public class McpKafkaProxyIT
     @Test
     @Configuration("proxy.produce.yaml")
     @Specification({
-        "${mcp}/produce/client",
-        "${kafka}/produce/server"})
+        "${mcp}/produce_message/client",
+        "${kafka}/produce_message/server"})
     public void shouldProduce() throws Exception
     {
         k3po.finish();
@@ -64,8 +64,8 @@ public class McpKafkaProxyIT
     @Test
     @Configuration("proxy.produce.yaml")
     @Specification({
-        "${mcp}/produce.rejected/client",
-        "${kafka}/produce.rejected/server"})
+        "${mcp}/produce_message.rejected/client",
+        "${kafka}/produce_message.rejected/server"})
     public void shouldRejectProduce() throws Exception
     {
         k3po.finish();
@@ -74,8 +74,8 @@ public class McpKafkaProxyIT
     @Test
     @Configuration("proxy.produce.yaml")
     @Specification({
-        "${mcp}/produce.rejected.invalid.record/client",
-        "${kafka}/produce.rejected.invalid.record/server"})
+        "${mcp}/produce_message.rejected.invalid.record/client",
+        "${kafka}/produce_message.rejected.invalid.record/server"})
     public void shouldRejectProduceWithInvalidRecord() throws Exception
     {
         k3po.finish();
@@ -133,8 +133,8 @@ public class McpKafkaProxyIT
     @Test
     @Configuration("proxy.produce.yaml")
     @Specification({
-        "${mcp}/produce.args.fragmented/client",
-        "${kafka}/produce.args.fragmented/server"})
+        "${mcp}/produce_message.args.fragmented/client",
+        "${kafka}/produce_message.args.fragmented/server"})
     public void shouldProduceArgsFragmented() throws Exception
     {
         k3po.finish();
@@ -143,8 +143,8 @@ public class McpKafkaProxyIT
     @Test
     @Configuration("proxy.produce.topic.allowlist.yaml")
     @Specification({
-        "${mcp}/produce/client",
-        "${kafka}/produce/server"})
+        "${mcp}/produce_message/client",
+        "${kafka}/produce_message/server"})
     public void shouldProduceWhenTopicMatchesAllowlist() throws Exception
     {
         k3po.finish();
@@ -162,8 +162,8 @@ public class McpKafkaProxyIT
     @Test
     @Configuration("proxy.produce.topic.glob.yaml")
     @Specification({
-        "${mcp}/produce.topic.glob/client",
-        "${kafka}/produce.topic.glob/server"})
+        "${mcp}/produce_message.topic.glob/client",
+        "${kafka}/produce_message.topic.glob/server"})
     public void shouldProduceWhenTopicMatchesGlob() throws Exception
     {
         k3po.finish();
@@ -181,8 +181,8 @@ public class McpKafkaProxyIT
     @Test
     @Configuration("proxy.produce.yaml")
     @Specification({
-        "${mcp}/produce.abort/client",
-        "${kafka}/produce.abort/server"})
+        "${mcp}/produce_message.abort/client",
+        "${kafka}/produce_message.abort/server"})
     public void shouldAbortMidProduce() throws Exception
     {
         k3po.finish();

@@ -65,8 +65,10 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ExtensionFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaBeginExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaDataExFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaFlushExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaProduceBeginExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaProduceDataExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaResetExFW;
@@ -134,9 +136,11 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
     private final DataFW.Builder dataRW = new DataFW.Builder();
     private final EndFW.Builder endRW = new EndFW.Builder();
     private final AbortFW.Builder abortRW = new AbortFW.Builder();
+    private final FlushFW.Builder flushRW = new FlushFW.Builder();
     private final ResetFW.Builder resetRW = new ResetFW.Builder();
     private final WindowFW.Builder windowRW = new WindowFW.Builder();
     private final KafkaBeginExFW.Builder kafkaBeginExRW = new KafkaBeginExFW.Builder();
+    private final KafkaFlushExFW.Builder kafkaFlushExRW = new KafkaFlushExFW.Builder();
     private final KafkaResetExFW.Builder kafkaResetExRW = new KafkaResetExFW.Builder();
     private final ProxyBeginExFW.Builder proxyBeginExRW = new ProxyBeginExFW.Builder();
 
@@ -374,6 +378,36 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                 .build();
 
         receiver.accept(data.typeId(), data.buffer(), data.offset(), data.sizeof());
+    }
+
+    private void doFlush(
+        MessageConsumer receiver,
+        long originId,
+        long routedId,
+        long streamId,
+        long sequence,
+        long acknowledge,
+        int maximum,
+        long traceId,
+        long authorization,
+        int reserved,
+        Consumer<OctetsFW.Builder> extension)
+    {
+        final FlushFW flush = flushRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+                .originId(originId)
+                .routedId(routedId)
+                .streamId(streamId)
+                .sequence(sequence)
+                .acknowledge(acknowledge)
+                .maximum(maximum)
+                .traceId(traceId)
+                .authorization(authorization)
+                .budgetId(0L)
+                .reserved(reserved)
+                .extension(extension)
+                .build();
+
+        receiver.accept(flush.typeId(), flush.buffer(), flush.offset(), flush.sizeof());
     }
 
     private void doEnd(
@@ -815,6 +849,8 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
 
             final int partitionId = partition.partitionId();
             final int errorCode = partition.errorCode();
+            final long baseOffset = partition.baseOffset();
+            final long logAppendTime = partition.logAppendTime();
 
             progress = partition.limit();
 
@@ -824,7 +860,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
             client.decodablePartitions--;
             assert client.decodablePartitions >= 0;
 
-            client.onDecodeProducePartition(traceId, authorization, errorCode, partitionId);
+            client.onDecodeProducePartition(traceId, authorization, errorCode, partitionId, baseOffset, logAppendTime);
 
             client.decoder = decodeProducePartitions;
         }
@@ -1095,6 +1131,26 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                                                                        .topic(topic)
                                                                        .partition(par -> par.partitionId(partitionId)
                                                                                     .partitionOffset(LIVE.value())))
+                                                        .build()
+                                                        .sizeof()));
+        }
+
+        private void doApplicationFlush(
+            long traceId,
+            long authorization,
+            int partitionId,
+            long partitionOffset,
+            long timestamp)
+        {
+            doFlush(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                    traceId, authorization, 0,
+                ex -> ex.set((b, o, l) -> kafkaFlushExRW.wrap(b, o, l)
+                                                        .typeId(kafkaTypeId)
+                                                        .produce(p -> p
+                                                            .partition(pt -> pt
+                                                                .partitionId(partitionId)
+                                                                .partitionOffset(partitionOffset))
+                                                            .timestamp(timestamp))
                                                         .build()
                                                         .sizeof()));
         }
@@ -2259,12 +2315,15 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                 long traceId,
                 long authorization,
                 int errorCode,
-                int partitionId)
+                int partitionId,
+                long baseOffset,
+                long logAppendTime)
             {
                 switch (errorCode)
                 {
                 case ERROR_NONE:
                     assert partitionId == this.partitionId;
+                    stream.doApplicationFlush(traceId, authorization, partitionId, baseOffset, logAppendTime);
                     break;
                 default:
                     if (KafkaError.of(errorCode).isRetriable())

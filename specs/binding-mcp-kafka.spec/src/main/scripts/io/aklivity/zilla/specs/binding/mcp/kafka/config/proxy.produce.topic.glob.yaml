@@ -22,5 +22,5 @@ bindings:
     routes:
       - exit: kafka0
         when:
-          - tool: produce
+          - tool: produce_message
             topics: ["orders*"]

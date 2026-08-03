@@ -45,12 +45,12 @@ read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .toolsCall()
                               .sessionId("session-1")
-                              .name("produce")
+                              .name("produce_message")
                               .contentLength(64)
                               .build()
                           .build()}
 
 connected
 
-read '{"name":"produce","arguments":{"topic":"other","value":"hello"}}'
+read '{"name":"produce_message","arguments":{"topic":"other","value":"hello"}}'
 

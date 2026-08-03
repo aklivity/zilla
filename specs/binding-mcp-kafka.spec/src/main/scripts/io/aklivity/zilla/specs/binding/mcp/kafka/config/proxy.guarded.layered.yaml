@@ -36,10 +36,10 @@ bindings:
             - admin
         exit: kafka0
         when:
-          - tool: produce
+          - tool: produce_message
       - guarded:
           test0:
             - write:kafka
         exit: kafka0
         when:
-          - tool: produce
+          - tool: produce_message

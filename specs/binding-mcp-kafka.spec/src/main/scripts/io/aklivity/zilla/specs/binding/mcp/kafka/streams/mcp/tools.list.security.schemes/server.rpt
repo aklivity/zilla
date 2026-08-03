@@ -52,11 +52,15 @@ connected
 
 write flush
 
-write  '{"tools":[{"name":"produce","title":"Produce Message",'
+write  '{"tools":[{"name":"produce_message","title":"Produce Message",'
         '"description":"Produce a message to a Kafka topic.",'
         '"inputSchema":{"type":"object","properties":'
         '{"topic":{"type":"string"},"value":{"type":"string"},"key":{"type":"string"},'
-        '"partition":{"type":"integer"}},"required":["topic","value"]},'
+        '"partition":{"type":"integer"},"headers":{"type":"array","items":{"type":"object",'
+        '"additionalProperties":{"type":"string"}}}},"required":["topic","value"]},'
+        '"outputSchema":{"type":"object","properties":{"topic":{"type":"string"},'
+        '"partition":{"type":"integer"},"offset":{"type":"integer"},"timestamp":{"type":"integer"}},'
+        '"required":["topic","partition","offset","timestamp"]},'
         '"securitySchemes":[{"type":"oauth2","scopes":["admin"]},'
         '{"type":"oauth2","scopes":["write:kafka"]}]},'
         '{"name":"consume_messages","title":"Consume Messages",'
