@@ -732,9 +732,10 @@ docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
 
 `describe_topic_configs` and `describe_broker_configs` are read-only, like
 `consume_messages`, so they need only the toolkit-level `kafka:tools` scope.
-Each takes just a `resource_name`, not a routed topic, so -- like
+`describe_topic_configs` takes a `topic` and `describe_broker_configs` takes a
+`broker_id` -- neither a routed topic -- so -- like
 `create_topics`/`delete_topics`/`alter_topic_configs`/`alter_broker_configs`
--- neither has a `topics` allow-list on its route (the resource type itself
+-- neither has a `topics` allow-list on its route (the resource kind itself
 is implied by which tool is called, rather than a shared `resource_type`
 argument -- exactly what lets an operator route/guard topic-scoped and
 broker-wide config access differently). With no `configs` given, a call
@@ -744,7 +745,7 @@ broker set by default:
 ```bash
 docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
     -e CALL_TOOL=kafka__describe_topic_configs \
-    -e CALL_ARGS='{"resource_name":"orders"}' \
+    -e CALL_ARGS='{"topic":"orders"}' \
     tools-list-client
 # Described 15 config(s)
 # {"configs":[{"name":"cleanup.policy","value":"delete","is_default":true,"is_sensitive":false}, ...]}
@@ -757,7 +758,7 @@ since they share their route. Change the `orders` topic's `cleanup.policy`:
 ```bash
 docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
     -e CALL_TOOL=kafka__alter_topic_configs \
-    -e CALL_ARGS='{"resource_name":"orders","configs":{"cleanup.policy":"compact"}}' \
+    -e CALL_ARGS='{"topic":"orders","configs":{"cleanup.policy":"compact"}}' \
     tools-list-client
 # Updated configs for topic orders
 ```

@@ -48,13 +48,13 @@ write zilla:begin.ext ${mcp:beginEx()
                            .toolsCall()
                                .sessionId("session-1")
                                .name("describe_broker_configs")
-                               .contentLength(68)
+                               .contentLength(62)
                                .build()
                            .build()}
 
 connected
 
-write '{"name":"describe_broker_configs","arguments":{"resource_name":"0"}}'
+write '{"name":"describe_broker_configs","arguments":{"broker_id":0}}'
 
 read '{"structuredContent":{"configs":[{"name":"log.retention.hours","value":"168","is_default":true,"is_sensitive":false}]},'
      '"content":[{"type":"text","text":"Described 1 config(s)"}],"isError":false}'

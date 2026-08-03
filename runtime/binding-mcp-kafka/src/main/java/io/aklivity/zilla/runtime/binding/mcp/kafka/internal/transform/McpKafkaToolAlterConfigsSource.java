@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
 
+import io.aklivity.zilla.runtime.binding.kafka.api.KafkaAlterConfigsRequest;
 import io.aklivity.zilla.runtime.binding.kafka.api.KafkaAlterConfigsRequest.Source;
 import io.aklivity.zilla.runtime.binding.kafka.api.KafkaAlterConfigsRequest.Source.ConfigConsumer;
 import io.aklivity.zilla.runtime.binding.kafka.api.KafkaAlterConfigsRequest.Source.ResourceConsumer;
@@ -37,16 +38,32 @@ import io.aklivity.zilla.runtime.common.json.JsonSource;
  * {@link McpKafkaToolCreateTopicsSource}'s context-stack approach, simplified to a single resource
  * with a flat {@code configs} object rather than an array of nested resources. The resource type is
  * fixed at construction by which of the two tools is calling - it is implied by the tool name and is
- * not part of the JSON arguments.
+ * not part of the JSON arguments. The argument key itself is likewise resource-kind-specific
+ * ({@code topic} or {@code broker_id}), matching every other tool in the binding that names a single
+ * resource by kind rather than through a generic field. {@code broker_id} is a JSON number in the
+ * schema (matching {@code list_brokers}' own {@code broker_id}) and in the {@code updated} response,
+ * but is captured here via its raw text representation either way - the underlying Kafka AlterConfigs
+ * request always encodes the resource name as a string, numeric broker id or not.
  * <p>
- * Expected shape:
+ * Expected shape (topic):
  * <pre>{@code
  * {
  *   "arguments": {
- *     "resource_name": "events",
+ *     "topic": "events",
  *     "configs": {
  *       "cleanup.policy": "delete",
  *       "retention.ms": "60000"
+ *     }
+ *   }
+ * }
+ * }</pre>
+ * Expected shape (broker):
+ * <pre>{@code
+ * {
+ *   "arguments": {
+ *     "broker_id": 0,
+ *     "configs": {
+ *       "log.retention.hours": "168"
  *     }
  *   }
  * }
@@ -65,6 +82,7 @@ public final class McpKafkaToolAlterConfigsSource implements JsonSink, Source, S
     private final List<ParsedConfig> configs = new ArrayList<>();
     private final StringBuilder text = new StringBuilder();
     private final byte resourceType;
+    private final String resourceKey;
 
     private String key;
     private String resourceName;
@@ -74,6 +92,7 @@ public final class McpKafkaToolAlterConfigsSource implements JsonSink, Source, S
         byte resourceType)
     {
         this.resourceType = resourceType;
+        this.resourceKey = resourceType == KafkaAlterConfigsRequest.RESOURCE_TYPE_BROKER ? "broker_id" : "topic";
     }
 
     public boolean completed()
@@ -245,7 +264,7 @@ public final class McpKafkaToolAlterConfigsSource implements JsonSink, Source, S
     private void onArgumentsScalar(
         String value)
     {
-        if ("resource_name".equals(key))
+        if (resourceKey.equals(key))
         {
             resourceName = value;
         }

@@ -36,7 +36,7 @@ public class McpKafkaToolDescribeConfigsSourceTest
         McpKafkaToolDescribeConfigsSource source =
             new McpKafkaToolDescribeConfigsSource(KafkaDescribeConfigsRequest.RESOURCE_TYPE_TOPIC);
 
-        Status status = parse(source, "{\"arguments\":{\"resource_name\":\"events\"}}");
+        Status status = parse(source, "{\"arguments\":{\"topic\":\"events\"}}");
 
         assertEquals(Status.COMPLETED, status);
         assertTrue(source.completed());
@@ -51,7 +51,7 @@ public class McpKafkaToolDescribeConfigsSourceTest
         McpKafkaToolDescribeConfigsSource source =
             new McpKafkaToolDescribeConfigsSource(KafkaDescribeConfigsRequest.RESOURCE_TYPE_BROKER);
 
-        Status status = parse(source, "{\"arguments\":{\"resource_name\":\"0\"}}");
+        Status status = parse(source, "{\"arguments\":{\"broker_id\":0}}");
 
         assertEquals(Status.COMPLETED, status);
         assertEquals(KafkaDescribeConfigsRequest.RESOURCE_TYPE_BROKER, source.type());
@@ -76,7 +76,7 @@ public class McpKafkaToolDescribeConfigsSourceTest
         McpKafkaToolDescribeConfigsSource source =
             new McpKafkaToolDescribeConfigsSource(KafkaDescribeConfigsRequest.RESOURCE_TYPE_TOPIC);
 
-        parse(source, "{\"arguments\":{\"resource_name\":\"events\"}}");
+        parse(source, "{\"arguments\":{\"topic\":\"events\"}}");
         assertTrue(source.completed());
 
         source.reset();
