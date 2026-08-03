@@ -17,10 +17,12 @@
 //
 // Zilla's mcp(proxy) aggregates real per-toolkit server capabilities (including
 // resources.subscribe) from each south binding's own handshake with its upstream, and only
-// advertises resources.subscribe:true once that handshake has actually completed at least
-// once. The very first session against a freshly started gateway can race that hydration --
-// see "Observe the cache" in the README -- so this client retries the whole handshake a few
-// times rather than treating a transient capability-negotiation miss as a hard failure.
+// advertises resources.subscribe:true -- and lists the "everything" toolkit's resources at all
+// -- once that handshake has actually completed at least once. The very first session against a
+// freshly started gateway can race that hydration -- see "Observe the cache" in the README --
+// surfacing either as a missing resources.subscribe capability or as resources/list simply not
+// yet including an everything+... resource. So this client retries the whole handshake a few
+// times rather than treating either transient miss as a hard failure.
 
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
@@ -108,8 +110,10 @@ const main = async () =>
         }
         catch (err)
         {
-            const capabilityMiss = /does not support resource subscriptions/.test(err.message ?? "");
-            if (!capabilityMiss || remaining <= 1)
+            const message = err.message ?? "";
+            const hydrationRace = /does not support resource subscriptions/.test(message) ||
+                /no everything\+ resource found/.test(message);
+            if (!hydrationRace || remaining <= 1)
             {
                 throw err;
             }
