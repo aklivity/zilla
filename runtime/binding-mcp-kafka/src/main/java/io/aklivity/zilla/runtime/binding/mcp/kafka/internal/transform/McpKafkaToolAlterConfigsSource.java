@@ -19,7 +19,6 @@ import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
 
-import io.aklivity.zilla.runtime.binding.kafka.api.KafkaAlterConfigsRequest;
 import io.aklivity.zilla.runtime.binding.kafka.api.KafkaAlterConfigsRequest.Source;
 import io.aklivity.zilla.runtime.binding.kafka.api.KafkaAlterConfigsRequest.Source.ConfigConsumer;
 import io.aklivity.zilla.runtime.binding.kafka.api.KafkaAlterConfigsRequest.Source.ResourceConsumer;
@@ -30,19 +29,20 @@ import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.common.json.JsonSource;
 
 /**
- * Terminal {@link JsonSink} that parses the {@code alter_configs} tool call's JSON arguments body
- * into a small internal scratch representation, then exposes it as a {@link Source} (and, since the
- * tool operates on exactly one resource per call, that resource's own {@link Source.Resource} too)
- * that any consumer (a {@code Generator}, a size calculator, or a future transform) can drive,
- * without materializing a generic JSON tree. Mirrors {@link McpKafkaToolCreateTopicsSource}'s
- * context-stack approach, simplified to a single resource with a flat {@code configs} object rather
- * than an array of nested resources.
+ * Terminal {@link JsonSink} that parses the {@code alter_topic_configs}/{@code alter_broker_configs}
+ * tool call's JSON arguments body into a small internal scratch representation, then exposes it as a
+ * {@link Source} (and, since the tool operates on exactly one resource per call, that resource's own
+ * {@link Source.Resource} too) that any consumer (a {@code Generator}, a size calculator, or a
+ * future transform) can drive, without materializing a generic JSON tree. Mirrors
+ * {@link McpKafkaToolCreateTopicsSource}'s context-stack approach, simplified to a single resource
+ * with a flat {@code configs} object rather than an array of nested resources. The resource type is
+ * fixed at construction by which of the two tools is calling - it is implied by the tool name and is
+ * not part of the JSON arguments.
  * <p>
  * Expected shape:
  * <pre>{@code
  * {
  *   "arguments": {
- *     "resource_type": "topic",
  *     "resource_name": "events",
  *     "configs": {
  *       "cleanup.policy": "delete",
@@ -54,9 +54,6 @@ import io.aklivity.zilla.runtime.common.json.JsonSource;
  */
 public final class McpKafkaToolAlterConfigsSource implements JsonSink, Source, Source.Resource
 {
-    private static final String RESOURCE_TYPE_TOPIC_NAME = "topic";
-    private static final String RESOURCE_TYPE_BROKER_NAME = "broker";
-
     private enum Context
     {
         ROOT,
@@ -67,11 +64,17 @@ public final class McpKafkaToolAlterConfigsSource implements JsonSink, Source, S
     private final Deque<Context> stack = new ArrayDeque<>();
     private final List<ParsedConfig> configs = new ArrayList<>();
     private final StringBuilder text = new StringBuilder();
+    private final byte resourceType;
 
     private String key;
-    private byte resourceType;
     private String resourceName;
     private boolean completed;
+
+    public McpKafkaToolAlterConfigsSource(
+        byte resourceType)
+    {
+        this.resourceType = resourceType;
+    }
 
     public boolean completed()
     {
@@ -129,7 +132,6 @@ public final class McpKafkaToolAlterConfigsSource implements JsonSink, Source, S
         configs.clear();
         text.setLength(0);
         key = null;
-        resourceType = 0;
         resourceName = null;
         completed = false;
     }
@@ -210,7 +212,7 @@ public final class McpKafkaToolAlterConfigsSource implements JsonSink, Source, S
 
         if (ending == Context.ROOT)
         {
-            if (resourceType == 0 || resourceName == null)
+            if (resourceName == null)
             {
                 status = Status.REJECTED;
             }
@@ -243,32 +245,10 @@ public final class McpKafkaToolAlterConfigsSource implements JsonSink, Source, S
     private void onArgumentsScalar(
         String value)
     {
-        switch (key)
+        if ("resource_name".equals(key))
         {
-        case "resource_type":
-            resourceType = resourceTypeOf(value);
-            break;
-        case "resource_name":
             resourceName = value;
-            break;
-        default:
-            break;
         }
-    }
-
-    private static byte resourceTypeOf(
-        String value)
-    {
-        byte type = 0;
-        if (RESOURCE_TYPE_TOPIC_NAME.equals(value))
-        {
-            type = KafkaAlterConfigsRequest.RESOURCE_TYPE_TOPIC;
-        }
-        else if (RESOURCE_TYPE_BROKER_NAME.equals(value))
-        {
-            type = KafkaAlterConfigsRequest.RESOURCE_TYPE_BROKER;
-        }
-        return type;
     }
 
     private record ParsedConfig(

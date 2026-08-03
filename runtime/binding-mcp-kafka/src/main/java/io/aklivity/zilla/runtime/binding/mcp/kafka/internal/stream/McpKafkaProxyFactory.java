@@ -152,8 +152,10 @@ public class McpKafkaProxyFactory implements BindingHandler
     private static final String TOOL_CONSUME = "consume_messages";
     private static final String TOOL_CREATE_TOPICS = "create_topics";
     private static final String TOOL_DELETE_TOPICS = "delete_topics";
-    private static final String TOOL_DESCRIBE_CONFIGS = "describe_configs";
-    private static final String TOOL_ALTER_CONFIGS = "alter_configs";
+    private static final String TOOL_DESCRIBE_TOPIC_CONFIGS = "describe_topic_configs";
+    private static final String TOOL_DESCRIBE_BROKER_CONFIGS = "describe_broker_configs";
+    private static final String TOOL_ALTER_TOPIC_CONFIGS = "alter_topic_configs";
+    private static final String TOOL_ALTER_BROKER_CONFIGS = "alter_broker_configs";
     private static final String TOOL_LIST_ACLS = "list_acls";
     private static final String TOOL_CREATE_ACLS = "create_acls";
     private static final String TOOL_DELETE_ACLS = "delete_acls";
@@ -173,8 +175,10 @@ public class McpKafkaProxyFactory implements BindingHandler
         TOOL_CONSUME,
         TOOL_CREATE_TOPICS,
         TOOL_DELETE_TOPICS,
-        TOOL_DESCRIBE_CONFIGS,
-        TOOL_ALTER_CONFIGS,
+        TOOL_DESCRIBE_TOPIC_CONFIGS,
+        TOOL_DESCRIBE_BROKER_CONFIGS,
+        TOOL_ALTER_TOPIC_CONFIGS,
+        TOOL_ALTER_BROKER_CONFIGS,
         TOOL_LIST_ACLS,
         TOOL_CREATE_ACLS,
         TOOL_DELETE_ACLS,
@@ -200,8 +204,10 @@ public class McpKafkaProxyFactory implements BindingHandler
     protected static final Set<String> API_TOOLS = Set.of(
         TOOL_CREATE_TOPICS,
         TOOL_DELETE_TOPICS,
-        TOOL_DESCRIBE_CONFIGS,
-        TOOL_ALTER_CONFIGS,
+        TOOL_DESCRIBE_TOPIC_CONFIGS,
+        TOOL_DESCRIBE_BROKER_CONFIGS,
+        TOOL_ALTER_TOPIC_CONFIGS,
+        TOOL_ALTER_BROKER_CONFIGS,
         TOOL_LIST_ACLS,
         TOOL_CREATE_ACLS,
         TOOL_DELETE_ACLS,
@@ -958,11 +964,17 @@ public class McpKafkaProxyFactory implements BindingHandler
         case TOOL_DELETE_TOPICS:
             title = "Delete Topics";
             break;
-        case TOOL_DESCRIBE_CONFIGS:
-            title = "Describe Configs";
+        case TOOL_DESCRIBE_TOPIC_CONFIGS:
+            title = "Describe Topic Configs";
             break;
-        case TOOL_ALTER_CONFIGS:
-            title = "Alter Configs";
+        case TOOL_DESCRIBE_BROKER_CONFIGS:
+            title = "Describe Broker Configs";
+            break;
+        case TOOL_ALTER_TOPIC_CONFIGS:
+            title = "Alter Topic Configs";
+            break;
+        case TOOL_ALTER_BROKER_CONFIGS:
+            title = "Alter Broker Configs";
             break;
         case TOOL_LIST_TOPICS:
             title = "List Topics";
@@ -1026,11 +1038,17 @@ public class McpKafkaProxyFactory implements BindingHandler
         case TOOL_DELETE_TOPICS:
             description = "Delete one or more Kafka topics.";
             break;
-        case TOOL_DESCRIBE_CONFIGS:
-            description = "Describe the configuration of a Kafka topic or broker resource.";
+        case TOOL_DESCRIBE_TOPIC_CONFIGS:
+            description = "Describe the configuration of a Kafka topic.";
             break;
-        case TOOL_ALTER_CONFIGS:
-            description = "Alter the configuration of a Kafka topic or broker resource.";
+        case TOOL_DESCRIBE_BROKER_CONFIGS:
+            description = "Describe the configuration of a Kafka broker.";
+            break;
+        case TOOL_ALTER_TOPIC_CONFIGS:
+            description = "Alter the configuration of a Kafka topic.";
+            break;
+        case TOOL_ALTER_BROKER_CONFIGS:
+            description = "Alter the configuration of a Kafka broker.";
             break;
         case TOOL_LIST_TOPICS:
             description = "List all Kafka topics in the cluster.";
@@ -1222,29 +1240,25 @@ public class McpKafkaProxyFactory implements BindingHandler
                 .add("required", Json.createArrayBuilder().add("topics"))
                 .build();
             break;
-        case TOOL_DESCRIBE_CONFIGS:
+        case TOOL_DESCRIBE_TOPIC_CONFIGS:
+        case TOOL_DESCRIBE_BROKER_CONFIGS:
             schema = Json.createObjectBuilder()
                 .add("type", "object")
                 .add("properties", Json.createObjectBuilder()
-                    .add("resource_type", Json.createObjectBuilder()
-                        .add("type", "string")
-                        .add("enum", Json.createArrayBuilder().add("topic").add("broker")))
                     .add("resource_name", Json.createObjectBuilder().add("type", "string")))
-                .add("required", Json.createArrayBuilder().add("resource_type").add("resource_name"))
+                .add("required", Json.createArrayBuilder().add("resource_name"))
                 .build();
             break;
-        case TOOL_ALTER_CONFIGS:
+        case TOOL_ALTER_TOPIC_CONFIGS:
+        case TOOL_ALTER_BROKER_CONFIGS:
             schema = Json.createObjectBuilder()
                 .add("type", "object")
                 .add("properties", Json.createObjectBuilder()
-                    .add("resource_type", Json.createObjectBuilder()
-                        .add("type", "string")
-                        .add("enum", Json.createArrayBuilder().add("topic").add("broker")))
                     .add("resource_name", Json.createObjectBuilder().add("type", "string"))
                     .add("configs", Json.createObjectBuilder()
                         .add("type", "object")
                         .add("additionalProperties", Json.createObjectBuilder().add("type", "string"))))
-                .add("required", Json.createArrayBuilder().add("resource_type").add("resource_name").add("configs"))
+                .add("required", Json.createArrayBuilder().add("resource_name").add("configs"))
                 .build();
             break;
         case TOOL_LIST_ACLS:
@@ -1413,7 +1427,8 @@ public class McpKafkaProxyFactory implements BindingHandler
                 .add("required", Json.createArrayBuilder().add("topics"))
                 .build();
             break;
-        case TOOL_DESCRIBE_CONFIGS:
+        case TOOL_DESCRIBE_TOPIC_CONFIGS:
+        case TOOL_DESCRIBE_BROKER_CONFIGS:
             schema = Json.createObjectBuilder()
                 .add("type", "object")
                 .add("properties", Json.createObjectBuilder()
@@ -1431,16 +1446,14 @@ public class McpKafkaProxyFactory implements BindingHandler
                 .add("required", Json.createArrayBuilder().add("configs"))
                 .build();
             break;
-        case TOOL_ALTER_CONFIGS:
+        case TOOL_ALTER_TOPIC_CONFIGS:
+        case TOOL_ALTER_BROKER_CONFIGS:
             schema = Json.createObjectBuilder()
                 .add("type", "object")
                 .add("properties", Json.createObjectBuilder()
-                    .add("resource_type", Json.createObjectBuilder()
-                        .add("type", "string")
-                        .add("enum", Json.createArrayBuilder().add("topic").add("broker")))
                     .add("resource_name", Json.createObjectBuilder().add("type", "string"))
                     .add("updated", Json.createObjectBuilder().add("type", "boolean")))
-                .add("required", Json.createArrayBuilder().add("resource_type").add("resource_name").add("updated"))
+                .add("required", Json.createArrayBuilder().add("resource_name").add("updated"))
                 .build();
             break;
         case TOOL_LIST_ACLS:
@@ -1707,7 +1720,8 @@ public class McpKafkaProxyFactory implements BindingHandler
     // idempotentHint: false, openWorldHint: true) -- asserting a default-equal value costs bytes on every
     // tools/list response for zero information a compliant client wouldn't already assume; produce matches
     // every default, so it emits no annotations object at all, and create_topics only deviates on
-    // destructiveHint. delete_topics, alter_configs and reset_offsets previously relied on this same
+    // destructiveHint. delete_topics, alter_topic_configs/alter_broker_configs and reset_offsets previously
+    // relied on this same
     // omission but shipped with a missing or incorrect destructiveHint as a result (see #2247) -- all three
     // now declare their hints explicitly.
     private JsonObject buildToolAnnotations(
@@ -1735,7 +1749,8 @@ public class McpKafkaProxyFactory implements BindingHandler
                 .add("idempotentHint", true)
                 .build();
             break;
-        case TOOL_ALTER_CONFIGS:
+        case TOOL_ALTER_TOPIC_CONFIGS:
+        case TOOL_ALTER_BROKER_CONFIGS:
             annotations = Json.createObjectBuilder()
                 .add("readOnlyHint", false)
                 .add("destructiveHint", true)
@@ -1748,7 +1763,8 @@ public class McpKafkaProxyFactory implements BindingHandler
                 .add("idempotentHint", true)
                 .build();
             break;
-        case TOOL_DESCRIBE_CONFIGS:
+        case TOOL_DESCRIBE_TOPIC_CONFIGS:
+        case TOOL_DESCRIBE_BROKER_CONFIGS:
         case TOOL_LIST_ACLS:
         case TOOL_LIST_TOPICS:
         case TOOL_DESCRIBE_TOPIC:
@@ -2420,14 +2436,26 @@ public class McpKafkaProxyFactory implements BindingHandler
                     deleteTopicsSource = new McpKafkaToolDeleteTopicsSource(createTopicsRequestTimeoutMs);
                     argsPipeline = JsonEx.stream(JsonEx.createParser()).into(deleteTopicsSource);
                 }
-                else if (TOOL_DESCRIBE_CONFIGS.equals(tool))
+                else if (TOOL_DESCRIBE_TOPIC_CONFIGS.equals(tool))
                 {
-                    describeConfigsSource = new McpKafkaToolDescribeConfigsSource();
+                    describeConfigsSource =
+                        new McpKafkaToolDescribeConfigsSource(KafkaDescribeConfigsRequest.RESOURCE_TYPE_TOPIC);
                     argsPipeline = JsonEx.stream(JsonEx.createParser()).into(describeConfigsSource);
                 }
-                else if (TOOL_ALTER_CONFIGS.equals(tool))
+                else if (TOOL_DESCRIBE_BROKER_CONFIGS.equals(tool))
                 {
-                    alterConfigsSource = new McpKafkaToolAlterConfigsSource();
+                    describeConfigsSource =
+                        new McpKafkaToolDescribeConfigsSource(KafkaDescribeConfigsRequest.RESOURCE_TYPE_BROKER);
+                    argsPipeline = JsonEx.stream(JsonEx.createParser()).into(describeConfigsSource);
+                }
+                else if (TOOL_ALTER_TOPIC_CONFIGS.equals(tool))
+                {
+                    alterConfigsSource = new McpKafkaToolAlterConfigsSource(KafkaAlterConfigsRequest.RESOURCE_TYPE_TOPIC);
+                    argsPipeline = JsonEx.stream(JsonEx.createParser()).into(alterConfigsSource);
+                }
+                else if (TOOL_ALTER_BROKER_CONFIGS.equals(tool))
+                {
+                    alterConfigsSource = new McpKafkaToolAlterConfigsSource(KafkaAlterConfigsRequest.RESOURCE_TYPE_BROKER);
                     argsPipeline = JsonEx.stream(JsonEx.createParser()).into(alterConfigsSource);
                 }
                 else if (TOOL_LIST_ACLS.equals(tool))
@@ -2638,11 +2666,11 @@ public class McpKafkaProxyFactory implements BindingHandler
             {
                 completeDeleteTopicsArgs(traceId);
             }
-            else if (TOOL_DESCRIBE_CONFIGS.equals(tool))
+            else if (TOOL_DESCRIBE_TOPIC_CONFIGS.equals(tool) || TOOL_DESCRIBE_BROKER_CONFIGS.equals(tool))
             {
                 completeDescribeConfigsArgs(traceId);
             }
-            else if (TOOL_ALTER_CONFIGS.equals(tool))
+            else if (TOOL_ALTER_TOPIC_CONFIGS.equals(tool) || TOOL_ALTER_BROKER_CONFIGS.equals(tool))
             {
                 completeAlterConfigsArgs(traceId);
             }
@@ -5319,7 +5347,6 @@ public class McpKafkaProxyFactory implements BindingHandler
 
                 apiResultGenerator.writeStartObject()
                     .writeStartObject("structuredContent")
-                    .write("resource_type", resourceTypeName)
                     .write("resource_name", resourceName)
                     .write("updated", !isError)
                     .writeEnd();

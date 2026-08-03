@@ -28,20 +28,21 @@ import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.common.json.JsonSource;
 
 /**
- * Terminal {@link JsonSink} that parses the {@code describe_configs} tool call's JSON arguments
- * body into a small internal scratch representation, then exposes it as a {@link Source} (and,
- * since the tool describes exactly one resource per call, that resource's own
+ * Terminal {@link JsonSink} that parses the {@code describe_topic_configs}/{@code describe_broker_configs}
+ * tool call's JSON arguments body into a small internal scratch representation, then exposes it as a
+ * {@link Source} (and, since the tool describes exactly one resource per call, that resource's own
  * {@link Source.Resource} too) that any consumer (a {@code Generator}, a size calculator, or a
  * future transform) can drive, without materializing a generic JSON tree. Mirrors
  * {@link McpKafkaToolDeleteTopicsSource}'s simplicity, since {@code arguments} is a flat object of
  * scalars with no nested array. Always requests every config for the resource
  * ({@link KafkaDescribeConfigsRequest#ALL_CONFIGS}) - the tool exposes no config-name filter.
+ * The resource type is fixed at construction by which of the two tools is calling - it is implied
+ * by the tool name and is not part of the JSON arguments.
  * <p>
  * Expected shape:
  * <pre>{@code
  * {
  *   "arguments": {
- *     "resource_type": "topic",
  *     "resource_name": "events"
  *   }
  * }
@@ -49,9 +50,6 @@ import io.aklivity.zilla.runtime.common.json.JsonSource;
  */
 public final class McpKafkaToolDescribeConfigsSource implements JsonSink, Source, Source.Resource
 {
-    private static final String RESOURCE_TYPE_TOPIC_NAME = "topic";
-    private static final String RESOURCE_TYPE_BROKER_NAME = "broker";
-
     private enum Context
     {
         ROOT,
@@ -60,11 +58,17 @@ public final class McpKafkaToolDescribeConfigsSource implements JsonSink, Source
 
     private final Deque<Context> stack = new ArrayDeque<>();
     private final StringBuilder text = new StringBuilder();
+    private final byte resourceType;
 
     private String key;
-    private byte resourceType;
     private String resourceName;
     private boolean completed;
+
+    public McpKafkaToolDescribeConfigsSource(
+        byte resourceType)
+    {
+        this.resourceType = resourceType;
+    }
 
     public boolean completed()
     {
@@ -114,7 +118,6 @@ public final class McpKafkaToolDescribeConfigsSource implements JsonSink, Source
         stack.clear();
         text.setLength(0);
         key = null;
-        resourceType = 0;
         resourceName = null;
         completed = false;
     }
@@ -191,7 +194,7 @@ public final class McpKafkaToolDescribeConfigsSource implements JsonSink, Source
 
         if (ending == Context.ROOT)
         {
-            if (resourceType == 0 || resourceName == null)
+            if (resourceName == null)
             {
                 status = Status.REJECTED;
             }
@@ -208,34 +211,9 @@ public final class McpKafkaToolDescribeConfigsSource implements JsonSink, Source
     private void onScalar(
         String value)
     {
-        if (current() == Context.ARGUMENTS)
+        if (current() == Context.ARGUMENTS && "resource_name".equals(key))
         {
-            switch (key)
-            {
-            case "resource_type":
-                resourceType = resourceTypeOf(value);
-                break;
-            case "resource_name":
-                resourceName = value;
-                break;
-            default:
-                break;
-            }
+            resourceName = value;
         }
-    }
-
-    private static byte resourceTypeOf(
-        String value)
-    {
-        byte type = 0;
-        if (RESOURCE_TYPE_TOPIC_NAME.equals(value))
-        {
-            type = KafkaDescribeConfigsRequest.RESOURCE_TYPE_TOPIC;
-        }
-        else if (RESOURCE_TYPE_BROKER_NAME.equals(value))
-        {
-            type = KafkaDescribeConfigsRequest.RESOURCE_TYPE_BROKER;
-        }
-        return type;
     }
 }
