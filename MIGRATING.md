@@ -23,26 +23,6 @@ relies on the legacy fallback instead of an actual `zilla.yaml`.
 **Action:** ensure your deployment has a `zilla.yaml` present; delete any
 now-unused `zilla.json`.
 
-## Guards
-
-### `guard-identity` is now `guard-inline`
-
-The guard implementation formerly named `identity` was renamed to `inline`
-to better describe what it does (validate credentials supplied inline in
-config, rather than delegating to an external identity provider). The old
-name is currently kept as a compatibility alias:
-
-```yaml
-guards:
-  guard0:
-    type: inline   # was: identity
-```
-
-`type: identity` still resolves to the same implementation today, but the
-alias is a deprecation candidate for removal in a 2.x release — see
-[Still deprecated](#still-deprecated--candidates-for-a-future-release) below.
-New configs should use `type: inline` directly.
-
 ## Bindings
 
 ### `binding-kafka`: `client`-kind bindings no longer route by topic condition
@@ -168,36 +148,6 @@ zilla start -Pzilla.engine.service.hostname=mqtt-1.example.com
 the `service.hostname` engine configuration property instead (it is not a
 `zilla.yaml` binding option).
 
-### `binding-openapi` / `binding-asyncapi` / `binding-openapi-asyncapi`: route conditions use `spec` / `operation`
-
-Route-based dispatch (`routes[].when`) for these bindings is a 2.x addition
-— 1.x's schema disallowed `routes` on them entirely (a single implicit
-mapping was used instead), so this is new capability rather than a rename of
-behavior that shipped in a 1.x GA release. The vocabulary settled on
-`spec`/`operation`:
-
-```yaml
-bindings:
-  composite0:
-    type: openapi
-    kind: server
-    options:
-      specs:
-        petstore:
-          catalog:
-            catalog0:
-              subject: petstore
-    routes:
-      - exit: openapi0
-        when:
-          - spec: petstore
-            operation: listPets
-```
-
-If you configured routing against an early `2.0.0-alpha` build that used
-`api-id` / `operation-id`, rename those keys to `spec` / `operation`
-respectively before upgrading to 2.0.0 GA.
-
 ## Apache Kafka compatibility
 
 Zilla 2.x's Kafka client and cache targets **Apache Kafka 2.8.0 or higher**.
@@ -239,7 +189,7 @@ this document:
 
 | Item | Deprecated in favor of | Notes |
 | --- | --- | --- |
-| `guard-inline`'s `identity` type alias | `type: inline` | See [guard-identity is now guard-inline](#guard-identity-is-now-guard-inline) above |
+| `guard-inline`'s `identity` type alias | `type: inline` | Leftover from an in-development rename ahead of 2.0.0; never shipped in a 1.x release, so not a migration concern, but still dead weight in the schema/codebase |
 | `binding-kafka` `options.sasl` | `options.authorization` (guard-based) | Schema still marks it `deprecated: true` but continues to validate and function |
 | `EngineContext.creditor()` / `supplyDebitor(...)` (Java SPI) | `supplyCredit(...)` / `supplyDebit(...)` handle API | Removal is explicitly gated on every in-tree binding migrating off the old accessors first |
 | `EngineConfiguration.configURL()` (Java SPI) | `configURI()` | `URL`-based config addressing predates URI support |
