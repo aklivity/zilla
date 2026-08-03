@@ -199,29 +199,48 @@ problem earlier, at validation time.
 
 `options.specs.<name>.servers` used to be a list of server objects
 (`{ url, host, pathname }` for asyncapi/openapi-asyncapi; `{ url }` for
-openapi). It is now a list of plain strings, and `servers` itself is
-required under every `specs` entry (it was optional in 1.x).
+openapi), each `url` a full URL. It is now a list of plain URL strings, and
+`servers` itself is required under every `specs` entry (it was optional in
+1.x). The URL scheme reflects the protocol the spec describes — `http://`
+for an openapi/asyncapi HTTP server, `kafka://` for an asyncapi Kafka
+server, and so on.
 
 ```yaml
 # 1.x
-options:
-  specs:
-    petstore:
-      servers:
-        - url: api.example.com:443
+bindings:
+  openapi0:
+    type: openapi
+    kind: client
+    options:
+      specs:
+        petstore:
+          servers:
+            - url: http://localhost:9090/prod
+          catalog:
+            catalog0:
+              subject: petstore
+              version: latest
 
 # 2.x
-options:
-  specs:
-    petstore:
-      servers:
-        - api.example.com:443
+bindings:
+  openapi0:
+    type: openapi
+    kind: client
+    options:
+      specs:
+        petstore:
+          servers:
+            - http://localhost:9090/prod
+          catalog:
+            catalog0:
+              subject: petstore
+              version: latest
 ```
 
 **Action:** change every `options.specs.<name>.servers` entry from a list
-of `{url: ...}` objects to a list of plain URL strings, and make sure
-`servers` is present under every `specs` entry — it can no longer be
-omitted.
+of `{url: ...}` objects to a list of plain URL strings (unwrap `url:` and
+keep the URL value as-is), and make sure `servers` is present under every
+`specs` entry — it can no longer be omitted.
 
 ### `binding-asyncapi` / `binding-openapi-asyncapi`: route conditions renamed, `kind: client` no longer routes
 
@@ -317,11 +336,10 @@ and add `options.server` to `kind: client` bindings.
 
 ### `guard-jwt`: `kind` is no longer accepted
 
-The guard-level `kind` property (already meaningless for guards, and
-already rejected for `guard-aws-cognito`) is now explicitly disallowed for
-`type: jwt` too. This only affects a config that literally set `kind:` on a
-jwt guard entry — unusual, and not something any shipped spec or example
-did.
+The guard-level `kind` property (already meaningless for guards) is now
+explicitly disallowed for `type: jwt`. This only affects a config that
+literally set `kind:` on a jwt guard entry — unusual, and not something
+any shipped spec or example did.
 
 ## Apache Kafka compatibility
 
