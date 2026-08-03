@@ -1241,24 +1241,41 @@ public class McpKafkaProxyFactory implements BindingHandler
                 .build();
             break;
         case TOOL_DESCRIBE_TOPIC_CONFIGS:
+            schema = Json.createObjectBuilder()
+                .add("type", "object")
+                .add("properties", Json.createObjectBuilder()
+                    .add("topic", Json.createObjectBuilder().add("type", "string")))
+                .add("required", Json.createArrayBuilder().add("topic"))
+                .build();
+            break;
         case TOOL_DESCRIBE_BROKER_CONFIGS:
             schema = Json.createObjectBuilder()
                 .add("type", "object")
                 .add("properties", Json.createObjectBuilder()
-                    .add("resource_name", Json.createObjectBuilder().add("type", "string")))
-                .add("required", Json.createArrayBuilder().add("resource_name"))
+                    .add("broker_id", Json.createObjectBuilder().add("type", "integer")))
+                .add("required", Json.createArrayBuilder().add("broker_id"))
                 .build();
             break;
         case TOOL_ALTER_TOPIC_CONFIGS:
+            schema = Json.createObjectBuilder()
+                .add("type", "object")
+                .add("properties", Json.createObjectBuilder()
+                    .add("topic", Json.createObjectBuilder().add("type", "string"))
+                    .add("configs", Json.createObjectBuilder()
+                        .add("type", "object")
+                        .add("additionalProperties", Json.createObjectBuilder().add("type", "string"))))
+                .add("required", Json.createArrayBuilder().add("topic").add("configs"))
+                .build();
+            break;
         case TOOL_ALTER_BROKER_CONFIGS:
             schema = Json.createObjectBuilder()
                 .add("type", "object")
                 .add("properties", Json.createObjectBuilder()
-                    .add("resource_name", Json.createObjectBuilder().add("type", "string"))
+                    .add("broker_id", Json.createObjectBuilder().add("type", "integer"))
                     .add("configs", Json.createObjectBuilder()
                         .add("type", "object")
                         .add("additionalProperties", Json.createObjectBuilder().add("type", "string"))))
-                .add("required", Json.createArrayBuilder().add("resource_name").add("configs"))
+                .add("required", Json.createArrayBuilder().add("broker_id").add("configs"))
                 .build();
             break;
         case TOOL_LIST_ACLS:
@@ -1447,14 +1464,10 @@ public class McpKafkaProxyFactory implements BindingHandler
                 .build();
             break;
         case TOOL_ALTER_TOPIC_CONFIGS:
+            schema = buildAlterConfigsOutputSchema("topic", "string");
+            break;
         case TOOL_ALTER_BROKER_CONFIGS:
-            schema = Json.createObjectBuilder()
-                .add("type", "object")
-                .add("properties", Json.createObjectBuilder()
-                    .add("resource_name", Json.createObjectBuilder().add("type", "string"))
-                    .add("updated", Json.createObjectBuilder().add("type", "boolean")))
-                .add("required", Json.createArrayBuilder().add("resource_name").add("updated"))
-                .build();
+            schema = buildAlterConfigsOutputSchema("broker_id", "integer");
             break;
         case TOOL_LIST_ACLS:
             schema = Json.createObjectBuilder()
@@ -1587,6 +1600,19 @@ public class McpKafkaProxyFactory implements BindingHandler
         }
 
         return schema;
+    }
+
+    private JsonObject buildAlterConfigsOutputSchema(
+        String resourceField,
+        String resourceFieldType)
+    {
+        return Json.createObjectBuilder()
+            .add("type", "object")
+            .add("properties", Json.createObjectBuilder()
+                .add(resourceField, Json.createObjectBuilder().add("type", resourceFieldType))
+                .add("updated", Json.createObjectBuilder().add("type", "boolean")))
+            .add("required", Json.createArrayBuilder().add(resourceField).add("updated"))
+            .build();
     }
 
     private JsonObject buildConsumerGroupToolOutputSchema(
@@ -1869,6 +1895,16 @@ public class McpKafkaProxyFactory implements BindingHandler
             name = RESOURCE_TYPE_NAME_BROKER;
         }
         return name;
+    }
+
+    private static JsonGeneratorEx writeAlterConfigsResource(
+        JsonGeneratorEx generator,
+        byte resourceType,
+        String resourceName)
+    {
+        return resourceType == KafkaAlterConfigsRequest.RESOURCE_TYPE_BROKER
+            ? generator.write("broker_id", Integer.parseInt(resourceName))
+            : generator.write("topic", resourceName);
     }
 
     private static long parseLong(
@@ -5345,9 +5381,11 @@ public class McpKafkaProxyFactory implements BindingHandler
 
                 final boolean isError = error != 0;
 
-                apiResultGenerator.writeStartObject()
-                    .writeStartObject("structuredContent")
-                    .write("resource_name", resourceName)
+                writeAlterConfigsResource(
+                    apiResultGenerator.writeStartObject()
+                        .writeStartObject("structuredContent"),
+                    alterConfigsSource.type(),
+                    resourceName)
                     .write("updated", !isError)
                     .writeEnd();
 

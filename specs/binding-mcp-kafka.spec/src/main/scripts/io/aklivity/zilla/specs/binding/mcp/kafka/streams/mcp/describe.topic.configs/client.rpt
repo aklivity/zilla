@@ -48,13 +48,13 @@ write zilla:begin.ext ${mcp:beginEx()
                            .toolsCall()
                                .sessionId("session-1")
                                .name("describe_topic_configs")
-                               .contentLength(72)
+                               .contentLength(64)
                                .build()
                            .build()}
 
 connected
 
-write '{"name":"describe_topic_configs","arguments":{"resource_name":"events"}}'
+write '{"name":"describe_topic_configs","arguments":{"topic":"events"}}'
 
 read '{"structuredContent":{"configs":[{"name":"cleanup.policy","value":"delete","is_default":true,"is_sensitive":true}]},'
      '"content":[{"type":"text","text":"Described 1 config(s)"}],"isError":false}'

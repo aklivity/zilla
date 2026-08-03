@@ -1002,7 +1002,7 @@ call_kafka_describe_topic_configs() {
       -e JWT_TOKEN="$JWT_FULL" \
       -e MCP_URL="http://zilla:$PORT/mcp" \
       -e CALL_TOOL="kafka__describe_topic_configs" \
-      -e CALL_ARGS='{"resource_name":"orders"}' \
+      -e CALL_ARGS='{"topic":"orders"}' \
       tools-list-client 2>&1)
   echo "$KAFKA_DESCRIBE_CONFIGS_OUT" | grep -q '"name":"cleanup.policy"'
 }
@@ -1026,7 +1026,7 @@ call_kafka_alter_topic_configs() {
       -e JWT_TOKEN="$JWT_FULL" \
       -e MCP_URL="http://zilla:$PORT/mcp" \
       -e CALL_TOOL="kafka__alter_topic_configs" \
-      -e CALL_ARGS='{"resource_name":"orders","configs":{"cleanup.policy":"compact"}}' \
+      -e CALL_ARGS='{"topic":"orders","configs":{"cleanup.policy":"compact"}}' \
       tools-list-client 2>&1)
   echo "$KAFKA_ALTER_CONFIGS_OUT" | grep -q 'Updated configs for topic orders'
 }

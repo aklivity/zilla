@@ -37,7 +37,7 @@ public class McpKafkaToolAlterConfigsSourceTest
             new McpKafkaToolAlterConfigsSource(KafkaAlterConfigsRequest.RESOURCE_TYPE_TOPIC);
 
         Status status = parse(source,
-            "{\"arguments\":{\"resource_name\":\"events\",\"configs\":{\"cleanup.policy\":\"delete\"}}}");
+            "{\"arguments\":{\"topic\":\"events\",\"configs\":{\"cleanup.policy\":\"delete\"}}}");
 
         assertEquals(Status.COMPLETED, status);
         assertTrue(source.completed());
@@ -54,7 +54,7 @@ public class McpKafkaToolAlterConfigsSourceTest
             new McpKafkaToolAlterConfigsSource(KafkaAlterConfigsRequest.RESOURCE_TYPE_BROKER);
 
         Status status = parse(source,
-            "{\"arguments\":{\"resource_name\":\"0\",\"configs\":{\"log.retention.hours\":\"168\"}}}");
+            "{\"arguments\":{\"broker_id\":0,\"configs\":{\"log.retention.hours\":\"168\"}}}");
 
         assertEquals(Status.COMPLETED, status);
         assertEquals(KafkaAlterConfigsRequest.RESOURCE_TYPE_BROKER, source.type());
@@ -79,7 +79,7 @@ public class McpKafkaToolAlterConfigsSourceTest
         McpKafkaToolAlterConfigsSource source =
             new McpKafkaToolAlterConfigsSource(KafkaAlterConfigsRequest.RESOURCE_TYPE_TOPIC);
 
-        parse(source, "{\"arguments\":{\"resource_name\":\"events\",\"configs\":{\"cleanup.policy\":\"delete\"}}}");
+        parse(source, "{\"arguments\":{\"topic\":\"events\",\"configs\":{\"cleanup.policy\":\"delete\"}}}");
         assertTrue(source.completed());
 
         source.reset();

@@ -46,17 +46,17 @@ read zilla:begin.ext ${mcp:matchBeginEx()
                           .toolsCall()
                               .sessionId("session-1")
                               .name("alter_broker_configs")
-                              .contentLength(105)
+                              .contentLength(99)
                               .build()
                           .build()}
 
 connected
 
-read '{"name":"alter_broker_configs","arguments":{"resource_name":"0","configs":{"log.retention.hours":"168"}}}'
+read '{"name":"alter_broker_configs","arguments":{"broker_id":0,"configs":{"log.retention.hours":"168"}}}'
 
 write flush
 
-write '{"structuredContent":{"resource_name":"0","updated":true},'
+write '{"structuredContent":{"broker_id":0,"updated":true},'
       '"content":[{"type":"text","text":"Updated configs for broker 0"}],"isError":false}'
 write flush
 
