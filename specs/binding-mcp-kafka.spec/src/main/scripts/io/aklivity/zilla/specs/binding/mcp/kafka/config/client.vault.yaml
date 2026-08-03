@@ -17,7 +17,7 @@
 name: test
 bindings:
   mcp0:
-    type: mcp_kafka
+    type: mcp-kafka
     kind: client
     vault: vault0
     options:
@@ -25,4 +25,4 @@ bindings:
         - localhost:9092
     routes:
       - when:
-          - tool: produce
+          - tool: produce_message

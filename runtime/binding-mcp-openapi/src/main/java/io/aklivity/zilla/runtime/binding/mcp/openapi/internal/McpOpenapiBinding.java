@@ -20,7 +20,7 @@ import io.aklivity.zilla.runtime.engine.binding.Binding;
 
 public final class McpOpenapiBinding implements Binding
 {
-    public static final String TYPE = "mcp_openapi";
+    public static final String TYPE = "mcp-openapi";
 
     private final McpOpenapiConfiguration config;
 
@@ -40,14 +40,14 @@ public final class McpOpenapiBinding implements Binding
     public String originType(
         KindConfig kind)
     {
-        return kind == KindConfig.CLIENT ? TYPE : null;
+        return kind == KindConfig.CLIENT || kind == KindConfig.PROXY ? TYPE : null;
     }
 
     @Override
     public String routedType(
         KindConfig kind)
     {
-        return kind == KindConfig.CLIENT ? TYPE : null;
+        return kind == KindConfig.CLIENT || kind == KindConfig.PROXY ? TYPE : null;
     }
 
     @Override

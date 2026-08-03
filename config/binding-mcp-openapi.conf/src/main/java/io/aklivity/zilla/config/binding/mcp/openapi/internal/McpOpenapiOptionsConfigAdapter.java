@@ -146,6 +146,10 @@ public final class McpOpenapiOptionsConfigAdapter implements JsonbAdapter<Option
             for (McpOpenapiToolConfig tool : mcpOpenapiOptions.tools)
             {
                 JsonObjectBuilder toolObject = Json.createObjectBuilder();
+                if (tool.title != null)
+                {
+                    toolObject.add(TITLE_NAME, tool.title);
+                }
                 if (tool.description != null)
                 {
                     toolObject.add(DESCRIPTION_NAME, tool.description);
@@ -309,6 +313,9 @@ public final class McpOpenapiOptionsConfigAdapter implements JsonbAdapter<Option
             for (String name : toolsObject.keySet())
             {
                 JsonObject toolObject = toolsObject.getJsonObject(name);
+                String title = toolObject.containsKey(TITLE_NAME)
+                    ? toolObject.getString(TITLE_NAME)
+                    : null;
                 String description = toolObject.containsKey(DESCRIPTION_NAME)
                     ? toolObject.getString(DESCRIPTION_NAME)
                     : null;
@@ -328,6 +335,7 @@ public final class McpOpenapiOptionsConfigAdapter implements JsonbAdapter<Option
 
                 mcpOpenapiOptions.tool()
                     .name(name)
+                    .title(title)
                     .description(description)
                     .summary(summary)
                     .input(input)
@@ -371,10 +379,6 @@ public final class McpOpenapiOptionsConfigAdapter implements JsonbAdapter<Option
         McpOpenapiToolAnnotationsConfig annotations)
     {
         JsonObjectBuilder annotationsObject = Json.createObjectBuilder();
-        if (annotations.title != null)
-        {
-            annotationsObject.add(TITLE_NAME, annotations.title);
-        }
         if (annotations.readOnlyHint != null)
         {
             annotationsObject.add(READ_ONLY_HINT_NAME, annotations.readOnlyHint);
@@ -397,9 +401,6 @@ public final class McpOpenapiOptionsConfigAdapter implements JsonbAdapter<Option
     private static McpOpenapiToolAnnotationsConfig toolAnnotations(
         JsonObject annotationsObject)
     {
-        String title = annotationsObject.containsKey(TITLE_NAME)
-            ? annotationsObject.getString(TITLE_NAME)
-            : null;
         Boolean readOnlyHint = annotationsObject.containsKey(READ_ONLY_HINT_NAME)
             ? annotationsObject.getBoolean(READ_ONLY_HINT_NAME)
             : null;
@@ -414,7 +415,6 @@ public final class McpOpenapiOptionsConfigAdapter implements JsonbAdapter<Option
             : null;
 
         return McpOpenapiToolAnnotationsConfig.builder()
-            .title(title)
             .readOnlyHint(readOnlyHint)
             .destructiveHint(destructiveHint)
             .idempotentHint(idempotentHint)

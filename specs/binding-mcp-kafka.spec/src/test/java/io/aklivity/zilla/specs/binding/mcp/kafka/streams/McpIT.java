@@ -38,8 +38,8 @@ public class McpIT
 
     @Test
     @Specification({
-        "${mcp}/produce/client",
-        "${mcp}/produce/server"})
+        "${mcp}/produce_message/client",
+        "${mcp}/produce_message/server"})
     public void shouldProduce() throws Exception
     {
         k3po.finish();
@@ -47,8 +47,8 @@ public class McpIT
 
     @Test
     @Specification({
-        "${mcp}/produce.rejected/client",
-        "${mcp}/produce.rejected/server"})
+        "${mcp}/produce_message.rejected/client",
+        "${mcp}/produce_message.rejected/server"})
     public void shouldRejectProduce() throws Exception
     {
         k3po.finish();
@@ -56,8 +56,8 @@ public class McpIT
 
     @Test
     @Specification({
-        "${mcp}/produce.rejected.invalid.record/client",
-        "${mcp}/produce.rejected.invalid.record/server"})
+        "${mcp}/produce_message.rejected.invalid.record/client",
+        "${mcp}/produce_message.rejected.invalid.record/server"})
     public void shouldRejectProduceWithInvalidRecord() throws Exception
     {
         k3po.finish();
@@ -110,8 +110,8 @@ public class McpIT
 
     @Test
     @Specification({
-        "${mcp}/produce.args.fragmented/client",
-        "${mcp}/produce.args.fragmented/server"})
+        "${mcp}/produce_message.args.fragmented/client",
+        "${mcp}/produce_message.args.fragmented/server"})
     public void shouldProduceArgsFragmented() throws Exception
     {
         k3po.finish();
@@ -146,8 +146,8 @@ public class McpIT
 
     @Test
     @Specification({
-        "${mcp}/produce.topic.glob/client",
-        "${mcp}/produce.topic.glob/server"})
+        "${mcp}/produce_message.topic.glob/client",
+        "${mcp}/produce_message.topic.glob/server"})
     public void shouldProduceWhenTopicMatchesGlob() throws Exception
     {
         k3po.finish();
@@ -155,8 +155,8 @@ public class McpIT
 
     @Test
     @Specification({
-        "${mcp}/produce.abort/client",
-        "${mcp}/produce.abort/server"})
+        "${mcp}/produce_message.abort/client",
+        "${mcp}/produce_message.abort/server"})
     public void shouldAbortMidProduce() throws Exception
     {
         k3po.finish();
@@ -182,6 +182,15 @@ public class McpIT
 
     @Test
     @Specification({
+        "${mcp}/tools.list.security.schemes/client",
+        "${mcp}/tools.list.security.schemes/server"})
+    public void shouldListToolsSecuritySchemes() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mcp}/create.topics/client",
         "${mcp}/create.topics/server"})
     public void shouldCreateTopics() throws Exception
@@ -194,6 +203,141 @@ public class McpIT
         "${mcp}/delete.topics/client",
         "${mcp}/delete.topics/server"})
     public void shouldDeleteTopics() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mcp}/describe.configs/client",
+        "${mcp}/describe.configs/server"})
+    public void shouldDescribeConfigs() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mcp}/alter.configs/client",
+        "${mcp}/alter.configs/server"})
+    public void shouldAlterConfigs() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mcp}/list.acls/client",
+        "${mcp}/list.acls/server"})
+    public void shouldListAcls() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mcp}/create.acls/client",
+        "${mcp}/create.acls/server"})
+    public void shouldCreateAcls() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mcp}/delete.acls/client",
+        "${mcp}/delete.acls/server"})
+    public void shouldDeleteAcls() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mcp}/list.topics/client",
+        "${mcp}/list.topics/server"})
+    public void shouldListTopics() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mcp}/describe.topic/client",
+        "${mcp}/describe.topic/server"})
+    public void shouldDescribeTopic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mcp}/cluster.overview/client",
+        "${mcp}/cluster.overview/server"})
+    public void shouldClusterOverview() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mcp}/list.brokers/client",
+        "${mcp}/list.brokers/server"})
+    public void shouldListBrokers() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mcp}/describe.cluster/client",
+        "${mcp}/describe.cluster/server"})
+    public void shouldDescribeCluster() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mcp}/list.consumer.groups/client",
+        "${mcp}/list.consumer.groups/server"})
+    public void shouldListConsumerGroups() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mcp}/describe.consumer.group/client",
+        "${mcp}/describe.consumer.group/server"})
+    public void shouldDescribeConsumerGroup() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mcp}/reset.offsets/client",
+        "${mcp}/reset.offsets/server"})
+    public void shouldResetOffsets() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mcp}/reset.offsets.coordinator.not.found/client",
+        "${mcp}/reset.offsets.coordinator.not.found/server"})
+    public void shouldResetOffsetsCoordinatorNotFound() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mcp}/describe.consumer.group.lag/client",
+        "${mcp}/describe.consumer.group.lag/server"})
+    public void shouldDescribeConsumerGroupLag() throws Exception
     {
         k3po.finish();
     }

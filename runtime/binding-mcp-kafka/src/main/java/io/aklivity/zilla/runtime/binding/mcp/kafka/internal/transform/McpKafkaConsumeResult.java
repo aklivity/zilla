@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.binding.mcp.kafka.internal.transform;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Objects;
 
 import jakarta.json.stream.JsonLocation;
 
@@ -40,6 +41,11 @@ import io.aklivity.zilla.runtime.common.json.JsonVerbatim;
  * {@code count}) precedes {@code content}, since the summary text embeds the final count and the
  * count itself is only known once every record has arrived -- both must be written last, after the
  * {@code messages} array has already streamed out record-by-record.
+ * <p>
+ * Each record's {@code headers} are written as an array of maps rather than an array of
+ * {@code {name, value}} pairs: {@link #computeHeaderGroups()} partitions the header list into
+ * maximal runs of distinct names, so a header set with no duplicate names collapses to a single
+ * map object and only a genuine name collision forces a second one.
  */
 public final class McpKafkaConsumeResult
 {
@@ -72,19 +78,23 @@ public final class McpKafkaConsumeResult
     private static final int REC_START = 0;
     private static final int REC_KEY_KEY = 1;
     private static final int REC_KEY_VALUE = 2;
-    private static final int REC_HEADERS_KEY = 3;
-    private static final int REC_HEADERS_START = 4;
-    private static final int REC_HEADER_START = 5;
-    private static final int REC_HEADER_NAME_KEY = 6;
-    private static final int REC_HEADER_NAME_VALUE = 7;
-    private static final int REC_HEADER_VALUE_KEY = 8;
-    private static final int REC_HEADER_VALUE_VALUE = 9;
-    private static final int REC_HEADER_END = 10;
-    private static final int REC_HEADERS_END = 11;
-    private static final int REC_VALUE_KEY = 12;
-    private static final int REC_VALUE_VALUE = 13;
-    private static final int REC_END = 14;
-    private static final int REC_DONE = 15;
+    private static final int REC_VALUE_KEY = 3;
+    private static final int REC_VALUE_VALUE = 4;
+    private static final int REC_PARTITION_KEY = 5;
+    private static final int REC_PARTITION_VALUE = 6;
+    private static final int REC_OFFSET_KEY = 7;
+    private static final int REC_OFFSET_VALUE = 8;
+    private static final int REC_TIMESTAMP_KEY = 9;
+    private static final int REC_TIMESTAMP_VALUE = 10;
+    private static final int REC_HEADERS_KEY = 11;
+    private static final int REC_HEADERS_START = 12;
+    private static final int REC_HEADER_GROUP_START = 13;
+    private static final int REC_HEADER_ENTRY_KEY = 14;
+    private static final int REC_HEADER_ENTRY_VALUE = 15;
+    private static final int REC_HEADER_GROUP_END = 16;
+    private static final int REC_HEADERS_END = 17;
+    private static final int REC_END = 18;
+    private static final int REC_DONE = 19;
 
     private final Resumable text = new Resumable();
     private final Control inject = new Control();
@@ -102,7 +112,13 @@ public final class McpKafkaConsumeResult
     private String recKey;
     private List<String[]> recHeaders;
     private String recValue;
-    private int headerIndex;
+    private int recPartition;
+    private long recOffset;
+    private long recTimestamp;
+    private int[] groupStart;
+    private int groupCount;
+    private int groupIndex;
+    private int entryIndex;
 
     public McpKafkaConsumeResult(
         JsonSink sink)
@@ -115,7 +131,8 @@ public final class McpKafkaConsumeResult
         step = STEP_ROOT_START;
         recordStep = REC_DONE;
         pendingEvent = null;
-        headerIndex = 0;
+        groupIndex = 0;
+        entryIndex = 0;
     }
 
     public Status open(
@@ -128,12 +145,20 @@ public final class McpKafkaConsumeResult
     public Status record(
         String key,
         List<String[]> headers,
-        String value)
+        String value,
+        int partition,
+        long offset,
+        long timestamp)
     {
         this.recKey = key;
         this.recHeaders = headers;
         this.recValue = value;
-        this.headerIndex = 0;
+        this.recPartition = partition;
+        this.recOffset = offset;
+        this.recTimestamp = timestamp;
+        this.groupIndex = 0;
+        this.entryIndex = 0;
+        computeHeaderGroups();
         this.recordStep = REC_START;
         return driveRecord();
     }
@@ -235,17 +260,79 @@ public final class McpKafkaConsumeResult
         switch (recordStep)
         {
         case REC_HEADERS_START:
-        case REC_HEADER_END:
-            if (recordStep == REC_HEADER_END)
+            if (groupCount == 0)
             {
-                headerIndex++;
+                recordStep = REC_HEADERS_END;
             }
-            recordStep = headerIndex < recHeaders.size() ? REC_HEADER_START : REC_HEADERS_END;
+            else
+            {
+                groupIndex = 0;
+                entryIndex = groupStart[0];
+                recordStep = REC_HEADER_GROUP_START;
+            }
+            break;
+        case REC_HEADER_ENTRY_VALUE:
+            entryIndex++;
+            recordStep = entryIndex < groupStart[groupIndex + 1] ? REC_HEADER_ENTRY_KEY : REC_HEADER_GROUP_END;
+            break;
+        case REC_HEADER_GROUP_END:
+            groupIndex++;
+            if (groupIndex < groupCount)
+            {
+                entryIndex = groupStart[groupIndex];
+                recordStep = REC_HEADER_GROUP_START;
+            }
+            else
+            {
+                recordStep = REC_HEADERS_END;
+            }
             break;
         default:
             recordStep++;
             break;
         }
+    }
+
+    // Groups recHeaders into maximal runs of distinct-name headers: a new group starts only when the
+    // next header's name collides with one already placed in the current group. groupStart[g] is the
+    // index of the first header in group g; groupStart[groupCount] is a sentinel equal to the header
+    // count, so group g spans recHeaders[groupStart[g] .. groupStart[g + 1] - 1].
+    private void computeHeaderGroups()
+    {
+        final int count = recHeaders.size();
+        if (groupStart == null || groupStart.length < count + 1)
+        {
+            groupStart = new int[Math.max(4, count + 1)];
+        }
+
+        groupCount = 0;
+        if (count > 0)
+        {
+            int start = 0;
+            groupStart[groupCount++] = start;
+            for (int i = 1; i < count; i++)
+            {
+                if (collidesInGroup(start, i))
+                {
+                    start = i;
+                    groupStart[groupCount++] = start;
+                }
+            }
+        }
+        groupStart[groupCount] = count;
+    }
+
+    private boolean collidesInGroup(
+        int start,
+        int index)
+    {
+        final String name = recHeaders.get(index)[0];
+        boolean collides = false;
+        for (int i = start; i < index && !collides; i++)
+        {
+            collides = Objects.equals(name, recHeaders.get(i)[0]);
+        }
+        return collides;
     }
 
     private JsonEvent armEnvelopeStep(
@@ -378,6 +465,38 @@ public final class McpKafkaConsumeResult
                 event = JsonEvent.VALUE_NULL;
             }
             break;
+        case REC_VALUE_KEY:
+            text.with("value");
+            event = JsonEvent.KEY_NAME;
+            break;
+        case REC_VALUE_VALUE:
+            text.with(recValue);
+            event = JsonEvent.VALUE_STRING;
+            break;
+        case REC_PARTITION_KEY:
+            text.with("partition");
+            event = JsonEvent.KEY_NAME;
+            break;
+        case REC_PARTITION_VALUE:
+            text.with(Integer.toString(recPartition));
+            event = JsonEvent.VALUE_NUMBER;
+            break;
+        case REC_OFFSET_KEY:
+            text.with("offset");
+            event = JsonEvent.KEY_NAME;
+            break;
+        case REC_OFFSET_VALUE:
+            text.with(Long.toString(recOffset));
+            event = JsonEvent.VALUE_NUMBER;
+            break;
+        case REC_TIMESTAMP_KEY:
+            text.with("timestamp");
+            event = JsonEvent.KEY_NAME;
+            break;
+        case REC_TIMESTAMP_VALUE:
+            text.with(Long.toString(recTimestamp));
+            event = JsonEvent.VALUE_NUMBER;
+            break;
         case REC_HEADERS_KEY:
             text.with("headers");
             event = JsonEvent.KEY_NAME;
@@ -386,36 +505,17 @@ public final class McpKafkaConsumeResult
             text.with("");
             event = JsonEvent.START_ARRAY;
             break;
-        case REC_HEADER_START:
+        case REC_HEADER_GROUP_START:
             text.with("");
             event = JsonEvent.START_OBJECT;
             break;
-        case REC_HEADER_NAME_KEY:
-            text.with("name");
+        case REC_HEADER_ENTRY_KEY:
+            text.with(recHeaders.get(entryIndex)[0]);
             event = JsonEvent.KEY_NAME;
             break;
-        case REC_HEADER_NAME_VALUE:
+        case REC_HEADER_ENTRY_VALUE:
         {
-            final String name = recHeaders.get(headerIndex)[0];
-            if (name != null)
-            {
-                text.with(name);
-                event = JsonEvent.VALUE_STRING;
-            }
-            else
-            {
-                text.with("");
-                event = JsonEvent.VALUE_NULL;
-            }
-            break;
-        }
-        case REC_HEADER_VALUE_KEY:
-            text.with("value");
-            event = JsonEvent.KEY_NAME;
-            break;
-        case REC_HEADER_VALUE_VALUE:
-        {
-            final String value = recHeaders.get(headerIndex)[1];
+            final String value = recHeaders.get(entryIndex)[1];
             if (value != null)
             {
                 text.with(value);
@@ -428,21 +528,13 @@ public final class McpKafkaConsumeResult
             }
             break;
         }
-        case REC_HEADER_END:
+        case REC_HEADER_GROUP_END:
             text.with("");
             event = JsonEvent.END_OBJECT;
             break;
         case REC_HEADERS_END:
             text.with("");
             event = JsonEvent.END_ARRAY;
-            break;
-        case REC_VALUE_KEY:
-            text.with("value");
-            event = JsonEvent.KEY_NAME;
-            break;
-        case REC_VALUE_VALUE:
-            text.with(recValue);
-            event = JsonEvent.VALUE_STRING;
             break;
         case REC_END:
             text.with("");

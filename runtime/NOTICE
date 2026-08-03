@@ -31,6 +31,7 @@ This project includes:
   zilla::config::binding-http.conf under Aklivity Community License Agreement
   zilla::config::binding-kafka-grpc.conf under Aklivity Community License Agreement
   zilla::config::binding-mcp-http.conf under Aklivity Community License Agreement
+  zilla::config::binding-mcp-kafka-connect.conf under Aklivity Community License Agreement
   zilla::config::binding-mcp-kafka.conf under Aklivity Community License Agreement
   zilla::config::binding-mcp-openapi.conf under Aklivity Community License Agreement
   zilla::config::binding-mcp-schema-registry.conf under Aklivity Community License Agreement
@@ -65,6 +66,7 @@ This project includes:
   zilla::config::model-json.conf under Aklivity Community License Agreement
   zilla::config::model-protobuf.conf under Aklivity Community License Agreement
   zilla::config::vault-filesystem.conf under Aklivity Community License Agreement
+  zilla::runtime::binding-mcp-openapi under Aklivity Community License Agreement
   zilla::runtime::common-agrona under The Apache Software License, Version 2.0
   zilla::runtime::common-asyncapi under Aklivity Community License Agreement
   zilla::runtime::common-feature under The Apache Software License, Version 2.0

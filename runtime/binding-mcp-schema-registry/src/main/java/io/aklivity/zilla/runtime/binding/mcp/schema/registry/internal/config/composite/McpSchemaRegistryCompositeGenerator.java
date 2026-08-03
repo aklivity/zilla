@@ -14,14 +14,11 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.schema.registry.internal.config.composite;
 
-import static io.aklivity.zilla.config.engine.KindConfig.CLIENT;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.regex.Pattern;
 
 import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiBindingConfig;
 import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiBindingConfigBuilder;
@@ -36,31 +33,39 @@ import io.aklivity.zilla.runtime.binding.mcp.schema.registry.internal.config.Mcp
 import io.aklivity.zilla.runtime.binding.mcp.schema.registry.internal.config.McpSchemaRegistryCompositeConfig;
 import io.aklivity.zilla.runtime.binding.mcp.schema.registry.internal.config.McpSchemaRegistryCompositeRouteConfig;
 import io.aklivity.zilla.runtime.binding.mcp.schema.registry.internal.config.McpSchemaRegistryRouteConfig;
+import io.aklivity.zilla.runtime.common.lang.Matchers;
 
 public final class McpSchemaRegistryCompositeGenerator
 {
     private static final String BUNDLED_SPEC_RESOURCE =
         "/io/aklivity/zilla/runtime/binding/mcp/schema/registry/internal/schema/karapace-schema-registry.openapi.json";
-    private static final String CATALOG_NAME = "catalog0";
-    private static final String BINDING_NAME = "mcp_openapi0";
-    private static final String SUBJECT_NAME = "schemaregistry";
+    private static final String BUNDLED_OVERLAY_RESOURCE =
+        "/io/aklivity/zilla/runtime/binding/mcp/schema/registry/internal/schema/karapace-schema-registry.overlay.json";
+    private static final String CATALOG_NAME = "specs";
+    private static final String OVERLAY_CATALOG_NAME = "overlays";
+    private static final String BINDING_NAME = "mcp-openapi0";
+    private static final String SUBJECT_NAME = "schema-registry";
 
     private static final List<String> TOOLS = List.of(
         "list_subjects", "describe_subject", "get_schema", "register_schema", "delete_subject",
         "delete_schema_version", "check_compatibility", "get_compatibility", "set_compatibility");
 
     private final String bundledSpec;
+    private final String bundledOverlay;
 
     public McpSchemaRegistryCompositeGenerator()
     {
-        this.bundledSpec = loadBundledSpec();
+        this.bundledSpec = loadBundledResource(BUNDLED_SPEC_RESOURCE);
+        this.bundledOverlay = loadBundledResource(BUNDLED_OVERLAY_RESOURCE);
     }
 
     public McpSchemaRegistryCompositeConfig generate(
         McpSchemaRegistryBindingConfig binding)
     {
+        final String server = binding.options != null ? binding.options.server : null;
+
         NamespaceConfig namespace = NamespaceConfig.builder()
-            .name("%s/mcp_openapi".formatted(binding.qname))
+            .name("%s/mcp-openapi".formatted(binding.qname))
             .catalog()
                 .name(CATALOG_NAME)
                 .type("inline")
@@ -72,15 +77,32 @@ public final class McpSchemaRegistryCompositeGenerator
                         .build()
                     .build()
                 .build()
+            .catalog()
+                .name(OVERLAY_CATALOG_NAME)
+                .type("inline")
+                .options(InlineOptionsConfig::builder)
+                    .schema()
+                        .subject(SUBJECT_NAME)
+                        .version("latest")
+                        .schema(bundledOverlay)
+                        .build()
+                    .build()
+                .build()
             .binding(McpOpenapiBindingConfig::builder)
                 .name(BINDING_NAME)
-                .kind(CLIENT)
+                .kind(binding.kind)
+                .exit(binding.exit)
                 .options()
                     .spec()
                         .label(SUBJECT_NAME)
-                        .server(binding.options.server)
+                        .server(server)
                         .catalog()
                             .name(CATALOG_NAME)
+                            .subject(SUBJECT_NAME)
+                            .version("latest")
+                            .build()
+                        .overlay()
+                            .name(OVERLAY_CATALOG_NAME)
                             .subject(SUBJECT_NAME)
                             .version("latest")
                             .build()
@@ -128,10 +150,10 @@ public final class McpSchemaRegistryCompositeGenerator
     }
 
     private static boolean matchesTool(
-        String pattern,
+        List<String> patterns,
         String tool)
     {
-        return compileGlob(pattern).matcher(tool).matches();
+        return Matchers.admits(Matchers.globAll(patterns), tool);
     }
 
     private <C> McpOpenapiRouteConfigBuilder<C> injectGuarded(
@@ -159,39 +181,18 @@ public final class McpSchemaRegistryCompositeGenerator
         return guarded;
     }
 
-    private static Pattern compileGlob(
-        String glob)
+    private static String loadBundledResource(
+        String resource)
     {
-        StringBuilder regex = new StringBuilder();
-        String[] literals = glob.split("\\*", -1);
-
-        for (int index = 0; index < literals.length; index++)
+        String content;
+        try (InputStream input = McpSchemaRegistryCompositeGenerator.class.getResourceAsStream(resource))
         {
-            if (index > 0)
-            {
-                regex.append(".*");
-            }
-
-            if (!literals[index].isEmpty())
-            {
-                regex.append(Pattern.quote(literals[index]));
-            }
-        }
-
-        return Pattern.compile(regex.toString());
-    }
-
-    private static String loadBundledSpec()
-    {
-        String schema;
-        try (InputStream input = McpSchemaRegistryCompositeGenerator.class.getResourceAsStream(BUNDLED_SPEC_RESOURCE))
-        {
-            schema = new String(input.readAllBytes(), StandardCharsets.UTF_8);
+            content = new String(input.readAllBytes(), StandardCharsets.UTF_8);
         }
         catch (IOException ex)
         {
             throw new UncheckedIOException(ex);
         }
-        return schema;
+        return content;
     }
 }

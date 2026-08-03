@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.config.binding.mcp.openapi;
 
-import java.util.List;
 import java.util.function.Function;
 
 import io.aklivity.zilla.config.engine.ConditionConfig;
@@ -26,7 +25,6 @@ public final class McpOpenapiConditionConfigBuilder<T> extends ConfigBuilder<T, 
 
     private String tool;
     private String resource;
-    private List<String> capability;
 
     McpOpenapiConditionConfigBuilder(
         Function<ConditionConfig, T> mapper)
@@ -55,16 +53,9 @@ public final class McpOpenapiConditionConfigBuilder<T> extends ConfigBuilder<T, 
         return this;
     }
 
-    public McpOpenapiConditionConfigBuilder<T> capability(
-        List<String> capability)
-    {
-        this.capability = capability;
-        return this;
-    }
-
     @Override
     public T build()
     {
-        return mapper.apply(new McpOpenapiConditionConfig(tool, resource, capability));
+        return mapper.apply(new McpOpenapiConditionConfig(tool, resource));
     }
 }

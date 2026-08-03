@@ -1,7 +1,7 @@
 // Minimal mock Petstore REST API. Its OpenAPI 3.1 description (inlined in
 // etc/zilla.yaml) declares "create_pet" as requiring the "pets:write" scope
 // via a bearerAuth security scheme; Zilla enforces that scope requirement at
-// the mcp_openapi binding before a request ever reaches this service, so no
+// the mcp-openapi binding before a request ever reaches this service, so no
 // authorization check is duplicated here.
 
 import express from "express";
@@ -34,12 +34,12 @@ app.post("/pets", (req, res) =>
     res.status(201).json(pet);
 });
 
-// Static resource: no path params, so mcp_openapi exposes this as a single
+// Static resource: no path params, so mcp-openapi exposes this as a single
 // fixed-URI entry in resources/list rather than a resources/templates entry.
 app.get("/pets/featured", (req, res) => res.json(pets.filter((pet) => FEATURED_IDS.has(pet.id))));
 
 // The OpenAPI "tag" query param arrives as ?tag= regardless of what the tool
-// argument is named -- the mcp_openapi route's with.params renames it from
+// argument is named -- the mcp-openapi route's with.params renames it from
 // the caller-facing "category" back to "tag" before this request is built.
 // Logged (rather than asserted on the MCP response) so .github/test.sh can
 // confirm the rename reached this service exactly as configured.
@@ -50,7 +50,7 @@ app.get("/pets/search", (req, res) =>
     res.json(tag ? pets.filter((pet) => pet.tag === tag) : pets);
 });
 
-// Dynamic resource: the {petId} path param makes mcp_openapi expose this as
+// Dynamic resource: the {petId} path param makes mcp-openapi expose this as
 // a resources/templates entry, read with a concrete URI per pet.
 app.get("/pets/:petId", (req, res) =>
 {

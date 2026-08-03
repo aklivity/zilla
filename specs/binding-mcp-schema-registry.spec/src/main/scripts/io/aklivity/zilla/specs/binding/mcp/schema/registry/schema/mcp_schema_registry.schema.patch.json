@@ -2,7 +2,7 @@
     {
         "op": "add",
         "path": "/$defs/binding/properties/type/enum/-",
-        "value": "mcp_schema_registry"
+        "value": "mcp-schema-registry"
     },
     {
         "op": "add",
@@ -15,7 +15,7 @@
                 {
                     "type":
                     {
-                        "const": "mcp_schema_registry"
+                        "const": "mcp-schema-registry"
                     }
                 }
             },
@@ -25,16 +25,15 @@
                 {
                     "type":
                     {
-                        "const": "mcp_schema_registry"
+                        "const": "mcp-schema-registry"
                     },
                     "kind":
                     {
-                        "enum": [ "client" ]
+                        "enum": [ "client", "proxy" ]
                     },
                     "catalog": false,
                     "vault": false,
                     "entry": false,
-                    "exit": false,
                     "routes":
                     {
                         "title": "Routes",
@@ -58,7 +57,11 @@
                                             "tool":
                                             {
                                                 "title": "Tool name or glob pattern",
-                                                "type": "string"
+                                                "oneOf":
+                                                [
+                                                    { "type": "string" },
+                                                    { "type": "array", "items": { "type": "string" }, "minItems": 1 }
+                                                ]
                                             }
                                         },
                                         "required": [ "tool" ],
@@ -100,11 +103,64 @@
                                 "type": "string"
                             }
                         },
-                        "required": [ "server" ],
                         "additionalProperties": false
                     }
                 },
-                "required": [ "options" ]
+                "oneOf":
+                [
+                    {
+                        "properties":
+                        {
+                            "kind":
+                            {
+                                "const": "client"
+                            },
+                            "exit": false,
+                            "routes":
+                            {
+                                "items":
+                                {
+                                    "properties":
+                                    {
+                                        "exit": false
+                                    }
+                                }
+                            },
+                            "options":
+                            {
+                                "required": [ "server" ]
+                            }
+                        },
+                        "required": [ "options" ]
+                    },
+                    {
+                        "properties":
+                        {
+                            "kind":
+                            {
+                                "const": "proxy"
+                            },
+                            "options":
+                            {
+                                "properties":
+                                {
+                                    "server": false
+                                }
+                            },
+                            "routes":
+                            {
+                                "items":
+                                {
+                                    "properties":
+                                    {
+                                        "exit": false
+                                    }
+                                }
+                            }
+                        },
+                        "required": [ "exit" ]
+                    }
+                ]
             }
         }
     }

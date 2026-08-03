@@ -20,6 +20,8 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 
+import java.util.List;
+
 import org.junit.Test;
 
 import io.aklivity.zilla.config.binding.mcp.schema.registry.internal.McpSchemaRegistryBindingInfo;
@@ -33,20 +35,20 @@ public class McpSchemaRegistryBindingConfigBuilderTest
     {
         McpSchemaRegistryBindingConfig binding = McpSchemaRegistryBindingConfig.builder()
             .namespace("test")
-            .name("mcp_schema_registry0")
+            .name("mcp-schema-registry0")
             .kind(SERVER)
             .options()
                 .server("test")
                 .build()
             .route()
                 .when()
-                    .tool("test")
+                    .tool(List.of("test"))
                     .build()
                 .build()
             .build();
 
         assertThat(binding.namespace, equalTo("test"));
-        assertThat(binding.name, equalTo("mcp_schema_registry0"));
+        assertThat(binding.name, equalTo("mcp-schema-registry0"));
         assertThat(binding.type, equalTo(McpSchemaRegistryBindingInfo.TYPE));
         assertThat(binding.kind, equalTo(SERVER));
 
@@ -60,6 +62,6 @@ public class McpSchemaRegistryBindingConfigBuilderTest
 
         ConditionConfig condition = route.when.get(0);
         assertThat(condition, instanceOf(McpSchemaRegistryConditionConfig.class));
-        assertThat(((McpSchemaRegistryConditionConfig) condition).tool, equalTo("test"));
+        assertThat(((McpSchemaRegistryConditionConfig) condition).tool, equalTo(List.of("test")));
     }
 }

@@ -15,11 +15,15 @@
 package io.aklivity.zilla.runtime.binding.mcp.schema.registry.internal.config.composite;
 
 import static io.aklivity.zilla.config.engine.KindConfig.CLIENT;
+import static io.aklivity.zilla.config.engine.KindConfig.PROXY;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
@@ -80,7 +84,7 @@ public class McpSchemaRegistryCompositeGeneratorTest
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("app0")
-            .type("mcp_schema_registry")
+            .type("mcp-schema-registry")
             .kind(CLIENT)
             .options(McpSchemaRegistryOptionsConfig.builder()
                 .server("http://localhost:8080")
@@ -94,38 +98,58 @@ public class McpSchemaRegistryCompositeGeneratorTest
         assertThat(composite.namespaces, hasSize(1));
 
         NamespaceConfig namespace = composite.namespaces.get(0);
-        assertThat(namespace.catalogs, hasSize(1));
+        assertThat(namespace.catalogs, hasSize(2));
         assertThat(namespace.bindings, hasSize(1));
 
         CatalogConfig catalog = namespace.catalogs.get(0);
-        assertThat(catalog.name, equalTo("catalog0"));
+        assertThat(catalog.name, equalTo("specs"));
         assertThat(catalog.type, equalTo("inline"));
 
         InlineOptionsConfig catalogOptions = (InlineOptionsConfig) catalog.options;
         assertThat(catalogOptions.subjects, hasSize(1));
 
         InlineSchemaConfig schema = catalogOptions.subjects.get(0);
-        assertThat(schema.subject, equalTo("schemaregistry"));
+        assertThat(schema.subject, equalTo("schema-registry"));
         assertThat(schema.version, equalTo("latest"));
         assertThat(schema.schema, containsString("\"operationId\":\"list_subjects\""));
+        assertThat(schema.schema, not(containsString("x-zilla-mcp")));
+
+        CatalogConfig overlayCatalog = namespace.catalogs.get(1);
+        assertThat(overlayCatalog.name, equalTo("overlays"));
+        assertThat(overlayCatalog.type, equalTo("inline"));
+
+        InlineOptionsConfig overlayCatalogOptions = (InlineOptionsConfig) overlayCatalog.options;
+        assertThat(overlayCatalogOptions.subjects, hasSize(1));
+
+        InlineSchemaConfig overlaySchema = overlayCatalogOptions.subjects.get(0);
+        assertThat(overlaySchema.subject, equalTo("schema-registry"));
+        assertThat(overlaySchema.version, equalTo("latest"));
+        assertThat(overlaySchema.schema, containsString("x-zilla-mcp"));
+        assertThat(overlaySchema.schema, containsString("List Subjects"));
 
         BindingConfig mcpOpenapi = namespace.bindings.get(0);
-        assertThat(mcpOpenapi.name, equalTo("mcp_openapi0"));
-        assertThat(mcpOpenapi.type, equalTo("mcp_openapi"));
+        assertThat(mcpOpenapi.name, equalTo("mcp-openapi0"));
+        assertThat(mcpOpenapi.type, equalTo("mcp-openapi"));
         assertThat(mcpOpenapi.kind, equalTo(CLIENT));
 
         McpOpenapiOptionsConfig mcpOpenapiOptions = (McpOpenapiOptionsConfig) mcpOpenapi.options;
         assertThat(mcpOpenapiOptions.specs, hasSize(1));
 
         McpOpenapiSpecificationConfig spec = mcpOpenapiOptions.specs.get(0);
-        assertThat(spec.label, equalTo("schemaregistry"));
+        assertThat(spec.label, equalTo("schema-registry"));
         assertThat(spec.server, equalTo("http://localhost:8080"));
         assertThat(spec.catalogs, hasSize(1));
 
         McpOpenapiCatalogConfig specCatalog = spec.catalogs.get(0);
-        assertThat(specCatalog.name, equalTo("catalog0"));
-        assertThat(specCatalog.subject, equalTo("schemaregistry"));
+        assertThat(specCatalog.name, equalTo("specs"));
+        assertThat(specCatalog.subject, equalTo("schema-registry"));
         assertThat(specCatalog.version, equalTo("latest"));
+
+        McpOpenapiCatalogConfig specOverlay = spec.overlay;
+        assertThat(specOverlay, notNullValue());
+        assertThat(specOverlay.name, equalTo("overlays"));
+        assertThat(specOverlay.subject, equalTo("schema-registry"));
+        assertThat(specOverlay.version, equalTo("latest"));
 
         assertThat(mcpOpenapi.routes, hasSize(TOOLS.size()));
         for (int i = 0; i < TOOLS.size(); i++)
@@ -137,7 +161,7 @@ public class McpSchemaRegistryCompositeGeneratorTest
             assertThat(when.tool, equalTo(TOOLS.get(i)));
 
             McpOpenapiWithConfig with = (McpOpenapiWithConfig) route.with;
-            assertThat(with.spec, equalTo("schemaregistry"));
+            assertThat(with.spec, equalTo("schema-registry"));
             assertThat(with.operation, equalTo(TOOLS.get(i)));
         }
 
@@ -151,19 +175,50 @@ public class McpSchemaRegistryCompositeGeneratorTest
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("app0")
-            .type("mcp_schema_registry")
+            .type("mcp-schema-registry")
             .kind(CLIENT)
             .options(McpSchemaRegistryOptionsConfig.builder()
                 .server("http://localhost:8080")
                 .build())
             .route()
                 .when(McpSchemaRegistryConditionConfig.builder()
-                    .tool("list_*")
+                    .tool(List.of("list_*"))
                     .build())
                 .build()
             .route()
                 .when(McpSchemaRegistryConditionConfig.builder()
-                    .tool("get_schema")
+                    .tool(List.of("get_schema"))
+                    .build())
+                .build()
+            .build();
+
+        McpSchemaRegistryBindingConfig attached = new McpSchemaRegistryBindingConfig(context, binding);
+
+        McpSchemaRegistryCompositeConfig composite = generator.generate(attached);
+
+        BindingConfig mcpOpenapi = composite.namespaces.get(0).bindings.get(0);
+        List<String> routedTools = mcpOpenapi.routes.stream()
+            .map(route -> ((McpOpenapiConditionConfig) route.when.get(0)).tool)
+            .toList();
+
+        assertThat(routedTools, hasSize(2));
+        assertThat(routedTools, equalTo(List.of("list_subjects", "get_schema")));
+    }
+
+    @Test
+    public void shouldMatchAnyToolNameWithinSingleRouteAllowlist()
+    {
+        BindingConfig binding = GenericBindingConfig.builder()
+            .namespace("test")
+            .name("app0")
+            .type("mcp-schema-registry")
+            .kind(CLIENT)
+            .options(McpSchemaRegistryOptionsConfig.builder()
+                .server("http://localhost:8080")
+                .build())
+            .route()
+                .when(McpSchemaRegistryConditionConfig.builder()
+                    .tool(List.of("list_subjects", "get_schema"))
                     .build())
                 .build()
             .build();
@@ -189,14 +244,14 @@ public class McpSchemaRegistryCompositeGeneratorTest
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("app0")
-            .type("mcp_schema_registry")
+            .type("mcp-schema-registry")
             .kind(CLIENT)
             .options(McpSchemaRegistryOptionsConfig.builder()
                 .server("http://localhost:8080")
                 .build())
             .route()
                 .when(McpSchemaRegistryConditionConfig.builder()
-                    .tool("register_schema")
+                    .tool(List.of("register_schema"))
                     .build())
                 .guarded()
                     .name("jwt0")
@@ -223,19 +278,63 @@ public class McpSchemaRegistryCompositeGeneratorTest
     }
 
     @Test
+    public void shouldGenerateCompositeForProxyKind()
+    {
+        when(context.supplyQName(eq(5L))).thenReturn("test:http0");
+
+        BindingConfig binding = GenericBindingConfig.builder()
+            .namespace("test")
+            .name("app0")
+            .type("mcp-schema-registry")
+            .kind(PROXY)
+            .exit("http0")
+            .build();
+        binding.routes.stream()
+            .filter(route -> "http0".equals(route.exit))
+            .findFirst()
+            .orElseThrow()
+            .id = 5L;
+
+        McpSchemaRegistryBindingConfig attached = new McpSchemaRegistryBindingConfig(context, binding);
+
+        McpSchemaRegistryCompositeConfig composite = generator.generate(attached);
+
+        BindingConfig mcpOpenapi = composite.namespaces.get(0).bindings.get(0);
+        assertThat(mcpOpenapi.kind, equalTo(PROXY));
+
+        McpOpenapiOptionsConfig mcpOpenapiOptions = (McpOpenapiOptionsConfig) mcpOpenapi.options;
+        McpOpenapiSpecificationConfig spec = mcpOpenapiOptions.specs.get(0);
+        assertThat(spec.server, nullValue());
+
+        RouteConfig exitRoute = mcpOpenapi.routes.stream()
+            .filter(route -> route.exit != null)
+            .findFirst()
+            .orElse(null);
+        assertThat(exitRoute, notNullValue());
+        assertThat(exitRoute.exit, equalTo("test:http0"));
+        assertThat(exitRoute.with, nullValue());
+
+        List<String> routedTools = mcpOpenapi.routes.stream()
+            .filter(route -> route.with != null)
+            .map(route -> ((McpOpenapiConditionConfig) route.when.get(0)).tool)
+            .toList();
+        assertThat(routedTools, equalTo(TOOLS));
+    }
+
+    @Test
     public void shouldExposeNoRoutesWhenNoToolMatches()
     {
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("app0")
-            .type("mcp_schema_registry")
+            .type("mcp-schema-registry")
             .kind(CLIENT)
             .options(McpSchemaRegistryOptionsConfig.builder()
                 .server("http://localhost:8080")
                 .build())
             .route()
                 .when(McpSchemaRegistryConditionConfig.builder()
-                    .tool("nonexistent_tool")
+                    .tool(List.of("nonexistent_tool"))
                     .build())
                 .build()
             .build();

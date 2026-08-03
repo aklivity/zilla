@@ -38,8 +38,8 @@ public class KafkaIT
 
     @Test
     @Specification({
-        "${kafka}/produce/client",
-        "${kafka}/produce/server"})
+        "${kafka}/produce_message/client",
+        "${kafka}/produce_message/server"})
     public void shouldProduce() throws Exception
     {
         k3po.finish();
@@ -47,8 +47,8 @@ public class KafkaIT
 
     @Test
     @Specification({
-        "${kafka}/produce.rejected/client",
-        "${kafka}/produce.rejected/server"})
+        "${kafka}/produce_message.rejected/client",
+        "${kafka}/produce_message.rejected/server"})
     public void shouldRejectProduce() throws Exception
     {
         k3po.finish();
@@ -56,8 +56,8 @@ public class KafkaIT
 
     @Test
     @Specification({
-        "${kafka}/produce.rejected.invalid.record/client",
-        "${kafka}/produce.rejected.invalid.record/server"})
+        "${kafka}/produce_message.rejected.invalid.record/client",
+        "${kafka}/produce_message.rejected.invalid.record/server"})
     public void shouldRejectProduceWithInvalidRecord() throws Exception
     {
         k3po.finish();
@@ -101,8 +101,8 @@ public class KafkaIT
 
     @Test
     @Specification({
-        "${kafka}/produce.args.fragmented/client",
-        "${kafka}/produce.args.fragmented/server"})
+        "${kafka}/produce_message.args.fragmented/client",
+        "${kafka}/produce_message.args.fragmented/server"})
     public void shouldProduceArgsFragmented() throws Exception
     {
         k3po.finish();
@@ -119,8 +119,8 @@ public class KafkaIT
 
     @Test
     @Specification({
-        "${kafka}/produce.topic.glob/client",
-        "${kafka}/produce.topic.glob/server"})
+        "${kafka}/produce_message.topic.glob/client",
+        "${kafka}/produce_message.topic.glob/server"})
     public void shouldProduceWhenTopicMatchesGlob() throws Exception
     {
         k3po.finish();
@@ -158,6 +158,240 @@ public class KafkaIT
         "${kafka}/delete.topics.negotiated/client",
         "${kafka}/delete.topics.negotiated/server"})
     public void shouldDeleteTopicsNegotiated() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/describe.configs/client",
+        "${kafka}/describe.configs/server"})
+    public void shouldDescribeConfigs() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/describe.configs.negotiated/client",
+        "${kafka}/describe.configs.negotiated/server"})
+    public void shouldDescribeConfigsNegotiated() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/alter.configs/client",
+        "${kafka}/alter.configs/server"})
+    public void shouldAlterConfigs() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/alter.configs.negotiated/client",
+        "${kafka}/alter.configs.negotiated/server"})
+    public void shouldAlterConfigsNegotiated() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/list.acls/client",
+        "${kafka}/list.acls/server"})
+    public void shouldListAcls() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/list.acls.negotiated/client",
+        "${kafka}/list.acls.negotiated/server"})
+    public void shouldListAclsNegotiated() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/create.acls/client",
+        "${kafka}/create.acls/server"})
+    public void shouldCreateAcls() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/create.acls.negotiated/client",
+        "${kafka}/create.acls.negotiated/server"})
+    public void shouldCreateAclsNegotiated() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/delete.acls/client",
+        "${kafka}/delete.acls/server"})
+    public void shouldDeleteAcls() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/delete.acls.negotiated/client",
+        "${kafka}/delete.acls.negotiated/server"})
+    public void shouldDeleteAclsNegotiated() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/list.topics/client",
+        "${kafka}/list.topics/server"})
+    public void shouldListTopics() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/list.topics.negotiated/client",
+        "${kafka}/list.topics.negotiated/server"})
+    public void shouldListTopicsNegotiated() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/describe.topic/client",
+        "${kafka}/describe.topic/server"})
+    public void shouldDescribeTopic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/describe.topic.negotiated/client",
+        "${kafka}/describe.topic.negotiated/server"})
+    public void shouldDescribeTopicNegotiated() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/cluster.overview/client",
+        "${kafka}/cluster.overview/server"})
+    public void shouldClusterOverview() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/cluster.overview.negotiated/client",
+        "${kafka}/cluster.overview.negotiated/server"})
+    public void shouldClusterOverviewNegotiated() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/describe.cluster/client",
+        "${kafka}/describe.cluster/server"})
+    public void shouldDescribeCluster() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/describe.cluster.negotiated/client",
+        "${kafka}/describe.cluster.negotiated/server"})
+    public void shouldDescribeClusterNegotiated() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/list.consumer.groups/client",
+        "${kafka}/list.consumer.groups/server"})
+    public void shouldListConsumerGroups() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/describe.consumer.group/client",
+        "${kafka}/describe.consumer.group/server"})
+    public void shouldDescribeConsumerGroup() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/find.coordinator.for.reset/client",
+        "${kafka}/find.coordinator.for.reset/server"})
+    public void shouldFindCoordinatorForReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/describe.groups.for.reset/client",
+        "${kafka}/describe.groups.for.reset/server"})
+    public void shouldDescribeGroupsForReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/find.coordinator.error/client",
+        "${kafka}/find.coordinator.error/server"})
+    public void shouldFindCoordinatorError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/offset.fetch.for.lag/client",
+        "${kafka}/offset.fetch.for.lag/server"})
+    public void shouldFetchOffsetsForLag() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/list.offsets.for.lag/client",
+        "${kafka}/list.offsets.for.lag/server"})
+    public void shouldListOffsetsForLag() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/describe.consumer.group.lag/client",
+        "${kafka}/describe.consumer.group.lag/server"})
+    public void shouldDescribeConsumerGroupLag() throws Exception
     {
         k3po.finish();
     }

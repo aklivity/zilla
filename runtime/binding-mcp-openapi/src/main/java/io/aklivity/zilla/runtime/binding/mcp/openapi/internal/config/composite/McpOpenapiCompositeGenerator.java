@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.openapi.internal.config.composite;
 
-import static io.aklivity.zilla.config.engine.KindConfig.PROXY;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.io.StringReader;
@@ -98,10 +97,8 @@ import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 public final class McpOpenapiCompositeGenerator
 {
     private static final String CATALOG_NAME = "catalog0";
-    private static final String BINDING_NAME = "mcp_http0";
-    private static final String CAPABILITY_TOOL = "tool";
-    private static final String CAPABILITY_RESOURCE = "resource";
-    private static final String ANNOTATIONS_EXTENSION_NAME = "x-mcp-annotations";
+    private static final String BINDING_NAME = "mcp-http0";
+    private static final String MCP_EXTENSION_NAME = "x-zilla-mcp";
     private static final String METHOD_GET = "get";
     private static final String METHOD_HEAD = "head";
     private static final String METHOD_PUT = "put";
@@ -109,14 +106,11 @@ public final class McpOpenapiCompositeGenerator
     private static final Pattern PATH_PARAM_PATTERN = Pattern.compile("\\{([^}]+)\\}");
     private static final Pattern JSON_CONTENT_TYPE_PATTERN = Pattern.compile("^application/(?:.+\\+)?json$");
 
-    private final String httpClientExit;
     private final List<String> denied;
     private final Matcher jsonContentType;
 
-    public McpOpenapiCompositeGenerator(
-        String httpClientExit)
+    public McpOpenapiCompositeGenerator()
     {
-        this.httpClientExit = httpClientExit;
         this.denied = new ArrayList<>();
         this.jsonContentType = JSON_CONTENT_TYPE_PATTERN.matcher("");
     }
@@ -128,7 +122,7 @@ public final class McpOpenapiCompositeGenerator
 
         final OpenapiParser parser = new OpenapiParserFactory()
             .withExtension(OpenapiExtension.of(OpenapiExtension.Scope.OPERATION,
-                ANNOTATIONS_EXTENSION_NAME, McpAnnotationsEx.class))
+                MCP_EXTENSION_NAME, McpEx.class))
             .createParser();
         final Map<String, OpenapiView> specsByLabel = new LinkedHashMap<>();
         final Map<String, Map<String, String>> securityByLabel = new LinkedHashMap<>();
@@ -173,7 +167,6 @@ public final class McpOpenapiCompositeGenerator
 
             String tool = null;
             String resource = null;
-            List<String> capability = null;
             for (McpOpenapiConditionConfig when : route.when)
             {
                 if (when.tool != null)
@@ -184,16 +177,6 @@ public final class McpOpenapiCompositeGenerator
                 {
                     resource = when.resource;
                 }
-                if (when.capability != null)
-                {
-                    capability = when.capability;
-                }
-            }
-
-            final boolean wantsResource = resource != null;
-            if (capability != null && !capability.contains(wantsResource ? CAPABILITY_RESOURCE : CAPABILITY_TOOL))
-            {
-                continue;
             }
 
             if (tool != null)
@@ -226,7 +209,7 @@ public final class McpOpenapiCompositeGenerator
         }
 
         final NamespaceConfig namespace = NamespaceConfig.builder()
-            .name("%s/mcp_http".formatted(binding.qname))
+            .name("%s/mcp-http".formatted(binding.qname))
             .inject(n -> injectCatalog(n, routed))
             .inject(n -> injectBinding(n, binding, routed))
             .build();
@@ -291,7 +274,8 @@ public final class McpOpenapiCompositeGenerator
             binding.options.tools.stream()
                 .filter(t -> name.equals(t.name))
                 .findFirst()
-                .ifPresent(override -> tool.description(override.description)
+                .ifPresent(override -> tool.title(override.title)
+                    .description(override.description)
                     .summary(override.summary)
                     .input(override.input)
                     .output(override.output)
@@ -414,9 +398,9 @@ public final class McpOpenapiCompositeGenerator
         return namespace
             .binding(McpHttpBindingConfig::builder)
                 .name(BINDING_NAME)
-                .kind(PROXY)
+                .kind(binding.kind)
                 .options(mcpHttpOptions(binding, routed))
-                .inject(b -> injectRoutes(b, routed))
+                .inject(b -> injectRoutes(b, binding, routed))
                 .build();
     }
 
@@ -440,14 +424,10 @@ public final class McpOpenapiCompositeGenerator
                 final ModelConfig output = entry.tool.output != null
                     ? qualifyModel(binding, entry.tool.output)
                     : jsonModel("%s-output".formatted(name));
-                final String description = entry.tool.description != null
-                    ? entry.tool.description
-                    : entry.operation.description != null
-                        ? entry.operation.description
-                        : entry.operation.id;
-                // mcp_http requires a non-null tool summary; prefer an authored override, then OpenAPI's
+                final String description = toolDescription(entry.tool, entry.operation);
+                // mcp-http requires a non-null tool summary; prefer an authored override, then OpenAPI's
                 // own optional summary field, then a plain literal string naming the operation (not a
-                // ${...} template -- mcp_http only understands ${result.*} references, not operationId)
+                // ${...} template -- mcp-http only understands ${result.*} references, not operationId)
                 final String summary = entry.tool.summary != null
                     ? entry.tool.summary
                     : entry.operation.summary != null
@@ -455,6 +435,7 @@ public final class McpOpenapiCompositeGenerator
                         : "Call %s".formatted(entry.operation.id);
                 tools.add(McpHttpToolConfig.builder()
                     .name(entry.tool.name)
+                    .title(toolTitle(entry.tool, entry.operation))
                     .summary(summary)
                     .description(description)
                     .input(input)
@@ -488,7 +469,40 @@ public final class McpOpenapiCompositeGenerator
             .build();
     }
 
-    // Precedence, per field: authored override (options.tools.<name>.annotations) > x-mcp-annotations
+    // Description precedence: authored override (options.tools.<name>.description) > x-zilla-mcp.description
+    // OpenAPI vendor extension > native OpenAPI operation.description > bare operationId fallback. The
+    // extension lets a bundled spec with no native operation descriptions (or an undesirable one) carry an
+    // MCP-specific description without editing the vendored spec itself.
+    private String toolDescription(
+        McpOpenapiToolConfig tool,
+        OpenapiOperationView operation)
+    {
+        final McpEx extension = operation.extension(MCP_EXTENSION_NAME, McpEx.class).orElse(null);
+
+        return tool.description != null
+            ? tool.description
+            : extension != null && extension.description != null
+                ? extension.description
+                : operation.description != null
+                    ? operation.description
+                    : operation.id;
+    }
+
+    // Title precedence: authored override (options.tools.<name>.title) > x-zilla-mcp.title OpenAPI
+    // vendor extension > null. Title lives only at the top level (McpHttpToolConfig.title) -- neither
+    // the authored override nor the vendor extension carries a title inside annotations any more.
+    private String toolTitle(
+        McpOpenapiToolConfig tool,
+        OpenapiOperationView operation)
+    {
+        final McpEx extension = operation.extension(MCP_EXTENSION_NAME, McpEx.class).orElse(null);
+
+        return tool.title != null
+            ? tool.title
+            : extension != null ? extension.title : null;
+    }
+
+    // Precedence, per hint: authored override (options.tools.<name>.annotations) > x-zilla-mcp.annotations
     // OpenAPI vendor extension > HTTP-method-derived default. OpenAPI has no native "destructive"/"idempotent"
     // concept, so the derived defaults are heuristics (matching the HTTP spec's own idempotency guarantee
     // for PUT/DELETE) rather than anything read from the operation itself.
@@ -497,32 +511,28 @@ public final class McpOpenapiCompositeGenerator
         OpenapiOperationView operation)
     {
         final McpOpenapiToolAnnotationsConfig override = tool.annotations;
-        final McpAnnotationsEx extension = operation.extension(ANNOTATIONS_EXTENSION_NAME, McpAnnotationsEx.class)
-            .orElse(null);
+        final McpEx extension = operation.extension(MCP_EXTENSION_NAME, McpEx.class).orElse(null);
+        final McpToolAnnotationsEx extensionAnnotations = extension != null ? extension.annotations : null;
         final String method = operation.method;
 
-        final String title = override != null && override.title != null
-            ? override.title
-            : extension != null ? extension.title : null;
         final Boolean readOnlyHint = resolveHint(
             override != null ? override.readOnlyHint : null,
-            extension != null ? extension.readOnlyHint : null,
+            extensionAnnotations != null ? extensionAnnotations.readOnlyHint : null,
             defaultReadOnlyHint(method));
         final Boolean destructiveHint = resolveHint(
             override != null ? override.destructiveHint : null,
-            extension != null ? extension.destructiveHint : null,
+            extensionAnnotations != null ? extensionAnnotations.destructiveHint : null,
             defaultDestructiveHint(method));
         final Boolean idempotentHint = resolveHint(
             override != null ? override.idempotentHint : null,
-            extension != null ? extension.idempotentHint : null,
+            extensionAnnotations != null ? extensionAnnotations.idempotentHint : null,
             defaultIdempotentHint(method));
         final Boolean openWorldHint = resolveHint(
             override != null ? override.openWorldHint : null,
-            extension != null ? extension.openWorldHint : null,
+            extensionAnnotations != null ? extensionAnnotations.openWorldHint : null,
             Boolean.FALSE);
 
         return McpHttpToolAnnotationsConfig.builder()
-            .title(title)
             .readOnlyHint(readOnlyHint)
             .destructiveHint(destructiveHint)
             .idempotentHint(idempotentHint)
@@ -571,7 +581,8 @@ public final class McpOpenapiCompositeGenerator
     }
 
     private <C> McpHttpBindingConfigBuilder<C> injectRoutes(
-        McpHttpBindingConfigBuilder<C> binding,
+        McpHttpBindingConfigBuilder<C> mcpHttp,
+        McpOpenapiBindingConfig binding,
         List<RoutedOperation> routed)
     {
         for (RoutedOperation entry : routed)
@@ -582,15 +593,15 @@ public final class McpOpenapiCompositeGenerator
                 .build();
             final McpHttpWithConfig with = withConfig(entry);
 
-            binding.route()
+            mcpHttp.route()
                 .when(when)
                 .with(with)
-                .exit(httpClientExit)
+                .exit(binding.exit)
                 .inject(route -> injectGuarded(route, entry))
                 .build();
         }
 
-        return binding;
+        return mcpHttp;
     }
 
     private <C> McpHttpRouteConfigBuilder<C> injectGuarded(
@@ -1011,7 +1022,7 @@ public final class McpOpenapiCompositeGenerator
     {
         // an authored schemas.input/output's catalog reference names a catalog in the caller's own
         // namespace (e.g. "catalog0"), but this ModelConfig is forwarded as-is into the generated
-        // mcp_http binding, which lives in its own freshly-generated namespace that has its own,
+        // mcp-http binding, which lives in its own freshly-generated namespace that has its own,
         // unrelated, same-named "catalog0" -- rewrite the reference to be namespace-qualified
         // (qname) so it resolves absolutely, against the caller's namespace, from anywhere
         ModelConfig qualified = model;

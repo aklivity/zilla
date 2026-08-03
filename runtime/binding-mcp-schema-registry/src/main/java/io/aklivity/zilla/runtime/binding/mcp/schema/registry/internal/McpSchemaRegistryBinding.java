@@ -20,7 +20,7 @@ import io.aklivity.zilla.runtime.engine.binding.Binding;
 
 public final class McpSchemaRegistryBinding implements Binding
 {
-    public static final String TYPE = "mcp_schema_registry";
+    public static final String TYPE = "mcp-schema-registry";
 
     private final McpSchemaRegistryConfiguration config;
 
@@ -40,14 +40,14 @@ public final class McpSchemaRegistryBinding implements Binding
     public String originType(
         KindConfig kind)
     {
-        return kind == KindConfig.CLIENT ? TYPE : null;
+        return kind == KindConfig.CLIENT || kind == KindConfig.PROXY ? TYPE : null;
     }
 
     @Override
     public String routedType(
         KindConfig kind)
     {
-        return kind == KindConfig.CLIENT ? TYPE : null;
+        return kind == KindConfig.CLIENT || kind == KindConfig.PROXY ? TYPE : null;
     }
 
     @Override

@@ -23,7 +23,7 @@ guards:
         - admin
 bindings:
   mcp0:
-    type: mcp_kafka
+    type: mcp-kafka
     kind: proxy
     routes:
       - guarded:
@@ -31,4 +31,4 @@ bindings:
             - write:kafka
         exit: kafka0
         when:
-          - tool: produce
+          - tool: produce_message

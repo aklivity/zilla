@@ -47,20 +47,21 @@ import io.aklivity.zilla.runtime.common.json.JsonSource;
  *   "arguments": {
  *     "topics": [
  *       {
- *         "name": "events",
+ *         "topic": "events",
  *         "partitions": 1,
  *         "replicas": 1,
  *         "assignments": [ { "partition": 0, "brokers": [0] } ],
  *         "configs": { "cleanup.policy": "delete" }
  *       }
  *     ],
- *     "timeout": 30000,
- *     "validateOnly": false
+ *     "validate_only": false
  *   }
  * }
  * }</pre>
- * {@code assignments}, {@code configs}, {@code timeout} and {@code validateOnly} are optional;
- * {@code timeout} defaults to {@code zilla.binding.mcp.kafka.request.timeout} (default {@code PT30S}).
+ * {@code assignments}, {@code configs} and {@code validate_only} are optional. The underlying Kafka
+ * request timeout is not caller-configurable -- it is fixed by
+ * {@code zilla.binding.mcp.kafka.request.timeout} (default {@code PT30S}) for consistency with every
+ * other tool, none of which exposes a per-call timeout either.
  */
 public final class McpKafkaToolCreateTopicsSource implements JsonSink, Source
 {
@@ -92,7 +93,6 @@ public final class McpKafkaToolCreateTopicsSource implements JsonSink, Source
     private int partitionIndex;
     private List<Integer> brokerIds;
 
-    private int timeoutMs;
     private boolean validateOnly;
 
     private boolean completed;
@@ -124,7 +124,7 @@ public final class McpKafkaToolCreateTopicsSource implements JsonSink, Source
     @Override
     public int timeoutMs()
     {
-        return timeoutMs;
+        return defaultTimeoutMs;
     }
 
     @Override
@@ -140,7 +140,6 @@ public final class McpKafkaToolCreateTopicsSource implements JsonSink, Source
         topics.clear();
         text.setLength(0);
         key = null;
-        timeoutMs = defaultTimeoutMs;
         validateOnly = false;
         completed = false;
     }
@@ -335,7 +334,7 @@ public final class McpKafkaToolCreateTopicsSource implements JsonSink, Source
     {
         switch (key)
         {
-        case "name":
+        case "topic":
             topicName = value;
             break;
         case "partitions":
@@ -354,10 +353,7 @@ public final class McpKafkaToolCreateTopicsSource implements JsonSink, Source
     {
         switch (key)
         {
-        case "timeout":
-            timeoutMs = parseInt(value, defaultTimeoutMs);
-            break;
-        case "validateOnly":
+        case "validate_only":
             validateOnly = Boolean.parseBoolean(value);
             break;
         default:

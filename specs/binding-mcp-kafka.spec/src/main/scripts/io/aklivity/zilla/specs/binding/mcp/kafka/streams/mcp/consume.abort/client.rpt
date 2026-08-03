@@ -47,14 +47,14 @@ write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .toolsCall()
                                .sessionId("session-1")
-                               .name("consume")
-                               .contentLength(59)
+                               .name("consume_messages")
+                               .contentLength(68)
                                .build()
                            .build()}
 
 connected
 
-write '{"name":"consume","arguments":{"topic":"orders","limit":5}}'
+write '{"name":"consume_messages","arguments":{"topic":"orders","limit":5}}'
 
 write notify MCP_CONSUME_READY
 

@@ -47,20 +47,20 @@ write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .toolsCall()
                                .sessionId("session-1")
-                               .name("consume")
-                               .contentLength(59)
+                               .name("consume_messages")
+                               .contentLength(68)
                                .build()
                            .build()}
 
 connected
 
-write '{"name":"consume","arguments":{"topic":"orders","limit":2}}'
+write '{"name":"consume_messages","arguments":{"topic":"orders","limit":2}}'
 
 # two 300-byte record values, chosen so the generated result envelope exceeds a single encode-slot
 # capacity (see McpKafkaFlowControlIT's small ENGINE_BUFFER_SLOT_CAPACITY): proves KafkaProxy's
 # consume pump correctly suspends and resumes the JSON generator across multiple flushed DATA
 # frames, not just results that always fit in one flush
-read  '{"structuredContent":{"topic":"orders","messages":[{"key":null,"headers":[],"value":"v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-"},{"key":null,"headers":[],"value":"v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-"}],"count":2},"content":[{"type":"text","text":"Consumed 2 messages from topic orders"}],"isError":false}'
+read  '{"structuredContent":{"topic":"orders","messages":[{"key":null,"value":"v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-v1-","partition":0,"offset":0,"timestamp":1000,"headers":[]},{"key":null,"value":"v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-v2-","partition":0,"offset":1,"timestamp":2000,"headers":[]}],"count":2},"content":[{"type":"text","text":"Consumed 2 messages from topic orders"}],"isError":false}'
 read closed
 
 write close

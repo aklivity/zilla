@@ -37,6 +37,9 @@ gen/
 examples/grpc-clicker.json
 .claude/
 AGENTS.override.md
+compose.override.yaml
+ccr-ca.crt
+repro-cache-race.sh
 
 # JMH profiler output
 *.jfr

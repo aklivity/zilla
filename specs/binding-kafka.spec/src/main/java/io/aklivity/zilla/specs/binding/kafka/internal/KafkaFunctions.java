@@ -3939,6 +3939,20 @@ public final class KafkaFunctions
                     return this;
                 }
 
+                public KafkaMergedProduceFlushExBuilder partitionOffset(
+                    long partitionOffset)
+                {
+                    mergedProduceFlushExRW.partitionOffset(partitionOffset);
+                    return this;
+                }
+
+                public KafkaMergedProduceFlushExBuilder timestamp(
+                    long timestamp)
+                {
+                    mergedProduceFlushExRW.timestamp(timestamp);
+                    return this;
+                }
+
                 public KafkaFlushExBuilder build()
                 {
                     final KafkaMergedProduceFlushExFW mergedProduceFlushEx = mergedProduceFlushExRW.build();
@@ -4127,6 +4141,27 @@ public final class KafkaFunctions
                     produceFlushExRW.key(k -> k.length(keyRO.capacity())
                         .value(keyRO, 0, keyRO.capacity()));
                 }
+                return this;
+            }
+
+            public KafkaProduceFlushExBuilder error(
+                int error)
+            {
+                produceFlushExRW.error(error);
+                return this;
+            }
+
+            public KafkaProduceFlushExBuilder timestamp(
+                long timestamp)
+            {
+                produceFlushExRW.timestamp(timestamp);
+                return this;
+            }
+
+            public KafkaProduceFlushExBuilder ackOffset(
+                long ackOffset)
+            {
+                produceFlushExRW.ackOffset(ackOffset);
                 return this;
             }
 

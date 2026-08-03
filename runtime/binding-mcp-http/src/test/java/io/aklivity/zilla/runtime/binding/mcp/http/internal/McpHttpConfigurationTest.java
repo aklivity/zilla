@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.http.internal;
 
+import static io.aklivity.zilla.runtime.binding.mcp.http.internal.McpHttpConfiguration.MCP_HTTP_CLIENT_EXIT;
 import static io.aklivity.zilla.runtime.binding.mcp.http.internal.McpHttpConfiguration.MCP_HTTP_SESSION_ID;
 import static io.aklivity.zilla.runtime.binding.mcp.http.internal.McpHttpConfiguration.MCP_HTTP_SESSION_ID_ATTEMPTS;
 import static org.junit.Assert.assertEquals;
@@ -32,12 +33,14 @@ public class McpHttpConfigurationTest
 {
     public static final String MCP_HTTP_SESSION_ID_NAME = "zilla.binding.mcp.http.session.id";
     public static final String MCP_HTTP_SESSION_ID_ATTEMPTS_NAME = "zilla.binding.mcp.http.session.id.attempts";
+    public static final String MCP_HTTP_CLIENT_EXIT_NAME = "zilla.binding.mcp.http.client.exit";
 
     @Test
     public void shouldVerifyConstants() throws Exception
     {
         assertEquals(MCP_HTTP_SESSION_ID.name(), MCP_HTTP_SESSION_ID_NAME);
         assertEquals(MCP_HTTP_SESSION_ID_ATTEMPTS.name(), MCP_HTTP_SESSION_ID_ATTEMPTS_NAME);
+        assertEquals(MCP_HTTP_CLIENT_EXIT.name(), MCP_HTTP_CLIENT_EXIT_NAME);
     }
 
     @Test
@@ -46,6 +49,24 @@ public class McpHttpConfigurationTest
         McpHttpConfiguration config = new McpHttpConfiguration();
 
         assertTrue(config.sessionIdAttempts() > 0);
+    }
+
+    @Test
+    public void shouldDefaultClientExitToSysHttpClient()
+    {
+        McpHttpConfiguration config = new McpHttpConfiguration();
+
+        assertEquals("sys:http_client", config.clientExit());
+    }
+
+    @Test
+    public void shouldOverrideClientExit()
+    {
+        Properties properties = new Properties();
+        properties.setProperty(MCP_HTTP_CLIENT_EXIT_NAME, "test:http0");
+        McpHttpConfiguration config = new McpHttpConfiguration(new Configuration(properties));
+
+        assertEquals("test:http0", config.clientExit());
     }
 
     @Test

@@ -26,7 +26,7 @@ catalogs:
             {"type":"object","properties":{"id":{"type":"string"}}}
 bindings:
   app0:
-    type: mcp_http
+    type: mcp-http
     kind: proxy
     options:
       tools:
@@ -41,7 +41,6 @@ bindings:
                   - subject: get_item_params
                     version: latest
           annotations:
-            title: Get Item
             readOnlyHint: true
             destructiveHint: false
             idempotentHint: true

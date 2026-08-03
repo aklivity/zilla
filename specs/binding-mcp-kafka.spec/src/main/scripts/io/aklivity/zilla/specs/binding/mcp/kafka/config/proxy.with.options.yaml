@@ -17,7 +17,7 @@
 name: test
 bindings:
   mcp0:
-    type: mcp_kafka
+    type: mcp-kafka
     kind: proxy
     options:
       servers:
@@ -25,4 +25,4 @@ bindings:
     routes:
       - exit: kafka0
         when:
-          - tool: produce
+          - tool: produce_message

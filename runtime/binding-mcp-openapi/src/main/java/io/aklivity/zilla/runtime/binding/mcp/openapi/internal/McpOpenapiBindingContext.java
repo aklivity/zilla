@@ -38,7 +38,7 @@ final class McpOpenapiBindingContext implements BindingContext
     {
         BindingHandler handler = null;
 
-        if (binding.kind == KindConfig.CLIENT)
+        if (binding.kind == KindConfig.CLIENT || binding.kind == KindConfig.PROXY)
         {
             factory.attach(binding);
             handler = factory;
@@ -51,7 +51,7 @@ final class McpOpenapiBindingContext implements BindingContext
     public void detach(
         BindingConfig binding)
     {
-        if (binding.kind == KindConfig.CLIENT)
+        if (binding.kind == KindConfig.CLIENT || binding.kind == KindConfig.PROXY)
         {
             factory.detach(binding.id);
         }

@@ -245,6 +245,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/lifecycle.initialize.reject.capabilities.invalid/client",
+        "${net}/lifecycle.initialize.reject.capabilities.invalid/server"})
+    public void shouldRejectLifecycleInitializeCapabilitiesInvalid() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/reject.tools.call.without.content.length/client",
         "${net}/reject.tools.call.without.content.length/server"})
     public void shouldRejectToolsCallWithoutContentLength() throws Exception
@@ -443,6 +452,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/notifications.cancelled.missing.request.id/client",
+        "${net}/notifications.cancelled.missing.request.id/server"})
+    public void shouldAcceptCancelMissingRequestId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/prompts.list/client",
         "${net}/prompts.list/server"})
     public void shouldListPrompts() throws Exception
@@ -491,6 +509,33 @@ public class NetworkIT
         "${net}/resources.read/client",
         "${net}/resources.read/server"})
     public void shouldReadResource() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/resources.subscribe/client",
+        "${net}/resources.subscribe/server"})
+    public void shouldSubscribeToResource() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/resources.unsubscribe/client",
+        "${net}/resources.unsubscribe/server"})
+    public void shouldUnsubscribeFromResource() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/resources.unsubscribe.unknown.uri/client",
+        "${net}/resources.unsubscribe.unknown.uri/server"})
+    public void shouldRejectUnsubscribeFromUnknownUri() throws Exception
     {
         k3po.finish();
     }
@@ -626,6 +671,15 @@ public class NetworkIT
         "${net}/lifecycle.timeout.events/client",
         "${net}/lifecycle.timeout.events/server"})
     public void shouldLifecycleTimeoutEvents() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/lifecycle.timeout.events.resources.updated/client",
+        "${net}/lifecycle.timeout.events.resources.updated/server"})
+    public void shouldLifecycleTimeoutEventsResourcesUpdated() throws Exception
     {
         k3po.finish();
     }

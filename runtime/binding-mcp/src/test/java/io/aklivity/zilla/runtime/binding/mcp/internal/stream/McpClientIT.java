@@ -22,6 +22,7 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTes
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_ELICIT_CORRELATION_ID_NAME;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_INACTIVITY_TIMEOUT_NAME;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_SESSION_ID_NAME;
+import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_SLOT_CAPACITY_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -531,6 +532,26 @@ public class McpClientIT
     }
 
     @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/resources.subscribe/client",
+        "${net}/resources.subscribe/server"})
+    public void shouldSubscribeToResource() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/resources.unsubscribe/client",
+        "${net}/resources.unsubscribe/server"})
+    public void shouldUnsubscribeFromResource() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("client.identity.yaml")
     @Specification({
         "${app}/resources.read/client",
@@ -647,6 +668,44 @@ public class McpClientIT
         "${app}/lifecycle.notify.resources.list.changed/client",
         "${net}/lifecycle.notify.resources.list.changed/server"})
     public void shouldNotifyResourcesListChanged() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/lifecycle.notify.resources.updated/client",
+        "${net}/lifecycle.notify.resources.updated/server"})
+    public void shouldNotifyResourcesUpdated() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // regression test: a JSON-RPC scalar value (here the notified resource's uri) that spans an
+    // input window must be accumulated across every deferredBytes() fragment rather than handed
+    // back as complete on the first one -- a small buffer slot capacity forces the split
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/lifecycle.notify.resources.updated.fragmented/client",
+        "${net}/lifecycle.notify.resources.updated.fragmented/server"})
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "1024")
+    public void shouldNotifyResourcesUpdatedFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // regression test: an unrecognized key in a notification's params object (e.g. "level" from
+    // a notifications/message event) must be skipped without stalling the decoder -- looping back
+    // to the same decoder reference without consuming the key's value wedges decodeNet's progress
+    // check permanently, silently dropping this and every later event on the stream
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/lifecycle.notify.resources.updated.unknown.param/client",
+        "${net}/lifecycle.notify.resources.updated.unknown.param/server"})
+    public void shouldNotifyResourcesUpdatedUnknownParam() throws Exception
     {
         k3po.finish();
     }

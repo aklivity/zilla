@@ -17,11 +17,11 @@
 name: test
 bindings:
   mcp0:
-    type: mcp_kafka
+    type: mcp-kafka
     kind: client
     options:
       servers:
         - localhost:9092
     routes:
       - when:
-          - tool: consume
+          - tool: consume_messages

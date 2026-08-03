@@ -169,6 +169,7 @@ public final class McpHttpProxyFactory implements BindingHandler
     private final Supplier<String> supplySessionId;
     private final int sessionIdAttempts;
     private final LongIntPredicate isLocalIndex;
+    private final String clientExit;
 
     public McpHttpProxyFactory(
         McpHttpConfiguration config,
@@ -192,12 +193,13 @@ public final class McpHttpProxyFactory implements BindingHandler
         this.supplySessionId = config.sessionIdSupplier();
         this.sessionIdAttempts = config.sessionIdAttempts();
         this.isLocalIndex = context::isLocalIndex;
+        this.clientExit = config.clientExit();
     }
 
     public void attach(
         BindingConfig binding)
     {
-        bindings.put(binding.id, new McpHttpBindingConfig(binding, context));
+        bindings.put(binding.id, new McpHttpBindingConfig(binding, context, clientExit));
     }
 
     public void detach(
@@ -2453,6 +2455,10 @@ public final class McpHttpProxyFactory implements BindingHandler
         {
             final JsonObjectBuilder item = Json.createObjectBuilder()
                 .add("name", tool.name);
+            if (tool.title != null)
+            {
+                item.add("title", tool.title);
+            }
             if (tool.description != null)
             {
                 item.add("description", tool.description);
@@ -2489,10 +2495,6 @@ public final class McpHttpProxyFactory implements BindingHandler
         if (annotations != null)
         {
             final JsonObjectBuilder builder = Json.createObjectBuilder();
-            if (annotations.title != null)
-            {
-                builder.add("title", annotations.title);
-            }
             if (annotations.readOnlyHint != null)
             {
                 builder.add("readOnlyHint", annotations.readOnlyHint);

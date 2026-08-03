@@ -588,6 +588,16 @@ public class McpServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/notifications.cancelled.missing.request.id/client",
+        "${app}/lifecycle.initialize/server"})
+    public void shouldAcceptCancelMissingRequestId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/prompts.list/client",
         "${app}/prompts.list/server"})
     public void shouldListPrompts() throws Exception
@@ -631,6 +641,26 @@ public class McpServerIT
         "${net}/resources.read/client",
         "${app}/resources.read/server"})
     public void shouldReadResource() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/resources.subscribe/client",
+        "${app}/resources.subscribe/server"})
+    public void shouldSubscribeToResource() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/resources.unsubscribe/client",
+        "${app}/resources.unsubscribe/server"})
+    public void shouldUnsubscribeFromResource() throws Exception
     {
         k3po.finish();
     }
@@ -735,6 +765,15 @@ public class McpServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/lifecycle.initialize.reject.capabilities.invalid/client"})
+    public void shouldRejectLifecycleInitializeCapabilitiesInvalid() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/lifecycle.events.keepalive/client",
         "${app}/lifecycle.events.keepalive/server"})
     @Configure(name = MCP_SSE_KEEPALIVE_INTERVAL_NAME, value = "PT0.5S")
@@ -780,6 +819,18 @@ public class McpServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/lifecycle.timeout.events.resources.updated/client",
+        "${app}/lifecycle.timeout.events.resources.updated/server"})
+    @Configure(name = MCP_INACTIVITY_TIMEOUT_NAME, value = "PT3S")
+    @Configure(name = MCP_SSE_KEEPALIVE_INTERVAL_NAME, value = "PT2S")
+    public void shouldLifecycleTimeoutEventsResourcesUpdated() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/lifecycle.notify.tools.list.changed/client",
         "${app}/lifecycle.notify.tools.list.changed/server"})
     @Configure(name = MCP_SSE_KEEPALIVE_INTERVAL_NAME, value = "PT30S")
@@ -806,6 +857,17 @@ public class McpServerIT
         "${app}/lifecycle.notify.resources.list.changed/server"})
     @Configure(name = MCP_SSE_KEEPALIVE_INTERVAL_NAME, value = "PT30S")
     public void shouldNotifyResourcesListChanged() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/lifecycle.notify.resources.updated/client",
+        "${app}/lifecycle.notify.resources.updated/server"})
+    @Configure(name = MCP_SSE_KEEPALIVE_INTERVAL_NAME, value = "PT30S")
+    public void shouldNotifyResourcesUpdated() throws Exception
     {
         k3po.finish();
     }

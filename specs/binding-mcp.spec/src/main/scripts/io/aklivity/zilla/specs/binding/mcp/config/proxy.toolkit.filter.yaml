@@ -23,4 +23,4 @@ bindings:
       - exit: app1
         when:
           - toolkit: bluesky
-            tools: ["get_*"]
+            tool: ["get_*"]

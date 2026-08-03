@@ -111,14 +111,14 @@ public class McpKafkaClientFactoryTest
 
         RouteConfig route = RouteConfig.builder()
             .when(McpKafkaConditionConfig.builder()
-                .tool("produce")
+                .tool(List.of("produce_message"))
                 .build())
             .build();
 
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("mcp0")
-            .type("mcp_kafka")
+            .type("mcp-kafka")
             .kind(KindConfig.CLIENT)
             .options(options)
             .routes(List.of(route))

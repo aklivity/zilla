@@ -63,7 +63,7 @@ public final class McpKafkaClientGenerator
         boolean secure = options.authorization != null || binding.vault != null;
 
         NamespaceConfig namespace = NamespaceConfig.builder()
-            .name("%s/mcp_kafka".formatted(binding.qname))
+            .name("%s/mcp-kafka".formatted(binding.qname))
             .inject(n -> injectKafkaCache(n, options))
             .inject(n -> injectKafkaClient(n, options, secure))
             .inject(n -> injectTlsClient(n, binding, secure))
