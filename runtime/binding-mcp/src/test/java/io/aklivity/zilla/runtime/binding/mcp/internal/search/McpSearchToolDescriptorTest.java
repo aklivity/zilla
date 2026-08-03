@@ -36,6 +36,7 @@ public class McpSearchToolDescriptorTest
         JsonObject tool = parse(bytes);
 
         assertThat(tool.getString("name"), equalTo("zilla__search_tools"));
+        assertThat(tool.getString("title"), equalTo("Search Tools"));
         assertThat(tool.containsKey("description"), equalTo(true));
     }
 
@@ -86,6 +87,7 @@ public class McpSearchToolDescriptorTest
         JsonObject tool = parse(bytes);
 
         assertThat(tool.getString("name"), equalTo("zilla__describe_tool"));
+        assertThat(tool.getString("title"), equalTo("Describe Tool"));
         assertThat(tool.containsKey("description"), equalTo(true));
     }
 
@@ -124,6 +126,7 @@ public class McpSearchToolDescriptorTest
         JsonObject tool = parse(bytes);
 
         assertThat(tool.getString("name"), equalTo("zilla__execute_tool"));
+        assertThat(tool.getString("title"), equalTo("Execute Tool"));
         assertThat(tool.containsKey("description"), equalTo(true));
     }
 
