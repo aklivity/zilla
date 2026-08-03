@@ -199,10 +199,8 @@ bindings:
 ```
 
 ```bash
-# 2.x — set once at the engine level (JVM property or environment
-# variable), not per-binding
+# 2.x — set once at the engine level, not per-binding
 zilla start -Pzilla.engine.service.hostname=mqtt-1.example.com
-# or: ZILLA_ENGINE_SERVICE_HOSTNAME=mqtt-1.example.com zilla start
 ```
 
 **Action:** remove `options.server` from every `mqtt-kafka` binding and set
