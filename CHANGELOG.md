@@ -430,6 +430,7 @@
 - binding-mcp-kafka: rename produce to produce\_message, add headers input, add structured output \(\#2281\) [\#2288](https://github.com/aklivity/zilla/pull/2288) ([jfallows](https://github.com/jfallows))
 - fix\(binding-mcp-kafka\): rename consume to consume\_messages, declare output schema [\#2289](https://github.com/aklivity/zilla/pull/2289) ([jfallows](https://github.com/jfallows))
 - fix\(binding-asyncapi\): stop rejecting shrinking WINDOW.maximum when acknowledge advances [\#2291](https://github.com/aklivity/zilla/pull/2291) ([jfallows](https://github.com/jfallows))
+- feat\(binding-mcp\): add title to search\_tools, describe\_tool, execute\_tool [\#2292](https://github.com/aklivity/zilla/pull/2292) ([jfallows](https://github.com/jfallows))
 
 ## [1.2.4](https://github.com/aklivity/zilla/tree/1.2.4) (2026-05-16)
 
