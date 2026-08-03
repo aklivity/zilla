@@ -155,31 +155,6 @@ This is a statement of the supported floor, not a new runtime version check
 — brokers older than 2.8.0 are not tested against and may not negotiate the
 API versions Zilla's client and cache rely on.
 
-## Engine SPI changes (binding, guard, vault, and plugin authors)
-
-These affect code that embeds the engine or implements a custom SPI
-(binding/guard/vault/catalog/etc.), not `zilla.yaml` users.
-
-- **`ConfigAdapterContext` removed**, along with
-  `OptionsConfigAdapterSpi.adaptContext(...)` and the context parameter
-  threaded through every config-adapter constructor. Its only capability,
-  `readResource`, had no remaining callers once `binding-grpc`'s
-  `options.services` (the last user) was removed — see above. Any
-  out-of-tree `OptionsConfigAdapterSpi` implementation that overrode
-  `adaptContext` needs that override removed.
-- **`Configuration.directory()` removed.** It was a dead base-class shim —
-  `EngineConfiguration`/`ZillaExtConfiguration` already override it with
-  their own property-backed implementations. Code holding a config
-  reference as the base `Configuration` type (instead of
-  `EngineConfiguration`) to call `directory()` needs to hold the more
-  specific type instead.
-- **`ValidatorHandler` is being folded into a unified streaming `convert()`
-  handler** on the model SPI (a validator becomes a converter with an
-  identity generator). The migration is staged behind a
-  backward-compatible default method, but `ValidatorHandler` is expected to
-  be deprecated once all in-tree usages migrate — custom model
-  implementations should watch for this in subsequent 2.x releases.
-
 ## Still deprecated — candidates for a future release
 
 The following are currently marked deprecated but **have not been removed**.
@@ -191,9 +166,6 @@ this document:
 | --- | --- | --- |
 | `guard-inline`'s `identity` type alias | `type: inline` | Leftover from an in-development rename ahead of 2.0.0; never shipped in a 1.x release, so not a migration concern, but still dead weight in the schema/codebase |
 | `binding-kafka` `options.sasl` | `options.authorization` (guard-based) | Schema still marks it `deprecated: true` but continues to validate and function |
-| `EngineContext.creditor()` / `supplyDebitor(...)` (Java SPI) | `supplyCredit(...)` / `supplyDebit(...)` handle API | Removal is explicitly gated on every in-tree binding migrating off the old accessors first |
-| `EngineConfiguration.configURL()` (Java SPI) | `configURI()` | `URL`-based config addressing predates URI support |
-| `BudgetDebitor.claim(long, long, int, int)` / `claim(long, long, int, int, int)` (Java SPI) | `claim(long, long, long, int, int, int)` | Older overloads missing the `traceId` parameter |
 
 None of these are removed by this document — they require their own review
 and, where user-facing, their own deprecation-window decision before being
