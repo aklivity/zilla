@@ -74,8 +74,14 @@ unlikely to affect any real `zilla.yaml`.
 
 `options.sasl` configures SASL credentials directly and statically on the
 binding. `options.authorization` replaces it with a guard-name-keyed map, so
-credentials are resolved from a referenced guard (and can use
-`{identity}`/`{credentials}` templates) instead of being hardcoded.
+credentials are resolved from a referenced guard instead of being hardcoded
+on the binding — for a static, non-request-driven credential pair like a
+SASL username/password, an `inline` guard (`type: inline`) is the simplest
+guard to reference: it holds the values as its own `options.identity` /
+`options.credentials`, and the binding pulls them back out via
+`{identity}`/`{credentials}` templates. The example below reuses the same
+two environment variables in both forms to show that migrating is just
+relocating them, not re-provisioning anything:
 
 ```yaml
 # deprecated
@@ -88,15 +94,18 @@ bindings:
         - localhost:9092
       sasl:
         mechanism: plain
-        username: username
-        password: password
+        username: ${{env.SASL_USERNAME}}
+        password: ${{env.SASL_PASSWORD}}
     routes:
       - exit: net0
 
 # preferred
 guards:
   guard0:
-    type: <your-guard>   # resolves identity()/credentials() for this connection
+    type: inline
+    options:
+      identity: ${{env.SASL_USERNAME}}
+      credentials: ${{env.SASL_PASSWORD}}
 bindings:
   app0:
     type: kafka
@@ -115,9 +124,10 @@ bindings:
 ```
 
 **Action:** none required today. If/when `options.sasl` is actually
-removed, replace it with `options.authorization` keyed by a guard name, as
-shown above (`oauthbearer` uses `{mechanism: oauthbearer, token: ...}`
-instead of `username`/`password`).
+removed, move its `username`/`password` values into an `inline` guard's
+`options.identity`/`options.credentials`, and reference that guard from
+`options.authorization` as shown above (`oauthbearer` uses
+`{mechanism: oauthbearer, token: ...}` instead of `username`/`password`).
 
 ### `binding-grpc`: `options.services` removed — use a catalog instead
 
