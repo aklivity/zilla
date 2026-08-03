@@ -9,7 +9,7 @@ vaults:
         type: jks
         password: ${{env.KEYSTORE_PASSWORD}}
 guards:
-  south_kafka_credentials:
+  sasl_credentials:
     type: inline
     options:
       identity: ${{env.SASL_USERNAME}}
@@ -59,7 +59,7 @@ bindings:
       servers:
         - ${{env.KAFKA_BOOTSTRAP_SERVER}}
       authorization:
-        south_kafka_credentials:
+        sasl_credentials:
           credentials:
             mechanism: scram-sha-512
             username: "{identity}"
