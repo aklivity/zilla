@@ -66,12 +66,6 @@ unlikely to affect any real `zilla.yaml`.
 
 ### `binding-kafka`: `options.sasl` removed — use `options.authorization`
 
-> **Not actually removed yet.** `options.sasl` is currently marked
-> `deprecated: true` in the schema but still validates and functions — see
-> [Still deprecated](#still-deprecated--candidates-for-a-future-release).
-> This section shows the intended migration path so it's ready when the
-> removal is decided; nothing below is required for 2.0.0 today.
-
 `options.sasl` configures SASL credentials directly and statically on the
 binding. `options.authorization` replaces it with a guard-name-keyed map, so
 credentials are resolved from a referenced guard instead of being hardcoded
@@ -123,11 +117,11 @@ bindings:
       - exit: net0
 ```
 
-**Action:** none required today. If/when `options.sasl` is actually
-removed, move its `username`/`password` values into an `inline` guard's
-`options.identity`/`options.credentials`, and reference that guard from
-`options.authorization` as shown above (`oauthbearer` uses
-`{mechanism: oauthbearer, token: ...}` instead of `username`/`password`).
+**Action:** move every `options.sasl` block's `username`/`password` values
+into an `inline` guard's `options.identity`/`options.credentials`, and
+reference that guard from `options.authorization` as shown above
+(`oauthbearer` uses `{mechanism: oauthbearer, token: ...}` instead of
+`username`/`password`).
 
 ### `binding-grpc`: `options.services` removed — use a catalog instead
 
@@ -413,17 +407,3 @@ This is a statement of the supported floor, not a new runtime version check
 — brokers older than 2.8.0 are not tested against and may not negotiate the
 API versions Zilla's client and cache rely on.
 
-## Still deprecated — candidates for a future release
-
-The following are currently marked deprecated but **have not been removed**.
-They are called out here so the decision to drop them for 2.0.0 (or a later
-2.x release) can be made deliberately, not as something already acted on in
-this document:
-
-| Item | Deprecated in favor of | Notes |
-| --- | --- | --- |
-| `binding-kafka` `options.sasl` | `options.authorization` (guard-based) | Schema still marks it `deprecated: true` but continues to validate and function — see [binding-kafka: options.sasl removed](#binding-kafka-optionssasl-removed--use-optionsauthorization) for the migration path once this is actually dropped |
-
-None of these are removed by this document — they require their own review
-and, where user-facing, their own deprecation-window decision before being
-dropped.
