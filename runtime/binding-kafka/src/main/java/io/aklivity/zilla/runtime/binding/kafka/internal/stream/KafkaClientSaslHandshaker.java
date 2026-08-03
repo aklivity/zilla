@@ -871,7 +871,7 @@ public abstract class KafkaClientSaslHandshaker
                 final int errorCode = authenticateResponse.errorCode();
                 if (errorCode != ERROR_NONE)
                 {
-                    event.saslAuthenticationFailed(traceId, client.originId, client.sasl.username,
+                    event.saslAuthenticationFailed(traceId, client.originId, client.resolveUsername(),
                         authenticateResponse.errorMessage().asString());
                 }
 
@@ -962,7 +962,7 @@ public abstract class KafkaClientSaslHandshaker
                 final int errorCode = authenticateResponse.errorCode();
                 if (errorCode != ERROR_NONE)
                 {
-                    event.saslAuthenticationFailed(traceId, client.originId, client.sasl.username,
+                    event.saslAuthenticationFailed(traceId, client.originId, client.resolveUsername(),
                         authenticateResponse.errorMessage().asString());
                 }
 
@@ -992,7 +992,7 @@ public abstract class KafkaClientSaslHandshaker
                 }
                 else
                 {
-                    event.saslAuthenticationFailed(traceId, client.originId, client.sasl.username);
+                    event.saslAuthenticationFailed(traceId, client.originId, client.resolveUsername());
                     client.onDecodeSaslResponse(traceId);
                     client.onDecodeSaslAuthenticateResponse(traceId, authorization, ERROR_SASL_AUTHENTICATION_FAILED);
                 }
@@ -1042,7 +1042,7 @@ public abstract class KafkaClientSaslHandshaker
                 if (!Arrays.equals(Base64.getDecoder().decode(serverFinalMessage),
                         serverSignature))
                 {
-                    event.saslAuthenticationFailed(traceId, client.originId, client.sasl.username);
+                    event.saslAuthenticationFailed(traceId, client.originId, client.resolveUsername());
                     client.onDecodeSaslResponse(traceId);
                     client.onDecodeSaslAuthenticateResponse(traceId, authorization, ERROR_SASL_AUTHENTICATION_FAILED);
                 }
