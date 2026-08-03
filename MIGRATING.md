@@ -148,18 +148,19 @@ bindings:
 # 2.x
 catalogs:
   catalog0:
-    type: <your-schema-registry-catalog>   # e.g. inline, schema-registry, apicurio, karapace
+    type: inline
     options:
-      subject: echo
-      schema: |
-        syntax = "proto3";
-        package example;
-        service EchoService {
-          rpc EchoUnary(EchoMessage) returns (EchoMessage);
-        }
-        message EchoMessage {
-          string message = 1;
-        }
+      subjects:
+        echo:
+          schema: |
+            syntax = "proto3";
+            package example;
+            service EchoService {
+              rpc EchoUnary(EchoMessage) returns (EchoMessage);
+            }
+            message EchoMessage {
+              string message = 1;
+            }
 bindings:
   net0:
     type: grpc
@@ -174,9 +175,10 @@ bindings:
 ```
 
 **Action:** register each `.proto` service definition in a catalog (an
-`inline` catalog with an embedded schema is the simplest drop-in
-replacement for a local file) and reference it via `catalog:` on the
-binding instead of `options.services`.
+`inline` catalog with an embedded schema, as shown above, is the simplest
+drop-in replacement for a local file — a `schema-registry`, `apicurio`, or
+`karapace` catalog also works if you already run one) and reference it via
+`catalog:` on the binding instead of `options.services`.
 
 ### `binding-mqtt-kafka`: `options.server` removed — use the engine's `service.hostname` property
 
