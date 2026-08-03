@@ -393,7 +393,7 @@ and add `options.server` to `kind: client` bindings.
 
 ## Guards
 
-### `guard-jwt`: `kind` is no longer accepted
+### `guard-jwt`: `kind` property was ignored, now no longer accepted
 
 The guard-level `kind` property (already meaningless for guards) is now
 explicitly disallowed for `type: jwt`. This only affects a config that
