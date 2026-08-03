@@ -25,4 +25,4 @@ bindings:
         - localhost:9092
     routes:
       - when:
-          - tool: produce
+          - tool: produce_message

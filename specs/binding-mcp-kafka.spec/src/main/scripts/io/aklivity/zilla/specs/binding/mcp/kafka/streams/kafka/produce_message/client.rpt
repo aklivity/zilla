@@ -21,7 +21,7 @@ write zilla:begin.ext ${kafka:beginEx()
                              .typeId(zilla:id("kafka"))
                              .merged()
                                  .capabilities("PRODUCE_ONLY")
-                                 .topic("orders-eu")
+                                 .topic("orders")
                                  .partition(-1, -2)
                                  .build()
                              .build()}
@@ -38,6 +38,16 @@ write zilla:data.ext ${kafka:dataEx()
                             .build()}
 write "hello"
 write flush
+
+read advised zilla:flush ${kafka:flushEx()
+                              .typeId(zilla:id("kafka"))
+                              .merged()
+                                .produce()
+                                  .partitionId(0)
+                                  .partitionOffset(0)
+                                  .timestamp(1700000000000)
+                                  .build()
+                              .build()}
 
 write close
 read closed

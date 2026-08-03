@@ -47,18 +47,25 @@ write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .toolsCall()
                                .sessionId("session-1")
-                               .name("produce")
-                               .contentLength(65)
+                               .name("produce_message")
+                               .contentLength(68)
                                .build()
                            .build()}
 
 connected
 
-write '{"name":"produce","arguments":{"topic":"orders","value":"hello"}}'
+write '{'
+        '"name":"produce_message",'
+        '"arguments":'
+        '{'
+          '"topic":"orders-eu",'
+          '"value":"hello"'
+        '}'
+      '}'
 
-read await KAFKA_PRODUCE_READY
+read '{"structuredContent":{"topic":"orders-eu","partition":1,"offset":0,"timestamp":1700000000000},'
+     '"content":[{"type":"text","text":"Produced record to orders-eu topic"}],'
+     '"isError":false}'
+read closed
 
-# the client aborts before kafka ever grants window credit to flush the produce record: proves
-# the abort propagates through to the kafka stream (see kafka/produce.abort/server, which expects
-# the kafka begin to have opened and then observes the abort directly, with no data ever exchanged)
-write abort
+write close

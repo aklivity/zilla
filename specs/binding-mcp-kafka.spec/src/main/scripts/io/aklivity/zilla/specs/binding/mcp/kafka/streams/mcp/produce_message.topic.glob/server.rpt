@@ -45,34 +45,27 @@ read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .toolsCall()
                               .sessionId("session-1")
-                              .name("produce")
-                              .contentLength(65)
+                              .name("produce_message")
+                              .contentLength(68)
                               .build()
                           .build()}
 
 connected
 
 read  '{'
-        '"name":"produce",'
+        '"name":"produce_message",'
         '"arguments":'
         '{'
-          '"topic":"orders",'
+          '"topic":"orders-eu",'
           '"value":"hello"'
         '}'
       '}'
 
 write flush
 
-write '{'
-        '"content":'
-        '['
-          '{'
-            '"type": "text",'
-            '"text": "Produced record to orders topic"'
-          '}'
-        '],'
-        '"isError": false'
-      '}'
+write '{"structuredContent":{"topic":"orders-eu","partition":1,"offset":0,"timestamp":1700000000000},'
+     '"content":[{"type":"text","text":"Produced record to orders-eu topic"}],'
+     '"isError":false}'
 write flush
 
 write close

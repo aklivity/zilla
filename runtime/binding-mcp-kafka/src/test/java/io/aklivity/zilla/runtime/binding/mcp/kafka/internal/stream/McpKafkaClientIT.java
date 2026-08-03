@@ -58,8 +58,8 @@ public class McpKafkaClientIT
     @Test
     @Configuration("client.produce.yaml")
     @Specification({
-        "${mcp}/produce/client",
-        "${kafka}/produce/server"})
+        "${mcp}/produce_message/client",
+        "${kafka}/produce_message/server"})
     public void shouldProduce() throws Exception
     {
         k3po.finish();

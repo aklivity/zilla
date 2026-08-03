@@ -413,10 +413,10 @@ public class McpKafkaProxyFactoryTest
     @Test
     public void shouldParseValidProduceArgsAndOpenKafkaProduceStream() throws Exception
     {
-        factory.attach(newBinding("produce"));
+        factory.attach(newBinding("produce_message"));
 
-        final String body = "{\"name\":\"produce\",\"arguments\":{\"topic\":\"orders\",\"value\":\"hello\"}}";
-        final MessageConsumer stream = beginToolsCall("produce", body.length(), 0L);
+        final String body = "{\"name\":\"produce_message\",\"arguments\":{\"topic\":\"orders\",\"value\":\"hello\"}}";
+        final MessageConsumer stream = beginToolsCall("produce_message", body.length(), 0L);
 
         data(stream, INITIAL_ID, body);
 
@@ -435,10 +435,10 @@ public class McpKafkaProxyFactoryTest
     @Test
     public void shouldRejectProduceArgsMissingRequiredFields() throws Exception
     {
-        factory.attach(newBinding("produce"));
+        factory.attach(newBinding("produce_message"));
 
-        final String body = "{\"name\":\"produce\",\"arguments\":{\"key\":\"missing-topic-and-value\"}}";
-        final MessageConsumer stream = beginToolsCall("produce", body.length(), 0L);
+        final String body = "{\"name\":\"produce_message\",\"arguments\":{\"key\":\"missing-topic-and-value\"}}";
+        final MessageConsumer stream = beginToolsCall("produce_message", body.length(), 0L);
 
         data(stream, INITIAL_ID, body);
 
@@ -512,10 +512,10 @@ public class McpKafkaProxyFactoryTest
     @Test
     public void shouldSynthesizeProduceErrorAndAbortOnKafkaReset() throws Exception
     {
-        factory.attach(newBinding("produce"));
+        factory.attach(newBinding("produce_message"));
 
-        final String body = "{\"name\":\"produce\",\"arguments\":{\"topic\":\"orders\",\"value\":\"hello\"}}";
-        final MessageConsumer stream = beginToolsCall("produce", body.length(), 0L);
+        final String body = "{\"name\":\"produce_message\",\"arguments\":{\"topic\":\"orders\",\"value\":\"hello\"}}";
+        final MessageConsumer stream = beginToolsCall("produce_message", body.length(), 0L);
 
         data(stream, INITIAL_ID, body);
 
@@ -644,7 +644,7 @@ public class McpKafkaProxyFactoryTest
     @Test
     public void shouldRejectToolsCallWithNoMatchingRoute() throws Exception
     {
-        factory.attach(newBinding("produce"));
+        factory.attach(newBinding("produce_message"));
 
         final MessageConsumer stream = beginToolsCall("consume", 10, 0L);
 

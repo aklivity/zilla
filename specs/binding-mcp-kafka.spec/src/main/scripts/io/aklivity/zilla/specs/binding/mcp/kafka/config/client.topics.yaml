@@ -28,5 +28,5 @@ bindings:
             model: test
     routes:
       - when:
-          - tool: produce
+          - tool: produce_message
             topics: [orders]
