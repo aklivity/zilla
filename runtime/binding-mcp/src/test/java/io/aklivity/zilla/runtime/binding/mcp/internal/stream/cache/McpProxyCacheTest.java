@@ -22,16 +22,17 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.List.of;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.io.Closeable;
+import java.time.Duration;
 import java.util.Map;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 import org.junit.Before;
@@ -52,24 +53,94 @@ import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 public class McpProxyCacheTest
 {
     private GuardHandler guard;
-    private StoreHandler store;
     private McpProxyCache cache;
+
+    // a plain, synchronous stand-in for the store -- avoids driving put() through a Mockito
+    // doAnswer, which invokes the real completion re-entrantly through the mock's own
+    // interceptor/location-tracking machinery on every call
+    private static final class FakeStoreHandler implements StoreHandler
+    {
+        @Override
+        public void get(
+            String key,
+            BiConsumer<String, String> completion)
+        {
+        }
+
+        @Override
+        public void put(
+            String key,
+            String value,
+            Duration ttl,
+            Consumer<String> completion)
+        {
+            completion.accept(key);
+        }
+
+        @Override
+        public void putIfAbsent(
+            String key,
+            String value,
+            Duration ttl,
+            Consumer<String> completion)
+        {
+        }
+
+        @Override
+        public void delete(
+            String key,
+            Consumer<String> completion)
+        {
+        }
+
+        @Override
+        public void getAndDelete(
+            String key,
+            Consumer<String> completion)
+        {
+        }
+
+        @Override
+        public void lock(
+            String key,
+            Duration ttl,
+            BiConsumer<String, String> completion)
+        {
+        }
+
+        @Override
+        public void unlock(
+            String key,
+            String token,
+            Consumer<String> completion)
+        {
+        }
+
+        @Override
+        public void renew(
+            String key,
+            String token,
+            Duration ttl,
+            Consumer<String> completion)
+        {
+        }
+
+        @Override
+        public Closeable watch(
+            String key,
+            BiConsumer<String, String> listener)
+        {
+            return () -> {};
+        }
+    }
 
     @Before
     public void setup()
     {
         guard = mock(GuardHandler.class);
-        store = mock(StoreHandler.class);
-        doAnswer(invocation ->
-        {
-            final String key = invocation.getArgument(0);
-            final Consumer<String> completion = invocation.getArgument(3);
-            completion.accept(key);
-            return null;
-        }).when(store).put(anyString(), anyString(), any(), any());
 
         EngineContext context = mock(EngineContext.class);
-        when(context.supplyStore(anyLong())).thenReturn(store);
+        when(context.supplyStore(anyLong())).thenReturn(new FakeStoreHandler());
         when(context.supplyGuard(anyLong())).thenReturn(guard);
 
         BindingConfig binding = GenericBindingConfig.builder()
