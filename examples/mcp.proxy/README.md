@@ -37,7 +37,7 @@ This one configuration exercises all eight `mcp*` binding kinds:
 | `mcp-openapi` | `client` | Synthesizes MCP tools from an OpenAPI document, backed by a plain REST API (`petstore` toolkit) |
 | `mcp-schema-registry` | `client` | Exposes a fixed, bundled tool set for the Karapace/Confluent Schema Registry REST API -- no operator-authored OpenAPI document, unlike `mcp-openapi` (`kafka_sr` toolkit) |
 | `mcp-kafka-connect` | `client` | Exposes a fixed, bundled tool set for the Kafka Connect REST API (`list_connectors`/`create_connector`/`describe_connector`/`delete_connector`/`describe_connector_config`/`update_connector_config`/`validate_connector_config`/`describe_connector_status`/`restart_connector`/`pause_connector`/`resume_connector`/`stop_connector`/`list_connector_tasks`/`restart_connector_task`/`describe_connector_offsets`/`alter_connector_offsets`/`reset_connector_offsets`/`list_connector_plugins`) as intrinsic MCP tools against a real Kafka Connect worker (`kafka_connect` toolkit) |
-| `mcp-kafka` | `client` | Exposes Kafka broker operations (`produce_message`/`consume_messages`/`create_topics`/`delete_topics`/`describe_configs`/`alter_configs`/`list_acls`/`create_acls`/`delete_acls`/`list_topics`/`describe_topic`/`cluster_overview`/`list_brokers`/`describe_cluster`/`list_consumer_groups`/`describe_consumer_group`/`describe_consumer_group_lag`/`reset_offsets`) as intrinsic MCP tools, generating its own `kafka_cache_client → kafka_client → tcp_client` pipeline against a real broker (`kafka` toolkit) |
+| `mcp-kafka` | `client` | Exposes Kafka broker operations (`produce_message`/`consume_messages`/`create_topics`/`delete_topics`/`describe_topic_configs`/`describe_broker_configs`/`alter_topic_configs`/`alter_broker_configs`/`list_acls`/`create_acls`/`delete_acls`/`list_topics`/`describe_topic`/`cluster_overview`/`list_brokers`/`describe_cluster`/`list_consumer_groups`/`describe_consumer_group`/`describe_consumer_group_lag`/`reset_offsets`) as intrinsic MCP tools, generating its own `kafka_cache_client → kafka_client → tcp_client` pipeline against a real broker (`kafka` toolkit) |
 
 ## Authorization model
 
@@ -60,7 +60,7 @@ the pipeline, each demonstrating a different mechanism:
 | `mcp-kafka-connect(client)` route for connector/task/offset-mutating tools | a second, tool-specific `routes[].guarded` on the binding's own `when.tool` route (every mutating tool coalesced into one route), layered under the toolkit-level gate above | `kafka_connect:tools` **and** `kafka_connect:admin` |
 | `mcp(proxy)` route for `kafka` toolkit | `routes[].guarded` on the toolkit route | `kafka:tools` |
 | `mcp-kafka(client)` route for `produce_message` | a second, tool-specific `routes[].guarded` on the binding's own `when.tool` route, layered under the toolkit-level gate above | `kafka:tools` **and** `kafka:write` |
-| `mcp-kafka(client)` route for `create_topics` / `delete_topics` / `alter_configs` / `reset_offsets` | a second, tool-specific `routes[].guarded` on the binding's own `when.tool` route (all four tools coalesced into one route, since all four need the same scope), layered under the toolkit-level gate above | `kafka:tools` **and** `kafka:admin` |
+| `mcp-kafka(client)` route for `create_topics` / `delete_topics` / `alter_topic_configs` / `alter_broker_configs` / `reset_offsets` | a second, tool-specific `routes[].guarded` on the binding's own `when.tool` route (all five tools coalesced into one route, since all five need the same scope), layered under the toolkit-level gate above | `kafka:tools` **and** `kafka:admin` |
 | `mcp-kafka(client)` route for `create_acls` / `delete_acls` | a second, tool-specific `routes[].guarded` on the binding's own `when.tool` route (both tools coalesced into one route), layered under the toolkit-level gate above, but with its own scope rather than reusing `kafka:admin` | `kafka:tools` **and** `kafka:acls` |
 
 `list_pets`, `list_featured_pets`, and `get_pet` declare no OpenAPI `security`
@@ -93,20 +93,24 @@ catch-all glob route.
 
 `mcp-kafka` demonstrates the identical layering a third way, on its own
 `when.tool` route, and splits it further into read/write/admin: `consume_messages`,
-`describe_configs`, `list_acls`, `list_topics`, `describe_topic`,
-`cluster_overview`, `list_brokers`, `describe_cluster`,
+`describe_topic_configs`, `describe_broker_configs`, `list_acls`, `list_topics`,
+`describe_topic`, `cluster_overview`, `list_brokers`, `describe_cluster`,
 `list_consumer_groups`, `describe_consumer_group`, and
 `describe_consumer_group_lag` need only the
 toolkit-level `kafka:tools` scope (all read-only), `produce_message` additionally
 requires `kafka:write` since it mutates topic data, and the admin-risk
-`create_topics`, `delete_topics`, `alter_configs`, and `reset_offsets` route
-requires `kafka:admin` instead -- same mechanism as `register_schema`,
-different toolkit, with a third tier for structural (not just data)
-mutation. `create_topics`, `delete_topics`, `alter_configs`, and
-`reset_offsets` share one route rather than four near-identical ones: a
-route's `when` list already matches by OR, so a second, third, and fourth
-`- tool: ...` entry under the same `create_topics` route reuses the one
-`kafka:admin` guard for all four.
+`create_topics`, `delete_topics`, `alter_topic_configs`, `alter_broker_configs`,
+and `reset_offsets` route requires `kafka:admin` instead -- same mechanism as
+`register_schema`, different toolkit, with a third tier for structural (not
+just data) mutation. `create_topics`, `delete_topics`, `alter_topic_configs`,
+`alter_broker_configs`, and `reset_offsets` share one route rather than five
+near-identical ones: a route's `when` list already matches by OR, so a
+second, third, fourth, and fifth `- tool: ...` entry under the same
+`create_topics` route reuses the one `kafka:admin` guard for all five (an
+operator wanting a stricter scope for broker-wide config mutation than
+topic-scoped mutation can split `alter_broker_configs` into its own route
+instead -- exactly what having a dedicated tool per resource type, rather
+than a shared tool with a `resource_type` argument, makes possible).
 
 `create_acls` and `delete_acls` add a **fourth** tier, `kafka:acls`, rather
 than folding into `kafka:admin`: KIP-1318 -- the same Kafka proposal these two
@@ -118,10 +122,10 @@ change configs is not thereby also trusted to grant or revoke another
 principal's access -- so the two scopes are issued independently, and a
 caller needs `kafka:acls` specifically (on top of the toolkit-level
 `kafka:tools`) to call either tool. `list_acls` itself is read-only and needs
-no scope beyond `kafka:tools`, the same tier as `describe_configs`.
+no scope beyond `kafka:tools`, the same tier as `describe_topic_configs`.
 
-`describe_configs`, `list_acls`, `list_topics`, `describe_topic`,
-`cluster_overview`, `list_brokers`, `describe_cluster`,
+`describe_topic_configs`, `describe_broker_configs`, `list_acls`, `list_topics`,
+`describe_topic`, `cluster_overview`, `list_brokers`, `describe_cluster`,
 `list_consumer_groups`, `describe_consumer_group`, and
 `describe_consumer_group_lag` coalesce into one more shared route alongside
 `consume_messages`'s, this time with no `guarded:` block at all since the
@@ -237,8 +241,9 @@ frequently used tools -- `everything__echo`, `urlelicit__authorize`,
 `kafka_connect__list_connectors`, `kafka_connect__describe_connector`,
 `kafka_connect__create_connector`, `kafka_connect__delete_connector`,
 `kafka__produce_message`, `kafka__consume_messages`,
-`kafka__create_topics`, `kafka__delete_topics`, `kafka__describe_configs`,
-`kafka__alter_configs`, `kafka__list_acls`, `kafka__create_acls`,
+`kafka__create_topics`, `kafka__delete_topics`, `kafka__describe_topic_configs`,
+`kafka__describe_broker_configs`, `kafka__alter_topic_configs`,
+`kafka__alter_broker_configs`, `kafka__list_acls`, `kafka__create_acls`,
 `kafka__delete_acls`, `kafka__list_topics`, `kafka__describe_topic`,
 `kafka__cluster_overview`, `kafka__list_brokers`, `kafka__describe_cluster`,
 `kafka__list_consumer_groups`, `kafka__describe_consumer_group`,
@@ -280,8 +285,10 @@ kafka__produce_message
 kafka__consume_messages
 kafka__create_topics
 kafka__delete_topics
-kafka__describe_configs
-kafka__alter_configs
+kafka__describe_topic_configs
+kafka__describe_broker_configs
+kafka__alter_topic_configs
+kafka__alter_broker_configs
 kafka__list_acls
 kafka__create_acls
 kafka__delete_acls
@@ -723,35 +730,39 @@ docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
 # Deleted topic(s): widgets
 ```
 
-`describe_configs` is read-only, like `consume_messages`, so it needs only the
-toolkit-level `kafka:tools` scope. It takes a `resource_type` (`topic` or
-`broker`) and a `resource_name`, not a routed topic, so -- like
-`create_topics`/`delete_topics`/`alter_configs` -- it has no `topics`
-allow-list on its route. With no `configs` given, it returns every config
-Kafka reports for the resource, including ones the broker set by default:
+`describe_topic_configs` and `describe_broker_configs` are read-only, like
+`consume_messages`, so they need only the toolkit-level `kafka:tools` scope.
+Each takes just a `resource_name`, not a routed topic, so -- like
+`create_topics`/`delete_topics`/`alter_topic_configs`/`alter_broker_configs`
+-- neither has a `topics` allow-list on its route (the resource type itself
+is implied by which tool is called, rather than a shared `resource_type`
+argument -- exactly what lets an operator route/guard topic-scoped and
+broker-wide config access differently). With no `configs` given, a call
+returns every config Kafka reports for the resource, including ones the
+broker set by default:
 
 ```bash
 docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
-    -e CALL_TOOL=kafka__describe_configs \
-    -e CALL_ARGS='{"resource_type":"topic","resource_name":"orders"}' \
+    -e CALL_TOOL=kafka__describe_topic_configs \
+    -e CALL_ARGS='{"resource_name":"orders"}' \
     tools-list-client
 # Described 15 config(s)
 # {"configs":[{"name":"cleanup.policy","value":"delete","is_default":true,"is_sensitive":false}, ...]}
 ```
 
-`alter_configs` sets configs on a resource and needs the same `kafka:admin`
-scope as `create_topics`/`delete_topics`, since it shares their route.
-Change the `orders` topic's `cleanup.policy`:
+`alter_topic_configs` and `alter_broker_configs` set configs on a resource
+and need the same `kafka:admin` scope as `create_topics`/`delete_topics`,
+since they share their route. Change the `orders` topic's `cleanup.policy`:
 
 ```bash
 docker compose run --rm -e JWT_TOKEN="$JWT_TOKEN" \
-    -e CALL_TOOL=kafka__alter_configs \
-    -e CALL_ARGS='{"resource_type":"topic","resource_name":"orders","configs":{"cleanup.policy":"compact"}}' \
+    -e CALL_TOOL=kafka__alter_topic_configs \
+    -e CALL_ARGS='{"resource_name":"orders","configs":{"cleanup.policy":"compact"}}' \
     tools-list-client
 # Updated configs for topic orders
 ```
 
-`list_acls` is read-only, like `describe_configs`, so it needs only the
+`list_acls` is read-only, like `describe_topic_configs`, so it needs only the
 toolkit-level `kafka:tools` scope and shares that route. Every filter field
 is optional -- an absent field matches any value, the same semantics as
 Kafka's own `AclBindingFilter`:
