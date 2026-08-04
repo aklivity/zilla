@@ -1340,9 +1340,11 @@ public final class KafkaClientApiFactory implements BindingHandler
             long budgetId,
             long authorization)
         {
-            guardSession = guard.reauthorize(traceId, routedId, initialId, guard.credentials(authorization));
+            final String resolved = guard.credentials(authorization);
+            final boolean authorized = resolved != null;
+            guardSession = authorized ? authorization : guard.reauthorize(traceId, routedId, initialId, null);
 
-            if ((guardSession & MASK_AUTHORIZED) == 0L)
+            if (!authorized && (guardSession & MASK_AUTHORIZED) == 0L)
             {
                 event.saslAuthenticationFailed(traceId, routedId, null);
                 cleanupNetPending(traceId, ERROR_SASL_AUTHENTICATION_FAILED);

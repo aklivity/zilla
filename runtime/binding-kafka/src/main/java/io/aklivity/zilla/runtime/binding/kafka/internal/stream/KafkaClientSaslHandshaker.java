@@ -213,8 +213,10 @@ public abstract class KafkaClientSaslHandshaker
             if (guard != null &&
                 (CREDENTIALS_TEMPLATE.equals(sasl.token) || CREDENTIALS_TEMPLATE.equals(sasl.password)))
             {
-                final String credentials = guard.credentials(saslAuthorization);
-                guardSession = guard.reauthorize(traceId, routedId, initialId, credentials);
+                final String resolved = guard.credentials(saslAuthorization);
+                guardSession = resolved != null
+                        ? saslAuthorization
+                        : guard.reauthorize(traceId, routedId, initialId, null);
             }
 
             final MutableDirectBufferEx encodeBuffer = writeBuffer;
