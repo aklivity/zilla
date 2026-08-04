@@ -210,24 +210,7 @@ jobs:
 
     - name: Determine docker tags
       id: tag
-      run: |
-        VERSION="${{ inputs.version }}"
-        MAJOR=""
-        MINOR=""
-        LATEST=""
-        if [[ "$VERSION" =~ ^([0-9]+)\.([0-9]+)\.[0-9]+$ ]]; then
-          MAJOR="${BASH_REMATCH[1]}"
-          MINOR="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}"
-          HIGHEST=$({ git tag --list | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$'; echo "$VERSION"; } | sort -V | tail -n1)
-          if [[ "$HIGHEST" == "$VERSION" ]]; then
-            LATEST="latest"
-          fi
-        fi
-        {
-          echo "major=$MAJOR"
-          echo "minor=$MINOR"
-          echo "latest=$LATEST"
-        } >> "$GITHUB_OUTPUT"
+      run: .github/scripts/release-tags.sh "${{ inputs.version }}" >> "$GITHUB_OUTPUT"
 
     - name: Deploy via Maven
       run: |
@@ -354,6 +337,29 @@ jobs:
         git branch ${{ github.ref_name }} origin/${{ github.ref_name }} || true
         git flow init -df
 
+    - name: Extract release notes from CHANGELOG on release branch
+      run: |
+        NOTES="$RUNNER_TEMP/release-notes.md"
+        CHANGELOG="$RUNNER_TEMP/CHANGELOG.md"
+        git show release/${{ inputs.version }}:CHANGELOG.md > "$CHANGELOG" || true
+        .github/scripts/release-notes.sh "${{ inputs.version }}" "$CHANGELOG" > "$NOTES"
+        if [ ! -s "$NOTES" ]; then
+          echo "::warning::CHANGELOG.md on release/${{ inputs.version }} has no [${{ inputs.version }}] section; the GitHub Release will link to the full changelog instead."
+          PREVIOUS=$({ git tag --list | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' || true; echo "${{ inputs.version }}"; } \
+              | sort -V -u | grep -B1 -x -- "${{ inputs.version }}" | head -n1)
+          {
+            echo "## [${{ inputs.version }}](https://github.com/${{ github.repository }}/tree/${{ inputs.version }})"
+            echo
+            if [ "$PREVIOUS" != "${{ inputs.version }}" ]; then
+              echo "[Full Changelog](https://github.com/${{ github.repository }}/compare/$PREVIOUS...${{ inputs.version }})"
+            fi
+          } > "$NOTES"
+        fi
+
+    - name: Determine release latest marker
+      id: tag
+      run: .github/scripts/release-tags.sh "${{ inputs.version }}" >> "$GITHUB_OUTPUT"
+
     - name: Tag the release
       if: startsWith(github.ref_name, 'support/')
       run: |
@@ -398,3 +404,21 @@ jobs:
       run: |
         git diff --quiet && git diff --cached --quiet || git commit -a -m "Update CHANGELOG.md"
         git push origin ${{ github.ref_name }}
+
+    - name: Create GitHub Release
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        NOTES="$RUNNER_TEMP/release-notes.md"
+        if gh release view ${{ inputs.version }} --repo ${{ github.repository }} >/dev/null 2>&1; then
+          gh release edit ${{ inputs.version }} --repo ${{ github.repository }} \
+              --title ${{ inputs.version }} \
+              --notes-file "$NOTES" \
+              --latest=${{ steps.tag.outputs.highest }}
+        else
+          gh release create ${{ inputs.version }} --repo ${{ github.repository }} \
+              --title ${{ inputs.version }} \
+              --notes-file "$NOTES" \
+              --latest=${{ steps.tag.outputs.highest }} \
+              --verify-tag
+        fi
