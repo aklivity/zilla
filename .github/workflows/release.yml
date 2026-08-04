@@ -337,7 +337,12 @@ jobs:
         git branch ${{ github.ref_name }} origin/${{ github.ref_name }} || true
         git flow init -df
 
+    - name: Determine release version facts
+      id: tag
+      run: .github/scripts/release-tags.sh "${{ inputs.version }}" >> "$GITHUB_OUTPUT"
+
     - name: Extract release notes from CHANGELOG on release branch
+      if: steps.tag.outputs.semver == 'true'
       run: |
         NOTES="$RUNNER_TEMP/release-notes.md"
         CHANGELOG="$RUNNER_TEMP/CHANGELOG.md"
@@ -355,10 +360,6 @@ jobs:
             fi
           } > "$NOTES"
         fi
-
-    - name: Determine release latest marker
-      id: tag
-      run: .github/scripts/release-tags.sh "${{ inputs.version }}" >> "$GITHUB_OUTPUT"
 
     - name: Tag the release
       if: startsWith(github.ref_name, 'support/')
@@ -406,6 +407,7 @@ jobs:
         git push origin ${{ github.ref_name }}
 
     - name: Create GitHub Release
+      if: steps.tag.outputs.semver == 'true'
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
@@ -422,3 +424,7 @@ jobs:
               --latest=${{ steps.tag.outputs.highest }} \
               --verify-tag
         fi
+
+    - name: Skip GitHub Release for pre-release version
+      if: steps.tag.outputs.semver != 'true'
+      run: echo "::notice::${{ inputs.version }} is not an x.y.z release version; skipping GitHub Release creation."
