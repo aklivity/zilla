@@ -12,8 +12,8 @@ guards:
   sasl_credentials:
     type: inline
     options:
-      identity: ${{env.SASL_USERNAME}}
-      credentials: ${{env.SASL_PASSWORD}}
+      format: "{identity}:{credentials}"
+      credentials: ${{env.SASL_USERNAME}}:${{env.SASL_PASSWORD}}
 bindings:
   north_tcp_server:
     type: tcp
