@@ -50,3 +50,51 @@ retry_until() {
     sleep "$_delay"
   done
 }
+
+# fail <message>
+#
+# Record an assertion failure: echo it inline where it happened, remember it for
+# report_failures, and set EXIT so the caller's closing `exit $EXIT` reports
+# non-zero. A drop-in replacement for an `echo "❌ ..."` + `EXIT=1` pair.
+#
+# Why this exists: an example that checks many assertions sets EXIT=1 and keeps
+# going, so the last thing printed before `exit $EXIT` is whichever assertion
+# ran last -- routinely a ✅ -- while the ❌ that actually failed the job sits
+# thousands of lines earlier. A failed run then reads like a passing one, and on
+# a long log the failing assertion can be past the reach of the log-tail APIs
+# altogether, leaving nothing to diagnose from but the exit code.
+FAILURES=""
+
+fail() {
+  _message="$*"
+
+  echo "❌ $_message"
+  FAILURES="$FAILURES$_message
+"
+  EXIT=1
+}
+
+# report_failures
+#
+# Re-echo every failure recorded by fail, as the last thing the script prints.
+# Call it immediately before the closing `exit $EXIT`. Prints nothing when
+# nothing failed, so a passing run is unchanged. Under GitHub Actions each
+# failure is also emitted as a workflow error annotation, surfacing it on the
+# checks UI without opening the log at all.
+report_failures() {
+  if [ -n "$FAILURES" ]
+  then
+    echo "=== failed assertions ==="
+    echo "$FAILURES" | while IFS= read -r _failure
+    do
+      if [ -n "$_failure" ]
+      then
+        echo "❌ $_failure"
+        if [ -n "$GITHUB_ACTIONS" ]
+        then
+          echo "::error::$_failure"
+        fi
+      fi
+    done
+  fi
+}
