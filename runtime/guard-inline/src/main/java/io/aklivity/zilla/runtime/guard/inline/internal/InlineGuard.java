@@ -19,7 +19,6 @@ import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKER
 import java.lang.invoke.VarHandle;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 import java.util.function.LongFunction;
 import java.util.function.LongToIntFunction;
 import java.util.function.UnaryOperator;
@@ -34,7 +33,6 @@ import io.aklivity.zilla.runtime.engine.guard.Guard;
 public class InlineGuard implements Guard
 {
     public static final String NAME = "inline";
-    public static final Set<String> ALIASES = Set.of("identity");
 
     private final InlineGuardContext[] contexts;
 
@@ -49,12 +47,6 @@ public class InlineGuard implements Guard
     public String name()
     {
         return NAME;
-    }
-
-    @Override
-    public Set<String> aliases()
-    {
-        return ALIASES;
     }
 
     @Override

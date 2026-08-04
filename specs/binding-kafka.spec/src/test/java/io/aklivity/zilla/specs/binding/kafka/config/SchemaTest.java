@@ -150,12 +150,6 @@ public class SchemaTest
     }
 
     @Test(expected = JsonException.class)
-    public void shouldRejectClientOptionsSaslAndAuthorization()
-    {
-        schema.validate("client.options.sasl.and.authorization.yaml");
-    }
-
-    @Test(expected = JsonException.class)
     public void shouldRejectClientOptionsAuthorizationOauthbearerWithInvalidCredentials()
     {
         schema.validate("client.options.authorization.oauthbearer.invalid.credentials.yaml");

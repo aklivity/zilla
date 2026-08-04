@@ -45,19 +45,19 @@ read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .toolsCall()
                               .sessionId("session-1")
-                              .name("alter_configs")
-                              .contentLength(125)
+                              .name("describe_broker_configs")
+                              .contentLength(62)
                               .build()
                           .build()}
 
 connected
 
-read '{"name":"alter_configs","arguments":{"resource_type":"topic","resource_name":"events","configs":{"cleanup.policy":"delete"}}}'
+read '{"name":"describe_broker_configs","arguments":{"broker_id":0}}'
 
 write flush
 
-write '{"structuredContent":{"resource_type":"topic","resource_name":"events","updated":true},'
-      '"content":[{"type":"text","text":"Updated configs for topic events"}],"isError":false}'
+write '{"structuredContent":{"configs":[{"name":"log.retention.hours","value":"168","is_default":true,"is_sensitive":false}]},'
+      '"content":[{"type":"text","text":"Described 1 config(s)"}],"isError":false}'
 write flush
 
 write close

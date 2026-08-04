@@ -32,6 +32,7 @@
 - binding-mcp-kafka: add describe\_consumer\_group\_lag tool [\#2254](https://github.com/aklivity/zilla/issues/2254) ([jfallows](https://github.com/jfallows))
 - binding-mcp-kafka / binding-mcp-schema-registry: add title annotation and real descriptions to every tool [\#2256](https://github.com/aklivity/zilla/issues/2256) ([jfallows](https://github.com/jfallows))
 - binding-mcp-kafka: reset\_offsets output doesn't echo partition/offset [\#2257](https://github.com/aklivity/zilla/issues/2257) ([jfallows](https://github.com/jfallows))
+- binding-mcp-kafka: split describe\_configs/alter\_configs into describe\_topic\_configs/describe\_broker\_configs and alter\_topic\_configs/alter\_broker\_configs [\#2258](https://github.com/aklivity/zilla/issues/2258) ([jfallows](https://github.com/jfallows))
 - binding-mcp-kafka: add list\_acls, create\_acls, delete\_acls tools [\#2259](https://github.com/aklivity/zilla/issues/2259) ([jfallows](https://github.com/jfallows))
 - binding-mcp-kafka-connect: new binding exposing Kafka Connect REST API as MCP tools [\#2261](https://github.com/aklivity/zilla/issues/2261) ([jfallows](https://github.com/jfallows))
 - binding-mcp-kafka: rename produce to produce\_message, add headers input, add structured output [\#2281](https://github.com/aklivity/zilla/issues/2281) ([jfallows](https://github.com/jfallows))
@@ -431,6 +432,11 @@
 - fix\(binding-mcp-kafka\): rename consume to consume\_messages, declare output schema [\#2289](https://github.com/aklivity/zilla/pull/2289) ([jfallows](https://github.com/jfallows))
 - fix\(binding-asyncapi\): stop rejecting shrinking WINDOW.maximum when acknowledge advances [\#2291](https://github.com/aklivity/zilla/pull/2291) ([jfallows](https://github.com/jfallows))
 - feat\(binding-mcp\): add title to search\_tools, describe\_tool, execute\_tool [\#2292](https://github.com/aklivity/zilla/pull/2292) ([jfallows](https://github.com/jfallows))
+- docs: add MIGRATING.md covering 1.x to 2.x backwards-incompatible changes [\#2293](https://github.com/aklivity/zilla/pull/2293) ([jfallows](https://github.com/jfallows))
+- binding-mcp-kafka: split describe\_configs/alter\_configs into topic/broker tools [\#2294](https://github.com/aklivity/zilla/pull/2294) ([jfallows](https://github.com/jfallows))
+- binding-mcp-kafka: rename resource\_name to topic/broker\_id per tool [\#2295](https://github.com/aklivity/zilla/pull/2295) ([jfallows](https://github.com/jfallows))
+- fix\(examples/mcp.proxy\): retry resource-subscribe-client on missing everything+ resource [\#2296](https://github.com/aklivity/zilla/pull/2296) ([jfallows](https://github.com/jfallows))
+- fix\(binding-kafka\): resolve SASL identity/credentials from existing authorization before reauthorizing [\#2301](https://github.com/aklivity/zilla/pull/2301) ([jfallows](https://github.com/jfallows))
 
 ## [1.2.4](https://github.com/aklivity/zilla/tree/1.2.4) (2026-05-16)
 

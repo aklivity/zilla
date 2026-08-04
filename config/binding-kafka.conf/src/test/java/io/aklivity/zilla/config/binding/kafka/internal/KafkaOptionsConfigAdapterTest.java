@@ -59,10 +59,6 @@ public class KafkaOptionsConfigAdapterTest
                   - name: test
                     defaultOffset: live
                     deltaType: json_patch
-                sasl:
-                  mechanism: plain
-                  username: username
-                  password: password
                 """;
 
         KafkaOptionsConfig options = jsonb.fromJson(yaml, KafkaOptionsConfig.class);
@@ -71,9 +67,6 @@ public class KafkaOptionsConfigAdapterTest
         assertThat(options.bootstrap, equalTo(singletonList("test")));
         assertThat(options.topics, equalTo(singletonList(KafkaTopicConfig.builder()
             .name("test").defaultOffset("live").deltaType("json_patch").build())));
-        assertThat(options.sasl.mechanism, equalTo("plain"));
-        assertThat(options.sasl.username, equalTo("username"));
-        assertThat(options.sasl.password, equalTo("password"));
     }
 
     @Test
@@ -91,11 +84,6 @@ public class KafkaOptionsConfigAdapterTest
                 .host("localhost")
                 .port(9092)
                 .build()
-            .sasl()
-                .mechanism("plain")
-                .username("username")
-                .password("password")
-                .build()
             .build();
 
         String yaml = jsonb.toJson(options);
@@ -112,79 +100,6 @@ public class KafkaOptionsConfigAdapterTest
                     value: test
                 servers:
                   - "localhost:9092"
-                sasl:
-                  mechanism: plain
-                  username: username
-                  password: password
-                """));
-    }
-
-    @Test
-    public void shouldReadSaslScramOptions()
-    {
-        String yaml =
-                """
-                bootstrap:
-                  - test
-                topics:
-                  - name: test
-                    defaultOffset: live
-                    deltaType: json_patch
-                sasl:
-                  mechanism: scram-sha-256
-                  username: username
-                  password: password
-                """;
-
-        KafkaOptionsConfig options = jsonb.fromJson(yaml, KafkaOptionsConfig.class);
-
-        assertThat(options, not(nullValue()));
-        assertThat(options.bootstrap, equalTo(singletonList("test")));
-        assertThat(options.topics, equalTo(singletonList(
-            KafkaTopicConfig.builder().name("test").defaultOffset("live").deltaType("json_patch").build())));
-        assertThat(options.sasl.mechanism, equalTo("scram-sha-256"));
-        assertThat(options.sasl.username, equalTo("username"));
-        assertThat(options.sasl.password, equalTo("password"));
-    }
-
-    @Test
-    public void shouldWriteSaslScramOptions()
-    {
-        KafkaOptionsConfig options = KafkaOptionsConfig.builder()
-            .bootstrap("test")
-            .topic()
-                .name("test")
-                .defaultOffset("live")
-                .deltaType("json_patch")
-                .build()
-            .server()
-                .host("localhost")
-                .port(9092)
-                .build()
-            .sasl()
-                .mechanism("scram-sha-256")
-                .username("username")
-                .password("password")
-                .build()
-            .build();
-
-        String yaml = jsonb.toJson(options);
-
-        assertThat(yaml, not(nullValue()));
-        assertThat(yaml, equalTo(
-                """
-                bootstrap:
-                  - test
-                topics:
-                  - name: test
-                    defaultOffset: live
-                    deltaType: json_patch
-                servers:
-                  - "localhost:9092"
-                sasl:
-                  mechanism: scram-sha-256
-                  username: username
-                  password: password
                 """));
     }
 
@@ -203,11 +118,6 @@ public class KafkaOptionsConfigAdapterTest
                 .host("localhost")
                 .port(9092)
                 .build()
-            .sasl()
-                .mechanism("plain")
-                .username("username")
-                .password("password")
-                .build()
             .build();
 
         String yaml = jsonb.toJson(options);
@@ -224,10 +134,6 @@ public class KafkaOptionsConfigAdapterTest
                     value: test
                 servers:
                   - "localhost:9092"
-                sasl:
-                  mechanism: plain
-                  username: username
-                  password: password
                 """));
     }
 

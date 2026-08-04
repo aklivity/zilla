@@ -92,11 +92,11 @@
 #      sharing create_topics' route (one `when` list, two `tool` entries)
 #      and its kafka:admin scope -- both are structural, admin-risk
 #      mutations, so one route/guard covers both instead of duplicating it
-#  33. kafka__describe_configs reads back the real broker's effective
+#  33. kafka__describe_topic_configs reads back the real broker's effective
 #      config for the orders topic, including a config every topic
 #      carries by default -- needs no scope beyond the toolkit-level
 #      kafka:tools guard already exercised by consume_messages
-#  34. kafka__alter_configs changes the orders topic's cleanup.policy on
+#  34. kafka__alter_topic_configs changes the orders topic's cleanup.policy on
 #      the same real broker, sharing create_topics/delete_topics' route
 #      and kafka:admin scope -- a third structural, admin-risk mutation
 #      coalesced onto the same route/guard
@@ -130,7 +130,7 @@
 #      kafka:admin per KIP-1318's "destructive-mutate" classification of ACL
 #      mutation (see the routes[] comment in etc/zilla.yaml)
 #  44. kafka__list_acls reads that same ACL back from the real broker,
-#      needing only the toolkit-level kafka:tools scope like describe_configs
+#      needing only the toolkit-level kafka:tools scope like describe_topic_configs
 #  45. kafka__delete_acls revokes the ACL granted above, sharing
 #      create_acls' route and kafka:acls scope
 #  46. a real MCP SDK client subscribes to an everything resource, triggers
@@ -237,11 +237,13 @@ full_toolset_present() {
     echo "$TOOLS_FULL" | grep -q '^kafka__consume_messages$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__create_topics$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__delete_topics$' &&
-    echo "$TOOLS_FULL" | grep -q '^kafka__describe_configs$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__describe_topic_configs$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__describe_broker_configs$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__list_acls$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__create_acls$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__delete_acls$' &&
-    echo "$TOOLS_FULL" | grep -q '^kafka__alter_configs$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__alter_topic_configs$' &&
+    echo "$TOOLS_FULL" | grep -q '^kafka__alter_broker_configs$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__list_topics$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__describe_topic$' &&
     echo "$TOOLS_FULL" | grep -q '^kafka__cluster_overview$' &&
@@ -990,50 +992,50 @@ else
   EXIT=1
 fi
 
-# WHEN: that same caller calls kafka__describe_configs for the orders topic
+# WHEN: that same caller calls kafka__describe_topic_configs for the orders topic
 # THEN: the real broker's effective config comes back, including
 #       cleanup.policy -- a config every topic carries by default -- proving
-#       describe_configs is read-only and needs no scope beyond the
+#       describe_topic_configs is read-only and needs no scope beyond the
 #       toolkit-level kafka:tools guard already exercised by consume_messages
-call_kafka_describe_configs() {
+call_kafka_describe_topic_configs() {
   KAFKA_DESCRIBE_CONFIGS_OUT=$(docker compose run --rm --no-deps \
       -e JWT_TOKEN="$JWT_FULL" \
       -e MCP_URL="http://zilla:$PORT/mcp" \
-      -e CALL_TOOL="kafka__describe_configs" \
-      -e CALL_ARGS='{"resource_type":"topic","resource_name":"orders"}' \
+      -e CALL_TOOL="kafka__describe_topic_configs" \
+      -e CALL_ARGS='{"topic":"orders"}' \
       tools-list-client 2>&1)
   echo "$KAFKA_DESCRIBE_CONFIGS_OUT" | grep -q '"name":"cleanup.policy"'
 }
-retry_until 10 3 call_kafka_describe_configs
+retry_until 10 3 call_kafka_describe_topic_configs
 echo "KAFKA_DESCRIBE_CONFIGS_OUT=$KAFKA_DESCRIBE_CONFIGS_OUT"
 if echo "$KAFKA_DESCRIBE_CONFIGS_OUT" | grep -q '"name":"cleanup.policy"'; then
-  echo "✅ kafka__describe_configs read the real broker's effective topic config"
+  echo "✅ kafka__describe_topic_configs read the real broker's effective topic config"
 else
-  echo "❌ kafka__describe_configs did not return the expected config"
+  echo "❌ kafka__describe_topic_configs did not return the expected config"
   EXIT=1
 fi
 
-# WHEN: a kafka:admin-scoped caller calls kafka__alter_configs to change the
+# WHEN: a kafka:admin-scoped caller calls kafka__alter_topic_configs to change the
 #       orders topic's cleanup.policy
-# THEN: the real broker accepts the change -- proving alter_configs' shared
-#       route (coalesced with create_topics/delete_topics under kafka:admin,
-#       same reasoning as delete_topics above) is sufficient to actually
-#       invoke the tool, not just see it listed
-call_kafka_alter_configs() {
+# THEN: the real broker accepts the change -- proving alter_topic_configs'
+#       shared route (coalesced with create_topics/delete_topics under
+#       kafka:admin, same reasoning as delete_topics above) is sufficient to
+#       actually invoke the tool, not just see it listed
+call_kafka_alter_topic_configs() {
   KAFKA_ALTER_CONFIGS_OUT=$(docker compose run --rm --no-deps \
       -e JWT_TOKEN="$JWT_FULL" \
       -e MCP_URL="http://zilla:$PORT/mcp" \
-      -e CALL_TOOL="kafka__alter_configs" \
-      -e CALL_ARGS='{"resource_type":"topic","resource_name":"orders","configs":{"cleanup.policy":"compact"}}' \
+      -e CALL_TOOL="kafka__alter_topic_configs" \
+      -e CALL_ARGS='{"topic":"orders","configs":{"cleanup.policy":"compact"}}' \
       tools-list-client 2>&1)
   echo "$KAFKA_ALTER_CONFIGS_OUT" | grep -q 'Updated configs for topic orders'
 }
-retry_until 10 3 call_kafka_alter_configs
+retry_until 10 3 call_kafka_alter_topic_configs
 echo "KAFKA_ALTER_CONFIGS_OUT=$KAFKA_ALTER_CONFIGS_OUT"
 if echo "$KAFKA_ALTER_CONFIGS_OUT" | grep -q 'Updated configs for topic orders'; then
-  echo "✅ kafka__alter_configs updated the topic config on the real Kafka broker"
+  echo "✅ kafka__alter_topic_configs updated the topic config on the real Kafka broker"
 else
-  echo "❌ kafka__alter_configs did not succeed against the real broker"
+  echo "❌ kafka__alter_topic_configs did not succeed against the real broker"
   EXIT=1
 fi
 
@@ -1310,7 +1312,7 @@ else
 fi
 
 # WHEN: a kafka:tools-scoped caller (list_acls needs no scope beyond the
-#       toolkit-level guard, sharing describe_configs' read-only route) calls
+#       toolkit-level guard, sharing describe_topic_configs' read-only route) calls
 #       kafka__list_acls filtered to the principal just granted above
 # THEN: the real broker reports the ACL created above -- proving list_acls
 #       reaches the real DescribeAcls API, not just a cached/local view

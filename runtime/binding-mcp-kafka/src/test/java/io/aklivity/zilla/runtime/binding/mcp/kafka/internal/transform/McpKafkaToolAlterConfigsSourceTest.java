@@ -33,11 +33,11 @@ public class McpKafkaToolAlterConfigsSourceTest
     @Test
     public void shouldParseTopicResource()
     {
-        McpKafkaToolAlterConfigsSource source = new McpKafkaToolAlterConfigsSource();
+        McpKafkaToolAlterConfigsSource source =
+            new McpKafkaToolAlterConfigsSource(KafkaAlterConfigsRequest.RESOURCE_TYPE_TOPIC);
 
         Status status = parse(source,
-            "{\"arguments\":{\"resource_type\":\"topic\",\"resource_name\":\"events\"," +
-            "\"configs\":{\"cleanup.policy\":\"delete\"}}}");
+            "{\"arguments\":{\"topic\":\"events\",\"configs\":{\"cleanup.policy\":\"delete\"}}}");
 
         assertEquals(Status.COMPLETED, status);
         assertTrue(source.completed());
@@ -50,11 +50,11 @@ public class McpKafkaToolAlterConfigsSourceTest
     @Test
     public void shouldParseBrokerResource()
     {
-        McpKafkaToolAlterConfigsSource source = new McpKafkaToolAlterConfigsSource();
+        McpKafkaToolAlterConfigsSource source =
+            new McpKafkaToolAlterConfigsSource(KafkaAlterConfigsRequest.RESOURCE_TYPE_BROKER);
 
         Status status = parse(source,
-            "{\"arguments\":{\"resource_type\":\"broker\",\"resource_name\":\"0\"," +
-            "\"configs\":{\"log.retention.hours\":\"168\"}}}");
+            "{\"arguments\":{\"broker_id\":0,\"configs\":{\"log.retention.hours\":\"168\"}}}");
 
         assertEquals(Status.COMPLETED, status);
         assertEquals(KafkaAlterConfigsRequest.RESOURCE_TYPE_BROKER, source.type());
@@ -64,33 +64,22 @@ public class McpKafkaToolAlterConfigsSourceTest
     @Test
     public void shouldRejectMissingResourceName()
     {
-        McpKafkaToolAlterConfigsSource source = new McpKafkaToolAlterConfigsSource();
+        McpKafkaToolAlterConfigsSource source =
+            new McpKafkaToolAlterConfigsSource(KafkaAlterConfigsRequest.RESOURCE_TYPE_TOPIC);
 
-        Status status = parse(source,
-            "{\"arguments\":{\"resource_type\":\"topic\",\"configs\":{\"cleanup.policy\":\"delete\"}}}");
+        Status status = parse(source, "{\"arguments\":{\"configs\":{\"cleanup.policy\":\"delete\"}}}");
 
         assertEquals(Status.REJECTED, status);
         assertFalse(source.completed());
     }
 
     @Test
-    public void shouldRejectMissingResourceType()
-    {
-        McpKafkaToolAlterConfigsSource source = new McpKafkaToolAlterConfigsSource();
-
-        Status status = parse(source,
-            "{\"arguments\":{\"resource_name\":\"events\",\"configs\":{\"cleanup.policy\":\"delete\"}}}");
-
-        assertEquals(Status.REJECTED, status);
-    }
-
-    @Test
     public void shouldResetBetweenCalls()
     {
-        McpKafkaToolAlterConfigsSource source = new McpKafkaToolAlterConfigsSource();
+        McpKafkaToolAlterConfigsSource source =
+            new McpKafkaToolAlterConfigsSource(KafkaAlterConfigsRequest.RESOURCE_TYPE_TOPIC);
 
-        parse(source, "{\"arguments\":{\"resource_type\":\"topic\",\"resource_name\":\"events\"," +
-            "\"configs\":{\"cleanup.policy\":\"delete\"}}}");
+        parse(source, "{\"arguments\":{\"topic\":\"events\",\"configs\":{\"cleanup.policy\":\"delete\"}}}");
         assertTrue(source.completed());
 
         source.reset();

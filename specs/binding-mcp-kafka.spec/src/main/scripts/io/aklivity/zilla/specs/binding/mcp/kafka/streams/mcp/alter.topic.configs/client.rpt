@@ -47,16 +47,16 @@ write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .toolsCall()
                                .sessionId("session-1")
-                               .name("alter_configs")
-                               .contentLength(125)
+                               .name("alter_topic_configs")
+                               .contentLength(99)
                                .build()
                            .build()}
 
 connected
 
-write '{"name":"alter_configs","arguments":{"resource_type":"topic","resource_name":"events","configs":{"cleanup.policy":"delete"}}}'
+write '{"name":"alter_topic_configs","arguments":{"topic":"events","configs":{"cleanup.policy":"delete"}}}'
 
-read '{"structuredContent":{"resource_type":"topic","resource_name":"events","updated":true},'
+read '{"structuredContent":{"topic":"events","updated":true},'
      '"content":[{"type":"text","text":"Updated configs for topic events"}],"isError":false}'
 read closed
 

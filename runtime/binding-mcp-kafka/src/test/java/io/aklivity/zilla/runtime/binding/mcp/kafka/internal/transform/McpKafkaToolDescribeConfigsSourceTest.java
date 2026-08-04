@@ -33,10 +33,10 @@ public class McpKafkaToolDescribeConfigsSourceTest
     @Test
     public void shouldParseTopicResource()
     {
-        McpKafkaToolDescribeConfigsSource source = new McpKafkaToolDescribeConfigsSource();
+        McpKafkaToolDescribeConfigsSource source =
+            new McpKafkaToolDescribeConfigsSource(KafkaDescribeConfigsRequest.RESOURCE_TYPE_TOPIC);
 
-        Status status = parse(source,
-            "{\"arguments\":{\"resource_type\":\"topic\",\"resource_name\":\"events\"}}");
+        Status status = parse(source, "{\"arguments\":{\"topic\":\"events\"}}");
 
         assertEquals(Status.COMPLETED, status);
         assertTrue(source.completed());
@@ -48,10 +48,10 @@ public class McpKafkaToolDescribeConfigsSourceTest
     @Test
     public void shouldParseBrokerResource()
     {
-        McpKafkaToolDescribeConfigsSource source = new McpKafkaToolDescribeConfigsSource();
+        McpKafkaToolDescribeConfigsSource source =
+            new McpKafkaToolDescribeConfigsSource(KafkaDescribeConfigsRequest.RESOURCE_TYPE_BROKER);
 
-        Status status = parse(source,
-            "{\"arguments\":{\"resource_type\":\"broker\",\"resource_name\":\"0\"}}");
+        Status status = parse(source, "{\"arguments\":{\"broker_id\":0}}");
 
         assertEquals(Status.COMPLETED, status);
         assertEquals(KafkaDescribeConfigsRequest.RESOURCE_TYPE_BROKER, source.type());
@@ -61,30 +61,22 @@ public class McpKafkaToolDescribeConfigsSourceTest
     @Test
     public void shouldRejectMissingResourceName()
     {
-        McpKafkaToolDescribeConfigsSource source = new McpKafkaToolDescribeConfigsSource();
+        McpKafkaToolDescribeConfigsSource source =
+            new McpKafkaToolDescribeConfigsSource(KafkaDescribeConfigsRequest.RESOURCE_TYPE_TOPIC);
 
-        Status status = parse(source, "{\"arguments\":{\"resource_type\":\"topic\"}}");
+        Status status = parse(source, "{\"arguments\":{}}");
 
         assertEquals(Status.REJECTED, status);
         assertFalse(source.completed());
     }
 
     @Test
-    public void shouldRejectMissingResourceType()
-    {
-        McpKafkaToolDescribeConfigsSource source = new McpKafkaToolDescribeConfigsSource();
-
-        Status status = parse(source, "{\"arguments\":{\"resource_name\":\"events\"}}");
-
-        assertEquals(Status.REJECTED, status);
-    }
-
-    @Test
     public void shouldResetBetweenCalls()
     {
-        McpKafkaToolDescribeConfigsSource source = new McpKafkaToolDescribeConfigsSource();
+        McpKafkaToolDescribeConfigsSource source =
+            new McpKafkaToolDescribeConfigsSource(KafkaDescribeConfigsRequest.RESOURCE_TYPE_TOPIC);
 
-        parse(source, "{\"arguments\":{\"resource_type\":\"topic\",\"resource_name\":\"events\"}}");
+        parse(source, "{\"arguments\":{\"topic\":\"events\"}}");
         assertTrue(source.completed());
 
         source.reset();

@@ -352,8 +352,10 @@ bindings:
               - kafka__consume_messages
               - kafka__create_topics
               - kafka__delete_topics
-              - kafka__describe_configs
-              - kafka__alter_configs
+              - kafka__describe_topic_configs
+              - kafka__describe_broker_configs
+              - kafka__alter_topic_configs
+              - kafka__alter_broker_configs
               - kafka__list_acls
               - kafka__create_acls
               - kafka__delete_acls
@@ -667,24 +669,30 @@ bindings:
     # tool + topics together restrict each route to an allow-list of topics
     # (exact names or *-glob patterns), not just a tool-name dispatch; a
     # produce_message/consume_messages call naming any other topic has no matching route
-    # and is rejected. create_topics, delete_topics, alter_configs, and
-    # reset_offsets have no topics allow-list -- each identifies its target
-    # (a resource name, a topics array, or a single group+topic pair) via
-    # call arguments rather than a routed topic -- so all four share one
-    # route, matching on tool name alone (multiple `when` entries OR
-    # together); all four are equally admin-risk mutations of cluster/topic/
-    # group state, so one guard covers all. describe_configs, list_acls,
-    # list_topics, describe_topic, cluster_overview, list_brokers,
-    # describe_cluster, list_consumer_groups, describe_consumer_group, and
-    # describe_consumer_group_lag are likewise read-only, with no topic to
-    # route on, so they share one unscoped route needing no scope beyond the
-    # toolkit-level kafka:tools guard above. create_topics/delete_topics/
-    # alter_configs/reset_offsets and produce_message each layer a tool-specific scope
+    # and is rejected. create_topics, delete_topics, alter_topic_configs,
+    # alter_broker_configs, and reset_offsets have no topics allow-list --
+    # each identifies its target (a resource name, a topics array, or a
+    # single group+topic pair) via call arguments rather than a routed topic
+    # -- so all five share one route, matching on tool name alone (multiple
+    # `when` entries OR'd together); all five are equally admin-risk
+    # mutations of cluster/topic/group state, so one guard covers all (an
+    # operator wanting a stricter posture for broker-wide config mutation
+    # than topic-scoped mutation can split alter_broker_configs into its own
+    # route with a tighter scope -- that's the routing granularity this
+    # tool split exists to unlock). describe_topic_configs,
+    # describe_broker_configs, list_acls, list_topics, describe_topic,
+    # cluster_overview, list_brokers, describe_cluster, list_consumer_groups,
+    # describe_consumer_group, and describe_consumer_group_lag are likewise
+    # read-only, with no topic to route on, so they share one unscoped route
+    # needing no scope beyond the toolkit-level kafka:tools guard above.
+    # create_topics/delete_topics/alter_topic_configs/alter_broker_configs/
+    # reset_offsets and produce_message each layer a tool-specific scope
     # under the toolkit-level kafka:tools guard above (the same layering
     # register_schema demonstrates for the kafka_sr toolkit): kafka:admin for
     # the admin-risk topic/config/offset mutations, kafka:write for writing
-    # data -- consume_messages, describe_configs, list_acls, list_topics,
-    # describe_topic, cluster_overview, list_brokers, describe_cluster,
+    # data -- consume_messages, describe_topic_configs,
+    # describe_broker_configs, list_acls, list_topics, describe_topic,
+    # cluster_overview, list_brokers, describe_cluster,
     # list_consumer_groups, describe_consumer_group, and
     # describe_consumer_group_lag need neither, only kafka:tools.
     # create_acls and delete_acls get their own dedicated kafka:acls scope
@@ -697,7 +705,8 @@ bindings:
       - when:
           - tool: create_topics
           - tool: delete_topics
-          - tool: alter_configs
+          - tool: alter_topic_configs
+          - tool: alter_broker_configs
           - tool: reset_offsets
         guarded:
           authn_jwt:
@@ -719,14 +728,16 @@ bindings:
             topics: [orders]
       # cluster/topic/group metadata tools -- read-only like consume_messages, so no
       # tool-specific guard beyond the toolkit-level kafka:tools above; all
-      # nine share one route since none of them take a topics allow-list
+      # eleven share one route since none of them take a topics allow-list
       # (list_topics/cluster_overview/list_brokers/describe_cluster/
       # list_consumer_groups describe the whole cluster, describe_topic,
       # describe_consumer_group, and describe_consumer_group_lag name their
-      # one topic/group as a call argument, describe_configs and list_acls
-      # name a resource/filter, not a route match)
+      # one topic/group as a call argument, describe_topic_configs/
+      # describe_broker_configs and list_acls name a resource/filter, not a
+      # route match)
       - when:
-          - tool: describe_configs
+          - tool: describe_topic_configs
+          - tool: describe_broker_configs
           - tool: list_acls
           - tool: list_topics
           - tool: describe_topic
