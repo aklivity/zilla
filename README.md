@@ -24,13 +24,13 @@
   
 </div>
 
-<h3 align="center">
-  <a href="https://docs.aklivity.io/latest/"><b>Docs</b></a> &bull;
-  <a href="https://docs.aklivity.io/latest/ai-gateway/get-started/"><b>Quickstart</b></a> &bull;
-  <a href="/examples"><b>Examples</b></a> &bull;
-  <a href="https://github.com/aklivity/zilla-demos"><b>Demos</b></a> &bull;
-  <a href="https://www.aklivity.io/blog"><b>Blog</b></a>  
-</h3>
+<div align="center">
+  <a href="https://docs.aklivity.io/latest/">Docs</a> &bull;
+  <a href="https://docs.aklivity.io/latest/ai-gateway/get-started/">Quickstart</a> &bull;
+  <a href="/examples">Examples</a> &bull;
+  <a href="https://github.com/aklivity/zilla-demos">Demos</a> &bull;
+  <a href="https://www.aklivity.io/blog">Blog</a>  
+</div>
 
 
 * * * * *
