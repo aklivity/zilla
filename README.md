@@ -1,12 +1,22 @@
 <div id="top"></div>
+
 <div align="center">
-  <img src="./assets/zilla-hero-diagram-dark.png" height="450">
+  
+  <!-- <img src="./assets/zilla-hero-diagram-dark.png" height="450"> --> 
+  
+  <picture>
+    <!-- Source for dark mode -->
+    <source media="(prefers-color-scheme: dark)" srcset="./assets/zilla-gateway-lockup-dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="./assets/zilla-gateway-lockup-light.png">
+    <!-- Fallback image for light mode and other clients -->
+    <img src="./assets/zilla-gateway-lockup-light.png" width="600">
+  </picture> 
+  
 </div>
 
-</br>
 
 <div align="center"> 
-
+  
   <!--[![Build Status][build-status-image]][build-status]-->
   [![Latest Release][release-latest-image]][release-latest]
   [![Slack Community][community-image]][community-join]
@@ -22,7 +32,10 @@
   <a href="https://www.aklivity.io/blog"><b>Blog</b></a>  
 </h3>
 
-**🦎 Zilla** is a stateless, multi-protocol gateway for event-driven applications and AI agents.
+
+* * * * *
+
+**Zilla** is a stateless, multi-protocol gateway for event-driven applications and AI agents.
 
 It provides two gateway surfaces through one protocol-native engine:
 
@@ -35,6 +48,12 @@ Both are configured in a single `zilla.yaml` and share the same routing, identit
 >   
 > ⭐ Star this repository to follow new capabilities, examples, and Zilla 2.0 release updates.
 
+## Why Zilla?
+
+Browsers do not speak Kafka. IoT clients may use MQTT while the system of record uses Kafka. AI agents may need capabilities spread across MCP servers, APIs, and event streams, each with its own endpoint, credential, schema, and telemetry model.
+
+Zilla replaces custom protocol bridges, per-provider MCP wrappers, authentication glue, and fragmented instrumentation with declarative gateway routes. Zilla is designed for exceptional scalability, adding minimal latency and throughput overhead when proxying protocols. (see [architecture](#architecture)).
+
 ## Get Started
 
 **Prerequisite:** Docker Compose
@@ -44,7 +63,7 @@ git clone https://github.com/aklivity/zilla.git
 cd zilla/examples
 ```
 
-### Event Gateway — REST over Kafka
+### Path 1: Event Gateway — REST over Kafka
 
 ```shell
 docker compose --project-directory http.kafka.crud up -d
@@ -60,7 +79,7 @@ curl http://localhost:7114/items
 
 View the records in [Kafka UI](http://localhost:8080/ui/clusters/local/all-topics).
 
-### MCP Gateway — one endpoint for multiple providers
+### Path 2: MCP Gateway — one endpoint for multiple providers
 
 ```shell
 docker compose --project-directory mcp.proxy up -d
@@ -83,25 +102,13 @@ curl http://localhost:7190/metrics
 → [AI Gateway quickstart](https://docs.aklivity.io/latest/ai-gateway/get-started/)  
 → [Browse all examples](http://./examples)
 
-## Two Gateway Surfaces, One Engine
+## Two Gateway Surfaces
 
-```
- Applications, Services and Devices                 AI Agents
- HTTP · SSE · gRPC · MQTT · WebSocket        MCP over Streamable HTTP
-                  \                                  /
-                   ┌────────────────────────────────┐
-                   │           Zilla 2.0            │
-                   │ Routing · Identity · Policy    │
-                   │ Schemas · Metrics · Events     │
-                   └────────────────────────────────┘
-                         /                    \
-              Kafka · MQTT            MCP Servers · HTTP APIs
-                                      OpenAPI · Apache Kafka
-```
+<img src="./assets/zilla-gateway-diagram-light.png" height="450">
 
 | Capability | What Zilla does |
 | :---- | :---- |
-| Event access | Exposes Kafka and MQTT through application-friendly protocols |
+| Event access | Exposes Kafka through application-friendly protocols |
 | MCP federation | Combines multiple providers behind one virtual MCP server |
 | Toolkit routing | Namespaces capabilities and routes each call to the correct backend |
 | HTTP and OpenAPI | Exposes existing APIs as MCP tools and resources |
@@ -113,23 +120,7 @@ curl http://localhost:7190/metrics
 | Observability | Records MCP metrics, durations, outcomes, and lifecycle events |
 | Scaling | Keeps request processing stateless and externalizes shared state when needed |
 
-## Why Zilla?
-
-Browsers do not speak Kafka. IoT clients may use MQTT while the system of record uses Kafka. AI agents may need capabilities spread across MCP servers, APIs, and event streams, each with its own endpoint, credential, schema, and telemetry model.
-
-Zilla replaces custom protocol bridges, per-provider MCP wrappers, authentication glue, and fragmented instrumentation with declarative gateway routes.
-
-| Without Zilla | With Zilla |
-| :---- | :---- |
-| Custom REST, WebSocket, or MQTT middleware | Native protocol bindings |
-| One integration per MCP provider | One virtual MCP server |
-| APIs manually wrapped as MCP servers | HTTP and OpenAPI exposed directly |
-| Custom MCP-to-Kafka adapters | Native MCP–Kafka access |
-| Authorization implemented independently upstream | Centralized capability authorization |
-| Every tool loaded into agent context | Cached, eager, and cold tool discovery |
-| Validation and telemetry scattered across services | Gateway-level guardrails and observability |
-
-## MCP Gateway
+## 🆕 MCP Gateway
 
 Zilla can connect an agent-facing MCP endpoint to:
 
@@ -164,7 +155,7 @@ Large catalogs can be divided into eager and cold tools so agents load only the 
 → [Observability](https://docs.aklivity.io/latest/ai-gateway/monitoring-observability/)  
 → [Configuration reference](https://docs.aklivity.io/latest/reference/2.x/)
 
-## Architecture
+## <a id="architecture"></a>Architecture
 
 Zilla uses a protocol-native streaming engine designed to minimize allocation, copying, and cross-thread coordination.
 
@@ -180,7 +171,7 @@ Zilla uses a protocol-native streaming engine designed to minimize allocation, c
 
 **Zilla Community** includes the core Event Gateway and MCP Gateway.
 
-**Zilla Plus** adds advanced OAuth, distributed stores, secure Kafka access, virtual clusters, and commercial support.
+**Zilla Plus** adds advanced OAuth, distributed stores, secure Kafka access, virtual clusters, and commercial support. Visit [aklivity.io](https://www.aklivity.io) for more details.
 
 ## Install
 
@@ -210,7 +201,7 @@ helm install zilla oci://ghcr.io/aklivity/charts/zilla \
 ## Resources
 
 - [📖 Documentation](https://docs.aklivity.io/latest)  
-- [🛡️ AI Gateway](https://docs.aklivity.io/latest/ai-gateway/)  
+- [✨ AI Gateway](https://docs.aklivity.io/latest/ai-gateway/)  
 - [⚡ Quickstart](https://docs.aklivity.io/latest/ai-gateway/get-started/)  
 - [🧪 Examples](http://./examples)  
 - [🎬 Demos](https://github.com/aklivity/zilla-demos)  
