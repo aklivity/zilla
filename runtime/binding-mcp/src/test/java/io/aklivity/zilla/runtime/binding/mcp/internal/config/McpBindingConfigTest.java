@@ -38,17 +38,18 @@ import java.util.Map;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.binding.mcp.config.McpCacheConfig;
-import io.aklivity.zilla.runtime.binding.mcp.config.McpConditionConfig;
-import io.aklivity.zilla.runtime.binding.mcp.config.McpOptionsConfig;
-import io.aklivity.zilla.runtime.binding.mcp.config.McpWithConfig;
+import io.aklivity.zilla.config.binding.mcp.McpCacheConfig;
+import io.aklivity.zilla.config.binding.mcp.McpConditionConfig;
+import io.aklivity.zilla.config.binding.mcp.McpOptionsConfig;
+import io.aklivity.zilla.config.binding.mcp.McpWithConfig;
+import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.config.engine.GenericBindingConfig;
+import io.aklivity.zilla.config.engine.GenericRouteConfigBuilder;
+import io.aklivity.zilla.config.engine.KindConfig;
+import io.aklivity.zilla.config.engine.RouteConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.KindConfig;
-import io.aklivity.zilla.runtime.engine.config.RouteConfig;
-import io.aklivity.zilla.runtime.engine.config.RouteConfigBuilder;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 
@@ -65,7 +66,7 @@ public class McpBindingConfigTest
             .exit("test")
             .when(McpConditionConfig.builder()
                 .toolkit(toolkit)
-                .tools(tools)
+                .tool(tools)
                 .build())
             .guarded()
                 .name(guardName)
@@ -80,11 +81,11 @@ public class McpBindingConfigTest
         long id,
         String withCredentials)
     {
-        RouteConfigBuilder<RouteConfig> builder = RouteConfig.builder()
+        GenericRouteConfigBuilder<RouteConfig> builder = RouteConfig.builder()
             .exit("test")
             .when(McpConditionConfig.builder()
                 .toolkit("alpha")
-                .tools(List.of("*"))
+                .tool(List.of("*"))
                 .build());
         if (withCredentials != null)
         {
@@ -115,7 +116,7 @@ public class McpBindingConfigTest
             .cache(cacheConfig)
             .build();
 
-        BindingConfig config = BindingConfig.builder()
+        BindingConfig config = GenericBindingConfig.builder()
             .namespace("test")
             .name("app0")
             .type("mcp")

@@ -23,7 +23,8 @@ import java.util.function.LongSupplier;
  * A {@code Collector} is supplied to {@link ExporterContext#attach} and gives the exporter
  * a snapshot view of all counter, gauge, and histogram values currently held by the engine.
  * Values are accessed by {@code (bindingId, metricId, attributesId)} triples; the complete
- * set of active triples is enumerated via the {@code *Ids()} methods.
+ * set of active triples, along with the binding kind captured at record-creation time,
+ * is enumerated via the {@code *Ids()} methods.
  * </p>
  *
  * @see ExporterContext
@@ -75,25 +76,27 @@ public interface Collector
     /**
      * Returns all active {@code (bindingId, metricId, attributesId)} triples for counter metrics.
      * <p>
-     * Each element of the outer array is a three-element {@code long[]} containing
-     * {@code {bindingId, (long)metricId, (long)attributesId}}.
+     * Each element of the outer array is a four-element {@code long[]} containing
+     * {@code {bindingId, (long)metricId, (long)attributesId, (long)kind}}, where {@code kind}
+     * is the {@link io.aklivity.zilla.config.engine.KindConfig} ordinal captured when
+     * the metric record was created, or {@code -1} when not tied to a binding.
      * </p>
      *
-     * @return array of {@code {bindingId, metricId, attributesId}} triples for all active counters
+     * @return array of {@code {bindingId, metricId, attributesId, kind}} tuples for all active counters
      */
     long[][] counterIds();
 
     /**
      * Returns all active {@code (bindingId, metricId, attributesId)} triples for gauge metrics.
      *
-     * @return array of {@code {bindingId, metricId, attributesId}} triples for all active gauges
+     * @return array of {@code {bindingId, metricId, attributesId, kind}} tuples for all active gauges
      */
     long[][] gaugeIds();
 
     /**
      * Returns all active {@code (bindingId, metricId, attributesId)} triples for histogram metrics.
      *
-     * @return array of {@code {bindingId, metricId, attributesId}} triples for all active histograms
+     * @return array of {@code {bindingId, metricId, attributesId, kind}} tuples for all active histograms
      */
     long[][] histogramIds();
 }

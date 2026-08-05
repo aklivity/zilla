@@ -16,7 +16,7 @@ package io.aklivity.zilla.runtime.binding.kafka.grpc.internal.config;
 
 import java.util.List;
 
-import io.aklivity.zilla.runtime.binding.kafka.grpc.config.KafkaGrpcCorrelationConfig;
+import io.aklivity.zilla.config.binding.kafka.grpc.KafkaGrpcCorrelationConfig;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.KafkaAckMode;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.KafkaAckModeFW;
@@ -47,7 +47,7 @@ public class KafkaGrpcConditionResult
     private final String16FW topic;
     private final KafkaAckMode acks;
     private final List<KafkaGrpcFetchFilterResult> filters;
-    private final KafkaGrpcCorrelationConfig correlation;
+    private final String16FW correlationIdHeaderName;
 
     KafkaGrpcConditionResult(
         String16FW scheme,
@@ -62,7 +62,7 @@ public class KafkaGrpcConditionResult
         this.topic = topic;
         this.acks = acks;
         this.filters = filters;
-        this.correlation = correlation;
+        this.correlationIdHeaderName = new String16FW(correlation.correlationId);
     }
 
     public String16FW scheme()
@@ -101,8 +101,8 @@ public class KafkaGrpcConditionResult
         OctetsFW correlationId,
         Array32FW.Builder<KafkaHeaderFW.Builder, KafkaHeaderFW> builder)
     {
-        builder.item(i -> i.nameLen(correlation.correlationId.length())
-            .name(correlation.correlationId.value(), 0, correlation.correlationId.length())
+        builder.item(i -> i.nameLen(correlationIdHeaderName.length())
+            .name(correlationIdHeaderName.value(), 0, correlationIdHeaderName.length())
             .valueLen(correlationId.sizeof())
             .value(correlationId.buffer(), correlationId.offset(), correlationId.sizeof()));
     }

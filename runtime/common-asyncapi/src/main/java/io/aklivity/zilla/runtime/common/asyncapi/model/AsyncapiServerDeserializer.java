@@ -37,6 +37,7 @@ public final class AsyncapiServerDeserializer implements JsonbDeserializer<Async
         Map<String, Class<?>> operationBindingTypes,
         Map<String, Class<?>> messageBindingTypes,
         Map<String, Class<?>> serverBindingTypes,
+        Map<String, Class<?>> channelBindingTypes,
         Map<AsyncapiExtension.Scope, Map<String, Class<?>>> extensionTypes,
         Map<AsyncapiExtension.Scope, Map<String, Class<?>>> prefixExtensionTypes)
     {
@@ -44,8 +45,8 @@ public final class AsyncapiServerDeserializer implements JsonbDeserializer<Async
         this.extensionTypes = extensionTypes;
         this.prefixExtensionTypes = prefixExtensionTypes;
         this.plain = AsyncapiDeserializers.plain(
-            operationBindingTypes, messageBindingTypes, serverBindingTypes, extensionTypes, prefixExtensionTypes,
-            AsyncapiServerDeserializer.class);
+            operationBindingTypes, messageBindingTypes, serverBindingTypes, channelBindingTypes, extensionTypes,
+            prefixExtensionTypes, AsyncapiServerDeserializer.class);
     }
 
     @Override

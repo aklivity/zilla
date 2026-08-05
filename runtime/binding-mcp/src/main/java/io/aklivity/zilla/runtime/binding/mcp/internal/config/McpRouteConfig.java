@@ -21,7 +21,9 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeg
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_PROMPTS_LIST;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_LIST;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_READ;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_SUBSCRIBE;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_TEMPLATES_LIST;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_UNSUBSCRIBE;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_CALL;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_LIST;
 import static java.util.function.UnaryOperator.identity;
@@ -33,12 +35,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.UnaryOperator;
 
-import io.aklivity.zilla.runtime.binding.mcp.config.McpConditionConfig;
-import io.aklivity.zilla.runtime.binding.mcp.config.McpWithConfig;
+import io.aklivity.zilla.config.binding.mcp.McpConditionConfig;
+import io.aklivity.zilla.config.binding.mcp.McpWithConfig;
+import io.aklivity.zilla.config.engine.GuardedConfig;
+import io.aklivity.zilla.config.engine.RouteConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW;
-import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
-import io.aklivity.zilla.runtime.engine.config.RouteConfig;
-import io.aklivity.zilla.runtime.engine.util.function.LongObjectPredicate;
+import io.aklivity.zilla.runtime.common.lang.util.function.LongObjectPredicate;
 
 public final class McpRouteConfig
 {
@@ -271,7 +273,8 @@ public final class McpRouteConfig
         {
         case KIND_TOOLS_LIST, KIND_TOOLS_CALL -> CAPABILITY_TOOLS;
         case KIND_PROMPTS_LIST, KIND_PROMPTS_GET -> CAPABILITY_PROMPTS;
-        case KIND_RESOURCES_LIST, KIND_RESOURCES_READ, KIND_RESOURCES_TEMPLATES_LIST -> CAPABILITY_RESOURCES;
+        case KIND_RESOURCES_LIST, KIND_RESOURCES_READ, KIND_RESOURCES_TEMPLATES_LIST,
+             KIND_RESOURCES_SUBSCRIBE, KIND_RESOURCES_UNSUBSCRIBE -> CAPABILITY_RESOURCES;
         default -> null;
         };
     }
@@ -284,6 +287,8 @@ public final class McpRouteConfig
         case KIND_TOOLS_CALL -> beginEx.toolsCall().name().asString();
         case KIND_PROMPTS_GET -> beginEx.promptsGet().name().asString();
         case KIND_RESOURCES_READ -> beginEx.resourcesRead().uri().asString();
+        case KIND_RESOURCES_SUBSCRIBE -> beginEx.resourcesSubscribe().uri().asString();
+        case KIND_RESOURCES_UNSUBSCRIBE -> beginEx.resourcesUnsubscribe().uri().asString();
         default -> null;
         };
     }

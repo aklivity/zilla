@@ -18,7 +18,7 @@ package io.aklivity.zilla.runtime.engine.internal.registry;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
-import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
+import io.aklivity.zilla.config.engine.NamespaceConfig;
 
 public final class NamespaceTask implements Runnable
 {

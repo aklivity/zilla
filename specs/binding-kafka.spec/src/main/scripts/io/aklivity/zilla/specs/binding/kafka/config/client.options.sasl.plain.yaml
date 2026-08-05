@@ -16,6 +16,12 @@
 
 ---
 name: test
+guards:
+  guard0:
+    type: test
+    options:
+      credentials: password
+      identity: username
 bindings:
   app0:
     type: kafka
@@ -23,9 +29,11 @@ bindings:
     options:
       servers:
         - localhost:9092
-      sasl:
-        mechanism: plain
-        username: username
-        password: password
+      authorization:
+        guard0:
+          credentials:
+            mechanism: plain
+            username: "{identity}"
+            password: "{credentials}"
     routes:
       - exit: net0

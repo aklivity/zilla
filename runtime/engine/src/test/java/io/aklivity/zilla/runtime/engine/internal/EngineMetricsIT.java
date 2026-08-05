@@ -65,7 +65,7 @@ public class EngineMetricsIT
 
         // THEN
         // counterIds[0] is coming from test.counter in server.yaml
-        assertThat(counterIds[1], equalTo(new long[]{3L, 7L, 0L}));
+        assertThat(counterIds[1], equalTo(new long[]{3L, 7L, 0L, -1L}));
     }
 
     @Test
@@ -104,7 +104,7 @@ public class EngineMetricsIT
         long[][] gaugeIds = engine.gaugeIds();
 
         // THEN
-        assertThat(gaugeIds[gaugeIds.length - 1], equalTo(new long[]{3L, 7L, 0L}));
+        assertThat(gaugeIds[gaugeIds.length - 1], equalTo(new long[]{3L, 7L, 0L, -1L}));
     }
 
     @Test
@@ -144,7 +144,7 @@ public class EngineMetricsIT
 
         // THEN
         // histogramIds[0] is coming from test.histogram in server.yaml
-        assertThat(histogramIds[1], equalTo(new long[]{3L, 7L, 0L}));
+        assertThat(histogramIds[1], equalTo(new long[]{3L, 7L, 0L, -1L}));
     }
 
     @Test

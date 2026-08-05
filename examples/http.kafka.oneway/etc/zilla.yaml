@@ -8,6 +8,12 @@ vaults:
         store: tls/kafka.truststore.jks
         type: jks
         password: ${{env.KEYSTORE_PASSWORD}}
+guards:
+  sasl_credentials:
+    type: inline
+    options:
+      identity: ${{env.SASL_USERNAME}}
+      credentials: ${{env.SASL_PASSWORD}}
 bindings:
   north_tcp_server:
     type: tcp
@@ -52,10 +58,12 @@ bindings:
     options:
       servers:
         - ${{env.KAFKA_BOOTSTRAP_SERVER}}
-      sasl:
-        mechanism: scram-sha-512
-        username: ${{env.SASL_USERNAME}}
-        password: ${{env.SASL_PASSWORD}}
+      authorization:
+        sasl_credentials:
+          credentials:
+            mechanism: scram-sha-512
+            username: "{identity}"
+            password: "{credentials}"
     exit: south_tls_client
   south_tls_client:
     type: tls

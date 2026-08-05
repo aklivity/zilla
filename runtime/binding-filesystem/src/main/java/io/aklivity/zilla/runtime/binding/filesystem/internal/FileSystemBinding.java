@@ -14,14 +14,13 @@
  */
 package io.aklivity.zilla.runtime.binding.filesystem.internal;
 
-import java.net.URL;
-
+import io.aklivity.zilla.config.binding.filesystem.FileSystemBindingInfo;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
 
 public final class FileSystemBinding implements Binding
 {
-    public static final String NAME = "filesystem";
+    public static final String NAME = FileSystemBindingInfo.TYPE;
 
     private final FileSystemConfiguration config;
 
@@ -35,12 +34,6 @@ public final class FileSystemBinding implements Binding
     public String name()
     {
         return FileSystemBinding.NAME;
-    }
-
-    @Override
-    public URL type()
-    {
-        return getClass().getResource(String.format("schema/%s.schema.patch.json", NAME));
     }
 
     @Override

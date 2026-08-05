@@ -19,7 +19,9 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeg
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_PROMPTS_LIST;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_LIST;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_READ;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_SUBSCRIBE;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_TEMPLATES_LIST;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_UNSUBSCRIBE;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_CALL;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_LIST;
 
@@ -28,6 +30,7 @@ import java.util.function.Function;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
 
+import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpBindingConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.stream.cache.McpProxyCache;
@@ -39,7 +42,6 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public final class McpProxyFactory implements McpStreamFactory
 {
@@ -95,6 +97,10 @@ public final class McpProxyFactory implements McpStreamFactory
             new McpProxyPromptsGetFactory(config, context, bindings::get));
         this.factories.put(KIND_RESOURCES_READ,
             new McpProxyResourcesReadFactory(config, context, bindings::get));
+        this.factories.put(KIND_RESOURCES_SUBSCRIBE,
+            new McpProxyResourcesSubscribeFactory(config, context, bindings::get));
+        this.factories.put(KIND_RESOURCES_UNSUBSCRIBE,
+            new McpProxyResourcesUnsubscribeFactory(config, context, bindings::get));
         this.factories.put(KIND_TOOLS_LIST, toolsListFactory);
         this.factories.put(KIND_PROMPTS_LIST, promptsListFactory);
         this.factories.put(KIND_RESOURCES_LIST, resourcesListFactory);

@@ -110,14 +110,6 @@ public class SchemaTest
     }
 
     @Test
-    public void shouldValidateClientWhenTopic()
-    {
-        JsonObject config = schema.validate("client.when.topic.yaml");
-
-        assertThat(config, not(nullValue()));
-    }
-
-    @Test
     public void shouldValidateCacheOptionsCatalog()
     {
         JsonObject config = schema.validate("cache.options.validate.yaml");
@@ -155,12 +147,6 @@ public class SchemaTest
         JsonObject config = schema.validate("client.options.authorization.yaml");
 
         assertThat(config, not(nullValue()));
-    }
-
-    @Test(expected = JsonException.class)
-    public void shouldRejectClientOptionsSaslAndAuthorization()
-    {
-        schema.validate("client.options.sasl.and.authorization.yaml");
     }
 
     @Test(expected = JsonException.class)

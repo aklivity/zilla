@@ -28,6 +28,7 @@ import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiExtension;
 
 public final class AsyncapiChannelDeserializer implements JsonbDeserializer<AsyncapiChannel>
 {
+    private final Map<String, Class<?>> channelBindingTypes;
     private final Map<AsyncapiExtension.Scope, Map<String, Class<?>>> extensionTypes;
     private final Map<AsyncapiExtension.Scope, Map<String, Class<?>>> prefixExtensionTypes;
     private final Supplier<Jsonb> plain;
@@ -36,14 +37,16 @@ public final class AsyncapiChannelDeserializer implements JsonbDeserializer<Asyn
         Map<String, Class<?>> operationBindingTypes,
         Map<String, Class<?>> messageBindingTypes,
         Map<String, Class<?>> serverBindingTypes,
+        Map<String, Class<?>> channelBindingTypes,
         Map<AsyncapiExtension.Scope, Map<String, Class<?>>> extensionTypes,
         Map<AsyncapiExtension.Scope, Map<String, Class<?>>> prefixExtensionTypes)
     {
+        this.channelBindingTypes = channelBindingTypes;
         this.extensionTypes = extensionTypes;
         this.prefixExtensionTypes = prefixExtensionTypes;
         this.plain = AsyncapiDeserializers.plain(
-            operationBindingTypes, messageBindingTypes, serverBindingTypes, extensionTypes, prefixExtensionTypes,
-            AsyncapiChannelDeserializer.class);
+            operationBindingTypes, messageBindingTypes, serverBindingTypes, channelBindingTypes, extensionTypes,
+            prefixExtensionTypes, AsyncapiChannelDeserializer.class);
     }
 
     @Override
@@ -54,6 +57,8 @@ public final class AsyncapiChannelDeserializer implements JsonbDeserializer<Asyn
     {
         JsonObject object = parser.getObject();
         AsyncapiChannel model = plain.get().fromJson(object.toString(), AsyncapiChannel.class);
+
+        model.bindings = AsyncapiDeserializers.bindings(object, channelBindingTypes, plain.get());
         model.extensions = AsyncapiDeserializers.extensions(
             object, AsyncapiExtension.Scope.CHANNEL, extensionTypes, prefixExtensionTypes, plain);
 

@@ -18,6 +18,7 @@ import java.nio.charset.StandardCharsets;
 
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
+import jakarta.json.JsonObjectBuilder;
 
 /**
  * Builds the synthetic {@code Tool} JSON descriptors advertised in {@code tools/list} for the three
@@ -26,16 +27,19 @@ import jakarta.json.JsonObject;
  */
 public final class McpSearchToolDescriptor
 {
+    private static final String SEARCH_TOOLS_TITLE = "Search Tools";
     private static final String SEARCH_TOOLS_DESCRIPTION =
         "Search the tool catalog by relevance and return references to matching tools.";
     private static final String QUERY_DESCRIPTION = "Natural-language search query";
     private static final String LIMIT_DESCRIPTION = "Maximum number of results to return";
 
+    private static final String DESCRIBE_TOOL_TITLE = "Describe Tool";
     private static final String DESCRIBE_TOOL_DESCRIPTION =
         "Look up the full definition (including input/output schema) of a specific tool discovered via " +
         McpToolNames.SEARCH_TOOLS + ".";
     private static final String NAME_DESCRIPTION = "Exact tool name, as returned by " + McpToolNames.SEARCH_TOOLS;
 
+    private static final String EXECUTE_TOOL_TITLE = "Execute Tool";
     private static final String EXECUTE_TOOL_DESCRIPTION =
         "Invoke a specific tool by name, exactly as tools/call would, once its schema is known via " +
         McpToolNames.DESCRIBE_TOOL + ".";
@@ -44,6 +48,20 @@ public final class McpSearchToolDescriptor
     private McpSearchToolDescriptor()
     {
     }
+
+    private static final JsonObject SEARCH_TOOLS_ANNOTATIONS = Json.createObjectBuilder()
+        .add("readOnlyHint", true)
+        .add("destructiveHint", false)
+        .add("idempotentHint", true)
+        .add("openWorldHint", false)
+        .build();
+
+    private static final JsonObject DESCRIBE_TOOL_ANNOTATIONS = Json.createObjectBuilder()
+        .add("readOnlyHint", true)
+        .add("destructiveHint", false)
+        .add("idempotentHint", true)
+        .add("openWorldHint", false)
+        .build();
 
     public static byte[] buildSearchTools(
         String toolkit)
@@ -60,7 +78,8 @@ public final class McpSearchToolDescriptor
             .add("required", Json.createArrayBuilder().add("query"))
             .build();
 
-        return build(McpToolNames.effectiveName(toolkit, McpToolNames.SEARCH_TOOLS), SEARCH_TOOLS_DESCRIPTION, inputSchema);
+        return build(McpToolNames.effectiveName(toolkit, McpToolNames.SEARCH_TOOLS), SEARCH_TOOLS_TITLE,
+            SEARCH_TOOLS_DESCRIPTION, inputSchema, SEARCH_TOOLS_ANNOTATIONS);
     }
 
     public static byte[] buildDescribeTool(
@@ -75,7 +94,8 @@ public final class McpSearchToolDescriptor
             .add("required", Json.createArrayBuilder().add("name"))
             .build();
 
-        return build(McpToolNames.effectiveName(toolkit, McpToolNames.DESCRIBE_TOOL), DESCRIBE_TOOL_DESCRIPTION, inputSchema);
+        return build(McpToolNames.effectiveName(toolkit, McpToolNames.DESCRIBE_TOOL), DESCRIBE_TOOL_TITLE,
+            DESCRIBE_TOOL_DESCRIPTION, inputSchema, DESCRIBE_TOOL_ANNOTATIONS);
     }
 
     public static byte[] buildExecuteTool(
@@ -93,20 +113,27 @@ public final class McpSearchToolDescriptor
             .add("required", Json.createArrayBuilder().add("name"))
             .build();
 
-        return build(McpToolNames.effectiveName(toolkit, McpToolNames.EXECUTE_TOOL), EXECUTE_TOOL_DESCRIPTION, inputSchema);
+        return build(McpToolNames.effectiveName(toolkit, McpToolNames.EXECUTE_TOOL), EXECUTE_TOOL_TITLE,
+            EXECUTE_TOOL_DESCRIPTION, inputSchema, null);
     }
 
     private static byte[] build(
         String name,
+        String title,
         String description,
-        JsonObject inputSchema)
+        JsonObject inputSchema,
+        JsonObject annotations)
     {
-        JsonObject descriptor = Json.createObjectBuilder()
+        JsonObjectBuilder descriptor = Json.createObjectBuilder()
             .add("name", name)
+            .add("title", title)
             .add("description", description)
-            .add("inputSchema", inputSchema)
-            .build();
+            .add("inputSchema", inputSchema);
+        if (annotations != null)
+        {
+            descriptor.add("annotations", annotations);
+        }
 
-        return descriptor.toString().getBytes(StandardCharsets.UTF_8);
+        return descriptor.build().toString().getBytes(StandardCharsets.UTF_8);
     }
 }

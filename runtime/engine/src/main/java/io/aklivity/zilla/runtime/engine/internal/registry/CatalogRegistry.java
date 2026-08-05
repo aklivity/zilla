@@ -17,9 +17,9 @@ package io.aklivity.zilla.runtime.engine.internal.registry;
 
 import static java.util.Objects.requireNonNull;
 
+import io.aklivity.zilla.config.engine.CatalogConfig;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
-import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
 
 public class CatalogRegistry
 {

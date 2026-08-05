@@ -37,6 +37,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import io.aklivity.zilla.config.engine.test.internal.model.config.TestModelConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCachePartition.Node;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaTopicHeaderType;
@@ -58,7 +59,6 @@ import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 import io.aklivity.zilla.runtime.engine.model.ModelVisitor;
 import io.aklivity.zilla.runtime.engine.test.internal.model.TestModelHandler;
-import io.aklivity.zilla.runtime.engine.test.internal.model.config.TestModelConfig;
 
 public class KafkaCachePartitionTest
 {

@@ -18,7 +18,6 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.notNullValue;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -36,12 +35,12 @@ import java.util.function.LongConsumer;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
+import io.aklivity.zilla.config.engine.AttributeConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
-import io.aklivity.zilla.runtime.engine.config.AttributeConfig;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
@@ -81,7 +80,6 @@ public class McpMetricGroupTest
 
         assertThat(metricGroup.supply("mcp.unknown"), equalTo(null));
         assertThat(metricGroup.name(), equalTo("mcp"));
-        assertThat(metricGroup.type(), notNullValue());
     }
 
     @Test

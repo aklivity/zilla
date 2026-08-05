@@ -17,7 +17,6 @@ package io.aklivity.zilla.runtime.metrics.mcp.internal;
 import static io.aklivity.zilla.runtime.metrics.mcp.internal.McpMeasure.COUNT;
 import static io.aklivity.zilla.runtime.metrics.mcp.internal.McpMeasure.DURATION;
 
-import java.net.URL;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -49,12 +48,6 @@ public class McpMetricGroup implements MetricGroup
     public String name()
     {
         return NAME;
-    }
-
-    @Override
-    public URL type()
-    {
-        return getClass().getResource("schema/mcp.schema.patch.json");
     }
 
     @Override

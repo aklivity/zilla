@@ -14,12 +14,12 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.http.internal;
 
+import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.stream.McpHttpProxyFactory;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
 final class McpHttpBindingContext implements BindingContext
 {
@@ -38,7 +38,7 @@ final class McpHttpBindingContext implements BindingContext
     {
         BindingHandler handler = null;
 
-        if (binding.kind == KindConfig.PROXY)
+        if (binding.kind == KindConfig.PROXY || binding.kind == KindConfig.CLIENT)
         {
             factory.attach(binding);
             handler = factory;
@@ -51,7 +51,7 @@ final class McpHttpBindingContext implements BindingContext
     public void detach(
         BindingConfig binding)
     {
-        if (binding.kind == KindConfig.PROXY)
+        if (binding.kind == KindConfig.PROXY || binding.kind == KindConfig.CLIENT)
         {
             factory.detach(binding.id);
         }

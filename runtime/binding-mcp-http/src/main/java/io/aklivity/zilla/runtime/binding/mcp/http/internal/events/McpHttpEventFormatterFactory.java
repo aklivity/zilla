@@ -30,6 +30,6 @@ public final class McpHttpEventFormatterFactory implements EventFormatterFactory
     @Override
     public String type()
     {
-        return McpHttpBinding.NAME;
+        return McpHttpBinding.TYPE;
     }
 }

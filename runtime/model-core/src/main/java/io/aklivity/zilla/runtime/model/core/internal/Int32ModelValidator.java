@@ -17,8 +17,8 @@ package io.aklivity.zilla.runtime.model.core.internal;
 import java.util.function.IntPredicate;
 import java.util.function.Supplier;
 
+import io.aklivity.zilla.config.model.core.Int32ModelConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
-import io.aklivity.zilla.runtime.model.core.config.Int32ModelConfig;
 
 final class Int32ModelValidator implements CoreModelValidator
 {

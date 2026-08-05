@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.http.internal.config;
 
-import static io.aklivity.zilla.runtime.engine.config.WithConfig.NO_COMPOSITE_ID;
+import static io.aklivity.zilla.config.engine.WithConfig.NO_COMPOSITE_ID;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -24,7 +24,7 @@ import java.util.regex.MatchResult;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import io.aklivity.zilla.runtime.binding.http.config.HttpWithConfig;
+import io.aklivity.zilla.config.binding.http.HttpWithConfig;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String8FW;
 
@@ -62,13 +62,13 @@ public class HttpWithResolver
         {
             with.overrides.forEach((k, v) ->
             {
-                String value = v.asString();
+                String value = v;
                 Matcher overrideMatcher = paramsMatcher.reset(value);
                 if (overrideMatcher.find())
                 {
                     value = overrideMatcher.replaceAll(replacer);
                 }
-                overrides.put(k, new String16FW(value));
+                overrides.put(new String8FW(k), new String16FW(value));
             });
         }
         return overrides;

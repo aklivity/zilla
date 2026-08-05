@@ -342,6 +342,100 @@ public class McpFunctionsTest
     }
 
     @Test
+    public void shouldGenerateResourcesSubscribeBeginEx()
+    {
+        byte[] bytes = McpFunctions.beginEx()
+            .typeId(0)
+            .resourcesSubscribe()
+                .sessionId("session-1")
+                .uri("file:///data/resource.txt")
+                .contentLength(33)
+                .timeout(25000L)
+                .build()
+            .build();
+
+        assertNotNull(bytes);
+
+        McpBeginExFW beginEx = new McpBeginExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
+        assertEquals(25000L, beginEx.resourcesSubscribe().timeout());
+    }
+
+    @Test
+    public void shouldMatchResourcesSubscribeBeginEx() throws Exception
+    {
+        BytesMatcher matcher = McpFunctions.matchBeginEx()
+            .typeId(0)
+            .resourcesSubscribe()
+                .sessionId("session-1")
+                .uri("file:///data/resource.txt")
+                .contentLength(33)
+                .timeout(25000L)
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new McpBeginExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .resourcesSubscribe(b -> b
+                .sessionId("session-1")
+                .uri("file:///data/resource.txt")
+                .contentLength(33)
+                .timeout(25000L))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldGenerateResourcesUnsubscribeBeginEx()
+    {
+        byte[] bytes = McpFunctions.beginEx()
+            .typeId(0)
+            .resourcesUnsubscribe()
+                .sessionId("session-1")
+                .uri("file:///data/resource.txt")
+                .contentLength(33)
+                .timeout(25000L)
+                .build()
+            .build();
+
+        assertNotNull(bytes);
+
+        McpBeginExFW beginEx = new McpBeginExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
+        assertEquals(25000L, beginEx.resourcesUnsubscribe().timeout());
+    }
+
+    @Test
+    public void shouldMatchResourcesUnsubscribeBeginEx() throws Exception
+    {
+        BytesMatcher matcher = McpFunctions.matchBeginEx()
+            .typeId(0)
+            .resourcesUnsubscribe()
+                .sessionId("session-1")
+                .uri("file:///data/resource.txt")
+                .contentLength(33)
+                .timeout(25000L)
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new McpBeginExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .resourcesUnsubscribe(b -> b
+                .sessionId("session-1")
+                .uri("file:///data/resource.txt")
+                .contentLength(33)
+                .timeout(25000L))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
     public void shouldGenerateResourcesTemplatesListBeginEx()
     {
         byte[] bytes = McpFunctions.beginEx()
@@ -752,6 +846,44 @@ public class McpFunctionsTest
             .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .resourcesListChanged(b -> b.id("1"))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldGenerateResourcesUpdatedFlushEx()
+    {
+        byte[] bytes = McpFunctions.flushEx()
+            .typeId(0)
+            .resourcesUpdated()
+                .id("1")
+                .uri("file:///data/resource.txt")
+                .build()
+            .build();
+
+        assertNotNull(bytes);
+    }
+
+    @Test
+    public void shouldMatchResourcesUpdatedFlushEx() throws Exception
+    {
+        BytesMatcher matcher = McpFunctions.matchFlushEx()
+            .typeId(0)
+            .resourcesUpdated()
+                .id("1")
+                .uri("file:///data/resource.txt")
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new McpFlushExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .resourcesUpdated(b -> b
+                .id("1")
+                .uri("file:///data/resource.txt"))
             .build();
 
         assertNotNull(matcher.match(byteBuf));

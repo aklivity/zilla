@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.McpCapabilities.CLIENT_ELICITATION;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.McpCapabilities.CLIENT_ELICITATION_FORM;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.McpCapabilities.CLIENT_ELICITATION_URL;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.McpCapabilities.SERVER_RESOURCES_SUBSCRIBE;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_LIFECYCLE;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static java.lang.Integer.toUnsignedLong;
@@ -25,19 +26,22 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.LongUnaryOperator;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import jakarta.json.Json;
+import jakarta.json.JsonObject;
 import jakarta.json.JsonValue;
-import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParserFactory;
 
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.Object2ObjectHashMap;
 
+import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpEventContext;
 import io.aklivity.zilla.runtime.binding.mcp.internal.codec.McpInitializeParams;
@@ -71,6 +75,7 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpErrorReset
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpFlushExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpProgressFlushExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpResetExFW;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpResourcesUpdatedFlushExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.RedirectFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.SignalFW;
@@ -88,13 +93,13 @@ import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.util.function.LongIntPredicate;
 import io.aklivity.zilla.runtime.engine.util.function.LongIntToLongFunction;
 
 public final class McpServerFactory implements McpStreamFactory
 {
     private static final String MCP_PROTOCOL_VERSION = "2025-11-25";
+    private static final Set<String> SUPPORTED_PROTOCOL_VERSIONS = Set.of("2025-06-18", MCP_PROTOCOL_VERSION);
 
     private static final String HTTP_TYPE_NAME = "http";
     private static final String MCP_TYPE_NAME = "mcp";
@@ -155,8 +160,11 @@ public final class McpServerFactory implements McpStreamFactory
     private static final String INITIALIZE_RESPONSE_SERVER_INFO_PREFIX = ",\"serverInfo\":{\"name\":\"";
     private static final String INITIALIZE_RESPONSE_VERSION_PREFIX = "\",\"version\":\"";
     private static final String INITIALIZE_RESPONSE_SUFFIX = "\"}}";
-    private static final String INITIALIZE_RESPONSE_CAPABILITIES =
-        "{\"prompts\":{\"listChanged\":true},\"resources\":{\"listChanged\":true},\"tools\":{\"listChanged\":true}}";
+    private static final String INITIALIZE_RESPONSE_CAPABILITIES_RESOURCES_PREFIX =
+        "{\"prompts\":{\"listChanged\":true},\"resources\":{\"listChanged\":true";
+    private static final String INITIALIZE_RESPONSE_CAPABILITIES_SUBSCRIBE = ",\"subscribe\":true";
+    private static final String INITIALIZE_RESPONSE_CAPABILITIES_SUFFIX =
+        "},\"tools\":{\"listChanged\":true}}";
     private static final String SSE_PROGRESS_BODY_PREFIX =
         "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/progress\",\"params\":{\"progressToken\":\"";
     private static final String SSE_PROGRESS_BODY_PROGRESS = "\",\"progress\":";
@@ -164,6 +172,9 @@ public final class McpServerFactory implements McpStreamFactory
     private static final String SSE_PROGRESS_BODY_MESSAGE_PREFIX = ",\"message\":\"";
     private static final String SSE_PROGRESS_BODY_MESSAGE_SUFFIX = "\"";
     private static final String SSE_PROGRESS_BODY_SUFFIX = "}}";
+    private static final String SSE_RESOURCES_UPDATED_BODY_PREFIX =
+        "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/resources/updated\",\"params\":{\"uri\":\"";
+    private static final String SSE_RESOURCES_UPDATED_BODY_SUFFIX = "\"}}";
 
     private static final byte[] NOTIFICATIONS_TOOLS_LIST_CHANGED_BYTES =
         "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/tools/list_changed\"}".getBytes();
@@ -1016,11 +1027,19 @@ public final class McpServerFactory implements McpStreamFactory
                     server.decodedMethodParam = "uri";
                     server.decodedRequest = server::onDecodeRequestParams;
                     break;
+                case "resources/subscribe":
+                    server.decodedMethodParam = "uri";
+                    server.decodedRequest = server::onDecodeRequestParams;
+                    break;
+                case "resources/unsubscribe":
+                    server.decodedMethodParam = "uri";
+                    server.decodedRequest = server::onDecodeRequestParams;
+                    break;
                 case "notifications/cancelled":
                     server.decodedRequest = server::onDecodeNotifyCancelled;
                     break;
                 default:
-                    server.onDecodeParseError(traceId, authorization);
+                    server.onDecodeMethodNotFound(traceId, authorization);
                     server.decoder = decodeIgnore;
                     break decode;
                 }
@@ -1212,6 +1231,12 @@ public final class McpServerFactory implements McpStreamFactory
                 break;
             case "resources/read":
                 server.onDecodeResourcesRead(value, traceId, authorization);
+                break;
+            case "resources/subscribe":
+                server.onDecodeResourcesSubscribe(value, traceId, authorization);
+                break;
+            case "resources/unsubscribe":
+                server.onDecodeResourcesUnsubscribe(value, traceId, authorization);
                 break;
             }
 
@@ -1836,6 +1861,7 @@ public final class McpServerFactory implements McpStreamFactory
                     .wrap(codecBuffer, 0, codecBuffer.capacity())
                     .typeId(httpTypeId)
                     .headersItem(h -> h.name(HTTP_HEADER_STATUS).value(STATUS_200))
+                    .headersItem(h -> h.name(HTTP_HEADER_CONTENT_TYPE).value(CONTENT_TYPE_JSON))
                     .inject(this::injectAltSvc)
                     .build(),
                     id, error.code(), error.message().asString());
@@ -2091,26 +2117,34 @@ public final class McpServerFactory implements McpStreamFactory
         {
             final DirectBufferInputStreamEx input = new DirectBufferInputStreamEx();
             input.wrap(buffer, offset, limit - offset);
-            final McpInitializeParams params = JsonbBuilder.create().fromJson(input, McpInitializeParams.class);
+            final JsonObject paramsObject = Json.createReader(input).readObject();
+            final McpInitializeParams params = McpInitializeParams.parse(paramsObject);
 
-            decodedProtocolVersion = params.protocolVersion;
-
-            int capabilities = 0;
-            final JsonValue elicitation = params.capabilities != null
-                ? params.capabilities.get("elicitation")
-                : null;
-            if (elicitation != null)
+            if (params != null)
             {
-                capabilities |= CLIENT_ELICITATION.value() | CLIENT_ELICITATION_FORM.value();
-                if (elicitation.getValueType() == JsonValue.ValueType.OBJECT &&
-                    elicitation.asJsonObject().containsKey("url"))
-                {
-                    capabilities |= CLIENT_ELICITATION_URL.value();
-                }
-            }
-            decodedClientCapabilities = capabilities;
+                decodedProtocolVersion = params.protocolVersion();
 
-            onLifecycleInitialize(traceId, authorization);
+                int capabilities = 0;
+                final JsonValue elicitation = params.capabilities() != null
+                    ? params.capabilities().get("elicitation")
+                    : null;
+                if (elicitation != null)
+                {
+                    capabilities |= CLIENT_ELICITATION.value() | CLIENT_ELICITATION_FORM.value();
+                    if (elicitation.getValueType() == JsonValue.ValueType.OBJECT &&
+                        elicitation.asJsonObject().containsKey("url"))
+                    {
+                        capabilities |= CLIENT_ELICITATION_URL.value();
+                    }
+                }
+                decodedClientCapabilities = capabilities;
+
+                onLifecycleInitialize(traceId, authorization);
+            }
+            else
+            {
+                onDecodeInvalidParams(traceId, authorization);
+            }
 
             return limit;
         }
@@ -2127,12 +2161,17 @@ public final class McpServerFactory implements McpStreamFactory
                 .inject(this::injectAltSvc)
                 .build());
             final String negotiatedVersion = decodedProtocolVersion != null &&
-                decodedProtocolVersion.compareTo(MCP_PROTOCOL_VERSION) <= 0
+                SUPPORTED_PROTOCOL_VERSIONS.contains(decodedProtocolVersion)
                     ? decodedProtocolVersion
                     : MCP_PROTOCOL_VERSION;
+            final String capabilitiesSubscribe = (session.serverCapabilities & SERVER_RESOURCES_SUBSCRIBE.value()) != 0
+                ? INITIALIZE_RESPONSE_CAPABILITIES_SUBSCRIBE
+                : "";
             String8FW payload = new String8FW(INITIALIZE_RESPONSE_PROTOCOL_PREFIX + negotiatedVersion +
                 INITIALIZE_RESPONSE_CAPABILITIES_PREFIX +
-                INITIALIZE_RESPONSE_CAPABILITIES +
+                INITIALIZE_RESPONSE_CAPABILITIES_RESOURCES_PREFIX +
+                capabilitiesSubscribe +
+                INITIALIZE_RESPONSE_CAPABILITIES_SUFFIX +
                 INITIALIZE_RESPONSE_SERVER_INFO_PREFIX + serverName +
                 INITIALIZE_RESPONSE_VERSION_PREFIX + serverVersion + INITIALIZE_RESPONSE_SUFFIX);
             doEncodeResponseData(traceId, authorization, payload.value());
@@ -2328,6 +2367,48 @@ public final class McpServerFactory implements McpStreamFactory
             stream.doAppBegin(traceId, authorization, beginEx);
         }
 
+        private void onDecodeResourcesSubscribe(
+            String uri,
+            long traceId,
+            long authorization)
+        {
+            final int paramsLength = contentLength - decodedParamsProgress - 1;
+            McpBeginExFW beginEx = mcpBeginExRW
+                .wrap(codecBuffer, 0, codecBuffer.capacity())
+                .typeId(mcpTypeId)
+                .resourcesSubscribe(r -> r
+                    .sessionId(session.unifiedId)
+                    .uri(uri)
+                    .contentLength(paramsLength)
+                    .timeout(session.requestTimeout))
+                .build();
+
+            assert stream == null;
+            stream = new McpRequestStream(session, this);
+            stream.doAppBegin(traceId, authorization, beginEx);
+        }
+
+        private void onDecodeResourcesUnsubscribe(
+            String uri,
+            long traceId,
+            long authorization)
+        {
+            final int paramsLength = contentLength - decodedParamsProgress - 1;
+            McpBeginExFW beginEx = mcpBeginExRW
+                .wrap(codecBuffer, 0, codecBuffer.capacity())
+                .typeId(mcpTypeId)
+                .resourcesUnsubscribe(r -> r
+                    .sessionId(session.unifiedId)
+                    .uri(uri)
+                    .contentLength(paramsLength)
+                    .timeout(session.requestTimeout))
+                .build();
+
+            assert stream == null;
+            stream = new McpRequestStream(session, this);
+            stream.doAppBegin(traceId, authorization, beginEx);
+        }
+
         private void onDecodeRequestId(
             String requestId)
         {
@@ -2362,11 +2443,14 @@ public final class McpServerFactory implements McpStreamFactory
         {
             DirectBufferInputStreamEx input = new DirectBufferInputStreamEx();
             input.wrap(buffer, offset, limit - offset);
-            McpNotifyCanceledParams params = JsonbBuilder.create().fromJson(input, McpNotifyCanceledParams.class);
+            JsonObject paramsObject = Json.createReader(input).readObject();
+            McpNotifyCanceledParams params = McpNotifyCanceledParams.parse(paramsObject);
 
             assert session != null;
 
-            McpRequestStream request = session.requests.get(params.requestId.toString());
+            McpRequestStream request = params.requestId() != null
+                ? session.requests.get(params.requestId().toString())
+                : null;
             if (request != null)
             {
                 request.doAppCancel(traceId, authorization);
@@ -2421,6 +2505,7 @@ public final class McpServerFactory implements McpStreamFactory
                 httpBeginExRW.wrap(codecBuffer, 0, codecBuffer.capacity())
                     .typeId(httpTypeId)
                     .headersItem(h -> h.name(HTTP_HEADER_STATUS).value(STATUS_200))
+                    .headersItem(h -> h.name(HTTP_HEADER_CONTENT_TYPE).value(CONTENT_TYPE_JSON))
                     .inject(this::injectAltSvc)
                     .build(),
                 -32700,
@@ -2435,10 +2520,41 @@ public final class McpServerFactory implements McpStreamFactory
                 httpBeginExRW.wrap(codecBuffer, 0, codecBuffer.capacity())
                     .typeId(httpTypeId)
                     .headersItem(h -> h.name(HTTP_HEADER_STATUS).value(STATUS_200))
+                    .headersItem(h -> h.name(HTTP_HEADER_CONTENT_TYPE).value(CONTENT_TYPE_JSON))
                     .inject(this::injectAltSvc)
                     .build(),
                 -32600,
                 "Invalid request");
+        }
+
+        private void onDecodeMethodNotFound(
+            long traceId,
+            long authorization)
+        {
+            doEncodeResponseError(traceId, authorization,
+                httpBeginExRW.wrap(codecBuffer, 0, codecBuffer.capacity())
+                    .typeId(httpTypeId)
+                    .headersItem(h -> h.name(HTTP_HEADER_STATUS).value(STATUS_200))
+                    .headersItem(h -> h.name(HTTP_HEADER_CONTENT_TYPE).value(CONTENT_TYPE_JSON))
+                    .inject(this::injectAltSvc)
+                    .build(),
+                -32601,
+                "Method not found");
+        }
+
+        private void onDecodeInvalidParams(
+            long traceId,
+            long authorization)
+        {
+            doEncodeResponseError(traceId, authorization,
+                httpBeginExRW.wrap(codecBuffer, 0, codecBuffer.capacity())
+                    .typeId(httpTypeId)
+                    .headersItem(h -> h.name(HTTP_HEADER_STATUS).value(STATUS_200))
+                    .headersItem(h -> h.name(HTTP_HEADER_CONTENT_TYPE).value(CONTENT_TYPE_JSON))
+                    .inject(this::injectAltSvc)
+                    .build(),
+                -32602,
+                "Invalid params");
         }
 
         private void onAppChallenge(
@@ -3904,6 +4020,8 @@ public final class McpServerFactory implements McpStreamFactory
 
             assert replyAck <= replySeq;
 
+            touch();
+
             if (replySeq > replyAck + decodeMax)
             {
                 cleanupApp(traceId, authorization);
@@ -3952,6 +4070,10 @@ public final class McpServerFactory implements McpStreamFactory
             case McpFlushExFW.KIND_RESOURCES_LIST_CHANGED:
                 sse.doEncodeNotifyEvent(traceId, authorization, LIFECYCLE_STREAM_ID_PREFIX,
                     flushEx.resourcesListChanged().id(), NOTIFICATIONS_RESOURCES_LIST_CHANGED_BYTES);
+                break;
+            case McpFlushExFW.KIND_RESOURCES_UPDATED:
+                sse.doEncodeNotifyResourcesUpdated(traceId, authorization, LIFECYCLE_STREAM_ID_PREFIX,
+                    flushEx.resourcesUpdated());
                 break;
             case McpFlushExFW.KIND_ELICIT_COMPLETE:
                 if (sse != null)
@@ -4426,6 +4548,21 @@ public final class McpServerFactory implements McpStreamFactory
             }
 
             final int length = encodeSseNotifyEvent(codecBuffer, 0, streamIdPrefix, id, body);
+            doNetData(traceId, authorization, codecBuffer, 0, length);
+        }
+
+        private void doEncodeNotifyResourcesUpdated(
+            long traceId,
+            long authorization,
+            String streamIdPrefix,
+            McpResourcesUpdatedFlushExFW resourcesUpdated)
+        {
+            if (McpState.replyClosed(state))
+            {
+                return;
+            }
+
+            final int length = encodeSseResourcesUpdatedEvent(codecBuffer, 0, streamIdPrefix, resourcesUpdated);
             doNetData(traceId, authorization, codecBuffer, 0, length);
         }
 
@@ -6067,6 +6204,41 @@ public final class McpServerFactory implements McpStreamFactory
             progress0 += out.putStringWithoutLengthAscii(progress0, SSE_PROGRESS_BODY_MESSAGE_SUFFIX);
         }
         progress0 += out.putStringWithoutLengthAscii(progress0, SSE_PROGRESS_BODY_SUFFIX);
+
+        out.putBytes(progress0, SSE_MESSAGE_TERMINATOR_BYTES);
+        progress0 += SSE_MESSAGE_TERMINATOR_BYTES.length;
+
+        return progress0 - offset;
+    }
+
+    private int encodeSseResourcesUpdatedEvent(
+        MutableDirectBufferEx out,
+        int offset,
+        String streamIdPrefix,
+        McpResourcesUpdatedFlushExFW resourcesUpdated)
+    {
+        int progress0 = offset;
+
+        out.putBytes(progress0, SSE_ID_PREFIX_BYTES);
+        progress0 += SSE_ID_PREFIX_BYTES.length;
+        progress0 += out.putStringWithoutLengthAscii(progress0, streamIdPrefix);
+        out.putByte(progress0, (byte) ':');
+        progress0 += 1;
+        final String16FW idValue = resourcesUpdated.id();
+        if (idValue.length() > 0)
+        {
+            out.putBytes(progress0, idValue.value(), 0, idValue.length());
+            progress0 += idValue.length();
+        }
+        out.putByte(progress0, (byte) '\n');
+        progress0 += 1;
+
+        out.putBytes(progress0, SSE_DATA_PREFIX_BYTES);
+        progress0 += SSE_DATA_PREFIX_BYTES.length;
+
+        progress0 += out.putStringWithoutLengthAscii(progress0, SSE_RESOURCES_UPDATED_BODY_PREFIX);
+        progress0 += out.putStringWithoutLengthAscii(progress0, resourcesUpdated.uri().asString());
+        progress0 += out.putStringWithoutLengthAscii(progress0, SSE_RESOURCES_UPDATED_BODY_SUFFIX);
 
         out.putBytes(progress0, SSE_MESSAGE_TERMINATOR_BYTES);
         progress0 += SSE_MESSAGE_TERMINATOR_BYTES.length;

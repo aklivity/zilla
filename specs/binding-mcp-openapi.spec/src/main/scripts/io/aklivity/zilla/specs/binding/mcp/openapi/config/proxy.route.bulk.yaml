@@ -17,7 +17,7 @@
 name: test
 bindings:
   app0:
-    type: mcp_openapi
+    type: mcp-openapi
     kind: client
     options:
       specs:
@@ -35,8 +35,6 @@ bindings:
       - with:
           spec: github
           operation: "pulls/*"
-      - when:
-          - capability: [ tool ]
-        with:
+      - with:
           spec: github
           tag: issues

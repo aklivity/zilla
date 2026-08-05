@@ -17,6 +17,8 @@ package io.aklivity.zilla.runtime.engine.metrics.reader;
 
 import java.util.Map;
 
+import io.aklivity.zilla.config.engine.KindConfig;
+
 /**
  * A resolved metric identity, combining the namespaced binding address with the metric name.
  * <p>
@@ -68,6 +70,14 @@ public interface MetricRecord
      * @return the attributes id, or {@code 0} when no attributes are present
      */
     int attributesId();
+
+    /**
+     * Returns the binding's kind, captured at the time the metric record was created,
+     * or {@code null} when the metric is not tied to a binding.
+     *
+     * @return the binding kind, or {@code null}
+     */
+    KindConfig bindingKind();
 
     /**
      * Returns the resolved arbitrary attributes as a map of key-value pairs.

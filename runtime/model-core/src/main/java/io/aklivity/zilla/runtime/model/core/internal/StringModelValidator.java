@@ -20,8 +20,8 @@ import java.util.regex.Pattern;
 
 import org.agrona.ExpandableDirectByteBuffer;
 
+import io.aklivity.zilla.config.model.core.StringModelConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
-import io.aklivity.zilla.runtime.model.core.config.StringModelConfig;
 
 final class StringModelValidator implements CoreModelValidator
 {

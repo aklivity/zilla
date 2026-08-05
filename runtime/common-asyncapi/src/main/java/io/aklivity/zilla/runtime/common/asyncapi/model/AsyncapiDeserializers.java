@@ -16,15 +16,18 @@ package io.aklivity.zilla.runtime.common.asyncapi.model;
 
 import static java.util.Collections.emptyMap;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
 
-import jakarta.json.Json;
+import jakarta.json.JsonArray;
+import jakarta.json.JsonNumber;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
+import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
@@ -32,6 +35,7 @@ import jakarta.json.bind.JsonbConfig;
 import jakarta.json.bind.serializer.JsonbDeserializer;
 
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiExtension;
+import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 
 public final class AsyncapiDeserializers
 {
@@ -43,46 +47,63 @@ public final class AsyncapiDeserializers
         Map<String, Class<?>> operationBindingTypes,
         Map<String, Class<?>> messageBindingTypes,
         Map<String, Class<?>> serverBindingTypes,
+        Map<String, Class<?>> channelBindingTypes,
         Map<AsyncapiExtension.Scope, Map<String, Class<?>>> extensionTypes,
         Map<AsyncapiExtension.Scope, Map<String, Class<?>>> prefixExtensionTypes)
     {
         return List.of(
             new AsyncapiDeserializer(
-                operationBindingTypes, messageBindingTypes, serverBindingTypes, extensionTypes, prefixExtensionTypes),
+                operationBindingTypes, messageBindingTypes, serverBindingTypes, channelBindingTypes, extensionTypes,
+                prefixExtensionTypes),
             new AsyncapiServerDeserializer(
-                operationBindingTypes, messageBindingTypes, serverBindingTypes, extensionTypes, prefixExtensionTypes),
+                operationBindingTypes, messageBindingTypes, serverBindingTypes, channelBindingTypes, extensionTypes,
+                prefixExtensionTypes),
             new AsyncapiServerVariableDeserializer(
-                operationBindingTypes, messageBindingTypes, serverBindingTypes, extensionTypes, prefixExtensionTypes),
+                operationBindingTypes, messageBindingTypes, serverBindingTypes, channelBindingTypes, extensionTypes,
+                prefixExtensionTypes),
             new AsyncapiChannelDeserializer(
-                operationBindingTypes, messageBindingTypes, serverBindingTypes, extensionTypes, prefixExtensionTypes),
+                operationBindingTypes, messageBindingTypes, serverBindingTypes, channelBindingTypes, extensionTypes,
+                prefixExtensionTypes),
             new AsyncapiOperationDeserializer(
-                operationBindingTypes, messageBindingTypes, serverBindingTypes, extensionTypes, prefixExtensionTypes),
+                operationBindingTypes, messageBindingTypes, serverBindingTypes, channelBindingTypes, extensionTypes,
+                prefixExtensionTypes),
             new AsyncapiMessageDeserializer(
-                operationBindingTypes, messageBindingTypes, serverBindingTypes, extensionTypes, prefixExtensionTypes),
+                operationBindingTypes, messageBindingTypes, serverBindingTypes, channelBindingTypes, extensionTypes,
+                prefixExtensionTypes),
             new AsyncapiTraitDeserializer(
-                operationBindingTypes, messageBindingTypes, serverBindingTypes, extensionTypes, prefixExtensionTypes),
+                operationBindingTypes, messageBindingTypes, serverBindingTypes, channelBindingTypes, extensionTypes,
+                prefixExtensionTypes),
             new AsyncapiParameterDeserializer(
-                operationBindingTypes, messageBindingTypes, serverBindingTypes, extensionTypes, prefixExtensionTypes),
+                operationBindingTypes, messageBindingTypes, serverBindingTypes, channelBindingTypes, extensionTypes,
+                prefixExtensionTypes),
             new AsyncapiComponentsDeserializer(
-                operationBindingTypes, messageBindingTypes, serverBindingTypes, extensionTypes, prefixExtensionTypes),
+                operationBindingTypes, messageBindingTypes, serverBindingTypes, channelBindingTypes, extensionTypes,
+                prefixExtensionTypes),
             new AsyncapiSchemaDeserializer(
-                operationBindingTypes, messageBindingTypes, serverBindingTypes, extensionTypes, prefixExtensionTypes),
+                operationBindingTypes, messageBindingTypes, serverBindingTypes, channelBindingTypes, extensionTypes,
+                prefixExtensionTypes),
             new AsyncapiMultiFormatSchemaDeserializer(
-                operationBindingTypes, messageBindingTypes, serverBindingTypes, extensionTypes, prefixExtensionTypes),
+                operationBindingTypes, messageBindingTypes, serverBindingTypes, channelBindingTypes, extensionTypes,
+                prefixExtensionTypes),
             new AsyncapiSchemaItemDeserializer(
-                operationBindingTypes, messageBindingTypes, serverBindingTypes, extensionTypes, prefixExtensionTypes),
+                operationBindingTypes, messageBindingTypes, serverBindingTypes, channelBindingTypes, extensionTypes,
+                prefixExtensionTypes),
             new AsyncapiSecuritySchemeDeserializer(
-                operationBindingTypes, messageBindingTypes, serverBindingTypes, extensionTypes, prefixExtensionTypes),
+                operationBindingTypes, messageBindingTypes, serverBindingTypes, channelBindingTypes, extensionTypes,
+                prefixExtensionTypes),
             new AsyncapiCorrelationIdDeserializer(
-                operationBindingTypes, messageBindingTypes, serverBindingTypes, extensionTypes, prefixExtensionTypes),
+                operationBindingTypes, messageBindingTypes, serverBindingTypes, channelBindingTypes, extensionTypes,
+                prefixExtensionTypes),
             new AsyncapiReplyDeserializer(
-                operationBindingTypes, messageBindingTypes, serverBindingTypes, extensionTypes, prefixExtensionTypes));
+                operationBindingTypes, messageBindingTypes, serverBindingTypes, channelBindingTypes, extensionTypes,
+                prefixExtensionTypes));
     }
 
     static Supplier<Jsonb> plain(
         Map<String, Class<?>> operationBindingTypes,
         Map<String, Class<?>> messageBindingTypes,
         Map<String, Class<?>> serverBindingTypes,
+        Map<String, Class<?>> channelBindingTypes,
         Map<AsyncapiExtension.Scope, Map<String, Class<?>>> extensionTypes,
         Map<AsyncapiExtension.Scope, Map<String, Class<?>>> prefixExtensionTypes,
         Class<?>... excludes)
@@ -95,12 +116,14 @@ public final class AsyncapiDeserializers
             if (cache[0] == null)
             {
                 JsonbDeserializer<?>[] others = all(
-                    operationBindingTypes, messageBindingTypes, serverBindingTypes, extensionTypes, prefixExtensionTypes)
+                    operationBindingTypes, messageBindingTypes, serverBindingTypes, channelBindingTypes, extensionTypes,
+                    prefixExtensionTypes)
                         .stream()
                         .filter(deserializer -> !excluded.contains(deserializer.getClass()))
                         .toArray(JsonbDeserializer[]::new);
                 cache[0] = JsonbBuilder.newBuilder()
                     .withConfig(new JsonbConfig().withDeserializers(others))
+                    .withProvider(YamlJson.provider())
                     .build();
             }
             return cache[0];
@@ -126,7 +149,10 @@ public final class AsyncapiDeserializers
                     {
                         bindings = new LinkedHashMap<>();
                     }
-                    bindings.put(entry.getKey(), plain.fromJson(entry.getValue().toString(), bindingType));
+                    Object binding = Map.class.equals(bindingType)
+                        ? toPlainValue(entry.getValue())
+                        : plain.fromJson(entry.getValue().toString(), bindingType);
+                    bindings.put(entry.getKey(), binding);
                 }
             }
         }
@@ -157,7 +183,10 @@ public final class AsyncapiDeserializers
                     {
                         extensions = new LinkedHashMap<>();
                     }
-                    extensions.put(name, plain.get().fromJson(object.get(name).toString(), extensionType));
+                    Object extension = Map.class.equals(extensionType)
+                        ? toPlainValue(object.get(name))
+                        : plain.get().fromJson(object.get(name).toString(), extensionType);
+                    extensions.put(name, extension);
                 }
             }
         }
@@ -174,7 +203,7 @@ public final class AsyncapiDeserializers
                 {
                     if (aggregate == null)
                     {
-                        aggregate = Json.createObjectBuilder();
+                        aggregate = YamlJson.provider().createObjectBuilder();
                     }
                     aggregate.add(name.substring(prefix.length()), object.get(name));
                 }
@@ -186,11 +215,80 @@ public final class AsyncapiDeserializers
                 {
                     extensions = new LinkedHashMap<>();
                 }
-                extensions.put(registeredName,
-                    plain.get().fromJson(aggregate.build().toString(), prefixExtensionType.getValue()));
+                JsonObject aggregated = aggregate.build();
+                Class<?> prefixExtensionClass = prefixExtensionType.getValue();
+                Object extension = Map.class.equals(prefixExtensionClass)
+                    ? toPlainValue(aggregated)
+                    : plain.get().fromJson(aggregated.toString(), prefixExtensionClass);
+                extensions.put(registeredName, extension);
             }
         }
 
         return extensions;
+    }
+
+    public static Object toPlainValue(
+        JsonValue value)
+    {
+        Object result;
+
+        switch (value.getValueType())
+        {
+        case OBJECT:
+            Map<String, Object> object = new LinkedHashMap<>();
+            for (Map.Entry<String, JsonValue> entry : value.asJsonObject().entrySet())
+            {
+                object.put(entry.getKey(), toPlainValue(entry.getValue()));
+            }
+            result = object;
+            break;
+        case ARRAY:
+            List<Object> array = new ArrayList<>();
+            for (JsonValue element : (JsonArray) value)
+            {
+                array.add(toPlainValue(element));
+            }
+            result = array;
+            break;
+        case STRING:
+            result = ((JsonString) value).getString();
+            break;
+        case NUMBER:
+            result = toPlainNumber((JsonNumber) value);
+            break;
+        case TRUE:
+            result = Boolean.TRUE;
+            break;
+        case FALSE:
+            result = Boolean.FALSE;
+            break;
+        case NULL:
+        default:
+            result = null;
+            break;
+        }
+
+        return result;
+    }
+
+    private static Object toPlainNumber(
+        JsonNumber number)
+    {
+        Object result;
+
+        if (!number.isIntegral())
+        {
+            result = number.doubleValue();
+        }
+        else if (number.bigIntegerValue().bitLength() < 32)
+        {
+            result = number.intValue();
+        }
+        else
+        {
+            result = number.longValue();
+        }
+
+        return result;
     }
 }

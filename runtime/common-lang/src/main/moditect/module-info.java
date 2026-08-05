@@ -15,4 +15,5 @@
 module io.aklivity.zilla.runtime.common.lang
 {
     exports io.aklivity.zilla.runtime.common.lang;
+    exports io.aklivity.zilla.runtime.common.lang.util.function;
 }

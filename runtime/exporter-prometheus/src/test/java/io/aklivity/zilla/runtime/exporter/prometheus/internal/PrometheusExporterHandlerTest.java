@@ -30,13 +30,14 @@ import java.time.Duration;
 
 import org.junit.Test;
 
+import io.aklivity.zilla.config.engine.ExporterConfig;
+import io.aklivity.zilla.config.engine.GenericExporterConfig;
+import io.aklivity.zilla.config.exporter.prometheus.PrometheusEndpointConfig;
+import io.aklivity.zilla.config.exporter.prometheus.PrometheusOptionsConfig;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.config.ExporterConfig;
 import io.aklivity.zilla.runtime.engine.metrics.Collector;
-import io.aklivity.zilla.runtime.exporter.prometheus.internal.config.PrometheusEndpointConfig;
 import io.aklivity.zilla.runtime.exporter.prometheus.internal.config.PrometheusExporterConfig;
-import io.aklivity.zilla.runtime.exporter.prometheus.internal.config.PrometheusOptionsConfig;
 
 public class PrometheusExporterHandlerTest
 {
@@ -49,9 +50,15 @@ public class PrometheusExporterHandlerTest
         Files.createDirectory(tmp.resolve("metrics"));
         when(config.directory()).thenReturn(tmp);
         EngineContext context = mock(EngineContext.class);
-        PrometheusEndpointConfig endpoint = new PrometheusEndpointConfig("http", 4242, "/metrics");
-        PrometheusOptionsConfig options = new PrometheusOptionsConfig(new PrometheusEndpointConfig[]{endpoint});
-        ExporterConfig exporter = ExporterConfig.builder()
+        PrometheusEndpointConfig endpoint = PrometheusEndpointConfig.builder()
+            .scheme("http")
+            .port(4242)
+            .path("/metrics")
+            .build();
+        PrometheusOptionsConfig options = PrometheusOptionsConfig.builder()
+            .endpoints(new PrometheusEndpointConfig[]{endpoint})
+            .build();
+        ExporterConfig exporter = GenericExporterConfig.builder()
                 .namespace("test")
                 .name("test0")
                 .type("prometheus")

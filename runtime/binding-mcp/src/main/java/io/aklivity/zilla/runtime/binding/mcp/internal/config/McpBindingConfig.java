@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.internal.config;
 
-import static io.aklivity.zilla.runtime.binding.mcp.config.McpElicitationConfig.DEFAULT_CALLBACK_PATH;
+import static io.aklivity.zilla.config.binding.mcp.McpElicitationConfig.DEFAULT_CALLBACK_PATH;
 import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_ID;
 
 import java.net.URI;
@@ -36,10 +36,15 @@ import jakarta.json.JsonObject;
 import jakarta.json.stream.JsonParser;
 
 import org.agrona.collections.Int2ObjectHashMap;
+import org.agrona.collections.Long2LongHashMap;
 import org.agrona.collections.Object2IntHashMap;
 import org.agrona.collections.Object2ObjectHashMap;
 
-import io.aklivity.zilla.runtime.binding.mcp.config.McpOptionsConfig;
+import io.aklivity.zilla.config.binding.mcp.McpOptionsConfig;
+import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.config.engine.CatalogedConfig;
+import io.aklivity.zilla.config.engine.ModelConfig;
+import io.aklivity.zilla.config.engine.ModelConfigAdapter;
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.internal.stream.cache.McpProxyCache;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.String8FW;
@@ -53,10 +58,6 @@ import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
-import io.aklivity.zilla.runtime.engine.config.ModelConfig;
-import io.aklivity.zilla.runtime.engine.config.ModelConfigAdapter;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
@@ -99,6 +100,7 @@ public final class McpBindingConfig
     public final McpAggregateRoute[] aggregateRoutes;
 
     private final List<McpRouteConfig> routes;
+    private final Long2LongHashMap realCapabilitiesByRoute;
     private final String serverScheme;
     private final String serverAuthority;
     private final String serverPath;
@@ -164,6 +166,7 @@ public final class McpBindingConfig
             .map(cache -> new McpProxyCache(binding, config, context, cache))
             .orElse(null);
         this.sessions = new Object2ObjectHashMap<>();
+        this.realCapabilitiesByRoute = new Long2LongHashMap(0L);
 
         final URI server = Optional.ofNullable(options)
             .map(o -> o.server)
@@ -620,9 +623,21 @@ public final class McpBindingConfig
             if (route.authorized(authorization))
             {
                 bits |= route.serverCapabilities();
+                bits |= (int) realCapabilitiesByRoute.get(route.id);
             }
         }
         return bits;
+    }
+
+    public void recordServerCapabilities(
+        long routedId,
+        int capabilities)
+    {
+        final long merged = realCapabilitiesByRoute.get(routedId) | capabilities;
+        if (merged != realCapabilitiesByRoute.missingValue())
+        {
+            realCapabilitiesByRoute.put(routedId, merged);
+        }
     }
 
     public McpRouteConfig resolve(
@@ -691,6 +706,24 @@ public final class McpBindingConfig
             }
         }
         return credentials;
+    }
+
+    // the toolkit's "<toolkit>+" URI prefix, matching what resources/list and resources/read
+    // already prepend -- distinct from McpAggregateRoute.prefix(), a short CRC-derived code
+    // used only to disambiguate resumable event/correlation ids across aggregated toolkits
+    public String routeResourcesPrefix(
+        long routedId)
+    {
+        String prefix = null;
+        for (McpRouteConfig route : routes)
+        {
+            if (route.id == routedId)
+            {
+                prefix = route.prefix(McpBeginExFW.KIND_RESOURCES_READ);
+                break;
+            }
+        }
+        return prefix;
     }
 
     // resolves the effective session for a route's south connections: its own with.cache.credentials

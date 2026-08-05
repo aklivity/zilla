@@ -22,7 +22,7 @@ public final class KafkaGrpcBindingFactorySpi implements BindingFactorySpi
     @Override
     public String type()
     {
-        return KafkaGrpcBinding.NAME;
+        return KafkaGrpcBinding.TYPE;
     }
 
 

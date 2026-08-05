@@ -15,8 +15,6 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.catalog;
 
-import java.net.URL;
-
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.Catalog;
@@ -42,11 +40,5 @@ public class TestCatalog implements Catalog
         EngineContext context)
     {
         return new TestCatalogContext(context);
-    }
-
-    @Override
-    public URL type()
-    {
-        return getClass().getResource("test.schema.patch.json");
     }
 }

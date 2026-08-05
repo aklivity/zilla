@@ -30,7 +30,6 @@ import java.util.function.LongSupplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import org.agrona.BitUtil;
 import org.agrona.CloseHelper;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.AtomicBufferEx;
@@ -41,10 +40,11 @@ public final class HistogramsLayout extends MetricsLayout
     public static final int BUCKETS = 63;
     public static final long[] BUCKET_LIMITS = generateBucketLimits();
 
-    // Record: long bindingId (8) + int metricId (4) + int attributesId (4) + long[63] values (504) = 520 bytes
-    private static final int VALUES_OFFSET = BitUtil.SIZE_OF_LONG + 2 * BitUtil.SIZE_OF_INT;
+    // Record: long bindingId (8) + int metricId (4) + int attributesId (4) + long kind (8)
+    //       + long[63] values (504) = 528 bytes
+    private static final int VALUES_OFFSET = VALUE_OFFSET;
     private static final int ARRAY_SIZE = BUCKETS * FIELD_SIZE;
-    private static final int RECORD_SIZE = BitUtil.SIZE_OF_LONG + 2 * BitUtil.SIZE_OF_INT + ARRAY_SIZE;
+    private static final int RECORD_SIZE = VALUES_OFFSET + ARRAY_SIZE;
     private static final LongSupplier ZERO_LONG_SUPPLIER = () -> 0L;
 
     private HistogramsLayout(
@@ -57,9 +57,10 @@ public final class HistogramsLayout extends MetricsLayout
     public LongConsumer supplyWriter(
         long bindingId,
         int metricId,
-        int attributesId)
+        int attributesId,
+        int kind)
     {
-        int index = findOrSetPosition(bindingId, metricId, attributesId);
+        int index = findOrSetPosition(bindingId, metricId, attributesId, kind);
         return value -> buffer.getAndAddLong(index + VALUES_OFFSET + findBucket(value) * FIELD_SIZE, 1);
     }
 
@@ -115,11 +116,13 @@ public final class HistogramsLayout extends MetricsLayout
         long bindingId,
         int metricId,
         int attributesId,
+        int kind,
         int index)
     {
         buffer.putLong(index + BINDING_ID_OFFSET, bindingId);
         buffer.putInt(index + METRIC_ID_OFFSET, metricId);
         buffer.putInt(index + ATTRIBUTES_ID_OFFSET, attributesId);
+        buffer.putLong(index + KIND_OFFSET, kind);
         ByteBuffer initialValues = ByteBuffer.allocate(ARRAY_SIZE); // all zeroes
         buffer.putBytes(index + VALUES_OFFSET, initialValues.array());
     }

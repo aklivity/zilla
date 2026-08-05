@@ -2,7 +2,7 @@
     {
         "op": "add",
         "path": "/$defs/binding/properties/type/enum/-",
-        "value": "mcp_http"
+        "value": "mcp-http"
     },
     {
         "op": "add",
@@ -15,7 +15,7 @@
                 {
                     "type":
                     {
-                        "const": "mcp_http"
+                        "const": "mcp-http"
                     }
                 }
             },
@@ -25,11 +25,11 @@
                 {
                     "type":
                     {
-                        "const": "mcp_http"
+                        "const": "mcp-http"
                     },
                     "kind":
                     {
-                        "enum": [ "proxy" ]
+                        "enum": [ "client", "proxy" ]
                     },
                     "vault": false,
                     "entry": false,
@@ -88,6 +88,11 @@
                                         "type": "object",
                                         "properties":
                                         {
+                                            "title":
+                                            {
+                                                "title": "Tool Title",
+                                                "type": "string"
+                                            },
                                             "description":
                                             {
                                                 "title": "Tool Description",
@@ -116,6 +121,35 @@
                                                     }
                                                 },
                                                 "required": [ "input" ],
+                                                "additionalProperties": false
+                                            },
+                                            "annotations":
+                                            {
+                                                "title": "Annotations",
+                                                "type": "object",
+                                                "properties":
+                                                {
+                                                    "readOnlyHint":
+                                                    {
+                                                        "title": "Read-Only Hint",
+                                                        "type": "boolean"
+                                                    },
+                                                    "destructiveHint":
+                                                    {
+                                                        "title": "Destructive Hint",
+                                                        "type": "boolean"
+                                                    },
+                                                    "idempotentHint":
+                                                    {
+                                                        "title": "Idempotent Hint",
+                                                        "type": "boolean"
+                                                    },
+                                                    "openWorldHint":
+                                                    {
+                                                        "title": "Open-World Hint",
+                                                        "type": "boolean"
+                                                    }
+                                                },
                                                 "additionalProperties": false
                                             }
                                         },
@@ -325,7 +359,53 @@
                             }
                         }
                     }
-                }
+                },
+                "oneOf":
+                [
+                    {
+                        "properties":
+                        {
+                            "kind":
+                            {
+                                "const": "proxy"
+                            },
+                            "routes":
+                            {
+                                "items":
+                                {
+                                    "if":
+                                    {
+                                        "required": [ "with" ]
+                                    },
+                                    "then":
+                                    {
+                                        "required": [ "exit" ]
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    {
+                        "properties":
+                        {
+                            "kind":
+                            {
+                                "const": "client"
+                            },
+                            "exit": false,
+                            "routes":
+                            {
+                                "items":
+                                {
+                                    "properties":
+                                    {
+                                        "exit": false
+                                    }
+                                }
+                            }
+                        }
+                    }
+                ]
             }
         }
     }

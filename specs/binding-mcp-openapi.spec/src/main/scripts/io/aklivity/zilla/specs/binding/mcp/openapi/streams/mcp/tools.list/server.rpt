@@ -54,7 +54,8 @@ write '{"tools":[{"name":"create_pr",'
         '"base":{"type":"string"},"body":{"type":"string"},"head":{"type":"string"},"title":{"type":"string"}},'
         '"required":["owner","repo","title","head","base"]},'
         '"outputSchema":{"type":"object","properties":{"number":{"type":"integer"},"html_url":{"type":"string"},'
-        '"state":{"type":"string"},"title":{"type":"string"}}}}]}'
+        '"state":{"type":"string"},"title":{"type":"string"}}},'
+        '"annotations":{"openWorldHint":false}}]}'
 write flush
 
 write close

@@ -252,9 +252,21 @@ catalogs:
                 "manager": { "type": ["string", "null"] }
               }
             }
+        update_issue_params:
+          version: latest
+          schema: |
+            {
+              "type": "object",
+              "required": ["state"],
+              "properties": {
+                "owner": { "type": "string" },
+                "repo":  { "type": "string" },
+                "state": { "type": "string" }
+              }
+            }
 bindings:
   app0:
-    type: mcp_http
+    type: mcp-http
     kind: proxy
     options:
       tools:
@@ -442,6 +454,19 @@ bindings:
                 http_github0:
                   - subject: search_items_result
                     version: latest
+        update_issue:
+          description: >
+            Update an issue's state. Models a tool whose derived input schema
+            marks only the body arg as required, leaving path args (owner,
+            repo) present in properties but absent from required.
+          summary: "done"
+          schemas:
+            input:
+              model: json
+              catalog:
+                http_github0:
+                  - subject: update_issue_params
+                    version: latest
       resources:
         order:
           uri: "order://{orderId}"
@@ -590,3 +615,18 @@ bindings:
             ":scheme": https
             ":authority": api.github.com:443
             ":path": /items?q=${args.q}&${?args.limit=limit}
+      - when:
+          - tool: update_issue
+        exit: http0
+        with:
+          headers:
+            ":method": PATCH
+            ":scheme": https
+            ":authority": api.github.com:443
+            ":path": /repos/${args.owner}/${args.repo}/issues
+          body:
+            model: json
+            catalog:
+              http_github0:
+                - subject: update_issue_params
+                  version: latest

@@ -22,6 +22,7 @@ public final class AsyncapiParserFactory
     private final Map<String, Class<?>> operationBindingTypes;
     private final Map<String, Class<?>> messageBindingTypes;
     private final Map<String, Class<?>> serverBindingTypes;
+    private final Map<String, Class<?>> channelBindingTypes;
     private final Map<AsyncapiExtension.Scope, Map<String, Class<?>>> extensionTypes;
     private final Map<AsyncapiExtension.Scope, Map<String, Class<?>>> prefixExtensionTypes;
 
@@ -30,6 +31,7 @@ public final class AsyncapiParserFactory
         this.operationBindingTypes = new LinkedHashMap<>();
         this.messageBindingTypes = new LinkedHashMap<>();
         this.serverBindingTypes = new LinkedHashMap<>();
+        this.channelBindingTypes = new LinkedHashMap<>();
         this.extensionTypes = new LinkedHashMap<>();
         this.prefixExtensionTypes = new LinkedHashMap<>();
     }
@@ -58,6 +60,14 @@ public final class AsyncapiParserFactory
         return this;
     }
 
+    public <T> AsyncapiParserFactory withChannelBinding(
+        String name,
+        Class<T> type)
+    {
+        channelBindingTypes.put(name, type);
+        return this;
+    }
+
     public AsyncapiParserFactory withExtension(
         AsyncapiExtension extension)
     {
@@ -72,6 +82,7 @@ public final class AsyncapiParserFactory
     public AsyncapiParser createParser()
     {
         return new AsyncapiParser(
-            operationBindingTypes, messageBindingTypes, serverBindingTypes, extensionTypes, prefixExtensionTypes);
+            operationBindingTypes, messageBindingTypes, serverBindingTypes, channelBindingTypes, extensionTypes,
+            prefixExtensionTypes);
     }
 }

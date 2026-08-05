@@ -28,8 +28,8 @@ import javax.net.ssl.X509TrustManager;
 
 import org.agrona.collections.IntHashSet;
 
-import io.aklivity.zilla.runtime.binding.tls.config.TlsConditionConfig;
-import io.aklivity.zilla.runtime.binding.tls.config.TlsMutualConfig;
+import io.aklivity.zilla.config.binding.tls.TlsConditionConfig;
+import io.aklivity.zilla.config.binding.tls.TlsMutualConfig;
 
 public final class TlsConditionMatcher
 {

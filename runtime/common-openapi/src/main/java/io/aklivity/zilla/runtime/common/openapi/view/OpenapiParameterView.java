@@ -41,7 +41,7 @@ public class OpenapiParameterView
         this.name = resolved.name;
         this.in = resolved.in;
         this.required = resolved.required;
-        this.schema = new OpenapiSchemaView(resolver, model.schema);
+        this.schema = new OpenapiSchemaView(resolver, resolved.schema);
         this.extensions = resolved.extensions;
     }
 

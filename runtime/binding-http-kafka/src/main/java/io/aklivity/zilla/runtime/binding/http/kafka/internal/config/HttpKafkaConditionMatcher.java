@@ -18,7 +18,7 @@ import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import io.aklivity.zilla.runtime.binding.http.kafka.config.HttpKafkaConditionConfig;
+import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaConditionConfig;
 
 public final class HttpKafkaConditionMatcher
 {

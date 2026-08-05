@@ -14,34 +14,21 @@
  */
 module io.aklivity.zilla.runtime.binding.mcp
 {
+    requires io.aklivity.zilla.config.binding.mcp;
     requires io.aklivity.zilla.runtime.common.json;
     requires io.aklivity.zilla.runtime.engine;
 
-    exports io.aklivity.zilla.runtime.binding.mcp.config;
     exports io.aklivity.zilla.runtime.binding.mcp.search;
 
     opens io.aklivity.zilla.runtime.binding.mcp.internal.codec;
 
-    uses io.aklivity.zilla.runtime.binding.mcp.config.McpToolSearchIndexConfigAdapterSpi;
     uses io.aklivity.zilla.runtime.binding.mcp.search.McpToolSearchIndexFactorySpi;
 
     provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
         with io.aklivity.zilla.runtime.binding.mcp.internal.McpBindingFactorySpi;
 
-    provides io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi
-        with io.aklivity.zilla.runtime.binding.mcp.internal.config.McpOptionsConfigAdapter;
-
-    provides io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi
-        with io.aklivity.zilla.runtime.binding.mcp.internal.config.McpConditionConfigAdapter;
-
-    provides io.aklivity.zilla.runtime.engine.config.WithConfigAdapterSpi
-        with io.aklivity.zilla.runtime.binding.mcp.internal.config.McpWithConfigAdapter;
-
     provides io.aklivity.zilla.runtime.engine.event.EventFormatterFactorySpi
         with io.aklivity.zilla.runtime.binding.mcp.internal.McpEventFormatterFactory;
-
-    provides io.aklivity.zilla.runtime.binding.mcp.config.McpToolSearchIndexConfigAdapterSpi
-        with io.aklivity.zilla.runtime.binding.mcp.internal.config.McpKeywordToolSearchIndexConfigAdapterSpi;
 
     provides io.aklivity.zilla.runtime.binding.mcp.search.McpToolSearchIndexFactorySpi
         with io.aklivity.zilla.runtime.binding.mcp.internal.search.McpKeywordToolSearchIndexFactorySpi;

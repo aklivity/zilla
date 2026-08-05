@@ -43,51 +43,52 @@ import jakarta.json.JsonArray;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonPatch;
 import jakarta.json.JsonReader;
-import jakarta.json.bind.Jsonb;
-import jakarta.json.bind.JsonbBuilder;
-import jakarta.json.bind.JsonbConfig;
 import jakarta.json.spi.JsonProvider;
 
+import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.config.engine.CatalogConfig;
+import io.aklivity.zilla.config.engine.CatalogedConfig;
+import io.aklivity.zilla.config.engine.ConfigException;
+import io.aklivity.zilla.config.engine.EngineConfig;
+import io.aklivity.zilla.config.engine.EngineConfigReader;
+import io.aklivity.zilla.config.engine.EngineConfigWriter;
+import io.aklivity.zilla.config.engine.EngineInfo;
+import io.aklivity.zilla.config.engine.ExporterConfig;
+import io.aklivity.zilla.config.engine.GuardConfig;
+import io.aklivity.zilla.config.engine.GuardedConfig;
+import io.aklivity.zilla.config.engine.KindConfig;
+import io.aklivity.zilla.config.engine.MetricConfig;
+import io.aklivity.zilla.config.engine.MetricRefConfig;
+import io.aklivity.zilla.config.engine.ModelConfig;
+import io.aklivity.zilla.config.engine.NamespaceConfig;
+import io.aklivity.zilla.config.engine.NamespaceConfigReader;
+import io.aklivity.zilla.config.engine.RouteConfig;
+import io.aklivity.zilla.config.engine.StoreConfig;
+import io.aklivity.zilla.config.engine.TelemetryRefConfig;
+import io.aklivity.zilla.config.engine.VaultConfig;
+import io.aklivity.zilla.runtime.common.lang.util.function.LongObjectBiFunction;
+import io.aklivity.zilla.runtime.common.lang.util.function.LongObjectPredicate;
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
-import io.aklivity.zilla.runtime.engine.config.CatalogedConfig;
-import io.aklivity.zilla.runtime.engine.config.ConfigException;
-import io.aklivity.zilla.runtime.engine.config.EngineConfig;
-import io.aklivity.zilla.runtime.engine.config.EngineConfigReader;
-import io.aklivity.zilla.runtime.engine.config.EngineConfigWriter;
-import io.aklivity.zilla.runtime.engine.config.ExporterConfig;
-import io.aklivity.zilla.runtime.engine.config.GuardConfig;
-import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
-import io.aklivity.zilla.runtime.engine.config.KindConfig;
-import io.aklivity.zilla.runtime.engine.config.MetricConfig;
-import io.aklivity.zilla.runtime.engine.config.MetricRefConfig;
-import io.aklivity.zilla.runtime.engine.config.ModelConfig;
-import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
-import io.aklivity.zilla.runtime.engine.config.RouteConfig;
-import io.aklivity.zilla.runtime.engine.config.StoreConfig;
-import io.aklivity.zilla.runtime.engine.config.TelemetryRefConfig;
-import io.aklivity.zilla.runtime.engine.config.VaultConfig;
 import io.aklivity.zilla.runtime.engine.ext.EngineExtContext;
 import io.aklivity.zilla.runtime.engine.ext.EngineExtSpi;
 import io.aklivity.zilla.runtime.engine.guard.Guard;
 import io.aklivity.zilla.runtime.engine.internal.Tuning;
-import io.aklivity.zilla.runtime.engine.internal.config.NamespaceAdapter;
 import io.aklivity.zilla.runtime.engine.internal.event.EngineEventContext;
 import io.aklivity.zilla.runtime.engine.internal.watcher.EngineConfigWatchTask;
 import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
 import io.aklivity.zilla.runtime.engine.resolver.Resolver;
-import io.aklivity.zilla.runtime.engine.util.function.LongObjectBiFunction;
-import io.aklivity.zilla.runtime.engine.util.function.LongObjectPredicate;
 
 public class EngineManager
 {
     private static final String CONFIG_TEXT_DEFAULT = "name: default\n";
+    private static final Consumer<String> NOOP_LOGGER = text ->
+    {
+    };
 
-    private final Collection<URL> schemaTypes;
     private final Collection<URL> systemConfigs;
+    private final EngineInfo info;
     private final Function<String, Binding> bindingByType;
     private final Function<String, Guard> guardByType;
     private final ToIntFunction<String> supplyId;
@@ -110,8 +111,8 @@ public class EngineManager
     private EngineConfig current;
 
     public EngineManager(
-        Collection<URL> schemaTypes,
         Collection<URL> systemConfigs,
+        EngineInfo info,
         Function<String, Binding> bindingByType,
         Function<String, Guard> guardByType,
         ToIntFunction<String> supplyId,
@@ -126,8 +127,8 @@ public class EngineManager
         EngineEventContext events,
         List<EngineExtSpi> extensions)
     {
-        this.schemaTypes = schemaTypes;
         this.systemConfigs = systemConfigs;
+        this.info = info;
         this.bindingByType = bindingByType;
         this.guardByType = guardByType;
         this.supplyId = supplyId;
@@ -299,17 +300,10 @@ public class EngineManager
 
             if (!systemPatched.equals(systemBase))
             {
-                JsonbConfig config = new JsonbConfig()
-                    .withAdapters(new NamespaceAdapter())
-                    .withFormatting(true);
-                Jsonb jsonb = JsonbBuilder.newBuilder()
-                    .withProvider(schemaProvider)
-                    .withConfig(config)
-                    .build();
+                NamespaceConfigReader namespaces = new NamespaceConfigReader(info);
+                NamespaceConfig namespace = namespaces.read(systemPatched.toString());
 
-                NamespaceConfig namespace = jsonb.fromJson(systemPatched.toString(), NamespaceConfig.class);
-
-                EngineConfigWriter writer = new EngineConfigWriter();
+                EngineConfigWriter writer = new EngineConfigWriter(info);
                 systemYaml = writer.write(namespace);
             }
         }
@@ -329,10 +323,10 @@ public class EngineManager
         try
         {
             EngineConfigReader reader = new EngineConfigReader(
-                config,
-                expressions,
-                schemaTypes,
-                logger);
+                expressions::resolve,
+                info,
+                config.verboseSchemaPlain() ? logger : NOOP_LOGGER,
+                config.verboseSchema() ? logger : NOOP_LOGGER);
 
             engine = reader.read(configText);
 
@@ -612,7 +606,7 @@ public class EngineManager
             int namespaceId)
         {
             this.namespaceId = namespaceId;
-            this.matchName = ThreadLocal.withInitial(() -> NamespaceAdapter.PATTERN_NAME.matcher(""));
+            this.matchName = ThreadLocal.withInitial(() -> NamespaceConfig.PATTERN_NAME.matcher(""));
         }
 
         private long resolve(

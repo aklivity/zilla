@@ -19,6 +19,7 @@ import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_
 import java.util.HashMap;
 import java.util.Map;
 
+import io.aklivity.zilla.config.model.protobuf.ProtobufModelConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.protobuf.Protobuf;
@@ -35,7 +36,6 @@ import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelVisitor;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
-import io.aklivity.zilla.runtime.model.protobuf.config.ProtobufModelConfig;
 
 // Per-worker factory for a protobuf model. One handler serves both directions: supplyDecoder vends a
 // per-stream ProtobufModelDecoderPipeline (catalog framing and message-index prefix stripped, value validated and

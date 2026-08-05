@@ -19,6 +19,7 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.function.LongUnaryOperator;
 
+import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.runtime.binding.echo.internal.EchoConfiguration;
 import io.aklivity.zilla.runtime.binding.echo.internal.EchoRouter;
 import io.aklivity.zilla.runtime.binding.echo.internal.types.OctetsFW;
@@ -35,7 +36,6 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public final class EchoServerFactory implements BindingHandler
 {

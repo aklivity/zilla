@@ -31,7 +31,7 @@ public class SchemaTest
     @Rule
     public final ConfigSchemaRule schema = new ConfigSchemaRule()
         .schemaPatch("io/aklivity/zilla/specs/binding/mcp/openapi/schema/mcp_openapi.schema.patch.json")
-        .schemaPatch("io/aklivity/zilla/specs/catalog/inline/schema/inline.schema.patch.json")
+        .schemaPatch("io/aklivity/zilla/config/catalog/inline/internal/schema/inline.schema.patch.json")
         .schemaPatch("io/aklivity/zilla/specs/engine/schema/model/test.schema.patch.json")
         .configurationRoot("io/aklivity/zilla/specs/binding/mcp/openapi/config");
 
@@ -47,6 +47,34 @@ public class SchemaTest
     public void shouldRejectInvalidKind()
     {
         schema.validate("proxy.kind.invalid.yaml");
+    }
+
+    @Test
+    public void shouldValidateProxyKind()
+    {
+        JsonObject config = schema.validate("kind.proxy.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateProxyKindWithRouteExit()
+    {
+        JsonObject config = schema.validate("kind.proxy.route.exit.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectProxyKindWithoutExit()
+    {
+        schema.validate("kind.proxy.invalid.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectClientKindWithExit()
+    {
+        schema.validate("exit.invalid.yaml");
     }
 
     @Test(expected = JsonException.class)
@@ -73,12 +101,6 @@ public class SchemaTest
     public void shouldRejectTagAndOperationTogether()
     {
         schema.validate("proxy.route.tag.and.operation.invalid.yaml");
-    }
-
-    @Test(expected = JsonException.class)
-    public void shouldRejectUnknownCapability()
-    {
-        schema.validate("proxy.route.capability.invalid.yaml");
     }
 
     @Test(expected = JsonException.class)

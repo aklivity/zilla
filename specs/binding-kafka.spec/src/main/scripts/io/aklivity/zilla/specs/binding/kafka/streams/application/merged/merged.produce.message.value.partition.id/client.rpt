@@ -70,3 +70,13 @@ write zilla:data.ext ${kafka:dataEx()
 write "Hello, world #A1"
 write flush
 
+read advised zilla:flush ${kafka:flushEx()
+                              .typeId(zilla:id("kafka"))
+                              .merged()
+                                .produce()
+                                  .partitionId(0)
+                                  .partitionOffset(0)
+                                  .timestamp(newTimestamp)
+                                  .build()
+                              .build()}
+

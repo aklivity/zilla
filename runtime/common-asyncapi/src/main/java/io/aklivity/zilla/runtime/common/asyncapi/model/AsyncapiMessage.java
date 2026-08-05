@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.common.asyncapi.model;
 
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 public class AsyncapiMessage extends AbstractAsyncapiResolvable
 {
@@ -27,4 +28,15 @@ public class AsyncapiMessage extends AbstractAsyncapiResolvable
     public Map<String, Object> bindings;
 
     public Map<String, Object> extensions;
+
+    public static AsyncapiMessageBuilder<AsyncapiMessage> builder()
+    {
+        return new AsyncapiMessageBuilder<>(AsyncapiMessage.class::cast);
+    }
+
+    public static <T> AsyncapiMessageBuilder<T> builder(
+        Function<AsyncapiMessage, T> mapper)
+    {
+        return new AsyncapiMessageBuilder<>(mapper);
+    }
 }

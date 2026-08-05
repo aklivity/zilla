@@ -108,10 +108,10 @@ public class CountersLayoutTest
                 .label("counters")
                 .build();
 
-        layout.supplyWriter(11L, 42, 0);
-        layout.supplyWriter(22L, 77, 0);
-        layout.supplyWriter(33L, 88, 0);
-        long[][] expectedIds = new long[][]{{11L, 42L, 0L}, {22L, 77L, 0L}, {33L, 88L, 0L}};
+        layout.supplyWriter(11L, 42, 0, 1);
+        layout.supplyWriter(22L, 77, 0, 2);
+        layout.supplyWriter(33L, 88, 0, 3);
+        long[][] expectedIds = new long[][]{{11L, 42L, 0L, 1L}, {22L, 77L, 0L, 2L}, {33L, 88L, 0L, 3L}};
 
         assertThat(layout.getIds(), equalTo(expectedIds));
     }

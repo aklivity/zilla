@@ -14,14 +14,12 @@
  */
 package io.aklivity.zilla.runtime.binding.http.kafka.internal;
 
-import java.net.URL;
-
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
 
 public final class HttpKafkaBinding implements Binding
 {
-    public static final String NAME = "http-kafka";
+    public static final String TYPE = "http-kafka";
 
     private final HttpKafkaConfiguration config;
 
@@ -34,13 +32,7 @@ public final class HttpKafkaBinding implements Binding
     @Override
     public String name()
     {
-        return HttpKafkaBinding.NAME;
-    }
-
-    @Override
-    public URL type()
-    {
-        return getClass().getResource("schema/http.kafka.schema.patch.json");
+        return HttpKafkaBinding.TYPE;
     }
 
     @Override

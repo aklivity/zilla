@@ -1,6 +1,6 @@
 <div id="top"></div>
 <div align="center">
-  <img src="./assets/zilla-rings@2x.png" height="250">
+  <img src="./assets/zilla-hero-diagram-dark.png" height="450">
 </div>
 
 </br>
@@ -15,297 +15,218 @@
 </div>
 
 <h3 align="center">
-  <a href="https://docs.aklivity.io/zilla/"><b>Docs</b></a> &bull;
-  <a href="https://docs.aklivity.io/zilla/latest/getting-started/quickstart/"><b>Quickstart</b></a> &bull;
+  <a href="https://docs.aklivity.io/latest/"><b>Docs</b></a> &bull;
+  <a href="https://docs.aklivity.io/latest/ai-gateway/get-started/"><b>Quickstart</b></a> &bull;
   <a href="/examples"><b>Examples</b></a> &bull;
   <a href="https://github.com/aklivity/zilla-demos"><b>Demos</b></a> &bull;
   <a href="https://www.aklivity.io/blog"><b>Blog</b></a>  
 </h3>
 
-**🦎 Zilla** is a stateless, multi-protocol proxy that bridges the gap between event-driven architectures and modern application protocols. It lets web apps, IoT devices, and microservices speak directly to **Apache Kafka®** — using HTTP, SSE, gRPC, MQTT, or WebSocket — without writing any custom integration code.
+**🦎 Zilla** is a stateless, multi-protocol gateway for event-driven applications and AI agents.
 
-Think of Zilla as the **protocol translation layer** for your event-driven stack: declaratively configured via YAML, deployable anywhere, and capable of replacing custom connectors, MQTT brokers, and ad-hoc middleware with a single lightweight binary.
+It provides two gateway surfaces through one protocol-native engine:
 
-> Ready to go? Jump to the [Get started](#get-started-in-60-seconds) section.
+- **Event Gateway** — expose Apache Kafka® and MQTT to applications, services, and devices over HTTP, SSE, gRPC, MQTT, or WebSocket.  
+- **MCP Gateway** — give AI agents one governed MCP endpoint for MCP servers, HTTP APIs, OpenAPI services, and Apache Kafka.
 
-## Contents
-- [Why Zilla?](#why-zilla)
-- [Get Started](#get-started-in-60-seconds)
-- [How it Works](#how-it-works)
-- [Design Decisions](#architecture)
-- [Key Features](#key-features)
-- [Resources](#resources)
-  
-## Why Zilla?
+Both are configured in a single `zilla.yaml` and share the same routing, identity, authorization, schema, telemetry, and deployment infrastructure.
 
-Modern architectures use Kafka as a backbone for real-time data — but most clients (browsers, mobile apps, IoT devices) don't speak Kafka natively. The traditional answer is a tangle of REST bridges, MQTT brokers, WebSocket servers, and custom glue code.
+> **Zilla is evolving into a unified Event and AI Gateway.** Zilla 2.0 extends the same streaming-native, multi-protocol engine that powers the Event Gateway with native MCP capabilities for connecting, governing, and observing AI agents.  
+>   
+> ⭐ Star this repository to follow new capabilities, examples, and Zilla 2.0 release updates.
 
-**Zilla eliminates that complexity.**
+## Get Started
 
-| Without Zilla | With Zilla |
-|---|---|
-| Custom REST-to-Kafka bridge code | Declarative `zilla.yaml` routes |
-| Separate MQTT broker + Kafka connector | Native MQTT-Kafka proxying built in |
-| Hand-rolled JWT validation per service | JWT continuous authorization at the proxy |
-| Schema validation scattered across services | Centralized Apicurio/Karapace enforcement |
-| Multiple middleware hops, added latency | Zero-copy, protocol-native proxying |
+**Prerequisite:** Docker Compose
 
-## What Can Zilla Do?
-
-### As a Kafka API Gateway
-Expose Kafka topics as first-class REST, SSE, gRPC, or MQTT endpoints — without a single line of broker-side code.
-
-| Use Case | Example |
-|---|---|
-| REST CRUD over Kafka topics | [`http.kafka.crud`](examples/http.kafka.crud) |
-| Real-time fan-out to SSE clients | [`sse.kafka.fanout.jwt`](examples/sse.kafka.fanout.jwt) |
-| Turn Kafka into an MQTT broker | [`mqtt.kafka.proxy`](examples/mqtt.kafka.proxy) |
-| Async request-reply over Kafka | [`http.kafka.async`](examples/http.kafka.async) |
-| gRPC event mesh via Kafka | [`grpc.kafka.proxy`](examples/grpc.kafka.proxy) |
-| AsyncAPI-driven MQTT gateway | [`asyncapi.mqtt.kafka.proxy`](examples/asyncapi.mqtt.kafka.proxy) |
-
-### As a Service Sidecar
-Deploy alongside any service to handle cross-cutting concerns:
-- **Authentication** — JWT validation with continuous stream authorization for SSE
-- **Schema enforcement** — validate payloads against OpenAPI / AsyncAPI / Avro / Protobuf schemas
-- **TLS termination** — offload TLS handling from your services
-- **Observability** — emit metrics to Prometheus and traces to OpenTelemetry
-
-## Get Started in 60 Seconds
-
-**Prerequisites:** Docker Compose
-
-```bash
+```shell
 git clone https://github.com/aklivity/zilla.git
 cd zilla/examples
+```
+
+### Event Gateway — REST over Kafka
+
+```shell
 docker compose --project-directory http.kafka.crud up -d
 ```
 
-This starts Zilla, a local Kafka cluster, and a Kafka UI at [http://localhost:8080](http://localhost:8080/ui/clusters/local/all-topics).
-
-Try it — create a Kafka-backed resource over plain HTTP:
-
-```bash
-# Create an item (produces a Kafka message)
+```shell
 curl -X POST http://localhost:7114/items \
   -H 'Content-Type: application/json' \
   -d '{"name": "widget", "price": 9.99}'
 
-# Fetch all items (consumes from Kafka topic)
 curl http://localhost:7114/items
 ```
 
-Watch messages appear in real time on the Kafka UI. Then stop with:
+View the records in [Kafka UI](http://localhost:8080/ui/clusters/local/all-topics).
 
-```bash
-docker compose --project-directory http.kafka.crud down
+### MCP Gateway — one endpoint for multiple providers
+
+```shell
+docker compose --project-directory mcp.proxy up -d
 ```
 
-→ **[Full Quickstart Guide](https://docs.aklivity.io/zilla/latest/getting-started/quickstart/)**
+Connect an MCP client that supports Streamable HTTP to:
 
-
-## How It Works
-
-Zilla is configured entirely in a single `zilla.yaml` file. You declare named **bindings** — each one specifying a protocol, a behavior (`server` / `client` / `proxy`), and routing rules. Bindings chain together to form a pipeline.
-
-Here's the full config for the HTTP-to-Kafka CRUD example above:
-
-```yaml
-name: example
-bindings:
-
-  north_tcp_server:
-    type: tcp
-    kind: server
-    options:
-      host: 0.0.0.0
-      port: 7114
-    routes:
-      - when:
-          - port: 7114
-        exit: north_http_server
-
-  north_http_server:
-    type: http
-    kind: server
-    routes:
-      - when:
-          - headers:
-              :scheme: http
-        exit: north_http_kafka_mapping
-
-  north_http_kafka_mapping:
-    type: http-kafka
-    kind: proxy
-    routes:
-      - when:
-          - method: POST
-            path: /items
-        exit: north_kafka_cache_client
-        with:
-          capability: produce
-          topic: items-snapshots
-          key: ${idempotencyKey}
-      - when:
-          - method: GET
-            path: /items
-        exit: north_kafka_cache_client
-        with:
-          capability: fetch
-          topic: items-snapshots
-          merge:
-            content-type: application/json
-      - when:
-          - method: GET
-            path: /items/{id}
-        exit: north_kafka_cache_client
-        with:
-          capability: fetch
-          topic: items-snapshots
-          filters:
-            - key: ${params.id}
-      - when:
-          - method: PUT
-            path: /items/{id}
-        exit: north_kafka_cache_client
-        with:
-          capability: produce
-          topic: items-snapshots
-          key: ${params.id}
-      - when:
-          - method: DELETE
-            path: /items/{id}
-        exit: north_kafka_cache_client
-        with:
-          capability: produce
-          topic: items-snapshots
-          key: ${params.id}
-
-  north_kafka_cache_client:
-    type: kafka
-    kind: cache_client
-    exit: south_kafka_cache_server
-
-  south_kafka_cache_server:
-    type: kafka
-    kind: cache_server
-    options:
-      bootstrap:
-        - items-snapshots
-    exit: south_kafka_client
-
-  south_kafka_client:
-    type: kafka
-    kind: client
-    options:
-      servers:
-        - ${{env.KAFKA_BOOTSTRAP_SERVER}}
-    exit: south_tcp_client
-
-  south_tcp_client:
-    type: tcp
-    kind: client
-
-telemetry:
-  exporters:
-    stdout_logs_exporter:
-      type: stdout
+```
+http://localhost:7114/mcp
 ```
 
-→ **[See all examples](examples/)** | **[Configuration reference](https://docs.aklivity.io/zilla/latest/reference/config/overview.html)**
+Zilla aggregates the configured providers into one namespaced capability catalog and routes each request to the correct MCP server, API, or Kafka cluster.
+
+Check MCP metrics:
+
+```shell
+curl http://localhost:7190/metrics
+```
+
+→ [AI Gateway quickstart](https://docs.aklivity.io/latest/ai-gateway/get-started/)  
+→ [Browse all examples](http://./examples)
+
+## Two Gateway Surfaces, One Engine
+
+```
+ Applications, Services and Devices                 AI Agents
+ HTTP · SSE · gRPC · MQTT · WebSocket        MCP over Streamable HTTP
+                  \                                  /
+                   ┌────────────────────────────────┐
+                   │           Zilla 2.0            │
+                   │ Routing · Identity · Policy    │
+                   │ Schemas · Metrics · Events     │
+                   └────────────────────────────────┘
+                         /                    \
+              Kafka · MQTT            MCP Servers · HTTP APIs
+                                      OpenAPI · Apache Kafka
+```
+
+| Capability | What Zilla does |
+| :---- | :---- |
+| Event access | Exposes Kafka and MQTT through application-friendly protocols |
+| MCP federation | Combines multiple providers behind one virtual MCP server |
+| Toolkit routing | Namespaces capabilities and routes each call to the correct backend |
+| HTTP and OpenAPI | Exposes existing APIs as MCP tools and resources |
+| Kafka for agents | Exposes Kafka operations directly through the native MCP–Kafka binding |
+| Authentication | Validates the agent identity at the gateway |
+| Authorization | Controls access to endpoints, toolkits, tools, prompts, and resources |
+| Context control | Supports cached listings plus eager and cold tool discovery |
+| Guardrails | Validates and transforms JSON, Avro, and Protobuf payloads |
+| Observability | Records MCP metrics, durations, outcomes, and lifecycle events |
+| Scaling | Keeps request processing stateless and externalizes shared state when needed |
+
+## Why Zilla?
+
+Browsers do not speak Kafka. IoT clients may use MQTT while the system of record uses Kafka. AI agents may need capabilities spread across MCP servers, APIs, and event streams, each with its own endpoint, credential, schema, and telemetry model.
+
+Zilla replaces custom protocol bridges, per-provider MCP wrappers, authentication glue, and fragmented instrumentation with declarative gateway routes.
+
+| Without Zilla | With Zilla |
+| :---- | :---- |
+| Custom REST, WebSocket, or MQTT middleware | Native protocol bindings |
+| One integration per MCP provider | One virtual MCP server |
+| APIs manually wrapped as MCP servers | HTTP and OpenAPI exposed directly |
+| Custom MCP-to-Kafka adapters | Native MCP–Kafka access |
+| Authorization implemented independently upstream | Centralized capability authorization |
+| Every tool loaded into agent context | Cached, eager, and cold tool discovery |
+| Validation and telemetry scattered across services | Gateway-level guardrails and observability |
+
+## MCP Gateway
+
+Zilla can connect an agent-facing MCP endpoint to:
+
+- existing MCP servers;  
+- HTTP APIs;  
+- OpenAPI-described services;  
+- Apache Kafka.
+
+Capabilities are namespaced as:
+
+```
+<toolkit>__<capability>
+```
+
+For example:
+
+```
+github__create_pr
+payments__refund
+kafka__produce_message
+```
+
+The toolkit selects the route and avoids naming collisions across providers.
+
+Zilla can authenticate the agent once, filter capability listings by authorization, and forward or exchange credentials for upstream services. Zilla Plus adds advanced OAuth grants and shared Redis or Hazelcast stores for multi-replica deployments.
+
+Large catalogs can be divided into eager and cold tools so agents load only the capabilities they need. Zilla can also relay MCP elicitation, apply schema guardrails, and export telemetry without requiring changes to agents or upstream providers.
+
+→ [MCP Gateway architecture](https://docs.aklivity.io/latest/ai-gateway/mcp-gateway/)  
+→ [Security](https://docs.aklivity.io/latest/ai-gateway/security/)  
+→ [Guardrails](https://docs.aklivity.io/latest/ai-gateway/guardrails/)  
+→ [Observability](https://docs.aklivity.io/latest/ai-gateway/monitoring-observability/)  
+→ [Configuration reference](https://docs.aklivity.io/latest/reference/2.x/)
 
 ## Architecture
 
-Zilla is built around a few unconventional design choices that explain its performance characteristics.
+Zilla uses a protocol-native streaming engine designed to minimize allocation, copying, and cross-thread coordination.
 
-1. **No object allocation on the data path.** Rather than building on a codec pipeline framework like Netty or Apache MINA — which decode bytes into objects and re-encode them at each stage — Zilla uses code-generated *flyweight* objects that overlay strongly typed APIs directly onto raw binary data in shared memory. There is no object construction overhead, no GC pressure from the data path, and method call stacks stay short enough for the JVM JIT to inline aggressively.
-2. **One engine worker per CPU core, pinned per connection.** On startup, Zilla creates one single-threaded engine worker per CPU core. Each incoming TCP connection is dispatched to a worker and stays there for its lifetime. The vast majority of stream processing involves zero cross-core coordination. Where fan-in or fan-out is required (e.g. many clients subscribing to the same Kafka topic), Zilla uses lock-free data structures with ordered memory writes rather than locks.
-3. **Streams flow over shared memory, not sockets.** Between bindings in a pipeline, data moves as typed stream frames (BEGIN / DATA / END / WINDOW) over shared memory — not through additional network hops or intermediate queues. Flow control and back-pressure are built into the stream model, so a slow consumer can never be overwhelmed by a fast producer, and no buffering layer is needed to mediate between them.
-4. **Kafka fan-out via a local cache.** Zilla fetches each Kafka topic partition once and stores it as memory-mapped files local to the Zilla node. Any number of clients can be served from that cache without additional round-trips to Kafka. When more Zilla nodes are added horizontally, each hydrates its own cache independently — so horizontal scaling doesn't introduce inter-node coordination overhead.
+- Code-generated flyweights provide typed access over encoded buffers.  
+- Each connection remains assigned to one worker for its lifetime.  
+- Bindings exchange back-pressured stream frames through shared memory.  
+- Cache-enabled Kafka routes can fetch once and serve many downstream consumers.  
+- MCP listing and authorization state can be externalized for multi-replica consistency.
 
-→ [Deep dive: How Zilla Works](https://www.aklivity.io/post/how-zilla-works)
+→ [How Zilla Works](https://www.aklivity.io/post/how-zilla-works)
+
+## Editions
+
+**Zilla Community** includes the core Event Gateway and MCP Gateway.
+
+**Zilla Plus** adds advanced OAuth, distributed stores, secure Kafka access, virtual clusters, and commercial support.
 
 ## Install
 
-Zilla has no external dependencies. Pick your preferred deployment method:
+### Docker
 
+```shell
+docker pull ghcr.io/aklivity/zilla:latest
 
-**Docker**
-```bash
-docker pull ghcr.io/aklivity/zilla
-docker run ghcr.io/aklivity/zilla:latest start -v
+docker run --rm \
+  -p 7114:7114 \
+  -v "$(pwd)/zilla.yaml:/etc/zilla/zilla.yaml:ro" \
+  ghcr.io/aklivity/zilla:latest \
+  start -v
 ```
 
-**Helm (Kubernetes)**
-```bash
+### Helm
+
+```shell
 helm install zilla oci://ghcr.io/aklivity/charts/zilla \
-  --namespace zilla --create-namespace --wait \
+  --namespace zilla \
+  --create-namespace \
+  --wait \
   --values values.yaml \
   --set-file zilla\\.yaml=zilla.yaml
 ```
 
-Both single-node and clustered deployments are supported.
-
-
-## Key Features
-
-- **Protocol support:** HTTP · SSE · gRPC · MQTT · WebSocket · Kafka (native)
-- **API specifications:** Import OpenAPI and AsyncAPI schemas directly as Zilla config — no translation step required.
-- **Schema registries:** Integrate with Apicurio or Karapace to validate `JSON`, `Avro`, and `Protobuf` payloads at the proxy layer.
-- **Security:** JWT-based authentication including [continuous stream authorization](https://www.aklivity.io/post/a-primer-on-server-sent-events-sse) for long-lived SSE connections.
-- **Observability:** Native Prometheus metrics and OpenTelemetry tracing exporters.
-- **Performance:** Stateless architecture with multi-core flow control means near-zero latency overhead. See the [benchmark](https://www.aklivity.io/post/proxy-benefits-with-near-zero-latency-tax-aklivity-zilla-benchmark-series-part-1).
-
-
-## Who Is Zilla For?
-
-**Platform engineers** who want to share Kafka clusters across teams or simplify multi-protocol integration without custom connectors.
-
-**Application developers** building on real-time data streams without deep Kafka expertise.
-
-**API architects** who want to drive infrastructure from OpenAPI and AsyncAPI schemas.
-
-
-## Zilla Plus (Enterprise)
-
-The open-source **Zilla Community Edition** covers most use cases. [**Zilla Plus**](https://www.aklivity.io/zilla-gateway) adds enterprise capabilities:
-
-- **Virtual Clusters** — multi-tenant Kafka cluster isolation
-- **Secure Public/Private Access** — mTLS, custom Kafka domains, VPC-aware routing
-- **IoT Ingest & Control** — production-grade MQTT broker over Kafka at scale
-- **Enterprise support** — SLAs, dedicated engineering access
-
-→ [Compare editions](https://www.aklivity.io/products/zilla-plus)
-
-
 ## Resources
 
-### 📚 Read the docs
-
-**Learning**
-- [📖 Documentation](https://docs.aklivity.io/zilla/latest) — Concepts, deployment guides, and full configuration reference
-- [⚡ Quickstart](https://docs.aklivity.io/zilla/latest/getting-started/quickstart/) — Running in under 60 seconds
-- [🧪 Examples](examples/) — Bite-sized, runnable demos for every supported protocol
-- [🎬 Demos](https://github.com/aklivity/zilla-demos) — Full-stack demos including the Petstore and Taxi IoT deployment
-- [🗺️ Roadmap](https://github.com/orgs/aklivity/projects/4/views/1) — What's coming next
-
-**Blog highlights**
-- [Bring your own REST APIs for Apache Kafka](https://www.aklivity.io/post/bring-your-own-rest-apis-for-apache-kafka)
-- [End-to-end Streaming Between gRPC Services via Kafka](https://www.aklivity.io/post/end-to-end-streaming-between-grpc-services-via-kafka)
-- [Modern Eventing with CQRS, Redpanda and Zilla](https://www.aklivity.io/post/modern-eventing-with-cqrs-redpanda-and-zilla)
-- [Centralized Data Governance Across Protocols](https://www.aklivity.io/post/the-why-how-of-centralized-data-governance-in-zilla-across-protocols)
-- [How Zilla Works](https://www.aklivity.io/post/how-zilla-works)
-
-**Community & Support**
-- [💬 Community Slack](https://www.aklivity.io/slack) — Ask questions, share what you're building
-- [🐛 GitHub Issues](https://github.com/aklivity/zilla/issues) — Bug reports and feature requests
-- [📬 Contact](https://www.aklivity.io/contact) — Non-technical inquiries and enterprise sales
-- [🦎 Contributing](./.github/CONTRIBUTING.md) - We value all contributions, whether source code, documentation, bug reports, feature requests or feedback
-
+- [📖 Documentation](https://docs.aklivity.io/latest)  
+- [🛡️ AI Gateway](https://docs.aklivity.io/latest/ai-gateway/)  
+- [⚡ Quickstart](https://docs.aklivity.io/latest/ai-gateway/get-started/)  
+- [🧪 Examples](http://./examples)  
+- [🎬 Demos](https://github.com/aklivity/zilla-demos)  
+- [🗺️ Roadmap](https://github.com/orgs/aklivity/projects/4/views/1)  
+- [💬 Discord Server](https://discord.gg/RbUeKPsxq)  
+- [💬 Community Slack](https://www.aklivity.io/slack)  
+- [🐛 GitHub Issues](https://github.com/aklivity/zilla/issues)  
+- [🦎 Contributing](http://./.github/CONTRIBUTING.md)
 
 ## License
 
-Zilla is made available under the [Aklivity Community License](./LICENSE-AklivityCommunity). This is an open source-derived license that gives you the freedom to deploy, modify and run Zilla as you see fit, as long as you are not turning into a standalone commercialized “Zilla-as-a-service” offering. Running Zilla in the cloud for your own workloads, production or not, is completely fine.
+Zilla is made available under the [Aklivity Community License](http://./LICENSE-AklivityCommunity).
+
+The license allows you to deploy, run, and modify Zilla for your own workloads, including production and cloud deployments. It does not permit offering Zilla as a standalone commercial Zilla-as-a-service product.
+
+Review the license text for the complete terms.
 
 
 <!-- Links -->

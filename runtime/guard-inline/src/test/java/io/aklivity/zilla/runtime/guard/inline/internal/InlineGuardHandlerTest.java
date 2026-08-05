@@ -16,10 +16,15 @@ package io.aklivity.zilla.runtime.guard.inline.internal;
 
 import static java.util.Collections.emptyList;
 import static java.util.List.of;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
+
+import io.aklivity.zilla.config.guard.inline.InlineOptionsConfig;
 
 public class InlineGuardHandlerTest
 {
@@ -34,5 +39,59 @@ public class InlineGuardHandlerTest
         assertTrue(handler.verify(sessionId, emptyList()));
         assertFalse(handler.verify(sessionId, of("admin")));
         assertFalse(handler.verify(0L, emptyList()));
+    }
+
+    @Test
+    public void shouldSplitIdentityAndCredentialsWhenFormatConfigured()
+    {
+        InlineOptionsConfig options = InlineOptionsConfig.builder()
+            .format("{identity}:{credentials}")
+            .build();
+        InlineGuardHandler handler = new InlineGuardHandler(() -> 1L, options);
+
+        long sessionId = handler.reauthorize(0L, 0L, 0L, "alice:secret");
+
+        assertThat(handler.identity(sessionId), equalTo("alice"));
+        assertThat(handler.credentials(sessionId), equalTo("secret"));
+    }
+
+    @Test
+    public void shouldFallBackToWholeValueAsIdentityWhenFormatConfiguredButInputDoesNotMatch()
+    {
+        InlineOptionsConfig options = InlineOptionsConfig.builder()
+            .credentials("default-credentials")
+            .format("{identity}:{credentials}")
+            .build();
+        InlineGuardHandler handler = new InlineGuardHandler(() -> 1L, options);
+
+        long sessionId = handler.reauthorize(0L, 0L, 0L, "malformed-input-without-separator");
+
+        assertThat(handler.identity(sessionId), equalTo("malformed-input-without-separator"));
+        assertThat(handler.credentials(sessionId), equalTo("default-credentials"));
+    }
+
+    @Test
+    public void shouldFallBackToNullCredentialsWhenFormatConfiguredButInputDoesNotMatchAndNoStaticDefault()
+    {
+        InlineOptionsConfig options = InlineOptionsConfig.builder()
+            .format("{identity}:{credentials}")
+            .build();
+        InlineGuardHandler handler = new InlineGuardHandler(() -> 1L, options);
+
+        long sessionId = handler.reauthorize(0L, 0L, 0L, "malformed-input-without-separator");
+
+        assertThat(handler.identity(sessionId), equalTo("malformed-input-without-separator"));
+        assertThat(handler.credentials(sessionId), nullValue());
+    }
+
+    @Test
+    public void shouldReturnSameValueForIdentityAndCredentialsWhenFormatNotConfigured()
+    {
+        InlineGuardHandler handler = new InlineGuardHandler(() -> 1L, null);
+
+        long sessionId = handler.reauthorize(0L, 0L, 0L, "alice:secret");
+
+        assertThat(handler.identity(sessionId), equalTo("alice:secret"));
+        assertThat(handler.credentials(sessionId), equalTo("alice:secret"));
     }
 }

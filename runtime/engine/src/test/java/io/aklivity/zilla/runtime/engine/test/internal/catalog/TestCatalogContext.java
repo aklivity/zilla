@@ -15,11 +15,11 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.catalog;
 
+import io.aklivity.zilla.config.engine.CatalogConfig;
+import io.aklivity.zilla.config.engine.test.internal.catalog.config.TestCatalogOptionsConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
-import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
-import io.aklivity.zilla.runtime.engine.test.internal.catalog.config.TestCatalogOptionsConfig;
 
 public class TestCatalogContext implements CatalogContext
 {

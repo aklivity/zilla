@@ -18,6 +18,7 @@ import java.util.function.LongUnaryOperator;
 
 import org.agrona.collections.Long2ObjectHashMap;
 
+import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.internal.McpOpenapiConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.internal.config.McpOpenapiBindingConfig;
 import io.aklivity.zilla.runtime.binding.mcp.openapi.internal.config.McpOpenapiCompositeConfig;
@@ -39,7 +40,6 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public final class McpOpenapiClientFactory implements BindingHandler
 {
@@ -82,7 +82,7 @@ public final class McpOpenapiClientFactory implements BindingHandler
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.bindings = new Long2ObjectHashMap<>();
-        this.generator = new McpOpenapiCompositeGenerator(config.httpClientExit());
+        this.generator = new McpOpenapiCompositeGenerator();
         this.event = new McpOpenapiEventContext(context);
         this.compositeRouteId = config.compositeRouteId();
     }
@@ -312,10 +312,11 @@ public final class McpOpenapiClientFactory implements BindingHandler
             final long acknowledge = reset.acknowledge();
             final int maximum = reset.maximum();
             final long traceId = reset.traceId();
+            final OctetsFW extension = reset.extension();
 
             state = McpOpenapiState.closeReply(state);
 
-            http.doMcpHttpReset(sequence, acknowledge, maximum, traceId);
+            http.doMcpHttpReset(sequence, acknowledge, maximum, traceId, extension);
         }
 
         private void onMcpOpenapiWindow(
@@ -382,7 +383,7 @@ public final class McpOpenapiClientFactory implements BindingHandler
             long traceId,
             OctetsFW extension)
         {
-            // an END must always be deliverable even if the reply was never opened (e.g. mcp_http0 ends its
+            // an END must always be deliverable even if the reply was never opened (e.g. mcp-http0 ends its
             // reply before ever sending a BEGIN) — open the reply first, mirroring doMcpOpenapiAbort below
             doMcpOpenapiBegin(sequence, acknowledge, maximum, traceId, extension);
 
@@ -402,7 +403,7 @@ public final class McpOpenapiClientFactory implements BindingHandler
             long traceId,
             OctetsFW extension)
         {
-            // an ABORT must always be deliverable even if the reply was never opened — e.g. mcp_http0's
+            // an ABORT must always be deliverable even if the reply was never opened — e.g. mcp-http0's
             // upstream aborts before ever sending a response, so no reply BEGIN has gone out yet. Without
             // opening the reply first, this abort is silently dropped and the real client hangs forever
             // waiting for any reply frame at all
@@ -421,14 +422,15 @@ public final class McpOpenapiClientFactory implements BindingHandler
             long sequence,
             long acknowledge,
             int maximum,
-            long traceId)
+            long traceId,
+            OctetsFW extension)
         {
             if (!McpOpenapiState.initialClosed(state))
             {
                 state = McpOpenapiState.closeInitial(state);
 
                 McpOpenapiClientFactory.this.doReset(sender, originId, routedId, initialId, sequence, acknowledge, maximum,
-                    traceId, authorization);
+                    traceId, authorization, extension);
             }
         }
 
@@ -593,10 +595,11 @@ public final class McpOpenapiClientFactory implements BindingHandler
             final long acknowledge = reset.acknowledge();
             final int maximum = reset.maximum();
             final long traceId = reset.traceId();
+            final OctetsFW extension = reset.extension();
 
             state = McpOpenapiState.closeInitial(state);
 
-            delegate.doMcpOpenapiReset(sequence, acknowledge, maximum, traceId);
+            delegate.doMcpOpenapiReset(sequence, acknowledge, maximum, traceId, extension);
         }
 
         private void onMcpHttpWindow(
@@ -697,12 +700,13 @@ public final class McpOpenapiClientFactory implements BindingHandler
             long sequence,
             long acknowledge,
             int maximum,
-            long traceId)
+            long traceId,
+            OctetsFW extension)
         {
             if (!McpOpenapiState.replyClosed(state))
             {
                 McpOpenapiClientFactory.this.doReset(receiver, originId, routedId, replyId, sequence, acknowledge, maximum,
-                    traceId, authorization);
+                    traceId, authorization, extension);
 
                 state = McpOpenapiState.closeReply(state);
             }
@@ -943,7 +947,8 @@ public final class McpOpenapiClientFactory implements BindingHandler
         long acknowledge,
         int maximum,
         long traceId,
-        long authorization)
+        long authorization,
+        OctetsFW extension)
     {
         final ResetFW reset = resetRW.wrap(writeBuffer, 0, writeBuffer.capacity())
             .originId(originId)
@@ -954,7 +959,7 @@ public final class McpOpenapiClientFactory implements BindingHandler
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
-            .extension(EMPTY_OCTETS.buffer(), EMPTY_OCTETS.offset(), EMPTY_OCTETS.sizeof())
+            .extension(extension)
             .build();
 
         receiver.accept(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());

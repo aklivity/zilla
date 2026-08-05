@@ -52,18 +52,20 @@ public class AsyncapiParser
     private final Map<String, Class<?>> operationBindingTypes;
     private final Map<String, Class<?>> messageBindingTypes;
     private final Map<String, Class<?>> serverBindingTypes;
+    private final Map<String, Class<?>> channelBindingTypes;
     private final Map<AsyncapiExtension.Scope, Map<String, Class<?>>> extensionTypes;
     private final Map<AsyncapiExtension.Scope, Map<String, Class<?>>> prefixExtensionTypes;
 
     public AsyncapiParser()
     {
-        this(emptyMap(), emptyMap(), emptyMap(), emptyMap(), emptyMap());
+        this(emptyMap(), emptyMap(), emptyMap(), emptyMap(), emptyMap(), emptyMap());
     }
 
     AsyncapiParser(
         Map<String, Class<?>> operationBindingTypes,
         Map<String, Class<?>> messageBindingTypes,
         Map<String, Class<?>> serverBindingTypes,
+        Map<String, Class<?>> channelBindingTypes,
         Map<AsyncapiExtension.Scope, Map<String, Class<?>>> extensionTypes,
         Map<AsyncapiExtension.Scope, Map<String, Class<?>>> prefixExtensionTypes)
     {
@@ -74,6 +76,7 @@ public class AsyncapiParser
         this.operationBindingTypes = operationBindingTypes;
         this.messageBindingTypes = messageBindingTypes;
         this.serverBindingTypes = serverBindingTypes;
+        this.channelBindingTypes = channelBindingTypes;
         this.extensionTypes = extensionTypes;
         this.prefixExtensionTypes = prefixExtensionTypes;
     }
@@ -99,10 +102,12 @@ public class AsyncapiParser
             }
 
             List<JsonbDeserializer<?>> deserializers = AsyncapiDeserializers.all(
-                operationBindingTypes, messageBindingTypes, serverBindingTypes, extensionTypes, prefixExtensionTypes);
+                operationBindingTypes, messageBindingTypes, serverBindingTypes, channelBindingTypes, extensionTypes,
+                prefixExtensionTypes);
             Jsonb jsonb = JsonbBuilder.newBuilder()
                     .withConfig(new JsonbConfig()
                         .withDeserializers(deserializers.toArray(JsonbDeserializer[]::new)))
+                    .withProvider(provider)
                     .build();
 
             asyncapi = jsonb.fromJson(asyncapiObject.toString(), Asyncapi.class);

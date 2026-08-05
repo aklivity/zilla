@@ -1,0 +1,70 @@
+#
+# Copyright 2021-2026 Aklivity Inc
+#
+# Licensed under the Aklivity Community License (the "License"); you may not use
+# this file except in compliance with the License.  You may obtain a copy of the
+# License at
+#
+#   https://www.aklivity.io/aklivity-community-license/
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations under the License.
+#
+
+connect "zilla://streams/kafka0"
+    option zilla:window 8192
+    option zilla:transmission "half-duplex"
+    option zilla:byteorder "network"
+
+write zilla:begin.ext ${kafka:beginEx()
+                               .typeId(zilla:id("kafka"))
+                               .apiRequest()
+                                 .length(13)
+                                 .api(15)
+                                 .version(5)
+                                 .clientId("zilla")
+                                 .build()
+                                .build()}
+
+connected
+
+write [0x00]                            # request header tagged fields
+      [0x02]                            # group count
+      [0x09] "my-group"                 # group id
+      [0x00]                            # include authorized operations
+      [0x00]                            # tagged fields
+
+read zilla:begin.ext ${kafka:matchBeginEx()
+                               .typeId(zilla:id("kafka"))
+                               .apiResponse()
+                                 .length(110)
+                                 .version(5)
+                                 .build()
+                                .build()}
+
+read  [0x00]                             # tagged fields
+      0                                  # throttle time ms
+      [0x02]                             # groups
+        0s                               # error code
+        [0x09] "my-group"                # group id
+        [0x07] "Stable"                  # group state
+        [0x09] "consumer"                # protocol type
+        [0x06] "range"                   # protocol data
+        [0x02]                           # members
+          [0x0f] "consumer-1-abc"        # member id
+          [0x00]                         # group instance id (null)
+          [0x0b] "consumer-1"            # client id
+          [0x0a] "/10.0.0.1"             # client host
+          [0x01]                        # member metadata (empty)
+          [0x19]                        # member assignment length (25 = 24 bytes + 1)
+          [0x00 0x00 0x00 0x00 0x00 0x01 0x00 0x08] "my-topic" [0x00 0x00 0x00 0x01 0x00 0x00 0x00 0x00]
+                                        # version=0, topicCount=1, topic name len=8+"my-topic", partitionCount=1, partition=0
+          [0x00]                         # member tagged fields
+        [0xff 0xff 0xff 0xff]           # authorized operations (-1)
+        [0x00]                           # group tagged fields
+      [0x00]                             # tagged fields
+
+write close
+read closed

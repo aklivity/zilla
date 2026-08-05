@@ -23,7 +23,8 @@ import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.IntObjectToObjectFunction;
 import org.agrona.collections.Long2ObjectHashMap;
 
-import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
+import io.aklivity.zilla.config.binding.kafka.KafkaSaslConfig;
+import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBinding;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.kafka.internal.budget.KafkaMergedBudgetAccountant;
@@ -37,7 +38,6 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public final class KafkaClientFactory implements KafkaStreamFactory
 {
@@ -117,7 +117,11 @@ public final class KafkaClientFactory implements KafkaStreamFactory
         final KafkaMergedFactory clientMergedFactory = new KafkaMergedFactory(
                 config, context, bindings::get, accountant.creditor());
 
+        final KafkaClientApiFactory clientApiFactory = new KafkaClientApiFactory(
+            config, context, bindings::get, accountant::supplyDebitor, signaler, context.streamFactory());
+
         final Int2ObjectHashMap<BindingHandler> factories = new Int2ObjectHashMap<>();
+        factories.put(KafkaBeginExFW.KIND_API_REQUEST, clientApiFactory);
         factories.put(KafkaBeginExFW.KIND_REQUEST, clientRequestFactory);
         factories.put(KafkaBeginExFW.KIND_META, clientMetaFactory);
         factories.put(KafkaBeginExFW.KIND_DESCRIBE, clientDescribeFactory);

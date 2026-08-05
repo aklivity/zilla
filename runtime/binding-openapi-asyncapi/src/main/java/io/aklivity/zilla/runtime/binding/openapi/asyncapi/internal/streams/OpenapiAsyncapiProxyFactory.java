@@ -18,7 +18,7 @@ import java.util.function.LongUnaryOperator;
 
 import org.agrona.collections.Long2ObjectHashMap;
 
-import io.aklivity.zilla.runtime.binding.asyncapi.internal.AsyncapiBinding;
+import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.OpenapiAsyncapiConfiguration;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config.OpenapiAsyncapiBindingConfig;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config.OpenapiAsyncapiCompositeConfig;
@@ -39,7 +39,6 @@ import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.types.stream.
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.types.stream.OpenapiBeginExFW;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.types.stream.WindowFW;
-import io.aklivity.zilla.runtime.binding.openapi.internal.OpenapiBinding;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
@@ -47,7 +46,6 @@ import io.aklivity.zilla.runtime.common.openapi.view.OpenapiOperationView;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamFactory
 {
@@ -104,8 +102,8 @@ public final class OpenapiAsyncapiProxyFactory implements OpenapiAsyncapiStreamF
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.bindings = new Long2ObjectHashMap<>();
-        this.openapiTypeId = context.supplyTypeId(OpenapiBinding.NAME);
-        this.asyncapiTypeId = context.supplyTypeId(AsyncapiBinding.NAME);
+        this.openapiTypeId = context.supplyTypeId("openapi");
+        this.asyncapiTypeId = context.supplyTypeId("asyncapi");
     }
 
     @Override

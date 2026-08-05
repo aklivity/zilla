@@ -73,3 +73,13 @@ read zilla:data.ext ${kafka:dataEx()
                                   .build()
                               .build()}
 read "Hello, world #A1"
+
+write advise zilla:flush ${kafka:flushEx()
+                              .typeId(zilla:id("kafka"))
+                              .merged()
+                                .produce()
+                                  .partitionId(0)
+                                  .partitionOffset(0)
+                                  .timestamp(newTimestamp)
+                                  .build()
+                              .build()}

@@ -15,8 +15,8 @@
  */
 package io.aklivity.zilla.runtime.engine.router;
 
+import io.aklivity.zilla.config.engine.RouterConfig;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
-import io.aklivity.zilla.runtime.engine.config.RouterConfig;
 
 /**
  * Per-thread context for a stream factory composition plugin.

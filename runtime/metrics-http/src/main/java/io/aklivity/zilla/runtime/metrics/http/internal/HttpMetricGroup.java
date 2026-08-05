@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.runtime.metrics.http.internal;
 
-import java.net.URL;
 import java.util.Collection;
 import java.util.Map;
 import java.util.function.Supplier;
@@ -43,12 +42,6 @@ public class HttpMetricGroup implements MetricGroup
     public String name()
     {
         return NAME;
-    }
-
-    @Override
-    public URL type()
-    {
-        return getClass().getResource("schema/http.schema.patch.json");
     }
 
     @Override

@@ -23,8 +23,8 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.zip.CRC32C;
 
-import io.aklivity.zilla.runtime.catalog.filesystem.internal.config.FilesystemOptionsConfig;
-import io.aklivity.zilla.runtime.catalog.filesystem.internal.config.FilesystemSchemaConfig;
+import io.aklivity.zilla.config.catalog.filesystem.FilesystemOptionsConfig;
+import io.aklivity.zilla.config.catalog.filesystem.FilesystemSchemaConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 

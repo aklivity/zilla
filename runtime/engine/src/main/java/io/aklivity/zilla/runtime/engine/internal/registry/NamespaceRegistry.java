@@ -32,20 +32,20 @@ import java.util.function.ToIntFunction;
 
 import org.agrona.collections.Int2ObjectHashMap;
 
+import io.aklivity.zilla.config.engine.AttributeConfig;
+import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.config.engine.CatalogConfig;
+import io.aklivity.zilla.config.engine.ExporterConfig;
+import io.aklivity.zilla.config.engine.GuardConfig;
+import io.aklivity.zilla.config.engine.KindConfig;
+import io.aklivity.zilla.config.engine.MetricConfig;
+import io.aklivity.zilla.config.engine.NamespaceConfig;
+import io.aklivity.zilla.config.engine.StoreConfig;
+import io.aklivity.zilla.config.engine.VaultConfig;
 import io.aklivity.zilla.runtime.engine.binding.BindingContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogContext;
-import io.aklivity.zilla.runtime.engine.config.AttributeConfig;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.CatalogConfig;
-import io.aklivity.zilla.runtime.engine.config.ExporterConfig;
-import io.aklivity.zilla.runtime.engine.config.GuardConfig;
-import io.aklivity.zilla.runtime.engine.config.KindConfig;
-import io.aklivity.zilla.runtime.engine.config.MetricConfig;
-import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
-import io.aklivity.zilla.runtime.engine.config.StoreConfig;
-import io.aklivity.zilla.runtime.engine.config.VaultConfig;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterContext;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterHandler;
 import io.aklivity.zilla.runtime.engine.guard.GuardContext;
@@ -54,7 +54,7 @@ import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
 import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
 import io.aklivity.zilla.runtime.engine.store.StoreContext;
-import io.aklivity.zilla.runtime.engine.util.function.ObjectLongIntIntFunction;
+import io.aklivity.zilla.runtime.engine.util.function.ObjectLongIntIntObjectFunction;
 import io.aklivity.zilla.runtime.engine.vault.VaultContext;
 
 public class NamespaceRegistry
@@ -79,7 +79,7 @@ public class NamespaceRegistry
     private final Int2ObjectHashMap<MetricRegistry> metricsById;
     private final Int2ObjectHashMap<ExporterRegistry> exportersById;
     private final Int2ObjectHashMap<StoreRegistry> storesById;
-    private final ObjectLongIntIntFunction<Metric.Kind, LongConsumer> supplyMetricRecorder;
+    private final ObjectLongIntIntObjectFunction<Metric.Kind, KindConfig, LongConsumer> supplyMetricRecorder;
     private final LongConsumer detachBinding;
     private final Collector collector;
     private final IntFunction<NamespaceRegistry> findNamespace;
@@ -98,7 +98,7 @@ public class NamespaceRegistry
         LongFunction<MetricRegistry> supplyMetric,
         LongConsumer exporterAttached,
         LongConsumer exporterDetached,
-        ObjectLongIntIntFunction<Metric.Kind, LongConsumer> supplyMetricRecorder,
+        ObjectLongIntIntObjectFunction<Metric.Kind, KindConfig, LongConsumer> supplyMetricRecorder,
         LongConsumer detachBinding,
         Collector collector)
     {
@@ -194,7 +194,7 @@ public class NamespaceRegistry
                 MetricRegistry metric = supplyMetric.apply(metricId);
                 int localMetricId = NamespacedId.localId(metricId);
                 IntFunction<LongConsumer> recorderByAttrs = attrId ->
-                    supplyMetricRecorder.apply(metric.kind(), config.id, localMetricId, attrId);
+                    supplyMetricRecorder.apply(metric.kind(), config.id, localMetricId, attrId, registry.kind());
                 recorderByAttrs.apply(0);
 
                 MessageConsumer handler = bindingAttributes.isEmpty()
@@ -402,7 +402,7 @@ public class NamespaceRegistry
         int exporterId = supplyLabelId.applyAsInt(config.name);
         ExporterContext context = exportersByType.apply(config.type);
         assert context != null : "Missing exporter type: " + config.type;
-        ExporterHandler handler = context.attach(config, namespace.telemetry.attributes, collector, this::resolveKind);
+        ExporterHandler handler = context.attach(config, namespace.telemetry.attributes, collector);
         ExporterRegistry registry = new ExporterRegistry(exporterId, handler, this::onExporterAttached, this::onExporterDetached);
         exportersById.put(exporterId, registry);
         registry.attach();
@@ -423,16 +423,6 @@ public class NamespaceRegistry
         int bindingId)
     {
         return bindingsById.get(bindingId);
-    }
-
-    public KindConfig resolveKind(
-        long bindingId)
-    {
-        int namespaceId = NamespacedId.namespaceId(bindingId);
-        NamespaceRegistry namespace = findNamespace.apply(namespaceId);
-        int localId = NamespacedId.localId(bindingId);
-        BindingRegistry binding = namespace.findBinding(localId);
-        return binding == null ? null : binding.kind();
     }
 
     GuardRegistry findGuard(

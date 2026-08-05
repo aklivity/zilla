@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.mcp.http.internal.config;
 import static io.aklivity.zilla.runtime.binding.mcp.http.internal.config.McpHttpBindingConfig.argPathValid;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -27,12 +28,13 @@ import java.util.List;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpConditionConfig;
-import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpWithConfig;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.KindConfig;
-import io.aklivity.zilla.runtime.engine.config.RouteConfig;
-import io.aklivity.zilla.runtime.engine.config.RouteConfigBuilder;
+import io.aklivity.zilla.config.binding.mcp.http.McpHttpConditionConfig;
+import io.aklivity.zilla.config.binding.mcp.http.McpHttpWithConfig;
+import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.config.engine.GenericBindingConfig;
+import io.aklivity.zilla.config.engine.GenericRouteConfigBuilder;
+import io.aklivity.zilla.config.engine.KindConfig;
+import io.aklivity.zilla.config.engine.RouteConfig;
 
 public class McpHttpBindingConfigTest
 {
@@ -43,10 +45,13 @@ public class McpHttpBindingConfigTest
         boolean withMapping,
         boolean authorized)
     {
-        RouteConfigBuilder<RouteConfig> builder = RouteConfig.builder().order(order);
+        GenericRouteConfigBuilder<RouteConfig> builder = RouteConfig.builder().order(order);
         if (tool != null || resource != null)
         {
-            builder = builder.when(new McpHttpConditionConfig(tool, resource));
+            builder = builder.when(McpHttpConditionConfig.builder()
+                .tool(tool)
+                .resource(resource)
+                .build());
         }
         if (withMapping)
         {
@@ -63,14 +68,14 @@ public class McpHttpBindingConfigTest
     private static McpHttpBindingConfig binding(
         List<RouteConfig> routes)
     {
-        BindingConfig config = BindingConfig.builder()
+        BindingConfig config = GenericBindingConfig.builder()
             .namespace("test")
             .name("app0")
-            .type("mcp_http")
+            .type("mcp-http")
             .kind(KindConfig.PROXY)
             .routes(routes)
             .build();
-        return new McpHttpBindingConfig(config, null);
+        return new McpHttpBindingConfig(config, null, "sys:http_client");
     }
 
     @Test
@@ -114,7 +119,9 @@ public class McpHttpBindingConfigTest
 
         RouteConfig mapping = RouteConfig.builder()
             .order(1)
-            .when(new McpHttpConditionConfig("create_pr", null))
+            .when(McpHttpConditionConfig.builder()
+                .tool("create_pr")
+                .build())
             .guarded().name("test1").roles(List.of("write")).build()
             .with(McpHttpWithConfig::builder)
                 .header(":path", "/items")
@@ -134,14 +141,18 @@ public class McpHttpBindingConfigTest
     {
         RouteConfig scoped = RouteConfig.builder()
             .order(0)
-            .when(new McpHttpConditionConfig(null, "order"))
+            .when(McpHttpConditionConfig.builder()
+                .resource("order")
+                .build())
             .guarded().name("test0").roles(List.of("read")).build()
             .build();
         scoped.authorized = (auth, identity) -> true;
 
         RouteConfig mapping = RouteConfig.builder()
             .order(1)
-            .when(new McpHttpConditionConfig(null, "order"))
+            .when(McpHttpConditionConfig.builder()
+                .resource("order")
+                .build())
             .guarded().name("test1").roles(List.of("write")).build()
             .with(McpHttpWithConfig::builder)
                 .header(":path", "/items")
@@ -154,6 +165,82 @@ public class McpHttpBindingConfigTest
 
         assertThat(binding.resourceGuarded("order"), hasSize(2));
         assertThat(binding.resourceGuarded("other"), empty());
+    }
+
+    @Test
+    public void shouldResolveClientRouteExitToConfiguredDefault()
+    {
+        RouteConfig route = RouteConfig.builder()
+            .order(0)
+            .with(McpHttpWithConfig::builder)
+                .header(":path", "/items")
+                .build()
+            .exit("ignored")
+            .build();
+
+        BindingConfig config = GenericBindingConfig.builder()
+            .namespace("test")
+            .name("app0")
+            .type("mcp-http")
+            .kind(KindConfig.CLIENT)
+            .routes(List.of(route))
+            .build();
+        config.resolveId = name -> "sys:http_client".equals(name) ? 42L : 0L;
+
+        McpHttpBindingConfig binding = new McpHttpBindingConfig(config, null, "sys:http_client");
+
+        assertThat(binding.routes.get(0).id, equalTo(42L));
+    }
+
+    @Test
+    public void shouldResolveClientRouteExitToConfiguredOverride()
+    {
+        RouteConfig route = RouteConfig.builder()
+            .order(0)
+            .with(McpHttpWithConfig::builder)
+                .header(":path", "/items")
+                .build()
+            .exit("ignored")
+            .build();
+
+        BindingConfig config = GenericBindingConfig.builder()
+            .namespace("test")
+            .name("app0")
+            .type("mcp-http")
+            .kind(KindConfig.CLIENT)
+            .routes(List.of(route))
+            .build();
+        config.resolveId = name -> "test:http0".equals(name) ? 24L : 0L;
+
+        McpHttpBindingConfig binding = new McpHttpBindingConfig(config, null, "test:http0");
+
+        assertThat(binding.routes.get(0).id, equalTo(24L));
+    }
+
+    @Test
+    public void shouldNotOverrideProxyRouteExit()
+    {
+        RouteConfig route = RouteConfig.builder()
+            .order(0)
+            .with(McpHttpWithConfig::builder)
+                .header(":path", "/items")
+                .build()
+            .exit("http0")
+            .build();
+        route.id = 7L;
+
+        BindingConfig config = GenericBindingConfig.builder()
+            .namespace("test")
+            .name("app0")
+            .type("mcp-http")
+            .kind(KindConfig.PROXY)
+            .routes(List.of(route))
+            .build();
+        config.resolveId = name -> "sys:http_client".equals(name) ? 42L : 0L;
+
+        McpHttpBindingConfig binding = new McpHttpBindingConfig(config, null, "sys:http_client");
+
+        assertThat(binding.routes.get(0).id, equalTo(7L));
     }
 
     private static final String FLAT = "{\"type\":\"object\",\"properties\":{\"owner\":{\"type\":\"string\"}}}";

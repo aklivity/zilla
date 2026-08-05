@@ -15,8 +15,8 @@
  */
 package io.aklivity.zilla.runtime.engine.resolver;
 
+import io.aklivity.zilla.config.engine.factory.FactorySpi;
 import io.aklivity.zilla.runtime.engine.Configuration;
-import io.aklivity.zilla.runtime.engine.factory.FactorySpi;
 
 /**
  * Service provider interface for creating {@link ResolverSpi} instances.

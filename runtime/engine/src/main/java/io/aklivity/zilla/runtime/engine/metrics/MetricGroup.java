@@ -15,7 +15,6 @@
  */
 package io.aklivity.zilla.runtime.engine.metrics;
 
-import java.net.URL;
 import java.util.Collection;
 
 /**
@@ -42,14 +41,6 @@ public interface MetricGroup
      * @return the metric group name
      */
     String name();
-
-    /**
-     * Returns a URL pointing to the JSON schema for configuring metrics in this group,
-     * or {@code null} if no schema is provided.
-     *
-     * @return the configuration schema URL, or {@code null}
-     */
-    URL type();
 
     /**
      * Returns the {@link Metric} descriptor for the given fully-qualified metric name,

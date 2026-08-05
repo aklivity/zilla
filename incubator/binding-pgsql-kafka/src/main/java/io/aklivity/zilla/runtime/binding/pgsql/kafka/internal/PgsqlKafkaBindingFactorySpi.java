@@ -14,11 +14,9 @@
  */
 package io.aklivity.zilla.runtime.binding.pgsql.kafka.internal;
 
-import io.aklivity.zilla.runtime.common.feature.Incubating;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi;
 
-@Incubating
 public final class PgsqlKafkaBindingFactorySpi implements BindingFactorySpi
 {
     @Override

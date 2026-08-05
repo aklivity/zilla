@@ -36,6 +36,7 @@ public class McpSearchToolDescriptorTest
         JsonObject tool = parse(bytes);
 
         assertThat(tool.getString("name"), equalTo("zilla__search_tools"));
+        assertThat(tool.getString("title"), equalTo("Search Tools"));
         assertThat(tool.containsKey("description"), equalTo(true));
     }
 
@@ -47,6 +48,20 @@ public class McpSearchToolDescriptorTest
         JsonObject tool = parse(bytes);
 
         assertThat(tool.getString("name"), equalTo("search_tools"));
+    }
+
+    @Test
+    public void shouldBuildSearchToolsWithAnnotations()
+    {
+        byte[] bytes = McpSearchToolDescriptor.buildSearchTools("zilla");
+
+        JsonObject tool = parse(bytes);
+        JsonObject annotations = tool.getJsonObject("annotations");
+
+        assertThat(annotations.getBoolean("readOnlyHint"), equalTo(true));
+        assertThat(annotations.getBoolean("destructiveHint"), equalTo(false));
+        assertThat(annotations.getBoolean("idempotentHint"), equalTo(true));
+        assertThat(annotations.getBoolean("openWorldHint"), equalTo(false));
     }
 
     @Test
@@ -72,7 +87,22 @@ public class McpSearchToolDescriptorTest
         JsonObject tool = parse(bytes);
 
         assertThat(tool.getString("name"), equalTo("zilla__describe_tool"));
+        assertThat(tool.getString("title"), equalTo("Describe Tool"));
         assertThat(tool.containsKey("description"), equalTo(true));
+    }
+
+    @Test
+    public void shouldBuildDescribeToolWithAnnotations()
+    {
+        byte[] bytes = McpSearchToolDescriptor.buildDescribeTool("zilla");
+
+        JsonObject tool = parse(bytes);
+        JsonObject annotations = tool.getJsonObject("annotations");
+
+        assertThat(annotations.getBoolean("readOnlyHint"), equalTo(true));
+        assertThat(annotations.getBoolean("destructiveHint"), equalTo(false));
+        assertThat(annotations.getBoolean("idempotentHint"), equalTo(true));
+        assertThat(annotations.getBoolean("openWorldHint"), equalTo(false));
     }
 
     @Test
@@ -96,7 +126,18 @@ public class McpSearchToolDescriptorTest
         JsonObject tool = parse(bytes);
 
         assertThat(tool.getString("name"), equalTo("zilla__execute_tool"));
+        assertThat(tool.getString("title"), equalTo("Execute Tool"));
         assertThat(tool.containsKey("description"), equalTo(true));
+    }
+
+    @Test
+    public void shouldBuildExecuteToolWithoutAnnotations()
+    {
+        byte[] bytes = McpSearchToolDescriptor.buildExecuteTool("zilla");
+
+        JsonObject tool = parse(bytes);
+
+        assertThat(tool.containsKey("annotations"), equalTo(false));
     }
 
     @Test

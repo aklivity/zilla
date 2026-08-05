@@ -15,16 +15,16 @@
  */
 package io.aklivity.zilla.runtime.binding.sse.internal.config;
 
-import static io.aklivity.zilla.runtime.engine.config.WithConfig.NO_COMPOSITE_ID;
+import static io.aklivity.zilla.config.engine.WithConfig.NO_COMPOSITE_ID;
 import static java.util.stream.Collectors.toList;
 
 import java.util.List;
 import java.util.function.UnaryOperator;
 
-import io.aklivity.zilla.runtime.binding.sse.config.SseConditionConfig;
-import io.aklivity.zilla.runtime.binding.sse.config.SseWithConfig;
-import io.aklivity.zilla.runtime.engine.config.RouteConfig;
-import io.aklivity.zilla.runtime.engine.util.function.LongObjectPredicate;
+import io.aklivity.zilla.config.binding.sse.SseConditionConfig;
+import io.aklivity.zilla.config.binding.sse.SseWithConfig;
+import io.aklivity.zilla.config.engine.RouteConfig;
+import io.aklivity.zilla.runtime.common.lang.util.function.LongObjectPredicate;
 
 public final class SseRouteConfig
 {

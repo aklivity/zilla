@@ -25,7 +25,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-import io.aklivity.zilla.runtime.engine.config.StoreConfig;
+import io.aklivity.zilla.config.engine.StoreConfig;
 import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 
 public final class TestStoreHandler implements StoreHandler

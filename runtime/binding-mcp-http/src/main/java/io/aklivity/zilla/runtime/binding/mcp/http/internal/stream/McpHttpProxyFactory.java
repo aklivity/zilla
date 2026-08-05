@@ -47,9 +47,13 @@ import jakarta.json.JsonWriter;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.Object2ObjectHashMap;
 
-import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpResourceConfig;
-import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpToolConfig;
-import io.aklivity.zilla.runtime.binding.mcp.http.config.McpHttpWithConfig;
+import io.aklivity.zilla.config.binding.mcp.http.McpHttpResourceConfig;
+import io.aklivity.zilla.config.binding.mcp.http.McpHttpToolAnnotationsConfig;
+import io.aklivity.zilla.config.binding.mcp.http.McpHttpToolConfig;
+import io.aklivity.zilla.config.binding.mcp.http.McpHttpWithConfig;
+import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.config.engine.GuardedConfig;
+import io.aklivity.zilla.config.engine.ModelConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.McpHttpConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.config.McpHttpBindingConfig;
 import io.aklivity.zilla.runtime.binding.mcp.http.internal.config.McpHttpRouteConfig;
@@ -88,9 +92,6 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
-import io.aklivity.zilla.runtime.engine.config.ModelConfig;
 import io.aklivity.zilla.runtime.engine.util.function.LongIntPredicate;
 
 public final class McpHttpProxyFactory implements BindingHandler
@@ -168,6 +169,7 @@ public final class McpHttpProxyFactory implements BindingHandler
     private final Supplier<String> supplySessionId;
     private final int sessionIdAttempts;
     private final LongIntPredicate isLocalIndex;
+    private final String clientExit;
 
     public McpHttpProxyFactory(
         McpHttpConfiguration config,
@@ -191,12 +193,13 @@ public final class McpHttpProxyFactory implements BindingHandler
         this.supplySessionId = config.sessionIdSupplier();
         this.sessionIdAttempts = config.sessionIdAttempts();
         this.isLocalIndex = context::isLocalIndex;
+        this.clientExit = config.clientExit();
     }
 
     public void attach(
         BindingConfig binding)
     {
-        bindings.put(binding.id, new McpHttpBindingConfig(binding, context));
+        bindings.put(binding.id, new McpHttpBindingConfig(binding, context, clientExit));
     }
 
     public void detach(
@@ -1228,6 +1231,11 @@ public final class McpHttpProxyFactory implements BindingHandler
                 case COMPLETED:
                     requestProjected = true;
                     progress = false;
+                    if (!requestPathReady())
+                    {
+                        delegate.doHttpAbort(traceId);
+                        doMcpReset(traceId, JSON_RPC_INVALID_PARAMS, "Invalid params");
+                    }
                     cleanupDecodeSlot();
                     break;
                 case REJECTED:
@@ -1340,11 +1348,11 @@ public final class McpHttpProxyFactory implements BindingHandler
 
                 responseGenerator = JsonEx.createGenerator();
                 JsonStream stream = JsonEx.stream(JsonEx.createParser());
-                if (tool != null && tool.outputWrapped)
+                if (tool != null && tool.outputMaybeWrapped)
                 {
-                    // the upstream body itself is not an object (e.g. a top-level array); wrap it to match
-                    // the {"result":<value>} shape McpOpenapiCompositeGenerator advertised as outputSchema,
-                    // before validating/projecting against that same wrapped schema below
+                    // nothing proves the upstream body is already an object; route it through the
+                    // transform that decides, from the real body's own first event, whether it actually
+                    // needs wrapping into {"result":<value>} before validating/projecting below
                     stream = stream.transform(new McpHttpResultWrap());
                 }
                 if (outputSchema != null)
@@ -1765,6 +1773,7 @@ public final class McpHttpProxyFactory implements BindingHandler
             // prefix to reach some threshold
             mcp.responseStarted = true;
             mcp.responseBegin(traceId, responseStatus, responseContentType);
+            mcp.flushHttpWindow(traceId);
         }
 
         private void onHttpData(
@@ -1920,15 +1929,18 @@ public final class McpHttpProxyFactory implements BindingHandler
             long budgetId,
             int padding)
         {
-            final long newReplyAck = Math.max(replyAck, replySeq - decodeSlotOffset);
-            final int newReplyMax = Math.max(replyMax, decodePool.slotCapacity());
-
-            if (newReplyAck > replyAck || newReplyMax > replyMax || !McpHttpState.replyOpened(state))
+            if (McpHttpState.replyOpening(state))
             {
-                replyAck = newReplyAck;
-                replyMax = newReplyMax;
-                doWindow(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, mcp.authorization, budgetId, padding);
+                final long newReplyAck = Math.max(replyAck, replySeq - decodeSlotOffset);
+                final int newReplyMax = Math.max(replyMax, decodePool.slotCapacity());
+
+                if (newReplyAck > replyAck || newReplyMax > replyMax || !McpHttpState.replyOpened(state))
+                {
+                    replyAck = newReplyAck;
+                    replyMax = newReplyMax;
+                    doWindow(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                        traceId, mcp.authorization, budgetId, padding);
+                }
             }
         }
 
@@ -2443,6 +2455,10 @@ public final class McpHttpProxyFactory implements BindingHandler
         {
             final JsonObjectBuilder item = Json.createObjectBuilder()
                 .add("name", tool.name);
+            if (tool.title != null)
+            {
+                item.add("title", tool.title);
+            }
             if (tool.description != null)
             {
                 item.add("description", tool.description);
@@ -2462,9 +2478,42 @@ public final class McpHttpProxyFactory implements BindingHandler
             {
                 item.add("securitySchemes", toolSchemes);
             }
+            final JsonObject annotations = annotationsObject(tool.annotations);
+            if (annotations != null)
+            {
+                item.add("annotations", annotations);
+            }
             tools.add(item);
         }
         return compact(Json.createObjectBuilder().add("tools", tools).build());
+    }
+
+    private static JsonObject annotationsObject(
+        McpHttpToolAnnotationsConfig annotations)
+    {
+        JsonObject object = null;
+        if (annotations != null)
+        {
+            final JsonObjectBuilder builder = Json.createObjectBuilder();
+            if (annotations.readOnlyHint != null)
+            {
+                builder.add("readOnlyHint", annotations.readOnlyHint);
+            }
+            if (annotations.destructiveHint != null)
+            {
+                builder.add("destructiveHint", annotations.destructiveHint);
+            }
+            if (annotations.idempotentHint != null)
+            {
+                builder.add("idempotentHint", annotations.idempotentHint);
+            }
+            if (annotations.openWorldHint != null)
+            {
+                builder.add("openWorldHint", annotations.openWorldHint);
+            }
+            object = builder.build();
+        }
+        return object;
     }
 
     private static JsonArrayBuilder securitySchemes(

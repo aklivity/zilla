@@ -14,11 +14,9 @@
  */
 package io.aklivity.zilla.runtime.catalog.schema.registry;
 
-import static io.aklivity.zilla.runtime.engine.factory.Aliasable.ALIASES_DEFAULT;
+import static io.aklivity.zilla.config.engine.factory.Aliasable.ALIASES_DEFAULT;
 
-import java.net.URL;
 import java.util.Set;
-import java.util.function.Supplier;
 
 import io.aklivity.zilla.runtime.catalog.schema.registry.internal.SchemaRegistryCatalog;
 import io.aklivity.zilla.runtime.engine.Configuration;
@@ -29,7 +27,6 @@ public abstract class AbstractSchemaRegistryCatalogFactorySpi implements Catalog
 {
     private final String type;
     private final Set<String> aliases;
-    private final Supplier<URL> schema;
 
     @Override
     public String type()
@@ -41,23 +38,20 @@ public abstract class AbstractSchemaRegistryCatalogFactorySpi implements Catalog
     public Catalog create(
         Configuration config)
     {
-        return new SchemaRegistryCatalog(type, config, aliases, schema);
+        return new SchemaRegistryCatalog(type, config, aliases);
     }
 
     protected AbstractSchemaRegistryCatalogFactorySpi(
-        String type,
-        Supplier<URL> schema)
+        String type)
     {
-        this(type, ALIASES_DEFAULT, schema);
+        this(type, ALIASES_DEFAULT);
     }
 
     protected AbstractSchemaRegistryCatalogFactorySpi(
         String type,
-        Set<String> aliases,
-        Supplier<URL> schema)
+        Set<String> aliases)
     {
         this.type = type;
         this.aliases = aliases;
-        this.schema = schema;
     }
 }

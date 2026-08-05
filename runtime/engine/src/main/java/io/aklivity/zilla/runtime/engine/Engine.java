@@ -52,13 +52,14 @@ import java.util.stream.Collectors;
 import org.agrona.ErrorHandler;
 import org.agrona.collections.Int2ObjectHashMap;
 
+import io.aklivity.zilla.config.engine.EngineInfo;
+import io.aklivity.zilla.config.engine.KindConfig;
+import io.aklivity.zilla.config.engine.NamespaceConfig;
+import io.aklivity.zilla.config.engine.RouterConfig;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageReader;
 import io.aklivity.zilla.runtime.engine.catalog.Catalog;
-import io.aklivity.zilla.runtime.engine.config.KindConfig;
-import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
-import io.aklivity.zilla.runtime.engine.config.RouterConfig;
 import io.aklivity.zilla.runtime.engine.diagnostic.EngineDiagnosticsTask;
 import io.aklivity.zilla.runtime.engine.event.EventFormatter;
 import io.aklivity.zilla.runtime.engine.event.EventFormatterFactory;
@@ -231,15 +232,7 @@ public final class Engine implements Collector, AutoCloseable
 
         final ContextImpl context = new ContextImpl(config, diagnoseOnError, labels::supplyLabelId);
 
-        final Collection<URL> schemaTypes = new ArrayList<>();
-        schemaTypes.addAll(bindings.stream().map(Binding::type).filter(Objects::nonNull).collect(toList()));
-        schemaTypes.addAll(exporters.stream().map(Exporter::type).filter(Objects::nonNull).collect(toList()));
-        schemaTypes.addAll(guards.stream().map(Guard::type).filter(Objects::nonNull).collect(toList()));
-        schemaTypes.addAll(metricGroups.stream().map(MetricGroup::type).filter(Objects::nonNull).collect(toList()));
-        schemaTypes.addAll(vaults.stream().map(Vault::type).filter(Objects::nonNull).collect(toList()));
-        schemaTypes.addAll(catalogs.stream().map(Catalog::type).filter(Objects::nonNull).collect(toList()));
-        schemaTypes.addAll(models.stream().map(Model::type).filter(Objects::nonNull).collect(toList()));
-        schemaTypes.addAll(stores.stream().map(Store::type).filter(Objects::nonNull).collect(toList()));
+        final EngineInfo engineInfo = new EngineInfo();
 
         final Collection<URL> systemConfigs = new ArrayList<>();
         bindings.stream()
@@ -259,8 +252,8 @@ public final class Engine implements Collector, AutoCloseable
         EngineEventContext events = new EngineEventContext(this);
 
         EngineManager manager = new EngineManager(
-            schemaTypes,
             systemConfigs,
+            engineInfo,
             bindingsByType::get,
             guardsByType::get,
             labels::supplyLabelId,

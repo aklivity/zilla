@@ -24,7 +24,7 @@ import java.util.regex.Pattern;
 
 import org.agrona.collections.Object2ObjectHashMap;
 
-import io.aklivity.zilla.runtime.engine.config.AttributeConfig;
+import io.aklivity.zilla.config.engine.AttributeConfig;
 import io.aklivity.zilla.runtime.metrics.mcp.internal.types.stream.McpBeginExFW;
 
 final class McpAttributeHelper

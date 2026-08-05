@@ -23,9 +23,9 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.types.McpCapabiliti
 
 import java.util.List;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
-import io.aklivity.zilla.runtime.binding.mcp.config.McpConditionConfig;
+import io.aklivity.zilla.config.binding.mcp.McpConditionConfig;
+import io.aklivity.zilla.runtime.common.lang.Matchers;
 
 final class McpConditionMatcher
 {
@@ -34,12 +34,12 @@ final class McpConditionMatcher
 
     final String toolkit;
 
-    private final String toolsPrefix;
-    private final String promptsPrefix;
-    private final String resourcesPrefix;
-    private final List<Pattern> toolsAllow;
-    private final List<Pattern> promptsAllow;
-    private final List<Pattern> resourcesAllow;
+    private final String toolPrefix;
+    private final String promptPrefix;
+    private final String resourcePrefix;
+    private final List<Pattern> toolAllow;
+    private final List<Pattern> promptAllow;
+    private final List<Pattern> resourceAllow;
 
     McpConditionMatcher(
         McpConditionConfig condition)
@@ -49,32 +49,32 @@ final class McpConditionMatcher
 
         // a capability is active when its own allow-set field is given; when none of the three
         // are given at all, the condition is unrestricted and every capability is active
-        final boolean anyAllowSet = condition.tools != null || condition.prompts != null || condition.resources != null;
-        final boolean tools = !anyAllowSet || condition.tools != null;
-        final boolean prompts = !anyAllowSet || condition.prompts != null;
-        final boolean resources = !anyAllowSet || condition.resources != null;
+        final boolean anyAllowSet = condition.tool != null || condition.prompt != null || condition.resource != null;
+        final boolean tool = !anyAllowSet || condition.tool != null;
+        final boolean prompt = !anyAllowSet || condition.prompt != null;
+        final boolean resource = !anyAllowSet || condition.resource != null;
 
-        this.toolsPrefix = tools ? (toolkit != null ? toolkit + DELIMITER_NAME : "") : null;
-        this.promptsPrefix = prompts ? (toolkit != null ? toolkit + DELIMITER_NAME : "") : null;
-        this.resourcesPrefix = resources ? (toolkit != null ? toolkit + DELIMITER_URI : "") : null;
+        this.toolPrefix = tool ? (toolkit != null ? toolkit + DELIMITER_NAME : "") : null;
+        this.promptPrefix = prompt ? (toolkit != null ? toolkit + DELIMITER_NAME : "") : null;
+        this.resourcePrefix = resource ? (toolkit != null ? toolkit + DELIMITER_URI : "") : null;
 
-        this.toolsAllow = compile(condition.tools);
-        this.promptsAllow = compile(condition.prompts);
-        this.resourcesAllow = compile(condition.resources);
+        this.toolAllow = Matchers.globAll(condition.tool);
+        this.promptAllow = Matchers.globAll(condition.prompt);
+        this.resourceAllow = Matchers.globAll(condition.resource);
     }
 
     int serverCapabilities()
     {
         int bits = 0;
-        if (toolsPrefix != null)
+        if (toolPrefix != null)
         {
             bits |= SERVER_TOOLS.value();
         }
-        if (promptsPrefix != null)
+        if (promptPrefix != null)
         {
             bits |= SERVER_PROMPTS.value();
         }
-        if (resourcesPrefix != null)
+        if (resourcePrefix != null)
         {
             bits |= SERVER_RESOURCES.value();
         }
@@ -91,7 +91,7 @@ final class McpConditionMatcher
         if (prefix != null && identifier != null && identifier.startsWith(prefix))
         {
             final String stripped = identifier.substring(prefix.length());
-            if (admits(allow(capability), stripped))
+            if (Matchers.admits(allow(capability), stripped))
             {
                 result = stripped;
             }
@@ -110,7 +110,7 @@ final class McpConditionMatcher
         String capability,
         String name)
     {
-        return serves(capability) && admits(allow(capability), name);
+        return serves(capability) && Matchers.admits(allow(capability), name);
     }
 
     boolean filters(
@@ -124,9 +124,9 @@ final class McpConditionMatcher
     {
         return switch (capability)
         {
-        case CAPABILITY_TOOLS -> toolsPrefix;
-        case CAPABILITY_PROMPTS -> promptsPrefix;
-        case CAPABILITY_RESOURCES -> resourcesPrefix;
+        case CAPABILITY_TOOLS -> toolPrefix;
+        case CAPABILITY_PROMPTS -> promptPrefix;
+        case CAPABILITY_RESOURCES -> resourcePrefix;
         default -> null;
         };
     }
@@ -136,60 +136,10 @@ final class McpConditionMatcher
     {
         return switch (capability)
         {
-        case CAPABILITY_TOOLS -> toolsAllow;
-        case CAPABILITY_PROMPTS -> promptsAllow;
-        case CAPABILITY_RESOURCES -> resourcesAllow;
+        case CAPABILITY_TOOLS -> toolAllow;
+        case CAPABILITY_PROMPTS -> promptAllow;
+        case CAPABILITY_RESOURCES -> resourceAllow;
         default -> null;
         };
-    }
-
-    private static boolean admits(
-        List<Pattern> allow,
-        String name)
-    {
-        boolean result = allow == null;
-
-        if (!result)
-        {
-            for (Pattern pattern : allow)
-            {
-                if (pattern.matcher(name).matches())
-                {
-                    result = true;
-                    break;
-                }
-            }
-        }
-
-        return result;
-    }
-
-    private static List<Pattern> compile(
-        List<String> globs)
-    {
-        return globs == null
-            ? null
-            : globs.stream()
-                .map(McpConditionMatcher::compile)
-                .collect(Collectors.toList());
-    }
-
-    private static Pattern compile(
-        String glob)
-    {
-        final StringBuilder regex = new StringBuilder();
-        final String[] literals = glob.split("\\*", -1);
-        for (int index = 0; index < literals.length; index++)
-        {
-            if (index > 0)
-            {
-                regex.append(".*");
-            }
-            if (!literals[index].isEmpty())
-            {
-                regex.append(Pattern.quote(literals[index]));
-            }
-        }
-        return Pattern.compile(regex.toString());
     }
 }

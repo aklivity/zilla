@@ -44,12 +44,6 @@ public class StdoutExporter implements Exporter
     }
 
     @Override
-    public URL type()
-    {
-        return getClass().getResource("schema/stdout.schema.patch.json");
-    }
-
-    @Override
     public URL system()
     {
         return config.verboseEvents()

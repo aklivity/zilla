@@ -6,11 +6,6 @@
     },
     {
         "op": "add",
-        "path": "/$defs/guard/properties/type/enum/-",
-        "value": "identity"
-    },
-    {
-        "op": "add",
         "path": "/$defs/guard/allOf/-",
         "value":
         {
@@ -20,7 +15,7 @@
                 {
                     "type":
                     {
-                        "enum": [ "inline", "identity" ]
+                        "const": "inline"
                     }
                 }
             },
@@ -30,7 +25,7 @@
                 {
                     "type":
                     {
-                        "enum": [ "inline", "identity" ]
+                        "const": "inline"
                     },
                     "kind": false,
                     "options":
@@ -45,6 +40,11 @@
                             "credentials":
                             {
                                 "title": "Credentials",
+                                "type": "string"
+                            },
+                            "format":
+                            {
+                                "title": "Format",
                                 "type": "string"
                             }
                         },

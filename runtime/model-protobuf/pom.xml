@@ -31,6 +31,11 @@
   <dependencies>
     <dependency>
       <groupId>${project.groupId}</groupId>
+      <artifactId>model-protobuf.conf</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
       <artifactId>model-protobuf.spec</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>
@@ -54,6 +59,13 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>engine</artifactId>
+      <type>test-jar</type>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>engine.conf</artifactId>
       <type>test-jar</type>
       <version>${project.version}</version>
       <scope>test</scope>

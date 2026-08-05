@@ -17,18 +17,11 @@ module io.aklivity.zilla.runtime.binding.tls
 {
     requires jdk.crypto.ec;
 
+    requires io.aklivity.zilla.config.binding.tls;
     requires io.aklivity.zilla.runtime.engine;
-
-    exports io.aklivity.zilla.runtime.binding.tls.config;
 
     provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
         with io.aklivity.zilla.runtime.binding.tls.internal.TlsBindingFactorySpi;
-
-    provides io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi
-        with io.aklivity.zilla.runtime.binding.tls.internal.config.TlsOptionsConfigAdapter;
-
-    provides io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi
-        with io.aklivity.zilla.runtime.binding.tls.internal.config.TlsConditionConfigAdapter;
 
     provides io.aklivity.zilla.runtime.engine.event.EventFormatterFactorySpi
         with io.aklivity.zilla.runtime.binding.tls.internal.TlsEventFormatterFactory;

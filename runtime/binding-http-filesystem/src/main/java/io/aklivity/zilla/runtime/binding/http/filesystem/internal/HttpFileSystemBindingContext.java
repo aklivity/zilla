@@ -14,18 +14,18 @@
  */
 package io.aklivity.zilla.runtime.binding.http.filesystem.internal;
 
-import static io.aklivity.zilla.runtime.engine.config.KindConfig.PROXY;
+import static io.aklivity.zilla.config.engine.KindConfig.PROXY;
 import static java.util.Collections.singletonMap;
 
 import java.util.Map;
 
+import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.runtime.binding.http.filesystem.internal.stream.HttpFileSystemProxyFactory;
 import io.aklivity.zilla.runtime.binding.http.filesystem.internal.stream.HttpFileSystemStreamFactory;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
 final class HttpFileSystemBindingContext implements BindingContext
 {

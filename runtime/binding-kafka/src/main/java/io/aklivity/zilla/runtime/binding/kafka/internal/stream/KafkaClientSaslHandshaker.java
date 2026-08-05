@@ -36,8 +36,8 @@ import org.agrona.LangUtil;
 import org.agrona.collections.LongLongConsumer;
 import org.agrona.collections.Object2ObjectHashMap;
 
-import io.aklivity.zilla.runtime.binding.kafka.config.KafkaSaslConfig;
-import io.aklivity.zilla.runtime.binding.kafka.config.KafkaServerConfig;
+import io.aklivity.zilla.config.binding.kafka.KafkaSaslConfig;
+import io.aklivity.zilla.config.binding.kafka.KafkaServerConfig;
 import io.aklivity.zilla.runtime.binding.kafka.identity.KafkaClientIdSupplier;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaScramMechanism;
@@ -213,8 +213,10 @@ public abstract class KafkaClientSaslHandshaker
             if (guard != null &&
                 (CREDENTIALS_TEMPLATE.equals(sasl.token) || CREDENTIALS_TEMPLATE.equals(sasl.password)))
             {
-                final String credentials = guard.credentials(saslAuthorization);
-                guardSession = guard.reauthorize(traceId, routedId, initialId, credentials);
+                final String resolved = guard.credentials(saslAuthorization);
+                guardSession = resolved != null
+                        ? saslAuthorization
+                        : guard.reauthorize(traceId, routedId, initialId, null);
             }
 
             final MutableDirectBufferEx encodeBuffer = writeBuffer;
@@ -871,7 +873,7 @@ public abstract class KafkaClientSaslHandshaker
                 final int errorCode = authenticateResponse.errorCode();
                 if (errorCode != ERROR_NONE)
                 {
-                    event.saslAuthenticationFailed(traceId, client.originId, client.sasl.username,
+                    event.saslAuthenticationFailed(traceId, client.originId, client.resolveUsername(),
                         authenticateResponse.errorMessage().asString());
                 }
 
@@ -962,7 +964,7 @@ public abstract class KafkaClientSaslHandshaker
                 final int errorCode = authenticateResponse.errorCode();
                 if (errorCode != ERROR_NONE)
                 {
-                    event.saslAuthenticationFailed(traceId, client.originId, client.sasl.username,
+                    event.saslAuthenticationFailed(traceId, client.originId, client.resolveUsername(),
                         authenticateResponse.errorMessage().asString());
                 }
 
@@ -992,7 +994,7 @@ public abstract class KafkaClientSaslHandshaker
                 }
                 else
                 {
-                    event.saslAuthenticationFailed(traceId, client.originId, client.sasl.username);
+                    event.saslAuthenticationFailed(traceId, client.originId, client.resolveUsername());
                     client.onDecodeSaslResponse(traceId);
                     client.onDecodeSaslAuthenticateResponse(traceId, authorization, ERROR_SASL_AUTHENTICATION_FAILED);
                 }
@@ -1042,7 +1044,7 @@ public abstract class KafkaClientSaslHandshaker
                 if (!Arrays.equals(Base64.getDecoder().decode(serverFinalMessage),
                         serverSignature))
                 {
-                    event.saslAuthenticationFailed(traceId, client.originId, client.sasl.username);
+                    event.saslAuthenticationFailed(traceId, client.originId, client.resolveUsername());
                     client.onDecodeSaslResponse(traceId);
                     client.onDecodeSaslAuthenticateResponse(traceId, authorization, ERROR_SASL_AUTHENTICATION_FAILED);
                 }

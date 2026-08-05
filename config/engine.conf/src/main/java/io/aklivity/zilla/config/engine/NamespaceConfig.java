@@ -1,0 +1,117 @@
+/*
+ * Copyright 2021-2026 Aklivity Inc
+ *
+ * Licensed under the Aklivity Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ *   https://www.aklivity.io/aklivity-community-license/
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+package io.aklivity.zilla.config.engine;
+
+import static java.util.Objects.requireNonNull;
+import static java.util.function.Function.identity;
+
+import java.util.LinkedList;
+import java.util.List;
+import java.util.regex.Pattern;
+
+public class NamespaceConfig
+{
+    public static final String FILESYSTEM = "filesystem";
+
+    public static final Pattern PATTERN_NAME = Pattern.compile("(?:(?<namespace>[^\\:]+)\\:)?(?<name>[^\\:]+)");
+
+    public transient int id;
+    public transient int configAt;
+
+    public final String name;
+    public final TelemetryConfig telemetry;
+    public final List<BindingConfig> bindings;
+    public final List<GuardConfig> guards;
+    public final List<VaultConfig> vaults;
+    public final List<CatalogConfig> catalogs;
+    public final List<StoreConfig> stores;
+    public final List<String> resources;
+
+    public static NamespaceConfigBuilder<NamespaceConfig> builder()
+    {
+        return new NamespaceConfigBuilder<>(identity());
+    }
+
+    NamespaceConfig(
+        String name,
+        TelemetryConfig telemetry,
+        List<BindingConfig> bindings,
+        List<GuardConfig> guards,
+        List<VaultConfig> vaults,
+        List<CatalogConfig> catalogs,
+        List<StoreConfig> stores)
+    {
+        this.name = requireNonNull(name);
+        this.telemetry = telemetry;
+        this.bindings = requireNonNull(bindings);
+        this.guards = requireNonNull(guards);
+        this.vaults = requireNonNull(vaults);
+        this.catalogs = requireNonNull(catalogs);
+        this.stores = requireNonNull(stores);
+        this.resources = resolveResources(this, telemetry, bindings, guards, vaults, catalogs, stores);
+    }
+
+    private static List<String> resolveResources(
+        NamespaceConfig namespace,
+        TelemetryConfig telemetry,
+        List<BindingConfig> bindings,
+        List<GuardConfig> guards,
+        List<VaultConfig> vaults,
+        List<CatalogConfig> catalogs,
+        List<StoreConfig> stores)
+    {
+        List<OptionsConfig> options = new LinkedList<>();
+
+        if (telemetry != null && telemetry.exporters != null)
+        {
+            telemetry.exporters.stream()
+                .filter(e -> e.options != null)
+                .map(e -> e.options)
+                .forEach(options::add);
+        }
+
+        bindings.stream()
+            .filter(b -> b.options != null)
+            .map(b -> b.options)
+            .forEach(options::add);
+
+        guards.stream()
+            .filter(g -> g.options != null)
+            .map(g -> g.options)
+            .forEach(options::add);
+
+        vaults.stream()
+            .filter(v -> v.options != null)
+            .map(v -> v.options)
+            .forEach(options::add);
+
+        catalogs.stream()
+            .filter(c -> c.options != null)
+            .map(c -> c.options)
+            .forEach(options::add);
+
+        stores.stream()
+            .filter(s -> s.options != null)
+            .map(s -> s.options)
+            .forEach(options::add);
+
+        return options.stream()
+            .filter(o -> o.resources != null)
+            .flatMap(o -> o.resources.stream())
+            .sorted()
+            .distinct()
+            .toList();
+    }
+}

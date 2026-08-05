@@ -22,7 +22,7 @@ public final class HttpFileSystemBindingFactorySpi implements BindingFactorySpi
     @Override
     public String type()
     {
-        return HttpFileSystemBinding.NAME;
+        return HttpFileSystemBinding.TYPE;
     }
 
 

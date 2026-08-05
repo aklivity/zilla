@@ -322,10 +322,15 @@ bindings:
         # connection unless it configures its own routes[].with.cache.credentials
         # override, so one broad credential is enough here. This is the raw
         # JWT, not a "Bearer "-prefixed header value -- it's handed directly to
-        # guard.reauthorize(), not extracted from a header
+        # guard.reauthorize(), not extracted from a header. Its scope claim must
+        # include every guarded toolkit route's own toolkit-level scope below --
+        # a toolkit added without updating this credential silently never
+        # hydrates: the guard rejects the hydration stream, tools/list never
+        # shows it (not even as a cold/searchable tool), yet tools/call still
+        # works fine since real calls use the caller's own JWT, not this one
         authorization:
           authn_jwt:
-            credentials: "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImtpZCI6ImV4YW1wbGUifQ.eyJhdWQiOiJodHRwczovL2FwaS5leGFtcGxlLmNvbSIsImV4cCI6NDkzNzEyNTMwNCwiaXNzIjoiaHR0cHM6Ly9hdXRoLmV4YW1wbGUuY29tIiwic2NvcGUiOiJnaXRodWI6dG9vbHMgcGV0c3RvcmU6dG9vbHMgdXJsZWxpY2l0OmF1dGhvcml6ZSJ9.DEsguNDaHgHgn7MaK8KY1I9dW9SpTc5AUnVTQjY5v-Jmm1IWSpt-xModSTnWqfnlUImYNEbImlyXfSjFXiAd1rBCl-Sw9n6DCdkVPN2VQ1gybGNxVWyp1hlOGzQQSXWEmIOYjlRliRiTpaskNjgoyY7qawncIlIOY8xX0HnP11dONyNxgzSwaPio80e2cNlWjgHTrxSDY4ms5Svv4AInSr8BxSdvl3eOpFVlJ-XhZeOo4STcpaK1FeJgxwkxM6RGUk6ltCOc3V2gdmF6gFE_t41UzzSEvxzPPsW48VmigmCp29vC9Doi6WG_1H2M_CX85sEx7_R12Gh_Pmj53NBNuw"
+            credentials: "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImtpZCI6ImV4YW1wbGUifQ.eyJhdWQiOiJodHRwczovL2FwaS5leGFtcGxlLmNvbSIsImV4cCI6NDkzODM1MDk3OSwiaXNzIjoiaHR0cHM6Ly9hdXRoLmV4YW1wbGUuY29tIiwic2NvcGUiOiJnaXRodWI6dG9vbHMgcGV0c3RvcmU6dG9vbHMgdXJsZWxpY2l0OmF1dGhvcml6ZSBrYWZrYTp0b29scyBrYWZrYV9zcjp0b29scyBrYWZrYV9jb25uZWN0OnRvb2xzIn0.e5n0XM_a0wb1BYhJiWXvPnSXaWOJyYbAj_1e3dMdNOVFBwmWv5BwHm-LYdf7DbbJk5u09I0MtgBqVnLsntwrnxcNIPzsKSs2U17Yb6NnPz6K41TljV9HCP4nAR6KK7Lt7uwJbpuSz-yY91FqjDQFjGuOGv79oPygMaomyzz4NchnAECUysrvlYlFun-X4klQsMr3h5ik-M5hDJ5rHjkefBFBR1JZOKvJEQpgSQ9Z2i4x9KiLTV4V-UfUmYrLwFuQaHalU20Rmkl8sEJ8L16PU5tuXRnUGdLyg68_i_BV-Wc0PuAHMYIWxERIfoCBrPDrVpeK1zlNYZ4lWfgbN_onLA"
         # a fixed handful of frequently used tools stay eagerly listed; every other
         # tool across every toolkit (the "everything" reference server's dozen-plus
         # demo tools, most visibly) is omitted from tools/list -- because the search
@@ -341,6 +346,33 @@ bindings:
               - petstore__list_pets
               - petstore__search_pets
               - petstore__create_pet
+              - kafka_sr__list_subjects
+              - kafka_sr__register_schema
+              - kafka__produce_message
+              - kafka__consume_messages
+              - kafka__create_topics
+              - kafka__delete_topics
+              - kafka__describe_topic_configs
+              - kafka__describe_broker_configs
+              - kafka__alter_topic_configs
+              - kafka__alter_broker_configs
+              - kafka__list_acls
+              - kafka__create_acls
+              - kafka__delete_acls
+              - kafka__list_topics
+              - kafka__describe_topic
+              - kafka__cluster_overview
+              - kafka__list_brokers
+              - kafka__describe_cluster
+              - kafka__list_consumer_groups
+              - kafka__describe_consumer_group
+              - kafka__describe_consumer_group_lag
+              - kafka__reset_offsets
+              - kafka_connect__list_connector_plugins
+              - kafka_connect__list_connectors
+              - kafka_connect__describe_connector
+              - kafka_connect__create_connector
+              - kafka_connect__delete_connector
           search:
             toolkit: zilla
     routes:
@@ -350,7 +382,7 @@ bindings:
       - exit: south_mcp_client_urlelicit
         when:
           - toolkit: urlelicit
-            tools: ["*"]
+            tool: ["*"]
         guarded:
           authn_jwt:
             - urlelicit:authorize
@@ -366,6 +398,24 @@ bindings:
         guarded:
           authn_jwt:
             - petstore:tools
+      - exit: south_mcp_schema_registry_client
+        when:
+          - toolkit: kafka_sr
+        guarded:
+          authn_jwt:
+            - kafka_sr:tools
+      - exit: south_mcp_kafka_connect_client
+        when:
+          - toolkit: kafka_connect
+        guarded:
+          authn_jwt:
+            - kafka_connect:tools
+      - exit: south_mcp_kafka_client
+        when:
+          - toolkit: kafka
+        guarded:
+          authn_jwt:
+            - kafka:tools
   south_mcp_client_everything:
     type: mcp
     kind: client
@@ -385,7 +435,7 @@ bindings:
           credentials: "Bearer {credentials}"
     exit: sys:http_client
   south_mcp_http_github:
-    type: mcp_http
+    type: mcp-http
     kind: proxy
     options:
       authorization:
@@ -475,7 +525,7 @@ bindings:
       host: ghapi
       port: 4001
   south_mcp_openapi_petstore:
-    type: mcp_openapi
+    type: mcp-openapi
     kind: client
     options:
       specs:
@@ -507,7 +557,7 @@ bindings:
           description: Add a new pet to the store.
           summary: "Added pet: ${result.name}"
           # explicit override of the auto-derived input/output schema,
-          # demonstrating the same schema-mapping mechanism as mcp_http,
+          # demonstrating the same schema-mapping mechanism as mcp-http,
           # this time optional rather than required
           input:
             model: json
@@ -559,6 +609,144 @@ bindings:
         with:
           spec: petstore
           operation: get_pet
+  south_mcp_schema_registry_client:
+    type: mcp-schema-registry
+    kind: client
+    options:
+      server: http://karapace-registry:8081
+    # a second, tool-specific guard layered under the toolkit-level
+    # kafka_sr:tools gate above -- the mutating register_schema route
+    # additionally requires kafka_sr:write, every other (read-only)
+    # tool needs only the toolkit-level scope. Order matters: routes match in
+    # declaration order, so register_schema's own route must come before the
+    # catch-all glob or its guard would never apply
+    routes:
+      - when:
+          - tool: register_schema
+        guarded:
+          authn_jwt:
+            - kafka_sr:write
+      - when:
+          - tool: "*"
+  south_mcp_kafka_connect_client:
+    type: mcp-kafka-connect
+    kind: client
+    options:
+      server: http://kafka-connect:8083
+    # a second, tool-specific guard layered under the toolkit-level
+    # kafka_connect:tools gate above -- every tool that mutates connector,
+    # task, or offset state additionally requires kafka_connect:admin, while
+    # every read-only tool (list_connectors, describe_connector,
+    # describe_connector_config, validate_connector_config,
+    # describe_connector_status, list_connector_tasks,
+    # describe_connector_offsets, list_connector_plugins) needs no scope
+    # beyond the toolkit-level gate above, sharing the catch-all glob route.
+    # Order matters: routes match in declaration order, so the admin-tier
+    # route must come before the catch-all glob or its guard would never apply
+    routes:
+      - when:
+          - tool: create_connector
+          - tool: delete_connector
+          - tool: update_connector_config
+          - tool: restart_connector
+          - tool: pause_connector
+          - tool: resume_connector
+          - tool: stop_connector
+          - tool: restart_connector_task
+          - tool: alter_connector_offsets
+          - tool: reset_connector_offsets
+        guarded:
+          authn_jwt:
+            - kafka_connect:admin
+      - when:
+          - tool: "*"
+  south_mcp_kafka_client:
+    type: mcp-kafka
+    kind: client
+    options:
+      servers:
+        - kafka.examples.dev:29092
+    # tool + topics together restrict each route to an allow-list of topics
+    # (exact names or *-glob patterns), not just a tool-name dispatch; a
+    # produce_message/consume_messages call naming any other topic has no matching route
+    # and is rejected. create_topics, delete_topics, alter_topic_configs,
+    # alter_broker_configs, and reset_offsets have no topics allow-list --
+    # each identifies its target (a resource name, a topics array, or a
+    # single group+topic pair) via call arguments rather than a routed topic
+    # -- so all five share one route, matching on tool name alone (multiple
+    # `when` entries OR'd together); all five are equally admin-risk
+    # mutations of cluster/topic/group state, so one guard covers all (an
+    # operator wanting a stricter posture for broker-wide config mutation
+    # than topic-scoped mutation can split alter_broker_configs into its own
+    # route with a tighter scope -- that's the routing granularity this
+    # tool split exists to unlock). describe_topic_configs,
+    # describe_broker_configs, list_acls, list_topics, describe_topic,
+    # cluster_overview, list_brokers, describe_cluster, list_consumer_groups,
+    # describe_consumer_group, and describe_consumer_group_lag are likewise
+    # read-only, with no topic to route on, so they share one unscoped route
+    # needing no scope beyond the toolkit-level kafka:tools guard above.
+    # create_topics/delete_topics/alter_topic_configs/alter_broker_configs/
+    # reset_offsets and produce_message each layer a tool-specific scope
+    # under the toolkit-level kafka:tools guard above (the same layering
+    # register_schema demonstrates for the kafka_sr toolkit): kafka:admin for
+    # the admin-risk topic/config/offset mutations, kafka:write for writing
+    # data -- consume_messages, describe_topic_configs,
+    # describe_broker_configs, list_acls, list_topics, describe_topic,
+    # cluster_overview, list_brokers, describe_cluster,
+    # list_consumer_groups, describe_consumer_group, and
+    # describe_consumer_group_lag need neither, only kafka:tools.
+    # create_acls and delete_acls get their own dedicated kafka:acls scope
+    # rather than reusing kafka:admin: KIP-1318 classifies ACL mutation as a
+    # security decision in its own right (a wrongly-scoped ALLOW grant is
+    # itself a security incident, distinct in kind from a topic/config/offset
+    # mutation), so an operator that trusts a caller with kafka:admin does
+    # not thereby also trust it to grant or revoke access for others.
+    routes:
+      - when:
+          - tool: create_topics
+          - tool: delete_topics
+          - tool: alter_topic_configs
+          - tool: alter_broker_configs
+          - tool: reset_offsets
+        guarded:
+          authn_jwt:
+            - kafka:admin
+      - when:
+          - tool: create_acls
+          - tool: delete_acls
+        guarded:
+          authn_jwt:
+            - kafka:acls
+      - when:
+          - tool: produce_message
+            topics: [orders]
+        guarded:
+          authn_jwt:
+            - kafka:write
+      - when:
+          - tool: consume_messages
+            topics: [orders]
+      # cluster/topic/group metadata tools -- read-only like consume_messages, so no
+      # tool-specific guard beyond the toolkit-level kafka:tools above; all
+      # eleven share one route since none of them take a topics allow-list
+      # (list_topics/cluster_overview/list_brokers/describe_cluster/
+      # list_consumer_groups describe the whole cluster, describe_topic,
+      # describe_consumer_group, and describe_consumer_group_lag name their
+      # one topic/group as a call argument, describe_topic_configs/
+      # describe_broker_configs and list_acls name a resource/filter, not a
+      # route match)
+      - when:
+          - tool: describe_topic_configs
+          - tool: describe_broker_configs
+          - tool: list_acls
+          - tool: list_topics
+          - tool: describe_topic
+          - tool: cluster_overview
+          - tool: list_brokers
+          - tool: describe_cluster
+          - tool: list_consumer_groups
+          - tool: describe_consumer_group
+          - tool: describe_consumer_group_lag
 telemetry:
   metrics:
     - mcp.initialize

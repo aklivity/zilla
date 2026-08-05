@@ -70,6 +70,7 @@
     <module>conf</module>
     <module>build</module>
     <module>specs</module>
+    <module>config</module>
     <module>runtime</module>
     <module>manager</module>
     <module>cloud</module>

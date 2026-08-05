@@ -19,10 +19,11 @@ import static java.util.stream.Collectors.toList;
 import java.util.List;
 import java.util.function.UnaryOperator;
 
-import io.aklivity.zilla.runtime.binding.kafka.grpc.config.KafkaGrpcConditionConfig;
-import io.aklivity.zilla.runtime.binding.kafka.grpc.config.KafkaGrpcOptionsConfig;
-import io.aklivity.zilla.runtime.engine.config.RouteConfig;
-import io.aklivity.zilla.runtime.engine.util.function.LongObjectPredicate;
+import io.aklivity.zilla.config.binding.kafka.grpc.KafkaGrpcConditionConfig;
+import io.aklivity.zilla.config.binding.kafka.grpc.KafkaGrpcOptionsConfig;
+import io.aklivity.zilla.config.binding.kafka.grpc.KafkaGrpcWithConfig;
+import io.aklivity.zilla.config.engine.RouteConfig;
+import io.aklivity.zilla.runtime.common.lang.util.function.LongObjectPredicate;
 
 public final class KafkaGrpcRouteConfig
 {
