@@ -18,20 +18,103 @@ import static java.util.Collections.emptyList;
 import static java.util.List.of;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
+
 import org.junit.Test;
 
 import io.aklivity.zilla.config.guard.inline.InlineOptionsConfig;
+import io.aklivity.zilla.runtime.engine.guard.GuardHandler.LongCompletionCallback;
 
 public class InlineGuardHandlerTest
 {
     @Test
+    public void shouldDeferAsyncReauthorize()
+    {
+        Deque<Runnable> dispatched = new ArrayDeque<>();
+        InlineGuardHandler handler = new InlineGuardHandler(() -> 1L, null, dispatched::offer);
+
+        long[] completed = new long[] { Long.MIN_VALUE, Long.MIN_VALUE };
+        LongCompletionCallback completion = new LongCompletionCallback()
+        {
+            @Override
+            public void completed(
+                long contextId,
+                long sessionId)
+            {
+                completed[0] = contextId;
+                completed[1] = sessionId;
+            }
+
+            @Override
+            public void failed(
+                long contextId,
+                Throwable ex)
+            {
+                throw new AssertionError("unexpected failure", ex);
+            }
+        };
+
+        handler.reauthorize(0L, 0L, 42L, "user", completion);
+
+        assertThat("completed on the caller's stack", completed[1], equalTo(Long.MIN_VALUE));
+        assertThat(dispatched.size(), equalTo(1));
+
+        dispatched.remove().run();
+
+        assertThat(completed[0], equalTo(42L));
+        assertTrue(handler.verify(completed[1], emptyList()));
+    }
+
+    @Test
+    public void shouldFailAsyncReauthorizeWhenCredentialsAbsent()
+    {
+        Deque<Runnable> dispatched = new ArrayDeque<>();
+        InlineOptionsConfig options = InlineOptionsConfig.builder()
+            .format("{identity}:{credentials}")
+            .build();
+        InlineGuardHandler handler = new InlineGuardHandler(() -> 1L, options, dispatched::offer);
+
+        Throwable[] failure = new Throwable[1];
+        LongCompletionCallback completion = new LongCompletionCallback()
+        {
+            @Override
+            public void completed(
+                long contextId,
+                long sessionId)
+            {
+                throw new AssertionError("unexpected completion");
+            }
+
+            @Override
+            public void failed(
+                long contextId,
+                Throwable ex)
+            {
+                failure[0] = ex;
+            }
+        };
+
+        handler.reauthorize(0L, 0L, 42L, null, completion);
+
+        // a null credential trips the format matcher inside the synchronous decision; the
+        // failure has to reach the caller through failed(), and no sooner than the tick
+        assertThat("failed on the caller's stack", failure[0], nullValue());
+
+        dispatched.remove().run();
+
+        assertThat(failure[0], instanceOf(NullPointerException.class));
+    }
+
+    @Test
     public void shouldVerifyRolesForSession()
     {
-        InlineGuardHandler handler = new InlineGuardHandler(() -> 1L, null);
+        InlineGuardHandler handler = new InlineGuardHandler(() -> 1L, null, Runnable::run);
 
         long sessionId = handler.reauthorize(0L, 0L, 0L, "user");
 
@@ -47,7 +130,7 @@ public class InlineGuardHandlerTest
         InlineOptionsConfig options = InlineOptionsConfig.builder()
             .format("{identity}:{credentials}")
             .build();
-        InlineGuardHandler handler = new InlineGuardHandler(() -> 1L, options);
+        InlineGuardHandler handler = new InlineGuardHandler(() -> 1L, options, Runnable::run);
 
         long sessionId = handler.reauthorize(0L, 0L, 0L, "alice:secret");
 
@@ -62,7 +145,7 @@ public class InlineGuardHandlerTest
             .credentials("default-credentials")
             .format("{identity}:{credentials}")
             .build();
-        InlineGuardHandler handler = new InlineGuardHandler(() -> 1L, options);
+        InlineGuardHandler handler = new InlineGuardHandler(() -> 1L, options, Runnable::run);
 
         long sessionId = handler.reauthorize(0L, 0L, 0L, "malformed-input-without-separator");
 
@@ -76,7 +159,7 @@ public class InlineGuardHandlerTest
         InlineOptionsConfig options = InlineOptionsConfig.builder()
             .format("{identity}:{credentials}")
             .build();
-        InlineGuardHandler handler = new InlineGuardHandler(() -> 1L, options);
+        InlineGuardHandler handler = new InlineGuardHandler(() -> 1L, options, Runnable::run);
 
         long sessionId = handler.reauthorize(0L, 0L, 0L, "malformed-input-without-separator");
 
@@ -87,7 +170,7 @@ public class InlineGuardHandlerTest
     @Test
     public void shouldReturnSameValueForIdentityAndCredentialsWhenFormatNotConfigured()
     {
-        InlineGuardHandler handler = new InlineGuardHandler(() -> 1L, null);
+        InlineGuardHandler handler = new InlineGuardHandler(() -> 1L, null, Runnable::run);
 
         long sessionId = handler.reauthorize(0L, 0L, 0L, "alice:secret");
 

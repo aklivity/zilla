@@ -44,7 +44,7 @@ public class InlineGuardContext implements GuardContext
         InlineOptionsConfig options = guard.options instanceof InlineOptionsConfig
             ? (InlineOptionsConfig) guard.options
             : null;
-        InlineGuardHandler handler = new InlineGuardHandler(supplyAuthorizedId, options);
+        InlineGuardHandler handler = new InlineGuardHandler(supplyAuthorizedId, options, context::dispatch);
         handlersById.put(guard.id, handler);
         return handler;
     }

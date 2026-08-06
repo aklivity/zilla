@@ -493,6 +493,15 @@ public class TlsWorker implements EngineContext
         return Clock.systemUTC();
     }
 
+    // this harness has no event loop to defer onto, so it runs the task inline rather than
+    // strictly later; nothing here depends on the async SPI contracts that guarantee builds on
+    @Override
+    public void dispatch(
+        Runnable task)
+    {
+        task.run();
+    }
+
     public void doWork()
     {
         streamsBuffer.readEx(this::handleRead, Integer.MAX_VALUE);
