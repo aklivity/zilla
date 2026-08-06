@@ -25,13 +25,13 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.agrona.collections.Long2LongHashMap;
 import org.agrona.collections.MutableLong;
 
-import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 
 public final class TestGuardHandler implements GuardHandler
@@ -47,16 +47,16 @@ public final class TestGuardHandler implements GuardHandler
     private final Map<String, String> attributes;
     private final String preauthorize;
     private final boolean deferAcquire;
-    private final EngineContext context;
+    private final Consumer<Runnable> dispatcher;
 
     private final Long2LongHashMap sessions;
     private final MutableLong nextSessionId;
 
     public TestGuardHandler(
         TestGuardConfig config,
-        EngineContext context)
+        Consumer<Runnable> dispatcher)
     {
-        this.context = context;
+        this.dispatcher = dispatcher;
         this.credentials = config.options != null ? config.options.credentials : null;
         this.lifetime = config.options != null ? config.options.lifetime : DEFAULT_LIFETIME_FOREVER;
         this.challenge = config.options != null ? config.options.challenge : DEFAULT_CHALLENGE_NEVER;
@@ -101,12 +101,6 @@ public final class TestGuardHandler implements GuardHandler
         return sessionId;
     }
 
-    /**
-     * Mirrors a guard that cannot decide locally: the synchronous overload above is
-     * cache-only for such a guard, and the decision arrives on a later reactor turn.
-     * Only enabled by {@code options.acquire: deferred}; otherwise the default
-     * {@link GuardHandler#reauthorize} behaviour (an immediate completion) applies.
-     */
     @Override
     public void reauthorize(
         long traceId,
@@ -115,14 +109,29 @@ public final class TestGuardHandler implements GuardHandler
         String credentials,
         LongCompletionCallback completion)
     {
-        if (deferAcquire && credentials == null)
+        dispatcher.accept(() -> complete(traceId, bindingId, contextId, credentials, completion));
+    }
+
+    private void complete(
+        long traceId,
+        long bindingId,
+        long contextId,
+        String credentials,
+        LongCompletionCallback completion)
+    {
+        try
         {
-            context.signaler().signalAt(System.currentTimeMillis(), 0,
-                signalId -> completion.completed(contextId, createSession()));
+            // an acquiring guard holds nothing to decide with synchronously, but can obtain a
+            // session once given a turn -- that sync/async asymmetry is what `acquire: deferred`
+            // models. The deferral itself is not part of it: every guard defers now
+            long sessionId = deferAcquire && credentials == null
+                ? createSession()
+                : reauthorize(traceId, bindingId, contextId, credentials);
+            completion.completed(contextId, sessionId);
         }
-        else
+        catch (Throwable ex)
         {
-            completion.completed(contextId, reauthorize(traceId, bindingId, contextId, credentials));
+            completion.failed(contextId, ex);
         }
     }
 

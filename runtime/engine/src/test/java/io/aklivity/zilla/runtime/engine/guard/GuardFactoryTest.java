@@ -20,6 +20,9 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
+
 import org.agrona.collections.MutableLong;
 import org.junit.Test;
 
@@ -47,16 +50,17 @@ public final class GuardFactoryTest
     public void shouldReturnNullPreauthorizeByDefault()
     {
         GuardConfig config = GenericGuardConfig.builder().namespace("test").name("test").type("test").build();
-        GuardHandler handler = new TestGuardHandler(new TestGuardConfig(config), null);
+        GuardHandler handler = new TestGuardHandler(new TestGuardConfig(config), Runnable::run);
 
         assertThat(handler.preauthorize(0L, 0L, 0L, 0L, null), nullValue());
     }
 
     @Test
-    public void shouldDelegateAsyncReauthorizeToSyncByDefault()
+    public void shouldDeferAsyncReauthorize()
     {
         GuardConfig config = GenericGuardConfig.builder().namespace("test").name("test").type("test").build();
-        GuardHandler handler = new TestGuardHandler(new TestGuardConfig(config), null);
+        Deque<Runnable> dispatched = new ArrayDeque<>();
+        GuardHandler handler = new TestGuardHandler(new TestGuardConfig(config), dispatched::offer);
 
         MutableLong result = new MutableLong(Long.MIN_VALUE);
         MutableLong completedContextId = new MutableLong(Long.MIN_VALUE);
@@ -81,6 +85,13 @@ public final class GuardFactoryTest
         };
 
         handler.reauthorize(0L, 0L, 42L, null, completion);
+
+        // the async variant is async unconditionally: the decision is available locally here,
+        // yet the caller must still not observe it before this call returns
+        assertThat("completed on the caller's stack", result.value, equalTo(Long.MIN_VALUE));
+        assertThat(dispatched.size(), equalTo(1));
+
+        dispatched.remove().run();
 
         assertThat(result.value, equalTo(handler.reauthorize(0L, 0L, 42L, null)));
         assertThat(completedContextId.value, equalTo(42L));

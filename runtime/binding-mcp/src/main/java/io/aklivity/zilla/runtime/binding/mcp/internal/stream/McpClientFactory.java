@@ -2893,8 +2893,6 @@ public final class McpClientFactory implements McpStreamFactory
         private long elicitTraceId;
         private long elicitAuthorization;
         private long elicitTimeoutId = Signaler.NO_CANCEL_ID;
-        private boolean acquireDecided;
-        private long acquireSessionId;
         private long acquireTraceId;
         private long acquireAuthorization;
 
@@ -2905,9 +2903,6 @@ public final class McpClientFactory implements McpStreamFactory
                 long contextId,
                 long sessionId)
             {
-                acquireDecided = true;
-                acquireSessionId = sessionId;
-
                 if (pendingAuth)
                 {
                     onAcquireCompleted(sessionId);
@@ -2919,9 +2914,6 @@ public final class McpClientFactory implements McpStreamFactory
                 long contextId,
                 Throwable ex)
             {
-                acquireDecided = true;
-                acquireSessionId = GuardHandler.NOT_AUTHORIZED;
-
                 if (pendingAuth)
                 {
                     onAcquireCompleted(GuardHandler.NOT_AUTHORIZED);
@@ -2994,20 +2986,15 @@ public final class McpClientFactory implements McpStreamFactory
                 }
             }
 
-            // the asynchronous overload defaults to the synchronous decision, so a guard
-            // that decides locally still completes before this returns and nothing about
-            // the flow below changes. A guard that must reach an authorization server to
-            // acquire a credential -- an outbound token exchange, say -- completes later,
-            // and this request's body buffers until it does
-            acquireDecided = false;
-            acquireSessionId = GuardHandler.NOT_AUTHORIZED;
+            // the asynchronous overload completes on a later turn in every case, whether the
+            // guard decides locally or has to reach an authorization server for an outbound
+            // token exchange, so there is one path here: hold the request and buffer its body
+            // until the decision arrives
             acquireTraceId = traceId;
             acquireAuthorization = authorization;
             guard.reauthorize(traceId, session.binding.id, authorization, null, acquireCompletion);
 
-            return acquireDecided
-                ? onAcquireDecided(traceId, authorization, acquireSessionId)
-                : deferAcquire(traceId, authorization);
+            return deferAcquire(traceId, authorization);
         }
 
         private boolean deferAcquire(
