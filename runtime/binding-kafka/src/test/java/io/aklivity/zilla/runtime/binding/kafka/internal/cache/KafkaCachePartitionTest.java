@@ -58,6 +58,7 @@ import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 import io.aklivity.zilla.runtime.engine.model.ModelVisitor;
+import io.aklivity.zilla.runtime.engine.model.MutableFieldEvent;
 import io.aklivity.zilla.runtime.engine.test.internal.model.TestModelHandler;
 
 public class KafkaCachePartitionTest
@@ -406,6 +407,7 @@ public class KafkaCachePartitionTest
         private final ModelVisitor visitor;
         private final String path;
         private final ModelPipelineResult result = new ModelPipelineResult();
+        private final MutableFieldEvent fieldEvent = new MutableFieldEvent();
 
         private ExtractingPipeline(
             ModelVisitor visitor,
@@ -429,7 +431,8 @@ public class KafkaCachePartitionTest
         {
             int srcLength = srcLimit - srcIndex;
             dst.putBytes(dstIndex, src, srcIndex, srcLength);
-            visitor.onField(path, src, srcIndex, srcLength);
+            fieldEvent.wrap(path, src, srcIndex, srcLength);
+            visitor.onField(fieldEvent);
             return result.set(ModelStatus.COMPLETE, srcLength, srcLength);
         }
 

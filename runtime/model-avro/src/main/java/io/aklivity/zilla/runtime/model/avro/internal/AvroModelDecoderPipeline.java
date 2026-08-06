@@ -30,6 +30,7 @@ import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 import io.aklivity.zilla.runtime.engine.model.ModelVisitor;
+import io.aklivity.zilla.runtime.engine.model.MutableFieldEvent;
 
 // Per-stream read transform session vended by AvroModelHandlerImpl: owns its own JSON generator, extractor
 // and schema-keyed pipeline cache so concurrent streams on a worker never share in-flight state. transform
@@ -47,6 +48,7 @@ final class AvroModelDecoderPipeline implements ModelPipeline
     private final AvroExtractor extractor;
     private final Int2ObjectCache<AvroPipeline> pipelines;
     private final ModelPipelineResult result;
+    private final MutableFieldEvent fieldEvent;
 
     private AvroPipeline active;
     private String diagnostic;
@@ -62,6 +64,7 @@ final class AvroModelDecoderPipeline implements ModelPipeline
         this.extractor = visitor != ModelVisitor.NONE ? new AvroExtractor() : null;
         this.pipelines = new Int2ObjectCache<>(1, 16, p -> {});
         this.result = new ModelPipelineResult();
+        this.fieldEvent = new MutableFieldEvent();
     }
 
     @Override
@@ -153,7 +156,8 @@ final class AvroModelDecoderPipeline implements ModelPipeline
     {
         for (int i = 0; i < extractor.captured(); i++)
         {
-            visitor.onField("$." + extractor.name(i), extractor.value(i), 0, extractor.length(i));
+            fieldEvent.wrap("$." + extractor.name(i), extractor.value(i), 0, extractor.length(i));
+            visitor.onField(fieldEvent);
         }
     }
 

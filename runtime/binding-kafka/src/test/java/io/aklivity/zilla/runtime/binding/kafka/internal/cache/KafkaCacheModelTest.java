@@ -130,7 +130,7 @@ public class KafkaCacheModelTest
         assertEquals(0, KafkaCacheModel.NONE.extractedLength("$.id"));
 
         boolean[] visited = { false };
-        KafkaCacheModel.NONE.extracted("$.id", (p, b, i, l) -> visited[0] = true);
+        KafkaCacheModel.NONE.extracted("$.id", event -> visited[0] = true);
         assertEquals(false, visited[0]);
 
         KafkaCacheModel.NONE.reset();
@@ -146,7 +146,7 @@ public class KafkaCacheModelTest
 
         assertEquals(4, model.extractedLength("$.id"));
         String[] captured = { null };
-        model.extracted("$.id", (p, b, i, l) -> captured[0] = b.getStringWithoutLengthUtf8(i, l));
+        model.extracted("$.id", event -> captured[0] = event.value().getStringWithoutLengthUtf8(0, event.value().capacity()));
         assertEquals("1234", captured[0]);
     }
 

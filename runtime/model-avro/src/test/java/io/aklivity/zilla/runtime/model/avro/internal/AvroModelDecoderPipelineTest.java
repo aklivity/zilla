@@ -132,8 +132,8 @@ public class AvroModelDecoderPipelineTest
         AvroModelHandlerImpl handler = newHandler();
 
         Map<String, String> extracted = new HashMap<>();
-        ModelVisitor visitor = (path, buffer, index, length) ->
-            extracted.put(path, buffer.getStringWithoutLengthUtf8(index, length));
+        ModelVisitor visitor = event ->
+            extracted.put(event.path(), event.value().getStringWithoutLengthUtf8(0, event.value().capacity()));
         ModelPipeline pipeline = handler.supplyDecoder(visitor);
 
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
@@ -151,8 +151,8 @@ public class AvroModelDecoderPipelineTest
         AvroModelHandlerImpl handler = newHandler(SCALARS_SCHEMA, "json");
 
         Map<String, String> extracted = new HashMap<>();
-        ModelVisitor visitor = (path, buffer, index, length) ->
-            extracted.put(path, buffer.getStringWithoutLengthUtf8(index, length));
+        ModelVisitor visitor = event ->
+            extracted.put(event.path(), event.value().getStringWithoutLengthUtf8(0, event.value().capacity()));
         ModelPipeline pipeline = handler.supplyDecoder(visitor);
 
         // i=5, l=7, f=1.5, d=2.5, b=true, e=index 1

@@ -497,15 +497,17 @@ public final class KafkaCachePartition
         if (transformKey != KafkaCacheModel.NONE &&
             transforms != null && transforms.extractKey != null)
         {
-            final ModelVisitor writeKey = (path, buffer, index, length) ->
+            final ModelVisitor writeKey = event ->
             {
+                final DirectBufferEx value = event.value();
+                final int length = value.capacity();
                 final int position = entryMark.value + FIELD_OFFSET_PADDED_KEY;
                 KafkaCachePaddedKeyFW paddedKey =
                     logFile.readBytes(position, paddedKeyRO::wrap);
                 final int paddedKeySize = paddedKey.sizeof();
                 KafkaCachePaddedKeyFW.Builder paddedKeyBuilder = paddedKeyRW;
                 final int keySize = paddedKeyBuilder
-                    .key(k -> k.length(length).value(buffer, index, length)).sizeof();
+                    .key(k -> k.length(length).value(value, 0, length)).sizeof();
                 paddedKeyBuilder.padding(logFile.buffer(), 0, paddedKeySize - keySize - SIZE_OF_INT);
                 KafkaCachePaddedKeyFW newPaddedKey = paddedKeyBuilder.build();
                 logFile.writeBytes(position, newPaddedKey.buffer(), newPaddedKey.offset(), newPaddedKey.sizeof());
@@ -651,7 +653,7 @@ public final class KafkaCachePartition
                             h.nameLen(name.length())
                                 .name(name.value(), 0, name.length())
                                 .valueLen(transformValue.extractedLength(path));
-                            transformValue.extracted(path, (p, b, i, l) -> h.value(b, i, l));
+                            transformValue.extracted(path, event -> h.value(event.value(), 0, event.value().capacity()));
                         });
                     }
                     trailers = builder.build();

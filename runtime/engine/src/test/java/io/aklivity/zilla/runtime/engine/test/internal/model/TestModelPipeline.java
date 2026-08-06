@@ -26,6 +26,7 @@ import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 import io.aklivity.zilla.runtime.engine.model.ModelVisitor;
+import io.aklivity.zilla.runtime.engine.model.MutableFieldEvent;
 
 // Per-stream transform mirroring the test model's whole-value length check: the value is accepted only when
 // the total length across fragments equals the configured length. A length mismatch is treated as a
@@ -48,6 +49,7 @@ final class TestModelPipeline implements ModelPipeline
     private final boolean lenient;
     private final ModelVisitor visitor;
     private final ModelPipelineResult result;
+    private final MutableFieldEvent fieldEvent;
 
     private int processed;
 
@@ -64,6 +66,7 @@ final class TestModelPipeline implements ModelPipeline
         this.lenient = lenient;
         this.visitor = visitor;
         this.result = new ModelPipelineResult();
+        this.fieldEvent = new MutableFieldEvent();
     }
 
     @Override
@@ -161,7 +164,8 @@ final class TestModelPipeline implements ModelPipeline
         {
             for (int i = 0; i < fields.size(); i++)
             {
-                visitor.onField("$." + fields.get(i), extractedValue, 0, extractedValue.capacity());
+                fieldEvent.wrap("$." + fields.get(i), extractedValue, 0, extractedValue.capacity());
+                visitor.onField(fieldEvent);
             }
         }
     }

@@ -32,6 +32,7 @@ import io.aklivity.zilla.config.engine.GenericCatalogConfig;
 import io.aklivity.zilla.config.engine.test.internal.catalog.config.TestCatalogConfig;
 import io.aklivity.zilla.config.engine.test.internal.catalog.config.TestCatalogOptionsConfig;
 import io.aklivity.zilla.config.model.json.JsonModelConfig;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -107,11 +108,12 @@ public class JsonModelDecoderPipelineTest
     {
         JsonModelHandlerImpl handler = newHandler();
         Map<String, String> extracted = new HashMap<>();
-        ModelVisitor visitor = (path, buffer, index, length) ->
+        ModelVisitor visitor = event ->
         {
-            byte[] bytes = new byte[length];
-            buffer.getBytes(index, bytes);
-            extracted.put(path, new String(bytes, UTF_8));
+            DirectBufferEx value = event.value();
+            byte[] bytes = new byte[value.capacity()];
+            value.getBytes(0, bytes);
+            extracted.put(event.path(), new String(bytes, UTF_8));
         };
         ModelPipeline pipeline = handler.supplyDecoder(visitor);
 

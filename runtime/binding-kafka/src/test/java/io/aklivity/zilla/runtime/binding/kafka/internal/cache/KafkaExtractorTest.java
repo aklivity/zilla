@@ -28,10 +28,12 @@ import org.junit.Test;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.engine.model.MutableFieldEvent;
 
 public class KafkaExtractorTest
 {
     private final MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[256]);
+    private final MutableFieldEvent fieldEvent = new MutableFieldEvent();
 
     @Test
     public void shouldCaptureSingleField()
@@ -74,7 +76,7 @@ public class KafkaExtractorTest
 
         assertEquals(0, extractor.extractedLength("$.other"));
         boolean[] visited = { false };
-        extractor.extracted("$.other", (p, b, i, l) -> visited[0] = true);
+        extractor.extracted("$.other", event -> visited[0] = true);
         assertFalse(visited[0]);
     }
 
@@ -88,7 +90,7 @@ public class KafkaExtractorTest
         assertEquals(0, extractor.extractedLength("$.missing"));
 
         boolean[] visited = { false };
-        extractor.extracted("$.missing", (p, b, i, l) -> visited[0] = true);
+        extractor.extracted("$.missing", event -> visited[0] = true);
         assertFalse(visited[0]);
     }
 
@@ -100,7 +102,7 @@ public class KafkaExtractorTest
         onField(extractor, "$.id", "abc");
 
         boolean[] visited = { false };
-        extractor.extracted("$.id", (p, b, i, l) -> visited[0] = true);
+        extractor.extracted("$.id", event -> visited[0] = true);
         assertTrue(visited[0]);
     }
 
@@ -139,7 +141,8 @@ public class KafkaExtractorTest
     {
         byte[] bytes = value.getBytes(UTF_8);
         buffer.putBytes(0, bytes);
-        extractor.onField(path, buffer, 0, bytes.length);
+        fieldEvent.wrap(path, buffer, 0, bytes.length);
+        extractor.onField(fieldEvent);
     }
 
     private String read(
@@ -147,7 +150,7 @@ public class KafkaExtractorTest
         String path)
     {
         String[] result = { null };
-        extractor.extracted(path, (p, b, i, l) -> result[0] = b.getStringWithoutLengthUtf8(i, l));
+        extractor.extracted(path, event -> result[0] = event.value().getStringWithoutLengthUtf8(0, event.value().capacity()));
         return result[0];
     }
 }

@@ -138,8 +138,8 @@ public class ProtobufModelDecoderPipelineTest
         ProtobufModelHandlerImpl handler = newHandler(null);
 
         Map<String, String> extracted = new HashMap<>();
-        ModelVisitor visitor = (path, buffer, index, length) ->
-            extracted.put(path, buffer.getStringWithoutLengthUtf8(index, length));
+        ModelVisitor visitor = event ->
+            extracted.put(event.path(), event.value().getStringWithoutLengthUtf8(0, event.value().capacity()));
         ModelPipeline pipeline = handler.supplyDecoder(visitor);
 
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
@@ -177,8 +177,8 @@ public class ProtobufModelDecoderPipelineTest
         ProtobufModelHandlerImpl handler = new ProtobufModelHandlerImpl(model, context);
 
         Map<String, String> extracted = new HashMap<>();
-        ModelVisitor visitor = (path, buffer, index, length) ->
-            extracted.put(path, buffer.getStringWithoutLengthUtf8(index, length));
+        ModelVisitor visitor = event ->
+            extracted.put(event.path(), event.value().getStringWithoutLengthUtf8(0, event.value().capacity()));
         ModelPipeline pipeline = handler.supplyDecoder(visitor);
 
         // leading message index 0, then the complex message's scalar fields (matches the legacy extract case)

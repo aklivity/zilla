@@ -22,7 +22,9 @@ import org.agrona.collections.Object2LongHashMap;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableArrayBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.engine.model.FieldEvent;
 import io.aklivity.zilla.runtime.engine.model.ModelVisitor;
+import io.aklivity.zilla.runtime.engine.model.MutableFieldEvent;
 
 final class KafkaExtractor implements ModelVisitor
 {
@@ -31,6 +33,7 @@ final class KafkaExtractor implements ModelVisitor
     private final Set<String> paths;
     private final MutableDirectBufferEx captures;
     private final Object2LongHashMap<String> regionByPath;
+    private final MutableFieldEvent fieldEvent;
 
     private int capturesOffset;
 
@@ -40,20 +43,21 @@ final class KafkaExtractor implements ModelVisitor
         this.paths = paths;
         this.captures = new ExpandableArrayBufferEx();
         this.regionByPath = new Object2LongHashMap<>(MISSING_REGION);
+        this.fieldEvent = new MutableFieldEvent();
     }
 
     @Override
     public void onField(
-        String path,
-        DirectBufferEx buffer,
-        int index,
-        int length)
+        FieldEvent event)
     {
         // the model surfaces every top-level field; capture only the configured extraction paths
+        final String path = event.path();
         if (paths.contains(path))
         {
+            final DirectBufferEx value = event.value();
+            final int length = value.capacity();
             final int offset = capturesOffset;
-            captures.putBytes(offset, buffer, index, length);
+            captures.putBytes(offset, value, 0, length);
             capturesOffset += length;
             regionByPath.put(path, (long) offset << Integer.SIZE | (length & 0xFFFF_FFFFL));
         }
@@ -75,7 +79,8 @@ final class KafkaExtractor implements ModelVisitor
         {
             final int offset = (int)(region >>> Integer.SIZE);
             final int length = (int)(region & 0xFFFF_FFFFL);
-            visitor.onField(path, captures, offset, length);
+            fieldEvent.wrap(path, captures, offset, length);
+            visitor.onField(fieldEvent);
         }
     }
 

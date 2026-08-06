@@ -15,16 +15,14 @@
  */
 package io.aklivity.zilla.runtime.engine.model;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
-
 /**
  * Receives field values extracted from a value as a {@link ModelPipeline} transforms it.
  * <p>
  * A {@code ModelVisitor} is wired to a pipeline at {@link ModelHandler#supplyDecoder} time and
  * confined to the same single I/O thread. The pipeline invokes {@link #onField} once per registered
- * path that is present in a value, when that value completes. The supplied buffer slice is valid
- * only for the duration of the call; an implementation that needs the bytes beyond the call must
- * copy them out.
+ * path that is present in a value, when that value completes. The supplied {@link FieldEvent} is
+ * valid only for the duration of the call; an implementation that needs the bytes beyond the call
+ * must copy them out.
  * </p>
  *
  * @see ModelHandler#supplyDecoder(ModelVisitor)
@@ -35,19 +33,13 @@ public interface ModelVisitor
     /**
      * No-op visitor that ignores every extracted field.
      */
-    ModelVisitor NONE = (path, buffer, index, length) -> {};
+    ModelVisitor NONE = event -> {};
 
     /**
-     * Called with the buffer slice containing an extracted field value.
+     * Called with the extracted field value.
      *
-     * @param path    the registered extraction path the value was found at
-     * @param buffer  the buffer containing the field value
-     * @param index   the offset of the field value
-     * @param length  the length of the field value
+     * @param event  the extracted field
      */
     void onField(
-        String path,
-        DirectBufferEx buffer,
-        int index,
-        int length);
+        FieldEvent event);
 }
