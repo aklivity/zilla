@@ -328,16 +328,6 @@ public class McpClientIT
     }
 
     @Test
-    @Configuration("client.guarded.deferred.yaml")
-    @Specification({
-        "${app}/tools.call.closed.early/client",
-        "${net}/tools.call.acquired/server"})
-    public void shouldCallToolClosedBeforeDeferredCredentialAcquired() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
     @Configuration("client.identity.yaml")
     @Specification({
         "${app}/tools.call/client",

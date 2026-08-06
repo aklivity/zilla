@@ -2893,7 +2893,6 @@ public final class McpClientFactory implements McpStreamFactory
         private long elicitTraceId;
         private long elicitAuthorization;
         private long elicitTimeoutId = Signaler.NO_CANCEL_ID;
-        private boolean pendingEnd;
         private boolean acquireDecided;
         private long acquireSessionId;
         private long acquireTraceId;
@@ -3146,17 +3145,14 @@ public final class McpClientFactory implements McpStreamFactory
         {
             if (pendingAuth)
             {
-                // The caller finished writing while authorization is still outstanding --
-                // ordinary for a real client, whose whole request body arrives in one POST,
-                // so this is a race the caller wins about as often as it loses. Aborting
-                // here would fail the request for no reason other than which side was
-                // quicker; record that the body is complete and let the resume send the
-                // upstream end once a credential is in hand. The elicitation timeout still
-                // bounds how long the request can stay held.
-                pendingEnd = true;
-                // suppress the base class's upstream end: this request has not been begun
-                // upstream yet, so resumeBufferedRequest is what will end it
+                final long traceId = end.traceId();
+                final long authorization = end.authorization();
+                cancelElicitTimeout();
+                pendingAuth = false;
+                state = McpState.openedInitial(state);
                 decoder = decodeRequestEnd;
+                doAppReset(traceId, authorization);
+                doAppAbort(traceId, authorization);
             }
             super.onAppEnd(end);
         }
@@ -3277,35 +3273,26 @@ public final class McpClientFactory implements McpStreamFactory
         }
 
         /**
-         * Replays the request that buffered while the guard was acquiring. The upstream
-         * request is ended here once the body is known to be whole — either the caller
-         * already ended its own stream, or a declared content length has been reached.
-         * Otherwise the caller is still writing, so the remaining data flows through on
-         * the normal path and ends the upstream request there.
+         * Replays the request that buffered while the guard was acquiring, then hands the
+         * replayed bytes to the decoder as an unbuffered frame would have been. The decoder
+         * is what completes the upstream request — it encodes the http end on reaching the
+         * end of the json document — so nothing here needs to reason about how much body is
+         * still to come: whether the document completes within this replay or on a later
+         * frame, the same decoder ends it either way.
          */
         private void resumeBufferedRequest(
             long traceId,
             long authorization)
         {
-            final boolean complete = pendingEnd ||
-                contentLength >= 0 && bufferedBodyLength >= contentLength;
-            if (complete && !pendingEnd)
-            {
-                // onAppEnd already closed the initial side when the caller ended first
-                state = McpState.openedInitial(state);
-                decoder = decodeRequestEnd;
-            }
-
             http.doEncodeRequestBegin(traceId, authorization);
+
             if (bufferedBodyLength > 0)
             {
                 final UnsafeBufferEx body = new UnsafeBufferEx(bufferedBody, 0, bufferedBodyLength);
-                http.doEncodeRequestData(traceId, authorization, body, 0, bufferedBodyLength);
+                final int limit = bufferedBodyLength;
                 bufferedBodyLength = 0;
-            }
-            if (complete)
-            {
-                http.doEncodeRequestEnd(traceId, authorization);
+                http.doEncodeRequestData(traceId, authorization, body, 0, limit);
+                decodeRequestBody(traceId, authorization, body, 0, limit);
             }
         }
 
@@ -3638,50 +3625,61 @@ public final class McpClientFactory implements McpStreamFactory
         void decodeRequestBody(
             DataFW data)
         {
+            final OctetsFW payload = data.payload();
+            if (payload != null && payload.sizeof() > 0)
+            {
+                decodeRequestBody(data.traceId(), data.authorization(),
+                    payload.buffer(), payload.offset(), payload.limit());
+            }
+        }
+
+        void decodeRequestBody(
+            long traceId,
+            long authorization,
+            DirectBufferEx payloadBuffer,
+            int payloadOffset,
+            int payloadLimit)
+        {
             if (decoder != null)
             {
-                final OctetsFW payload = data.payload();
-                if (payload != null && payload.sizeof() > 0)
-                {
-                    DirectBufferEx buffer = payload.buffer();
-                    int offset = payload.offset();
-                    int limit = payload.limit();
+                DirectBufferEx buffer = payloadBuffer;
+                int offset = payloadOffset;
+                int limit = payloadLimit;
 
-                    if (decodeSlot != NO_SLOT)
+                if (decodeSlot != NO_SLOT)
+                {
+                    final MutableDirectBufferEx slot = decodePool.buffer(decodeSlot);
+                    slot.putBytes(decodeSlotOffset, payloadBuffer, payloadOffset, payloadLimit - payloadOffset);
+                    decodeSlotOffset += payloadLimit - payloadOffset;
+                    buffer = slot;
+                    offset = 0;
+                    limit = decodeSlotOffset;
+                }
+
+                final int progress = decoder.decode(this, traceId, authorization,
+                    0L, 0, buffer, offset, offset, limit);
+
+                if (progress < limit)
+                {
+                    if (decodeSlot == NO_SLOT)
                     {
-                        final MutableDirectBufferEx slot = decodePool.buffer(decodeSlot);
-                        slot.putBytes(decodeSlotOffset, payload.buffer(), payload.offset(), payload.sizeof());
-                        decodeSlotOffset += payload.sizeof();
-                        buffer = slot;
-                        offset = 0;
-                        limit = decodeSlotOffset;
+                        decodeSlot = decodePool.acquire(initialId);
                     }
 
-                    final int progress = decoder.decode(this, data.traceId(), data.authorization(),
-                        0L, 0, buffer, offset, offset, limit);
-
-                    if (progress < limit)
+                    if (decodeSlot == NO_SLOT)
                     {
-                        if (decodeSlot == NO_SLOT)
-                        {
-                            decodeSlot = decodePool.acquire(initialId);
-                        }
-
-                        if (decodeSlot == NO_SLOT)
-                        {
-                            cleanupApp(data.traceId(), data.authorization());
-                        }
-                        else
-                        {
-                            final MutableDirectBufferEx slot = decodePool.buffer(decodeSlot);
-                            slot.putBytes(0, buffer, progress, limit - progress);
-                            decodeSlotOffset = limit - progress;
-                        }
+                        cleanupApp(traceId, authorization);
                     }
                     else
                     {
-                        cleanupDecodeSlot();
+                        final MutableDirectBufferEx slot = decodePool.buffer(decodeSlot);
+                        slot.putBytes(0, buffer, progress, limit - progress);
+                        decodeSlotOffset = limit - progress;
                     }
+                }
+                else
+                {
+                    cleanupDecodeSlot();
                 }
             }
         }
