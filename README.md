@@ -213,7 +213,7 @@ helm install zilla oci://ghcr.io/aklivity/charts/zilla \
 
 ## License
 
-Zilla is made available under the [Aklivity Community License](http://./LICENSE-AklivityCommunity).
+Zilla is made available under the [Aklivity Community License](LICENSE-AklivityCommunity).
 
 The license allows you to deploy, run, and modify Zilla for your own workloads, including production and cloud deployments. It does not permit offering Zilla as a standalone commercial Zilla-as-a-service product.
 
