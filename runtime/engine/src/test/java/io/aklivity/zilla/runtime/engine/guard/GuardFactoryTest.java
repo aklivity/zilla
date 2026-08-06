@@ -47,7 +47,7 @@ public final class GuardFactoryTest
     public void shouldReturnNullPreauthorizeByDefault()
     {
         GuardConfig config = GenericGuardConfig.builder().namespace("test").name("test").type("test").build();
-        GuardHandler handler = new TestGuardHandler(new TestGuardConfig(config));
+        GuardHandler handler = new TestGuardHandler(new TestGuardConfig(config), null);
 
         assertThat(handler.preauthorize(0L, 0L, 0L, 0L, null), nullValue());
     }
@@ -56,7 +56,7 @@ public final class GuardFactoryTest
     public void shouldDelegateAsyncReauthorizeToSyncByDefault()
     {
         GuardConfig config = GenericGuardConfig.builder().namespace("test").name("test").type("test").build();
-        GuardHandler handler = new TestGuardHandler(new TestGuardConfig(config));
+        GuardHandler handler = new TestGuardHandler(new TestGuardConfig(config), null);
 
         MutableLong result = new MutableLong(Long.MIN_VALUE);
         MutableLong completedContextId = new MutableLong(Long.MIN_VALUE);

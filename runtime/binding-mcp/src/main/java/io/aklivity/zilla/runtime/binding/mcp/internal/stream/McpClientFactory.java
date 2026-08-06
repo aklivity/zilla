@@ -2893,6 +2893,42 @@ public final class McpClientFactory implements McpStreamFactory
         private long elicitTraceId;
         private long elicitAuthorization;
         private long elicitTimeoutId = Signaler.NO_CANCEL_ID;
+        private boolean pendingEnd;
+        private boolean acquireDecided;
+        private long acquireSessionId;
+        private long acquireTraceId;
+        private long acquireAuthorization;
+
+        private final LongCompletionCallback acquireCompletion = new LongCompletionCallback()
+        {
+            @Override
+            public void completed(
+                long contextId,
+                long sessionId)
+            {
+                acquireDecided = true;
+                acquireSessionId = sessionId;
+
+                if (pendingAuth)
+                {
+                    onAcquireCompleted(sessionId);
+                }
+            }
+
+            @Override
+            public void failed(
+                long contextId,
+                Throwable ex)
+            {
+                acquireDecided = true;
+                acquireSessionId = GuardHandler.NOT_AUTHORIZED;
+
+                if (pendingAuth)
+                {
+                    onAcquireCompleted(GuardHandler.NOT_AUTHORIZED);
+                }
+            }
+        };
 
         private final LongCompletionCallback elicitCompletion = new LongCompletionCallback()
         {
@@ -2959,7 +2995,47 @@ public final class McpClientFactory implements McpStreamFactory
                 }
             }
 
-            final long sessionId = guard.reauthorize(traceId, session.binding.id, authorization, null);
+            // the asynchronous overload defaults to the synchronous decision, so a guard
+            // that decides locally still completes before this returns and nothing about
+            // the flow below changes. A guard that must reach an authorization server to
+            // acquire a credential -- an outbound token exchange, say -- completes later,
+            // and this request's body buffers until it does
+            acquireDecided = false;
+            acquireSessionId = GuardHandler.NOT_AUTHORIZED;
+            acquireTraceId = traceId;
+            acquireAuthorization = authorization;
+            guard.reauthorize(traceId, session.binding.id, authorization, null, acquireCompletion);
+
+            return acquireDecided
+                ? onAcquireDecided(traceId, authorization, acquireSessionId)
+                : deferAcquire(traceId, authorization);
+        }
+
+        private boolean deferAcquire(
+            long traceId,
+            long authorization)
+        {
+            pendingAuth = true;
+            elicitTraceId = traceId;
+            elicitAuthorization = authorization;
+
+            if (timeout > 0L)
+            {
+                elicitTimeoutId = signaler.signalAt(
+                    System.currentTimeMillis() + timeout,
+                    originId, routedId, replyId,
+                    traceId, ELICIT_TIMEOUT_SIGNAL_ID, 0);
+            }
+
+            return false;
+        }
+
+        private boolean onAcquireDecided(
+            long traceId,
+            long authorization,
+            long sessionId)
+        {
+            final GuardHandler guard = session.binding.guard;
 
             if ((sessionId & GuardHandler.MASK_AUTHORIZED) != 0L)
             {
@@ -3070,14 +3146,17 @@ public final class McpClientFactory implements McpStreamFactory
         {
             if (pendingAuth)
             {
-                final long traceId = end.traceId();
-                final long authorization = end.authorization();
-                cancelElicitTimeout();
-                pendingAuth = false;
-                state = McpState.openedInitial(state);
+                // The caller finished writing while authorization is still outstanding --
+                // ordinary for a real client, whose whole request body arrives in one POST,
+                // so this is a race the caller wins about as often as it loses. Aborting
+                // here would fail the request for no reason other than which side was
+                // quicker; record that the body is complete and let the resume send the
+                // upstream end once a credential is in hand. The elicitation timeout still
+                // bounds how long the request can stay held.
+                pendingEnd = true;
+                // suppress the base class's upstream end: this request has not been begun
+                // upstream yet, so resumeBufferedRequest is what will end it
                 decoder = decodeRequestEnd;
-                doAppReset(traceId, authorization);
-                doAppAbort(traceId, authorization);
             }
             super.onAppEnd(end);
         }
@@ -3171,6 +3250,65 @@ public final class McpClientFactory implements McpStreamFactory
             super.onAppSignal(signal);
         }
 
+        /**
+         * Completes a guard acquisition that could not be decided while
+         * {@link #proceedWithRequest} was still on the stack. Unlike
+         * {@link #onElicitCompleted} no elicitation is outstanding, so no completion
+         * notification is emitted; a {@link GuardHandler#NEEDS_PREAUTHORIZE} answer that
+         * arrives late still drives the same URL elicitation the synchronous decision does.
+         */
+        private void onAcquireCompleted(
+            long sessionId)
+        {
+            cancelElicitTimeout();
+            pendingAuth = false;
+
+            if ((sessionId & GuardHandler.MASK_AUTHORIZED) != 0L)
+            {
+                credentials = session.binding.guard.credentials(sessionId);
+                resumeBufferedRequest(elicitTraceId, elicitAuthorization);
+            }
+            else
+            {
+                // re-arms pendingAuth itself when it starts an elicitation, so the body
+                // buffered so far keeps accumulating for onElicitCompleted to replay
+                onAcquireDecided(elicitTraceId, elicitAuthorization, sessionId);
+            }
+        }
+
+        /**
+         * Replays the request that buffered while the guard was acquiring. The upstream
+         * request is ended here once the body is known to be whole — either the caller
+         * already ended its own stream, or a declared content length has been reached.
+         * Otherwise the caller is still writing, so the remaining data flows through on
+         * the normal path and ends the upstream request there.
+         */
+        private void resumeBufferedRequest(
+            long traceId,
+            long authorization)
+        {
+            final boolean complete = pendingEnd ||
+                contentLength >= 0 && bufferedBodyLength >= contentLength;
+            if (complete && !pendingEnd)
+            {
+                // onAppEnd already closed the initial side when the caller ended first
+                state = McpState.openedInitial(state);
+                decoder = decodeRequestEnd;
+            }
+
+            http.doEncodeRequestBegin(traceId, authorization);
+            if (bufferedBodyLength > 0)
+            {
+                final UnsafeBufferEx body = new UnsafeBufferEx(bufferedBody, 0, bufferedBodyLength);
+                http.doEncodeRequestData(traceId, authorization, body, 0, bufferedBodyLength);
+                bufferedBodyLength = 0;
+            }
+            if (complete)
+            {
+                http.doEncodeRequestEnd(traceId, authorization);
+            }
+        }
+
         private void onElicitCompleted(
             long sessionId)
         {
@@ -3222,12 +3360,17 @@ public final class McpClientFactory implements McpStreamFactory
             long authorization)
         {
             final String elicitationId = elicitElicitationId;
-            final McpFlushExFW flushEx = mcpFlushExRW
-                .wrap(extBuffer, 0, extBuffer.capacity())
-                .typeId(mcpTypeId)
-                .elicitComplete(b -> b.id(elicitationId))
-                .build();
-            doAppFlush(traceId, authorization, flushEx);
+            // a request held for a guard acquisition rather than an elicitation has no
+            // elicitation to complete, so there is nothing for the caller to correlate
+            if (elicitationId != null)
+            {
+                final McpFlushExFW flushEx = mcpFlushExRW
+                    .wrap(extBuffer, 0, extBuffer.capacity())
+                    .typeId(mcpTypeId)
+                    .elicitComplete(b -> b.id(elicitationId))
+                    .build();
+                doAppFlush(traceId, authorization, flushEx);
+            }
         }
 
         @Override

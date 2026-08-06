@@ -41,6 +41,7 @@ public final class TestGuardOptionsConfigBuilder<T> extends ConfigBuilder<T, Tes
     private List<String> roles;
     private Map<String, String> attributes;
     private String preauthorize;
+    private boolean deferAcquire;
 
     TestGuardOptionsConfigBuilder(
         Function<OptionsConfig, T> mapper)
@@ -106,6 +107,13 @@ public final class TestGuardOptionsConfigBuilder<T> extends ConfigBuilder<T, Tes
         return this;
     }
 
+    public TestGuardOptionsConfigBuilder<T> deferAcquire(
+        boolean deferAcquire)
+    {
+        this.deferAcquire = deferAcquire;
+        return this;
+    }
+
     public TestGuardOptionsConfigBuilder<T> preauthorize(
         String preauthorize)
     {
@@ -123,6 +131,7 @@ public final class TestGuardOptionsConfigBuilder<T> extends ConfigBuilder<T, Tes
             this.identity != null ? this.identity : DEFAULT_IDENTITY,
             roles,
             attributes,
-            preauthorize));
+            preauthorize,
+            deferAcquire));
     }
 }

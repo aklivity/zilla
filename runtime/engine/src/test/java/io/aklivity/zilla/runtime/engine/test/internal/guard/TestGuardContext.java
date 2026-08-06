@@ -23,11 +23,13 @@ import io.aklivity.zilla.runtime.engine.guard.GuardContext;
 
 public final class TestGuardContext implements GuardContext
 {
+    private final EngineContext context;
     private Long2ObjectHashMap<TestGuardHandler> handlersById;
 
     public TestGuardContext(
         EngineContext context)
     {
+        this.context = context;
         this.handlersById = new Long2ObjectHashMap<>();
     }
 
@@ -36,7 +38,7 @@ public final class TestGuardContext implements GuardContext
         GuardConfig guard)
     {
         TestGuardConfig config = new TestGuardConfig(guard);
-        TestGuardHandler handler = new TestGuardHandler(config);
+        TestGuardHandler handler = new TestGuardHandler(config, context);
         handlersById.put(guard.id, handler);
         return handler;
     }

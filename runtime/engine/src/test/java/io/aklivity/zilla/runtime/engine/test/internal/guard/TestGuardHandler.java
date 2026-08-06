@@ -31,6 +31,7 @@ import java.util.regex.Pattern;
 import org.agrona.collections.Long2LongHashMap;
 import org.agrona.collections.MutableLong;
 
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 
 public final class TestGuardHandler implements GuardHandler
@@ -45,19 +46,24 @@ public final class TestGuardHandler implements GuardHandler
     private final List<String> roles;
     private final Map<String, String> attributes;
     private final String preauthorize;
+    private final boolean deferAcquire;
+    private final EngineContext context;
 
     private final Long2LongHashMap sessions;
     private final MutableLong nextSessionId;
 
     public TestGuardHandler(
-        TestGuardConfig config)
+        TestGuardConfig config,
+        EngineContext context)
     {
+        this.context = context;
         this.credentials = config.options != null ? config.options.credentials : null;
         this.lifetime = config.options != null ? config.options.lifetime : DEFAULT_LIFETIME_FOREVER;
         this.challenge = config.options != null ? config.options.challenge : DEFAULT_CHALLENGE_NEVER;
         this.identity = config.options != null ? config.options.identity : DEFAULT_IDENTITY;
         this.roles = config.options != null ? config.options.roles : null;
         this.preauthorize = config.options != null ? config.options.preauthorize : null;
+        this.deferAcquire = config.options != null && config.options.deferAcquire;
         this.sessions = new Long2LongHashMap(-1L);
         this.nextSessionId = new MutableLong(1L);
         this.attributes = config.options != null ? config.options.attributes : null;
@@ -72,7 +78,11 @@ public final class TestGuardHandler implements GuardHandler
     {
         long sessionId = NOT_AUTHORIZED;
 
-        if (this.credentials != null && this.credentials.equals(credentials))
+        if (deferAcquire)
+        {
+            sessionId = NOT_AUTHORIZED;
+        }
+        else if (this.credentials != null && this.credentials.equals(credentials))
         {
             sessionId = createSession();
         }
@@ -89,6 +99,31 @@ public final class TestGuardHandler implements GuardHandler
         }
 
         return sessionId;
+    }
+
+    /**
+     * Mirrors a guard that cannot decide locally: the synchronous overload above is
+     * cache-only for such a guard, and the decision arrives on a later reactor turn.
+     * Only enabled by {@code options.acquire: deferred}; otherwise the default
+     * {@link GuardHandler#reauthorize} behaviour (an immediate completion) applies.
+     */
+    @Override
+    public void reauthorize(
+        long traceId,
+        long bindingId,
+        long contextId,
+        String credentials,
+        LongCompletionCallback completion)
+    {
+        if (deferAcquire && credentials == null)
+        {
+            context.signaler().signalAt(System.currentTimeMillis(), 0,
+                signalId -> completion.completed(contextId, createSession()));
+        }
+        else
+        {
+            completion.completed(contextId, reauthorize(traceId, bindingId, contextId, credentials));
+        }
     }
 
     @Override
@@ -148,7 +183,9 @@ public final class TestGuardHandler implements GuardHandler
     public String credentials(
         long sessionId)
     {
-        return credentials;
+        // a deferring guard is cache-only until it has actually acquired, so an
+        // unknown session yields nothing; the default behaviour is unchanged
+        return !deferAcquire || sessions.containsKey(sessionId) ? credentials : null;
     }
 
     @Override
