@@ -328,6 +328,16 @@ public class McpClientIT
     }
 
     @Test
+    @Configuration("client.guarded.deferred.yaml")
+    @Specification({
+        "${app}/tools.list/client",
+        "${net}/tools.list.acquired/server"})
+    public void shouldListToolsWithDeferredlyAcquiredCredential() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("client.identity.yaml")
     @Specification({
         "${app}/tools.call/client",

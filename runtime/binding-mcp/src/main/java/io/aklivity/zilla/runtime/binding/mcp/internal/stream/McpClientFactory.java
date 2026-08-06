@@ -1893,7 +1893,18 @@ public final class McpClientFactory implements McpStreamFactory
                 onAppBeginImpl(traceId, authorization, mcpBeginEx);
             }
 
-            doAppWindow(traceId, authorization, 0L, 0);
+            // the window invites the client to send its request body, so it is withheld while a
+            // guard decision is still outstanding; a challenge decided on a later turn has to
+            // reach the client before the client is asked for the body it belongs to
+            if (!awaitingAuth())
+            {
+                doAppWindow(traceId, authorization, 0L, 0);
+            }
+        }
+
+        boolean awaitingAuth()
+        {
+            return false;
         }
 
         abstract McpBindingConfig binding();
@@ -2257,7 +2268,7 @@ public final class McpClientFactory implements McpStreamFactory
             }
         }
 
-        private void doAppWindow(
+        void doAppWindow(
             long traceId,
             long authorization,
             long budgetId,
@@ -2963,6 +2974,12 @@ public final class McpClientFactory implements McpStreamFactory
         }
 
         @Override
+        boolean awaitingAuth()
+        {
+            return pendingAuth;
+        }
+
+        @Override
         boolean proceedWithRequest(
             long traceId,
             long authorization,
@@ -3239,6 +3256,9 @@ public final class McpClientFactory implements McpStreamFactory
          * {@link #onElicitCompleted} no elicitation is outstanding, so no completion
          * notification is emitted; a {@link GuardHandler#NEEDS_PREAUTHORIZE} answer that
          * arrives late still drives the same URL elicitation the synchronous decision does.
+         * The decision resolves the request exactly as it would have on the original stack,
+         * so the window {@link #onAppBegin} withheld is granted here, once whatever the
+         * decision has to say to the client has already been written.
          */
         private void onAcquireCompleted(
             long sessionId)
@@ -3246,17 +3266,14 @@ public final class McpClientFactory implements McpStreamFactory
             cancelElicitTimeout();
             pendingAuth = false;
 
-            if ((sessionId & GuardHandler.MASK_AUTHORIZED) != 0L)
+            // onAcquireDecided re-arms pendingAuth when it starts an elicitation, so the body
+            // buffered so far keeps accumulating for onElicitCompleted to replay
+            if (onAcquireDecided(acquireTraceId, acquireAuthorization, sessionId))
             {
-                credentials = session.binding.guard.credentials(sessionId);
-                resumeBufferedRequest(elicitTraceId, elicitAuthorization);
+                resumeBufferedRequest(acquireTraceId, acquireAuthorization);
             }
-            else
-            {
-                // re-arms pendingAuth itself when it starts an elicitation, so the body
-                // buffered so far keeps accumulating for onElicitCompleted to replay
-                onAcquireDecided(elicitTraceId, elicitAuthorization, sessionId);
-            }
+
+            doAppWindow(acquireTraceId, acquireAuthorization, 0L, 0);
         }
 
         /**
@@ -3265,13 +3282,17 @@ public final class McpClientFactory implements McpStreamFactory
          * is what completes the upstream request — it encodes the http end on reaching the
          * end of the json document — so nothing here needs to reason about how much body is
          * still to come: whether the document completes within this replay or on a later
-         * frame, the same decoder ends it either way.
+         * frame, the same decoder ends it either way. Request kinds that carry no body have
+         * no such document to decode and end the request from {@link #onAppBeginImpl}, which
+         * runs here for the same reason {@link #onAppBegin} runs it on the undeferred path.
          */
         private void resumeBufferedRequest(
             long traceId,
             long authorization)
         {
             http.doEncodeRequestBegin(traceId, authorization);
+
+            onAppBeginImpl(traceId, authorization, null);
 
             if (bufferedBodyLength > 0)
             {
