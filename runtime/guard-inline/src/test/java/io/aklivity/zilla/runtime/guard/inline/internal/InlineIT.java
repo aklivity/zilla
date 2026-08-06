@@ -64,7 +64,7 @@ public class InlineIT
     @Test
     public void shouldVerifyIdentityAndRolesWhenAllowAccess() throws Exception
     {
-        InlineGuardHandler guard = new InlineGuardHandler(new MutableLong(1L)::getAndIncrement, null);
+        InlineGuardHandler guard = new InlineGuardHandler(new MutableLong(1L)::getAndIncrement, null, Runnable::run);
 
         String token = "authorization-token";
         long sessionId = guard.reauthorize(0L, 0L, 101L, token);
@@ -84,7 +84,7 @@ public class InlineIT
         InlineOptionsConfig options = InlineOptionsConfig.builder()
             .format("{identity}:{credentials}")
             .build();
-        InlineGuardHandler guard = new InlineGuardHandler(new MutableLong(1L)::getAndIncrement, options);
+        InlineGuardHandler guard = new InlineGuardHandler(new MutableLong(1L)::getAndIncrement, options, Runnable::run);
 
         long sessionId = guard.reauthorize(0L, 0L, 101L, "alice:secret");
 

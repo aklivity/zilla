@@ -618,17 +618,21 @@ public interface EngineContext
     Clock clock();
 
     /**
-     * Dispatches a task for execution.
+     * Dispatches a task for execution on this worker.
      * <p>
-     * The default implementation executes the task inline on the calling thread.
-     * Override to schedule the task on a specific thread or executor.
+     * The task runs <em>strictly later</em> than this call returns — never inline on the
+     * calling stack — so a caller deferring work by one tick can rely on it. SPI contracts
+     * that promise asynchronous completion, such as {@code StoreHandler} and the async
+     * {@code GuardHandler.reauthorize}, are built on that guarantee.
+     * </p>
+     * <p>
+     * There is deliberately no default: running the task inline is a legitimate choice for
+     * a harness that has no event loop to defer onto, but it breaks those contracts, so an
+     * implementation has to state which it provides rather than inherit one silently.
      * </p>
      *
      * @param task  the task to execute
      */
-    default void dispatch(
-        Runnable task)
-    {
-        task.run();
-    }
+    void dispatch(
+        Runnable task);
 }
