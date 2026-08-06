@@ -32,14 +32,20 @@ import io.aklivity.zilla.config.engine.GenericCatalogConfig;
 import io.aklivity.zilla.config.engine.test.internal.catalog.config.TestCatalogConfig;
 import io.aklivity.zilla.config.engine.test.internal.catalog.config.TestCatalogOptionsConfig;
 import io.aklivity.zilla.config.model.avro.AvroModelConfig;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.model.FieldEvent;
+import io.aklivity.zilla.runtime.engine.model.FieldStatus;
+import io.aklivity.zilla.runtime.engine.model.ModelController;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
+import io.aklivity.zilla.runtime.engine.model.ModelSink;
+import io.aklivity.zilla.runtime.engine.model.ModelSource;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
-import io.aklivity.zilla.runtime.engine.model.ModelVisitor;
+import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.TestCatalogHandler;
 
 public class AvroModelDecoderPipelineTest
@@ -95,8 +101,8 @@ public class AvroModelDecoderPipelineTest
     {
         AvroModelHandlerImpl handler = newHandler();
         // two per-stream pipelines from the same per-worker handler
-        ModelPipeline a = handler.supplyDecoder(ModelVisitor.NONE);
-        ModelPipeline b = handler.supplyDecoder(ModelVisitor.NONE);
+        ModelPipeline a = handler.supplyDecoder(ModelTransform.NONE);
+        ModelPipeline b = handler.supplyDecoder(ModelTransform.NONE);
 
         // stream A split at the field boundary: the id field first, the status field on the final fragment
         byte[] a1 = {0x06, 0x69, 0x64, 0x30};
@@ -132,9 +138,7 @@ public class AvroModelDecoderPipelineTest
         AvroModelHandlerImpl handler = newHandler();
 
         Map<String, String> extracted = new HashMap<>();
-        ModelVisitor visitor = (path, buffer, index, length) ->
-            extracted.put(path, buffer.getStringWithoutLengthUtf8(index, length));
-        ModelPipeline pipeline = handler.supplyDecoder(visitor);
+        ModelPipeline pipeline = handler.supplyDecoder(observer(extracted));
 
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
         ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
@@ -151,9 +155,7 @@ public class AvroModelDecoderPipelineTest
         AvroModelHandlerImpl handler = newHandler(SCALARS_SCHEMA, "json");
 
         Map<String, String> extracted = new HashMap<>();
-        ModelVisitor visitor = (path, buffer, index, length) ->
-            extracted.put(path, buffer.getStringWithoutLengthUtf8(index, length));
-        ModelPipeline pipeline = handler.supplyDecoder(visitor);
+        ModelPipeline pipeline = handler.supplyDecoder(observer(extracted));
 
         // i=5, l=7, f=1.5, d=2.5, b=true, e=index 1
         byte[] scalars =
@@ -182,7 +184,7 @@ public class AvroModelDecoderPipelineTest
     public void shouldReportDecodePadding()
     {
         AvroModelHandlerImpl handler = newHandler();
-        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelTransform.NONE);
 
         assertTrue(pipeline.padding(new UnsafeBufferEx(AVRO), 0, AVRO.length) >= 0);
     }
@@ -191,7 +193,7 @@ public class AvroModelDecoderPipelineTest
     public void shouldReportIdentityWhenNoView()
     {
         AvroModelHandlerImpl handler = newHandler(SCHEMA, null);
-        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelTransform.NONE);
 
         assertFalse(pipeline.identity());
 
@@ -206,7 +208,7 @@ public class AvroModelDecoderPipelineTest
     public void shouldNotReportIdentityWhenJsonView()
     {
         AvroModelHandlerImpl handler = newHandler(SCHEMA, "json");
-        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelTransform.NONE);
 
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
         pipeline.transform(0L, 0L, FLAGS_COMPLETE,
@@ -277,5 +279,33 @@ public class AvroModelDecoderPipelineTest
         byte[] chunk = new byte[produced];
         dst.getBytes(0, chunk);
         return new String(chunk, UTF_8);
+    }
+
+    private static ModelTransform observer(
+        Map<String, String> extracted)
+    {
+        return new ModelTransform()
+        {
+            @Override
+            public FieldStatus transform(
+                ModelController control,
+                ModelSource source,
+                FieldEvent event,
+                ModelSink sink)
+            {
+                if (event == FieldEvent.FIELD)
+                {
+                    DirectBufferEx value = source.getValue();
+                    extracted.put(source.getPath(), value.getStringWithoutLengthUtf8(0, value.capacity()));
+                }
+                return sink.transform(control, source, event);
+            }
+
+            @Override
+            public boolean identity()
+            {
+                return true;
+            }
+        };
     }
 }

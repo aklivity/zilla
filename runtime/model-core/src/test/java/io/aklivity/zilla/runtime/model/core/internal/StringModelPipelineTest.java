@@ -32,7 +32,7 @@ import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
-import io.aklivity.zilla.runtime.engine.model.ModelVisitor;
+import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 
 public class StringModelPipelineTest
 {
@@ -54,7 +54,7 @@ public class StringModelPipelineTest
     public void shouldOverflowBoundedDestination()
     {
         ModelHandler handler = handler(StringModelConfig.builder().encoding("utf_8").build());
-        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelTransform.NONE);
 
         byte[] bytes = "Valid String".getBytes();
         MutableDirectBufferEx src = new UnsafeBufferEx(bytes);
@@ -81,7 +81,7 @@ public class StringModelPipelineTest
     public void shouldOverflowWithEmptyDestination()
     {
         ModelHandler handler = handler(StringModelConfig.builder().encoding("utf_8").build());
-        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelTransform.NONE);
 
         byte[] bytes = "Valid String".getBytes();
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[0]);
@@ -98,8 +98,8 @@ public class StringModelPipelineTest
     {
         ModelHandler handler = handler(StringModelConfig.builder().encoding("utf_8").build());
         // one per-worker handler vends two per-stream pipelines; fragmenting A across B must not corrupt A
-        ModelPipeline a = handler.supplyDecoder(ModelVisitor.NONE);
-        ModelPipeline b = handler.supplyDecoder(ModelVisitor.NONE);
+        ModelPipeline a = handler.supplyDecoder(ModelTransform.NONE);
+        ModelPipeline b = handler.supplyDecoder(ModelTransform.NONE);
 
         byte[] a1 = "Valid ".getBytes();
         byte[] a2 = "String".getBytes();
@@ -123,7 +123,7 @@ public class StringModelPipelineTest
     public void shouldResetForNextValue()
     {
         ModelHandler handler = handler(StringModelConfig.builder().encoding("utf_8").build());
-        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelTransform.NONE);
 
         byte[] bytes = "abc".getBytes();
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[16]);
@@ -141,7 +141,7 @@ public class StringModelPipelineTest
     public void shouldTransformMultiByteFragmented()
     {
         ModelHandler handler = handler(StringModelConfig.builder().encoding("utf_8").build());
-        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelTransform.NONE);
 
         // "é€" split at the character boundary: "é" is 2 bytes, "€" is 3 bytes
         byte[] head = "é".getBytes(java.nio.charset.StandardCharsets.UTF_8);

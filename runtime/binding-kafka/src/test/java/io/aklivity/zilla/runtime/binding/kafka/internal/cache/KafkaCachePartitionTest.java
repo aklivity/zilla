@@ -54,10 +54,11 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCachePa
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.engine.model.ModelFieldBridge;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
-import io.aklivity.zilla.runtime.engine.model.ModelVisitor;
+import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 import io.aklivity.zilla.runtime.engine.test.internal.model.TestModelHandler;
 
 public class KafkaCachePartitionTest
@@ -403,15 +404,15 @@ public class KafkaCachePartitionTest
 
     private static final class ExtractingPipeline implements ModelPipeline
     {
-        private final ModelVisitor visitor;
+        private final ModelFieldBridge bridge;
         private final String path;
         private final ModelPipelineResult result = new ModelPipelineResult();
 
         private ExtractingPipeline(
-            ModelVisitor visitor,
+            ModelTransform transform,
             String path)
         {
-            this.visitor = visitor;
+            this.bridge = new ModelFieldBridge(transform);
             this.path = path;
         }
 
@@ -429,7 +430,9 @@ public class KafkaCachePartitionTest
         {
             int srcLength = srcLimit - srcIndex;
             dst.putBytes(dstIndex, src, srcIndex, srcLength);
-            visitor.onField(path, src, srcIndex, srcLength);
+            bridge.start();
+            bridge.field(path, src, srcIndex, srcLength);
+            bridge.end();
             return result.set(ModelStatus.COMPLETE, srcLength, srcLength);
         }
 

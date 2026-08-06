@@ -25,16 +25,19 @@ import io.aklivity.zilla.runtime.common.avro.AvroPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
+import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 
-// Per-stream write transform session vended by AvroModelHandlerImpl: owns its own schema-keyed pipeline
-// cache. transform emits the catalog framing prefix into the destination on the first fragment, then drives
-// the common-avro transform (JSON in, Avro binary out) into the destination after it.
+// Per-stream write transform session vended by AvroModelHandlerImpl: owns its own per-field ModelTransform
+// adapter and schema-keyed pipeline cache. transform emits the catalog framing prefix into the destination on
+// the first fragment, then drives the common-avro transform (JSON in, Avro binary out) into the destination
+// after it; the adapter presents each field to the wired ModelTransform inline, as the value flows through.
 final class AvroModelEncoderPipeline implements ModelPipeline
 {
     private static final int FLAGS_INIT = 0x02;
     private static final int FLAGS_FIN = 0x01;
 
     private final AvroModelHandlerImpl handler;
+    private final AvroModelTransform adapter;
     private final Int2ObjectCache<AvroPipeline> pipelines;
     private final ModelPipelineResult result;
 
@@ -44,9 +47,11 @@ final class AvroModelEncoderPipeline implements ModelPipeline
     private int prefixAt;
 
     AvroModelEncoderPipeline(
-        AvroModelHandlerImpl handler)
+        AvroModelHandlerImpl handler,
+        ModelTransform transform)
     {
         this.handler = handler;
+        this.adapter = transform != ModelTransform.NONE ? new AvroModelTransform(transform) : null;
         this.pipelines = new Int2ObjectCache<>(1, 16, p -> {});
         this.result = new ModelPipelineResult();
     }
@@ -159,7 +164,8 @@ final class AvroModelEncoderPipeline implements ModelPipeline
     private AvroPipeline supplyPipeline(
         int schemaId)
     {
-        return pipelines.computeIfAbsent(schemaId, id -> handler.newPipeline(id, handler.encodeLenient, this::onRejected));
+        return pipelines.computeIfAbsent(schemaId,
+            id -> handler.newPipeline(id, handler.encodeLenient, adapter, this::onRejected));
     }
 
     private void onRejected(

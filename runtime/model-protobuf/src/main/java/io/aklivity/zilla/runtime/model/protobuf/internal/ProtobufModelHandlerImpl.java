@@ -34,7 +34,7 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
-import io.aklivity.zilla.runtime.engine.model.ModelVisitor;
+import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 
 // Per-worker factory for a protobuf model. One handler serves both directions: supplyDecoder vends a
@@ -62,14 +62,14 @@ public final class ProtobufModelHandlerImpl extends ProtobufModelHandler impleme
 
     @Override
     public ModelPipeline supplyDecoder(
-        ModelVisitor visitor)
+        ModelTransform transform)
     {
-        return new ProtobufModelDecoderPipeline(this, visitor);
+        return new ProtobufModelDecoderPipeline(this, transform);
     }
 
     @Override
     public ModelPipeline supplyEncoder(
-        ModelVisitor visitor)
+        ModelTransform transform)
     {
         return new ProtobufModelEncoderPipeline(this);
     }

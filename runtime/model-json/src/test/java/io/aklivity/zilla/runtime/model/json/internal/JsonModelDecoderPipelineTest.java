@@ -32,13 +32,19 @@ import io.aklivity.zilla.config.engine.GenericCatalogConfig;
 import io.aklivity.zilla.config.engine.test.internal.catalog.config.TestCatalogConfig;
 import io.aklivity.zilla.config.engine.test.internal.catalog.config.TestCatalogOptionsConfig;
 import io.aklivity.zilla.config.model.json.JsonModelConfig;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.model.FieldEvent;
+import io.aklivity.zilla.runtime.engine.model.FieldStatus;
+import io.aklivity.zilla.runtime.engine.model.ModelController;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
+import io.aklivity.zilla.runtime.engine.model.ModelSink;
+import io.aklivity.zilla.runtime.engine.model.ModelSource;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
-import io.aklivity.zilla.runtime.engine.model.ModelVisitor;
+import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.TestCatalogHandler;
 
 public class JsonModelDecoderPipelineTest
@@ -71,8 +77,8 @@ public class JsonModelDecoderPipelineTest
     {
         JsonModelHandlerImpl handler = newHandler();
         // two per-stream pipelines from the same per-worker handler
-        ModelPipeline a = handler.supplyDecoder(ModelVisitor.NONE);
-        ModelPipeline b = handler.supplyDecoder(ModelVisitor.NONE);
+        ModelPipeline a = handler.supplyDecoder(ModelTransform.NONE);
+        ModelPipeline b = handler.supplyDecoder(ModelTransform.NONE);
 
         byte[] a1 = "{\"id\":\"A\",".getBytes(UTF_8);
         byte[] a2tail = "\"status\":\"OK\"}".getBytes(UTF_8);
@@ -107,13 +113,7 @@ public class JsonModelDecoderPipelineTest
     {
         JsonModelHandlerImpl handler = newHandler();
         Map<String, String> extracted = new HashMap<>();
-        ModelVisitor visitor = (path, buffer, index, length) ->
-        {
-            byte[] bytes = new byte[length];
-            buffer.getBytes(index, bytes);
-            extracted.put(path, new String(bytes, UTF_8));
-        };
-        ModelPipeline pipeline = handler.supplyDecoder(visitor);
+        ModelPipeline pipeline = handler.supplyDecoder(observer(extracted));
 
         byte[] in = "{\"id\":\"123\",\"status\":\"OK\"}".getBytes(UTF_8);
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
@@ -129,7 +129,7 @@ public class JsonModelDecoderPipelineTest
     public void shouldReportDecodePadding()
     {
         JsonModelHandlerImpl handler = newHandler();
-        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelTransform.NONE);
 
         byte[] in = "{\"id\":\"123\",\"status\":\"OK\"}".getBytes(UTF_8);
         assertTrue(pipeline.padding(new UnsafeBufferEx(in), 0, in.length) >= 0);
@@ -139,7 +139,7 @@ public class JsonModelDecoderPipelineTest
     public void shouldReportIdentity()
     {
         JsonModelHandlerImpl handler = newHandler();
-        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelTransform.NONE);
 
         assertFalse(pipeline.identity());
 
@@ -206,5 +206,33 @@ public class JsonModelDecoderPipelineTest
         byte[] chunk = new byte[produced];
         dst.getBytes(0, chunk);
         return new String(chunk, UTF_8);
+    }
+
+    private static ModelTransform observer(
+        Map<String, String> extracted)
+    {
+        return new ModelTransform()
+        {
+            @Override
+            public FieldStatus transform(
+                ModelController control,
+                ModelSource source,
+                FieldEvent event,
+                ModelSink sink)
+            {
+                if (event == FieldEvent.FIELD)
+                {
+                    DirectBufferEx value = source.getValue();
+                    extracted.put(source.getPath(), value.getStringWithoutLengthUtf8(0, value.capacity()));
+                }
+                return sink.transform(control, source, event);
+            }
+
+            @Override
+            public boolean identity()
+            {
+                return true;
+            }
+        };
     }
 }

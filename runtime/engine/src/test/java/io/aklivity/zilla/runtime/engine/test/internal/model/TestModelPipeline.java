@@ -22,10 +22,11 @@ import java.util.List;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.engine.model.ModelFieldBridge;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
-import io.aklivity.zilla.runtime.engine.model.ModelVisitor;
+import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 
 // Per-stream transform mirroring the test model's whole-value length check: the value is accepted only when
 // the total length across fragments equals the configured length. A length mismatch is treated as a
@@ -33,7 +34,7 @@ import io.aklivity.zilla.runtime.engine.model.ModelVisitor;
 // validation the original bytes are forwarded verbatim and the value completes. By default an accepted value
 // is copied through into dst unchanged (identity); when a transformed length is configured, the accepted
 // value is padded or truncated to that length so a non-identity, length-changing transform can be exercised.
-// When a real visitor is wired, every configured top-level field surfaces a fixed token to the visitor as its
+// When a real transform is wired, every configured top-level field surfaces a fixed token to it as its
 // value when an accepted value completes. State lives on the pipeline so interleaved streams stay isolated.
 final class TestModelPipeline implements ModelPipeline
 {
@@ -46,7 +47,7 @@ final class TestModelPipeline implements ModelPipeline
     private final int transformLength;
     private final List<String> fields;
     private final boolean lenient;
-    private final ModelVisitor visitor;
+    private final ModelFieldBridge bridge;
     private final ModelPipelineResult result;
 
     private int processed;
@@ -56,13 +57,13 @@ final class TestModelPipeline implements ModelPipeline
         int transformLength,
         List<String> fields,
         boolean lenient,
-        ModelVisitor visitor)
+        ModelTransform transform)
     {
         this.length = length;
         this.transformLength = transformLength;
         this.fields = fields;
         this.lenient = lenient;
-        this.visitor = visitor;
+        this.bridge = transform != ModelTransform.NONE ? new ModelFieldBridge(transform) : null;
         this.result = new ModelPipelineResult();
     }
 
@@ -157,12 +158,14 @@ final class TestModelPipeline implements ModelPipeline
 
     private void visitExtracted()
     {
-        if (visitor != ModelVisitor.NONE)
+        if (bridge != null)
         {
+            bridge.start();
             for (int i = 0; i < fields.size(); i++)
             {
-                visitor.onField("$." + fields.get(i), extractedValue, 0, extractedValue.capacity());
+                bridge.field("$." + fields.get(i), extractedValue, 0, extractedValue.capacity());
             }
+            bridge.end();
         }
     }
 }

@@ -35,41 +35,43 @@ public interface ModelHandler
 {
     /**
      * Supplies a new read-direction {@link ModelPipeline} for a single stream, wiring the given
-     * {@link ModelVisitor} to receive any extracted field values as the pipeline transforms each value.
+     * {@link ModelTransform} into the pipeline so it observes, substitutes, or declines each field of
+     * every value the pipeline transforms.
      *
-     * @param visitor  the visitor to receive extracted field values
+     * @param transform  the per-field transform to wire into the pipeline
      * @return a new per-stream decode pipeline
      */
     ModelPipeline supplyDecoder(
-        ModelVisitor visitor);
+        ModelTransform transform);
 
     /**
-     * Supplies a new read-direction {@link ModelPipeline} for a single stream with no extraction visitor.
+     * Supplies a new read-direction {@link ModelPipeline} for a single stream with no per-field transform.
      *
      * @return a new per-stream decode pipeline
      */
     default ModelPipeline supplyDecoder()
     {
-        return supplyDecoder(ModelVisitor.NONE);
+        return supplyDecoder(ModelTransform.NONE);
     }
 
     /**
      * Supplies a new write-direction {@link ModelPipeline} for a single stream, wiring the given
-     * {@link ModelVisitor} to receive any extracted field values as the pipeline transforms each value.
+     * {@link ModelTransform} into the pipeline so it observes, substitutes, or declines each field of
+     * every value the pipeline transforms.
      *
-     * @param visitor  the visitor to receive extracted field values
+     * @param transform  the per-field transform to wire into the pipeline
      * @return a new per-stream encode pipeline
      */
     ModelPipeline supplyEncoder(
-        ModelVisitor visitor);
+        ModelTransform transform);
 
     /**
-     * Supplies a new write-direction {@link ModelPipeline} for a single stream with no extraction visitor.
+     * Supplies a new write-direction {@link ModelPipeline} for a single stream with no per-field transform.
      *
      * @return a new per-stream encode pipeline
      */
     default ModelPipeline supplyEncoder()
     {
-        return supplyEncoder(ModelVisitor.NONE);
+        return supplyEncoder(ModelTransform.NONE);
     }
 }

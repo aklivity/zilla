@@ -24,6 +24,7 @@ import io.aklivity.zilla.runtime.common.avro.AvroGenerator;
 import io.aklivity.zilla.runtime.common.avro.AvroPipeline;
 import io.aklivity.zilla.runtime.common.avro.AvroReporter;
 import io.aklivity.zilla.runtime.common.avro.AvroSchema;
+import io.aklivity.zilla.runtime.common.avro.AvroStream;
 import io.aklivity.zilla.runtime.common.avro.json.AvroJson;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
@@ -31,7 +32,7 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
-import io.aklivity.zilla.runtime.engine.model.ModelVisitor;
+import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 
 // Per-worker factory for an Avro model. One handler serves both directions: supplyDecoder vends a
@@ -54,16 +55,16 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
 
     @Override
     public ModelPipeline supplyDecoder(
-        ModelVisitor visitor)
+        ModelTransform transform)
     {
-        return new AvroModelDecoderPipeline(this, visitor);
+        return new AvroModelDecoderPipeline(this, transform);
     }
 
     @Override
     public ModelPipeline supplyEncoder(
-        ModelVisitor visitor)
+        ModelTransform transform)
     {
-        return new AvroModelEncoderPipeline(this);
+        return new AvroModelEncoderPipeline(this, transform);
     }
 
     int decodePadding(
@@ -133,7 +134,7 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
         int schemaId,
         boolean lenient,
         JsonGeneratorEx json,
-        AvroExtractor extractor,
+        AvroModelTransform adapter,
         AvroReporter reporter)
     {
         AvroSchema schema = supplySchema(schemaId);
@@ -146,7 +147,7 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
                 ? AvroJson.generator(schema, json, true)
                 : Avro.generator(schema, new UnsafeBufferEx(new byte[1]), 0);
             pipeline = Avro.stream(Avro.parser(schema))
-                .transform(extractor)
+                .transform(adapter)
                 .lenient(lenient)
                 .reporting(reporter)
                 .into(generator);
@@ -154,7 +155,7 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
         return pipeline;
     }
 
-    // read-direction pipeline without the extractor stage, used when no field extraction is requested so the
+    // read-direction pipeline without the ModelTransform adapter stage, used when no transform is wired so the
     // verbatim/SEGMENTED fast path stays in effect
     AvroPipeline newPipeline(
         int schemaId,
@@ -180,6 +181,7 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
     AvroPipeline newPipeline(
         int schemaId,
         boolean lenient,
+        AvroModelTransform adapter,
         AvroReporter reporter)
     {
         AvroSchema schema = supplySchema(schemaId);
@@ -189,15 +191,17 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
             // a json view parses JSON input and re-encodes it as Avro binary; any other view validates
             // Avro binary input and reproduces it, so a malformed datum yields a binary "truncated datum"
             // diagnostic rather than a JSON parse failure
-            pipeline = VIEW_JSON.equals(view)
+            AvroStream stream = VIEW_JSON.equals(view)
                 ? AvroJson.stream(schema, JsonEx.createParser(), true)
-                    .lenient(lenient)
-                    .reporting(reporter)
-                    .into(Avro.generator(schema, new UnsafeBufferEx(new byte[1]), 0))
-                : Avro.stream(Avro.parser(schema))
-                    .lenient(lenient)
-                    .reporting(reporter)
-                    .into(Avro.generator(schema, new UnsafeBufferEx(new byte[1]), 0));
+                : Avro.stream(Avro.parser(schema));
+            if (adapter != null)
+            {
+                stream = stream.transform(adapter);
+            }
+            pipeline = stream
+                .lenient(lenient)
+                .reporting(reporter)
+                .into(Avro.generator(schema, new UnsafeBufferEx(new byte[1]), 0));
         }
         return pipeline;
     }
