@@ -29,7 +29,7 @@ public interface ModelController
     /**
      * Signals that the current value must be rejected, supplying the diagnostic the adapter reports.
      * <p>
-     * A stage raising this also returns {@link FieldStatus#REJECTED}; the diagnostic is what distinguishes
+     * A stage raising this also returns {@link ModelStatus#REJECTED}; the diagnostic is what distinguishes
      * a rejection with a cause from a bare status. The supplied text is copied out by the adapter before
      * the call returns.
      * </p>

@@ -17,8 +17,8 @@ package io.aklivity.zilla.runtime.engine.model;
 
 /**
  * The consume end of a {@link ModelTransform} chain. Each {@link #transform(ModelController, ModelSource,
- * FieldEvent)} delivers one event, with {@code source} positioned to read the field it carries, and
- * reports a {@link FieldStatus}; {@code control} steers the format adapter driving the chain.
+ * ModelEvent)} delivers one event, with {@code source} positioned to read the field it carries, and
+ * reports a {@link ModelStatus}; {@code control} steers the format adapter driving the chain.
  * <p>
  * The terminal sink is supplied by the format adapter and turns each event back into the format's own
  * representation. The downstream of a {@link ModelTransform} is also a {@code ModelSink}, so stages
@@ -37,14 +37,14 @@ public interface ModelSink
      * @param event    the field event
      * @return the outcome of consuming the event
      */
-    FieldStatus transform(
+    ModelStatus transform(
         ModelController control,
         ModelSource source,
-        FieldEvent event);
+        ModelEvent event);
 
     /**
      * Continues the field in flight when the previous {@link #transform} returned
-     * {@link FieldStatus#SUSPENDED}, after the caller has drained the bounded output. {@code event} is the
+     * {@link ModelStatus#OVERFLOW}, after the caller has drained the bounded output. {@code event} is the
      * event that suspended, re-supplied by the adapter so the sink keeps no resume state of its own. The
      * default does nothing, since a sink that never suspends never sees this.
      *
@@ -53,27 +53,27 @@ public interface ModelSink
      * @param event    the event that suspended
      * @return the outcome of resuming the event
      */
-    default FieldStatus resume(
+    default ModelStatus resume(
         ModelController control,
         ModelSource source,
-        FieldEvent event)
+        ModelEvent event)
     {
-        return FieldStatus.ADVANCED;
+        return ModelStatus.OK;
     }
 
     /**
-     * Emits anything the sink has buffered, called once per value before {@link FieldEvent#END_VALUE}
+     * Emits anything the sink has buffered, called once per value before {@link ModelEvent#END_VALUE}
      * reaches the chain. The default does nothing.
      *
      * @param control  the control handle for the format adapter driving the chain
      * @param source   the read-only view of the current value
      * @return the outcome of the flush
      */
-    default FieldStatus flush(
+    default ModelStatus flush(
         ModelController control,
         ModelSource source)
     {
-        return FieldStatus.ADVANCED;
+        return ModelStatus.OK;
     }
 
     /**

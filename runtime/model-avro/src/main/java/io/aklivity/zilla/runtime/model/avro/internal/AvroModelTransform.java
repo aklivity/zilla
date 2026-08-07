@@ -31,11 +31,11 @@ import io.aklivity.zilla.runtime.common.avro.AvroSink;
 import io.aklivity.zilla.runtime.common.avro.AvroSource;
 import io.aklivity.zilla.runtime.common.avro.AvroTransform;
 import io.aklivity.zilla.runtime.common.avro.AvroType;
-import io.aklivity.zilla.runtime.engine.model.FieldEvent;
-import io.aklivity.zilla.runtime.engine.model.FieldStatus;
 import io.aklivity.zilla.runtime.engine.model.ModelController;
+import io.aklivity.zilla.runtime.engine.model.ModelEvent;
 import io.aklivity.zilla.runtime.engine.model.ModelSink;
 import io.aklivity.zilla.runtime.engine.model.ModelSource;
+import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 
 // The model-avro adapter for the engine's format-agnostic ModelTransform SPI: an AvroTransform stage that
@@ -83,8 +83,7 @@ final class AvroModelTransform implements AvroTransform
     private int branch;
     private boolean emitting;
     private boolean replay;
-    private FieldEvent pending;
-    private Status emitted;
+    private ModelEvent pending;
     private AvroSink downstream;
 
     AvroModelTransform(
@@ -155,9 +154,7 @@ final class AvroModelTransform implements AvroTransform
         }
         else
         {
-            emitted = null;
-            FieldStatus answer = transform.resume(this.control, value, pending, terminal);
-            status = emitted != null ? emitted : map(answer);
+            status = map(transform.resume(this.control, value, pending, terminal));
             emitting = status == Status.SUSPENDED;
         }
         return close(status, mediating ? terminal : discard);
@@ -177,7 +174,6 @@ final class AvroModelTransform implements AvroTransform
         branch = NO_BRANCH;
         emitting = false;
         replay = false;
-        emitted = null;
         emitter.reset();
         control.diagnostic = null;
     }
@@ -200,7 +196,7 @@ final class AvroModelTransform implements AvroTransform
         Status status = sink.transform(control, source, event);
         if (status != Status.REJECTED && complete)
         {
-            deliver(FieldEvent.FIELD, discard);
+            deliver(ModelEvent.FIELD, discard);
         }
         return status;
     }
@@ -226,7 +222,7 @@ final class AvroModelTransform implements AvroTransform
             boolean complete = track(source, event);
             if (withheld)
             {
-                status = complete ? deliver(FieldEvent.FIELD, terminal) : Status.ADVANCED;
+                status = complete ? deliver(ModelEvent.FIELD, terminal) : Status.ADVANCED;
             }
             else
             {
@@ -251,7 +247,7 @@ final class AvroModelTransform implements AvroTransform
     private Status open(
         ModelSink sink)
     {
-        return map(transform.transform(control, value.wrap(null, null, 0, 0), FieldEvent.START_VALUE, sink));
+        return map(transform.transform(control, value.wrap(null, null, 0, 0), ModelEvent.START_VALUE, sink));
     }
 
     // closes the field run when the datum completes. COMPLETED is the only signal available: the pump stops
@@ -267,7 +263,7 @@ final class AvroModelTransform implements AvroTransform
             Status flushed = map(transform.flush(control, value.wrap(null, null, 0, 0), sink));
             if (flushed == Status.ADVANCED)
             {
-                flushed = map(transform.transform(control, value, FieldEvent.END_VALUE, sink));
+                flushed = map(transform.transform(control, value, ModelEvent.END_VALUE, sink));
             }
             closed = flushed == Status.ADVANCED ? status : flushed;
         }
@@ -277,16 +273,12 @@ final class AvroModelTransform implements AvroTransform
     // hands the whole captured value to the transform; in mediating mode the terminal sink emits whatever
     // the chain answers with, so a SUSPENDED here means the answer is still being written out
     private Status deliver(
-        FieldEvent event,
+        ModelEvent event,
         ModelSink sink)
     {
         pending = event;
-        emitted = null;
-        FieldStatus answer =
-            transform.transform(control, value.wrap(supplyPath(field), captured, 0, capturedLength), event, sink);
-        // once the terminal has emitted, its own Avro status is authoritative — it carries COMPLETED, which
-        // the generic status cannot express, and a downstream reject with its own diagnostic
-        Status status = emitted != null ? emitted : map(answer);
+        Status status =
+            map(transform.transform(control, value.wrap(supplyPath(field), captured, 0, capturedLength), event, sink));
         emitting = status == Status.SUSPENDED;
         replay = false;
         return status;
@@ -432,25 +424,31 @@ final class AvroModelTransform implements AvroTransform
     }
 
     private Status map(
-        FieldStatus status)
+        ModelStatus status)
     {
-        if (status == FieldStatus.REJECTED)
+        if (status == ModelStatus.REJECTED)
         {
             String diagnostic = control.diagnostic;
             control.diagnostic = null;
             throw new AvroException(diagnostic != null ? diagnostic : "transform rejected value");
         }
-        return status == FieldStatus.SUSPENDED ? Status.SUSPENDED : Status.ADVANCED;
+        return switch (status)
+        {
+        case OVERFLOW -> Status.SUSPENDED;
+        case COMPLETE -> Status.COMPLETED;
+        default -> Status.ADVANCED;
+        };
     }
 
-    private static FieldStatus unmap(
+    private static ModelStatus unmap(
         Status status)
     {
         return switch (status)
         {
-        case SUSPENDED -> FieldStatus.SUSPENDED;
-        case REJECTED -> FieldStatus.REJECTED;
-        default -> FieldStatus.ADVANCED;
+        case SUSPENDED -> ModelStatus.OVERFLOW;
+        case REJECTED -> ModelStatus.REJECTED;
+        case COMPLETED -> ModelStatus.COMPLETE;
+        default -> ModelStatus.OK;
         };
     }
 
@@ -514,12 +512,12 @@ final class AvroModelTransform implements AvroTransform
     private static final class Discard implements ModelSink
     {
         @Override
-        public FieldStatus transform(
+        public ModelStatus transform(
             ModelController control,
             ModelSource source,
-            FieldEvent event)
+            ModelEvent event)
         {
-            return FieldStatus.ADVANCED;
+            return ModelStatus.OK;
         }
 
         @Override
@@ -533,12 +531,12 @@ final class AvroModelTransform implements AvroTransform
     private final class Terminal implements ModelSink
     {
         @Override
-        public FieldStatus transform(
+        public ModelStatus transform(
             ModelController control,
             ModelSource source,
-            FieldEvent event)
+            ModelEvent event)
         {
-            FieldStatus status = FieldStatus.ADVANCED;
+            ModelStatus status = ModelStatus.OK;
             switch (event)
             {
             case FIELD:
@@ -555,13 +553,12 @@ final class AvroModelTransform implements AvroTransform
         }
 
         @Override
-        public FieldStatus resume(
+        public ModelStatus resume(
             ModelController control,
             ModelSource source,
-            FieldEvent event)
+            ModelEvent event)
         {
-            emitted = emitter.emit(downstream);
-            return unmap(emitted);
+            return unmap(emitter.emit(downstream));
         }
 
         @Override
@@ -585,8 +582,7 @@ final class AvroModelTransform implements AvroTransform
                 emitter.wrapValue(branch, capturedType, substitute, 0, length);
             }
             branch = NO_BRANCH;
-            emitted = emitter.emit(downstream);
-            return emitted;
+            return emitter.emit(downstream);
         }
 
         // only the format knows what a structurally valid value of this field's type looks like
@@ -618,8 +614,7 @@ final class AvroModelTransform implements AvroTransform
             }
             emitter.wrapValue(branch, capturedType, substitute, 0, length);
             branch = NO_BRANCH;
-            emitted = emitter.emit(downstream);
-            return emitted;
+            return emitter.emit(downstream);
         }
     }
 

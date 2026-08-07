@@ -18,7 +18,7 @@ package io.aklivity.zilla.runtime.engine.model;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 
 /**
- * Immutable, read-only view of the field observed at the current {@link FieldEvent} as a
+ * Immutable, read-only view of the field observed at the current {@link ModelEvent} as a
  * {@link ModelTransform} chain pumps events through its stages.
  * <p>
  * A {@code ModelSource} has no cursor-advancing method, so a stage cannot disturb the pump. The buffer
@@ -39,15 +39,15 @@ public interface ModelSource
     /**
      * The path of the field at the current event, as a JSON path rooted at the value (e.g. {@code $.name}).
      *
-     * @return the field path, or {@code null} at {@link FieldEvent#START_VALUE} and
-     *         {@link FieldEvent#END_VALUE}
+     * @return the field path, or {@code null} at {@link ModelEvent#START_VALUE} and
+     *         {@link ModelEvent#END_VALUE}
      */
     String getPath();
 
     /**
      * Non-owning, on-stack view of the whole field value at the current event, its {@code capacity()}
-     * being the value length. Empty at {@link FieldEvent#START_VALUE}, {@link FieldEvent#END_VALUE}, and
-     * {@link FieldEvent#DECLINED}.
+     * being the value length. Empty at {@link ModelEvent#START_VALUE}, {@link ModelEvent#END_VALUE}, and
+     * {@link ModelEvent#DECLINED}.
      *
      * @return the field value bytes
      */

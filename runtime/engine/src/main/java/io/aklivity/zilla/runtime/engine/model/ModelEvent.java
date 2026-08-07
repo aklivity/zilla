@@ -29,7 +29,7 @@ package io.aklivity.zilla.runtime.engine.model;
  * @see ModelTransform
  * @see ModelSource
  */
-public enum FieldEvent
+public enum ModelEvent
 {
     /** start of a top-level value; {@link #FIELD} events follow until {@link #END_VALUE} */
     START_VALUE,

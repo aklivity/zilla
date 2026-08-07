@@ -22,11 +22,11 @@ import org.agrona.collections.Object2LongHashMap;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableArrayBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
-import io.aklivity.zilla.runtime.engine.model.FieldEvent;
-import io.aklivity.zilla.runtime.engine.model.FieldStatus;
 import io.aklivity.zilla.runtime.engine.model.ModelController;
+import io.aklivity.zilla.runtime.engine.model.ModelEvent;
 import io.aklivity.zilla.runtime.engine.model.ModelSink;
 import io.aklivity.zilla.runtime.engine.model.ModelSource;
+import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 
@@ -53,13 +53,13 @@ final class KafkaExtractor implements ModelTransform
     }
 
     @Override
-    public FieldStatus transform(
+    public ModelStatus transform(
         ModelController control,
         ModelSource source,
-        FieldEvent event,
+        ModelEvent event,
         ModelSink sink)
     {
-        if (event == FieldEvent.FIELD)
+        if (event == ModelEvent.FIELD)
         {
             capture(source);
         }

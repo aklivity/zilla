@@ -37,9 +37,8 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.model.FieldEvent;
-import io.aklivity.zilla.runtime.engine.model.FieldStatus;
 import io.aklivity.zilla.runtime.engine.model.ModelController;
+import io.aklivity.zilla.runtime.engine.model.ModelEvent;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelSink;
@@ -340,13 +339,13 @@ public class ProtobufModelDecoderPipelineTest
         return new ModelTransform()
         {
             @Override
-            public FieldStatus transform(
+            public ModelStatus transform(
                 ModelController control,
                 ModelSource source,
-                FieldEvent event,
+                ModelEvent event,
                 ModelSink sink)
             {
-                if (event == FieldEvent.FIELD)
+                if (event == ModelEvent.FIELD)
                 {
                     DirectBufferEx value = source.getValue();
                     extracted.put(source.getPath(), value.getStringWithoutLengthUtf8(0, value.capacity()));

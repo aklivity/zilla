@@ -41,9 +41,8 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
-import io.aklivity.zilla.runtime.engine.model.FieldEvent;
-import io.aklivity.zilla.runtime.engine.model.FieldStatus;
 import io.aklivity.zilla.runtime.engine.model.ModelController;
+import io.aklivity.zilla.runtime.engine.model.ModelEvent;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelSink;
@@ -439,14 +438,14 @@ public class AvroModelTransformTest
         }
 
         @Override
-        public FieldStatus transform(
+        public ModelStatus transform(
             ModelController control,
             ModelSource source,
-            FieldEvent event,
+            ModelEvent event,
             ModelSink sink)
         {
-            return event == FieldEvent.FIELD && path.equals(source.getPath())
-                ? sink.transform(control, substitute, FieldEvent.REPLACED)
+            return event == ModelEvent.FIELD && path.equals(source.getPath())
+                ? sink.transform(control, substitute, ModelEvent.REPLACED)
                 : sink.transform(control, source, event);
         }
     }
@@ -462,14 +461,14 @@ public class AvroModelTransformTest
         }
 
         @Override
-        public FieldStatus transform(
+        public ModelStatus transform(
             ModelController control,
             ModelSource source,
-            FieldEvent event,
+            ModelEvent event,
             ModelSink sink)
         {
-            return event == FieldEvent.FIELD && matches(paths, source.getPath())
-                ? sink.transform(control, source, FieldEvent.DECLINED)
+            return event == ModelEvent.FIELD && matches(paths, source.getPath())
+                ? sink.transform(control, source, ModelEvent.DECLINED)
                 : sink.transform(control, source, event);
         }
     }
@@ -486,14 +485,14 @@ public class AvroModelTransformTest
         }
 
         @Override
-        public FieldStatus transform(
+        public ModelStatus transform(
             ModelController control,
             ModelSource source,
-            FieldEvent event,
+            ModelEvent event,
             ModelSink sink)
         {
-            return event == FieldEvent.FIELD
-                ? sink.transform(control, substitute.copy(source), FieldEvent.REPLACED)
+            return event == ModelEvent.FIELD
+                ? sink.transform(control, substitute.copy(source), ModelEvent.REPLACED)
                 : sink.transform(control, source, event);
         }
     }
@@ -512,21 +511,21 @@ public class AvroModelTransformTest
         }
 
         @Override
-        public FieldStatus transform(
+        public ModelStatus transform(
             ModelController control,
             ModelSource source,
-            FieldEvent event,
+            ModelEvent event,
             ModelSink sink)
         {
             DirectBufferEx value = source.getValue();
-            events.add(event == FieldEvent.FIELD
+            events.add(event == ModelEvent.FIELD
                 ? "FIELD(" + source.getPath() + "=" + value.getStringWithoutLengthUtf8(0, value.capacity()) + ")"
                 : event.name());
             return sink.transform(control, source, event);
         }
 
         @Override
-        public FieldStatus flush(
+        public ModelStatus flush(
             ModelController control,
             ModelSource source,
             ModelSink sink)
@@ -553,17 +552,17 @@ public class AvroModelTransformTest
         }
 
         @Override
-        public FieldStatus transform(
+        public ModelStatus transform(
             ModelController control,
             ModelSource source,
-            FieldEvent event,
+            ModelEvent event,
             ModelSink sink)
         {
-            FieldStatus status;
-            if (event == FieldEvent.FIELD && path.equals(source.getPath()))
+            ModelStatus status;
+            if (event == ModelEvent.FIELD && path.equals(source.getPath()))
             {
                 control.reject("field " + path + " not permitted");
-                status = FieldStatus.REJECTED;
+                status = ModelStatus.REJECTED;
             }
             else
             {
@@ -576,10 +575,10 @@ public class AvroModelTransformTest
     private static final class Observing implements ModelTransform
     {
         @Override
-        public FieldStatus transform(
+        public ModelStatus transform(
             ModelController control,
             ModelSource source,
-            FieldEvent event,
+            ModelEvent event,
             ModelSink sink)
         {
             return sink.transform(control, source, event);
