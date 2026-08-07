@@ -18,11 +18,11 @@ package io.aklivity.zilla.runtime.engine.model;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Stream;
 
 import org.junit.Test;
 
@@ -39,39 +39,49 @@ public class ModelTransformTest
         Recorder recorder = new Recorder();
         Field field = new Field("$.id", "one");
 
-        FieldStatus status = ModelTransform.NONE.transform(NO_CONTROL, field, FieldEvent.FIELD, recorder);
+        ModelStatus status = ModelTransform.NONE.transform(NO_CONTROL, field, ModelEvent.FIELD, recorder);
 
-        assertEquals(FieldStatus.ADVANCED, status);
+        assertEquals(ModelStatus.OK, status);
         assertTrue(ModelTransform.NONE.identity());
         assertEquals(List.of("$.id=one"), recorder.events);
     }
 
     @Test
-    public void shouldComposeNothingWhenEmpty()
+    public void shouldFeedEachStageTheAnswerOfThePreviousWhenChainedThreeDeep()
     {
-        assertSame(ModelTransform.NONE, CompositeModelTransform.of(null));
-        assertSame(ModelTransform.NONE, CompositeModelTransform.of(List.of()));
+        Recorder recorder = new Recorder();
+        ModelTransform composed = new Replacing("$.id", "first")
+            .andThen(new Appending("!"))
+            .andThen(new Appending("?"));
+
+        composed.transform(NO_CONTROL, new Field("$.id", "one"), ModelEvent.FIELD, recorder);
+
+        assertEquals(List.of("$.id=first!?"), recorder.events);
     }
 
     @Test
-    public void shouldComposeSingleWhenOne()
+    public void shouldComposeAnyNumberOfStagesByReducing()
     {
-        ModelTransform only = new Replacing("$.id", "first");
+        Recorder recorder = new Recorder();
+        ModelTransform composed = Stream.of(new Appending("a"), new Appending("b"), new Appending("c"))
+            .map(ModelTransform.class::cast)
+            .reduce(ModelTransform::andThen)
+            .orElse(ModelTransform.NONE);
 
-        assertSame(only, CompositeModelTransform.of(List.of(only)));
+        composed.transform(NO_CONTROL, new Field("$.id", "x"), ModelEvent.FIELD, recorder);
+
+        assertEquals(List.of("$.id=xabc"), recorder.events);
     }
 
     @Test
     public void shouldFeedEachStageTheAnswerOfThePrevious()
     {
         Recorder recorder = new Recorder();
-        ModelTransform composed = CompositeModelTransform.of(List.of(
-            new Replacing("$.id", "first"),
-            new Appending("!")));
+        ModelTransform composed = new Replacing("$.id", "first").andThen(new Appending("!"));
 
-        FieldStatus status = composed.transform(NO_CONTROL, new Field("$.id", "one"), FieldEvent.FIELD, recorder);
+        ModelStatus status = composed.transform(NO_CONTROL, new Field("$.id", "one"), ModelEvent.FIELD, recorder);
 
-        assertEquals(FieldStatus.ADVANCED, status);
+        assertEquals(ModelStatus.OK, status);
         assertEquals(List.of("$.id=first!"), recorder.events);
     }
 
@@ -79,11 +89,9 @@ public class ModelTransformTest
     public void shouldDeclineThroughEveryStage()
     {
         Recorder recorder = new Recorder();
-        ModelTransform composed = CompositeModelTransform.of(List.of(
-            new Declining("$.id"),
-            new Appending("!")));
+        ModelTransform composed = new Declining("$.id").andThen(new Appending("!"));
 
-        composed.transform(NO_CONTROL, new Field("$.id", "one"), FieldEvent.FIELD, recorder);
+        composed.transform(NO_CONTROL, new Field("$.id", "one"), ModelEvent.FIELD, recorder);
 
         assertEquals(List.of("DECLINED $.id="), recorder.events);
     }
@@ -91,8 +99,9 @@ public class ModelTransformTest
     @Test
     public void shouldComposeIdentityOnlyWhenEveryStageIsIdentity()
     {
-        assertTrue(CompositeModelTransform.of(List.of(ModelTransform.NONE, ModelTransform.NONE)).identity());
-        assertFalse(CompositeModelTransform.of(List.of(ModelTransform.NONE, new Appending("!"))).identity());
+        assertTrue(ModelTransform.NONE.andThen(ModelTransform.NONE).identity());
+        assertFalse(ModelTransform.NONE.andThen(new Appending("!")).identity());
+        assertFalse(new Appending("!").andThen(ModelTransform.NONE).identity());
     }
 
     @Test
@@ -100,9 +109,9 @@ public class ModelTransformTest
     {
         Appending first = new Appending("!");
         Appending second = new Appending("?");
-        ModelTransform composed = CompositeModelTransform.of(List.of(first, second));
+        ModelTransform composed = first.andThen(second);
 
-        composed.transform(NO_CONTROL, new Field("$.id", "one"), FieldEvent.FIELD, new Recorder());
+        composed.transform(NO_CONTROL, new Field("$.id", "one"), ModelEvent.FIELD, new Recorder());
         composed.reset();
 
         assertEquals(1, first.resets);
@@ -113,9 +122,9 @@ public class ModelTransformTest
     public void shouldFlushThroughEveryStage()
     {
         Recorder recorder = new Recorder();
-        ModelTransform composed = CompositeModelTransform.of(List.of(new Appending("!"), new Appending("?")));
+        ModelTransform composed = new Appending("!").andThen(new Appending("?"));
 
-        assertEquals(FieldStatus.ADVANCED, composed.flush(NO_CONTROL, new Field(null, ""), recorder));
+        assertEquals(ModelStatus.OK, composed.flush(NO_CONTROL, new Field(null, ""), recorder));
         assertEquals(1, recorder.flushes);
     }
 
@@ -174,23 +183,23 @@ public class ModelTransformTest
         private int flushes;
 
         @Override
-        public FieldStatus transform(
+        public ModelStatus transform(
             ModelController control,
             ModelSource source,
-            FieldEvent event)
+            ModelEvent event)
         {
-            String prefix = event == FieldEvent.DECLINED ? "DECLINED " : "";
+            String prefix = event == ModelEvent.DECLINED ? "DECLINED " : "";
             events.add(prefix + source.getPath() + "=" + text(source));
-            return FieldStatus.ADVANCED;
+            return ModelStatus.OK;
         }
 
         @Override
-        public FieldStatus flush(
+        public ModelStatus flush(
             ModelController control,
             ModelSource source)
         {
             flushes++;
-            return FieldStatus.ADVANCED;
+            return ModelStatus.OK;
         }
 
         @Override
@@ -215,14 +224,14 @@ public class ModelTransformTest
         }
 
         @Override
-        public FieldStatus transform(
+        public ModelStatus transform(
             ModelController control,
             ModelSource source,
-            FieldEvent event,
+            ModelEvent event,
             ModelSink sink)
         {
-            return event == FieldEvent.FIELD && path.equals(source.getPath())
-                ? sink.transform(control, substitute, FieldEvent.REPLACED)
+            return event == ModelEvent.FIELD && path.equals(source.getPath())
+                ? sink.transform(control, substitute, ModelEvent.REPLACED)
                 : sink.transform(control, source, event);
         }
     }
@@ -241,14 +250,14 @@ public class ModelTransformTest
         }
 
         @Override
-        public FieldStatus transform(
+        public ModelStatus transform(
             ModelController control,
             ModelSource source,
-            FieldEvent event,
+            ModelEvent event,
             ModelSink sink)
         {
-            return event == FieldEvent.FIELD || event == FieldEvent.REPLACED
-                ? sink.transform(control, new Field(source.getPath(), text(source) + suffix), FieldEvent.REPLACED)
+            return event == ModelEvent.FIELD || event == ModelEvent.REPLACED
+                ? sink.transform(control, new Field(source.getPath(), text(source) + suffix), ModelEvent.REPLACED)
                 : sink.transform(control, source, event);
         }
 
@@ -270,14 +279,14 @@ public class ModelTransformTest
         }
 
         @Override
-        public FieldStatus transform(
+        public ModelStatus transform(
             ModelController control,
             ModelSource source,
-            FieldEvent event,
+            ModelEvent event,
             ModelSink sink)
         {
-            return event == FieldEvent.FIELD && path.equals(source.getPath())
-                ? sink.transform(control, new Field(path, ""), FieldEvent.DECLINED)
+            return event == ModelEvent.FIELD && path.equals(source.getPath())
+                ? sink.transform(control, new Field(path, ""), ModelEvent.DECLINED)
                 : sink.transform(control, source, event);
         }
     }
@@ -289,18 +298,18 @@ public class ModelTransformTest
         private int flushes;
 
         @Override
-        public FieldStatus transform(
+        public ModelStatus transform(
             ModelController control,
             ModelSource source,
-            FieldEvent event,
+            ModelEvent event,
             ModelSink sink)
         {
-            events.add(event == FieldEvent.FIELD ? source.getPath() + "=" + text(source) : event.name());
+            events.add(event == ModelEvent.FIELD ? source.getPath() + "=" + text(source) : event.name());
             return sink.transform(control, source, event);
         }
 
         @Override
-        public FieldStatus flush(
+        public ModelStatus flush(
             ModelController control,
             ModelSource source,
             ModelSink sink)

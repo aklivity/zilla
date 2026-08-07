@@ -26,11 +26,11 @@ package io.aklivity.zilla.runtime.engine.model;
  * way out. One transform implementation therefore plugs into any model that ships an adapter.
  * </p>
  * <p>
- * Each {@link #transform(ModelController, ModelSource, FieldEvent, ModelSink)} consumes one event and
+ * Each {@link #transform(ModelController, ModelSource, ModelEvent, ModelSink)} consumes one event and
  * forwards what it keeps to {@code sink}, the downstream supplied by the caller. The answer is the event
- * it forwards: {@link FieldEvent#FIELD} keeps the value as-is (the adapter forwards the original bytes by
- * reference, with no copy), {@link FieldEvent#REPLACED} substitutes the bytes the stage exposes through
- * its own {@link ModelSource}, and {@link FieldEvent#DECLINED} drops the value so the adapter writes a
+ * it forwards: {@link ModelEvent#FIELD} keeps the value as-is (the adapter forwards the original bytes by
+ * reference, with no copy), {@link ModelEvent#REPLACED} substitutes the bytes the stage exposes through
+ * its own {@link ModelSource}, and {@link ModelEvent#DECLINED} drops the value so the adapter writes a
  * structurally valid placeholder for that field's type — the only case with format-specific work, since
  * only the format knows what valid means there.
  * </p>
@@ -40,8 +40,7 @@ package io.aklivity.zilla.runtime.engine.model;
  * </p>
  *
  * @see ModelHandler#supplyDecoder(ModelTransform)
- * @see FieldEvent
- * @see CompositeModelTransform
+ * @see ModelEvent
  */
 public interface ModelTransform
 {
@@ -51,10 +50,10 @@ public interface ModelTransform
     ModelTransform NONE = new ModelTransform()
     {
         @Override
-        public FieldStatus transform(
+        public ModelStatus transform(
             ModelController control,
             ModelSource source,
-            FieldEvent event,
+            ModelEvent event,
             ModelSink sink)
         {
             return sink.transform(control, source, event);
@@ -76,14 +75,119 @@ public interface ModelTransform
      * @param sink     the downstream stage
      * @return the outcome of consuming the event
      */
-    FieldStatus transform(
+    ModelStatus transform(
         ModelController control,
         ModelSource source,
-        FieldEvent event,
+        ModelEvent event,
         ModelSink sink);
 
     /**
-     * Resumes the downstream after a {@link FieldStatus#SUSPENDED} return, once the caller has drained the
+     * Returns a transform that feeds this stage's answer to {@code next}, so any number of stages compose
+     * into the single {@code ModelTransform} a {@link ModelHandler} accepts.
+     * <p>
+     * Composition happens entirely in the format-agnostic domain, so the adapter driving the chain still
+     * pays exactly one format-to-generic context switch per field however many stages the composition
+     * represents. Chain directly — {@code first.andThen(second).andThen(third)} — or reduce a list with
+     * {@code transforms.stream().reduce(ModelTransform::andThen)}.
+     * </p>
+     *
+     * @param next  the stage to feed this stage's answer to
+     * @return the composed transform
+     */
+    default ModelTransform andThen(
+        ModelTransform next)
+    {
+        ModelTransform first = this;
+        return new ModelTransform()
+        {
+            // the downstream handed to first: it invokes next with whatever terminal the current call
+            // supplied, so the chain re-binds per call without either stage holding the caller's sink
+            private final ModelSink bridge = new ModelSink()
+            {
+                @Override
+                public ModelStatus transform(
+                    ModelController control,
+                    ModelSource source,
+                    ModelEvent event)
+                {
+                    return next.transform(control, source, event, terminal);
+                }
+
+                @Override
+                public ModelStatus resume(
+                    ModelController control,
+                    ModelSource source,
+                    ModelEvent event)
+                {
+                    return next.resume(control, source, event, terminal);
+                }
+
+                @Override
+                public ModelStatus flush(
+                    ModelController control,
+                    ModelSource source)
+                {
+                    return next.flush(control, source, terminal);
+                }
+
+                @Override
+                public boolean identity()
+                {
+                    return next.identity() && (terminal == null || terminal.identity());
+                }
+            };
+
+            private ModelSink terminal;
+
+            @Override
+            public ModelStatus transform(
+                ModelController control,
+                ModelSource source,
+                ModelEvent event,
+                ModelSink sink)
+            {
+                this.terminal = sink;
+                return first.transform(control, source, event, bridge);
+            }
+
+            @Override
+            public ModelStatus resume(
+                ModelController control,
+                ModelSource source,
+                ModelEvent event,
+                ModelSink sink)
+            {
+                this.terminal = sink;
+                return first.resume(control, source, event, bridge);
+            }
+
+            @Override
+            public ModelStatus flush(
+                ModelController control,
+                ModelSource source,
+                ModelSink sink)
+            {
+                this.terminal = sink;
+                return first.flush(control, source, bridge);
+            }
+
+            @Override
+            public void reset()
+            {
+                first.reset();
+                next.reset();
+            }
+
+            @Override
+            public boolean identity()
+            {
+                return first.identity() && next.identity();
+            }
+        };
+    }
+
+    /**
+     * Resumes the downstream after a {@link ModelStatus#OVERFLOW} return, once the caller has drained the
      * bounded output. The default forwards to {@code sink}, so a stage that merely forwards events never
      * re-sees them on resume; a stage that buffers or substitutes overrides this to continue its own
      * emission before forwarding.
@@ -94,17 +198,17 @@ public interface ModelTransform
      * @param sink     the downstream stage
      * @return the outcome of resuming the event
      */
-    default FieldStatus resume(
+    default ModelStatus resume(
         ModelController control,
         ModelSource source,
-        FieldEvent event,
+        ModelEvent event,
         ModelSink sink)
     {
         return sink.resume(control, source, event);
     }
 
     /**
-     * Emits anything this stage has buffered, called once per value before {@link FieldEvent#END_VALUE}
+     * Emits anything this stage has buffered, called once per value before {@link ModelEvent#END_VALUE}
      * reaches the chain. The default forwards to {@code sink}.
      *
      * @param control  the control handle for the format adapter driving this chain
@@ -112,7 +216,7 @@ public interface ModelTransform
      * @param sink     the downstream stage
      * @return the outcome of the flush
      */
-    default FieldStatus flush(
+    default ModelStatus flush(
         ModelController control,
         ModelSource source,
         ModelSink sink)
