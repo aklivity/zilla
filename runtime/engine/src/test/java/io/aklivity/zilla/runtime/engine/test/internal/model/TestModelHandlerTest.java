@@ -32,7 +32,7 @@ import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
-import io.aklivity.zilla.runtime.engine.model.ModelVisitor;
+import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 
 public class TestModelHandlerTest
 {
@@ -96,13 +96,13 @@ public class TestModelHandlerTest
 
         byte[] bytes = {1, 2, 3};
 
-        ModelPipeline decoder = handler.supplyDecoder(ModelVisitor.NONE);
+        ModelPipeline decoder = handler.supplyDecoder(ModelTransform.NONE);
         MutableDirectBufferEx decodeDst = new UnsafeBufferEx(new byte[16]);
         ModelPipelineResult decoded = decoder.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBufferEx(bytes), 0, bytes.length, decodeDst, 0, decodeDst.capacity());
         assertEquals(ModelStatus.COMPLETE, decoded.status());
 
-        ModelPipeline encoder = handler.supplyEncoder(ModelVisitor.NONE);
+        ModelPipeline encoder = handler.supplyEncoder(ModelTransform.NONE);
         MutableDirectBufferEx encodeDst = new UnsafeBufferEx(new byte[16]);
         ModelPipelineResult encoded = encoder.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBufferEx(bytes), 0, bytes.length, encodeDst, 0, encodeDst.capacity());
@@ -199,7 +199,7 @@ public class TestModelHandlerTest
             .transformLength(8)
             .build();
         ModelHandler handler = new TestModelContext(context).supplyHandler(config);
-        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelTransform.NONE);
 
         assertFalse(pipeline.identity());
     }
@@ -208,7 +208,7 @@ public class TestModelHandlerTest
         int length)
     {
         ModelHandler handler = new TestModelContext(context).supplyHandler(config(length));
-        return handler.supplyDecoder(ModelVisitor.NONE);
+        return handler.supplyDecoder(ModelTransform.NONE);
     }
 
     private ModelPipeline writePipeline(
@@ -226,7 +226,7 @@ public class TestModelHandlerTest
             .validate(ValidateConfig.builder().decode(ValidateMode.LENIENT).encode(ValidateMode.LENIENT).build())
             .build();
         ModelHandler handler = new TestModelContext(context).supplyHandler(config);
-        return handler.supplyDecoder(ModelVisitor.NONE);
+        return handler.supplyDecoder(ModelTransform.NONE);
     }
 
     private static TestModelConfig config(

@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.model.avro.internal;
 
 import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_ID;
+import static java.util.Objects.requireNonNull;
 
 import io.aklivity.zilla.config.model.avro.AvroModelConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
@@ -24,6 +25,7 @@ import io.aklivity.zilla.runtime.common.avro.AvroGenerator;
 import io.aklivity.zilla.runtime.common.avro.AvroPipeline;
 import io.aklivity.zilla.runtime.common.avro.AvroReporter;
 import io.aklivity.zilla.runtime.common.avro.AvroSchema;
+import io.aklivity.zilla.runtime.common.avro.AvroTransform;
 import io.aklivity.zilla.runtime.common.avro.json.AvroJson;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
@@ -31,7 +33,7 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
-import io.aklivity.zilla.runtime.engine.model.ModelVisitor;
+import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 
 // Per-worker factory for an Avro model. One handler serves both directions: supplyDecoder vends a
@@ -54,16 +56,16 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
 
     @Override
     public ModelPipeline supplyDecoder(
-        ModelVisitor visitor)
+        ModelTransform transform)
     {
-        return new AvroModelDecoderPipeline(this, visitor);
+        return new AvroModelDecoderPipeline(this, requireNonNull(transform));
     }
 
     @Override
     public ModelPipeline supplyEncoder(
-        ModelVisitor visitor)
+        ModelTransform transform)
     {
-        return new AvroModelEncoderPipeline(this);
+        return new AvroModelEncoderPipeline(this, requireNonNull(transform));
     }
 
     int decodePadding(
@@ -133,7 +135,7 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
         int schemaId,
         boolean lenient,
         JsonGeneratorEx json,
-        AvroExtractor extractor,
+        AvroTransform adapter,
         AvroReporter reporter)
     {
         AvroSchema schema = supplySchema(schemaId);
@@ -146,30 +148,7 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
                 ? AvroJson.generator(schema, json, true)
                 : Avro.generator(schema, new UnsafeBufferEx(new byte[1]), 0);
             pipeline = Avro.stream(Avro.parser(schema))
-                .transform(extractor)
-                .lenient(lenient)
-                .reporting(reporter)
-                .into(generator);
-        }
-        return pipeline;
-    }
-
-    // read-direction pipeline without the extractor stage, used when no field extraction is requested so the
-    // verbatim/SEGMENTED fast path stays in effect
-    AvroPipeline newPipeline(
-        int schemaId,
-        boolean lenient,
-        JsonGeneratorEx json,
-        AvroReporter reporter)
-    {
-        AvroSchema schema = supplySchema(schemaId);
-        AvroPipeline pipeline = null;
-        if (schema != null)
-        {
-            AvroGenerator generator = VIEW_JSON.equals(view)
-                ? AvroJson.generator(schema, json, true)
-                : Avro.generator(schema, new UnsafeBufferEx(new byte[1]), 0);
-            pipeline = Avro.stream(Avro.parser(schema))
+                .transform(adapter)
                 .lenient(lenient)
                 .reporting(reporter)
                 .into(generator);
@@ -180,6 +159,7 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
     AvroPipeline newPipeline(
         int schemaId,
         boolean lenient,
+        AvroTransform adapter,
         AvroReporter reporter)
     {
         AvroSchema schema = supplySchema(schemaId);
@@ -189,15 +169,13 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
             // a json view parses JSON input and re-encodes it as Avro binary; any other view validates
             // Avro binary input and reproduces it, so a malformed datum yields a binary "truncated datum"
             // diagnostic rather than a JSON parse failure
-            pipeline = VIEW_JSON.equals(view)
+            pipeline = (VIEW_JSON.equals(view)
                 ? AvroJson.stream(schema, JsonEx.createParser(), true)
-                    .lenient(lenient)
-                    .reporting(reporter)
-                    .into(Avro.generator(schema, new UnsafeBufferEx(new byte[1]), 0))
-                : Avro.stream(Avro.parser(schema))
-                    .lenient(lenient)
-                    .reporting(reporter)
-                    .into(Avro.generator(schema, new UnsafeBufferEx(new byte[1]), 0));
+                : Avro.stream(Avro.parser(schema)))
+                .transform(adapter)
+                .lenient(lenient)
+                .reporting(reporter)
+                .into(Avro.generator(schema, new UnsafeBufferEx(new byte[1]), 0));
         }
         return pipeline;
     }

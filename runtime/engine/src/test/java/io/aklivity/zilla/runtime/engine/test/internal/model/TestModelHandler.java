@@ -23,7 +23,7 @@ import io.aklivity.zilla.config.engine.ValidateMode;
 import io.aklivity.zilla.config.engine.test.internal.model.config.TestModelConfig;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
-import io.aklivity.zilla.runtime.engine.model.ModelVisitor;
+import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 
 public class TestModelHandler implements ModelHandler
 {
@@ -45,15 +45,15 @@ public class TestModelHandler implements ModelHandler
 
     @Override
     public ModelPipeline supplyDecoder(
-        ModelVisitor visitor)
+        ModelTransform transform)
     {
-        return new TestModelPipeline(length, transformLength, fields, decodeLenient, visitor);
+        return new TestModelPipeline(length, transformLength, fields, decodeLenient, transform);
     }
 
     @Override
     public ModelPipeline supplyEncoder(
-        ModelVisitor visitor)
+        ModelTransform transform)
     {
-        return new TestModelPipeline(length, transformLength, fields, encodeLenient, visitor);
+        return new TestModelPipeline(length, transformLength, fields, encodeLenient, transform);
     }
 }

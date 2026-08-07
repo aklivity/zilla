@@ -48,7 +48,10 @@ public final class AvroStreamImpl implements AvroStream
     public AvroStream transform(
         AvroTransform transform)
     {
-        transforms.add(transform);
+        if (transform != AvroTransform.NONE)
+        {
+            transforms.add(transform);
+        }
         return this;
     }
 

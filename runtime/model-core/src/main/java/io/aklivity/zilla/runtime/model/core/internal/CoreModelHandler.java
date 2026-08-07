@@ -19,7 +19,7 @@ import java.util.function.Supplier;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
-import io.aklivity.zilla.runtime.engine.model.ModelVisitor;
+import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 
 // Per-worker factory for a core model. The decode and encode conversions are an identity copy gated by
 // validation, so one handler serves both directions; it owns the config-derived event reporter and
@@ -49,14 +49,14 @@ final class CoreModelHandler implements ModelHandler
 
     @Override
     public ModelPipeline supplyDecoder(
-        ModelVisitor visitor)
+        ModelTransform transform)
     {
         return new CoreModelPipeline(this, supplier.get(), decodeLenient);
     }
 
     @Override
     public ModelPipeline supplyEncoder(
-        ModelVisitor visitor)
+        ModelTransform transform)
     {
         return new CoreModelPipeline(this, supplier.get(), encodeLenient);
     }

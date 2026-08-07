@@ -37,7 +37,7 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
-import io.aklivity.zilla.runtime.engine.model.ModelVisitor;
+import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.TestCatalogHandler;
 
 public class ProtobufModelEncoderPipelineTest
@@ -73,8 +73,8 @@ public class ProtobufModelEncoderPipelineTest
     {
         ProtobufModelHandlerImpl handler = newHandler();
         // two per-stream pipelines from the same per-worker handler
-        ModelPipeline a = handler.supplyEncoder(ModelVisitor.NONE);
-        ModelPipeline b = handler.supplyEncoder(ModelVisitor.NONE);
+        ModelPipeline a = handler.supplyEncoder(ModelTransform.NONE);
+        ModelPipeline b = handler.supplyEncoder(ModelTransform.NONE);
 
         byte[] a1 = "{\"content\":\"OK\",".getBytes(UTF_8);
         byte[] a2tail = "\"date_time\":\"01012024\"}".getBytes(UTF_8);
@@ -110,7 +110,7 @@ public class ProtobufModelEncoderPipelineTest
     public void shouldDrainOnOverflow()
     {
         ProtobufModelHandlerImpl handler = newHandler();
-        ModelPipeline pipeline = handler.supplyEncoder(ModelVisitor.NONE);
+        ModelPipeline pipeline = handler.supplyEncoder(ModelTransform.NONE);
 
         // a 2000-byte content value forces the wire output past a small destination window, exercising the
         // bounded-chunk OVERFLOW drain across re-transforms (INIT cleared on every re-call after the first)
@@ -143,7 +143,7 @@ public class ProtobufModelEncoderPipelineTest
         when(context.clock()).thenReturn(Clock.systemUTC());
         when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
         ProtobufModelHandlerImpl handler = newHandler("Nonexistent");
-        ModelPipeline pipeline = handler.supplyEncoder(ModelVisitor.NONE);
+        ModelPipeline pipeline = handler.supplyEncoder(ModelTransform.NONE);
 
         byte[] in = JSON.getBytes(UTF_8);
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);

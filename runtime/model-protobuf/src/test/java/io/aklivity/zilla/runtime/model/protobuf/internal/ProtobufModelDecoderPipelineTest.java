@@ -33,13 +33,18 @@ import io.aklivity.zilla.config.engine.GenericCatalogConfig;
 import io.aklivity.zilla.config.engine.test.internal.catalog.config.TestCatalogConfig;
 import io.aklivity.zilla.config.engine.test.internal.catalog.config.TestCatalogOptionsConfig;
 import io.aklivity.zilla.config.model.protobuf.ProtobufModelConfig;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.model.ModelController;
+import io.aklivity.zilla.runtime.engine.model.ModelEvent;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
+import io.aklivity.zilla.runtime.engine.model.ModelSink;
+import io.aklivity.zilla.runtime.engine.model.ModelSource;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
-import io.aklivity.zilla.runtime.engine.model.ModelVisitor;
+import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.TestCatalogHandler;
 
 public class ProtobufModelDecoderPipelineTest
@@ -99,8 +104,8 @@ public class ProtobufModelDecoderPipelineTest
     {
         ProtobufModelHandlerImpl handler = newHandler(null);
         // two per-stream pipelines from the same per-worker handler
-        ModelPipeline a = handler.supplyDecoder(ModelVisitor.NONE);
-        ModelPipeline b = handler.supplyDecoder(ModelVisitor.NONE);
+        ModelPipeline a = handler.supplyDecoder(ModelTransform.NONE);
+        ModelPipeline b = handler.supplyDecoder(ModelTransform.NONE);
 
         // stream A split at the field boundary: index byte + content field first, date_time on the final fragment
         byte[] a1 = {0x00, 0x0a, 0x02, 0x4f, 0x4b};
@@ -138,9 +143,7 @@ public class ProtobufModelDecoderPipelineTest
         ProtobufModelHandlerImpl handler = newHandler(null);
 
         Map<String, String> extracted = new HashMap<>();
-        ModelVisitor visitor = (path, buffer, index, length) ->
-            extracted.put(path, buffer.getStringWithoutLengthUtf8(index, length));
-        ModelPipeline pipeline = handler.supplyDecoder(visitor);
+        ModelPipeline pipeline = handler.supplyDecoder(observer(extracted));
 
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
         ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
@@ -177,9 +180,7 @@ public class ProtobufModelDecoderPipelineTest
         ProtobufModelHandlerImpl handler = new ProtobufModelHandlerImpl(model, context);
 
         Map<String, String> extracted = new HashMap<>();
-        ModelVisitor visitor = (path, buffer, index, length) ->
-            extracted.put(path, buffer.getStringWithoutLengthUtf8(index, length));
-        ModelPipeline pipeline = handler.supplyDecoder(visitor);
+        ModelPipeline pipeline = handler.supplyDecoder(observer(extracted));
 
         // leading message index 0, then the complex message's scalar fields (matches the legacy extract case)
         byte[] wire = {0, 9, 119, -66, -97, 26, 47, -35, 94, 64, 21, 102, -26, -11, 66, 24, -107, -102, -17, 58,
@@ -202,7 +203,7 @@ public class ProtobufModelDecoderPipelineTest
     public void shouldDrainJsonOnOverflow()
     {
         ProtobufModelHandlerImpl handler = newHandler("json");
-        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelTransform.NONE);
 
         // a 2000-byte content field forces the JSON output past a small destination window, exercising the
         // bounded-chunk OVERFLOW drain across re-transforms (INIT cleared on every re-call after the first)
@@ -246,7 +247,7 @@ public class ProtobufModelDecoderPipelineTest
     public void shouldReportIdentityWhenNoView()
     {
         ProtobufModelHandlerImpl handler = newHandler(null);
-        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelTransform.NONE);
 
         assertFalse(pipeline.identity());
 
@@ -261,7 +262,7 @@ public class ProtobufModelDecoderPipelineTest
     public void shouldNotReportIdentityWhenJsonView()
     {
         ProtobufModelHandlerImpl handler = newHandler("json");
-        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelTransform.NONE);
 
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
         pipeline.transform(0L, 0L, FLAGS_COMPLETE,
@@ -330,5 +331,33 @@ public class ProtobufModelDecoderPipelineTest
         byte[] chunk = new byte[produced];
         dst.getBytes(0, chunk);
         return new String(chunk, UTF_8);
+    }
+
+    private static ModelTransform observer(
+        Map<String, String> extracted)
+    {
+        return new ModelTransform()
+        {
+            @Override
+            public ModelStatus transform(
+                ModelController control,
+                ModelSource source,
+                ModelEvent event,
+                ModelSink sink)
+            {
+                if (event == ModelEvent.FIELD)
+                {
+                    DirectBufferEx value = source.getValue();
+                    extracted.put(source.getPath(), value.getStringWithoutLengthUtf8(0, value.capacity()));
+                }
+                return sink.transform(control, source, event);
+            }
+
+            @Override
+            public boolean identity()
+            {
+                return true;
+            }
+        };
     }
 }

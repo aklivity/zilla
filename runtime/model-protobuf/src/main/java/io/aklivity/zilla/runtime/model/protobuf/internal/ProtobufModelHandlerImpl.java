@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.model.protobuf.internal;
 
 import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_ID;
+import static java.util.Objects.requireNonNull;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -34,7 +35,7 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
-import io.aklivity.zilla.runtime.engine.model.ModelVisitor;
+import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 
 // Per-worker factory for a protobuf model. One handler serves both directions: supplyDecoder vends a
@@ -62,14 +63,14 @@ public final class ProtobufModelHandlerImpl extends ProtobufModelHandler impleme
 
     @Override
     public ModelPipeline supplyDecoder(
-        ModelVisitor visitor)
+        ModelTransform transform)
     {
-        return new ProtobufModelDecoderPipeline(this, visitor);
+        return new ProtobufModelDecoderPipeline(this, requireNonNull(transform));
     }
 
     @Override
     public ModelPipeline supplyEncoder(
-        ModelVisitor visitor)
+        ModelTransform transform)
     {
         return new ProtobufModelEncoderPipeline(this);
     }
