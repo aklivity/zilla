@@ -22,9 +22,19 @@ import org.agrona.collections.Object2LongHashMap;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableArrayBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
-import io.aklivity.zilla.runtime.engine.model.ModelVisitor;
+import io.aklivity.zilla.runtime.engine.model.ModelController;
+import io.aklivity.zilla.runtime.engine.model.ModelEvent;
+import io.aklivity.zilla.runtime.engine.model.ModelSink;
+import io.aklivity.zilla.runtime.engine.model.ModelSource;
+import io.aklivity.zilla.runtime.engine.model.ModelStatus;
+import io.aklivity.zilla.runtime.engine.model.ModelTransform;
+import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 
-final class KafkaExtractor implements ModelVisitor
+// An observing per-field stage: every field of a decoded value passes through unchanged, while the value of
+// each configured extraction path is copied aside for KafkaCachePartition to replay into the cache entry's
+// key or trailing headers. The accumulation is read back through extractedLength / extracted, outside the
+// ModelTransform contract, and outlives the pipeline that produced it until the owner resets.
+final class KafkaExtractor implements ModelTransform
 {
     private static final long MISSING_REGION = -1L;
 
@@ -43,20 +53,23 @@ final class KafkaExtractor implements ModelVisitor
     }
 
     @Override
-    public void onField(
-        String path,
-        DirectBufferEx buffer,
-        int index,
-        int length)
+    public ModelStatus transform(
+        ModelController control,
+        ModelSource source,
+        ModelEvent event,
+        ModelSink sink)
     {
-        // the model surfaces every top-level field; capture only the configured extraction paths
-        if (paths.contains(path))
+        if (event == ModelEvent.FIELD)
         {
-            final int offset = capturesOffset;
-            captures.putBytes(offset, buffer, index, length);
-            capturesOffset += length;
-            regionByPath.put(path, (long) offset << Integer.SIZE | (length & 0xFFFF_FFFFL));
+            capture(source);
         }
+        return sink.transform(control, source, event);
+    }
+
+    @Override
+    public boolean identity()
+    {
+        return true;
     }
 
     int extractedLength(
@@ -68,20 +81,37 @@ final class KafkaExtractor implements ModelVisitor
 
     void extracted(
         String path,
-        ModelVisitor visitor)
+        ValueConsumer consumer)
     {
         final long region = regionByPath.getValue(path);
         if (region != MISSING_REGION)
         {
             final int offset = (int)(region >>> Integer.SIZE);
             final int length = (int)(region & 0xFFFF_FFFFL);
-            visitor.onField(path, captures, offset, length);
+            consumer.accept(captures, offset, length);
         }
     }
 
-    void reset()
+    @Override
+    public void reset()
     {
         regionByPath.clear();
         capturesOffset = 0;
+    }
+
+    private void capture(
+        ModelSource source)
+    {
+        final String path = source.getPath();
+        // the model surfaces every top-level field; capture only the configured extraction paths
+        if (paths.contains(path))
+        {
+            final DirectBufferEx value = source.getValue();
+            final int length = value.capacity();
+            final int offset = capturesOffset;
+            captures.putBytes(offset, value, 0, length);
+            capturesOffset += length;
+            regionByPath.put(path, (long) offset << Integer.SIZE | (length & 0xFFFF_FFFFL));
+        }
     }
 }

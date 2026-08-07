@@ -24,6 +24,11 @@ package io.aklivity.zilla.runtime.common.avro;
  */
 public interface AvroStream
 {
+    /**
+     * Appends a stage, in data-flow order. {@link AvroTransform#NONE} is dropped rather than appended, so a
+     * caller assembling a pipeline around an optional stage passes it unconditionally and pays nothing per
+     * event when there is no stage to insert.
+     */
     AvroStream transform(
         AvroTransform transform);
 

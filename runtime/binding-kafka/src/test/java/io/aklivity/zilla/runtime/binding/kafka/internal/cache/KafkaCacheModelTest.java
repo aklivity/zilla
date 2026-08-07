@@ -28,8 +28,15 @@ import org.agrona.collections.MutableInteger;
 import org.junit.Test;
 
 import io.aklivity.zilla.config.engine.test.internal.model.config.TestModelConfig;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.engine.model.ModelFieldBridge;
+import io.aklivity.zilla.runtime.engine.model.ModelHandler;
+import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
+import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
+import io.aklivity.zilla.runtime.engine.model.ModelStatus;
+import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 import io.aklivity.zilla.runtime.engine.test.internal.model.TestModelHandler;
 
 public class KafkaCacheModelTest
@@ -130,7 +137,7 @@ public class KafkaCacheModelTest
         assertEquals(0, KafkaCacheModel.NONE.extractedLength("$.id"));
 
         boolean[] visited = { false };
-        KafkaCacheModel.NONE.extracted("$.id", (p, b, i, l) -> visited[0] = true);
+        KafkaCacheModel.NONE.extracted("$.id", (b, i, l) -> visited[0] = true);
         assertEquals(false, visited[0]);
 
         KafkaCacheModel.NONE.reset();
@@ -146,8 +153,22 @@ public class KafkaCacheModelTest
 
         assertEquals(4, model.extractedLength("$.id"));
         String[] captured = { null };
-        model.extracted("$.id", (p, b, i, l) -> captured[0] = b.getStringWithoutLengthUtf8(i, l));
+        model.extracted("$.id", (b, i, l) -> captured[0] = b.getStringWithoutLengthUtf8(i, l));
         assertEquals("1234", captured[0]);
+    }
+
+    @Test
+    public void shouldDiscardCapturesWhenValueRejected()
+    {
+        // the transform captures each field inline, so a value rejected after a field completes must not
+        // leave that capture behind for the cache entry to replay
+        KafkaCacheModel model = KafkaCacheModel.decoder(rejectingHandler("$.id"), singleton("$.id"),
+            new UnsafeBufferEx(new byte[256]));
+
+        int produced = model.transform(0L, 0L, value("hello"), 0, 5, sink);
+
+        assertEquals(-1, produced);
+        assertEquals(0, model.extractedLength("$.id"));
     }
 
     @Test
@@ -186,6 +207,29 @@ public class KafkaCacheModelTest
         return new TestModelHandler(new TestModelConfig(length, emptyList(), true, transformLength));
     }
 
+    // a model that surfaces one field and then rejects the value, as a real model does when a value parses
+    // far enough to yield fields but fails validation later
+    private static ModelHandler rejectingHandler(
+        String path)
+    {
+        return new ModelHandler()
+        {
+            @Override
+            public ModelPipeline supplyDecoder(
+                ModelTransform transform)
+            {
+                return new RejectingPipeline(transform, path);
+            }
+
+            @Override
+            public ModelPipeline supplyEncoder(
+                ModelTransform transform)
+            {
+                return supplyDecoder(transform);
+            }
+        };
+    }
+
     private static TestModelHandler extractingHandler(
         int length,
         String field)
@@ -206,5 +250,48 @@ public class KafkaCacheModelTest
         byte[] actual = new byte[outputLength.value];
         output.getBytes(0, actual);
         assertArrayEquals(expected.getBytes(UTF_8), actual);
+    }
+
+    private static final class RejectingPipeline implements ModelPipeline
+    {
+        private final ModelFieldBridge bridge;
+        private final String path;
+        private final ModelPipelineResult result = new ModelPipelineResult();
+
+        private RejectingPipeline(
+            ModelTransform transform,
+            String path)
+        {
+            this.bridge = new ModelFieldBridge(transform);
+            this.path = path;
+        }
+
+        @Override
+        public ModelPipelineResult transform(
+            long traceId,
+            long bindingId,
+            int flags,
+            DirectBufferEx src,
+            int srcIndex,
+            int srcLimit,
+            MutableDirectBufferEx dst,
+            int dstIndex,
+            int dstLimit)
+        {
+            bridge.start();
+            bridge.field(path, src, srcIndex, srcLimit - srcIndex);
+            return result.set(ModelStatus.REJECTED, 0, 0);
+        }
+
+        @Override
+        public boolean identity()
+        {
+            return false;
+        }
+
+        @Override
+        public void reset()
+        {
+        }
     }
 }

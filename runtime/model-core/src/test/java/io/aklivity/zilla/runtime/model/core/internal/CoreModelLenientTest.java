@@ -35,7 +35,7 @@ import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
-import io.aklivity.zilla.runtime.engine.model.ModelVisitor;
+import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 
 public class CoreModelLenientTest
 {
@@ -64,7 +64,7 @@ public class CoreModelLenientTest
     {
         ModelHandler handler = new Int32ModelContext(context).supplyHandler(
             Int32ModelConfig.builder().format("text").validate(STRICT).build());
-        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelTransform.NONE);
 
         byte[] bytes = "12x".getBytes();
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[16]);
@@ -79,7 +79,7 @@ public class CoreModelLenientTest
     {
         ModelHandler handler = new Int32ModelContext(context).supplyHandler(
             Int32ModelConfig.builder().format("text").validate(LENIENT).build());
-        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelTransform.NONE);
 
         byte[] bytes = "12x".getBytes();
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[16]);
@@ -98,13 +98,13 @@ public class CoreModelLenientTest
 
         byte[] bytes = "42".getBytes();
 
-        ModelPipeline decoder = handler.supplyDecoder(ModelVisitor.NONE);
+        ModelPipeline decoder = handler.supplyDecoder(ModelTransform.NONE);
         MutableDirectBufferEx decodeDst = new UnsafeBufferEx(new byte[16]);
         ModelPipelineResult decoded = decoder.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBufferEx(bytes), 0, bytes.length, decodeDst, 0, decodeDst.capacity());
         assertEquals(ModelStatus.COMPLETE, decoded.status());
 
-        ModelPipeline encoder = handler.supplyEncoder(ModelVisitor.NONE);
+        ModelPipeline encoder = handler.supplyEncoder(ModelTransform.NONE);
         MutableDirectBufferEx encodeDst = new UnsafeBufferEx(new byte[16]);
         ModelPipelineResult encoded = encoder.transform(0L, 0L, FLAGS_COMPLETE,
             new UnsafeBufferEx(bytes), 0, bytes.length, encodeDst, 0, encodeDst.capacity());
@@ -118,7 +118,7 @@ public class CoreModelLenientTest
     {
         ModelHandler handler = new StringModelContext(context).supplyHandler(
             StringModelConfig.builder().maxLength(2).validate(STRICT).build());
-        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelTransform.NONE);
 
         byte[] bytes = "hello".getBytes();
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[16]);
@@ -133,7 +133,7 @@ public class CoreModelLenientTest
     {
         ModelHandler handler = new StringModelContext(context).supplyHandler(
             StringModelConfig.builder().maxLength(2).validate(LENIENT).build());
-        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelTransform.NONE);
 
         byte[] bytes = "hello".getBytes();
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[16]);

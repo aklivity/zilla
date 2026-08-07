@@ -27,6 +27,11 @@ package io.aklivity.zilla.runtime.engine.model;
  * {@link ModelContext} returns {@code null} when no model is configured; a caller that holds a
  * {@code null} handler forwards its bytes unchanged rather than driving a pipeline.
  * </p>
+ * <p>
+ * The transform supplied to {@link #supplyDecoder(ModelTransform)} and {@link #supplyEncoder(ModelTransform)}
+ * is never {@code null}; a caller with no per-field policy passes {@link ModelTransform#NONE}, which an
+ * implementation is free to recognize and wire away entirely.
+ * </p>
  *
  * @see ModelContext
  * @see ModelPipeline
@@ -35,41 +40,43 @@ public interface ModelHandler
 {
     /**
      * Supplies a new read-direction {@link ModelPipeline} for a single stream, wiring the given
-     * {@link ModelVisitor} to receive any extracted field values as the pipeline transforms each value.
+     * {@link ModelTransform} into the pipeline so it observes, substitutes, or declines each field of
+     * every value the pipeline transforms.
      *
-     * @param visitor  the visitor to receive extracted field values
+     * @param transform  the per-field transform to wire into the pipeline
      * @return a new per-stream decode pipeline
      */
     ModelPipeline supplyDecoder(
-        ModelVisitor visitor);
+        ModelTransform transform);
 
     /**
-     * Supplies a new read-direction {@link ModelPipeline} for a single stream with no extraction visitor.
+     * Supplies a new read-direction {@link ModelPipeline} for a single stream with no per-field transform.
      *
      * @return a new per-stream decode pipeline
      */
     default ModelPipeline supplyDecoder()
     {
-        return supplyDecoder(ModelVisitor.NONE);
+        return supplyDecoder(ModelTransform.NONE);
     }
 
     /**
      * Supplies a new write-direction {@link ModelPipeline} for a single stream, wiring the given
-     * {@link ModelVisitor} to receive any extracted field values as the pipeline transforms each value.
+     * {@link ModelTransform} into the pipeline so it observes, substitutes, or declines each field of
+     * every value the pipeline transforms.
      *
-     * @param visitor  the visitor to receive extracted field values
+     * @param transform  the per-field transform to wire into the pipeline
      * @return a new per-stream encode pipeline
      */
     ModelPipeline supplyEncoder(
-        ModelVisitor visitor);
+        ModelTransform transform);
 
     /**
-     * Supplies a new write-direction {@link ModelPipeline} for a single stream with no extraction visitor.
+     * Supplies a new write-direction {@link ModelPipeline} for a single stream with no per-field transform.
      *
      * @return a new per-stream encode pipeline
      */
     default ModelPipeline supplyEncoder()
     {
-        return supplyEncoder(ModelVisitor.NONE);
+        return supplyEncoder(ModelTransform.NONE);
     }
 }

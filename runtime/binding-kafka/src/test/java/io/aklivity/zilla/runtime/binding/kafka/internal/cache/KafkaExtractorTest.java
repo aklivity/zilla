@@ -28,6 +28,7 @@ import org.junit.Test;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.engine.model.ModelFieldBridge;
 
 public class KafkaExtractorTest
 {
@@ -74,7 +75,7 @@ public class KafkaExtractorTest
 
         assertEquals(0, extractor.extractedLength("$.other"));
         boolean[] visited = { false };
-        extractor.extracted("$.other", (p, b, i, l) -> visited[0] = true);
+        extractor.extracted("$.other", (b, i, l) -> visited[0] = true);
         assertFalse(visited[0]);
     }
 
@@ -88,7 +89,7 @@ public class KafkaExtractorTest
         assertEquals(0, extractor.extractedLength("$.missing"));
 
         boolean[] visited = { false };
-        extractor.extracted("$.missing", (p, b, i, l) -> visited[0] = true);
+        extractor.extracted("$.missing", (b, i, l) -> visited[0] = true);
         assertFalse(visited[0]);
     }
 
@@ -100,7 +101,7 @@ public class KafkaExtractorTest
         onField(extractor, "$.id", "abc");
 
         boolean[] visited = { false };
-        extractor.extracted("$.id", (p, b, i, l) -> visited[0] = true);
+        extractor.extracted("$.id", (b, i, l) -> visited[0] = true);
         assertTrue(visited[0]);
     }
 
@@ -139,7 +140,7 @@ public class KafkaExtractorTest
     {
         byte[] bytes = value.getBytes(UTF_8);
         buffer.putBytes(0, bytes);
-        extractor.onField(path, buffer, 0, bytes.length);
+        new ModelFieldBridge(extractor).field(path, buffer, 0, bytes.length);
     }
 
     private String read(
@@ -147,7 +148,7 @@ public class KafkaExtractorTest
         String path)
     {
         String[] result = { null };
-        extractor.extracted(path, (p, b, i, l) -> result[0] = b.getStringWithoutLengthUtf8(i, l));
+        extractor.extracted(path, (b, i, l) -> result[0] = b.getStringWithoutLengthUtf8(i, l));
         return result[0];
     }
 }

@@ -84,7 +84,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableDirectByteBuffer
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.model.ModelVisitor;
+import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 
 public final class KafkaCachePartition
 {
@@ -497,7 +497,7 @@ public final class KafkaCachePartition
         if (transformKey != KafkaCacheModel.NONE &&
             transforms != null && transforms.extractKey != null)
         {
-            final ModelVisitor writeKey = (path, buffer, index, length) ->
+            final ValueConsumer writeKey = (buffer, index, length) ->
             {
                 final int position = entryMark.value + FIELD_OFFSET_PADDED_KEY;
                 KafkaCachePaddedKeyFW paddedKey =
@@ -651,7 +651,7 @@ public final class KafkaCachePartition
                             h.nameLen(name.length())
                                 .name(name.value(), 0, name.length())
                                 .valueLen(transformValue.extractedLength(path));
-                            transformValue.extracted(path, (p, b, i, l) -> h.value(b, i, l));
+                            transformValue.extracted(path, (b, i, l) -> h.value(b, i, l));
                         });
                     }
                     trailers = builder.build();

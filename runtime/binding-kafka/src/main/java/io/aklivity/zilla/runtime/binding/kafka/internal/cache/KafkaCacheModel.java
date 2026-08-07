@@ -23,7 +23,7 @@ import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
-import io.aklivity.zilla.runtime.engine.model.ModelVisitor;
+import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
 
 public final class KafkaCacheModel
 {
@@ -130,6 +130,12 @@ public final class KafkaCacheModel
                 {
                     total = -1;
                     done = true;
+                    // the transform captures each field as the value flows through, so a value that is
+                    // rejected part-way leaves partial captures behind that must not reach the cache entry
+                    if (extractor != null)
+                    {
+                        extractor.reset();
+                    }
                 }
                 else
                 {
@@ -172,11 +178,11 @@ public final class KafkaCacheModel
 
     public void extracted(
         String path,
-        ModelVisitor visitor)
+        ValueConsumer consumer)
     {
         if (extractor != null)
         {
-            extractor.extracted(path, visitor);
+            extractor.extracted(path, consumer);
         }
     }
 

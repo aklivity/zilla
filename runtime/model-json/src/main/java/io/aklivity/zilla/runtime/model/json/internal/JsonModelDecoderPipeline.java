@@ -26,22 +26,24 @@ import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 import io.aklivity.zilla.runtime.common.json.JsonPipelineResult;
+import io.aklivity.zilla.runtime.engine.model.ModelFieldBridge;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
-import io.aklivity.zilla.runtime.engine.model.ModelVisitor;
+import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 
 // Per-stream read transform session vended by JsonModelHandlerImpl: owns its own generator, extractor and
 // schema-keyed pipeline cache so concurrent streams on a worker never share in-flight state. transform
 // strips the catalog framing on the first fragment, drives the common-json transform into the caller's
-// destination, and surfaces extracted fields to the ModelVisitor when a value completes.
+// destination, and surfaces extracted fields to the wired ModelTransform when a value completes. Delivery
+// is observation-only, through ModelFieldBridge, until model-json grows a native ModelTransform adapter.
 final class JsonModelDecoderPipeline implements ModelPipeline
 {
     private static final int FLAGS_INIT = 0x02;
     private static final int FLAGS_FIN = 0x01;
 
     private final JsonModelHandlerImpl handler;
-    private final ModelVisitor visitor;
+    private final ModelFieldBridge bridge;
     private final JsonGeneratorEx generator;
     private final JsonExtractor extractor;
     private final Int2ObjectCache<JsonPipeline> pipelines;
@@ -56,13 +58,13 @@ final class JsonModelDecoderPipeline implements ModelPipeline
 
     JsonModelDecoderPipeline(
         JsonModelHandlerImpl handler,
-        ModelVisitor visitor)
+        ModelTransform transform)
     {
         this.handler = handler;
-        this.visitor = visitor;
+        this.bridge = transform != ModelTransform.NONE ? new ModelFieldBridge(transform) : null;
         this.generator = JsonEx.createGenerator();
-        // a NONE visitor keeps the verbatim/SEGMENTED fast path: no extractor stage, no structured field events
-        this.extractor = visitor != ModelVisitor.NONE ? new JsonExtractor() : null;
+        // a NONE transform keeps the verbatim/SEGMENTED fast path: no extractor stage, no structured field events
+        this.extractor = transform != ModelTransform.NONE ? new JsonExtractor() : null;
         this.pipelines = new Int2ObjectCache<>(1, 16, p -> {});
         this.result = new ModelPipelineResult();
     }
@@ -156,10 +158,12 @@ final class JsonModelDecoderPipeline implements ModelPipeline
 
     private void visitExtracted()
     {
+        bridge.start();
         for (int i = 0; i < extractor.captured(); i++)
         {
-            visitor.onField("$." + extractor.name(i), extractor.value(i), 0, extractor.length(i));
+            bridge.field("$." + extractor.name(i), extractor.value(i), 0, extractor.length(i));
         }
+        bridge.end();
     }
 
     private JsonPipeline supplyPipeline(
