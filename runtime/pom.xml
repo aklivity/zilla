@@ -71,6 +71,7 @@
     <module>filesystem-http</module>
     <module>guard-inline</module>
     <module>guard-jwt</module>
+    <module>guard-x509</module>
     <module>metrics-grpc</module>
     <module>metrics-http</module>
     <module>metrics-mcp</module>
@@ -249,6 +250,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>guard-jwt.conf</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>guard-x509.conf</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
@@ -549,6 +555,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>guard-jwt</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>guard-x509</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

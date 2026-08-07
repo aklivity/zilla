@@ -55,6 +55,7 @@
     <module>exporter-stdout.conf</module>
     <module>guard-inline.conf</module>
     <module>guard-jwt.conf</module>
+    <module>guard-x509.conf</module>
     <module>metrics-grpc.conf</module>
     <module>metrics-http.conf</module>
     <module>metrics-mcp.conf</module>
