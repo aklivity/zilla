@@ -60,6 +60,13 @@ public interface ModelTransform
         }
 
         @Override
+        public ModelTransform andThen(
+            ModelTransform next)
+        {
+            return next;
+        }
+
+        @Override
         public boolean identity()
         {
             return true;
@@ -91,6 +98,13 @@ public interface ModelTransform
      * {@code transforms.stream().reduce(ModelTransform::andThen)}.
      * </p>
      *
+     * <p>
+     * Composing with {@link #NONE} on either side yields the other stage rather than a wrapper, so reducing
+     * a list from {@code NONE} costs nothing. The short-circuit keys on {@code NONE} itself, never on
+     * {@link #identity()}: an identity stage still runs, and may be accumulating for its owner while it
+     * forwards, so collapsing one away would drop that work.
+     * </p>
+     *
      * @param next  the stage to feed this stage's answer to
      * @return the composed transform
      */
@@ -98,7 +112,7 @@ public interface ModelTransform
         ModelTransform next)
     {
         ModelTransform first = this;
-        return new ModelTransform()
+        return next == NONE ? first : new ModelTransform()
         {
             // the downstream handed to first: it invokes next with whatever terminal the current call
             // supplied, so the chain re-binds per call without either stage holding the caller's sink

@@ -18,6 +18,8 @@ package io.aklivity.zilla.runtime.engine.model;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
@@ -99,9 +101,36 @@ public class ModelTransformTest
     @Test
     public void shouldComposeIdentityOnlyWhenEveryStageIsIdentity()
     {
-        assertTrue(ModelTransform.NONE.andThen(ModelTransform.NONE).identity());
-        assertFalse(ModelTransform.NONE.andThen(new Appending("!")).identity());
-        assertFalse(new Appending("!").andThen(ModelTransform.NONE).identity());
+        assertTrue(new Observing().andThen(new Observing()).identity());
+        assertFalse(new Observing().andThen(new Appending("!")).identity());
+        assertFalse(new Appending("!").andThen(new Observing()).identity());
+    }
+
+    @Test
+    public void shouldYieldTheOtherStageWhenComposingWithNone()
+    {
+        ModelTransform only = new Appending("!");
+
+        assertSame(only, ModelTransform.NONE.andThen(only));
+        assertSame(only, only.andThen(ModelTransform.NONE));
+        assertSame(ModelTransform.NONE, ModelTransform.NONE.andThen(ModelTransform.NONE));
+    }
+
+    @Test
+    public void shouldComposeAnIdentityStageThatIsNotNone()
+    {
+        // an identity stage still runs — KafkaExtractor forwards every field while accumulating the
+        // configured ones — so only NONE itself may be collapsed away
+        Observing observing = new Observing();
+        Recorder recorder = new Recorder();
+        ModelTransform composed = observing.andThen(new Appending("!"));
+
+        assertNotSame(observing, composed);
+
+        composed.transform(NO_CONTROL, new Field("$.id", "one"), ModelEvent.FIELD, recorder);
+
+        assertEquals(1, observing.seen);
+        assertEquals(List.of("$.id=one!"), recorder.events);
     }
 
     @Test
@@ -200,6 +229,32 @@ public class ModelTransformTest
         {
             flushes++;
             return ModelStatus.OK;
+        }
+
+        @Override
+        public boolean identity()
+        {
+            return true;
+        }
+    }
+
+    // forwards every field unchanged while counting what it saw, as an accumulating observer does
+    private static final class Observing implements ModelTransform
+    {
+        private int seen;
+
+        @Override
+        public ModelStatus transform(
+            ModelController control,
+            ModelSource source,
+            ModelEvent event,
+            ModelSink sink)
+        {
+            if (event == ModelEvent.FIELD)
+            {
+                seen++;
+            }
+            return sink.transform(control, source, event);
         }
 
         @Override
