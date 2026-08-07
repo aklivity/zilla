@@ -99,8 +99,8 @@ public interface ModelTransform
      * </p>
      *
      * <p>
-     * {@link #NONE} overrides this to return {@code next}, so reducing a list from {@code NONE} costs
-     * nothing.
+     * Composing with {@link #NONE} yields the other stage rather than a wrapper: this returns {@code this}
+     * for a {@code NONE} argument, and {@code NONE} overrides it to return {@code next}.
      * </p>
      *
      * @param next  the stage to feed this stage's answer to
@@ -110,7 +110,7 @@ public interface ModelTransform
         ModelTransform next)
     {
         ModelTransform first = this;
-        return new ModelTransform()
+        return next == NONE ? first : new ModelTransform()
         {
             // the downstream handed to first: it invokes next with whatever terminal the current call
             // supplied, so the chain re-binds per call without either stage holding the caller's sink

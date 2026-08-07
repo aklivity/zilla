@@ -107,11 +107,12 @@ public class ModelTransformTest
     }
 
     @Test
-    public void shouldYieldTheGivenStageWhenComposingFromNone()
+    public void shouldYieldTheOtherStageWhenComposingWithNone()
     {
         ModelTransform only = new Appending("!");
 
         assertSame(only, ModelTransform.NONE.andThen(only));
+        assertSame(only, only.andThen(ModelTransform.NONE));
         assertSame(ModelTransform.NONE, ModelTransform.NONE.andThen(ModelTransform.NONE));
     }
 
