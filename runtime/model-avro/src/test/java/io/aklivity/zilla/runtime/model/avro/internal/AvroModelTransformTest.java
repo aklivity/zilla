@@ -24,6 +24,8 @@ import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayOutputStream;
 import java.time.Clock;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -128,6 +130,9 @@ public class AvroModelTransformTest
         0x01,
         0x02
     };
+
+    private static final List<String> FRAMED = List.of(
+        "START_VALUE", "FIELD($.id=id0)", "FIELD($.status=positive)", "flush", "END_VALUE");
 
     private EngineContext context;
     private AvroModelConfiguration config;
@@ -250,6 +255,30 @@ public class AvroModelTransformTest
         System.arraycopy(status, 0, expected, 5, status.length);
 
         assertArrayEquals(expected, decodeChunked(pipeline, AVRO, 24));
+    }
+
+    @Test
+    public void shouldFrameEveryFieldRunWhenObserving()
+    {
+        Recording recording = new Recording(true);
+        AvroModelHandlerImpl handler = newHandler(SCHEMA, "json");
+
+        decode(handler.supplyDecoder(recording), AVRO);
+
+        assertEquals(FRAMED, recording.events);
+    }
+
+    @Test
+    public void shouldFrameEveryFieldRunWhenMediating()
+    {
+        Recording recording = new Recording(false);
+        AvroModelHandlerImpl handler = newHandler(SCHEMA, "json");
+
+        decode(handler.supplyDecoder(recording), AVRO);
+
+        // the pump stops the moment the terminal sink closes the top-level record, so END_MESSAGE never
+        // reaches the adapter; the run must still close off the datum completing
+        assertEquals(FRAMED, recording.events);
     }
 
     @Test
@@ -466,6 +495,50 @@ public class AvroModelTransformTest
             return event == FieldEvent.FIELD
                 ? sink.transform(control, substitute.copy(source), FieldEvent.REPLACED)
                 : sink.transform(control, source, event);
+        }
+    }
+
+    // records the field run exactly as the adapter delivers it, framing included
+    private static final class Recording implements ModelTransform
+    {
+        private final List<String> events;
+        private final boolean identity;
+
+        private Recording(
+            boolean identity)
+        {
+            this.events = new ArrayList<>();
+            this.identity = identity;
+        }
+
+        @Override
+        public FieldStatus transform(
+            ModelController control,
+            ModelSource source,
+            FieldEvent event,
+            ModelSink sink)
+        {
+            DirectBufferEx value = source.getValue();
+            events.add(event == FieldEvent.FIELD
+                ? "FIELD(" + source.getPath() + "=" + value.getStringWithoutLengthUtf8(0, value.capacity()) + ")"
+                : event.name());
+            return sink.transform(control, source, event);
+        }
+
+        @Override
+        public FieldStatus flush(
+            ModelController control,
+            ModelSource source,
+            ModelSink sink)
+        {
+            events.add("flush");
+            return sink.flush(control, source);
+        }
+
+        @Override
+        public boolean identity()
+        {
+            return identity;
         }
     }
 

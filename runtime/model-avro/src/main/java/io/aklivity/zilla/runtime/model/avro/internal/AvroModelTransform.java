@@ -113,18 +113,16 @@ final class AvroModelTransform implements AvroTransform
         this.downstream = sink;
 
         ModelSink generic = mediating ? terminal : discard;
-        // END_VALUE closes the field run ahead of the message framing, so a flush can still emit into the
-        // value; START_VALUE opens it once the framing has been forwarded
-        Status status = event == AvroEvent.END_MESSAGE ? frame(event, generic) : Status.ADVANCED;
-        if (status == Status.ADVANCED)
+        Status status = mediating
+            ? mediate(control, source, event, sink)
+            : observe(control, source, event, sink);
+        if (event == AvroEvent.START_MESSAGE && status == Status.ADVANCED)
         {
-            status = mediating
-                ? mediate(control, source, event, sink)
-                : observe(control, source, event, sink);
-            if (status != Status.REJECTED && event == AvroEvent.START_MESSAGE)
-            {
-                status = frame(event, generic);
-            }
+            status = open(generic);
+        }
+        else
+        {
+            status = close(status, generic);
         }
         return status;
     }
@@ -162,7 +160,7 @@ final class AvroModelTransform implements AvroTransform
             status = emitted != null ? emitted : map(answer);
             emitting = status == Status.SUSPENDED;
         }
-        return status;
+        return close(status, mediating ? terminal : discard);
     }
 
     // discards the adapter's own in-flight state only: the wired transform's per-value lifecycle is framed
@@ -249,24 +247,31 @@ final class AvroModelTransform implements AvroTransform
         };
     }
 
-    private Status frame(
-        AvroEvent event,
+    // opens the field run for one value, once the message framing has been forwarded
+    private Status open(
         ModelSink sink)
     {
-        Status status = Status.ADVANCED;
-        if (event == AvroEvent.START_MESSAGE)
+        return map(transform.transform(control, value.wrap(null, null, 0, 0), FieldEvent.START_VALUE, sink));
+    }
+
+    // closes the field run when the datum completes. COMPLETED is the only signal available: the pump stops
+    // the moment the terminal sink closes the top-level record, so END_MESSAGE is never pulled from the
+    // parser and cannot be the trigger. A close that merely advances leaves the datum's COMPLETED intact.
+    private Status close(
+        Status status,
+        ModelSink sink)
+    {
+        Status closed = status;
+        if (status == Status.COMPLETED)
         {
-            status = map(transform.transform(control, value.wrap(null, null, 0, 0), FieldEvent.START_VALUE, sink));
-        }
-        else if (event == AvroEvent.END_MESSAGE)
-        {
-            status = map(transform.flush(control, value.wrap(null, null, 0, 0), sink));
-            if (status == Status.ADVANCED)
+            Status flushed = map(transform.flush(control, value.wrap(null, null, 0, 0), sink));
+            if (flushed == Status.ADVANCED)
             {
-                status = map(transform.transform(control, value, FieldEvent.END_VALUE, sink));
+                flushed = map(transform.transform(control, value, FieldEvent.END_VALUE, sink));
             }
+            closed = flushed == Status.ADVANCED ? status : flushed;
         }
-        return status;
+        return closed;
     }
 
     // hands the whole captured value to the transform; in mediating mode the terminal sink emits whatever
