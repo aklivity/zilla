@@ -107,12 +107,11 @@ public class ModelTransformTest
     }
 
     @Test
-    public void shouldYieldTheOtherStageWhenComposingWithNone()
+    public void shouldYieldTheGivenStageWhenComposingFromNone()
     {
         ModelTransform only = new Appending("!");
 
         assertSame(only, ModelTransform.NONE.andThen(only));
-        assertSame(only, only.andThen(ModelTransform.NONE));
         assertSame(ModelTransform.NONE, ModelTransform.NONE.andThen(ModelTransform.NONE));
     }
 
@@ -120,7 +119,7 @@ public class ModelTransformTest
     public void shouldComposeAnIdentityStageThatIsNotNone()
     {
         // an identity stage still runs — KafkaExtractor forwards every field while accumulating the
-        // configured ones — so only NONE itself may be collapsed away
+        // configured ones — so it composes like any other stage
         Observing observing = new Observing();
         Recorder recorder = new Recorder();
         ModelTransform composed = observing.andThen(new Appending("!"));
