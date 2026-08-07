@@ -41,6 +41,29 @@ Two rules the terminal `KafkaSink` depends on:
   and target are both the key lane — cannot be told apart from the key's own
   fields flowing past.
 
+## Supported lane transitions
+
+The vocabulary can express a stage appending to any lane from any lane, but only
+two combinations have somewhere to land in the cache entry's layout:
+
+| traversing | may append to | why not the others |
+| --- | --- | --- |
+| key | key (`extractKey`) | no trailers are under construction during the key drive |
+| value | headers (`extractHeaders`) | the key's hash is already computed and indexed by then |
+
+Nothing can be appended to the value lane at all — the value's bytes come from
+its model's output, not from `KafkaEvent`. A stage reaching for any unsupported
+transition trips an `assert` in `KafkaPipeline.KafkaLaneGuard` rather than being
+silently dropped by the terminal, and a stage that appends during the pipeline's
+opening lane announcement trips the `assert` in `KafkaPipeline.ANNOUNCE`. Relax
+these only as a deliberate move to fully parallel key, headers, and value
+writes.
+
+No `extractKey` / `extractHeaders` configuration can reach an unsupported
+transition, so `KafkaPipelineTest` drives them through
+`KafkaPipeline.stagedDecoder`, a package-private factory over an explicit stage
+chain.
+
 The key lane is the one place content is not written the instant it is found:
 its destination is the key itself, still being appended by the key's own model
 when the match arrives, and `KafkaCacheFile` only grows forward. The extracted

@@ -45,6 +45,16 @@ import io.aklivity.zilla.runtime.engine.model.ModelTransform;
  * the value arrives; both drives share one transform chain and one terminal, so a stage sees the whole
  * message as one event stream regardless.
  * </p>
+ * <p>
+ * That same layout is why only two of the lane transitions the vocabulary can express have somewhere to
+ * land today: a stage traversing the key may append to the key, and a stage traversing the value may
+ * append to a header. Appending to the headers while traversing the key has no trailers under
+ * construction yet; appending to the key while traversing the value comes after the key's hash has
+ * already been computed and indexed; and the value's own bytes come from its model's output rather than
+ * from this vocabulary, so there is nothing to append to the value lane at all. A stage reaching for any
+ * of those is asserted rather than silently dropped, so lifting the restriction — by supporting fully
+ * parallel key, headers, and value writes — stays a deliberate change.
+ * </p>
  *
  * @see KafkaTransform
  * @see KafkaEvent
@@ -53,11 +63,19 @@ public final class KafkaPipeline
 {
     public static final KafkaPipeline NONE = new KafkaPipeline();
 
-    private static final KafkaSink DISCARD = (control, source, event) -> ModelStatus.OK;
+    // The terminal in force while the pipeline announces the lane it is traversing, and while no drive is
+    // in flight. Neither has a destination to write into, so a stage appending content here is appending
+    // where nothing can land.
+    private static final KafkaSink ANNOUNCE = (control, source, event) ->
+    {
+        assert event != KafkaEvent.FIELD : "content appended with no destination to write it into";
+        return ModelStatus.OK;
+    };
 
     private final KafkaCacheModel key;
     private final KafkaCacheModel value;
     private final KafkaTransform transform;
+    private final KafkaLaneGuard guard;
 
     private KafkaSink sink;
 
@@ -67,28 +85,31 @@ public final class KafkaPipeline
         KafkaTopicTransformsType transforms,
         MutableDirectBufferEx scratch)
     {
-        return keyModel == null && valueModel == null
-            ? NONE
-            : new KafkaPipeline(keyModel, valueModel, transforms, scratch);
-    }
-
-    private KafkaPipeline()
-    {
-        this.key = KafkaCacheModel.NONE;
-        this.value = KafkaCacheModel.NONE;
-        this.transform = KafkaTransform.NONE;
-        this.sink = DISCARD;
-    }
-
-    private KafkaPipeline(
-        ModelHandler keyModel,
-        ModelHandler valueModel,
-        KafkaTopicTransformsType transforms,
-        MutableDirectBufferEx scratch)
-    {
         final String extractKey = transforms != null ? transforms.extractKey : null;
         final List<KafkaTopicHeaderType> extractHeaders = transforms != null ? transforms.extractHeaders : null;
 
+        return keyModel == null && valueModel == null
+            ? NONE
+            : new KafkaPipeline(keyModel, valueModel, extract(extractKey, extractHeaders),
+                extractKey != null, extractHeaders != null && !extractHeaders.isEmpty(), scratch);
+    }
+
+    // visible for testing: a pipeline over an arbitrary stage chain, reaching the lane transitions the
+    // entry's layout cannot honor, which no extractKey / extractHeaders configuration can produce. Named
+    // apart from decoder rather than overloading it, so a null third argument stays unambiguous.
+    static KafkaPipeline stagedDecoder(
+        ModelHandler keyModel,
+        ModelHandler valueModel,
+        KafkaTransform transform,
+        MutableDirectBufferEx scratch)
+    {
+        return new KafkaPipeline(keyModel, valueModel, transform, true, true, scratch);
+    }
+
+    private static KafkaTransform extract(
+        String extractKey,
+        List<KafkaTopicHeaderType> extractHeaders)
+    {
         KafkaTransform transform = KafkaTransform.NONE;
 
         if (extractKey != null)
@@ -106,11 +127,31 @@ public final class KafkaPipeline
             }
         }
 
+        return transform;
+    }
+
+    private KafkaPipeline()
+    {
+        this.key = KafkaCacheModel.NONE;
+        this.value = KafkaCacheModel.NONE;
+        this.transform = KafkaTransform.NONE;
+        this.guard = new KafkaLaneGuard();
+        this.sink = ANNOUNCE;
+    }
+
+    private KafkaPipeline(
+        ModelHandler keyModel,
+        ModelHandler valueModel,
+        KafkaTransform transform,
+        boolean extractingKey,
+        boolean extractingHeaders,
+        MutableDirectBufferEx scratch)
+    {
         this.transform = transform;
-        this.sink = DISCARD;
-        this.key = model(keyModel, KafkaEvent.SWITCH_KEY, extractKey != null, scratch);
-        this.value = model(valueModel, KafkaEvent.SWITCH_VALUE,
-            extractHeaders != null && !extractHeaders.isEmpty(), scratch);
+        this.guard = new KafkaLaneGuard();
+        this.sink = ANNOUNCE;
+        this.key = model(keyModel, KafkaEvent.SWITCH_KEY, extractingKey, scratch);
+        this.value = model(valueModel, KafkaEvent.SWITCH_VALUE, extractingHeaders, scratch);
     }
 
     /**
@@ -136,7 +177,8 @@ public final class KafkaPipeline
     }
 
     /**
-     * Drives the key through its model, selecting the key lane for the transform chain.
+     * Drives the key through its model, selecting the key lane for the transform chain. A stage may append
+     * to the key lane while this runs; appending to any other lane is not supported.
      *
      * @param traceId    the trace identifier for diagnostics
      * @param bindingId  the binding identifier
@@ -156,11 +198,12 @@ public final class KafkaPipeline
         KafkaCacheModel.Output next,
         KafkaSink sink)
     {
-        return drive(key, traceId, bindingId, data, index, limit, next, sink);
+        return drive(key, KafkaEvent.SWITCH_KEY, traceId, bindingId, data, index, limit, next, sink);
     }
 
     /**
-     * Drives the value through its model, selecting the value lane for the transform chain.
+     * Drives the value through its model, selecting the value lane for the transform chain. A stage may
+     * append to the headers lane while this runs; appending to the key lane is not supported.
      *
      * @param traceId    the trace identifier for diagnostics
      * @param bindingId  the binding identifier
@@ -180,7 +223,7 @@ public final class KafkaPipeline
         KafkaCacheModel.Output next,
         KafkaSink sink)
     {
-        return drive(value, traceId, bindingId, data, index, limit, next, sink);
+        return drive(value, KafkaEvent.SWITCH_VALUE, traceId, bindingId, data, index, limit, next, sink);
     }
 
     /**
@@ -211,6 +254,7 @@ public final class KafkaPipeline
 
     private int drive(
         KafkaCacheModel model,
+        KafkaEvent lane,
         long traceId,
         long bindingId,
         DirectBufferEx data,
@@ -219,12 +263,12 @@ public final class KafkaPipeline
         KafkaCacheModel.Output next,
         KafkaSink sink)
     {
-        this.sink = sink;
+        this.sink = guard.begin(lane, sink);
         transform.reset();
 
         final int transformed = model.transform(traceId, bindingId, data, index, limit, next);
 
-        this.sink = DISCARD;
+        this.sink = ANNOUNCE;
 
         return transformed;
     }
@@ -236,6 +280,38 @@ public final class KafkaPipeline
         MutableDirectBufferEx scratch)
     {
         return KafkaCacheModel.decoder(handler, extracting ? new KafkaLane(lane) : ModelTransform.NONE, scratch);
+    }
+
+    // Holds the transform chain to the lane transitions the cache entry's layout can honor. The vocabulary
+    // can express a stage appending to any lane from any lane, so the ones with nowhere to land are caught
+    // here rather than silently dropped by the terminal.
+    private final class KafkaLaneGuard implements KafkaSink
+    {
+        private KafkaEvent origin;
+        private KafkaSink terminal;
+
+        @Override
+        public ModelStatus transform(
+            KafkaController control,
+            KafkaSource source,
+            KafkaEvent event)
+        {
+            assert event == KafkaEvent.FIELD ||
+                event == origin ||
+                origin == KafkaEvent.SWITCH_VALUE && event == KafkaEvent.SWITCH_HEADERS :
+                String.format("%s while traversing %s is not supported", event, origin);
+
+            return terminal.transform(control, source, event);
+        }
+
+        private KafkaSink begin(
+            KafkaEvent origin,
+            KafkaSink terminal)
+        {
+            this.origin = origin;
+            this.terminal = terminal;
+            return this;
+        }
     }
 
     // The bridge from one model's per-field events into this pipeline's whole-message vocabulary. It
@@ -274,7 +350,7 @@ public final class KafkaPipeline
 
             if (event == ModelEvent.START_VALUE)
             {
-                status = transform.transform(this, this, lane, DISCARD);
+                status = transform.transform(this, this, lane, ANNOUNCE);
             }
             else if (event == ModelEvent.FIELD)
             {

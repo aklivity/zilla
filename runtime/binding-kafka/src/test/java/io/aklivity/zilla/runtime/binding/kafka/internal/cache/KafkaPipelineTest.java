@@ -108,6 +108,47 @@ public class KafkaPipelineTest
             "SWITCH_HEADERS", "FIELD(status=ok)", "SWITCH_VALUE", "FIELD($.status=ok)"), events);
     }
 
+    // A stage may append to the key while traversing the key, and to a header while traversing the value.
+    // Every other transition the vocabulary can express has nowhere to land in the cache entry's layout, so
+    // it is asserted rather than silently dropped. None is reachable from an extractKey / extractHeaders
+    // configuration, so each is driven here through an explicitly built stage.
+
+    @Test(expected = AssertionError.class)
+    public void shouldRejectAppendingToHeadersWhileTraversingKey()
+    {
+        KafkaPipeline pipeline = KafkaPipeline.stagedDecoder(handler("$.id", "id0"), null,
+            new KafkaExtractTransform(KafkaEvent.SWITCH_KEY, KafkaEvent.SWITCH_HEADERS, "$.id", "id"), scratch);
+
+        pipeline.transformKey(0L, 0L, message("key0"), 0, 4, sink, recorder);
+    }
+
+    @Test(expected = AssertionError.class)
+    public void shouldRejectAppendingToValueWhileTraversingKey()
+    {
+        KafkaPipeline pipeline = KafkaPipeline.stagedDecoder(handler("$.id", "id0"), null,
+            new KafkaExtractTransform(KafkaEvent.SWITCH_KEY, KafkaEvent.SWITCH_VALUE, "$.id", "id"), scratch);
+
+        pipeline.transformKey(0L, 0L, message("key0"), 0, 4, sink, recorder);
+    }
+
+    @Test(expected = AssertionError.class)
+    public void shouldRejectAppendingToKeyWhileTraversingValue()
+    {
+        KafkaPipeline pipeline = KafkaPipeline.stagedDecoder(null, handler("$.region", "east"),
+            new KafkaExtractTransform(KafkaEvent.SWITCH_VALUE, KafkaEvent.SWITCH_KEY, "$.region", "region"), scratch);
+
+        pipeline.transformValue(0L, 0L, message("payload"), 0, 7, sink, recorder);
+    }
+
+    @Test(expected = AssertionError.class)
+    public void shouldRejectAppendingDuringLaneAnnouncement()
+    {
+        KafkaPipeline pipeline = KafkaPipeline.stagedDecoder(null, handler("$.region", "east"),
+            new AppendingOnSwitch(), scratch);
+
+        pipeline.transformValue(0L, 0L, message("payload"), 0, 7, sink, recorder);
+    }
+
     @Test
     public void shouldNotSelectALaneWithoutTransforms()
     {
@@ -239,6 +280,28 @@ public class KafkaPipelineTest
                 return supplyDecoder(transform);
             }
         };
+    }
+
+    // a stage that appends the moment it sees the pipeline announce the lane it is traversing, rather than
+    // waiting for a field — the announcement has no destination behind it
+    private static final class AppendingOnSwitch implements KafkaTransform
+    {
+        @Override
+        public ModelStatus transform(
+            KafkaController control,
+            KafkaSource source,
+            KafkaEvent event,
+            KafkaSink sink)
+        {
+            ModelStatus status = sink.transform(control, source, event);
+
+            if (event == KafkaEvent.SWITCH_VALUE)
+            {
+                status = sink.transform(control, source, KafkaEvent.FIELD);
+            }
+
+            return status;
+        }
     }
 
     private static final class FieldsPipeline implements ModelPipeline
