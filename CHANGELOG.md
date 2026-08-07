@@ -1,5 +1,22 @@
 # Changelog
 
+## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/2.0.0...HEAD)
+
+**Closed issues:**
+
+- release: create GitHub Release with version-specific CHANGELOG section, marked latest only when released from develop [\#2303](https://github.com/aklivity/zilla/issues/2303) ([jfallows](https://github.com/jfallows))
+- Add a pluggable per-field ModelTransform hook to the model pipeline \(decode + encode\) [\#2325](https://github.com/aklivity/zilla/issues/2325) ([jfallows](https://github.com/jfallows))
+
+**Merged pull requests:**
+
+- feat\(release\): create GitHub Release with version-specific changelog section [\#2304](https://github.com/aklivity/zilla/pull/2304) ([jfallows](https://github.com/jfallows))
+- fix\(examples/mcp.proxy\): report failed assertions at the end of the log [\#2313](https://github.com/aklivity/zilla/pull/2313) ([jfallows](https://github.com/jfallows))
+- Revise README for improved clarity and structure [\#2321](https://github.com/aklivity/zilla/pull/2321) ([llukyanov](https://github.com/llukyanov))
+- feat\(engine\): guarantee async guard reauthorize completes strictly later [\#2324](https://github.com/aklivity/zilla/pull/2324) ([jfallows](https://github.com/jfallows))
+- feat\(engine\): add pluggable per-field ModelTransform hook to the model pipeline [\#2326](https://github.com/aklivity/zilla/pull/2326) ([jfallows](https://github.com/jfallows))
+
 ## [2.0.0](https://github.com/aklivity/zilla/tree/2.0.0) (2026-08-04)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/1.2.4...2.0.0)
@@ -53,6 +70,7 @@
 - binding-mcp: add cache option to mcp · proxy binding [\#1737](https://github.com/aklivity/zilla/issues/1737) ([jfallows](https://github.com/jfallows))
 - binding-mcp server: emit Alt-Svc header advertising engine service hostname [\#1770](https://github.com/aklivity/zilla/issues/1770) ([jfallows](https://github.com/jfallows))
 - binding-http: translate Alt-Svc placeholder to wire-level ALPN, host, and physical port [\#1772](https://github.com/aklivity/zilla/issues/1772) ([jfallows](https://github.com/jfallows))
+- feat\(binding-mcp\): notification-driven cache refresh via list\_changed [\#1776](https://github.com/aklivity/zilla/issues/1776) ([jfallows](https://github.com/jfallows))
 - binding-mcp: add missing peer-to-peer ApplicationIT coverage for 14 scenarios [\#1783](https://github.com/aklivity/zilla/issues/1783) ([jfallows](https://github.com/jfallows))
 - binding-mcp: propagate upstream auth challenges to inbound client [\#1795](https://github.com/aklivity/zilla/issues/1795) ([jfallows](https://github.com/jfallows))
 - Deprecate Kafka-group session ownership in mqtt-kafka binding [\#1797](https://github.com/aklivity/zilla/issues/1797) ([jfallows](https://github.com/jfallows))
@@ -140,6 +158,7 @@
 - binding-mcp-http: add kind: client \(implicit sys:http\_client exit\) and require exit for kind: proxy [\#2238](https://github.com/aklivity/zilla/issues/2238) ([jfallows](https://github.com/jfallows))
 - binding-tcp: kind: server's per-route exit requirement doesn't actually enforce anything [\#2239](https://github.com/aklivity/zilla/issues/2239) ([jfallows](https://github.com/jfallows))
 - mcp proxy: disambiguate tool `title` across toolkits [\#2260](https://github.com/aklivity/zilla/issues/2260) ([jfallows](https://github.com/jfallows))
+- binding-mcp-http/mcp-openapi: tool title nested in annotations, but McpToolTitleDisambiguator reads it top-level [\#2270](https://github.com/aklivity/zilla/issues/2270) ([jfallows](https://github.com/jfallows))
 - mcp-kafka-connect toolkit never hydrates behind mcp\(proxy\) against a real Kafka Connect worker [\#2273](https://github.com/aklivity/zilla/issues/2273) ([jfallows](https://github.com/jfallows))
 - mcp-kafka: normalize inconsistent field naming across tool schemas \(topic/name, partition/partition\_id, additionalProperties\) [\#2284](https://github.com/aklivity/zilla/issues/2284) ([jfallows](https://github.com/jfallows))
 - mcp-kafka: tool schema completeness gaps \(create\_topics sub-schemas, timeout availability\) [\#2285](https://github.com/aklivity/zilla/issues/2285) ([jfallows](https://github.com/jfallows))
