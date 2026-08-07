@@ -226,11 +226,11 @@ services:
       kafka:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "nc", "-z", "127.0.0.1", "8083"]
-      interval: 2s
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "-T", "3", "http://127.0.0.1:8083/connectors"]
+      interval: 5s
       timeout: 5s
       retries: 60
-      start_period: 20s
+      start_period: 60s
     environment:
       KAFKA_BOOTSTRAP_SERVER: kafka.examples.dev:29092
     entrypoint: ["/bin/sh", "-c"]

@@ -194,8 +194,7 @@ echo INIT_BODY="$INIT_BODY"
 if echo "$INIT_BODY" | grep -q '"protocolVersion":"2025-11-25"'; then
   echo ✅ initialize negotiated 2025-11-25
 else
-  echo ❌ initialize did not negotiate 2025-11-25
-  EXIT=1
+  fail "initialize did not negotiate 2025-11-25"
 fi
 
 list_tools() {
@@ -268,8 +267,7 @@ retry_until 60 5 cache_hydrated
 if echo "$CACHE_INIT_BODY" | grep -q '"subscribe":true' && full_toolset_present; then
   echo "✅ tools/resources/prompts cache and resources.subscribe capability are hydrated"
 else
-  echo "❌ cache never finished hydrating -- every cache-backed assertion below would just be racing this"
-  EXIT=1
+  fail "cache never finished hydrating -- every cache-backed assertion below would just be racing this"
 fi
 
 # WHEN: a real MCP SDK client (method-first envelopes, elicitation.url capability)
@@ -292,8 +290,7 @@ echo "$ELICIT_OUT"
 if echo "$ELICIT_OUT" | grep -q 'OK url-mode elicitation relayed end-to-end'; then
   echo ✅ url-mode elicitation relayed end-to-end
 else
-  echo ❌ url-mode elicitation not relayed end-to-end
-  EXIT=1
+  fail "url-mode elicitation not relayed end-to-end"
 fi
 
 # WHEN: the call above reaches the urlelicit mock through south_mcp_client_urlelicit
@@ -304,8 +301,7 @@ URLELICIT_LOGS=$(docker compose logs urlelicit 2>&1)
 if echo "$URLELICIT_LOGS" | grep -q "authorization: Bearer $JWT_URLELICIT"; then
   echo "✅ south_mcp_client_urlelicit forwarded the caller's own JWT to urlelicit"
 else
-  echo "❌ urlelicit did not observe the caller's forwarded JWT"
-  EXIT=1
+  fail "urlelicit did not observe the caller's forwarded JWT"
 fi
 
 # WHEN: a caller presents no JWT at all
@@ -323,8 +319,7 @@ if echo "$TOOLS_NONE" | grep -q '^everything__' &&
     ! echo "$TOOLS_NONE" | grep -q 'github+'; then
   echo "✅ no token: only the ungated everything toolkit is listed"
 else
-  echo "❌ no token: tools/list did not filter to only the everything toolkit"
-  EXIT=1
+  fail "no token: tools/list did not filter to only the everything toolkit"
 fi
 
 # WHEN: a caller has toolkit-level scopes (github:tools, petstore:tools,
@@ -356,8 +351,7 @@ if echo "$TOOLS_PARTIAL" | grep -q '^petstore__list_pets$' &&
     ! echo "$TOOLS_PARTIAL" | grep -q '^kafka__'; then
   echo "✅ toolkit-only scope: sees list_pets, search_pets, list_subjects, list_connector_plugins, and all three read-only resources, but not create_pet, create_pr, register_schema, or create_connector"
 else
-  echo "❌ toolkit-only scope did not layer as expected"
-  EXIT=1
+  fail "toolkit-only scope did not layer as expected"
 fi
 
 # WHEN: a caller has every scope required by every guarded route
@@ -368,8 +362,7 @@ echo "TOOLS_FULL=$TOOLS_FULL"
 if full_toolset_present; then
   echo "✅ full scope: every toolkit's tools and resources are listed"
 else
-  echo "❌ full scope did not unlock every toolkit"
-  EXIT=1
+  fail "full scope did not unlock every toolkit"
 fi
 
 # WHEN: that same fully authorized caller's tools/list is inspected for a
@@ -382,8 +375,7 @@ if echo "$TOOLS_FULL" | grep -q '^everything__echo$' &&
     ! echo "$TOOLS_FULL" | grep -q '^everything__get-sum$'; then
   echo "✅ options.cache.tools.eager kept the cold everything__get-sum tool out of tools/list"
 else
-  echo "❌ everything__get-sum was listed despite not matching options.cache.tools.eager.match"
-  EXIT=1
+  fail "everything__get-sum was listed despite not matching options.cache.tools.eager.match"
 fi
 
 # WHEN: that same caller calls zilla__search_tools for "sum"
@@ -399,8 +391,7 @@ echo "SEARCH_OUT=$SEARCH_OUT"
 if echo "$SEARCH_OUT" | grep -q 'everything__get-sum'; then
   echo "✅ zilla__search_tools surfaced the cold everything__get-sum tool by keyword"
 else
-  echo "❌ zilla__search_tools did not surface everything__get-sum for query \"sum\""
-  EXIT=1
+  fail "zilla__search_tools did not surface everything__get-sum for query \"sum\""
 fi
 
 # WHEN: that same caller calls zilla__describe_tool for the cold tool found above
@@ -416,8 +407,7 @@ echo "DESCRIBE_OUT=$DESCRIBE_OUT"
 if echo "$DESCRIBE_OUT" | grep -q 'inputSchema' && echo "$DESCRIBE_OUT" | grep -q 'everything__get-sum'; then
   echo "✅ zilla__describe_tool resolved the cold everything__get-sum tool's full definition"
 else
-  echo "❌ zilla__describe_tool did not resolve everything__get-sum's full definition"
-  EXIT=1
+  fail "zilla__describe_tool did not resolve everything__get-sum's full definition"
 fi
 
 # WHEN: that same caller calls zilla__execute_tool naming the cold tool found above
@@ -433,8 +423,7 @@ echo "EXECUTE_OUT=$EXECUTE_OUT"
 if echo "$EXECUTE_OUT" | grep -q 'The sum of 2 and 3 is 5'; then
   echo "✅ zilla__execute_tool invoked the cold everything__get-sum tool by name"
 else
-  echo "❌ zilla__execute_tool did not successfully invoke everything__get-sum by name"
-  EXIT=1
+  fail "zilla__execute_tool did not successfully invoke everything__get-sum by name"
 fi
 
 # WHEN: that same caller calls everything__get-sum directly by name, despite
@@ -451,8 +440,7 @@ echo "COLD_CALL_OUT=$COLD_CALL_OUT"
 if echo "$COLD_CALL_OUT" | grep -q 'The sum of 2 and 3 is 5'; then
   echo "✅ everything__get-sum, though cold, still succeeded when called directly by name"
 else
-  echo "❌ everything__get-sum did not succeed when called directly despite being cold, not unauthorized"
-  EXIT=1
+  fail "everything__get-sum did not succeed when called directly despite being cold, not unauthorized"
 fi
 
 # WHEN: an authorized caller calls github__create_pr with title/head/base
@@ -476,8 +464,7 @@ echo "CREATE_PR_OUT=$CREATE_PR_OUT"
 if echo "$CREATE_PR_OUT" | grep -q 'Add feature'; then
   echo "✅ github__create_pr forwarded title/head/base to ghapi as the request body"
 else
-  echo "❌ github__create_pr did not forward the call arguments as the request body"
-  EXIT=1
+  fail "github__create_pr did not forward the call arguments as the request body"
 fi
 
 # WHEN: an authorized caller calls petstore__search_pets with {"category":"cat"}
@@ -499,8 +486,7 @@ echo "PETSTORE_LOGS=$PETSTORE_LOGS"
 if echo "$PETSTORE_LOGS" | grep -q 'search_pets query: {"tag":"cat"}'; then
   echo "✅ petstore__search_pets renamed category -> tag via with.params"
 else
-  echo "❌ petstore__search_pets did not rename the argument as configured"
-  EXIT=1
+  fail "petstore__search_pets did not rename the argument as configured"
 fi
 
 read_resource() {
@@ -526,8 +512,7 @@ echo "PULL_OUT=$PULL_OUT"
 if echo "$PULL_OUT" | grep -q 'Seed data for the pull_by_number resource demo'; then
   echo "✅ github+pr://acme/widget/42 read end-to-end via the pull_by_number template"
 else
-  echo "❌ pull_by_number resource template did not read through as configured"
-  EXIT=1
+  fail "pull_by_number resource template did not read through as configured"
 fi
 
 # WHEN: a petstore:tools-scoped caller reads the static featured_pets resource
@@ -542,8 +527,7 @@ echo "FEATURED_OUT=$FEATURED_OUT"
 if echo "$FEATURED_OUT" | grep -q 'Bramble'; then
   echo "✅ petstore+/pets/featured read end-to-end"
 else
-  echo "❌ petstore+/pets/featured did not read through as configured"
-  EXIT=1
+  fail "petstore+/pets/featured did not read through as configured"
 fi
 
 # WHEN: a pets:write-scoped caller calls petstore__create_pet
@@ -564,8 +548,7 @@ echo "CREATE_PET_OUT=$CREATE_PET_OUT"
 if echo "$CREATE_PET_OUT" | grep -q 'Nibbles'; then
   echo "✅ petstore__create_pet succeeded for a pets:write-scoped caller"
 else
-  echo "❌ petstore__create_pet did not succeed as expected"
-  EXIT=1
+  fail "petstore__create_pet did not succeed as expected"
 fi
 
 SR_SUBJECT="orders-value"
@@ -591,8 +574,7 @@ echo "REGISTER_OUT=$REGISTER_OUT"
 if echo "$REGISTER_OUT" | grep -q 'Registered schema with id'; then
   echo "✅ kafka_sr__register_schema registered a real schema against Karapace"
 else
-  echo "❌ kafka_sr__register_schema did not succeed against Karapace"
-  EXIT=1
+  fail "kafka_sr__register_schema did not succeed against Karapace"
 fi
 
 # WHEN: that same caller calls kafka_sr__list_subjects and describe_subject
@@ -611,8 +593,7 @@ echo "LIST_SUBJECTS_OUT=$LIST_SUBJECTS_OUT"
 if echo "$LIST_SUBJECTS_OUT" | grep -q "$SR_SUBJECT"; then
   echo "✅ kafka_sr__list_subjects saw the registered subject in real Karapace state"
 else
-  echo "❌ kafka_sr__list_subjects did not see the registered subject"
-  EXIT=1
+  fail "kafka_sr__list_subjects did not see the registered subject"
 fi
 
 call_describe_subject() {
@@ -629,8 +610,7 @@ echo "DESCRIBE_SUBJECT_OUT=$DESCRIBE_SUBJECT_OUT"
 if echo "$DESCRIBE_SUBJECT_OUT" | grep -q '\[1\]'; then
   echo "✅ kafka_sr__describe_subject listed version 1 of the registered subject"
 else
-  echo "❌ kafka_sr__describe_subject did not list the registered version"
-  EXIT=1
+  fail "kafka_sr__describe_subject did not list the registered version"
 fi
 
 # WHEN: that same caller calls kafka_sr__get_schema for the registered
@@ -651,8 +631,7 @@ echo "GET_SCHEMA_OUT=$GET_SCHEMA_OUT"
 if echo "$GET_SCHEMA_OUT" | grep -q 'Retrieved schema id 1, version 1'; then
   echo "✅ kafka_sr__get_schema read the schema back with both result fields interpolated"
 else
-  echo "❌ kafka_sr__get_schema did not read the schema back as expected"
-  EXIT=1
+  fail "kafka_sr__get_schema did not read the schema back as expected"
 fi
 
 # WHEN: that same caller calls kafka_sr__set_compatibility then
@@ -674,8 +653,7 @@ echo "SET_COMPAT_OUT=$SET_COMPAT_OUT"
 if echo "$SET_COMPAT_OUT" | grep -q 'Compatibility level set to FULL'; then
   echo "✅ kafka_sr__set_compatibility set a compatibility level on the registered subject"
 else
-  echo "❌ kafka_sr__set_compatibility did not succeed as expected"
-  EXIT=1
+  fail "kafka_sr__set_compatibility did not succeed as expected"
 fi
 
 call_get_compatibility() {
@@ -692,8 +670,7 @@ echo "GET_COMPAT_OUT=$GET_COMPAT_OUT"
 if echo "$GET_COMPAT_OUT" | grep -q 'Compatibility level is FULL'; then
   echo "✅ kafka_sr__get_compatibility read back the level set above"
 else
-  echo "❌ kafka_sr__get_compatibility did not succeed as expected"
-  EXIT=1
+  fail "kafka_sr__get_compatibility did not succeed as expected"
 fi
 
 # WHEN: that same caller calls kafka_sr__check_compatibility against
@@ -713,8 +690,7 @@ echo "CHECK_COMPAT_OUT=$CHECK_COMPAT_OUT"
 if echo "$CHECK_COMPAT_OUT" | grep -q 'Compatibility check result: true'; then
   echo "✅ kafka_sr__check_compatibility reported the identical schema as compatible"
 else
-  echo "❌ kafka_sr__check_compatibility did not succeed as expected"
-  EXIT=1
+  fail "kafka_sr__check_compatibility did not succeed as expected"
 fi
 
 KC_CONNECTOR="file-source-demo"
@@ -747,8 +723,7 @@ echo "KC_LIST_PLUGINS_OUT=$KC_LIST_PLUGINS_OUT"
 if echo "$KC_LIST_PLUGINS_OUT" | grep -q 'FileStreamSourceConnector'; then
   echo "✅ kafka_connect__list_connector_plugins listed the bundled FileStreamSourceConnector from the real worker"
 else
-  echo "❌ kafka_connect__list_connector_plugins did not list the bundled FileStreamSourceConnector"
-  EXIT=1
+  fail "kafka_connect__list_connector_plugins did not list the bundled FileStreamSourceConnector"
 fi
 
 # WHEN: a kafka_connect:admin-scoped caller calls kafka_connect__create_connector
@@ -774,8 +749,7 @@ echo "KC_CREATE_OUT=$KC_CREATE_OUT"
 if echo "$KC_CREATE_OUT" | grep -q "$KC_CONNECTOR"; then
   echo "✅ kafka_connect__create_connector created a real connector on the real worker"
 else
-  echo "❌ kafka_connect__create_connector did not succeed against the real worker"
-  EXIT=1
+  fail "kafka_connect__create_connector did not succeed against the real worker"
 fi
 
 # WHEN: that same caller calls kafka_connect__list_connectors and describe_connector
@@ -794,8 +768,7 @@ echo "KC_LIST_OUT=$KC_LIST_OUT"
 if echo "$KC_LIST_OUT" | grep -q "$KC_CONNECTOR"; then
   echo "✅ kafka_connect__list_connectors saw the created connector in real worker state"
 else
-  echo "❌ kafka_connect__list_connectors did not see the created connector"
-  EXIT=1
+  fail "kafka_connect__list_connectors did not see the created connector"
 fi
 
 call_kafka_connect_describe_connector() {
@@ -812,8 +785,7 @@ echo "KC_DESCRIBE_OUT=$KC_DESCRIBE_OUT"
 if echo "$KC_DESCRIBE_OUT" | grep -q 'FileStreamSourceConnector'; then
   echo "✅ kafka_connect__describe_connector read back the real connector's configuration"
 else
-  echo "❌ kafka_connect__describe_connector did not read back the connector's configuration"
-  EXIT=1
+  fail "kafka_connect__describe_connector did not read back the connector's configuration"
 fi
 
 # WHEN: that same caller calls kafka_connect__describe_connector_status
@@ -832,8 +804,7 @@ echo "KC_STATUS_OUT=$KC_STATUS_OUT"
 if echo "$KC_STATUS_OUT" | grep -q 'RUNNING'; then
   echo "✅ kafka_connect__describe_connector_status reported the real connector as RUNNING"
 else
-  echo "❌ kafka_connect__describe_connector_status did not report RUNNING"
-  EXIT=1
+  fail "kafka_connect__describe_connector_status did not report RUNNING"
 fi
 
 # WHEN: that same caller calls kafka_connect__pause_connector then
@@ -860,8 +831,7 @@ echo "KC_STATUS_PAUSED_OUT=$KC_STATUS_PAUSED_OUT"
 if echo "$KC_STATUS_PAUSED_OUT" | grep -q 'PAUSED'; then
   echo "✅ kafka_connect__pause_connector transitioned the real connector to PAUSED"
 else
-  echo "❌ kafka_connect__pause_connector did not transition the real connector to PAUSED"
-  EXIT=1
+  fail "kafka_connect__pause_connector did not transition the real connector to PAUSED"
 fi
 
 # WHEN: that same caller calls kafka_connect__resume_connector then
@@ -888,8 +858,7 @@ echo "KC_STATUS_RESUMED_OUT=$KC_STATUS_RESUMED_OUT"
 if echo "$KC_STATUS_RESUMED_OUT" | grep -q 'RUNNING'; then
   echo "✅ kafka_connect__resume_connector transitioned the real connector back to RUNNING"
 else
-  echo "❌ kafka_connect__resume_connector did not transition the real connector back to RUNNING"
-  EXIT=1
+  fail "kafka_connect__resume_connector did not transition the real connector back to RUNNING"
 fi
 
 # WHEN: that same caller calls kafka_connect__restart_connector
@@ -916,8 +885,7 @@ echo "KC_STATUS_RESTARTED_OUT=$KC_STATUS_RESTARTED_OUT"
 if echo "$KC_STATUS_RESTARTED_OUT" | grep -q 'RUNNING'; then
   echo "✅ kafka_connect__restart_connector left the real connector RUNNING"
 else
-  echo "❌ kafka_connect__restart_connector did not leave the real connector RUNNING"
-  EXIT=1
+  fail "kafka_connect__restart_connector did not leave the real connector RUNNING"
 fi
 
 # WHEN: that same caller calls kafka_connect__delete_connector
@@ -944,8 +912,7 @@ echo "KC_LIST_AFTER_DELETE_OUT=$KC_LIST_AFTER_DELETE_OUT"
 if ! echo "$KC_LIST_AFTER_DELETE_OUT" | grep -q "$KC_CONNECTOR"; then
   echo "✅ kafka_connect__delete_connector removed the real connector"
 else
-  echo "❌ kafka_connect__delete_connector did not remove the real connector"
-  EXIT=1
+  fail "kafka_connect__delete_connector did not remove the real connector"
 fi
 
 # WHEN: a kafka:write-scoped caller calls kafka__produce_message
@@ -967,8 +934,7 @@ echo "KAFKA_PRODUCE_OUT=$KAFKA_PRODUCE_OUT"
 if echo "$KAFKA_PRODUCE_OUT" | grep -q 'Produced record to orders topic'; then
   echo "✅ kafka__produce_message wrote a record to the real Kafka broker"
 else
-  echo "❌ kafka__produce_message did not succeed against the real broker"
-  EXIT=1
+  fail "kafka__produce_message did not succeed against the real broker"
 fi
 
 # WHEN: that same caller calls kafka__consume_messages for the same topic
@@ -988,8 +954,7 @@ echo "KAFKA_CONSUME_OUT=$KAFKA_CONSUME_OUT"
 if echo "$KAFKA_CONSUME_OUT" | grep -q 'hello from mcp-kafka'; then
   echo "✅ kafka__consume_messages read the produced record back from the real Kafka broker"
 else
-  echo "❌ kafka__consume_messages did not read the produced record back"
-  EXIT=1
+  fail "kafka__consume_messages did not read the produced record back"
 fi
 
 # WHEN: that same caller calls kafka__describe_topic_configs for the orders topic
@@ -1011,8 +976,7 @@ echo "KAFKA_DESCRIBE_CONFIGS_OUT=$KAFKA_DESCRIBE_CONFIGS_OUT"
 if echo "$KAFKA_DESCRIBE_CONFIGS_OUT" | grep -q '"name":"cleanup.policy"'; then
   echo "✅ kafka__describe_topic_configs read the real broker's effective topic config"
 else
-  echo "❌ kafka__describe_topic_configs did not return the expected config"
-  EXIT=1
+  fail "kafka__describe_topic_configs did not return the expected config"
 fi
 
 # WHEN: a kafka:admin-scoped caller calls kafka__alter_topic_configs to change the
@@ -1035,8 +999,7 @@ echo "KAFKA_ALTER_CONFIGS_OUT=$KAFKA_ALTER_CONFIGS_OUT"
 if echo "$KAFKA_ALTER_CONFIGS_OUT" | grep -q 'Updated configs for topic orders'; then
   echo "✅ kafka__alter_topic_configs updated the topic config on the real Kafka broker"
 else
-  echo "❌ kafka__alter_topic_configs did not succeed against the real broker"
-  EXIT=1
+  fail "kafka__alter_topic_configs did not succeed against the real broker"
 fi
 
 # WHEN: a kafka:admin-scoped caller calls kafka__create_topics
@@ -1058,8 +1021,7 @@ echo "KAFKA_CREATE_TOPICS_OUT=$KAFKA_CREATE_TOPICS_OUT"
 if echo "$KAFKA_CREATE_TOPICS_OUT" | grep -q 'Created topic(s): widgets'; then
   echo "✅ kafka__create_topics created a new topic on the real Kafka broker"
 else
-  echo "❌ kafka__create_topics did not succeed against the real broker"
-  EXIT=1
+  fail "kafka__create_topics did not succeed against the real broker"
 fi
 
 # WHEN: that same kafka:admin-scoped caller calls kafka__delete_topics for
@@ -1082,8 +1044,7 @@ echo "KAFKA_DELETE_TOPICS_OUT=$KAFKA_DELETE_TOPICS_OUT"
 if echo "$KAFKA_DELETE_TOPICS_OUT" | grep -q 'Deleted topic(s): widgets'; then
   echo "✅ kafka__delete_topics deleted the topic from the real Kafka broker"
 else
-  echo "❌ kafka__delete_topics did not succeed against the real broker"
-  EXIT=1
+  fail "kafka__delete_topics did not succeed against the real broker"
 fi
 
 # WHEN: a kafka:tools-scoped caller calls kafka__list_topics
@@ -1103,8 +1064,7 @@ echo "KAFKA_LIST_TOPICS_OUT=$KAFKA_LIST_TOPICS_OUT"
 if echo "$KAFKA_LIST_TOPICS_OUT" | grep -q '"topic":"orders"'; then
   echo "✅ kafka__list_topics listed the real orders topic from the real Kafka broker"
 else
-  echo "❌ kafka__list_topics did not list the orders topic as expected"
-  EXIT=1
+  fail "kafka__list_topics did not list the orders topic as expected"
 fi
 
 # WHEN: that same caller calls kafka__describe_topic for the orders topic
@@ -1126,8 +1086,7 @@ if echo "$KAFKA_DESCRIBE_TOPIC_OUT" | grep -q 'Described topic orders' &&
     echo "$KAFKA_DESCRIBE_TOPIC_OUT" | grep -q '"partition":0'; then
   echo "✅ kafka__describe_topic described the real orders topic from the real Kafka broker"
 else
-  echo "❌ kafka__describe_topic did not describe the orders topic as expected"
-  EXIT=1
+  fail "kafka__describe_topic did not describe the orders topic as expected"
 fi
 
 # WHEN: that same caller calls kafka__cluster_overview
@@ -1147,8 +1106,7 @@ echo "KAFKA_CLUSTER_OVERVIEW_OUT=$KAFKA_CLUSTER_OVERVIEW_OUT"
 if echo "$KAFKA_CLUSTER_OVERVIEW_OUT" | grep -q '"broker_count":1'; then
   echo "✅ kafka__cluster_overview summarized the real Kafka broker"
 else
-  echo "❌ kafka__cluster_overview did not summarize the real broker as expected"
-  EXIT=1
+  fail "kafka__cluster_overview did not summarize the real broker as expected"
 fi
 
 # WHEN: a kafka:tools-scoped caller calls kafka__list_brokers
@@ -1171,8 +1129,7 @@ echo "KAFKA_LIST_BROKERS_OUT=$KAFKA_LIST_BROKERS_OUT"
 if echo "$KAFKA_LIST_BROKERS_OUT" | grep -q 'Brokers: 1@kafka.examples.dev:29092'; then
   echo "✅ kafka__list_brokers listed the real Kafka broker"
 else
-  echo "❌ kafka__list_brokers did not list the real broker"
-  EXIT=1
+  fail "kafka__list_brokers did not list the real broker"
 fi
 
 # WHEN: that same caller calls kafka__describe_cluster
@@ -1193,8 +1150,7 @@ echo "KAFKA_DESCRIBE_CLUSTER_OUT=$KAFKA_DESCRIBE_CLUSTER_OUT"
 if echo "$KAFKA_DESCRIBE_CLUSTER_OUT" | grep -q 'Described cluster .*, controller 1'; then
   echo "✅ kafka__describe_cluster reported the real broker as controller"
 else
-  echo "❌ kafka__describe_cluster did not succeed against the real broker"
-  EXIT=1
+  fail "kafka__describe_cluster did not succeed against the real broker"
 fi
 
 CONSUMER_GROUP="orders-analytics"
@@ -1219,8 +1175,7 @@ echo "DESCRIBE_GROUP_BEFORE_OUT=$DESCRIBE_GROUP_BEFORE_OUT"
 if echo "$DESCRIBE_GROUP_BEFORE_OUT" | grep -q "Consumer group $CONSUMER_GROUP is Dead"; then
   echo "✅ kafka__describe_consumer_group reported state Dead for a never-used group"
 else
-  echo "❌ kafka__describe_consumer_group did not report state Dead as expected"
-  EXIT=1
+  fail "kafka__describe_consumer_group did not report state Dead as expected"
 fi
 
 # WHEN: a kafka:tools-scoped caller calls kafka__describe_consumer_group_lag
@@ -1244,8 +1199,7 @@ echo "DESCRIBE_GROUP_LAG_OUT=$DESCRIBE_GROUP_LAG_OUT"
 if echo "$DESCRIBE_GROUP_LAG_OUT" | grep -q "Consumer group $CONSUMER_GROUP has total lag 0"; then
   echo "✅ kafka__describe_consumer_group_lag reported total lag 0 for a never-used group"
 else
-  echo "❌ kafka__describe_consumer_group_lag did not report total lag 0 as expected"
-  EXIT=1
+  fail "kafka__describe_consumer_group_lag did not report total lag 0 as expected"
 fi
 
 # WHEN: a kafka:tools-scoped caller calls kafka__list_consumer_groups
@@ -1277,8 +1231,7 @@ echo "KAFKA_LIST_GROUPS_OUT=$KAFKA_LIST_GROUPS_OUT"
 if echo "$KAFKA_LIST_GROUPS_OUT" | grep -qE "Consumer groups:|No consumer groups found"; then
   echo "✅ kafka__list_consumer_groups succeeded against the real Kafka broker"
 else
-  echo "❌ kafka__list_consumer_groups did not succeed against the real broker"
-  EXIT=1
+  fail "kafka__list_consumer_groups did not succeed against the real broker"
 fi
 
 ACL_PRINCIPAL="User:acl-test-user"
@@ -1307,8 +1260,7 @@ echo "KAFKA_CREATE_ACLS_OUT=$KAFKA_CREATE_ACLS_OUT"
 if echo "$KAFKA_CREATE_ACLS_OUT" | grep -q 'Created 1 ACL(s)'; then
   echo "✅ kafka__create_acls granted a real ACL on the real Kafka broker"
 else
-  echo "❌ kafka__create_acls did not succeed against the real broker"
-  EXIT=1
+  fail "kafka__create_acls did not succeed against the real broker"
 fi
 
 # WHEN: a kafka:tools-scoped caller (list_acls needs no scope beyond the
@@ -1331,8 +1283,7 @@ if echo "$KAFKA_LIST_ACLS_OUT" | grep -q "\"principal\":\"$ACL_PRINCIPAL\"" &&
     echo "$KAFKA_LIST_ACLS_OUT" | grep -q '"resource_name":"acl-test-topic"'; then
   echo "✅ kafka__list_acls read the real ACL back from the real Kafka broker"
 else
-  echo "❌ kafka__list_acls did not report the ACL created above"
-  EXIT=1
+  fail "kafka__list_acls did not report the ACL created above"
 fi
 
 # WHEN: that same kafka:acls-scoped caller calls kafka__delete_acls for the
@@ -1354,8 +1305,7 @@ echo "KAFKA_DELETE_ACLS_OUT=$KAFKA_DELETE_ACLS_OUT"
 if echo "$KAFKA_DELETE_ACLS_OUT" | grep -q 'Deleted 1 ACL(s)'; then
   echo "✅ kafka__delete_acls revoked the real ACL on the real Kafka broker"
 else
-  echo "❌ kafka__delete_acls did not succeed against the real broker"
-  EXIT=1
+  fail "kafka__delete_acls did not succeed against the real broker"
 fi
 
 # by this point in the script, options.cache.ttl (PT5M) has very plausibly
@@ -1370,8 +1320,7 @@ retry_until 60 5 cache_hydrated
 if echo "$CACHE_INIT_BODY" | grep -q '"subscribe":true' && full_toolset_present; then
   echo "✅ tools/resources/prompts cache is still hydrated ahead of the resources/subscribe round-trip"
 else
-  echo "❌ cache went cold again (options.cache.ttl elapsed) and did not re-hydrate in time"
-  EXIT=1
+  fail "cache went cold again (options.cache.ttl elapsed) and did not re-hydrate in time"
 fi
 
 # WHEN: a real MCP SDK client subscribes to an everything resource, calls
@@ -1407,8 +1356,9 @@ echo "SUBSCRIBE_OUT=$SUBSCRIBE_OUT"
 if echo "$SUBSCRIBE_OUT" | grep -q 'OK resource subscription relayed end-to-end'; then
   echo "✅ resources/subscribe, notifications/resources/updated, and resources/unsubscribe relayed end-to-end"
 else
-  echo "❌ resource subscription round-trip did not relay end-to-end"
-  EXIT=1
+  fail "resource subscription round-trip did not relay end-to-end"
 fi
+
+report_failures
 
 exit $EXIT
