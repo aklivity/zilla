@@ -74,6 +74,16 @@ public class McpProxyClientIT
         k3po.finish();
     }
 
+    @Test
+    @Configuration("proxy.client.guarded.deferred.eager.yaml")
+    @Specification({
+        "${app}/tools.call/client",
+        "${net}/tools.call.acquired/server"})
+    public void shouldCallColdToolThroughProxyWithDeferredlyAcquiredCredential() throws Exception
+    {
+        k3po.finish();
+    }
+
     public static String sessionId()
     {
         return "session-1";
