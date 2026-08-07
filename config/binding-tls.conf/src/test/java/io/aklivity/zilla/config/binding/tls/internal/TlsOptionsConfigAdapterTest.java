@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.config.binding.tls.internal;
 
+import static io.aklivity.zilla.config.binding.tls.TlsCertificatesConfig.PEM;
 import static io.aklivity.zilla.config.binding.tls.TlsMutualConfig.REQUESTED;
 import static java.util.Arrays.asList;
 import static java.util.function.Function.identity;
@@ -302,6 +303,51 @@ public class TlsOptionsConfigAdapterTest
                 """
                 signers:
                   - clientca
+                """));
+    }
+
+    @Test
+    public void shouldReadOptionsWithAuthorization()
+    {
+        String yaml =
+                """
+                authorization:
+                  x509_0:
+                    credentials:
+                      certificates: pem
+                """;
+
+        TlsOptionsConfig options = jsonb.fromJson(yaml, TlsOptionsConfig.class);
+
+        assertThat(options, not(nullValue()));
+        assertThat(options.authorization, not(nullValue()));
+        assertThat(options.authorization.name, equalTo("x509_0"));
+        assertThat(options.authorization.credentials, not(nullValue()));
+        assertThat(options.authorization.credentials.certificates, equalTo(PEM));
+    }
+
+    @Test
+    public void shouldWriteOptionsWithAuthorization()
+    {
+        TlsOptionsConfig options = TlsOptionsConfig.builder()
+            .inject(identity())
+            .authorization()
+                .name("x509_0")
+                .credentials()
+                    .certificates(PEM)
+                    .build()
+                .build()
+            .build();
+
+        String yaml = jsonb.toJson(options);
+
+        assertThat(yaml, not(nullValue()));
+        assertThat(yaml, equalTo(
+                """
+                authorization:
+                  x509_0:
+                    credentials:
+                      certificates: pem
                 """));
     }
 }

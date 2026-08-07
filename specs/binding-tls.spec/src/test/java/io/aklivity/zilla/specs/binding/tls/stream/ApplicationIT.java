@@ -122,6 +122,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/server.mutual.auth.guarded/client",
+        "${app}/server.mutual.auth.guarded/server"})
+    public void shouldEstablishConnectionWithGuardedClientCert() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/echo.payload.length.10k/client",
         "${app}/echo.payload.length.10k/server"})
     @ScriptProperty("authorization 0x0001_000000000000L")

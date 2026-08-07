@@ -32,6 +32,7 @@ public class SchemaTest
     public final ConfigSchemaRule schema = new ConfigSchemaRule()
         .schemaPatch("io/aklivity/zilla/specs/binding/tls/schema/tls.schema.patch.json")
         .schemaPatch("io/aklivity/zilla/specs/engine/schema/vault/test.schema.patch.json")
+        .schemaPatch("io/aklivity/zilla/specs/engine/schema/guard/test.schema.patch.json")
         .configurationRoot("io/aklivity/zilla/specs/binding/tls/config");
 
     @Test
@@ -142,6 +143,22 @@ public class SchemaTest
     public void shouldValidateServerMutual()
     {
         JsonObject config = schema.validate("server.mutual.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateServerMutualGuarded()
+    {
+        JsonObject config = schema.validate("server.mutual.guarded.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateServerMutualGuardedRequested()
+    {
+        JsonObject config = schema.validate("server.mutual.guarded.requested.yaml");
 
         assertThat(config, not(nullValue()));
     }

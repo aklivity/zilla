@@ -32,6 +32,7 @@ public final class TlsOptionsConfigBuilder<T> extends ConfigBuilder<T, TlsOption
     private TlsMutualConfig mutual;
     private List<String> signers;
     private Boolean trustcacerts;
+    private TlsAuthorizationConfig authorization;
 
     TlsOptionsConfigBuilder(
         Function<OptionsConfig, T> mapper)
@@ -102,9 +103,22 @@ public final class TlsOptionsConfigBuilder<T> extends ConfigBuilder<T, TlsOption
         return this;
     }
 
+    public TlsAuthorizationConfigBuilder<TlsOptionsConfigBuilder<T>> authorization()
+    {
+        return new TlsAuthorizationConfigBuilder<>(this::authorization);
+    }
+
+    public TlsOptionsConfigBuilder<T> authorization(
+        TlsAuthorizationConfig authorization)
+    {
+        this.authorization = authorization;
+        return this;
+    }
+
     @Override
     public T build()
     {
-        return mapper.apply(new TlsOptionsConfig(version, keys, trust, sni, alpn, mutual, signers, trustcacerts));
+        return mapper.apply(
+            new TlsOptionsConfig(version, keys, trust, sni, alpn, mutual, signers, trustcacerts, authorization));
     }
 }

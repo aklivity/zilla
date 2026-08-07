@@ -121,6 +121,15 @@ public class NetworkIT
         k3po.finish();
     }
 
+    @Test
+    @Specification({
+        "${net}/server.mutual.guarded.cert.absent/client",
+        "${net}/server.mutual.guarded.cert.absent/server"})
+    public void shouldCloseWhenGuardedRouteHasNoClientCert() throws Exception
+    {
+        k3po.finish();
+    }
+
     @Ignore("requires accepted only streams")
     @Test
     @Specification({
