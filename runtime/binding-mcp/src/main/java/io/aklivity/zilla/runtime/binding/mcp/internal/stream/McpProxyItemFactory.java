@@ -1750,6 +1750,7 @@ abstract class McpProxyItemFactory implements BindingHandler
         private McpServer delegate;
         private int state;
         private boolean ready;
+        private boolean settled;
         private DirectBufferEx cachedBuf;
         private int cachedLen;
         private int emitOffset;
@@ -1820,6 +1821,22 @@ abstract class McpProxyItemFactory implements BindingHandler
             case WindowFW.TYPE_ID:
             case ResetFW.TYPE_ID:
             case ChallengeFW.TYPE_ID:
+                delegate.onServerMessage(msgTypeId, buffer, index, length);
+                break;
+            case EndFW.TYPE_ID:
+                // relayed rather than absorbed, so the delegate ends when the caller does; held
+                // back until the synthetic DATA has been driven, since the lifecycle it depends on
+                // settles asynchronously and an END arriving first would still clobber it
+                final EndFW end = endRO.wrap(buffer, index, index + length);
+                state = McpState.closedInitial(state);
+                if (settled)
+                {
+                    doDelegateEnd(end.traceId());
+                }
+                break;
+            case AbortFW.TYPE_ID:
+                // the delegate now relies on the caller to terminate its initial side, so a caller
+                // that gives up must tear it down rather than leave it open
                 delegate.onServerMessage(msgTypeId, buffer, index, length);
                 break;
             default:
@@ -2082,6 +2099,11 @@ abstract class McpProxyItemFactory implements BindingHandler
         private void driveDelegateData(
             long traceId)
         {
+            if (settled)
+            {
+                return;
+            }
+
             final int bodyLength = pendingBodyLength;
             int offset = 0;
             while (offset < bodyLength)
@@ -2111,17 +2133,34 @@ abstract class McpProxyItemFactory implements BindingHandler
                 offset += chunk;
             }
 
+            settled = true;
+
+            if (McpState.initialClosed(state))
+            {
+                doDelegateEnd(traceId);
+            }
+        }
+
+        // the delegate's initial side ends when the real caller's does, never before: the caller
+        // defers its own END until it has the response, which is what leaves the initial stream open
+        // long enough for a CHALLENGE to come back and be answered, or for a guard on the route to
+        // acquire a credential. Ending it as soon as the body was written made this re-dispatch the
+        // one caller that does not do that, and any target needing either would be aborted mid-flight
+        private void doDelegateEnd(
+            long traceId)
+        {
             final EndFW syntheticEnd = endRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
                 .routedId(routedId)
                 .streamId(initialId)
-                .sequence((long) bodyLength)
+                .sequence((long) pendingBodyLength)
                 .acknowledge(0L)
                 .maximum(0)
                 .traceId(traceId)
                 .authorization(authorization)
                 .build();
-            delegate.onServerMessage(EndFW.TYPE_ID, syntheticEnd.buffer(), syntheticEnd.offset(), syntheticEnd.sizeof());
+            delegate.onServerMessage(EndFW.TYPE_ID, syntheticEnd.buffer(), syntheticEnd.offset(),
+                syntheticEnd.sizeof());
         }
 
         private void emitIfReady(

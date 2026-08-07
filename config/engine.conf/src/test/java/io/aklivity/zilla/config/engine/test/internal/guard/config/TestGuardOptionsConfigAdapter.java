@@ -37,6 +37,8 @@ public final class TestGuardOptionsConfigAdapter implements JsonbAdapter<Options
     private static final String IDENTITY_NAME = "identity";
     private static final String ATTRIBUTES_NAME = "attributes";
     private static final String PREAUTHORIZE_NAME = "preauthorize";
+    private static final String ACQUIRE_NAME = "acquire";
+    private static final String ACQUIRE_DEFERRED = "deferred";
 
     @Override
     public JsonObject adaptToJson(
@@ -84,6 +86,11 @@ public final class TestGuardOptionsConfigAdapter implements JsonbAdapter<Options
         if (testOptions.preauthorize != null)
         {
             object.add(PREAUTHORIZE_NAME, testOptions.preauthorize);
+        }
+
+        if (testOptions.deferAcquire)
+        {
+            object.add(ACQUIRE_NAME, ACQUIRE_DEFERRED);
         }
 
         return object.build();
@@ -134,6 +141,11 @@ public final class TestGuardOptionsConfigAdapter implements JsonbAdapter<Options
             if (object.containsKey(PREAUTHORIZE_NAME))
             {
                 testOptions.preauthorize(object.getString(PREAUTHORIZE_NAME));
+            }
+
+            if (object.containsKey(ACQUIRE_NAME))
+            {
+                testOptions.deferAcquire(ACQUIRE_DEFERRED.equals(object.getString(ACQUIRE_NAME)));
             }
         }
 
