@@ -178,7 +178,18 @@
                             },
                             "options":
                             {
-                                "$ref": "#/$defs/options/binding/tls"
+                                "allOf":
+                                [
+                                    {
+                                        "$ref": "#/$defs/options/binding/tls"
+                                    },
+                                    {
+                                        "not":
+                                        {
+                                            "required": ["authorization"]
+                                        }
+                                    }
+                                ]
                             }
                         }
                     },

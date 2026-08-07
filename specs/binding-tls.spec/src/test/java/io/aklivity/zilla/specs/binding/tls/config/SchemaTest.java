@@ -19,6 +19,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
+import jakarta.json.JsonException;
 import jakarta.json.JsonObject;
 
 import org.junit.Rule;
@@ -161,6 +162,12 @@ public class SchemaTest
         JsonObject config = schema.validate("server.mutual.guarded.requested.yaml");
 
         assertThat(config, not(nullValue()));
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectClientWithAuthorization()
+    {
+        schema.validate("client.authorization.invalid.yaml");
     }
 
     @Test
