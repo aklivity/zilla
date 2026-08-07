@@ -53,6 +53,26 @@ local dissector_types = {}
 local dissector_ext_handlers = {}
 local dissector_payloads = {}
 
+-- reassembly registry
+--
+-- A Zilla DATA frame only carries as many bytes as the current flow-control window
+-- allows, not necessarily one whole protocol message - a single Kafka response (for
+-- example) is routinely split across several DATA frames. Wireshark's own TCP
+-- desegmentation does not help here: the fragmentation is Zilla's own window-based
+-- chunking of an already-reassembled TCP byte stream, one layer below where TCP
+-- desegmentation operates. Without buffering across frames, each fragment gets fed to
+-- the sub-dissector as if it were a brand new message, producing garbage field values
+-- and "[BoundError Unreassembled Packet]" notes.
+--
+-- A protocol opts in by registering a message_length_resolver(bytearray) function that,
+-- given the bytes accumulated so far for one logical stream, returns the total length of
+-- the next complete message (including any length prefix), or nil if not enough bytes
+-- have arrived yet to know. Protocols that do not register one keep the original
+-- call-the-dissector-directly behavior.
+local dissector_reassembly = {}
+local reassembly_state = {}
+local reassembly_plan = {}
+
 local fields = {}
 
 function add_field(key, field)
@@ -67,6 +87,10 @@ function register_dissector(type_id, name, ext_handler, payload_resolver)
     if payload_resolver then
         dissector_payloads[name] = payload_resolver
     end
+end
+
+function register_reassembly(name, message_length_resolver)
+    dissector_reassembly[name] = message_length_resolver
 end
 
 -- core frame fields
@@ -155,6 +179,78 @@ function resolve_dissector(protocol_type, payload)
     return dissector
 end
 
+-- Dissect a DATA frame's payload, reassembling it first when the protocol has
+-- registered a message_length_resolver (see register_reassembly above).
+--
+-- Wireshark may dissect the same frame more than once (random access in the GUI,
+-- two-pass "-2" mode, colorization, etc). Mutating the per-stream accumulator on every
+-- such visit would double-count bytes, so the *decision* made the first time a frame is
+-- seen - the list of complete messages it finishes - is cached by frame number and
+-- simply replayed on later visits, without touching the live accumulator again.
+function dissect_payload(protocol_type, stream_id, payload_tvb, pinfo, tree, dissector)
+    local resolve_length = dissector_reassembly[protocol_type]
+    if not resolve_length or payload_tvb:len() == 0 then
+        dissector:call(payload_tvb, pinfo, tree)
+        return
+    end
+
+    local plan_table = reassembly_plan[protocol_type]
+    if not plan_table then
+        plan_table = {}
+        reassembly_plan[protocol_type] = plan_table
+    end
+
+    local plan = plan_table[pinfo.number]
+    if not plan then
+        local state_table = reassembly_state[protocol_type]
+        if not state_table then
+            state_table = {}
+            reassembly_state[protocol_type] = state_table
+        end
+
+        local stream_key = tostring(stream_id)
+        local incoming = payload_tvb:bytes()
+        local combined = state_table[stream_key]
+        if combined then
+            combined = combined .. incoming
+        else
+            combined = incoming
+        end
+
+        plan = {}
+        local offset = 0
+        local total = combined:len()
+        while offset < total do
+            local remaining = combined:subset(offset, total - offset)
+            local message_length = resolve_length(remaining)
+            if not message_length or message_length > remaining:len() then
+                break
+            end
+            table.insert(plan, combined:subset(offset, message_length))
+            offset = offset + message_length
+        end
+
+        if offset < total then
+            state_table[stream_key] = combined:subset(offset, total - offset)
+        else
+            state_table[stream_key] = nil
+        end
+
+        plan_table[pinfo.number] = plan
+    end
+
+    for _, message_bytes in ipairs(plan) do
+        dissector:call(message_bytes:tvb("Zilla Reassembled"), pinfo, tree)
+    end
+end
+
+-- Reset all reassembly state whenever Wireshark (re)starts dissection from scratch
+-- (file open, Ctrl+R reload, etc) so state from a previous capture never leaks in.
+function zilla_protocol.init()
+    reassembly_state = {}
+    reassembly_plan = {}
+end
+
 function handle_extension(buffer, subtree, pinfo, info, offset, frame_type_id)
     if buffer:len() > offset then
         local slice_stream_type_id = buffer(offset, 4)
@@ -190,7 +286,8 @@ function handle_redirect_frame(buffer, offset, subtree, pinfo, info)
     handle_extension(buffer, subtree, pinfo, info, offset + 8, REDIRECT_ID)
 end
 
-function handle_data_frame(buffer, offset, tree, subtree, sequence, acknowledge, maximum, pinfo, info, protocol_type)
+function handle_data_frame(buffer, offset, tree, subtree, sequence, acknowledge, maximum, pinfo, info, protocol_type,
+    stream_id)
     local slice_flags = buffer(offset, 1)
     local flags_label = string.format("Flags: 0x%02x", slice_flags:le_uint())
     local flags_subtree = subtree:add(zilla_protocol, slice_flags, flags_label)
@@ -223,7 +320,7 @@ function handle_data_frame(buffer, offset, tree, subtree, sequence, acknowledge,
 
     local dissector = resolve_dissector(protocol_type, slice_payload:tvb())
     if dissector then
-        dissector:call(slice_payload:tvb(), pinfo, tree)
+        dissect_payload(protocol_type, stream_id, slice_payload:tvb(), pinfo, tree, dissector)
     end
 end
 
@@ -489,7 +586,8 @@ function zilla_protocol.dissector(buffer, pinfo, tree)
     if frame_type_id == BEGIN_ID then
         handle_begin_frame(buffer, next_offset, subtree, pinfo, info)
     elseif frame_type_id == DATA_ID then
-        handle_data_frame(buffer, next_offset, tree, subtree, sequence, acknowledge, maximum, pinfo, info, protocol_type)
+        handle_data_frame(buffer, next_offset, tree, subtree, sequence, acknowledge, maximum, pinfo, info, protocol_type,
+            stream_id)
     elseif frame_type_id == FLUSH_ID then
         handle_flush_frame(buffer, next_offset, subtree, pinfo, info)
     elseif frame_type_id == END_ID then
