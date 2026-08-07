@@ -1998,7 +1998,9 @@ public final class McpClientFactory implements McpStreamFactory
 
             assert initialAck <= initialSeq;
 
-            if (decoder != decodeRequestEnd)
+            // an upstream request that has not begun has no end to encode; the replay that
+            // resumes it once the authorization decision arrives carries this end instead
+            if (decoder != decodeRequestEnd && !awaitingAuth())
             {
                 http.doEncodeRequestEnd(traceId, authorization);
                 decoder = decodeRequestEnd;
@@ -3143,11 +3145,20 @@ public final class McpClientFactory implements McpStreamFactory
             return true;
         }
 
+        /**
+         * An elicitation is answered by a callback flush on this same initial stream, so a
+         * client that ends the stream while one is outstanding can no longer answer it and
+         * the request is abandoned. A request merely waiting for a guard to acquire a
+         * credential is not abandoned by its end: the end is the end of the body, which
+         * buffers alongside it and reaches the upstream request when the replay resumes it.
+         * An {@code execute_tool} re-dispatch reaches here on every acquiring guard, since
+         * it delivers the caller's end within the turn that begins the delegated request.
+         */
         @Override
         void onAppEnd(
             EndFW end)
         {
-            if (pendingAuth)
+            if (pendingAuth && elicitElicitationId != null)
             {
                 final long traceId = end.traceId();
                 final long authorization = end.authorization();
@@ -3301,6 +3312,14 @@ public final class McpClientFactory implements McpStreamFactory
                 bufferedBodyLength = 0;
                 http.doEncodeRequestData(traceId, authorization, body, 0, limit);
                 decodeRequestBody(traceId, authorization, body, 0, limit);
+            }
+
+            // a client that ended while the guard was acquiring sends nothing more, so the
+            // document the decoder would have ended the request on is all here already
+            if (McpState.initialClosed(state) && decoder != decodeRequestEnd)
+            {
+                http.doEncodeRequestEnd(traceId, authorization);
+                decoder = decodeRequestEnd;
             }
         }
 
