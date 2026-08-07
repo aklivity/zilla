@@ -14,8 +14,10 @@
 - feat\(release\): create GitHub Release with version-specific changelog section [\#2304](https://github.com/aklivity/zilla/pull/2304) ([jfallows](https://github.com/jfallows))
 - fix\(examples/mcp.proxy\): report failed assertions at the end of the log [\#2313](https://github.com/aklivity/zilla/pull/2313) ([jfallows](https://github.com/jfallows))
 - Revise README for improved clarity and structure [\#2321](https://github.com/aklivity/zilla/pull/2321) ([llukyanov](https://github.com/llukyanov))
+- fix\(binding-mcp\): acquire outbound guard credentials on the async path [\#2323](https://github.com/aklivity/zilla/pull/2323) ([jfallows](https://github.com/jfallows))
 - feat\(engine\): guarantee async guard reauthorize completes strictly later [\#2324](https://github.com/aklivity/zilla/pull/2324) ([jfallows](https://github.com/jfallows))
 - feat\(engine\): add pluggable per-field ModelTransform hook to the model pipeline [\#2326](https://github.com/aklivity/zilla/pull/2326) ([jfallows](https://github.com/jfallows))
+- fix\(binding-http\): guard flushNext against re-entrant drain [\#2327](https://github.com/aklivity/zilla/pull/2327) ([jfallows](https://github.com/jfallows))
 
 ## [2.0.0](https://github.com/aklivity/zilla/tree/2.0.0) (2026-08-04)
 
