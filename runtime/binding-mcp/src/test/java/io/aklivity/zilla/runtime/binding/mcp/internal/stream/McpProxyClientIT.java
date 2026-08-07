@@ -18,6 +18,7 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTes
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_CLIENT_VERSION_NAME;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_ELICITATION_ID_NAME;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_ELICIT_CORRELATION_ID_NAME;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_HYDRATE_FILTER_NAME;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_SESSION_ID_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
@@ -32,6 +33,7 @@ import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
+import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
 /**
  * Covers an acquiring guard reached through a full mcp(proxy) to mcp(client)
@@ -84,9 +86,34 @@ public class McpProxyClientIT
         k3po.finish();
     }
 
+    /**
+     * zilla__execute_tool reconstructs the target tool's request and drives a delegate
+     * with synthetic frames, so BEGIN, DATA and END can all be delivered within one
+     * reactor turn -- ahead of an acquiring guard's completion, which queues behind
+     * them. #2323 fixed that ordering by deferring the synthetic END to the caller's
+     * own; this pins it, since the example regressed on exactly this path.
+     */
+    @Test
+    @Configuration("proxy.client.guarded.deferred.search.yaml")
+    @Specification({
+        "${app}/cache.serve.execute.tool/client",
+        "${net}/tools.call.acquired/server"})
+    @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
+    @Configure(name = MCP_SESSION_ID_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyClientIT::agentSessionId")
+    public void shouldExecuteToolThroughProxyWithDeferredlyAcquiredCredential() throws Exception
+    {
+        k3po.finish();
+    }
+
     public static String sessionId()
     {
         return "session-1";
+    }
+
+    public static String agentSessionId()
+    {
+        return "agent-1";
     }
 
     public static String elicitationId()
