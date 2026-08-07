@@ -109,10 +109,10 @@ public interface ModelTransform
     default ModelTransform andThen(
         ModelTransform next)
     {
-        ModelTransform first = this;
-        return next == NONE ? first : new ModelTransform()
+        ModelTransform previous = this;
+        return next == NONE ? previous : new ModelTransform()
         {
-            // the downstream handed to first: it invokes next with whatever terminal the current call
+            // the downstream handed to previous: it invokes next with whatever terminal the current call
             // supplied, so the chain re-binds per call without either stage holding the caller's sink
             private final ModelSink bridge = new ModelSink()
             {
@@ -159,7 +159,7 @@ public interface ModelTransform
                 ModelSink sink)
             {
                 this.terminal = sink;
-                return first.transform(control, source, event, bridge);
+                return previous.transform(control, source, event, bridge);
             }
 
             @Override
@@ -170,7 +170,7 @@ public interface ModelTransform
                 ModelSink sink)
             {
                 this.terminal = sink;
-                return first.resume(control, source, event, bridge);
+                return previous.resume(control, source, event, bridge);
             }
 
             @Override
@@ -180,20 +180,20 @@ public interface ModelTransform
                 ModelSink sink)
             {
                 this.terminal = sink;
-                return first.flush(control, source, bridge);
+                return previous.flush(control, source, bridge);
             }
 
             @Override
             public void reset()
             {
-                first.reset();
+                previous.reset();
                 next.reset();
             }
 
             @Override
             public boolean identity()
             {
-                return first.identity() && next.identity();
+                return previous.identity() && next.identity();
             }
         };
     }
