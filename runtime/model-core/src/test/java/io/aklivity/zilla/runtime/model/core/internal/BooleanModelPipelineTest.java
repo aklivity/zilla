@@ -32,7 +32,7 @@ import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
-import io.aklivity.zilla.runtime.engine.model.ModelVisitor;
+import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 
 public class BooleanModelPipelineTest
 {
@@ -52,7 +52,7 @@ public class BooleanModelPipelineTest
     public void shouldTransformFalseValue()
     {
         ModelHandler handler = handler();
-        ModelPipeline pipeline = handler.supplyEncoder(ModelVisitor.NONE);
+        ModelPipeline pipeline = handler.supplyEncoder(ModelTransform.NONE);
 
         byte[] bytes = {0x00};
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[8]);
@@ -67,7 +67,7 @@ public class BooleanModelPipelineTest
     public void shouldRejectTooLong()
     {
         ModelHandler handler = handler();
-        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelTransform.NONE);
 
         byte[] bytes = {0x01, 0x00};
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[8]);

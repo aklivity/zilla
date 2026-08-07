@@ -24,6 +24,8 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -31,6 +33,8 @@ import java.security.KeyPair;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -45,6 +49,7 @@ import org.junit.Test;
 import io.aklivity.zilla.config.guard.jwt.JwtOptionsConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.guard.GuardHandler.LongCompletionCallback;
 
 public class JwtGuardHandlerTest
 {
@@ -56,6 +61,65 @@ public class JwtGuardHandlerTest
         context = mock(EngineContext.class);
         when(context.clock()).thenReturn(mock(Clock.class));
         when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
+    }
+
+    @Test
+    public void shouldDeferAsyncReauthorize() throws Exception
+    {
+        Deque<Runnable> dispatched = new ArrayDeque<>();
+        doAnswer(invocation -> dispatched.add(invocation.getArgument(0))).when(context).dispatch(any());
+
+        JwtOptionsConfig options = JwtOptionsConfig.builder()
+            .inject(identity())
+            .issuer("test issuer")
+            .audience("testAudience")
+            .key(RFC7515_RS256_CONFIG)
+            .build();
+        JwtGuardHandler guard = new JwtGuardHandler(options, context, new MutableLong(1L)::getAndIncrement);
+
+        Instant now = Instant.now();
+
+        JwtClaims claims = new JwtClaims();
+        claims.setClaim("iss", "test issuer");
+        claims.setClaim("aud", "testAudience");
+        claims.setClaim("sub", "testSubject");
+        claims.setClaim("exp", now.getEpochSecond() + 10L);
+
+        String token = sign(claims.toJson(), "test", RFC7515_RS256, "RS256");
+
+        long[] completed = new long[] { Long.MIN_VALUE, Long.MIN_VALUE };
+        LongCompletionCallback completion = new LongCompletionCallback()
+        {
+            @Override
+            public void completed(
+                long contextId,
+                long sessionId)
+            {
+                completed[0] = contextId;
+                completed[1] = sessionId;
+            }
+
+            @Override
+            public void failed(
+                long contextId,
+                Throwable ex)
+            {
+                throw new AssertionError("unexpected failure", ex);
+            }
+        };
+
+        guard.reauthorize(0L, 0L, 101L, token, completion);
+
+        // the token carries everything needed to decide, so the temptation is to answer inline;
+        // the contract says the caller still must not observe the result before this returns
+        assertThat("completed on the caller's stack", completed[1], equalTo(Long.MIN_VALUE));
+        assertThat(dispatched.size(), equalTo(1));
+
+        dispatched.remove().run();
+
+        assertThat(completed[0], equalTo(101L));
+        assertThat(completed[1], not(equalTo(0L)));
+        assertThat(guard.identity(completed[1]), equalTo("testSubject"));
     }
 
     @Test

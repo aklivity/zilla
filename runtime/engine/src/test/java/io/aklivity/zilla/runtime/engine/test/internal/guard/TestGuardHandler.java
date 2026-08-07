@@ -25,6 +25,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -45,13 +46,16 @@ public final class TestGuardHandler implements GuardHandler
     private final List<String> roles;
     private final Map<String, String> attributes;
     private final String preauthorize;
+    private final Consumer<Runnable> dispatcher;
 
     private final Long2LongHashMap sessions;
     private final MutableLong nextSessionId;
 
     public TestGuardHandler(
-        TestGuardConfig config)
+        TestGuardConfig config,
+        Consumer<Runnable> dispatcher)
     {
+        this.dispatcher = dispatcher;
         this.credentials = config.options != null ? config.options.credentials : null;
         this.lifetime = config.options != null ? config.options.lifetime : DEFAULT_LIFETIME_FOREVER;
         this.challenge = config.options != null ? config.options.challenge : DEFAULT_CHALLENGE_NEVER;
@@ -89,6 +93,34 @@ public final class TestGuardHandler implements GuardHandler
         }
 
         return sessionId;
+    }
+
+    @Override
+    public void reauthorize(
+        long traceId,
+        long bindingId,
+        long contextId,
+        String credentials,
+        LongCompletionCallback completion)
+    {
+        dispatcher.accept(() -> complete(traceId, bindingId, contextId, credentials, completion));
+    }
+
+    private void complete(
+        long traceId,
+        long bindingId,
+        long contextId,
+        String credentials,
+        LongCompletionCallback completion)
+    {
+        try
+        {
+            completion.completed(contextId, reauthorize(traceId, bindingId, contextId, credentials));
+        }
+        catch (Throwable ex)
+        {
+            completion.failed(contextId, ex);
+        }
     }
 
     @Override

@@ -26,23 +26,25 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufMessage;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufPipeline;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufPipeline.Status;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufPipelineResult;
+import io.aklivity.zilla.runtime.engine.model.ModelFieldBridge;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
-import io.aklivity.zilla.runtime.engine.model.ModelVisitor;
+import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 
 // Per-stream read transform session vended by ProtobufModelHandlerImpl: owns its own extractor and
 // message-keyed pipeline cache so concurrent streams on a worker never share in-flight state. transform
 // strips the catalog framing and the message-index prefix on the first fragment, drives the common-protobuf
 // transform into the caller's destination (re-encoding the wire message as JSON or canonical wire), and
-// surfaces extracted fields to the ModelVisitor when a value completes.
+// surfaces extracted fields to the wired ModelTransform when a value completes. Delivery is
+// observation-only, through ModelFieldBridge, until model-protobuf grows a native ModelTransform adapter.
 final class ProtobufModelDecoderPipeline implements ModelPipeline
 {
     private static final int FLAGS_INIT = 0x02;
     private static final int FLAGS_FIN = 0x01;
 
     private final ProtobufModelHandlerImpl handler;
-    private final ModelVisitor visitor;
+    private final ModelFieldBridge bridge;
     private final ProtobufExtractor extractor;
     private final Map<String, ProtobufPipeline> pipelines;
     private final ModelPipelineResult result;
@@ -52,12 +54,12 @@ final class ProtobufModelDecoderPipeline implements ModelPipeline
 
     ProtobufModelDecoderPipeline(
         ProtobufModelHandlerImpl handler,
-        ModelVisitor visitor)
+        ModelTransform transform)
     {
         this.handler = handler;
-        this.visitor = visitor;
-        // a NONE visitor keeps the verbatim/SEGMENTED fast path: no extractor stage, no structured field events
-        this.extractor = visitor != ModelVisitor.NONE ? new ProtobufExtractor() : null;
+        this.bridge = transform != ModelTransform.NONE ? new ModelFieldBridge(transform) : null;
+        // a NONE transform keeps the verbatim/SEGMENTED fast path: no extractor stage, no structured field events
+        this.extractor = transform != ModelTransform.NONE ? new ProtobufExtractor() : null;
         this.pipelines = new HashMap<>();
         this.result = new ModelPipelineResult();
     }
@@ -152,10 +154,12 @@ final class ProtobufModelDecoderPipeline implements ModelPipeline
 
     private void visitExtracted()
     {
+        bridge.start();
         for (int i = 0; i < extractor.captured(); i++)
         {
-            visitor.onField("$." + extractor.name(i), extractor.value(i), 0, extractor.length(i));
+            bridge.field("$." + extractor.name(i), extractor.value(i), 0, extractor.length(i));
         }
+        bridge.end();
     }
 
     private ProtobufPipeline supplyPipeline(

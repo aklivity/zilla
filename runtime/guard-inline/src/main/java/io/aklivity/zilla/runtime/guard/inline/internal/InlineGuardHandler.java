@@ -35,11 +35,14 @@ public class InlineGuardHandler implements GuardHandler
     private final String identity;
     private final String credentials;
     private final Matcher formatMatcher;
+    private final Consumer<Runnable> dispatcher;
 
     public InlineGuardHandler(
         LongSupplier supplyAuthorizedId,
-        InlineOptionsConfig options)
+        InlineOptionsConfig options,
+        Consumer<Runnable> dispatcher)
     {
+        this.dispatcher = dispatcher;
         this.supplyAuthorizedId = supplyAuthorizedId;
         this.sessionsById = new Long2ObjectHashMap<>();
         this.sessionStoresByContextId = new Long2ObjectHashMap<>();
@@ -84,6 +87,37 @@ public class InlineGuardHandler implements GuardHandler
         assert previous != session && session.refs == 0 || previous == session && session.refs > 0;
         session.refs++;
         return session != null ? session.authorized : NOT_AUTHORIZED;
+    }
+
+    // credentials are matched against inline configuration, so the decision above is always
+    // available locally; delivery is still deferred a tick because the async contract promises
+    // the caller a later callback
+    @Override
+    public void reauthorize(
+        long traceId,
+        long bindingId,
+        long contextId,
+        String credentials,
+        LongCompletionCallback completion)
+    {
+        dispatcher.accept(() -> complete(traceId, bindingId, contextId, credentials, completion));
+    }
+
+    private void complete(
+        long traceId,
+        long bindingId,
+        long contextId,
+        String credentials,
+        LongCompletionCallback completion)
+    {
+        try
+        {
+            completion.completed(contextId, reauthorize(traceId, bindingId, contextId, credentials));
+        }
+        catch (Throwable ex)
+        {
+            completion.failed(contextId, ex);
+        }
     }
 
     @Override

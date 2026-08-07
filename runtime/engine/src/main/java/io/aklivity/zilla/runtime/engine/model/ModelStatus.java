@@ -16,16 +16,24 @@
 package io.aklivity.zilla.runtime.engine.model;
 
 /**
- * The outcome of a single {@link ModelPipeline#transform} call, reported on a {@link ModelPipelineResult}.
+ * The outcome of a single {@link ModelPipeline#transform} call, reported on a {@link ModelPipelineResult},
+ * and of a single {@link ModelTransform#transform} or {@link ModelSink#transform} call as one field event
+ * flows through a transform chain.
+ * <p>
+ * The two uses share one status so a stage's answer needs no translation on its way back out to the
+ * pipeline that drives it. {@link #UNDERFLOW} is the one value a transform chain never reports: a field
+ * arrives whole, so a stage is never short of input.
+ * </p>
  *
  * @see ModelPipeline
  * @see ModelPipelineResult
+ * @see ModelTransform
  */
 public enum ModelStatus
 {
-    /** progress was made; call {@code transform} again with the unconsumed input */
+    /** progress was made; call {@code transform} again with the unconsumed input, or feed the next event */
     OK,
-    /** the output buffer filled before the value completed; drain it and call {@code transform} again */
+    /** the output buffer filled before the value completed; drain it, then {@code transform} or {@code resume} again */
     OVERFLOW,
     /** the input was consumed before the value completed; supply more input on the next call */
     UNDERFLOW,

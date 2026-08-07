@@ -25,6 +25,30 @@ package io.aklivity.zilla.runtime.common.avro;
  */
 public interface AvroTransform
 {
+    /**
+     * Identity stage that forwards every event unchanged. {@link AvroStream#transform(AvroTransform)} drops
+     * it rather than binding it, so a caller with nothing to insert passes this instead of branching, and
+     * the assembled pipeline carries no stage at all.
+     */
+    AvroTransform NONE = new AvroTransform()
+    {
+        @Override
+        public AvroPipeline.Status transform(
+            AvroController control,
+            AvroSource source,
+            AvroEvent event,
+            AvroSink sink)
+        {
+            return sink.transform(control, source, event);
+        }
+
+        @Override
+        public boolean identity()
+        {
+            return true;
+        }
+    };
+
     AvroPipeline.Status transform(
         AvroController control,
         AvroSource source,
