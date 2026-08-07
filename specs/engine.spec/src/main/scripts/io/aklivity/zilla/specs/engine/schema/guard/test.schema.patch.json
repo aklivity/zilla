@@ -73,6 +73,11 @@
                             "preauthorize":
                             {
                                 "type": "string"
+                            },
+                            "acquire":
+                            {
+                                "enum": [ "immediate", "deferred" ],
+                                "default": "immediate"
                             }
                         },
                         "additionalProperties": false

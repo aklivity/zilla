@@ -1893,7 +1893,18 @@ public final class McpClientFactory implements McpStreamFactory
                 onAppBeginImpl(traceId, authorization, mcpBeginEx);
             }
 
-            doAppWindow(traceId, authorization, 0L, 0);
+            // the window invites the client to send its request body, so it is withheld while a
+            // guard decision is still outstanding; a challenge decided on a later turn has to
+            // reach the client before the client is asked for the body it belongs to
+            if (!awaitingAuth())
+            {
+                doAppWindow(traceId, authorization, 0L, 0);
+            }
+        }
+
+        boolean awaitingAuth()
+        {
+            return false;
         }
 
         abstract McpBindingConfig binding();
@@ -2257,7 +2268,7 @@ public final class McpClientFactory implements McpStreamFactory
             }
         }
 
-        private void doAppWindow(
+        void doAppWindow(
             long traceId,
             long authorization,
             long budgetId,
@@ -2893,6 +2904,33 @@ public final class McpClientFactory implements McpStreamFactory
         private long elicitTraceId;
         private long elicitAuthorization;
         private long elicitTimeoutId = Signaler.NO_CANCEL_ID;
+        private long acquireTraceId;
+        private long acquireAuthorization;
+
+        private final LongCompletionCallback acquireCompletion = new LongCompletionCallback()
+        {
+            @Override
+            public void completed(
+                long contextId,
+                long sessionId)
+            {
+                if (pendingAuth)
+                {
+                    onAcquireCompleted(sessionId);
+                }
+            }
+
+            @Override
+            public void failed(
+                long contextId,
+                Throwable ex)
+            {
+                if (pendingAuth)
+                {
+                    onAcquireCompleted(GuardHandler.NOT_AUTHORIZED);
+                }
+            }
+        };
 
         private final LongCompletionCallback elicitCompletion = new LongCompletionCallback()
         {
@@ -2936,6 +2974,12 @@ public final class McpClientFactory implements McpStreamFactory
         }
 
         @Override
+        boolean awaitingAuth()
+        {
+            return pendingAuth;
+        }
+
+        @Override
         boolean proceedWithRequest(
             long traceId,
             long authorization,
@@ -2959,7 +3003,42 @@ public final class McpClientFactory implements McpStreamFactory
                 }
             }
 
-            final long sessionId = guard.reauthorize(traceId, session.binding.id, authorization, null);
+            // the asynchronous overload completes on a later turn in every case, whether the
+            // guard decides locally or has to reach an authorization server for an outbound
+            // token exchange, so there is one path here: hold the request and buffer its body
+            // until the decision arrives
+            acquireTraceId = traceId;
+            acquireAuthorization = authorization;
+            guard.reauthorize(traceId, session.binding.id, authorization, null, acquireCompletion);
+
+            return deferAcquire(traceId, authorization);
+        }
+
+        private boolean deferAcquire(
+            long traceId,
+            long authorization)
+        {
+            pendingAuth = true;
+            elicitTraceId = traceId;
+            elicitAuthorization = authorization;
+
+            if (timeout > 0L)
+            {
+                elicitTimeoutId = signaler.signalAt(
+                    System.currentTimeMillis() + timeout,
+                    originId, routedId, replyId,
+                    traceId, ELICIT_TIMEOUT_SIGNAL_ID, 0);
+            }
+
+            return false;
+        }
+
+        private boolean onAcquireDecided(
+            long traceId,
+            long authorization,
+            long sessionId)
+        {
+            final GuardHandler guard = session.binding.guard;
 
             if ((sessionId & GuardHandler.MASK_AUTHORIZED) != 0L)
             {
@@ -3171,6 +3250,60 @@ public final class McpClientFactory implements McpStreamFactory
             super.onAppSignal(signal);
         }
 
+        /**
+         * Completes a guard acquisition that could not be decided while
+         * {@link #proceedWithRequest} was still on the stack. Unlike
+         * {@link #onElicitCompleted} no elicitation is outstanding, so no completion
+         * notification is emitted; a {@link GuardHandler#NEEDS_PREAUTHORIZE} answer that
+         * arrives late still drives the same URL elicitation the synchronous decision does.
+         * The decision resolves the request exactly as it would have on the original stack,
+         * so the window {@link #onAppBegin} withheld is granted here, once whatever the
+         * decision has to say to the client has already been written.
+         */
+        private void onAcquireCompleted(
+            long sessionId)
+        {
+            cancelElicitTimeout();
+            pendingAuth = false;
+
+            // onAcquireDecided re-arms pendingAuth when it starts an elicitation, so the body
+            // buffered so far keeps accumulating for onElicitCompleted to replay
+            if (onAcquireDecided(acquireTraceId, acquireAuthorization, sessionId))
+            {
+                resumeBufferedRequest(acquireTraceId, acquireAuthorization);
+            }
+
+            doAppWindow(acquireTraceId, acquireAuthorization, 0L, 0);
+        }
+
+        /**
+         * Replays the request that buffered while the guard was acquiring, then hands the
+         * replayed bytes to the decoder as an unbuffered frame would have been. The decoder
+         * is what completes the upstream request — it encodes the http end on reaching the
+         * end of the json document — so nothing here needs to reason about how much body is
+         * still to come: whether the document completes within this replay or on a later
+         * frame, the same decoder ends it either way. Request kinds that carry no body have
+         * no such document to decode and end the request from {@link #onAppBeginImpl}, which
+         * runs here for the same reason {@link #onAppBegin} runs it on the undeferred path.
+         */
+        private void resumeBufferedRequest(
+            long traceId,
+            long authorization)
+        {
+            http.doEncodeRequestBegin(traceId, authorization);
+
+            onAppBeginImpl(traceId, authorization, null);
+
+            if (bufferedBodyLength > 0)
+            {
+                final UnsafeBufferEx body = new UnsafeBufferEx(bufferedBody, 0, bufferedBodyLength);
+                final int limit = bufferedBodyLength;
+                bufferedBodyLength = 0;
+                http.doEncodeRequestData(traceId, authorization, body, 0, limit);
+                decodeRequestBody(traceId, authorization, body, 0, limit);
+            }
+        }
+
         private void onElicitCompleted(
             long sessionId)
         {
@@ -3222,12 +3355,17 @@ public final class McpClientFactory implements McpStreamFactory
             long authorization)
         {
             final String elicitationId = elicitElicitationId;
-            final McpFlushExFW flushEx = mcpFlushExRW
-                .wrap(extBuffer, 0, extBuffer.capacity())
-                .typeId(mcpTypeId)
-                .elicitComplete(b -> b.id(elicitationId))
-                .build();
-            doAppFlush(traceId, authorization, flushEx);
+            // a request held for a guard acquisition rather than an elicitation has no
+            // elicitation to complete, so there is nothing for the caller to correlate
+            if (elicitationId != null)
+            {
+                final McpFlushExFW flushEx = mcpFlushExRW
+                    .wrap(extBuffer, 0, extBuffer.capacity())
+                    .typeId(mcpTypeId)
+                    .elicitComplete(b -> b.id(elicitationId))
+                    .build();
+                doAppFlush(traceId, authorization, flushEx);
+            }
         }
 
         @Override
@@ -3495,50 +3633,61 @@ public final class McpClientFactory implements McpStreamFactory
         void decodeRequestBody(
             DataFW data)
         {
+            final OctetsFW payload = data.payload();
+            if (payload != null && payload.sizeof() > 0)
+            {
+                decodeRequestBody(data.traceId(), data.authorization(),
+                    payload.buffer(), payload.offset(), payload.limit());
+            }
+        }
+
+        void decodeRequestBody(
+            long traceId,
+            long authorization,
+            DirectBufferEx payloadBuffer,
+            int payloadOffset,
+            int payloadLimit)
+        {
             if (decoder != null)
             {
-                final OctetsFW payload = data.payload();
-                if (payload != null && payload.sizeof() > 0)
-                {
-                    DirectBufferEx buffer = payload.buffer();
-                    int offset = payload.offset();
-                    int limit = payload.limit();
+                DirectBufferEx buffer = payloadBuffer;
+                int offset = payloadOffset;
+                int limit = payloadLimit;
 
-                    if (decodeSlot != NO_SLOT)
+                if (decodeSlot != NO_SLOT)
+                {
+                    final MutableDirectBufferEx slot = decodePool.buffer(decodeSlot);
+                    slot.putBytes(decodeSlotOffset, payloadBuffer, payloadOffset, payloadLimit - payloadOffset);
+                    decodeSlotOffset += payloadLimit - payloadOffset;
+                    buffer = slot;
+                    offset = 0;
+                    limit = decodeSlotOffset;
+                }
+
+                final int progress = decoder.decode(this, traceId, authorization,
+                    0L, 0, buffer, offset, offset, limit);
+
+                if (progress < limit)
+                {
+                    if (decodeSlot == NO_SLOT)
                     {
-                        final MutableDirectBufferEx slot = decodePool.buffer(decodeSlot);
-                        slot.putBytes(decodeSlotOffset, payload.buffer(), payload.offset(), payload.sizeof());
-                        decodeSlotOffset += payload.sizeof();
-                        buffer = slot;
-                        offset = 0;
-                        limit = decodeSlotOffset;
+                        decodeSlot = decodePool.acquire(initialId);
                     }
 
-                    final int progress = decoder.decode(this, data.traceId(), data.authorization(),
-                        0L, 0, buffer, offset, offset, limit);
-
-                    if (progress < limit)
+                    if (decodeSlot == NO_SLOT)
                     {
-                        if (decodeSlot == NO_SLOT)
-                        {
-                            decodeSlot = decodePool.acquire(initialId);
-                        }
-
-                        if (decodeSlot == NO_SLOT)
-                        {
-                            cleanupApp(data.traceId(), data.authorization());
-                        }
-                        else
-                        {
-                            final MutableDirectBufferEx slot = decodePool.buffer(decodeSlot);
-                            slot.putBytes(0, buffer, progress, limit - progress);
-                            decodeSlotOffset = limit - progress;
-                        }
+                        cleanupApp(traceId, authorization);
                     }
                     else
                     {
-                        cleanupDecodeSlot();
+                        final MutableDirectBufferEx slot = decodePool.buffer(decodeSlot);
+                        slot.putBytes(0, buffer, progress, limit - progress);
+                        decodeSlotOffset = limit - progress;
                     }
+                }
+                else
+                {
+                    cleanupDecodeSlot();
                 }
             }
         }
