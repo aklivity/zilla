@@ -2040,6 +2040,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         private int httpQueueSlot = NO_SLOT;
         private int httpQueueSlotOffset;
         private int httpQueueSlotLimit;
+        private boolean flushing;
         private SortedSet<HttpVersion> versions;
 
         private HttpClientPool(
@@ -2137,8 +2138,21 @@ public final class HttpClientFactory implements HttpStreamFactory
             return newStream;
         }
 
+        // dequeuing calls out to the exchange, which can close and re-enter here. A nested
+        // drain releases the queue slot and zeroes the offset that the outer frame is about
+        // to advance, leaving that frame pointing past a slot that is no longer there, and
+        // re-wraps the shared entry flyweight the outer frame still holds. One frame owns
+        // the queue for the duration; whatever a nested call would have drained is still
+        // reached by the loop below, which re-reads the offset on every pass.
         private void flushNext()
         {
+            if (flushing)
+            {
+                return;
+            }
+
+            flushing = true;
+
             dequeue:
             while (httpQueueSlotOffset != httpQueueSlotLimit)
             {
@@ -2176,6 +2190,8 @@ public final class HttpClientFactory implements HttpStreamFactory
             }
 
             cleanupQueueSlotIfNecessary();
+
+            flushing = false;
         }
 
         private void cleanupQueueSlotIfNecessary()
