@@ -86,7 +86,15 @@ final class AvroModelTransform implements AvroTransform
     private ModelEvent pending;
     private AvroSink downstream;
 
-    AvroModelTransform(
+    // a NONE transform needs no adapter at all: AvroStream drops AvroTransform.NONE rather than binding it,
+    // so the assembled pipeline carries no stage and the caller never branches on whether one is wired
+    static AvroTransform of(
+        ModelTransform transform)
+    {
+        return transform == ModelTransform.NONE ? AvroTransform.NONE : new AvroModelTransform(transform);
+    }
+
+    private AvroModelTransform(
         ModelTransform transform)
     {
         this.transform = transform;

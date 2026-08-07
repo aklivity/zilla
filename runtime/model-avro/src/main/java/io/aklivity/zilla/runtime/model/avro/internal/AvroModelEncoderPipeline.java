@@ -22,6 +22,7 @@ import io.aklivity.zilla.runtime.common.avro.AvroDiagnostic;
 import io.aklivity.zilla.runtime.common.avro.AvroPipeline;
 import io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status;
 import io.aklivity.zilla.runtime.common.avro.AvroPipelineResult;
+import io.aklivity.zilla.runtime.common.avro.AvroTransform;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
@@ -37,7 +38,7 @@ final class AvroModelEncoderPipeline implements ModelPipeline
     private static final int FLAGS_FIN = 0x01;
 
     private final AvroModelHandlerImpl handler;
-    private final AvroModelTransform adapter;
+    private final AvroTransform adapter;
     private final Int2ObjectCache<AvroPipeline> pipelines;
     private final ModelPipelineResult result;
 
@@ -51,7 +52,7 @@ final class AvroModelEncoderPipeline implements ModelPipeline
         ModelTransform transform)
     {
         this.handler = handler;
-        this.adapter = transform != ModelTransform.NONE ? new AvroModelTransform(transform) : null;
+        this.adapter = AvroModelTransform.of(transform);
         this.pipelines = new Int2ObjectCache<>(1, 16, p -> {});
         this.result = new ModelPipelineResult();
     }

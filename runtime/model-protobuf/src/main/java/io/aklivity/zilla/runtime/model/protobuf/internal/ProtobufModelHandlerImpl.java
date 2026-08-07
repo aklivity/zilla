@@ -64,7 +64,7 @@ public final class ProtobufModelHandlerImpl extends ProtobufModelHandler impleme
     public ModelPipeline supplyDecoder(
         ModelTransform transform)
     {
-        return new ProtobufModelDecoderPipeline(this, transform);
+        return new ProtobufModelDecoderPipeline(this, requireNonNull(transform));
     }
 
     @Override

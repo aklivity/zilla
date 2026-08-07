@@ -27,6 +27,11 @@ package io.aklivity.zilla.runtime.engine.model;
  * {@link ModelContext} returns {@code null} when no model is configured; a caller that holds a
  * {@code null} handler forwards its bytes unchanged rather than driving a pipeline.
  * </p>
+ * <p>
+ * The transform supplied to {@link #supplyDecoder(ModelTransform)} and {@link #supplyEncoder(ModelTransform)}
+ * is never {@code null}; a caller with no per-field policy passes {@link ModelTransform#NONE}, which an
+ * implementation is free to recognize and wire away entirely.
+ * </p>
  *
  * @see ModelContext
  * @see ModelPipeline

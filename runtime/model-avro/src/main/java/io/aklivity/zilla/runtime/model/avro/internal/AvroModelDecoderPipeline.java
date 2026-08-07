@@ -24,6 +24,7 @@ import io.aklivity.zilla.runtime.common.avro.AvroDiagnostic;
 import io.aklivity.zilla.runtime.common.avro.AvroPipeline;
 import io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status;
 import io.aklivity.zilla.runtime.common.avro.AvroPipelineResult;
+import io.aklivity.zilla.runtime.common.avro.AvroTransform;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
@@ -43,7 +44,7 @@ final class AvroModelDecoderPipeline implements ModelPipeline
 
     private final AvroModelHandlerImpl handler;
     private final JsonGeneratorEx generator;
-    private final AvroModelTransform adapter;
+    private final AvroTransform adapter;
     private final Int2ObjectCache<AvroPipeline> pipelines;
     private final ModelPipelineResult result;
 
@@ -56,8 +57,7 @@ final class AvroModelDecoderPipeline implements ModelPipeline
     {
         this.handler = handler;
         this.generator = JsonEx.createGenerator();
-        // a NONE transform keeps the verbatim/SEGMENTED fast path: no adapter stage, no structured field events
-        this.adapter = transform != ModelTransform.NONE ? new AvroModelTransform(transform) : null;
+        this.adapter = AvroModelTransform.of(transform);
         this.pipelines = new Int2ObjectCache<>(1, 16, p -> {});
         this.result = new ModelPipelineResult();
     }
@@ -146,9 +146,8 @@ final class AvroModelDecoderPipeline implements ModelPipeline
     private AvroPipeline supplyPipeline(
         int schemaId)
     {
-        return pipelines.computeIfAbsent(schemaId, id -> adapter != null
-            ? handler.newPipeline(id, handler.decodeLenient, generator, adapter, this::onRejected)
-            : handler.newPipeline(id, handler.decodeLenient, generator, this::onRejected));
+        return pipelines.computeIfAbsent(schemaId,
+            id -> handler.newPipeline(id, handler.decodeLenient, generator, adapter, this::onRejected));
     }
 
     private void onRejected(

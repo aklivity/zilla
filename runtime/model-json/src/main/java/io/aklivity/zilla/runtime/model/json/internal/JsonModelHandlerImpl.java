@@ -52,7 +52,7 @@ public final class JsonModelHandlerImpl extends JsonModelHandler implements Mode
     public ModelPipeline supplyDecoder(
         ModelTransform transform)
     {
-        return new JsonModelDecoderPipeline(this, transform);
+        return new JsonModelDecoderPipeline(this, requireNonNull(transform));
     }
 
     @Override
