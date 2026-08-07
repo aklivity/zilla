@@ -60,8 +60,6 @@ import org.agrona.collections.MutableInteger;
 import org.agrona.io.DirectBufferInputStream;
 import org.agrona.io.ExpandableDirectBufferOutputStream;
 
-import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaTopicHeaderType;
-import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaTopicTransformsType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.ArrayFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Flyweight;
@@ -84,7 +82,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableDirectByteBuffer
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
+import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 
 public final class KafkaCachePartition
 {
@@ -159,6 +157,7 @@ public final class KafkaCachePartition
     private final AtomicLong produceCapacity;
     private final OctetsFW octetsRO = new OctetsFW();
     private final KafkaKeyFW keyRO = new KafkaKeyFW();
+    private final KafkaEntrySink entrySink = new KafkaEntrySink();
 
     public KafkaCachePartition(
         Path location,
@@ -365,17 +364,15 @@ public final class KafkaCachePartition
         OctetsFW value,
         int entryFlags,
         KafkaDeltaType deltaType,
-        KafkaCacheModel transformKey,
-        KafkaCacheModel transformValue,
-        boolean verbose,
-        KafkaTopicTransformsType transforms)
+        KafkaPipeline pipeline,
+        boolean verbose)
     {
         final int valueLength = value != null ? value.sizeof() : -1;
         writeEntryStart(context, traceId, bindingId, offset, entryMark, valueMark, timestamp, timestampType, producerId, key,
-            valueLength, null, entryFlags, deltaType, value, transformKey, transformValue, transforms, verbose);
+            valueLength, null, entryFlags, deltaType, value, pipeline, verbose);
         writeEntryContinue(value);
         writeEntryFinish(headers, deltaType, context, traceId, bindingId, FLAGS_COMPLETE, offset, entryMark, valueMark,
-            transformKey, transformValue, verbose, transforms);
+            pipeline, verbose);
     }
 
     public void writeEntryStart(
@@ -394,9 +391,7 @@ public final class KafkaCachePartition
         int entryFlags,
         KafkaDeltaType deltaType,
         OctetsFW payload,
-        KafkaCacheModel transformKey,
-        KafkaCacheModel transformValue,
-        KafkaTopicTransformsType transforms,
+        KafkaPipeline pipeline,
         boolean verbose)
     {
         assert offset > this.progress : String.format("%d > %d", offset, this.progress);
@@ -422,9 +417,9 @@ public final class KafkaCachePartition
         logFile.mark();
 
         int convertedPos = NO_CONVERTED_POSITION;
-        if (valueLength != -1 && transformValue != KafkaCacheModel.NONE)
+        if (valueLength != -1 && pipeline.transformsValue())
         {
-            int convertedPadding = transformValue.padding(payload.buffer(), payload.offset(), payload.sizeof());
+            int convertedPadding = pipeline.padding(payload.buffer(), payload.offset(), payload.sizeof());
             int convertedMaxLength = valueMaxLength + convertedPadding;
 
             convertedPos = convertedFile.capacity();
@@ -477,9 +472,11 @@ public final class KafkaCachePartition
                 logFile.appendBytes(buffer, index, length);
             };
 
+            entrySink.begin(null);
+
             OctetsFW value = key.value();
-            int transformed = transformKey.transform(traceId, bindingId,
-                    value.buffer(), value.offset(), value.limit(), writeKey);
+            int transformed = pipeline.transformKey(traceId, bindingId,
+                    value.buffer(), value.offset(), value.limit(), writeKey, entrySink);
 
             if (transformed == -1)
             {
@@ -492,26 +489,11 @@ public final class KafkaCachePartition
                 }
             }
             logFile.appendInt(0);
-        }
 
-        if (transformKey != KafkaCacheModel.NONE &&
-            transforms != null && transforms.extractKey != null)
-        {
-            final ValueConsumer writeKey = (buffer, index, length) ->
+            if (transformed != -1)
             {
-                final int position = entryMark.value + FIELD_OFFSET_PADDED_KEY;
-                KafkaCachePaddedKeyFW paddedKey =
-                    logFile.readBytes(position, paddedKeyRO::wrap);
-                final int paddedKeySize = paddedKey.sizeof();
-                KafkaCachePaddedKeyFW.Builder paddedKeyBuilder = paddedKeyRW;
-                final int keySize = paddedKeyBuilder
-                    .key(k -> k.length(length).value(buffer, index, length)).sizeof();
-                paddedKeyBuilder.padding(logFile.buffer(), 0, paddedKeySize - keySize - SIZE_OF_INT);
-                KafkaCachePaddedKeyFW newPaddedKey = paddedKeyBuilder.build();
-                logFile.writeBytes(position, newPaddedKey.buffer(), newPaddedKey.offset(), newPaddedKey.sizeof());
-            };
-
-            transformKey.extracted(transforms.extractKey, writeKey);
+                entrySink.commitKey(logFile, entryMark.value);
+            }
         }
 
         logFile.appendInt(valueLength);
@@ -578,10 +560,8 @@ public final class KafkaCachePartition
         long offset,
         MutableInteger entryMark,
         MutableInteger valueMark,
-        KafkaCacheModel transformKey,
-        KafkaCacheModel transformValue,
-        boolean verbose,
-        KafkaTopicTransformsType transforms)
+        KafkaPipeline pipeline,
+        boolean verbose)
     {
         final Node head = sentinel.previous;
         assert head != sentinel;
@@ -604,7 +584,7 @@ public final class KafkaCachePartition
 
         Array32FW<KafkaHeaderFW> trailers = EMPTY_TRAILERS;
 
-        if (valueLength != -1 && transformValue != KafkaCacheModel.NONE)
+        if (valueLength != -1 && pipeline.transformsValue())
         {
             final KafkaCacheModel.Output consumeTransformed = (buffer, index, length) ->
             {
@@ -624,8 +604,10 @@ public final class KafkaCachePartition
 
             if ((entryFlags & CACHE_ENTRY_FLAGS_ABORTED) == 0x00)
             {
-                int transformed = transformValue.transform(traceId, bindingId, logFile.buffer(),
-                    valueMark.value, valueMark.value + valueLength, consumeTransformed);
+                entrySink.begin(trailersRW.wrap(trailersRW.buffer(), 0, trailersRW.maxLimit()));
+
+                int transformed = pipeline.transformValue(traceId, bindingId, logFile.buffer(),
+                    valueMark.value, valueMark.value + valueLength, consumeTransformed, entrySink);
                 if (transformed == -1)
                 {
                     logFile.writeInt(entryMark.value + FIELD_OFFSET_FLAGS, CACHE_ENTRY_FLAGS_ABORTED);
@@ -636,25 +618,9 @@ public final class KafkaCachePartition
                             context.supplyLocalName(bindingId), topic, id, offset);
                     }
                 }
-                else if (transforms != null &&
-                    transforms.extractHeaders != null &&
-                    !transforms.extractHeaders.isEmpty())
+                else
                 {
-                    Array32FW.Builder<KafkaHeaderFW.Builder, KafkaHeaderFW> builder =
-                        trailersRW.wrap(trailersRW.buffer(), 0, trailersRW.maxLimit());
-                    for (KafkaTopicHeaderType header : transforms.extractHeaders)
-                    {
-                        String32FW name = stringRW.set(header.name, UTF_8).build();
-                        String path = header.path;
-                        builder.item(h ->
-                        {
-                            h.nameLen(name.length())
-                                .name(name.value(), 0, name.length())
-                                .valueLen(transformValue.extractedLength(path));
-                            transformValue.extracted(path, (b, i, l) -> h.value(b, i, l));
-                        });
-                    }
-                    trailers = builder.build();
+                    trailers = entrySink.commitTrailers();
                 }
             }
         }
@@ -1020,6 +986,107 @@ public final class KafkaCachePartition
         byteBuffer.limit(keyOrHeader.limit());
         checksum.update(byteBuffer);
         return checksum.getValue();
+    }
+
+    // The terminal of the entry's KafkaPipeline: each lane's content lands in its destination region as
+    // the event arrives, so the transform chain never holds anything aside to be replayed once the value
+    // completes. The headers lane appends straight into the trailers being built for this entry. The key
+    // lane is the one exception, and only because its destination is the key itself: the key's own model
+    // is still appending it when the match arrives and the log file only grows forward, so the extracted
+    // key waits in a single slot until the key region is closed a few statements later.
+    //
+    // A lane switch selects the destination of the single field that follows it. A field arriving with no
+    // switch ahead of it is one the traversal merely surfaced on its way to its own destination, and this
+    // terminal writes nothing for it.
+    private final class KafkaEntrySink implements KafkaSink
+    {
+        private final MutableDirectBufferEx extracted = new ExpandableArrayBufferEx();
+
+        private KafkaEvent lane;
+        private int extractedLength;
+        private boolean extractedKey;
+        private Array32FW.Builder<KafkaHeaderFW.Builder, KafkaHeaderFW> trailers;
+        private boolean extractedHeaders;
+
+        @Override
+        public ModelStatus transform(
+            KafkaController control,
+            KafkaSource source,
+            KafkaEvent event)
+        {
+            if (event != KafkaEvent.FIELD)
+            {
+                lane = event;
+            }
+            else
+            {
+                if (lane == KafkaEvent.SWITCH_KEY)
+                {
+                    extractKey(source.getValue());
+                }
+                else if (lane == KafkaEvent.SWITCH_HEADERS && trailers != null)
+                {
+                    extractHeader(source.getPath(), source.getValue());
+                }
+                lane = null;
+            }
+
+            return ModelStatus.OK;
+        }
+
+        private void begin(
+            Array32FW.Builder<KafkaHeaderFW.Builder, KafkaHeaderFW> trailers)
+        {
+            this.lane = null;
+            this.extractedLength = 0;
+            this.extractedKey = false;
+            this.trailers = trailers;
+            this.extractedHeaders = false;
+        }
+
+        private void extractKey(
+            DirectBufferEx value)
+        {
+            extractedLength = value.capacity();
+            extracted.putBytes(0, value, 0, extractedLength);
+            extractedKey = true;
+        }
+
+        private void extractHeader(
+            String name,
+            DirectBufferEx value)
+        {
+            final String32FW headerName = stringRW.set(name, UTF_8).build();
+            final int headerLength = value.capacity();
+            trailers.item(h -> h.nameLen(headerName.length())
+                .name(headerName.value(), 0, headerName.length())
+                .valueLen(headerLength)
+                .value(value, 0, headerLength));
+            extractedHeaders = true;
+        }
+
+        private void commitKey(
+            KafkaCacheFile logFile,
+            int entryAt)
+        {
+            if (extractedKey)
+            {
+                final int position = entryAt + FIELD_OFFSET_PADDED_KEY;
+                KafkaCachePaddedKeyFW paddedKey = logFile.readBytes(position, paddedKeyRO::wrap);
+                final int paddedKeySize = paddedKey.sizeof();
+                KafkaCachePaddedKeyFW.Builder paddedKeyBuilder = paddedKeyRW;
+                final int keySize = paddedKeyBuilder
+                    .key(k -> k.length(extractedLength).value(extracted, 0, extractedLength)).sizeof();
+                paddedKeyBuilder.padding(logFile.buffer(), 0, paddedKeySize - keySize - SIZE_OF_INT);
+                KafkaCachePaddedKeyFW newPaddedKey = paddedKeyBuilder.build();
+                logFile.writeBytes(position, newPaddedKey.buffer(), newPaddedKey.offset(), newPaddedKey.sizeof());
+            }
+        }
+
+        private Array32FW<KafkaHeaderFW> commitTrailers()
+        {
+            return extractedHeaders ? trailers.build() : EMPTY_TRAILERS;
+        }
     }
 
     public final class Node
