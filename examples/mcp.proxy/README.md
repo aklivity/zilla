@@ -170,6 +170,11 @@ Run the automated smoke test that the build workflow uses:
 ./.github/test.sh
 ```
 
+That mints the caller JWTs, then starts a one-off `verify` container inside the
+stack which runs `etc/test/verify.sh` — where all the assertions live. It is
+profile-gated, so `docker compose up` never starts it, and it brings the stack
+up itself if it is not already running.
+
 Or drive the gateway interactively with the MCP Inspector, supplying a bearer
 token as described below:
 
@@ -961,7 +966,7 @@ with `isError: true` and a message naming the group's actual state --
 resetting offsets out from under an active consumer is never attempted
 silently.
 
-**Known gap:** this example's automated test (`.github/test.sh`) exercises
+**Known gap:** this example's automated test (`etc/test/verify.sh`) exercises
 `reset_offsets`' `FindCoordinator` and `DescribeGroups` hops (the same
 `DescribeGroups` call `describe_consumer_group` makes) against the real
 broker, but not its final `OffsetCommit` hop -- driving that hop against a
@@ -1073,9 +1078,9 @@ separately.
 
 > A more elaborate scenario -- an `mcp(client)` binding that itself drives an
 > elicitation round-trip to obtain a credential for an OAuth-protected
-> upstream, rather than simply forwarding one it already has -- likely needs
-> an `oauth` guard that doesn't exist in the open-source runtime yet, so it's
-> a better fit for a future zilla-plus version of this example.
+> upstream, rather than simply forwarding one it already has -- needs an
+> `oauth` guard, which this runtime does not provide, so it is out of scope
+> for this example.
 
 ### Observe the cache
 

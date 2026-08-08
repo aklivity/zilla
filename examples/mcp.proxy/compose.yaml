@@ -312,6 +312,51 @@ services:
       - ./resource-subscribe-client:/app
     entrypoint: ["sh", "-c", "npm install --no-audit --no-fund --silent && node client.mjs"]
 
+  # One-off verification container -- `docker compose run --rm verify`, which is
+  # all .github/test.sh does once it has minted the caller JWTs. profiles gates
+  # it out of the default set, so a plain `docker compose up` never starts it,
+  # and `docker compose run` enables the profile of the service it targets.
+  #
+  # Depending on zilla alone is enough: zilla already declares every other
+  # component above, so its health transitively covers the mocks, the broker,
+  # the registry and the connect worker.
+  #
+  # The client services above stay as the documented interactive entry points
+  # (README drives them by hand); this mounts the same directories so verify.sh
+  # can run those same client scripts as node processes rather than starting ~48
+  # containers to do it. npm install therefore happens once, here, instead of on
+  # every assertion. url-elicit is not installed: the urlelicit server shares
+  # that bind mount and has already installed into it by the time this runs.
+  #
+  # The docker socket is mounted for exactly one purpose -- two assertions read
+  # another container's log (see service_logs in verify.sh), which has no
+  # equivalent observation point from inside the network. Note that :ro on a
+  # socket mount does not restrict the Docker API; it is the daemon's socket
+  # either way, so this grants full daemon access and is the one real tradeoff
+  # in running the verification inside the stack.
+  verify:
+    image: node:20-alpine
+    profiles: ["test"]
+    working_dir: /work
+    depends_on:
+      zilla:
+        condition: service_healthy
+    volumes:
+      - ./etc/test:/test:ro
+      - ../.github/test-lib.sh:/test-lib.sh:ro
+      - ./tools-list-client:/work/tools-list-client
+      - ./resource-subscribe-client:/work/resource-subscribe-client
+      - ./url-elicit:/work/url-elicit
+      - /var/run/docker.sock:/var/run/docker.sock
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -e
+        apk add --no-cache curl docker-cli > /dev/null
+        npm install --prefix /work/tools-list-client --no-audit --no-fund --silent
+        npm install --prefix /work/resource-subscribe-client --no-audit --no-fund --silent
+        exec sh /test/verify.sh
+
 networks:
   default:
     driver: bridge
