@@ -233,6 +233,15 @@ public class ConnectionManagementIT
 
     @Test
     @Specification({
+        "${net}/pool.exhausted.and.503.response/client",
+        "${net}/pool.exhausted.and.503.response/server" })
+    public void shouldGive503ResponseWhenConnectionPoolExhausted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/request.response.headers.incomplete.data.and.end/client",
         "${net}/request.response.headers.incomplete.data.and.end/server" })
     public void shouldReportResponseEndedWithIncompleteData() throws Exception
