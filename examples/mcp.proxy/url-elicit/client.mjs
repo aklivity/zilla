@@ -77,6 +77,14 @@ const main = async () =>
         new Promise((_, reject) => setTimeout(() => reject(new Error("timed out waiting for completion")), TIMEOUT_MS))
     ]);
 
+    try
+    {
+        await transport.terminateSession();
+    }
+    catch (err)
+    {
+        log(`failed to terminate session: ${err}`);
+    }
     await client.close();
 
     if (!sawUrlRequest)

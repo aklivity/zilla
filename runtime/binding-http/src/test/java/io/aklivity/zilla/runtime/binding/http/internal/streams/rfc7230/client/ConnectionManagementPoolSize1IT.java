@@ -86,6 +86,16 @@ public class ConnectionManagementPoolSize1IT
     @Test
     @Configuration("client.yaml")
     @Specification({
+        "${app}/pool.exhausted.and.503.response/client",
+        "${net}/pool.exhausted.and.503.response/server" })
+    public void shouldGive503ResponseWhenConnectionPoolExhausted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
         "${app}/request.and.503.response.with.retry/client",
         "${net}/request.incomplete.response.headers.and.abort/server" })
     public void shouldGive503ResponseAndFreeConnectionWhenConnectReplyStreamIsAbortedBeforeResponseHeadersComplete()

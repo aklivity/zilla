@@ -178,7 +178,18 @@
                             },
                             "options":
                             {
-                                "$ref": "#/$defs/options/binding/tls"
+                                "allOf":
+                                [
+                                    {
+                                        "$ref": "#/$defs/options/binding/tls"
+                                    },
+                                    {
+                                        "not":
+                                        {
+                                            "required": ["authorization"]
+                                        }
+                                    }
+                                ]
                             }
                         }
                     },
@@ -294,8 +305,41 @@
                     {
                         "type": "string"
                     }
+                },
+                "authorization":
+                {
+                    "title": "Authorization",
+                    "type": "object",
+                    "patternProperties":
+                    {
+                        "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                        {
+                            "title": "Guard",
+                            "type": "object",
+                            "properties":
+                            {
+                                "credentials":
+                                {
+                                    "title": "Credentials",
+                                    "type": "object",
+                                    "properties":
+                                    {
+                                        "certificates":
+                                        {
+                                            "title": "Certificates Format",
+                                            "type": "string",
+                                            "enum": [ "pem" ]
+                                        }
+                                    },
+                                    "additionalProperties": false
+                                }
+                            },
+                            "additionalProperties": false
+                        }
+                    },
+                    "maxProperties": 1,
+                    "additionalProperties": false
                 }
-
             },
             "not":
             {

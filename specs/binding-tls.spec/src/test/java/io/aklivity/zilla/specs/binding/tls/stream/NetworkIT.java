@@ -121,6 +121,7 @@ public class NetworkIT
         k3po.finish();
     }
 
+
     @Ignore("requires accepted only streams")
     @Test
     @Specification({

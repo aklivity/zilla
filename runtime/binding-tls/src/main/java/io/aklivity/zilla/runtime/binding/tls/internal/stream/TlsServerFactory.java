@@ -18,6 +18,7 @@ package io.aklivity.zilla.runtime.binding.tls.internal.stream;
 import static io.aklivity.zilla.runtime.binding.tls.internal.identity.TlsClientX509ExtendedKeyManager.COMMON_NAME_PATTERN;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
+import static io.aklivity.zilla.runtime.engine.guard.GuardHandler.NOT_AUTHORIZED;
 import static java.lang.System.currentTimeMillis;
 import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -26,13 +27,11 @@ import java.nio.ByteBuffer;
 import java.security.Principal;
 import java.security.SecureRandom;
 import java.security.cert.Certificate;
-import java.security.cert.X509Certificate;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.LongFunction;
 import java.util.function.LongUnaryOperator;
-import java.util.function.ToLongFunction;
 import java.util.regex.Matcher;
 
 import javax.net.ssl.ExtendedSSLSession;
@@ -47,7 +46,6 @@ import javax.net.ssl.SSLKeyException;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLProtocolException;
 import javax.net.ssl.SSLSession;
-import javax.security.auth.x500.X500Principal;
 
 import org.agrona.collections.Long2ObjectHashMap;
 
@@ -149,6 +147,7 @@ public final class TlsServerFactory implements TlsStreamFactory
     private final LongUnaryOperator supplyReplyId;
     private final int replyPadAdjust;
     private final Long2ObjectHashMap<TlsBindingConfig> bindings;
+    private final EngineContext context;
     private final TlsEventContext event;
 
     private final int decodeMax;
@@ -188,6 +187,7 @@ public final class TlsServerFactory implements TlsStreamFactory
         this.handshakeMax = Math.min(config.handshakeWindowBytes(), decodeMax);
         this.handshakeTimeoutMillis = SECONDS.toMillis(config.handshakeTimeout());
         this.bindings = new Long2ObjectHashMap<>();
+        this.context = context;
         this.event = new TlsEventContext(context);
 
         this.inNetByteBuffer = ByteBuffer.allocate(writeBuffer.capacity());
@@ -218,7 +218,7 @@ public final class TlsServerFactory implements TlsStreamFactory
     public void attach(
         BindingConfig binding)
     {
-        TlsBindingConfig tlsBinding = new TlsBindingConfig(binding);
+        TlsBindingConfig tlsBinding = new TlsBindingConfig(context, binding);
         assert tlsBinding.options != null;
 
         VaultHandler vault = supplyVault.apply(tlsBinding.vaultId);
@@ -258,9 +258,9 @@ public final class TlsServerFactory implements TlsStreamFactory
 
         MessageConsumer newStream = null;
 
-        if (binding != null && binding.resolvePortOnly(authorization, port) != null)
+        if (binding != null && binding.resolvePortOnlyBeforeHandshake(port) != null)
         {
-            final SSLEngine tlsEngine = binding.newServerEngine(authorization, port);
+            final SSLEngine tlsEngine = binding.newServerEngine(port);
 
             if (tlsEngine != null)
             {
@@ -272,8 +272,7 @@ public final class TlsServerFactory implements TlsStreamFactory
                     initialId,
                     authorization,
                     port,
-                    tlsEngine,
-                    dname -> 0L)::onNetMessage;
+                    tlsEngine)::onNetMessage;
             }
         }
 
@@ -966,7 +965,6 @@ public final class TlsServerFactory implements TlsStreamFactory
         private final long initialId;
         private final long authorization;
         private final int port;
-        private ToLongFunction<String> supplyAuthorization;
         private final long replyId;
         private long affinity;
 
@@ -1008,8 +1006,7 @@ public final class TlsServerFactory implements TlsStreamFactory
             long initialId,
             long authorization,
             int port,
-            SSLEngine tlsEngine,
-            ToLongFunction<String> supplyAuthorization)
+            SSLEngine tlsEngine)
         {
             this.net = net;
             this.originId = originId;
@@ -1022,7 +1019,6 @@ public final class TlsServerFactory implements TlsStreamFactory
             this.decoder = decodeBeforeHandshake;
             this.stream = NULL_STREAM;
             this.tlsEngine = requireNonNull(tlsEngine);
-            this.supplyAuthorization = supplyAuthorization;
         }
 
         private int replyPendingAck()
@@ -1687,13 +1683,27 @@ public final class TlsServerFactory implements TlsStreamFactory
             final TlsMutualConfig mutual = binding != null && binding.options != null ? binding.options.mutual : null;
             final Certificate[] clientCerts = clientCertificates(tlsSession, mutual);
 
+            long sessionAuth = authorization;
+
+            if (binding != null && binding.guard != null)
+            {
+                // a configured guard is the authority for this session, so its verdict replaces
+                // the authorization inherited from the network stream rather than falling back
+                // to it; an unverified peer supplies no credentials and mints no session
+                final String credentials = binding.credentials(tlsSession);
+
+                sessionAuth = credentials != null
+                    ? binding.guard.reauthorize(traceId, routedId, initialId, credentials)
+                    : NOT_AUTHORIZED;
+            }
+
             final TlsRouteConfig route = binding != null
-                ? binding.resolve(authorization, tlsHostname, tlsProtocol, port, clientCerts)
+                ? binding.resolve(sessionAuth, tlsHostname, tlsProtocol, port, clientCerts)
                 : null;
 
             if (route != null)
             {
-                final TlsStream stream = new TlsStream(binding.id, route.id, tlsEngine);
+                final TlsStream stream = new TlsStream(binding.id, route.id, sessionAuth);
 
                 stream.doAppBegin(traceId, tlsHostname, tlsProtocol, name);
             }
@@ -1896,13 +1906,13 @@ public final class TlsServerFactory implements TlsStreamFactory
             private TlsStream(
                 long originId,
                 long routedId,
-                SSLEngine tlsEngine)
+                long authorization)
             {
                 this.originId = originId;
                 this.routedId = routedId;
                 this.initialId = supplyInitialId.applyAsLong(routedId);
                 this.replyId = supplyReplyId.applyAsLong(initialId);
-                this.authorization = authorization(tlsEngine.getSession());
+                this.authorization = authorization;
             }
 
             private int initialWindow()
@@ -2369,30 +2379,6 @@ public final class TlsServerFactory implements TlsStreamFactory
             }
         }
 
-        private long authorization(
-            SSLSession tlsSession)
-        {
-            long authorization = 0L;
-
-            try
-            {
-                Certificate[] certs = tlsSession.getPeerCertificates();
-                if (certs.length > 1)
-                {
-                    Certificate signingCaCert = certs[1];
-                    X509Certificate signingCaX509Cert = (X509Certificate) signingCaCert;
-                    X500Principal x500Principal = signingCaX509Cert.getSubjectX500Principal();
-                    String distinguishedName = x500Principal.getName();
-                    authorization = supplyAuthorization.applyAsLong(distinguishedName);
-                }
-            }
-            catch (SSLPeerUnverifiedException e)
-            {
-                // ignore
-            }
-
-            return authorization;
-        }
     }
 
     private static Optional<TlsServer.TlsStream> nullIfClosed(

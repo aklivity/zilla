@@ -132,6 +132,9 @@ public final class McpClientFactory implements McpStreamFactory
     private static final String STATUS_401 = "401";
     private static final String STATUS_403 = "403";
     private static final String STATUS_405 = "405";
+    private static final String STATUS_SUCCESSFUL_PREFIX = "2";
+    private static final int ERROR_CODE_INTERNAL = -32603;
+    private static final String ERROR_MESSAGE_INTERNAL = "Internal error";
     private static final Pattern BEARER_CHALLENGE_PATTERN = Pattern.compile(
         "^\\s*Bearer\\b" +
         "(?=.*?\\brealm\\s*=\\s*\"(?<realm>[^\"]*)\")?" +
@@ -1998,7 +2001,9 @@ public final class McpClientFactory implements McpStreamFactory
 
             assert initialAck <= initialSeq;
 
-            if (decoder != decodeRequestEnd)
+            // an upstream request that has not begun has no end to encode; the replay that
+            // resumes it once the authorization decision arrives carries this end instead
+            if (decoder != decodeRequestEnd && !awaitingAuth())
             {
                 http.doEncodeRequestEnd(traceId, authorization);
                 decoder = decodeRequestEnd;
@@ -3143,11 +3148,20 @@ public final class McpClientFactory implements McpStreamFactory
             return true;
         }
 
+        /**
+         * An elicitation is answered by a callback flush on this same initial stream, so a
+         * client that ends the stream while one is outstanding can no longer answer it and
+         * the request is abandoned. A request merely waiting for a guard to acquire a
+         * credential is not abandoned by its end: the end is the end of the body, which
+         * buffers alongside it and reaches the upstream request when the replay resumes it.
+         * An {@code execute_tool} re-dispatch reaches here on every acquiring guard, since
+         * it delivers the caller's end within the turn that begins the delegated request.
+         */
         @Override
         void onAppEnd(
             EndFW end)
         {
-            if (pendingAuth)
+            if (pendingAuth && elicitElicitationId != null)
             {
                 final long traceId = end.traceId();
                 final long authorization = end.authorization();
@@ -3301,6 +3315,14 @@ public final class McpClientFactory implements McpStreamFactory
                 bufferedBodyLength = 0;
                 http.doEncodeRequestData(traceId, authorization, body, 0, limit);
                 decodeRequestBody(traceId, authorization, body, 0, limit);
+            }
+
+            // a client that ended while the guard was acquiring sends nothing more, so the
+            // document the decoder would have ended the request on is all here already
+            if (McpState.initialClosed(state) && decoder != decodeRequestEnd)
+            {
+                http.doEncodeRequestEnd(traceId, authorization);
+                decoder = decodeRequestEnd;
             }
         }
 
@@ -4146,12 +4168,24 @@ public final class McpClientFactory implements McpStreamFactory
                 events.authorizationFailed(traceId, mcp.routedId, realm, scopes, resourceMetadata,
                     McpAuthorizationError.valueOf(error.name()));
             }
+            else if (status != null && !status.startsWith(STATUS_SUCCESSFUL_PREFIX) &&
+                doAppRejectError(traceId, authorization))
+            {
+                doNetReset(traceId, authorization);
+            }
             else
             {
                 mcp.onNetBegin(begin);
 
                 flushNetWindow(traceId, authorization, 0L);
             }
+        }
+
+        boolean doAppRejectError(
+            long traceId,
+            long authorization)
+        {
+            return false;
         }
 
         void onNetData(
@@ -5256,6 +5290,19 @@ public final class McpClientFactory implements McpStreamFactory
             super(mcp);
             this.request = (McpRequestStream) mcp;
             this.decoder = decodeJsonRpc;
+        }
+
+        @Override
+        boolean doAppRejectError(
+            long traceId,
+            long authorization)
+        {
+            final McpResetExFW mcpResetEx = mcpResetExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(mcpTypeId)
+                .error(e -> e.code(ERROR_CODE_INTERNAL).message(ERROR_MESSAGE_INTERNAL))
+                .build();
+            mcp.doAppReset(traceId, authorization, mcpResetEx);
+            return true;
         }
 
         @Override

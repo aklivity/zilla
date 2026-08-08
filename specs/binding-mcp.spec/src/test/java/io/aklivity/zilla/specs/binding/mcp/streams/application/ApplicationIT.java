@@ -263,6 +263,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/tools.call.reject.status/client",
+        "${app}/tools.call.reject.status/server"})
+    public void shouldCallToolRejectedByStatus() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/tools.call.timeout/client",
         "${app}/tools.call.timeout/server"})
     public void shouldCallToolWithTimeout() throws Exception

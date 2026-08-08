@@ -117,6 +117,7 @@ public final class TlsProxyFactory implements TlsStreamFactory
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final Long2ObjectHashMap<TlsBindingConfig> bindings;
+    private final EngineContext context;
 
     private final int decodeMax;
     private final int handshakeMax;
@@ -139,13 +140,14 @@ public final class TlsProxyFactory implements TlsStreamFactory
         this.handshakeMax = Math.min(config.handshakeWindowBytes(), decodeMax);
         this.handshakeTimeoutMillis = SECONDS.toMillis(config.handshakeTimeout());
         this.bindings = new Long2ObjectHashMap<>();
+        this.context = context;
     }
 
     @Override
     public void attach(
         BindingConfig binding)
     {
-        TlsBindingConfig tlsBinding = new TlsBindingConfig(binding);
+        TlsBindingConfig tlsBinding = new TlsBindingConfig(context, binding);
         assert tlsBinding.options != null;
 
         bindings.put(binding.id, tlsBinding);

@@ -2090,7 +2090,11 @@ public final class HttpClientFactory implements HttpStreamFactory
             HttpClient client = supplyClient(scheme, authority);
             final int queuedRequestLength = HttpQueueEntryFW.FIELD_OFFSET_VALUE_LENGTH + begin.extension().sizeof();
 
-            if (client == null || queuedRequestLength > maximumRequestQueueSize)
+            if (client == null)
+            {
+                newStream = rejectWithStatusCode(sender, begin, HEADERS_503_RETRY_AFTER);
+            }
+            else if (queuedRequestLength > maximumRequestQueueSize)
             {
                 newStream = rejectWithStatusCode(sender, begin, HEADERS_431_REQUEST_TOO_LARGE);
             }

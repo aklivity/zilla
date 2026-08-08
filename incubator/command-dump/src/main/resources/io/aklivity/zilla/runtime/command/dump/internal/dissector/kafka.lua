@@ -1623,5 +1623,22 @@ function handle_kafka_reset_extension(buffer, offset, ext_subtree)
         slice_consumer_id_length, slice_consumer_id_text, fields.kafka_ext_consumer_id_length, fields.kafka_ext_consumer_id)
 end
 
+-- Kafka requests and responses are framed as a 4-byte big-endian length prefix followed
+-- by exactly that many bytes of message (the length does not include itself/the prefix).
+-- A DATA frame's payload only ever carries a slice of this stream, so this resolver lets
+-- dissect_payload (zilla.lua) buffer across DATA frames until a complete message exists.
+function kafka_message_length(bytearray)
+    if bytearray:len() < 4 then
+        return nil
+    end
+    local b0 = bytearray:get_index(0)
+    local b1 = bytearray:get_index(1)
+    local b2 = bytearray:get_index(2)
+    local b3 = bytearray:get_index(3)
+    local length = bit.bor(bit.lshift(b0, 24), bit.lshift(b1, 16), bit.lshift(b2, 8), b3)
+    return length + 4
+end
+
 register_dissector(KAFKA_ID, "kafka", handle_kafka_extension, function (payload) return Dissector.get("kafka") end)
+register_reassembly("kafka", kafka_message_length)
 

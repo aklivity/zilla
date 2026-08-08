@@ -29,6 +29,7 @@ public final class TlsOptionsConfig extends OptionsConfig
     public final TlsMutualConfig mutual;
     public final List<String> signers;
     public final Boolean trustcacerts;
+    public final TlsAuthorizationConfig authorization;
 
     public static TlsOptionsConfigBuilder<TlsOptionsConfig> builder()
     {
@@ -49,7 +50,8 @@ public final class TlsOptionsConfig extends OptionsConfig
         List<String> alpn,
         TlsMutualConfig mutual,
         List<String> signers,
-        Boolean trustcacerts)
+        Boolean trustcacerts,
+        TlsAuthorizationConfig authorization)
     {
         this.version = version;
         this.keys = keys;
@@ -59,5 +61,6 @@ public final class TlsOptionsConfig extends OptionsConfig
         this.mutual = mutual;
         this.signers = signers;
         this.trustcacerts = trustcacerts;
+        this.authorization = authorization;
     }
 }

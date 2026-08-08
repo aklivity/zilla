@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>zilla</artifactId>
-    <version>2.0.1-rc2</version>
+    <version>2.0.1-rc3</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -55,6 +55,7 @@
     <module>exporter-stdout.conf</module>
     <module>guard-inline.conf</module>
     <module>guard-jwt.conf</module>
+    <module>guard-x509.conf</module>
     <module>metrics-grpc.conf</module>
     <module>metrics-http.conf</module>
     <module>metrics-mcp.conf</module>
