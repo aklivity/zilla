@@ -96,6 +96,14 @@ const main = async () =>
     }
     finally
     {
+        try
+        {
+            await transport.terminateSession();
+        }
+        catch (err)
+        {
+            log(`failed to terminate session: ${err}`);
+        }
         await client.close();
     }
 };
