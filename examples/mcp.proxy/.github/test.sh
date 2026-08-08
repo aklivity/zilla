@@ -727,14 +727,15 @@ else
 fi
 
 # WHEN: a kafka_connect:admin-scoped caller calls kafka_connect__create_connector
-#       to create a FileStreamSourceConnector reading a file already seeded
-#       inside the kafka-connect container
+#       to create a FileStreamSourceConnector reading /tmp/kc-source.txt, which
+#       the kafka-connect service seeds itself before starting its worker (see
+#       compose.yaml) -- so the file is in place before the REST port even opens,
+#       and this script needs no way to write inside another container
 # THEN: the connector is created against the real worker, gated by its own
 #       tool-specific kafka_connect:admin scope layered under the
 #       toolkit-level kafka_connect:tools scope -- the same layering
 #       mechanism as register_schema/kafka_sr:write, demonstrated on a
 #       third toolkit
-docker compose exec -T kafka-connect sh -c "echo 'hello from mcp-kafka-connect' > /tmp/kc-source.txt"
 call_kafka_connect_create_connector() {
   KC_CREATE_OUT=$(docker compose run --rm --no-deps \
       -e JWT_TOKEN="$JWT_FULL" \
