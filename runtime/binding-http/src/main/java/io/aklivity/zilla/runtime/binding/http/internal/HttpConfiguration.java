@@ -72,7 +72,7 @@ public class HttpConfiguration extends Configuration
         userAgentHeader = userAgent != null ? new String16FW(userAgent) : null;
     }
 
-    public int maximumConnectionsPerRoute()
+    public int maximumConnectionsPerOrigin()
     {
         return HTTP_MAXIMUM_CONNECTIONS.getAsInt(this);
     }

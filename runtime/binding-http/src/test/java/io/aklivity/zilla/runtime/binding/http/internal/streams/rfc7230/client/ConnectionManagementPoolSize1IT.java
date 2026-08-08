@@ -94,6 +94,26 @@ public class ConnectionManagementPoolSize1IT
     }
 
     @Test
+    @Configuration("client.authority.yaml")
+    @Specification({
+        "${app}/requests.different.authorities/client",
+        "${net}/requests.different.authorities/server" })
+    public void shouldConnectToSecondAuthorityWhenFirstAuthorityAtCapacity() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.authority.yaml")
+    @Specification({
+        "${app}/concurrent.requests.different.authorities/client",
+        "${net}/concurrent.requests.different.authorities/server" })
+    public void shouldConnectToSecondAuthorityWhileFirstAuthorityRequestInFlight() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("client.yaml")
     @Specification({
         "${app}/request.and.503.response.with.retry/client",

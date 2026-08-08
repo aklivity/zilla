@@ -350,7 +350,7 @@ public final class HttpClientFactory implements HttpStreamFactory
     private final int encodeMax;
     private final int decodeMax;
     private final int maximumRequestQueueSize;
-    private final int maximumConnectionsPerRoute;
+    private final int maximumConnectionsPerOrigin;
     private final int maximumPushPromiseListSize;
 
     public HttpClientFactory(
@@ -388,7 +388,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         this.maximumRequestQueueSize = bufferPool.slotCapacity();
 
         this.clientPools = new Long2ObjectHashMap<>();
-        this.maximumConnectionsPerRoute = config.maximumConnectionsPerRoute();
+        this.maximumConnectionsPerOrigin = config.maximumConnectionsPerOrigin();
         this.maximumPushPromiseListSize = config.maxPushPromiseListSize();
         this.decodeMax = bufferPool.slotCapacity();
         this.encodeMax = bufferPool.slotCapacity();
@@ -2173,7 +2173,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                 .findFirst()
                 .orElse(null);
 
-            if (client == null && clients.size() < maximumConnectionsPerRoute)
+            if (client == null && countConnections(scheme, authority) < maximumConnectionsPerOrigin)
             {
                 client = new HttpClient(this);
                 client.scheme = scheme;
@@ -2192,18 +2192,33 @@ public final class HttpClientFactory implements HttpStreamFactory
             return client;
         }
 
+        // a connection is pinned at creation to the origin it was created for, and canServe never
+        // offers it to another, so bounding on the whole pool charged a request for connections
+        // that could never carry it -- one busy origin refused every other origin reaching the
+        // same exit. The bound is over the connections this origin can actually use; the total
+        // across origins is already bounded by the engine, which caps combined inbound and
+        // outbound connections.
+        private long countConnections(
+            String scheme,
+            String authority)
+        {
+            return clients.stream()
+                .filter(c -> c.canServe(scheme, authority))
+                .count();
+        }
+
         private void onCreated(
             HttpClient client)
         {
             clients.add(client);
-            assert clients.size() <= maximumConnectionsPerRoute;
+            assert countConnections(client.scheme, client.authority) <= maximumConnectionsPerOrigin;
         }
 
         private void onUpgradedOrClosed(
             HttpClient client)
         {
             clients.remove(client);
-            assert clients.size() <= maximumConnectionsPerRoute;
+            assert countConnections(client.scheme, client.authority) <= maximumConnectionsPerOrigin;
         }
     }
 
