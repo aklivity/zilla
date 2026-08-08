@@ -60,12 +60,12 @@ read  '{'
         '}'
       '}'
 
-write flush
+write zilla:reset.ext ${mcp:resetEx()
+                           .typeId(zilla:id("mcp"))
+                           .error()
+                               .code(-32603)
+                               .message("unexpected status 503")
+                               .build()
+                           .build()}
 
-write zilla:end.ext ${mcp:endEx()
-                         .typeId(zilla:id("mcp"))
-                         .outcome("ERROR")
-                         .build()}
-write close
-
-read closed
+read abort

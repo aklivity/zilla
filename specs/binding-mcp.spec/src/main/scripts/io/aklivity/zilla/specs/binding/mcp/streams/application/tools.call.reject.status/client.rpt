@@ -62,10 +62,12 @@ write '{'
         '}'
       '}'
 
-read zilla:end.ext ${mcp:matchEndEx()
-                        .typeId(zilla:id("mcp"))
-                        .outcome("ERROR")
-                        .build()}
-read closed
+read zilla:reset.ext ${mcp:matchResetEx()
+                          .typeId(zilla:id("mcp"))
+                          .error()
+                              .code(-32603)
+                              .message("unexpected status 503")
+                              .build()
+                          .build()}
 
-write close
+write aborted
