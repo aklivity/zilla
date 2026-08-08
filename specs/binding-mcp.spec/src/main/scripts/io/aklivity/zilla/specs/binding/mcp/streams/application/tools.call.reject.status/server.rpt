@@ -64,7 +64,7 @@ write zilla:reset.ext ${mcp:resetEx()
                            .typeId(zilla:id("mcp"))
                            .error()
                                .code(-32603)
-                               .message("unexpected status 503")
+                               .message("Internal error")
                                .build()
                            .build()}
 
