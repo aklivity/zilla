@@ -1,0 +1,92 @@
+[
+    {
+        "op": "add",
+        "path": "/$defs/guard/properties/type/enum/-",
+        "value": "x509"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/guard/allOf/-",
+        "value":
+        {
+            "if":
+            {
+                "properties":
+                {
+                    "type":
+                    {
+                        "const": "x509"
+                    }
+                }
+            },
+            "then":
+            {
+                "properties":
+                {
+                    "type":
+                    {
+                        "const": "x509"
+                    },
+                    "kind": false,
+                    "options":
+                    {
+                        "properties":
+                        {
+                            "identity":
+                            {
+                                "title": "Identity",
+                                "type": "string",
+                                "pattern": "^[a-zA-Z]+[a-zA-Z0-9._-]*$",
+                                "default": "subject.dn"
+                            },
+                            "attributes":
+                            {
+                                "title": "Attributes",
+                                "type": "object",
+                                "patternProperties":
+                                {
+                                    "^[a-zA-Z]+[a-zA-Z0-9._-]*$":
+                                    {
+                                        "type": "string",
+                                        "pattern": "^[a-zA-Z]+[a-zA-Z0-9._-]*$"
+                                    }
+                                },
+                                "additionalProperties": false
+                            },
+                            "roles":
+                            {
+                                "title": "Roles",
+                                "type": "object",
+                                "patternProperties":
+                                {
+                                    "^[a-zA-Z]+[a-zA-Z0-9._-]*$":
+                                    {
+                                        "title": "Role",
+                                        "type": "array",
+                                        "minItems": 1,
+                                        "items":
+                                        {
+                                            "title": "Match",
+                                            "type": "object",
+                                            "minProperties": 1,
+                                            "patternProperties":
+                                            {
+                                                "^[a-zA-Z]+[a-zA-Z0-9._-]*$":
+                                                {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "additionalProperties": false
+                                        }
+                                    }
+                                },
+                                "additionalProperties": false
+                            }
+                        },
+                        "additionalProperties": false
+                    }
+                }
+            }
+        }
+    }
+]
