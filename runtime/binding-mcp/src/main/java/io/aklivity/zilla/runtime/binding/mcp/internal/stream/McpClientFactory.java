@@ -132,6 +132,9 @@ public final class McpClientFactory implements McpStreamFactory
     private static final String STATUS_401 = "401";
     private static final String STATUS_403 = "403";
     private static final String STATUS_405 = "405";
+    private static final String STATUS_SUCCESSFUL_PREFIX = "2";
+    private static final int ERROR_CODE_INTERNAL = -32603;
+    private static final String ERROR_MESSAGE_INTERNAL = "Internal error";
     private static final Pattern BEARER_CHALLENGE_PATTERN = Pattern.compile(
         "^\\s*Bearer\\b" +
         "(?=.*?\\brealm\\s*=\\s*\"(?<realm>[^\"]*)\")?" +
@@ -4165,12 +4168,24 @@ public final class McpClientFactory implements McpStreamFactory
                 events.authorizationFailed(traceId, mcp.routedId, realm, scopes, resourceMetadata,
                     McpAuthorizationError.valueOf(error.name()));
             }
+            else if (status != null && !status.startsWith(STATUS_SUCCESSFUL_PREFIX) &&
+                doAppRejectError(traceId, authorization))
+            {
+                doNetReset(traceId, authorization);
+            }
             else
             {
                 mcp.onNetBegin(begin);
 
                 flushNetWindow(traceId, authorization, 0L);
             }
+        }
+
+        boolean doAppRejectError(
+            long traceId,
+            long authorization)
+        {
+            return false;
         }
 
         void onNetData(
@@ -5275,6 +5290,19 @@ public final class McpClientFactory implements McpStreamFactory
             super(mcp);
             this.request = (McpRequestStream) mcp;
             this.decoder = decodeJsonRpc;
+        }
+
+        @Override
+        boolean doAppRejectError(
+            long traceId,
+            long authorization)
+        {
+            final McpResetExFW mcpResetEx = mcpResetExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(mcpTypeId)
+                .error(e -> e.code(ERROR_CODE_INTERNAL).message(ERROR_MESSAGE_INTERNAL))
+                .build();
+            mcp.doAppReset(traceId, authorization, mcpResetEx);
+            return true;
         }
 
         @Override
