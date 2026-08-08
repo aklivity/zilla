@@ -18,6 +18,7 @@ package io.aklivity.zilla.runtime.binding.tls.internal.stream;
 import static io.aklivity.zilla.runtime.binding.tls.internal.identity.TlsClientX509ExtendedKeyManager.COMMON_NAME_PATTERN;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
+import static io.aklivity.zilla.runtime.engine.guard.GuardHandler.NOT_AUTHORIZED;
 import static java.lang.System.currentTimeMillis;
 import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -1686,12 +1687,14 @@ public final class TlsServerFactory implements TlsStreamFactory
 
             if (binding != null && binding.guard != null)
             {
+                // a configured guard is the authority for this session, so its verdict replaces
+                // the authorization inherited from the network stream rather than falling back
+                // to it; an unverified peer supplies no credentials and mints no session
                 final String credentials = binding.credentials(tlsSession);
 
-                if (credentials != null)
-                {
-                    sessionAuth = binding.guard.reauthorize(traceId, routedId, initialId, credentials);
-                }
+                sessionAuth = credentials != null
+                    ? binding.guard.reauthorize(traceId, routedId, initialId, credentials)
+                    : NOT_AUTHORIZED;
             }
 
             final TlsRouteConfig route = binding != null

@@ -14,15 +14,22 @@
 # under the License.
 #
 
-property authorization 0L
-
-connect "tls://localhost:9090"
-  option tls:transport "zilla://streams/net0"
-  option tls:trustStoreFile ${core:file('src/test/democa/client/trust')}
-  option tls:trustStorePassword "generated"
-  option zilla:authorization ${authorization}
+accept "zilla://streams/app1"
+  option zilla:authorization 0L
   option zilla:window 65536
   option zilla:transmission "duplex"
+  option zilla:throttle "message"
+accepted
+
+read zilla:begin.ext ${proxy:matchBeginEx()
+                              .typeId(zilla:id("proxy"))
+                              .info()
+                                .authority("localhost")
+                                .build()
+                              .build()}
+
 connected
 
-read closed
+read "Hello, world"
+
+write "Hello, world"

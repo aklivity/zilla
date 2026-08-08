@@ -14,10 +14,9 @@
 # under the License.
 #
 
-property authorization 1L
 
 accept "zilla://streams/app0"
-  option zilla:authorization ${authorization}
+  option zilla:authorization 1L
   option zilla:window 65536
   option zilla:transmission "duplex"
   option zilla:throttle "message"

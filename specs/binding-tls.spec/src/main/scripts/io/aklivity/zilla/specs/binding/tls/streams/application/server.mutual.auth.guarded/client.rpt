@@ -14,12 +14,11 @@
 # under the License.
 #
 
-property authorization 1L
 
 property client10k ${tls:randomBytes(10240)}
 
 connect "zilla://streams/app0"
-  option zilla:authorization ${authorization}
+  option zilla:authorization 1L
   option zilla:window 65536
   option zilla:transmission "duplex"
   option zilla:throttle "message"

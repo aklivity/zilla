@@ -186,3 +186,4 @@ bindings:
                 x509_0:
                   - partner
               exit: app0
+            - exit: app1

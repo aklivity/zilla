@@ -303,7 +303,8 @@ public class ServerIT
     @Test
     @Configuration("server.mutual.guarded.requested.yaml")
     @Specification({
-        "${net}/server.mutual.guarded.cert.absent/client"})
+        "${net}/server.mutual.cert.absent/client",
+        "${app}/server.mutual.guarded.unauthorized/server"})
     public void shouldNotAuthorizeGuardedRouteWhenClientCertAbsent() throws Exception
     {
         k3po.finish();

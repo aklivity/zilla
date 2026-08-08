@@ -14,19 +14,25 @@
 # under the License.
 #
 
-property authorization 0L
-
-accept "tls://localhost:9090"
-  option tls:transport "zilla://streams/net0"
-  option tls:keyStoreFile ${core:file('src/test/democa/server/keys')}
-  option tls:keyStorePassword "generated"
-  option tls:wantClientAuth "true"
-  option tls:trustStoreFile ${core:file('src/test/democa/server/trust')}
-  option tls:trustStorePassword "generated"
-  option zilla:authorization ${authorization}
+connect "zilla://streams/app1"
+  option zilla:authorization 0L
   option zilla:window 65536
   option zilla:transmission "duplex"
-accepted
+  option zilla:throttle "message"
+  option tls:keyStoreFile "src/test/democa/stores/server.want.auth/localhost"
+  option tls:keyStorePassword "generated"
+
+write zilla:begin.ext ${proxy:beginEx()
+                               .typeId(zilla:id("proxy"))
+                               .addressNone()
+                                 .build()
+                               .info()
+                                 .authority("localhost")
+                                 .build()
+                               .build()}
+
 connected
 
-write close
+write "Hello, world"
+
+read "Hello, world"
