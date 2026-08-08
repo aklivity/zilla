@@ -1,8 +1,8 @@
 # Changelog
 
-## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+## [2.1.0](https://github.com/aklivity/zilla/tree/2.1.0) (2026-08-08)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/2.0.0...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/2.0.0...2.1.0)
 
 **Closed issues:**
 
