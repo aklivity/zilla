@@ -87,6 +87,14 @@ const attempt = async () =>
     {
         await client.callTool({ name: "everything__toggle-subscriber-updates", arguments: {} });
         await client.unsubscribeResource({ uri });
+        try
+        {
+            await transport.terminateSession();
+        }
+        catch (err)
+        {
+            log(`failed to terminate session: ${err}`);
+        }
         await client.close();
     }
 
