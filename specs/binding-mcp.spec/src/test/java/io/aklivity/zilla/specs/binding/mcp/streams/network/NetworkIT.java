@@ -326,6 +326,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/tools.call.reject.status/client",
+        "${net}/tools.call.reject.status/server"})
+    public void shouldCallToolRejectedByStatus() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/tools.call.timeout/client",
         "${net}/tools.call.timeout/server"})
     public void shouldCallToolWithTimeout() throws Exception
