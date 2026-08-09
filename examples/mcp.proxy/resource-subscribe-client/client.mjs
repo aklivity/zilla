@@ -43,6 +43,14 @@ const headers = JWT_TOKEN ? { authorization: `Bearer ${JWT_TOKEN}` } : {};
 const START = Date.now();
 const log = (...args) => console.error("[client]", `+${((Date.now() - START) / 1000).toFixed(3)}s`, ...args);
 
+// node's own startup and the evaluation of the hoisted imports above both run
+// before START, so they are charged to the caller's wall-clock while landing
+// outside every stamp below. That blind spot is not theoretical: a 20.7s
+// round-trip measured here accounted for only 0.489s of client work, and the
+// missing ~20s was invisible until this line existed. process.uptime() is
+// exactly that span.
+log(`node startup and imports took ${process.uptime().toFixed(3)}s, before the stamps below`);
+
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const attempt = async () =>
