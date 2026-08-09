@@ -175,7 +175,7 @@ timed() {
   _start=$(date +%s)
   "$@"
   _rc=$?
-  TIMINGS="$TIMINGS$(( $(date +%s) - _start ))s $_label
+  TIMINGS="$TIMINGS$(( $(date +%s) - _start )) $_label
 "
   return $_rc
 }
@@ -184,7 +184,8 @@ report_timings() {
   if [ -n "$TIMINGS" ]
   then
     echo "=== elapsed by assertion ==="
-    printf '%s' "$TIMINGS"
+    printf '%s' "$TIMINGS" |
+      awk '{ total += $1 + 0; printf "%5ds  %s\n", $1 + 0, $2 } END { printf "%5ds  total\n", total }'
   fi
 }
 
@@ -295,7 +296,7 @@ initialize_mcp() {
       -d "$INITIALIZE")
   echo "$INIT_BODY" | grep -q '"protocolVersion":"2025-11-25"'
 }
-retry_until 10 3 initialize_mcp
+timed initialize_mcp retry_until 10 3 initialize_mcp
 echo INIT_BODY="$INIT_BODY"
 if echo "$INIT_BODY" | grep -q '"protocolVersion":"2025-11-25"'; then
   echo ✅ initialize negotiated 2025-11-25
@@ -369,7 +370,7 @@ cache_hydrated() {
     TOOLS_FULL=$(list_tools "$JWT_FULL") &&
     full_toolset_present
 }
-retry_until 60 5 cache_hydrated
+timed cache_hydrated retry_until 60 5 cache_hydrated
 if echo "$CACHE_INIT_BODY" | grep -q '"subscribe":true' && full_toolset_present; then
   echo "✅ tools/resources/prompts cache and resources.subscribe capability are hydrated"
 else
@@ -565,7 +566,7 @@ call_create_pr() {
       tools-list-client 2>&1)
   echo "$CREATE_PR_OUT" | grep -q 'Add feature'
 }
-retry_until 5 3 call_create_pr
+timed create_pr retry_until 5 3 call_create_pr
 echo "CREATE_PR_OUT=$CREATE_PR_OUT"
 if echo "$CREATE_PR_OUT" | grep -q 'Add feature'; then
   echo "✅ github__create_pr forwarded title/head/base to ghapi as the request body"
@@ -587,7 +588,7 @@ call_search_pets() {
   PETSTORE_LOGS=$(service_logs petstore)
   echo "$PETSTORE_LOGS" | grep -q 'search_pets query: {"tag":"cat"}'
 }
-retry_until 5 3 call_search_pets
+timed search_pets retry_until 5 3 call_search_pets
 echo "PETSTORE_LOGS=$PETSTORE_LOGS"
 if echo "$PETSTORE_LOGS" | grep -q 'search_pets query: {"tag":"cat"}'; then
   echo "✅ petstore__search_pets renamed category -> tag via with.params"
@@ -613,7 +614,7 @@ read_pull_by_number() {
   PULL_OUT=$(read_resource "$JWT_PARTIAL" "github+pr://acme/widget/42")
   echo "$PULL_OUT" | grep -q 'Seed data for the pull_by_number resource demo'
 }
-retry_until 5 3 read_pull_by_number
+timed pull_by_number retry_until 5 3 read_pull_by_number
 echo "PULL_OUT=$PULL_OUT"
 if echo "$PULL_OUT" | grep -q 'Seed data for the pull_by_number resource demo'; then
   echo "✅ github+pr://acme/widget/42 read end-to-end via the pull_by_number template"
@@ -628,7 +629,7 @@ read_featured_pets() {
   FEATURED_OUT=$(read_resource "$JWT_PARTIAL" "petstore+/pets/featured")
   echo "$FEATURED_OUT" | grep -q 'Bramble'
 }
-retry_until 10 5 read_featured_pets
+timed featured_pets retry_until 10 5 read_featured_pets
 echo "FEATURED_OUT=$FEATURED_OUT"
 if echo "$FEATURED_OUT" | grep -q 'Bramble'; then
   echo "✅ petstore+/pets/featured read end-to-end"
@@ -649,7 +650,7 @@ call_create_pet() {
       tools-list-client 2>&1)
   echo "$CREATE_PET_OUT" | grep -q 'Nibbles'
 }
-retry_until 5 3 call_create_pet
+timed create_pet retry_until 5 3 call_create_pet
 echo "CREATE_PET_OUT=$CREATE_PET_OUT"
 if echo "$CREATE_PET_OUT" | grep -q 'Nibbles'; then
   echo "✅ petstore__create_pet succeeded for a pets:write-scoped caller"
@@ -675,7 +676,7 @@ call_register_schema() {
       tools-list-client 2>&1)
   echo "$REGISTER_OUT" | grep -q 'Registered schema with id'
 }
-retry_until 10 3 call_register_schema
+timed register_schema retry_until 10 3 call_register_schema
 echo "REGISTER_OUT=$REGISTER_OUT"
 if echo "$REGISTER_OUT" | grep -q 'Registered schema with id'; then
   echo "✅ kafka_sr__register_schema registered a real schema against Karapace"
@@ -694,7 +695,7 @@ call_list_subjects() {
       tools-list-client 2>&1)
   echo "$LIST_SUBJECTS_OUT" | grep -q "$SR_SUBJECT"
 }
-retry_until 10 3 call_list_subjects
+timed list_subjects retry_until 10 3 call_list_subjects
 echo "LIST_SUBJECTS_OUT=$LIST_SUBJECTS_OUT"
 if echo "$LIST_SUBJECTS_OUT" | grep -q "$SR_SUBJECT"; then
   echo "✅ kafka_sr__list_subjects saw the registered subject in real Karapace state"
@@ -711,7 +712,7 @@ call_describe_subject() {
       tools-list-client 2>&1)
   echo "$DESCRIBE_SUBJECT_OUT" | grep -q '\[1\]'
 }
-retry_until 10 3 call_describe_subject
+timed describe_subject retry_until 10 3 call_describe_subject
 echo "DESCRIBE_SUBJECT_OUT=$DESCRIBE_SUBJECT_OUT"
 if echo "$DESCRIBE_SUBJECT_OUT" | grep -q '\[1\]'; then
   echo "✅ kafka_sr__describe_subject listed version 1 of the registered subject"
@@ -732,7 +733,7 @@ call_get_schema() {
       tools-list-client 2>&1)
   echo "$GET_SCHEMA_OUT" | grep -q 'Retrieved schema id 1, version 1'
 }
-retry_until 10 3 call_get_schema
+timed get_schema retry_until 10 3 call_get_schema
 echo "GET_SCHEMA_OUT=$GET_SCHEMA_OUT"
 if echo "$GET_SCHEMA_OUT" | grep -q 'Retrieved schema id 1, version 1'; then
   echo "✅ kafka_sr__get_schema read the schema back with both result fields interpolated"
@@ -754,7 +755,7 @@ call_set_compatibility() {
       tools-list-client 2>&1)
   echo "$SET_COMPAT_OUT" | grep -q 'Compatibility level set to FULL'
 }
-retry_until 10 3 call_set_compatibility
+timed set_compatibility retry_until 10 3 call_set_compatibility
 echo "SET_COMPAT_OUT=$SET_COMPAT_OUT"
 if echo "$SET_COMPAT_OUT" | grep -q 'Compatibility level set to FULL'; then
   echo "✅ kafka_sr__set_compatibility set a compatibility level on the registered subject"
@@ -771,7 +772,7 @@ call_get_compatibility() {
       tools-list-client 2>&1)
   echo "$GET_COMPAT_OUT" | grep -q 'Compatibility level is FULL'
 }
-retry_until 10 3 call_get_compatibility
+timed get_compatibility retry_until 10 3 call_get_compatibility
 echo "GET_COMPAT_OUT=$GET_COMPAT_OUT"
 if echo "$GET_COMPAT_OUT" | grep -q 'Compatibility level is FULL'; then
   echo "✅ kafka_sr__get_compatibility read back the level set above"
@@ -791,7 +792,7 @@ call_check_compatibility() {
       tools-list-client 2>&1)
   echo "$CHECK_COMPAT_OUT" | grep -q 'Compatibility check result: true'
 }
-retry_until 10 3 call_check_compatibility
+timed check_compatibility retry_until 10 3 call_check_compatibility
 echo "CHECK_COMPAT_OUT=$CHECK_COMPAT_OUT"
 if echo "$CHECK_COMPAT_OUT" | grep -q 'Compatibility check result: true'; then
   echo "✅ kafka_sr__check_compatibility reported the identical schema as compatible"
@@ -824,7 +825,7 @@ call_kafka_connect_list_plugins() {
       tools-list-client 2>&1)
   echo "$KC_LIST_PLUGINS_OUT" | grep -q 'FileStreamSourceConnector'
 }
-retry_until 30 5 call_kafka_connect_list_plugins
+timed kafka_connect_list_plugins retry_until 30 5 call_kafka_connect_list_plugins
 echo "KC_LIST_PLUGINS_OUT=$KC_LIST_PLUGINS_OUT"
 if echo "$KC_LIST_PLUGINS_OUT" | grep -q 'FileStreamSourceConnector'; then
   echo "✅ kafka_connect__list_connector_plugins listed the bundled FileStreamSourceConnector from the real worker"
@@ -851,7 +852,7 @@ call_kafka_connect_create_connector() {
       tools-list-client 2>&1)
   echo "$KC_CREATE_OUT" | grep -q "$KC_CONNECTOR"
 }
-retry_until 10 3 call_kafka_connect_create_connector
+timed kafka_connect_create_connector retry_until 10 3 call_kafka_connect_create_connector
 echo "KC_CREATE_OUT=$KC_CREATE_OUT"
 if echo "$KC_CREATE_OUT" | grep -q "$KC_CONNECTOR"; then
   echo "✅ kafka_connect__create_connector created a real connector on the real worker"
@@ -870,7 +871,7 @@ call_kafka_connect_list_connectors() {
       tools-list-client 2>&1)
   echo "$KC_LIST_OUT" | grep -q "$KC_CONNECTOR"
 }
-retry_until 10 3 call_kafka_connect_list_connectors
+timed kafka_connect_list_connectors retry_until 10 3 call_kafka_connect_list_connectors
 echo "KC_LIST_OUT=$KC_LIST_OUT"
 if echo "$KC_LIST_OUT" | grep -q "$KC_CONNECTOR"; then
   echo "✅ kafka_connect__list_connectors saw the created connector in real worker state"
@@ -887,7 +888,7 @@ call_kafka_connect_describe_connector() {
       tools-list-client 2>&1)
   echo "$KC_DESCRIBE_OUT" | grep -q 'FileStreamSourceConnector'
 }
-retry_until 10 3 call_kafka_connect_describe_connector
+timed kafka_connect_describe_connector retry_until 10 3 call_kafka_connect_describe_connector
 echo "KC_DESCRIBE_OUT=$KC_DESCRIBE_OUT"
 if echo "$KC_DESCRIBE_OUT" | grep -q 'FileStreamSourceConnector'; then
   echo "✅ kafka_connect__describe_connector read back the real connector's configuration"
@@ -906,7 +907,7 @@ call_kafka_connect_status_running() {
       tools-list-client 2>&1)
   echo "$KC_STATUS_OUT" | grep -q 'RUNNING'
 }
-retry_until 10 3 call_kafka_connect_status_running
+timed kafka_connect_status_running retry_until 10 3 call_kafka_connect_status_running
 echo "KC_STATUS_OUT=$KC_STATUS_OUT"
 if echo "$KC_STATUS_OUT" | grep -q 'RUNNING'; then
   echo "✅ kafka_connect__describe_connector_status reported the real connector as RUNNING"
@@ -932,7 +933,7 @@ call_kafka_connect_pause() {
       tools-list-client 2>&1)
   echo "$KC_STATUS_PAUSED_OUT" | grep -q 'PAUSED'
 }
-retry_until 10 3 call_kafka_connect_pause
+timed kafka_connect_pause retry_until 10 3 call_kafka_connect_pause
 echo "KC_PAUSE_OUT=$KC_PAUSE_OUT"
 echo "KC_STATUS_PAUSED_OUT=$KC_STATUS_PAUSED_OUT"
 if echo "$KC_STATUS_PAUSED_OUT" | grep -q 'PAUSED'; then
@@ -959,7 +960,7 @@ call_kafka_connect_resume() {
       tools-list-client 2>&1)
   echo "$KC_STATUS_RESUMED_OUT" | grep -q 'RUNNING'
 }
-retry_until 10 3 call_kafka_connect_resume
+timed kafka_connect_resume retry_until 10 3 call_kafka_connect_resume
 echo "KC_RESUME_OUT=$KC_RESUME_OUT"
 echo "KC_STATUS_RESUMED_OUT=$KC_STATUS_RESUMED_OUT"
 if echo "$KC_STATUS_RESUMED_OUT" | grep -q 'RUNNING'; then
@@ -986,7 +987,7 @@ call_kafka_connect_restart() {
       tools-list-client 2>&1)
   echo "$KC_STATUS_RESTARTED_OUT" | grep -q 'RUNNING'
 }
-retry_until 10 3 call_kafka_connect_restart
+timed kafka_connect_restart retry_until 10 3 call_kafka_connect_restart
 echo "KC_RESTART_OUT=$KC_RESTART_OUT"
 echo "KC_STATUS_RESTARTED_OUT=$KC_STATUS_RESTARTED_OUT"
 if echo "$KC_STATUS_RESTARTED_OUT" | grep -q 'RUNNING'; then
@@ -1013,7 +1014,7 @@ call_kafka_connect_delete_connector() {
       tools-list-client 2>&1)
   ! echo "$KC_LIST_AFTER_DELETE_OUT" | grep -q "$KC_CONNECTOR"
 }
-retry_until 10 3 call_kafka_connect_delete_connector
+timed kafka_connect_delete_connector retry_until 10 3 call_kafka_connect_delete_connector
 echo "KC_DELETE_OUT=$KC_DELETE_OUT"
 echo "KC_LIST_AFTER_DELETE_OUT=$KC_LIST_AFTER_DELETE_OUT"
 if ! echo "$KC_LIST_AFTER_DELETE_OUT" | grep -q "$KC_CONNECTOR"; then
@@ -1036,7 +1037,7 @@ call_kafka_produce() {
       tools-list-client 2>&1)
   echo "$KAFKA_PRODUCE_OUT" | grep -q 'Produced record to orders topic'
 }
-retry_until 10 3 call_kafka_produce
+timed kafka_produce retry_until 10 3 call_kafka_produce
 echo "KAFKA_PRODUCE_OUT=$KAFKA_PRODUCE_OUT"
 if echo "$KAFKA_PRODUCE_OUT" | grep -q 'Produced record to orders topic'; then
   echo "✅ kafka__produce_message wrote a record to the real Kafka broker"
@@ -1056,7 +1057,7 @@ call_kafka_consume_messages() {
       tools-list-client 2>&1)
   echo "$KAFKA_CONSUME_OUT" | grep -q 'hello from mcp-kafka'
 }
-retry_until 10 3 call_kafka_consume_messages
+timed kafka_consume_messages retry_until 10 3 call_kafka_consume_messages
 echo "KAFKA_CONSUME_OUT=$KAFKA_CONSUME_OUT"
 if echo "$KAFKA_CONSUME_OUT" | grep -q 'hello from mcp-kafka'; then
   echo "✅ kafka__consume_messages read the produced record back from the real Kafka broker"
@@ -1078,7 +1079,7 @@ call_kafka_describe_topic_configs() {
       tools-list-client 2>&1)
   echo "$KAFKA_DESCRIBE_CONFIGS_OUT" | grep -q '"name":"cleanup.policy"'
 }
-retry_until 10 3 call_kafka_describe_topic_configs
+timed kafka_describe_topic_configs retry_until 10 3 call_kafka_describe_topic_configs
 echo "KAFKA_DESCRIBE_CONFIGS_OUT=$KAFKA_DESCRIBE_CONFIGS_OUT"
 if echo "$KAFKA_DESCRIBE_CONFIGS_OUT" | grep -q '"name":"cleanup.policy"'; then
   echo "✅ kafka__describe_topic_configs read the real broker's effective topic config"
@@ -1101,7 +1102,7 @@ call_kafka_alter_topic_configs() {
       tools-list-client 2>&1)
   echo "$KAFKA_ALTER_CONFIGS_OUT" | grep -q 'Updated configs for topic orders'
 }
-retry_until 10 3 call_kafka_alter_topic_configs
+timed kafka_alter_topic_configs retry_until 10 3 call_kafka_alter_topic_configs
 echo "KAFKA_ALTER_CONFIGS_OUT=$KAFKA_ALTER_CONFIGS_OUT"
 if echo "$KAFKA_ALTER_CONFIGS_OUT" | grep -q 'Updated configs for topic orders'; then
   echo "✅ kafka__alter_topic_configs updated the topic config on the real Kafka broker"
@@ -1123,7 +1124,7 @@ call_kafka_create_topics() {
       tools-list-client 2>&1)
   echo "$KAFKA_CREATE_TOPICS_OUT" | grep -q 'Created topic(s): widgets'
 }
-retry_until 10 3 call_kafka_create_topics
+timed kafka_create_topics retry_until 10 3 call_kafka_create_topics
 echo "KAFKA_CREATE_TOPICS_OUT=$KAFKA_CREATE_TOPICS_OUT"
 if echo "$KAFKA_CREATE_TOPICS_OUT" | grep -q 'Created topic(s): widgets'; then
   echo "✅ kafka__create_topics created a new topic on the real Kafka broker"
@@ -1146,7 +1147,7 @@ call_kafka_delete_topics() {
       tools-list-client 2>&1)
   echo "$KAFKA_DELETE_TOPICS_OUT" | grep -q 'Deleted topic(s): widgets'
 }
-retry_until 10 3 call_kafka_delete_topics
+timed kafka_delete_topics retry_until 10 3 call_kafka_delete_topics
 echo "KAFKA_DELETE_TOPICS_OUT=$KAFKA_DELETE_TOPICS_OUT"
 if echo "$KAFKA_DELETE_TOPICS_OUT" | grep -q 'Deleted topic(s): widgets'; then
   echo "✅ kafka__delete_topics deleted the topic from the real Kafka broker"
@@ -1166,7 +1167,7 @@ call_kafka_list_topics() {
       tools-list-client 2>&1)
   echo "$KAFKA_LIST_TOPICS_OUT" | grep -q '"topic":"orders"'
 }
-retry_until 10 3 call_kafka_list_topics
+timed kafka_list_topics retry_until 10 3 call_kafka_list_topics
 echo "KAFKA_LIST_TOPICS_OUT=$KAFKA_LIST_TOPICS_OUT"
 if echo "$KAFKA_LIST_TOPICS_OUT" | grep -q '"topic":"orders"'; then
   echo "✅ kafka__list_topics listed the real orders topic from the real Kafka broker"
@@ -1187,7 +1188,7 @@ call_kafka_describe_topic() {
       tools-list-client 2>&1)
   echo "$KAFKA_DESCRIBE_TOPIC_OUT" | grep -q 'Described topic orders'
 }
-retry_until 10 3 call_kafka_describe_topic
+timed kafka_describe_topic retry_until 10 3 call_kafka_describe_topic
 echo "KAFKA_DESCRIBE_TOPIC_OUT=$KAFKA_DESCRIBE_TOPIC_OUT"
 if echo "$KAFKA_DESCRIBE_TOPIC_OUT" | grep -q 'Described topic orders' &&
     echo "$KAFKA_DESCRIBE_TOPIC_OUT" | grep -q '"partition":0'; then
@@ -1208,7 +1209,7 @@ call_kafka_cluster_overview() {
       tools-list-client 2>&1)
   echo "$KAFKA_CLUSTER_OVERVIEW_OUT" | grep -q 'Cluster overview:'
 }
-retry_until 10 3 call_kafka_cluster_overview
+timed kafka_cluster_overview retry_until 10 3 call_kafka_cluster_overview
 echo "KAFKA_CLUSTER_OVERVIEW_OUT=$KAFKA_CLUSTER_OVERVIEW_OUT"
 if echo "$KAFKA_CLUSTER_OVERVIEW_OUT" | grep -q '"broker_count":1'; then
   echo "✅ kafka__cluster_overview summarized the real Kafka broker"
@@ -1231,7 +1232,7 @@ call_kafka_list_brokers() {
       tools-list-client 2>&1)
   echo "$KAFKA_LIST_BROKERS_OUT" | grep -q 'Brokers: 1@kafka.examples.dev:29092'
 }
-retry_until 10 3 call_kafka_list_brokers
+timed kafka_list_brokers retry_until 10 3 call_kafka_list_brokers
 echo "KAFKA_LIST_BROKERS_OUT=$KAFKA_LIST_BROKERS_OUT"
 if echo "$KAFKA_LIST_BROKERS_OUT" | grep -q 'Brokers: 1@kafka.examples.dev:29092'; then
   echo "✅ kafka__list_brokers listed the real Kafka broker"
@@ -1252,7 +1253,7 @@ call_kafka_describe_cluster() {
       tools-list-client 2>&1)
   echo "$KAFKA_DESCRIBE_CLUSTER_OUT" | grep -q 'Described cluster .*, controller 1'
 }
-retry_until 10 3 call_kafka_describe_cluster
+timed kafka_describe_cluster retry_until 10 3 call_kafka_describe_cluster
 echo "KAFKA_DESCRIBE_CLUSTER_OUT=$KAFKA_DESCRIBE_CLUSTER_OUT"
 if echo "$KAFKA_DESCRIBE_CLUSTER_OUT" | grep -q 'Described cluster .*, controller 1'; then
   echo "✅ kafka__describe_cluster reported the real broker as controller"
@@ -1277,7 +1278,7 @@ call_describe_group_before_reset() {
       tools-list-client 2>&1)
   echo "$DESCRIBE_GROUP_BEFORE_OUT" | grep -q "Consumer group $CONSUMER_GROUP is Dead"
 }
-retry_until 10 3 call_describe_group_before_reset
+timed describe_group_before_reset retry_until 10 3 call_describe_group_before_reset
 echo "DESCRIBE_GROUP_BEFORE_OUT=$DESCRIBE_GROUP_BEFORE_OUT"
 if echo "$DESCRIBE_GROUP_BEFORE_OUT" | grep -q "Consumer group $CONSUMER_GROUP is Dead"; then
   echo "✅ kafka__describe_consumer_group reported state Dead for a never-used group"
@@ -1301,7 +1302,7 @@ call_describe_group_lag() {
       tools-list-client 2>&1)
   echo "$DESCRIBE_GROUP_LAG_OUT" | grep -q "Consumer group $CONSUMER_GROUP has total lag 0"
 }
-retry_until 10 3 call_describe_group_lag
+timed describe_group_lag retry_until 10 3 call_describe_group_lag
 echo "DESCRIBE_GROUP_LAG_OUT=$DESCRIBE_GROUP_LAG_OUT"
 if echo "$DESCRIBE_GROUP_LAG_OUT" | grep -q "Consumer group $CONSUMER_GROUP has total lag 0"; then
   echo "✅ kafka__describe_consumer_group_lag reported total lag 0 for a never-used group"
@@ -1333,7 +1334,7 @@ call_kafka_list_consumer_groups() {
       tools-list-client 2>&1)
   echo "$KAFKA_LIST_GROUPS_OUT" | grep -qE "Consumer groups:|No consumer groups found"
 }
-retry_until 10 3 call_kafka_list_consumer_groups
+timed kafka_list_consumer_groups retry_until 10 3 call_kafka_list_consumer_groups
 echo "KAFKA_LIST_GROUPS_OUT=$KAFKA_LIST_GROUPS_OUT"
 if echo "$KAFKA_LIST_GROUPS_OUT" | grep -qE "Consumer groups:|No consumer groups found"; then
   echo "✅ kafka__list_consumer_groups succeeded against the real Kafka broker"
@@ -1362,7 +1363,7 @@ call_kafka_create_acls() {
       tools-list-client 2>&1)
   echo "$KAFKA_CREATE_ACLS_OUT" | grep -q 'Created 1 ACL(s)'
 }
-retry_until 10 3 call_kafka_create_acls
+timed kafka_create_acls retry_until 10 3 call_kafka_create_acls
 echo "KAFKA_CREATE_ACLS_OUT=$KAFKA_CREATE_ACLS_OUT"
 if echo "$KAFKA_CREATE_ACLS_OUT" | grep -q 'Created 1 ACL(s)'; then
   echo "✅ kafka__create_acls granted a real ACL on the real Kafka broker"
@@ -1384,7 +1385,7 @@ call_kafka_list_acls() {
       tools-list-client 2>&1)
   echo "$KAFKA_LIST_ACLS_OUT" | grep -q "\"principal\":\"$ACL_PRINCIPAL\""
 }
-retry_until 10 3 call_kafka_list_acls
+timed kafka_list_acls retry_until 10 3 call_kafka_list_acls
 echo "KAFKA_LIST_ACLS_OUT=$KAFKA_LIST_ACLS_OUT"
 if echo "$KAFKA_LIST_ACLS_OUT" | grep -q "\"principal\":\"$ACL_PRINCIPAL\"" &&
     echo "$KAFKA_LIST_ACLS_OUT" | grep -q '"resource_name":"acl-test-topic"'; then
@@ -1407,7 +1408,7 @@ call_kafka_delete_acls() {
       tools-list-client 2>&1)
   echo "$KAFKA_DELETE_ACLS_OUT" | grep -q 'Deleted 1 ACL(s)'
 }
-retry_until 10 3 call_kafka_delete_acls
+timed kafka_delete_acls retry_until 10 3 call_kafka_delete_acls
 echo "KAFKA_DELETE_ACLS_OUT=$KAFKA_DELETE_ACLS_OUT"
 if echo "$KAFKA_DELETE_ACLS_OUT" | grep -q 'Deleted 1 ACL(s)'; then
   echo "✅ kafka__delete_acls revoked the real ACL on the real Kafka broker"
@@ -1423,7 +1424,7 @@ fi
 # cannot see coming. Re-check freshly right before the one assertion that
 # still depends on it, rather than re-adding a retry around the assertion
 # itself for what is really the same one-time-per-window race as before
-retry_until 60 5 cache_hydrated
+timed cache_rehydrated retry_until 60 5 cache_hydrated
 if echo "$CACHE_INIT_BODY" | grep -q '"subscribe":true' && full_toolset_present; then
   echo "✅ tools/resources/prompts cache is still hydrated ahead of the resources/subscribe round-trip"
 else
