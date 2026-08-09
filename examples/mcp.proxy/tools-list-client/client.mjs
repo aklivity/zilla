@@ -34,7 +34,20 @@ const READ_RESOURCE = process.env.READ_RESOURCE;
 
 const headers = JWT_TOKEN ? { authorization: `Bearer ${JWT_TOKEN}` } : {};
 
-const log = (...args) => console.error("[client]", ...args);
+// Elapsed rather than wall-clock: this process's stderr is captured by the
+// caller and only reaches the log when it exits, so every line lands with the
+// same flush timestamp. Stamping each line with its own offset from start is
+// what makes the sequence -- and any gap in it -- readable after the fact.
+const START = Date.now();
+const log = (...args) => console.error("[client]", `+${((Date.now() - START) / 1000).toFixed(3)}s`, ...args);
+
+// node's own startup and the evaluation of the hoisted imports above both run
+// before START, so they are charged to the caller's wall-clock while landing
+// outside every stamp below. That blind spot is not theoretical: a 20.7s
+// round-trip measured here accounted for only 0.489s of client work, and the
+// missing ~20s was invisible until this line existed. process.uptime() is
+// exactly that span.
+log(`node startup and imports took ${process.uptime().toFixed(3)}s, before the stamps below`);
 
 const main = async () =>
 {
@@ -99,12 +112,14 @@ const main = async () =>
         try
         {
             await transport.terminateSession();
+            log("terminated session");
         }
         catch (err)
         {
             log(`failed to terminate session: ${err}`);
         }
         await client.close();
+        log("closed client");
     }
 };
 
