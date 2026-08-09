@@ -160,6 +160,34 @@ set -x
 
 . /test-lib.sh
 
+
+# Wall-clock per assertion, accumulated here and reported as one block at the end
+# rather than printed where it is measured. The log is read back tail-first under a
+# hard line cap, and this script emits enough output that everything before the last
+# few assertions falls outside that window -- which is why the subscribe round-trip
+# could be measured from CI and the url-elicit one could not. Reporting at the end
+# puts every timing in the tail. Whole seconds, because the delays worth naming are
+# tens of seconds and `date +%N` is not portable to the busybox date in here.
+TIMINGS=""
+timed() {
+  _label=$1
+  shift
+  _start=$(date +%s)
+  "$@"
+  _rc=$?
+  TIMINGS="$TIMINGS$(( $(date +%s) - _start ))s $_label
+"
+  return $_rc
+}
+
+report_timings() {
+  if [ -n "$TIMINGS" ]
+  then
+    echo "=== elapsed by assertion ==="
+    printf '%s' "$TIMINGS"
+  fi
+}
+
 EXIT=0
 PORT="7114"
 INITIALIZE='{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{"elicitation":{"url":{}}},"clientInfo":{"name":"zilla-mcp-proxy-test","version":"0.0.1"}}}'
@@ -363,7 +391,7 @@ relay_elicitation() {
       urlelicit-client 2>&1)
   echo "$ELICIT_OUT" | grep -q 'OK url-mode elicitation relayed end-to-end'
 }
-retry_until 10 3 relay_elicitation
+timed elicitation retry_until 10 3 relay_elicitation
 echo "$ELICIT_OUT"
 if echo "$ELICIT_OUT" | grep -q 'OK url-mode elicitation relayed end-to-end'; then
   echo ✅ url-mode elicitation relayed end-to-end
@@ -1430,7 +1458,7 @@ subscribe_resource() {
   SUBSCRIBE_OUT=$(MCP_TIMEOUT_S="$MCP_SUBSCRIBE_TIMEOUT_S" mcp_run resource-subscribe-client 2>&1)
   echo "$SUBSCRIBE_OUT" | grep -q 'OK resource subscription relayed end-to-end'
 }
-retry_until 3 5 subscribe_resource
+timed subscribe retry_until 3 5 subscribe_resource
 echo "SUBSCRIBE_OUT=$SUBSCRIBE_OUT"
 if echo "$SUBSCRIBE_OUT" | grep -q 'OK resource subscription relayed end-to-end'; then
   echo "✅ resources/subscribe, notifications/resources/updated, and resources/unsubscribe relayed end-to-end"
@@ -1438,6 +1466,7 @@ else
   fail "resource subscription round-trip did not relay end-to-end"
 fi
 
+report_timings
 report_failures
 
 exit $EXIT
