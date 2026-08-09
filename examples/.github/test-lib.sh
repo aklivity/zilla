@@ -75,6 +75,12 @@ retry_until() {
 # a long log the failing assertion can be past the reach of the log-tail APIs
 # altogether, leaving nothing to diagnose from but the exit code.
 FAILURES=""
+# When FAIL_FAST is 1, the first failure stops the run instead of letting the
+# remaining assertions execute. That matters when the diagnosis is frame-level:
+# `zilla dump` reads what the engine directory still holds, so the frames worth
+# looking at have to be the most recent ones. Traffic after the first failure
+# buries them. Off by default, so every other example behaves exactly as before.
+FAIL_FAST=${FAIL_FAST:-0}
 
 fail() {
   _message="$*"
@@ -83,6 +89,13 @@ fail() {
   FAILURES="$FAILURES$_message
 "
   EXIT=1
+
+  if [ "$FAIL_FAST" = "1" ]
+  then
+    echo "FAIL_FAST=1, stopping at the first failure so the engine directory still holds its frames"
+    report_failures
+    exit 1
+  fi
 }
 
 # report_failures

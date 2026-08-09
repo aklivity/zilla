@@ -267,6 +267,46 @@ service_logs() {
 
 COMPOSE_PROJECT=$(docker inspect -f '{{ index .Config.Labels "com.docker.compose.project" }}' "$(hostname)")
 
+# retry_deadline <total_seconds> <delay_seconds> <command...>
+#
+# retry_until bounds attempts, not time, so its real cost is attempts x how long
+# the probe takes to fail -- and that is set by the failure path, not by whoever
+# wrote the count. `retry_until 60 5` over the cache_hydrated probe reads like a
+# short gate but bills ~37s per failed attempt, so it consumed the whole 30m
+# Execute Test budget at attempt 50 without ever reaching the assertion it guards.
+# A deadline states what the gate actually means -- wait this long for the cache to
+# hydrate -- and costs the same whether the probe fails fast or slow.
+#
+# As in retry_until, the first retry is immediate and the delay applies from the
+# second retry onward: the probe's own duration is already the settle time, so a
+# gate that needs exactly one retry should not also pay <delay_seconds> to
+# re-observe a condition that has since become true.
+retry_deadline() {
+  _deadline=$(( $(date +%s) + $1 ))
+  _delay=$2
+  shift 2
+
+  _retried=0
+  until "$@"
+  do
+    _status=$?
+    if [ "$(date +%s)" -ge "$_deadline" ]
+    then
+      return "$_status"
+    fi
+    if [ "$_retried" -eq 1 ]
+    then
+      sleep "$_delay"
+    fi
+    _retried=1
+  done
+}
+
+# 7m per hydration gate, so the two of them cannot crowd out the assertions between
+# them inside the step cap. Comfortably longer than a healthy hydrate, which lands
+# in seconds.
+CACHE_HYDRATE_TIMEOUT_S=${CACHE_HYDRATE_TIMEOUT_S:-420}
+
 # The JWTs the authn_jwt guard validates are minted by .github/test.sh before
 # this container starts and arrive as environment, one per scope combination
 # under test. They are signed by jwt-cli, which is a container of its own with
@@ -370,7 +410,7 @@ cache_hydrated() {
     TOOLS_FULL=$(list_tools "$JWT_FULL") &&
     full_toolset_present
 }
-timed cache_hydrated retry_until 60 5 cache_hydrated
+timed cache_hydrated retry_deadline "$CACHE_HYDRATE_TIMEOUT_S" 5 cache_hydrated
 if echo "$CACHE_INIT_BODY" | grep -q '"subscribe":true' && full_toolset_present; then
   echo "✅ tools/resources/prompts cache and resources.subscribe capability are hydrated"
 else
@@ -588,7 +628,7 @@ call_search_pets() {
   PETSTORE_LOGS=$(service_logs petstore)
   echo "$PETSTORE_LOGS" | grep -q 'search_pets query: {"tag":"cat"}'
 }
-timed search_pets retry_until 5 3 call_search_pets
+timed search_pets retry_deadline 90 3 call_search_pets
 echo "PETSTORE_LOGS=$PETSTORE_LOGS"
 if echo "$PETSTORE_LOGS" | grep -q 'search_pets query: {"tag":"cat"}'; then
   echo "✅ petstore__search_pets renamed category -> tag via with.params"
@@ -907,7 +947,7 @@ call_kafka_connect_status_running() {
       tools-list-client 2>&1)
   echo "$KC_STATUS_OUT" | grep -q 'RUNNING'
 }
-timed kafka_connect_status_running retry_until 10 3 call_kafka_connect_status_running
+timed kafka_connect_status_running retry_deadline 120 5 call_kafka_connect_status_running
 echo "KC_STATUS_OUT=$KC_STATUS_OUT"
 if echo "$KC_STATUS_OUT" | grep -q 'RUNNING'; then
   echo "✅ kafka_connect__describe_connector_status reported the real connector as RUNNING"
@@ -1424,7 +1464,7 @@ fi
 # cannot see coming. Re-check freshly right before the one assertion that
 # still depends on it, rather than re-adding a retry around the assertion
 # itself for what is really the same one-time-per-window race as before
-timed cache_rehydrated retry_until 60 5 cache_hydrated
+timed cache_rehydrated retry_deadline "$CACHE_HYDRATE_TIMEOUT_S" 5 cache_hydrated
 if echo "$CACHE_INIT_BODY" | grep -q '"subscribe":true' && full_toolset_present; then
   echo "✅ tools/resources/prompts cache is still hydrated ahead of the resources/subscribe round-trip"
 else
