@@ -158,6 +158,13 @@
 # streamed body / client output rather than asserting exact-string equality.
 set -x
 
+# Stop at the first failure so a failing run is diagnosable from its own logs
+# rather than needing a rerun. The workflow collects docker logs on failure, and
+# ~40 further assertions after the first one buries the relevant output under
+# traffic that is no longer about the failure. Override with FAIL_FAST=0 to see
+# the full assertion sweep instead.
+FAIL_FAST=${FAIL_FAST:-1}
+
 . /test-lib.sh
 
 

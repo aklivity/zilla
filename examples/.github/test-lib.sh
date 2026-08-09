@@ -92,7 +92,7 @@ fail() {
 
   if [ "$FAIL_FAST" = "1" ]
   then
-    echo "FAIL_FAST=1, stopping at the first failure so the engine directory still holds its frames"
+    echo "FAIL_FAST=1, stopping at the first failure so the collected diagnostics still point at it"
     report_failures
     exit 1
   fi
