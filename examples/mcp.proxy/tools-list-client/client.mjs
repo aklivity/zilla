@@ -34,7 +34,12 @@ const READ_RESOURCE = process.env.READ_RESOURCE;
 
 const headers = JWT_TOKEN ? { authorization: `Bearer ${JWT_TOKEN}` } : {};
 
-const log = (...args) => console.error("[client]", ...args);
+// Elapsed rather than wall-clock: this process's stderr is captured by the
+// caller and only reaches the log when it exits, so every line lands with the
+// same flush timestamp. Stamping each line with its own offset from start is
+// what makes the sequence -- and any gap in it -- readable after the fact.
+const START = Date.now();
+const log = (...args) => console.error("[client]", `+${((Date.now() - START) / 1000).toFixed(3)}s`, ...args);
 
 const main = async () =>
 {
