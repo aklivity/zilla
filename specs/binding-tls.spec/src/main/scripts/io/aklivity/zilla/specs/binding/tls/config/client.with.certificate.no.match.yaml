@@ -16,6 +16,22 @@
 
 ---
 name: test
+telemetry:
+    exporters:
+        exporter0:
+            type: test
+            options:
+                events:
+                    - qname: engine:events
+                      id: engine.started
+                      name: ENGINE_STARTED
+                      message: Engine Started.
+                    - qname: test:app0
+                      id: binding.tls.client.certificate.not.matched
+                      name: BINDING_TLS_CLIENT_CERTIFICATE_NOT_MATCHED
+                      message: >-
+                        The route certificate properties (subject.cn=client2) matched no candidate key,
+                        so no client certificate was presented.
 vaults:
     client:
         type: test

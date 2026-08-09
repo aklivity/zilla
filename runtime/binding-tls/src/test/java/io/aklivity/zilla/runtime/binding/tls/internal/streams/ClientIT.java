@@ -137,6 +137,63 @@ public class ClientIT
         k3po.finish();
     }
 
+    // Two candidate keys, each signed by a different client ca, and the far end trusts only one
+    // of them. The handshake completes only if the route selected the key the far end trusts, so
+    // the pair pins which certificate reached the wire rather than merely that one did.
+    @Test
+    @Configuration("client.with.certificate.select.first.yaml")
+    @Specification({
+        "${app}/client.auth.with.certificate/client",
+        "${net}/client.auth.trusted.first/server" })
+    public void shouldEstablishConnectionWithCertificateSelectedFirst() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.with.certificate.select.second.yaml")
+    @Specification({
+        "${app}/client.auth.with.certificate/client",
+        "${net}/client.auth.trusted.second/server" })
+    public void shouldEstablishConnectionWithCertificateSelectedSecond() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // both candidates carry subject.cn client1, so the selection is decided by issue date; the
+    // later one is signed by the client ca the far end trusts and the earlier one is not
+    @Test
+    @Configuration("client.with.certificate.select.newest.yaml")
+    @Specification({
+        "${app}/client.auth.with.certificate/client",
+        "${net}/client.auth.trusted.second/server" })
+    public void shouldEstablishConnectionWithCertificateSelectedNewest() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.with.certificate.match.all.yaml")
+    @Specification({
+        "${app}/client.auth.with.certificate/client",
+        "${net}/client.auth.trusted.first/server" })
+    public void shouldEstablishConnectionWithCertificateMatchingAllProperties() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // subject.cn names one candidate and subject.dn the other, so the properties are satisfiable
+    // only apart; matching them together selects nothing and the event names the whole selector
+    @Test
+    @Configuration("client.with.certificate.match.all.no.match.yaml")
+    @Specification({
+        "${app}/client.auth.with.certificate.not.matched/client",
+        "${net}/client.auth.with.certificate.not.matched/server" })
+    public void shouldLogClientCertificateNotMatchedEventWhenPropertiesMatchApart() throws Exception
+    {
+        k3po.finish();
+    }
+
     // a failed TLS handshake cannot be scripted against a k3po tls:// accept, which completes
     // only on success; `rejected` does not help, since no child channel is ever bound. Same
     // limitation as shouldRejectClientAuthMismatched below. Covered by

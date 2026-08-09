@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.tls.internal;
 
 import io.aklivity.zilla.runtime.binding.tls.internal.types.StringFW;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.event.EventFW;
+import io.aklivity.zilla.runtime.binding.tls.internal.types.event.TlsClientCertificateNotMatchedExFW;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.event.TlsClientCertificateNotResolvedExFW;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.event.TlsEventExFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
@@ -68,6 +69,14 @@ public final class TlsEventFormatter implements EventFormatterSpi
             result = String.format(
                 "The route certificate property (%s) resolved to no value, so no client certificate was presented.",
                 asString(ex.field()));
+            break;
+        }
+        case TLS_CLIENT_CERTIFICATE_NOT_MATCHED:
+        {
+            TlsClientCertificateNotMatchedExFW ex = extension.tlsClientCertificateNotMatched();
+            result = String.format(
+                "The route certificate properties (%s) matched no candidate key, so no client certificate was presented.",
+                asString(ex.selector()));
             break;
         }
         }

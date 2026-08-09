@@ -66,19 +66,26 @@ If no candidate matches, no certificate is presented. Whether that is fatal is u
 to the far end: a server that requires client authentication will fail the
 handshake, and one that does not will complete it.
 
+When more than one candidate matches, every one of them satisfies the route, so
+the choice between them is immaterial to the configuration — but it must not vary
+between runs. Keystore enumeration order carries no such guarantee, so selection
+takes the candidate with the latest `notBefore`, breaking ties on thumbprint.
+That also prefers the new certificate while an old one is still valid during a
+rotation, which is the usual reason two candidates match at once.
+
 ### Behaviour on misconfiguration
 
 - A `${guarded['name']...}` expression naming a guard that does not resolve is a
   configuration error, reported when the binding is attached. Left unchecked it
   would select no certificate on every stream and surface only as a handshake
   failure at the far end.
-- Two candidate keys that share a value for every property named by a route are
-  rejected at configuration load. Both sides are static, so the ambiguity is
-  decidable up front; resolving it arbitrarily by keystore order would be silent
-  and unstable.
 - An expression that resolves to no value at runtime emits a
   `binding.tls.client.certificate.not.resolved` event naming the property that
   did not resolve, and no certificate is presented.
+- A selection that matches no candidate key emits a
+  `binding.tls.client.certificate.not.matched` event naming the whole selector,
+  and no certificate is presented. Without it a no-match is visible only as a
+  handshake failure at the far end, with nothing logged locally.
 
 A literal `subject.dn` is canonicalized when the configuration is read, using the
 same renderer that produces the `subject.dn` property of a certificate. Canonical

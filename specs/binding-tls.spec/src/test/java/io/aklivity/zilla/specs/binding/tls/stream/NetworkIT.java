@@ -143,6 +143,24 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/client.auth.trusted.first/client",
+        "${net}/client.auth.trusted.first/server"})
+    public void shouldEstablishConnectionWithClientAuthTrustedFirst() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/client.auth.trusted.second/client",
+        "${net}/client.auth.trusted.second/server"})
+    public void shouldEstablishConnectionWithClientAuthTrustedSecond() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/echo.payload.length.10k/client",
         "${net}/echo.payload.length.10k/server"})
     @ScriptProperty("authorization 0x0001_000000000000L")

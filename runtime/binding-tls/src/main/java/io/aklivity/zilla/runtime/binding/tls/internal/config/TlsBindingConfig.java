@@ -89,6 +89,7 @@ public final class TlsBindingConfig
 
     private SSLContext context;
     private TlsEventContext events;
+    private TlsClientX509ExtendedKeyManager clientKeyManager;
 
     private boolean clientHttpsIdentification;
     private boolean clientServerNameIndication;
@@ -180,9 +181,7 @@ public final class TlsBindingConfig
                         if (keyManagers[i] instanceof X509ExtendedKeyManager)
                         {
                             X509ExtendedKeyManager keyManager = (X509ExtendedKeyManager) keyManagers[i];
-                            TlsClientX509ExtendedKeyManager clientKeyManager =
-                                new TlsClientX509ExtendedKeyManager(config, keyManager);
-                            assertUnambiguous(clientKeyManager);
+                            this.clientKeyManager = new TlsClientX509ExtendedKeyManager(config, keyManager);
                             keyManagers[i] = clientKeyManager;
                         }
                     }
@@ -390,9 +389,17 @@ public final class TlsBindingConfig
         {
             certificate = with.resolve(authorization);
 
-            if (certificate == null && events != null)
+            if (certificate == null)
             {
-                events.tlsClientCertificateNotResolved(traceId, id, with.unresolvedField(authorization));
+                if (events != null)
+                {
+                    events.tlsClientCertificateNotResolved(traceId, id, with.unresolvedField(authorization));
+                }
+            }
+            else if (events != null && clientKeyManager != null && !clientKeyManager.matchesAny(certificate))
+            {
+                // the selector is still applied, so no certificate is presented rather than a default one
+                events.tlsClientCertificateNotMatched(traceId, id, asSelector(certificate));
             }
         }
         else if (beginEx != null)
@@ -409,25 +416,6 @@ public final class TlsBindingConfig
         }
 
         return certificate;
-    }
-
-    private void assertUnambiguous(
-        TlsClientX509ExtendedKeyManager keyManager)
-    {
-        for (TlsRouteConfig route : routes)
-        {
-            if (route.with != null)
-            {
-                List<String> subjects = keyManager.indistinguishableSubjects(route.with.fieldNames());
-
-                if (!subjects.isEmpty())
-                {
-                    throw new IllegalArgumentException(String.format(
-                        "binding %s route with.certificate on %s cannot distinguish candidate keys %s",
-                        qname, route.with.fieldNames(), subjects));
-                }
-            }
-        }
     }
 
     public SSLEngine newServerEngine(
@@ -459,6 +447,14 @@ public final class TlsBindingConfig
         }
 
         return engine;
+    }
+
+    private static String asSelector(
+        Map<String, String> certificate)
+    {
+        return certificate.entrySet().stream()
+                .map(e -> String.format("%s=%s", e.getKey(), e.getValue()))
+                .collect(Collectors.joining(", "));
     }
 
     private static GuardHandler resolveGuard(

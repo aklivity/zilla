@@ -51,7 +51,7 @@ public final class TestVaultHandler implements VaultHandler
             "(?<key>-----BEGIN PRIVATE KEY-----[^-]+-----END PRIVATE KEY-----[^-]*)" +
             "(?<chain>(?:-----BEGIN CERTIFICATE-----[^-]+-----END CERTIFICATE-----[^-]*)+)");
 
-    private final TestVaultEntryConfig key;
+    private final List<TestVaultEntryConfig> keys;
     private final TestVaultEntryConfig signer;
     private final List<TestVaultEntryConfig> trust;
 
@@ -59,7 +59,7 @@ public final class TestVaultHandler implements VaultHandler
         VaultConfig vault)
     {
         TestVaultOptionsConfig options = (TestVaultOptionsConfig) vault.options;
-        this.key = options != null ? options.key : null;
+        this.keys = options != null ? options.keys : null;
         this.signer = options != null ? options.signer : null;
         this.trust = options != null ? options.trust : null;
     }
@@ -70,57 +70,88 @@ public final class TestVaultHandler implements VaultHandler
     {
         KeyManagerFactory factory = null;
 
-        if (aliases != null && key != null && aliases.contains(key.alias))
+        List<TestVaultEntryConfig> matched = matchedKeys(aliases);
+
+        if (!matched.isEmpty())
         {
-            final Matcher matchKey = PATTERN_KEY_ENTRY.matcher(key.entry);
-            if (matchKey.matches())
+            try
             {
-                String encodedKey = matchKey.group("key");
-                String encodedChain = matchKey.group("chain");
+                KeyStore.PasswordProtection protection = new KeyStore.PasswordProtection("test".toCharArray());
 
-                try
+                KeyStore store = KeyStore.getInstance("PKCS12");
+                store.load(null, protection.getPassword());
+
+                for (TestVaultEntryConfig key : matched)
                 {
-                    CertificateFactory x509 = CertificateFactory.getInstance("X509");
+                    final Matcher matchKey = PATTERN_KEY_ENTRY.matcher(key.entry);
+                    if (matchKey.matches())
+                    {
+                        store.setEntry(key.alias, newKeyEntry(matchKey), protection);
+                    }
+                }
 
-                    InputStream exportedBytes = new ByteArrayInputStream(encodedChain.getBytes(US_ASCII));
-
-                    Certificate[] chain = x509.generateCertificates(exportedBytes).toArray(Certificate[]::new);
-
-                    String base64 = encodedKey
-                            .replace("-----BEGIN PRIVATE KEY-----", "")
-                            .replace("-----END PRIVATE KEY-----", "")
-                            .replaceAll("[^a-zA-Z0-9+/=]", "");
-                    byte[] encoded = Base64.getMimeDecoder().decode(base64);
-
-                    KeySpec keySpec = new PKCS8EncodedKeySpec(encoded);
-                    KeyFactory rsa = KeyFactory.getInstance("RSA");
-                    PrivateKey rsaKey = rsa.generatePrivate(keySpec);
-
-                    KeyStore.PrivateKeyEntry entry = new KeyStore.PrivateKeyEntry(rsaKey, chain);
-
-                    KeyStore store = KeyStore.getInstance("PKCS12");
-                    KeyStore.PasswordProtection protection = new KeyStore.PasswordProtection("test".toCharArray());
-                    store.load(null, protection.getPassword());
-
-                    store.setEntry(key.alias, entry, protection);
-
+                if (store.size() != 0)
+                {
                     factory = KeyManagerFactory.getInstance("PKIX");
                     factory.init(store, protection.getPassword());
                 }
-                catch (Exception ex)
-                {
-                    LangUtil.rethrowUnchecked(ex);
-                }
+            }
+            catch (Exception ex)
+            {
+                LangUtil.rethrowUnchecked(ex);
             }
         }
 
         return factory;
     }
 
+    private static KeyStore.PrivateKeyEntry newKeyEntry(
+        Matcher matchKey)
+        throws Exception
+    {
+        String encodedKey = matchKey.group("key");
+        String encodedChain = matchKey.group("chain");
+
+        CertificateFactory x509 = CertificateFactory.getInstance("X509");
+
+        InputStream exportedBytes = new ByteArrayInputStream(encodedChain.getBytes(US_ASCII));
+
+        Certificate[] chain = x509.generateCertificates(exportedBytes).toArray(Certificate[]::new);
+
+        String base64 = encodedKey
+                .replace("-----BEGIN PRIVATE KEY-----", "")
+                .replace("-----END PRIVATE KEY-----", "")
+                .replaceAll("[^a-zA-Z0-9+/=]", "");
+        byte[] encoded = Base64.getMimeDecoder().decode(base64);
+
+        KeySpec keySpec = new PKCS8EncodedKeySpec(encoded);
+        KeyFactory rsa = KeyFactory.getInstance("RSA");
+        PrivateKey rsaKey = rsa.generatePrivate(keySpec);
+
+        return new KeyStore.PrivateKeyEntry(rsaKey, chain);
+    }
+
+    private List<TestVaultEntryConfig> matchedKeys(
+        List<String> aliases)
+    {
+        List<TestVaultEntryConfig> matched = new ArrayList<>();
+        if (aliases != null && keys != null)
+        {
+            for (TestVaultEntryConfig key : keys)
+            {
+                if (aliases.contains(key.alias))
+                {
+                    matched.add(key);
+                }
+            }
+        }
+        return matched;
+    }
+
     @Override
     public KeyManagerFactory initKeys()
     {
-        return key != null ? initKeys(List.of(key.alias)) : null;
+        return keys != null ? initKeys(keys.stream().map(entry -> entry.alias).toList()) : null;
     }
 
     @Override
@@ -131,9 +162,13 @@ public final class TestVaultHandler implements VaultHandler
 
         if (aliases != null && signer != null && aliases.contains(signer.alias))
         {
-            if (key != null && key.entry.contains(signer.entry))
+            List<String> signed = keys != null
+                ? keys.stream().filter(key -> key.entry.contains(signer.entry)).map(key -> key.alias).toList()
+                : List.of();
+
+            if (!signed.isEmpty())
             {
-                factory = initKeys(List.of(key.alias));
+                factory = initKeys(signed);
             }
         }
 

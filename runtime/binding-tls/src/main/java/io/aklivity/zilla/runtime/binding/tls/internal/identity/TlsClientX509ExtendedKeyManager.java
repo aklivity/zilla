@@ -15,18 +15,17 @@
  */
 package io.aklivity.zilla.runtime.binding.tls.internal.identity;
 
-import static io.aklivity.zilla.runtime.common.x509.X509Fields.SUBJECT_DN;
+import static io.aklivity.zilla.runtime.common.x509.X509Fields.X5T_S256;
 
 import java.net.Socket;
 import java.security.Principal;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
-import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import javax.net.ssl.SSLEngine;
@@ -71,35 +70,14 @@ public final class TlsClientX509ExtendedKeyManager extends X509ExtendedKeyManage
     }
 
     /**
-     * Reports the subject distinguished names of two candidate certificates that a selection on
-     * {@code fieldNames} cannot tell apart, sharing a value for every named property. Both sides
-     * are static, so this is decidable at configuration load, where a clear error beats selecting
-     * arbitrarily by keystore order at handshake time.
+     * Reports whether any candidate key matches {@code selector}, so a selection that can never
+     * succeed is observable before the handshake begins. Reads only the pre-built index, so it is
+     * safe to call from the worker thread while resolving a route.
      */
-    public List<String> indistinguishableSubjects(
-        Set<String> fieldNames)
+    public boolean matchesAny(
+        Map<String, String> selector)
     {
-        List<String> subjects = List.of();
-
-        List<Map<String, List<String>>> candidates = new ArrayList<>(fieldsByCertificate.values());
-
-        indistinguishable:
-        for (int i = 0; i < candidates.size(); i++)
-        {
-            for (int j = i + 1; j < candidates.size(); j++)
-            {
-                Map<String, List<String>> first = candidates.get(i);
-                Map<String, List<String>> second = candidates.get(j);
-
-                if (indistinguishable(first, second, fieldNames))
-                {
-                    subjects = List.of(subject(first), subject(second));
-                    break indistinguishable;
-                }
-            }
-        }
-
-        return subjects;
+        return fieldsByCertificate.values().stream().anyMatch(fields -> matches(fields, selector));
     }
 
     @Override
@@ -148,7 +126,6 @@ public final class TlsClientX509ExtendedKeyManager extends X509ExtendedKeyManage
         SSLSession session = engine.getSession();
         Map<String, String> selector = (Map<String, String>) session.getValue(CERTIFICATE_FIELDS_KEY);
 
-        alias:
         if (selector == null)
         {
             alias = delegate.chooseEngineClientAlias(keyTypes, issuers, engine);
@@ -162,16 +139,15 @@ public final class TlsClientX509ExtendedKeyManager extends X509ExtendedKeyManage
                 {
                     for (String candidate : candidates)
                     {
-                        if (matches(candidate, selector))
+                        if (matches(candidate, selector) && supersedes(candidate, alias))
                         {
                             alias = candidate;
-                            break alias;
                         }
                     }
                 }
             }
 
-            if (debug)
+            if (alias == null && debug)
             {
                 System.out.printf("[binding-tls] No match found for Certificate [%s], Key Types [%s], Issuers [%s] \n",
                     selector,
@@ -208,12 +184,53 @@ public final class TlsClientX509ExtendedKeyManager extends X509ExtendedKeyManage
         return delegate.getPrivateKey(alias);
     }
 
+    /**
+     * Orders two matching candidates so selection is stable across restarts: the later
+     * {@code notBefore} wins, which also prefers the new certificate while an old one is still
+     * valid during a rotation. Keystore enumeration order carries no such guarantee, so taking
+     * the first match found would vary between runs of the same configuration.
+     */
+    private boolean supersedes(
+        String candidate,
+        String alias)
+    {
+        boolean supersedes = alias == null;
+
+        if (!supersedes)
+        {
+            int compared = notBefore(candidate).compareTo(notBefore(alias));
+
+            supersedes = compared > 0 || compared == 0 && thumbprint(candidate).compareTo(thumbprint(alias)) > 0;
+        }
+
+        return supersedes;
+    }
+
+    private Date notBefore(
+        String alias)
+    {
+        X509Certificate[] chain = delegate.getCertificateChain(alias);
+        return chain[0].getNotBefore();
+    }
+
+    private String thumbprint(
+        String alias)
+    {
+        List<String> values = resolveFields(alias).get(X5T_S256);
+        return values != null && !values.isEmpty() ? values.get(0) : "";
+    }
+
     private boolean matches(
         String alias,
         Map<String, String> selector)
     {
-        Map<String, List<String>> fields = resolveFields(alias);
+        return matches(resolveFields(alias), selector);
+    }
 
+    private static boolean matches(
+        Map<String, List<String>> fields,
+        Map<String, String> selector)
+    {
         boolean matches = fields != null;
 
         if (matches)
@@ -242,37 +259,6 @@ public final class TlsClientX509ExtendedKeyManager extends X509ExtendedKeyManage
         return chain != null && chain.length != 0
             ? fieldsByCertificate.computeIfAbsent(chain[0], X509Fields::resolve)
             : null;
-    }
-
-    private static boolean indistinguishable(
-        Map<String, List<String>> first,
-        Map<String, List<String>> second,
-        Set<String> fieldNames)
-    {
-        boolean indistinguishable = true;
-
-        for (String fieldName : fieldNames)
-        {
-            List<String> firstValues = first.get(fieldName);
-            List<String> secondValues = second.get(fieldName);
-
-            // an absent property never matches, so it can never make two certificates ambiguous
-            if (firstValues == null || secondValues == null ||
-                firstValues.stream().noneMatch(secondValues::contains))
-            {
-                indistinguishable = false;
-                break;
-            }
-        }
-
-        return indistinguishable;
-    }
-
-    private static String subject(
-        Map<String, List<String>> fields)
-    {
-        List<String> subject = fields.get(SUBJECT_DN);
-        return subject != null && !subject.isEmpty() ? subject.get(0) : "";
     }
 
     private static Map<X509Certificate, Map<String, List<String>>> indexCertificates(

@@ -135,7 +135,10 @@
           <excludes>
             <exclude>**/keys</exclude>
             <exclude>**/keys2</exclude>
+            <exclude>**/keys3</exclude>
             <exclude>**/trust</exclude>
+            <exclude>**/trust1</exclude>
+            <exclude>**/trust2</exclude>
             <exclude>**/signers</exclude>
             <exclude>**/signers2</exclude>
             <exclude>**/*.csr</exclude>
