@@ -137,6 +137,10 @@ public class ClientIT
         k3po.finish();
     }
 
+    // a failed TLS handshake cannot be scripted against a k3po tls:// accept, which completes
+    // only on success; `rejected` does not help, since no child channel is ever bound. Same
+    // limitation as shouldRejectClientAuthMismatched below. Covered by
+    // TlsClientX509ExtendedKeyManagerTest instead.
     @Ignore("requires accepted only streams")
     @Test
     @Configuration("client.with.certificate.no.match.yaml")
