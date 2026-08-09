@@ -152,6 +152,26 @@ public class ClientIT
         k3po.finish();
     }
 
+    // The far end requests rather than requires the client certificate, so the handshake
+    // completes with none presented, and the far end then closes as a mutual: requested
+    // server finding no guarded route would. The application stream is already connected by
+    // the time that close arrives -- the connect completes as soon as the handshake does --
+    // so this is an orderly close, not an abort. Asserts that the close propagates to the
+    // application stream. It does NOT assert which certificate was presented: k3po's
+    // tls transport exposes no peer-certificate assertion, so with wantClientAuth the
+    // script cannot tell a matching certificate from none at all, and this would still
+    // pass if the wrong key were selected. TlsClientX509ExtendedKeyManagerTest is the
+    // authority for selection.
+    @Test
+    @Configuration("client.with.certificate.no.match.yaml")
+    @Specification({
+        "${app}/client.auth.with.certificate.not.matched/client",
+        "${net}/client.auth.with.certificate.not.matched/server" })
+    public void shouldCloseWhenCertificateNotMatched() throws Exception
+    {
+        k3po.finish();
+    }
+
     // the far end does not request a certificate, so an unresolved property is observable
     // as the logged event rather than as a handshake failure
     @Test

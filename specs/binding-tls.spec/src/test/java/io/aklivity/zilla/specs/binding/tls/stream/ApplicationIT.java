@@ -122,6 +122,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/client.auth.with.certificate.not.matched/client",
+        "${app}/client.auth.with.certificate.not.matched/server"})
+    public void shouldCloseWhenCertificateNotMatched() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/client.auth.with.certificate.rejected/client",
         "${app}/client.auth.with.certificate.rejected/server"})
     public void shouldRejectClientAuthWithCertificateRejected() throws Exception

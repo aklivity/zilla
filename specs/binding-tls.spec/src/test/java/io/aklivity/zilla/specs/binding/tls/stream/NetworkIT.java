@@ -122,6 +122,15 @@ public class NetworkIT
     }
 
 
+    @Test
+    @Specification({
+        "${net}/client.auth.with.certificate.not.matched/client",
+        "${net}/client.auth.with.certificate.not.matched/server"})
+    public void shouldCloseWhenCertificateNotMatched() throws Exception
+    {
+        k3po.finish();
+    }
+
     @Ignore("requires accepted only streams")
     @Test
     @Specification({
