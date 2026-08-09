@@ -85,12 +85,14 @@ const main = async () =>
     try
     {
         await transport.terminateSession();
+        log("terminated session");
     }
     catch (err)
     {
         log(`failed to terminate session: ${err}`);
     }
     await client.close();
+    log("closed client");
 
     if (!sawUrlRequest)
     {

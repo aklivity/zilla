@@ -90,17 +90,24 @@ const attempt = async () =>
     }
     finally
     {
+        // Each step is logged on completion because this block runs before the process
+        // exits, and therefore before the caller sees any result -- so a slow step here
+        // is charged to the whole round-trip while looking like a slow notification.
         await client.callTool({ name: "everything__toggle-subscriber-updates", arguments: {} });
+        log("toggled subscriber updates off");
         await client.unsubscribeResource({ uri });
+        log(`unsubscribed from ${uri}`);
         try
         {
             await transport.terminateSession();
+            log("terminated session");
         }
         catch (err)
         {
             log(`failed to terminate session: ${err}`);
         }
         await client.close();
+        log("closed client");
     }
 
     if (updatedUri !== uri)
