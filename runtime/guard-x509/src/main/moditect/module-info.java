@@ -14,7 +14,7 @@
  */
 module io.aklivity.zilla.runtime.guard.x509
 {
-    requires java.naming;
+    requires io.aklivity.zilla.runtime.common.x509;
     requires io.aklivity.zilla.runtime.engine;
     requires io.aklivity.zilla.config.guard.x509;
 

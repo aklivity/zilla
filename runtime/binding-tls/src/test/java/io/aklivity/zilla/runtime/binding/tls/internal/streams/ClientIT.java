@@ -98,6 +98,69 @@ public class ClientIT
     }
 
     @Test
+    @Configuration("client.with.certificate.subject.cn.yaml")
+    @Specification({
+        "${app}/client.auth.with.certificate/client",
+        "${net}/client.auth/server" })
+    public void shouldEstablishConnectionWithCertificateSubjectCommonName() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.with.certificate.subject.dn.yaml")
+    @Specification({
+        "${app}/client.auth.with.certificate/client",
+        "${net}/client.auth/server" })
+    public void shouldEstablishConnectionWithCertificateSubjectDistinguishedName() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.with.certificate.guarded.yaml")
+    @Specification({
+        "${app}/client.auth.with.certificate/client",
+        "${net}/client.auth/server" })
+    public void shouldEstablishConnectionWithCertificateGuardedIdentity() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.with.certificate.attribute.yaml")
+    @Specification({
+        "${app}/client.auth.with.certificate/client",
+        "${net}/client.auth/server" })
+    public void shouldEstablishConnectionWithCertificateGuardedAttribute() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Ignore("requires accepted only streams")
+    @Test
+    @Configuration("client.with.certificate.no.match.yaml")
+    @Specification({
+        "${app}/client.auth.with.certificate.rejected/client",
+        "${net}/client.auth.mismatched/server" })
+    public void shouldRejectConnectionWithCertificateNotMatched() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // the far end does not request a certificate, so an unresolved property is observable
+    // as the logged event rather than as a handshake failure
+    @Test
+    @Configuration("client.with.certificate.unresolved.yaml")
+    @Specification({
+        "${app}/connection.established/client",
+        "${net}/connection.established/server" })
+    public void shouldLogClientCertificateNotResolvedEvent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("client.yaml")
     @Specification({
         "${app}/connection.established.with.extension.data/client",

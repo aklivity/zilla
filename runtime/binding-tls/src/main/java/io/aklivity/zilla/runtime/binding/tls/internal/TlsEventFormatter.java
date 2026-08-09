@@ -15,7 +15,9 @@
  */
 package io.aklivity.zilla.runtime.binding.tls.internal;
 
+import io.aklivity.zilla.runtime.binding.tls.internal.types.StringFW;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.event.EventFW;
+import io.aklivity.zilla.runtime.binding.tls.internal.types.event.TlsClientCertificateNotResolvedExFW;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.event.TlsEventExFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.engine.Configuration;
@@ -60,7 +62,22 @@ public final class TlsEventFormatter implements EventFormatterSpi
         case TLS_HANDSHAKE_TIMEOUT:
             result = "The handshake did not complete before the timeout expired.";
             break;
+        case TLS_CLIENT_CERTIFICATE_NOT_RESOLVED:
+        {
+            TlsClientCertificateNotResolvedExFW ex = extension.tlsClientCertificateNotResolved();
+            result = String.format(
+                "The route certificate property (%s) resolved to no value, so no client certificate was presented.",
+                asString(ex.field()));
+            break;
+        }
         }
         return result;
+    }
+
+    private static String asString(
+        StringFW value)
+    {
+        String result = value.asString();
+        return result == null ? "" : result;
     }
 }

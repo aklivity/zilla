@@ -38,4 +38,9 @@ public final class TlsRouteConfigBuilder<T> extends RouteConfigBuilder<T, TlsRou
     {
         return new TlsConditionConfigBuilder<>(this::when);
     }
+
+    public TlsWithConfigBuilder<TlsRouteConfigBuilder<T>> with()
+    {
+        return new TlsWithConfigBuilder<>(this::with);
+    }
 }

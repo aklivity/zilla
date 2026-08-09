@@ -113,6 +113,24 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/client.auth.with.certificate/client",
+        "${app}/client.auth.with.certificate/server"})
+    public void shouldEstablishConnectionWithCertificate() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/client.auth.with.certificate.rejected/client",
+        "${app}/client.auth.with.certificate.rejected/server"})
+    public void shouldRejectClientAuthWithCertificateRejected() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/server.mutual.cert.absent/client",
         "${app}/server.mutual.cert.absent/server"})
     public void shouldEstablishConnectionWithoutClientCert() throws Exception

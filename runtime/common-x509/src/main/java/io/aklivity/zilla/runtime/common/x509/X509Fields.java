@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.guard.x509.internal;
+package io.aklivity.zilla.runtime.common.x509;
 
 import static java.util.Locale.ROOT;
 
@@ -39,16 +39,21 @@ import javax.security.auth.x500.X500Principal;
 // Flattens a leaf certificate into the field vocabulary shared by identity, attributes and roles.
 // Field paths are internal; a field carrying no value on the certificate is simply absent, so
 // every lookup is total and an absent field can never match.
-final class X509Fields
+//
+// Shared so that every component rendering or matching these fields renders them identically.
+// A component computing subject.dn as RFC 2253 while another computes it as canonical would
+// silently never match, rather than failing to compile.
+public final class X509Fields
 {
-    static final String SUBJECT_DN = "subject.dn";
-    static final String ISSUER_DN = "issuer.dn";
-    static final String X5T_S256 = "x5t.s256";
+    public static final String SUBJECT_DN = "subject.dn";
+    public static final String SUBJECT_CN = "subject.cn";
+    public static final String ISSUER_DN = "issuer.dn";
+    public static final String X5T_S256 = "x5t.s256";
 
-    static final String SAN_EMAIL = "san.email";
-    static final String SAN_DNS = "san.dns";
-    static final String SAN_URI = "san.uri";
-    static final String SAN_IP = "san.ip";
+    public static final String SAN_EMAIL = "san.email";
+    public static final String SAN_DNS = "san.dns";
+    public static final String SAN_URI = "san.uri";
+    public static final String SAN_IP = "san.ip";
 
     private static final String SUBJECT_PREFIX = "subject.";
     private static final String ISSUER_PREFIX = "issuer.";
@@ -64,7 +69,7 @@ final class X509Fields
     {
     }
 
-    static Map<String, List<String>> resolve(
+    public static Map<String, List<String>> resolve(
         X509Certificate leaf)
     {
         Map<String, List<String>> fields = new LinkedHashMap<>();
@@ -75,6 +80,29 @@ final class X509Fields
         resolveThumbprint(fields, leaf);
 
         return fields;
+    }
+
+    /**
+     * Renders a distinguished name in the same canonical form as the {@code subject.dn} and
+     * {@code issuer.dn} fields produced by {@link #resolve}, so that a name written by hand
+     * compares equal to one derived from a certificate. Returns {@code null} when the name
+     * does not parse, leaving the caller to decide whether that is a configuration error.
+     */
+    public static String canonicalName(
+        String name)
+    {
+        String canonical = null;
+
+        try
+        {
+            canonical = new X500Principal(name).getName(X500Principal.CANONICAL);
+        }
+        catch (IllegalArgumentException ex)
+        {
+            // a distinguished name that does not parse has no canonical form
+        }
+
+        return canonical;
     }
 
     private static void resolveName(

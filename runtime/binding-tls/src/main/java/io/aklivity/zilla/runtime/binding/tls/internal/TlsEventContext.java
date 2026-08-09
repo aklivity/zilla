@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.tls.internal;
 
+import static io.aklivity.zilla.runtime.binding.tls.internal.types.event.TlsEventType.TLS_CLIENT_CERTIFICATE_NOT_RESOLVED;
 import static io.aklivity.zilla.runtime.binding.tls.internal.types.event.TlsEventType.TLS_FAILED;
 import static io.aklivity.zilla.runtime.binding.tls.internal.types.event.TlsEventType.TLS_HANDSHAKE_FAILED;
 import static io.aklivity.zilla.runtime.binding.tls.internal.types.event.TlsEventType.TLS_HANDSHAKE_TIMEOUT;
@@ -48,6 +49,7 @@ public class TlsEventContext
     private final int tlsPeerNotVerifiedEventId;
     private final int tlsHandshakeTimeoutEventId;
     private final int tlsHandshakeFailedEventId;
+    private final int tlsClientCertificateNotResolvedEventId;
 
     private final MessageConsumer eventWriter;
     private final Clock clock;
@@ -62,6 +64,8 @@ public class TlsEventContext
         this.tlsPeerNotVerifiedEventId = context.supplyEventId("binding.tls.peer.not.verified");
         this.tlsHandshakeTimeoutEventId = context.supplyEventId("binding.tls.handshake.timeout");
         this.tlsHandshakeFailedEventId = context.supplyEventId("binding.tls.handshake.failed");
+        this.tlsClientCertificateNotResolvedEventId =
+            context.supplyEventId("binding.tls.client.certificate.not.resolved");
         this.eventWriter = context.supplyEventWriter();
         this.clock = context.clock();
     }
@@ -163,6 +167,29 @@ public class TlsEventContext
         EventFW event = eventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
             .id(tlsHandshakeTimeoutEventId)
+            .timestamp(clock.millis())
+            .traceId(traceId)
+            .namespacedId(bindingId)
+            .extension(extension.buffer(), extension.offset(), extension.limit())
+            .build();
+        eventWriter.accept(tlsTypeId, event.buffer(), event.offset(), event.limit());
+    }
+
+    public void tlsClientCertificateNotResolved(
+        long traceId,
+        long bindingId,
+        String field)
+    {
+        TlsEventExFW extension = tlsEventExRW
+            .wrap(extensionBuffer, 0, extensionBuffer.capacity())
+            .tlsClientCertificateNotResolved(e -> e
+                .typeId(TLS_CLIENT_CERTIFICATE_NOT_RESOLVED.value())
+                .field(field)
+            )
+            .build();
+        EventFW event = eventRW
+            .wrap(eventBuffer, 0, eventBuffer.capacity())
+            .id(tlsClientCertificateNotResolvedEventId)
             .timestamp(clock.millis())
             .traceId(traceId)
             .namespacedId(bindingId)

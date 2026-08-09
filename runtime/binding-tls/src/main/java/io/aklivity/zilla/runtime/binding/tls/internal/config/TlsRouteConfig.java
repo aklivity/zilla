@@ -19,25 +19,37 @@ import static java.util.function.UnaryOperator.identity;
 import static java.util.stream.Collectors.toList;
 
 import java.security.cert.Certificate;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.LongFunction;
 import java.util.function.UnaryOperator;
+import java.util.regex.MatchResult;
 
 import javax.net.ssl.TrustManagerFactory;
 
 import io.aklivity.zilla.config.binding.tls.TlsConditionConfig;
+import io.aklivity.zilla.config.binding.tls.TlsWithConfig;
 import io.aklivity.zilla.config.engine.RouteConfig;
+import io.aklivity.zilla.runtime.common.lang.util.function.LongObjectBiFunction;
 import io.aklivity.zilla.runtime.common.lang.util.function.LongObjectPredicate;
+import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
 
 public final class TlsRouteConfig
 {
     public final long id;
+    public final TlsWithResolver with;
 
     private final List<TlsConditionConfig> conditions;
     private final LongObjectPredicate<UnaryOperator<String>> authorized;
     private List<TlsConditionMatcher> when;
 
     public TlsRouteConfig(
+        EngineContext context,
+        String qname,
         RouteConfig route)
     {
         this.id = route.id;
@@ -48,6 +60,7 @@ public final class TlsRouteConfig
         this.when = conditions.stream()
             .map(c -> new TlsConditionMatcher(c, null))
             .collect(toList());
+        this.with = newWithResolver(context, qname, route);
     }
 
     public void init(
@@ -86,6 +99,62 @@ public final class TlsRouteConfig
         int port)
     {
         return when.isEmpty() || when.stream().anyMatch(m -> m.matchesPortOnly(port));
+    }
+
+    private static TlsWithResolver newWithResolver(
+        EngineContext context,
+        String qname,
+        RouteConfig route)
+    {
+        TlsWithResolver resolver = null;
+
+        if (route.with != null)
+        {
+            final TlsWithConfig with = (TlsWithConfig) route.with;
+            final Map<String, LongFunction<String>> identifiers = new HashMap<>();
+            final Map<String, LongObjectBiFunction<String, String>> attributors = new HashMap<>();
+
+            final Set<String> guardNames = TlsWithResolver.extractGuardNames(with);
+
+            for (String guardName : guardNames)
+            {
+                final long guardId = route.resolveId.applyAsLong(guardName);
+                final GuardHandler guard = context.supplyGuard(guardId);
+
+                // an unresolvable guard would silently select no certificate on every stream,
+                // surfacing only as a handshake failure at the far end
+                if (guard == null)
+                {
+                    throw new IllegalArgumentException(String.format(
+                        "binding %s route with.certificate refers to unresolved guard: %s", qname, guardName));
+                }
+
+                identifiers.put(guardName, guard::identity);
+                attributors.put(guardName, guard::attribute);
+            }
+
+            final LongFunction<String> defaultIdentifier = a -> null;
+            final LongObjectBiFunction<MatchResult, String> identityReplacer = (a, r) ->
+            {
+                final LongFunction<String> identifier = identifiers.getOrDefault(r.group(1), defaultIdentifier);
+                final String identity = identifier.apply(a);
+                return identity != null ? identity : "";
+            };
+
+            final LongObjectBiFunction<String, String> defaultAttributor = (sessionId, name) -> null;
+            final LongObjectBiFunction<MatchResult, String> attributeReplacer = (sessionId, match) ->
+            {
+                final LongObjectBiFunction<String, String> attributor =
+                    attributors.getOrDefault(match.group(1), defaultAttributor);
+
+                final String value = attributor.apply(sessionId, match.group(2));
+                return value != null ? value : "";
+            };
+
+            resolver = new TlsWithResolver(qname, identityReplacer, attributeReplacer, with);
+        }
+
+        return resolver;
     }
 
     private static TrustManagerFactory newTrustFactory(

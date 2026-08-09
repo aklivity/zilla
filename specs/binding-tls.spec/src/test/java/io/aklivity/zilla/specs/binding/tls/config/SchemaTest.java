@@ -34,6 +34,7 @@ public class SchemaTest
         .schemaPatch("io/aklivity/zilla/specs/binding/tls/schema/tls.schema.patch.json")
         .schemaPatch("io/aklivity/zilla/specs/engine/schema/vault/test.schema.patch.json")
         .schemaPatch("io/aklivity/zilla/specs/engine/schema/guard/test.schema.patch.json")
+        .schemaPatch("io/aklivity/zilla/specs/engine/schema/exporter/test.schema.patch.json")
         .configurationRoot("io/aklivity/zilla/specs/binding/tls/config");
 
     @Test
@@ -168,6 +169,86 @@ public class SchemaTest
     public void shouldRejectClientWithAuthorization()
     {
         schema.validate("client.authorization.invalid.yaml");
+    }
+
+    @Test
+    public void shouldValidateClientWithCertificate()
+    {
+        JsonObject config = schema.validate("client.with.certificate.subject.cn.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateClientWithCertificateSubjectDistinguishedName()
+    {
+        JsonObject config = schema.validate("client.with.certificate.subject.dn.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateClientWithCertificateGuarded()
+    {
+        JsonObject config = schema.validate("client.with.certificate.guarded.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateClientWithCertificateMultipleProperties()
+    {
+        JsonObject config = schema.validate("client.with.certificate.multiple.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateClientWithCertificateNotMatched()
+    {
+        JsonObject config = schema.validate("client.with.certificate.no.match.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateClientWithCertificateGuardedAttribute()
+    {
+        JsonObject config = schema.validate("client.with.certificate.attribute.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateClientWithCertificateUnresolved()
+    {
+        JsonObject config = schema.validate("client.with.certificate.unresolved.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectClientWithCertificateUnknownProperty()
+    {
+        schema.validate("client.with.certificate.property.invalid.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectClientWithCertificateWithoutProperties()
+    {
+        schema.validate("client.with.certificate.empty.invalid.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectServerWithCertificate()
+    {
+        schema.validate("server.with.certificate.invalid.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectProxyWithCertificate()
+    {
+        schema.validate("proxy.with.certificate.invalid.yaml");
     }
 
     @Test

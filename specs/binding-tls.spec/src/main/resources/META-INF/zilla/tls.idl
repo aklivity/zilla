@@ -24,7 +24,13 @@ scope tls
             TLS_KEY_REJECTED (3),
             TLS_PEER_NOT_VERIFIED (4),
             TLS_HANDSHAKE_FAILED (5),
-            TLS_HANDSHAKE_TIMEOUT (6)
+            TLS_HANDSHAKE_TIMEOUT (6),
+            TLS_CLIENT_CERTIFICATE_NOT_RESOLVED (7)
+        }
+
+        struct TlsClientCertificateNotResolvedEx extends core::stream::Extension
+        {
+            string8 field;
         }
 
         union TlsEventEx switch (TlsEventType)
@@ -35,6 +41,8 @@ scope tls
             case TLS_PEER_NOT_VERIFIED: core::stream::Extension tlsPeerNotVerified;
             case TLS_HANDSHAKE_FAILED: core::stream::Extension tlsHandshakeFailed;
             case TLS_HANDSHAKE_TIMEOUT: core::stream::Extension tlsHandshakeTimeout;
+            case TLS_CLIENT_CERTIFICATE_NOT_RESOLVED:
+                TlsClientCertificateNotResolvedEx tlsClientCertificateNotResolved;
         }
     }
 }
