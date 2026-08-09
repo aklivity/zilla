@@ -39,7 +39,7 @@ services:
       petstore:
         condition: service_healthy
       karapace-registry:
-        condition: service_started
+        condition: service_healthy
       kafka-connect:
         condition: service_healthy
       kafka:
@@ -224,6 +224,19 @@ services:
       KARAPACE_TOPIC_NAME: _schemas
       KARAPACE_LOG_LEVEL: WARNING
       KARAPACE_COMPATIBILITY: BACKWARD
+    # python3 rather than wget/curl: this image ships neither, nor nc -- the
+    # venv's python is the only HTTP client in it, so a probe copied from the
+    # kafka-connect healthcheck below would never succeed and would leave the
+    # container permanently unhealthy. /subjects is the registry's own API, so
+    # this is ready only when it can actually serve a schema request, which
+    # `service_started` could never establish.
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8081/subjects', timeout=3).status == 200 else 1)"]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+      start_period: 60s
+      start_interval: 1s
 
   # Real Kafka Connect distributed worker backing the mcp-kafka-connect
   # "kafkaconnect" toolkit -- talks to the same real Kafka broker as the
