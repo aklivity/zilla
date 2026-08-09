@@ -40,6 +40,28 @@ const log = (...args) => console.error("[client]", `+${((Date.now() - START) / 1
 // exactly that span.
 log(`node startup and imports took ${process.uptime().toFixed(3)}s, before the stamps below`);
 
+// A pending setTimeout keeps node's event loop alive, so this deadline has to be
+// cleared once the race settles. Left armed, it holds the process open until it
+// fires -- TIMEOUT_MS of dead wall-clock after all the work is already done,
+// charged to the caller as though the gateway were slow. That misread is what it
+// looks like from outside: a round-trip measured at 20.7s whose client work took
+// 0.45s, chased through three wrong explanations before the timer was found.
+const awaitWithin = async (promise, ms, message) =>
+{
+    let timer;
+    try
+    {
+        await Promise.race([
+            promise,
+            new Promise((_, reject) => { timer = setTimeout(() => reject(new Error(message)), ms); })
+        ]);
+    }
+    finally
+    {
+        clearTimeout(timer);
+    }
+};
+
 let sawUrlRequest = false;
 let sawComplete = false;
 let completeResolve;
@@ -85,10 +107,7 @@ const main = async () =>
     log(`tool result: ${text}`);
 
     // Wait for the completion notification (fires shortly after the call).
-    await Promise.race([
-        completed,
-        new Promise((_, reject) => setTimeout(() => reject(new Error("timed out waiting for completion")), TIMEOUT_MS))
-    ]);
+    await awaitWithin(completed, TIMEOUT_MS, "timed out waiting for completion");
 
     try
     {
