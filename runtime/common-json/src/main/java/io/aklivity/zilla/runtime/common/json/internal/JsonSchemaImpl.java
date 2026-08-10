@@ -2092,6 +2092,16 @@ public final class JsonSchemaImpl implements JsonSchema
             this.pointer = reporter != null ? new StringBuilder() : null;
         }
 
+        // defensively re-empties the pointer for reuse across documents; push()/pop() keep it balanced
+        // in the normal case, but this guards against any path that leaves it non-empty
+        private void reset()
+        {
+            if (pointer != null)
+            {
+                pointer.setLength(0);
+            }
+        }
+
         private boolean active()
         {
             return reporter != null;
@@ -2380,9 +2390,10 @@ public final class JsonSchemaImpl implements JsonSchema
         private final JsonController decline = new Decline();
         private final List<JsonSchemaDiagnostic> diagnostics = new ArrayList<>();
         private final boolean lenient;
+        private final Trace trace = new Trace(diagnostics::add);
+        private final Eval eval;
 
         private JsonController upstreamControl;
-        private Eval eval;
         private boolean downstreamVerbatim;
         private boolean failed;
 
@@ -2390,7 +2401,7 @@ public final class JsonSchemaImpl implements JsonSchema
             boolean lenient)
         {
             this.lenient = lenient;
-            this.eval = eval(new Trace(diagnostics::add));
+            this.eval = eval(trace);
         }
 
         @Override
@@ -2552,7 +2563,8 @@ public final class JsonSchemaImpl implements JsonSchema
         public void reset()
         {
             diagnostics.clear();
-            eval = eval(new Trace(diagnostics::add));
+            trace.reset();
+            eval.reset();
             downstreamVerbatim = false;
             failed = false;
         }

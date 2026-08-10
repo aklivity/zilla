@@ -125,6 +125,41 @@ public class JsonModelDecoderPipelineTest
     }
 
     @Test
+    public void shouldExtractMultiByteAndSurrogatePairFields()
+    {
+        JsonModelHandlerImpl handler = newHandler();
+        Map<String, String> extracted = new HashMap<>();
+        ModelPipeline pipeline = handler.supplyDecoder(observer(extracted));
+
+        // "id" holds a 3-byte BMP char (中) and a 2-byte char (é); "status" holds a surrogate-pair emoji (😀)
+        byte[] in = "{\"id\":\"中é\",\"status\":\"😀\"}".getBytes(UTF_8);
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
+        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
+            new UnsafeBufferEx(in), 0, in.length, dst, 0, dst.capacity());
+
+        assertEquals(ModelStatus.COMPLETE, result.status());
+        assertEquals("中é", extracted.get("$.id"));
+        assertEquals("😀", extracted.get("$.status"));
+    }
+
+    @Test
+    public void shouldExtractUnpairedSurrogateAsReplacementChar()
+    {
+        JsonModelHandlerImpl handler = newHandler();
+        Map<String, String> extracted = new HashMap<>();
+        ModelPipeline pipeline = handler.supplyDecoder(observer(extracted));
+
+        // \uD800 is an unpaired high surrogate; String.getBytes(UTF_8) replaces it with '?' (0x3F)
+        byte[] in = "{\"id\":\"a\\uD800b\",\"status\":\"OK\"}".getBytes(UTF_8);
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
+        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
+            new UnsafeBufferEx(in), 0, in.length, dst, 0, dst.capacity());
+
+        assertEquals(ModelStatus.COMPLETE, result.status());
+        assertEquals("a?b", extracted.get("$.id"));
+    }
+
+    @Test
     public void shouldReportDecodePadding()
     {
         JsonModelHandlerImpl handler = newHandler();
