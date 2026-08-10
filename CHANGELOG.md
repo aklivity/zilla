@@ -1,5 +1,22 @@
 # Changelog
 
+## [2.1.1](https://github.com/aklivity/zilla/tree/2.1.1) (2026-08-10)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/2.1.0...2.1.1)
+
+**Closed issues:**
+
+- binding-http: scope client connection capacity per origin, not per route [\#2339](https://github.com/aklivity/zilla/issues/2339) ([jfallows](https://github.com/jfallows))
+- zpm install: module-generation phase logs nothing, making multi-minute stalls undiagnosable [\#2343](https://github.com/aklivity/zilla/issues/2343) ([jfallows](https://github.com/jfallows))
+
+**Merged pull requests:**
+
+- fix\(binding-http\): scope client connection capacity per origin, not per route [\#2341](https://github.com/aklivity/zilla/pull/2341) ([jfallows](https://github.com/jfallows))
+- test\(examples/mcp.proxy\): run the example verification inside the stack [\#2342](https://github.com/aklivity/zilla/pull/2342) ([jfallows](https://github.com/jfallows))
+- fix\(examples/mcp.proxy\): remove unnecessary waits and bound the gates that remain [\#2344](https://github.com/aklivity/zilla/pull/2344) ([jfallows](https://github.com/jfallows))
+- feat\(manager\): log phase and elapsed time during zpm install [\#2346](https://github.com/aklivity/zilla/pull/2346) ([jfallows](https://github.com/jfallows))
+- fix\(manager\): bound the transfer timeouts when resolving dependencies [\#2348](https://github.com/aklivity/zilla/pull/2348) ([jfallows](https://github.com/jfallows))
+
 ## [2.1.0](https://github.com/aklivity/zilla/tree/2.1.0) (2026-08-08)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/2.0.0...2.1.0)
