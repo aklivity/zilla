@@ -122,12 +122,39 @@ public class NetworkIT
     }
 
 
+    @Test
+    @Specification({
+        "${net}/client.auth.with.certificate.not.matched/client",
+        "${net}/client.auth.with.certificate.not.matched/server"})
+    public void shouldCloseWhenCertificateNotMatched() throws Exception
+    {
+        k3po.finish();
+    }
+
     @Ignore("requires accepted only streams")
     @Test
     @Specification({
         "${net}/client.auth.mismatched/client",
         "${net}/client.auth.mismatched/server"})
     public void shouldRejectClientAuthMismatched() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/client.auth.trusted.first/client",
+        "${net}/client.auth.trusted.first/server"})
+    public void shouldEstablishConnectionWithClientAuthTrustedFirst() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/client.auth.trusted.second/client",
+        "${net}/client.auth.trusted.second/server"})
+    public void shouldEstablishConnectionWithClientAuthTrustedSecond() throws Exception
     {
         k3po.finish();
     }

@@ -35,6 +35,7 @@ import java.util.function.LongSupplier;
 import org.agrona.collections.Long2ObjectHashMap;
 
 import io.aklivity.zilla.config.guard.x509.X509OptionsConfig;
+import io.aklivity.zilla.runtime.common.x509.X509Fields;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 

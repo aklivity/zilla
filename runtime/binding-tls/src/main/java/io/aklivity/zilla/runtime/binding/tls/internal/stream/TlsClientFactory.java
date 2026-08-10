@@ -244,7 +244,7 @@ public final class TlsClientFactory implements TlsStreamFactory
         TlsRouteConfig route = binding != null ? binding.resolve(authorization, beginEx) : null;
         if (route != null)
         {
-            final SSLEngine tlsEngine = binding.newClientEngine(beginEx);
+            final SSLEngine tlsEngine = binding.newClientEngine(begin.traceId(), authorization, route, beginEx);
 
             if (tlsEngine != null)
             {

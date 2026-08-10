@@ -21,9 +21,11 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.binding.tls.internal.TlsConditionConfigAdapter;
 import io.aklivity.zilla.config.binding.tls.internal.TlsOptionsConfigAdapter;
+import io.aklivity.zilla.config.binding.tls.internal.TlsWithConfigAdapter;
 import io.aklivity.zilla.config.engine.BindingInfo;
 import io.aklivity.zilla.config.engine.ConditionConfig;
 import io.aklivity.zilla.config.engine.OptionsConfig;
+import io.aklivity.zilla.config.engine.WithConfig;
 
 public final class TlsBindingInfo implements BindingInfo
 {
@@ -51,5 +53,11 @@ public final class TlsBindingInfo implements BindingInfo
     public JsonbAdapter<ConditionConfig, JsonObject> condition()
     {
         return new TlsConditionConfigAdapter();
+    }
+
+    @Override
+    public JsonbAdapter<WithConfig, JsonObject> with()
+    {
+        return new TlsWithConfigAdapter();
     }
 }

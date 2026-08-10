@@ -15,7 +15,6 @@
  */
 package io.aklivity.zilla.runtime.binding.tls.internal.stream;
 
-import static io.aklivity.zilla.runtime.binding.tls.internal.identity.TlsClientX509ExtendedKeyManager.COMMON_NAME_PATTERN;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static io.aklivity.zilla.runtime.engine.guard.GuardHandler.NOT_AUTHORIZED;
@@ -33,6 +32,7 @@ import java.util.function.Consumer;
 import java.util.function.LongFunction;
 import java.util.function.LongUnaryOperator;
 import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.net.ssl.ExtendedSSLSession;
 import javax.net.ssl.SNIHostName;
@@ -88,6 +88,8 @@ public final class TlsServerFactory implements TlsStreamFactory
     private static final int NET_SIGNAL_HANDSHAKE_TIMEOUT = 2;
     private static final int APP_SIGNAL_RESET_LATER = 1;
     private static final MutableDirectBufferEx EMPTY_MUTABLE_DIRECT_BUFFER = new UnsafeBufferEx(new byte[0]);
+
+    private static final Pattern COMMON_NAME_PATTERN = Pattern.compile("CN=(?<cn>[^,]+)");
 
     static final Optional<TlsServer.TlsStream> NULL_STREAM = Optional.ofNullable(null);
 

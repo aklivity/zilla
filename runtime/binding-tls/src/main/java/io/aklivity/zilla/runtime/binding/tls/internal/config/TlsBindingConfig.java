@@ -15,11 +15,12 @@
  */
 package io.aklivity.zilla.runtime.binding.tls.internal.config;
 
-import static io.aklivity.zilla.runtime.binding.tls.internal.identity.TlsClientX509ExtendedKeyManager.COMMON_NAME_KEY;
+import static io.aklivity.zilla.runtime.binding.tls.internal.identity.TlsClientX509ExtendedKeyManager.CERTIFICATE_FIELDS_KEY;
 import static io.aklivity.zilla.runtime.binding.tls.internal.types.ProxyInfoType.ALPN;
 import static io.aklivity.zilla.runtime.binding.tls.internal.types.ProxyInfoType.AUTHORITY;
 import static io.aklivity.zilla.runtime.binding.tls.internal.types.ProxyInfoType.SECURE;
 import static io.aklivity.zilla.runtime.binding.tls.internal.types.ProxySecureInfoType.NAME;
+import static io.aklivity.zilla.runtime.common.x509.X509Fields.SUBJECT_CN;
 import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
 import static javax.net.ssl.StandardConstants.SNI_HOST_NAME;
@@ -31,6 +32,7 @@ import java.security.cert.Certificate;
 import java.security.cert.CertificateEncodingException;
 import java.util.Base64;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import javax.net.ssl.ExtendedSSLSession;
@@ -86,6 +88,8 @@ public final class TlsBindingConfig
     public final GuardHandler guard;
 
     private SSLContext context;
+    private TlsEventContext events;
+    private TlsClientX509ExtendedKeyManager clientKeyManager;
 
     private boolean clientHttpsIdentification;
     private boolean clientServerNameIndication;
@@ -100,7 +104,7 @@ public final class TlsBindingConfig
         this.qname = binding.qname;
         this.kind = binding.kind;
         this.options = binding.options != null ? TlsOptionsConfig.class.cast(binding.options) : OPTIONS_DEFAULT;
-        this.routes = binding.routes.stream().map(TlsRouteConfig::new).collect(toList());
+        this.routes = binding.routes.stream().map(r -> new TlsRouteConfig(context, qname, r)).collect(toList());
         this.guard = resolveGuard(context, binding, options.authorization);
     }
 
@@ -143,6 +147,8 @@ public final class TlsBindingConfig
         VaultHandler vault,
         SecureRandom random)
     {
+        this.events = events;
+
         boolean nothingConfigured = options.keys == null && options.trust == null && options.signers == null;
 
         KeyManagerFactory keys = nothingConfigured
@@ -175,7 +181,8 @@ public final class TlsBindingConfig
                         if (keyManagers[i] instanceof X509ExtendedKeyManager)
                         {
                             X509ExtendedKeyManager keyManager = (X509ExtendedKeyManager) keyManagers[i];
-                            keyManagers[i] = new TlsClientX509ExtendedKeyManager(config, keyManager);
+                            this.clientKeyManager = new TlsClientX509ExtendedKeyManager(config, keyManager);
+                            keyManagers[i] = clientKeyManager;
                         }
                     }
                 }
@@ -290,6 +297,9 @@ public final class TlsBindingConfig
     }
 
     public SSLEngine newClientEngine(
+        long traceId,
+        long authorization,
+        TlsRouteConfig route,
         ProxyBeginExFW beginEx)
     {
         SSLEngine engine = null;
@@ -349,22 +359,63 @@ public final class TlsBindingConfig
 
             engine.setSSLParameters(parameters);
 
-            if (beginEx != null)
+            Map<String, String> certificate = resolveCertificate(traceId, authorization, route, beginEx);
+            if (certificate != null)
             {
-                ProxyInfoFW info = beginEx.infos().matchFirst(a -> a.kind() == SECURE && a.secure().kind() == NAME);
-                if (info != null)
-                {
-                    String commonName = info.secure().name().asString();
-                    if (commonName != null)
-                    {
-                        SSLSession session = engine.getSession();
-                        session.putValue(COMMON_NAME_KEY, commonName);
-                    }
-                }
+                SSLSession session = engine.getSession();
+                session.putValue(CERTIFICATE_FIELDS_KEY, certificate);
             }
         }
 
         return engine;
+    }
+
+    /**
+     * Names the certificate the client should present, from {@code routes[].with.certificate} when
+     * the matched route declares one, and otherwise from the inbound {@code secure.name} info item.
+     * Returns {@code null} when neither applies, leaving the default key manager to choose.
+     */
+    private Map<String, String> resolveCertificate(
+        long traceId,
+        long authorization,
+        TlsRouteConfig route,
+        ProxyBeginExFW beginEx)
+    {
+        Map<String, String> certificate = null;
+
+        final TlsWithResolver with = route != null ? route.with : null;
+
+        if (with != null)
+        {
+            certificate = with.resolve(authorization);
+
+            if (certificate == null)
+            {
+                if (events != null)
+                {
+                    events.tlsClientCertificateNotResolved(traceId, id, with.unresolvedField(authorization));
+                }
+            }
+            else if (events != null && clientKeyManager != null && !clientKeyManager.matchesAny(certificate))
+            {
+                // the selector is still applied, so no certificate is presented rather than a default one
+                events.tlsClientCertificateNotMatched(traceId, id, asSelector(certificate));
+            }
+        }
+        else if (beginEx != null)
+        {
+            ProxyInfoFW info = beginEx.infos().matchFirst(a -> a.kind() == SECURE && a.secure().kind() == NAME);
+            if (info != null)
+            {
+                String commonName = info.secure().name().asString();
+                if (commonName != null)
+                {
+                    certificate = Map.of(SUBJECT_CN, commonName);
+                }
+            }
+        }
+
+        return certificate;
     }
 
     public SSLEngine newServerEngine(
@@ -396,6 +447,14 @@ public final class TlsBindingConfig
         }
 
         return engine;
+    }
+
+    private static String asSelector(
+        Map<String, String> certificate)
+    {
+        return certificate.entrySet().stream()
+                .map(e -> String.format("%s=%s", e.getKey(), e.getValue()))
+                .collect(Collectors.joining(", "));
     }
 
     private static GuardHandler resolveGuard(

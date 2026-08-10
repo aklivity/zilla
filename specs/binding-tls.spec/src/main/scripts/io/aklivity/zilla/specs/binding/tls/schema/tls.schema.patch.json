@@ -132,8 +132,7 @@
                                             }
                                         ]
                                     }
-                                },
-                                "with": false
+                                }
                             }
                         }
                     }
@@ -190,6 +189,46 @@
                                         }
                                     }
                                 ]
+                            },
+                            "routes":
+                            {
+                                "items":
+                                {
+                                    "properties":
+                                    {
+                                        "with":
+                                        {
+                                            "title": "With",
+                                            "type": "object",
+                                            "properties":
+                                            {
+                                                "certificate":
+                                                {
+                                                    "title": "Client Certificate",
+                                                    "type": "object",
+                                                    "properties":
+                                                    {
+                                                        "subject.cn":
+                                                        {
+                                                            "title": "Subject Common Name",
+                                                            "type": "string"
+                                                        },
+                                                        "subject.dn":
+                                                        {
+                                                            "title": "Subject Distinguished Name",
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "minProperties": 1,
+                                                    "maxProperties": 1,
+                                                    "additionalProperties": false
+                                                }
+                                            },
+                                            "required": ["certificate"],
+                                            "additionalProperties": false
+                                        }
+                                    }
+                                }
                             }
                         }
                     },
@@ -219,6 +258,16 @@
                                         ]
                                     }
                                 ]
+                            },
+                            "routes":
+                            {
+                                "items":
+                                {
+                                    "properties":
+                                    {
+                                        "with": false
+                                    }
+                                }
                             }
                         }
                     },
@@ -229,7 +278,17 @@
                             {
                                 "const": "proxy"
                             },
-                            "options": false
+                            "options": false,
+                            "routes":
+                            {
+                                "items":
+                                {
+                                    "properties":
+                                    {
+                                        "with": false
+                                    }
+                                }
+                            }
                         }
                     }
                 ]
