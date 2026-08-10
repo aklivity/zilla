@@ -197,7 +197,10 @@ public final class ZpmInstall extends ZpmCommand
             List<RemoteRepository> remoteRepositories = asRemoteRepositories(settings, repositories);
 
             ZpmCache cache = new ZpmCache(remoteRepositories, excludeRemoteRepos, cacheDir, logger);
+
+            long begin = System.nanoTime();
             Collection<ZpmArtifact> artifacts = cache.resolve(config.imports, config.dependencies);
+            logger.info(String.format("resolved %d dependencies in %s", artifacts.size(), elapsed(begin)));
 
             Map<ZpmDependency, ZpmDependency> resolvables = artifacts.stream()
                 .map(a -> a.id)
@@ -223,22 +226,51 @@ public final class ZpmInstall extends ZpmCommand
             createDirectories(generatedDir);
 
             ZpmModule delegate = new ZpmModule();
+
+            begin = System.nanoTime();
+            logger.info("discovering modules");
             Collection<ZpmModule> modules = discoverModules(artifacts);
             migrateUnnamed(modules, delegate);
+            logger.info(String.format("discovered %d modules in %s", modules.size(), elapsed(begin)));
+
+            begin = System.nanoTime();
+            logger.info("generating module info for system-only automatic modules");
             generateSystemOnlyAutomatic(logger, modules);
+            logger.info(String.format("generated module info for system-only automatic modules in %s", elapsed(begin)));
+
+            begin = System.nanoTime();
+            logger.info("delegating automatic modules");
             delegateAutomatic(modules, delegate);
+            logger.info(String.format("delegated automatic modules in %s", elapsed(begin)));
+
+            begin = System.nanoTime();
+            logger.info("copying non-delegating modules");
             copyNonDelegating(modules);
+            logger.info(String.format("copied non-delegating modules in %s", elapsed(begin)));
 
             if (!delegate.paths.isEmpty())
             {
+                begin = System.nanoTime();
+                logger.info("resolving optional dependencies");
                 Collection<ZpmArtifact> optional = cache.resolveOptional(config.imports, config.dependencies);
+                logger.info(String.format("resolved %d optional dependencies in %s", optional.size(), elapsed(begin)));
+
+                begin = System.nanoTime();
+                logger.info("generating delegate module");
                 generateDelegate(logger, delegate, optional);
+                logger.info(String.format("generated delegate module in %s", elapsed(begin)));
+
+                begin = System.nanoTime();
+                logger.info("generating delegating modules");
                 generateDelegating(modules);
+                logger.info(String.format("generated delegating modules in %s", elapsed(begin)));
             }
 
+            begin = System.nanoTime();
+            logger.info("linking modules");
             deleteDirectories(imageDir);
             linkModules(modules);
-            logger.info("linked modules");
+            logger.info(String.format("linked modules in %s", elapsed(begin)));
 
             generateLauncher();
             logger.info("generated launcher");
@@ -449,7 +481,9 @@ public final class ZpmInstall extends ZpmCommand
                 Path generatedModuleInfo = generatedModuleDir.resolve(MODULE_INFO_JAVA_FILENAME);
                 if (Files.exists(generatedModuleInfo))
                 {
-                    logger.info(String.format("Generated module info for system-only automatic module: %s", module.name));
+                    logger.debug(String.format("Generating module info for system-only automatic module: %s", module.name));
+
+                    long begin = System.nanoTime();
 
                     expandJar(generatedModuleDir, artifactPath);
 
@@ -480,6 +514,9 @@ public final class ZpmInstall extends ZpmCommand
                     extendJar(artifactPath, generatedModulePath, moduleInfoEntry, compiledModuleInfo);
 
                     promotions.put(module, generatedModulePath);
+
+                    logger.info(String.format("Generated module info for system-only automatic module: %s (%s)",
+                        module.name, elapsed(begin)));
                 }
             }
         }
@@ -525,7 +562,11 @@ public final class ZpmInstall extends ZpmCommand
         Files.createDirectories(generatedModulesDir);
 
         Path generatedDelegatePath = generatedModulesDir.resolve(String.format("%s.jar", delegate.name));
+
+        long begin = System.nanoTime();
+        logger.info(String.format("merging %d artifacts into delegate module jar", delegate.paths.size()));
         generateDelegateJar(delegate, generatedDelegatePath);
+        logger.info(String.format("merged delegate module jar in %s", elapsed(begin)));
 
         // Merge the optional dependency tree resolved via Aether into a single validation-only module so
         // jdeps can resolve the delegate's static references to optional third-party libraries (for
@@ -538,7 +579,11 @@ public final class ZpmInstall extends ZpmCommand
         Files.createDirectories(optionalModulesDir);
         String optionalName = String.format("%s.optional", delegate.name);
         Path optionalPath = optionalModulesDir.resolve(String.format("%s.jar", optionalName));
+
+        begin = System.nanoTime();
+        logger.info(String.format("merging %d optional artifacts into validation-only module jar", optional.size()));
         generateDelegateOptional(optionalPath, optional, jarPackages(generatedDelegatePath));
+        logger.info(String.format("merged validation-only module jar in %s", elapsed(begin)));
 
         deleteDirectories(generatedDelegateDir);
 
@@ -548,12 +593,15 @@ public final class ZpmInstall extends ZpmCommand
         boolean strict = !ignoreMissingDependencies;
         if (strict)
         {
+            begin = System.nanoTime();
+            logger.info("running jdeps --generate-module-info for delegate module");
             int result = jdeps.run(
                 System.out,
                 System.err,
                 "--generate-module-info", generatedModulesDir.toString(),
                 "--module-path", optionalModulesDir.toString(),
                 generatedDelegatePath.toString());
+            logger.info(String.format("completed jdeps --generate-module-info in %s", elapsed(begin)));
             strict = result == 0 && Files.exists(generatedModuleInfo);
         }
 
@@ -562,7 +610,11 @@ public final class ZpmInstall extends ZpmCommand
             // jdeps could not resolve every reference against the optional dependency tree (for example
             // offline with an incomplete tree); fall back to generating while ignoring missing
             // dependencies and report what forced the fallback so accidental prunes remain visible
+            begin = System.nanoTime();
+            logger.info("running jdeps --missing-deps for delegate module");
             Set<String> missing = missingDependencies(generatedDelegatePath, optionalModulesDir);
+            logger.info(String.format("completed jdeps --missing-deps in %s", elapsed(begin)));
+
             if (!missing.isEmpty())
             {
                 String details = missing.stream()
@@ -574,12 +626,16 @@ public final class ZpmInstall extends ZpmCommand
                     " generating module info while ignoring them:%n%s", missing.size(), details));
             }
             deleteDirectories(generatedDelegateDir);
+
+            begin = System.nanoTime();
+            logger.info("running jdeps --generate-module-info --ignore-missing-deps for delegate module");
             jdeps.run(
                 System.out,
                 System.err,
                 "--generate-module-info", generatedModulesDir.toString(),
                 "--ignore-missing-deps",
                 generatedDelegatePath.toString());
+            logger.info(String.format("completed jdeps --generate-module-info --ignore-missing-deps in %s", elapsed(begin)));
         }
 
         if (!Files.exists(generatedModuleInfo))
@@ -646,7 +702,12 @@ public final class ZpmInstall extends ZpmCommand
 
         Files.writeString(generatedModuleInfo, moduleInfoContents);
 
+        begin = System.nanoTime();
+        logger.info("expanding delegate module jar");
         expandJar(generatedDelegateDir, generatedDelegatePath);
+        logger.info(String.format("expanded delegate module jar in %s", elapsed(begin)));
+
+        begin = System.nanoTime();
 
         ToolProvider javac = ToolProvider.findFirst("javac").get();
 
@@ -673,6 +734,8 @@ public final class ZpmInstall extends ZpmCommand
         JarEntry moduleInfoEntry = new JarEntry(MODULE_INFO_CLASS_FILENAME);
         moduleInfoEntry.setTime(318240000000L);
         extendJar(generatedDelegatePath, delegatePath, moduleInfoEntry, compiledModuleInfo);
+
+        logger.info(String.format("compiled and packaged delegate module in %s", elapsed(begin)));
     }
 
     private void generateDelegateJar(
@@ -1091,6 +1154,12 @@ public final class ZpmInstall extends ZpmCommand
                 .map(Path::toFile)
                 .forEach(File::delete);
         }
+    }
+
+    private static String elapsed(
+        long begin)
+    {
+        return String.format("%.3fs", (System.nanoTime() - begin) * 1e-9);
     }
 
     private static boolean atLeastVersion(

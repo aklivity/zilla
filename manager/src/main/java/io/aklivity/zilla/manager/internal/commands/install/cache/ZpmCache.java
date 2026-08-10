@@ -17,6 +17,8 @@ package io.aklivity.zilla.manager.internal.commands.install.cache;
 
 import static java.util.Objects.requireNonNull;
 import static java.util.Optional.ofNullable;
+import static org.eclipse.aether.ConfigurationProperties.CONNECT_TIMEOUT;
+import static org.eclipse.aether.ConfigurationProperties.REQUEST_TIMEOUT;
 import static org.eclipse.aether.util.graph.transformer.ConflictResolver.CONFIG_PROP_VERBOSE;
 
 import java.nio.file.Path;
@@ -79,6 +81,14 @@ public final class ZpmCache
     // acquired within the 30s timeout (observed with both the default "file-lock" factory
     // and the in-JVM "rwlock-local" factory). Disable locking with the "noop" factory.
     private static final String CONFIG_PROP_NAMED_LOCK_FACTORY = "aether.syncContext.named.factory";
+
+    // maven-resolver defaults REQUEST_TIMEOUT to 1800000ms, so a transfer that connects and
+    // then stalls waits half an hour before failing. Resolution is otherwise seconds long,
+    // so that reads as a deadlock and outlives most CI step budgets: one observed install
+    // sat in resolveOptional for 19 minutes with no output before the job was killed. Bound
+    // both so a stuck transfer fails while there is still budget left to report it.
+    private static final int CONNECT_TIMEOUT_MS = 10000;
+    private static final int REQUEST_TIMEOUT_MS = 60000;
 
     private final RepositorySystem repositorySystem;
 
@@ -289,6 +299,8 @@ public final class ZpmCache
                 .setTransferListener(new ZpmConsoleTransferListener())
                 .setConfigProperty(CONFIG_PROP_VERBOSE, "true")
                 .setConfigProperty(CONFIG_PROP_NAMED_LOCK_FACTORY, "noop")
+                .setConfigProperty(CONNECT_TIMEOUT, CONNECT_TIMEOUT_MS)
+                .setConfigProperty(REQUEST_TIMEOUT, REQUEST_TIMEOUT_MS)
                 .setIgnoreArtifactDescriptorRepositories(excludeRemote)
                 .build();
     }

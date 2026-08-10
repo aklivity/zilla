@@ -28,6 +28,14 @@
 # <delay_seconds> between attempts. Returns the command's final exit status, so
 # the caller can fall through to its normal assertion on the last result.
 #
+# The first retry is immediate; the delay applies from the second retry onward.
+# What these gates wait out is a data-plane race that has usually already
+# resolved by the time the first call returns -- the call itself takes long
+# enough to be the settle time. Sleeping before re-calling therefore bills
+# <delay_seconds> for a condition that is already true, on every gate that needs
+# exactly one retry. Retrying once immediately costs a single extra call and
+# keeps the full backoff for the cases that are genuinely still warming up.
+#
 # <command> is typically a shell function defined by the caller that performs
 # the call and assigns OUTPUT / RESULT. Because the function runs in the current
 # shell -- not a subshell -- the variables it sets remain visible afterwards, so
@@ -46,8 +54,11 @@ retry_until() {
     then
       return "$_status"
     fi
+    if [ "$_attempt" -gt 1 ]
+    then
+      sleep "$_delay"
+    fi
     _attempt=$((_attempt + 1))
-    sleep "$_delay"
   done
 }
 
@@ -64,6 +75,12 @@ retry_until() {
 # a long log the failing assertion can be past the reach of the log-tail APIs
 # altogether, leaving nothing to diagnose from but the exit code.
 FAILURES=""
+# When FAIL_FAST is 1, the first failure stops the run instead of letting the
+# remaining assertions execute. That matters when the diagnosis is frame-level:
+# `zilla dump` reads what the engine directory still holds, so the frames worth
+# looking at have to be the most recent ones. Traffic after the first failure
+# buries them. Off by default, so every other example behaves exactly as before.
+FAIL_FAST=${FAIL_FAST:-0}
 
 fail() {
   _message="$*"
@@ -72,6 +89,13 @@ fail() {
   FAILURES="$FAILURES$_message
 "
   EXIT=1
+
+  if [ "$FAIL_FAST" = "1" ]
+  then
+    echo "FAIL_FAST=1, stopping at the first failure so the collected diagnostics still point at it"
+    report_failures
+    exit 1
+  fi
 }
 
 # report_failures
