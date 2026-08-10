@@ -43,9 +43,15 @@ bindings:
         exit: tcp_client0
 ```
 
-Two properties are supported, `subject.cn` and `subject.dn`. They are matched
-against the corresponding properties of each candidate key already offered by the
-vault. Multiple properties are AND'd — a candidate must match all of them.
+Exactly one property is named, either `subject.cn` or `subject.dn`. It is matched
+against the corresponding property of each candidate key already offered by the
+vault.
+
+Both properties describe the same subject, so naming both would be either
+redundant or self-contradictory. Matching on several properties at once becomes
+useful only alongside properties that are independent of the subject, such as
+`issuer.*` or `san.*`, and neither is supported yet; `maxProperties` can be
+relaxed when one is.
 
 Values are either literals (`subject.cn: kafka-gateway`, always present this
 certificate) or `${guarded['name'].identity}` / `${guarded['name'].attributes.*}`

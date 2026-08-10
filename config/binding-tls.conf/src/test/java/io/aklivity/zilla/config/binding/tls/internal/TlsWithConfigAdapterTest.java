@@ -96,26 +96,6 @@ public class TlsWithConfigAdapterTest
     }
 
     @Test
-    public void shouldReadWithCertificateMultipleProperties()
-    {
-        String text =
-                "{" +
-                    "\"certificate\":" +
-                    "{" +
-                        "\"subject.cn\": \"client1\"," +
-                        "\"subject.dn\": \"CN=client1,O=Aklivity,C=US\"" +
-                    "}" +
-                "}";
-
-        TlsWithConfig with = jsonb.fromJson(text, TlsWithConfig.class);
-
-        assertThat(with, not(nullValue()));
-        assertThat(with.certificate.fields.size(), equalTo(2));
-        assertThat(with.certificate.fields.get(SUBJECT_CN), equalTo("client1"));
-        assertThat(with.certificate.fields.get(SUBJECT_DN), equalTo("CN=client1,O=Aklivity,C=US"));
-    }
-
-    @Test
     public void shouldWriteWithCertificateSubjectCommonName()
     {
         TlsWithConfig with = TlsWithConfig.builder()
@@ -129,23 +109,6 @@ public class TlsWithConfigAdapterTest
 
         assertThat(text, not(nullValue()));
         assertThat(text, equalTo("{\"certificate\":{\"subject.cn\":\"client1\"}}"));
-    }
-
-    @Test
-    public void shouldWriteWithCertificateMultipleProperties()
-    {
-        TlsWithConfig with = TlsWithConfig.builder()
-            .certificate()
-                .subjectCommonName("client1")
-                .subjectDistinguishedName("CN=client1,O=Aklivity,C=US")
-                .build()
-            .build();
-
-        String text = jsonb.toJson(with);
-
-        assertThat(text, not(nullValue()));
-        assertThat(text, equalTo(
-            "{\"certificate\":{\"subject.cn\":\"client1\",\"subject.dn\":\"CN=client1,O=Aklivity,C=US\"}}"));
     }
 
     @Test

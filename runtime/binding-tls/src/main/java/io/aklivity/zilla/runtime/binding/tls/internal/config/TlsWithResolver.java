@@ -109,9 +109,10 @@ public final class TlsWithResolver
     }
 
     /**
-     * Resolves every configured property against the guarded session, returning {@code null}
-     * when any property resolves to nothing. All properties are matched together, so a single
-     * unresolved property makes the whole clause unsatisfiable rather than broader.
+     * Resolves the configured property against the guarded session, returning {@code null} when
+     * it resolves to nothing, so an unresolved clause is unsatisfiable rather than broader. The
+     * schema admits a single property today; the map shape carries more without change if a
+     * property independent of the subject is added later.
      */
     public Map<String, String> resolve(
         long authorization)

@@ -196,14 +196,6 @@ public class SchemaTest
     }
 
     @Test
-    public void shouldValidateClientWithCertificateMultipleProperties()
-    {
-        JsonObject config = schema.validate("client.with.certificate.multiple.yaml");
-
-        assertThat(config, not(nullValue()));
-    }
-
-    @Test
     public void shouldValidateClientWithCertificateNotMatched()
     {
         JsonObject config = schema.validate("client.with.certificate.no.match.yaml");
@@ -237,6 +229,12 @@ public class SchemaTest
     public void shouldRejectClientWithCertificateWithoutProperties()
     {
         schema.validate("client.with.certificate.empty.invalid.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectClientWithCertificateMultipleProperties()
+    {
+        schema.validate("client.with.certificate.multiple.invalid.yaml");
     }
 
     @Test(expected = JsonException.class)

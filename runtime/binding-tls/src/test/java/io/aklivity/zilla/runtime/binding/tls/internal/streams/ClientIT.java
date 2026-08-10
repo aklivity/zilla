@@ -172,28 +172,6 @@ public class ClientIT
         k3po.finish();
     }
 
-    @Test
-    @Configuration("client.with.certificate.match.all.yaml")
-    @Specification({
-        "${app}/client.auth.with.certificate/client",
-        "${net}/client.auth.trusted.first/server" })
-    public void shouldEstablishConnectionWithCertificateMatchingAllProperties() throws Exception
-    {
-        k3po.finish();
-    }
-
-    // subject.cn names one candidate and subject.dn the other, so the properties are satisfiable
-    // only apart; matching them together selects nothing and the event names the whole selector
-    @Test
-    @Configuration("client.with.certificate.match.all.no.match.yaml")
-    @Specification({
-        "${app}/client.auth.with.certificate.not.matched/client",
-        "${net}/client.auth.with.certificate.not.matched/server" })
-    public void shouldLogClientCertificateNotMatchedEventWhenPropertiesMatchApart() throws Exception
-    {
-        k3po.finish();
-    }
-
     // a failed TLS handshake cannot be scripted against a k3po tls:// accept, which completes
     // only on success; `rejected` does not help, since no child channel is ever bound. Same
     // limitation as shouldRejectClientAuthMismatched below. Covered by
