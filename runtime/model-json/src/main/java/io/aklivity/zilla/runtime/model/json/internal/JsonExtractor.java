@@ -192,9 +192,18 @@ final class JsonExtractor implements JsonTransform
         case VALUE_NUMBER:
             if (depth == 1 && armed)
             {
+                // a value spanning an input window arrives as repeated events over the same key, each
+                // carrying the value's whole decoded-so-far prefix (scratch is never pruned mid-value
+                // since nothing here advances the parser's string-view cursor) until the closing fragment
+                // delivers it complete, so re-capturing on every fragment and staying armed until
+                // deferredBytes() goes false always leaves the last (complete) capture in place
                 capture(pendingKey, source.getStringView());
+                armed = source.deferredBytes();
             }
-            armed = false;
+            else
+            {
+                armed = false;
+            }
             break;
         default:
             armed = false;

@@ -50,6 +50,7 @@ public class JsonModelDecoderPipelineTest
 {
     private static final int FLAGS_INIT = 0x02;
     private static final int FLAGS_FIN = 0x01;
+    private static final int FLAGS_NONE = 0x00;
     private static final int FLAGS_COMPLETE = 0x03;
 
     private static final String OBJECT_SCHEMA = """
@@ -61,6 +62,19 @@ public class JsonModelDecoderPipelineTest
                 "status": { "type": "string" }
             },
             "required": [ "id", "status" ]
+        }""";
+
+    // "note" has no content-constraining keyword (pattern/minLength/maxLength), so the validator forwards
+    // a value spanning an input window in fragments instead of reassembling it first (see JsonExtractor)
+    private static final String UNCONSTRAINED_VALUE_SCHEMA = """
+        {
+            "type": "object",
+            "properties":
+            {
+                "id": { "type": "string" },
+                "note": { "type": "string" }
+            },
+            "required": [ "id", "note" ]
         }""";
 
     private EngineContext context;
@@ -160,6 +174,45 @@ public class JsonModelDecoderPipelineTest
     }
 
     @Test
+    public void shouldExtractFieldSpanningInputWindow()
+    {
+        JsonModelHandlerImpl handler = newHandler(UNCONSTRAINED_VALUE_SCHEMA);
+        Map<String, String> extracted = new HashMap<>();
+        ModelPipeline pipeline = handler.supplyDecoder(observer(extracted));
+
+        // "note" has no content keyword, so a value spanning an input window is forwarded to the
+        // extractor in fragments (Validator's forward-and-suppress path) instead of being reassembled
+        // first, unlike "id" or an object key
+        String note = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+        byte[] head = "{\"id\":\"1\",\"note\":".getBytes(UTF_8);
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[512]);
+
+        // window 1: everything up to (not including) the value
+        ModelPipelineResult r1 = pipeline.transform(0L, 0L, FLAGS_INIT,
+            new UnsafeBufferEx(head), 0, head.length, dst, 0, dst.capacity());
+        assertEquals(ModelStatus.UNDERFLOW, r1.status());
+
+        // window 2: a small window of ONLY value bytes (opening quote + a prefix), so the value's own
+        // scanned bytes fill this window before it closes, forcing the fragmenting path
+        byte[] remainder1 = concat(head, r1.consumed(), new byte[0]);
+        byte[] valueChunk1 = ("\"" + note.substring(0, 20)).getBytes(UTF_8);
+        byte[] window2 = concat(remainder1, 0, valueChunk1);
+        ModelPipelineResult r2 = pipeline.transform(0L, 0L, FLAGS_NONE,
+            new UnsafeBufferEx(window2), 0, window2.length, dst, 0, dst.capacity());
+        assertEquals(ModelStatus.UNDERFLOW, r2.status());
+
+        // window 3: the rest of the value, its closing quote, and the closing brace
+        byte[] remainder2 = concat(window2, r2.consumed(), new byte[0]);
+        byte[] tail = (note.substring(20) + "\"}").getBytes(UTF_8);
+        byte[] window3 = concat(remainder2, 0, tail);
+        ModelPipelineResult r3 = pipeline.transform(0L, 0L, FLAGS_FIN,
+            new UnsafeBufferEx(window3), 0, window3.length, dst, 0, dst.capacity());
+
+        assertEquals(ModelStatus.COMPLETE, r3.status());
+        assertEquals(note, extracted.get("$.note"));
+    }
+
+    @Test
     public void shouldReportDecodePadding()
     {
         JsonModelHandlerImpl handler = newHandler();
@@ -187,13 +240,19 @@ public class JsonModelDecoderPipelineTest
 
     private JsonModelHandlerImpl newHandler()
     {
+        return newHandler(OBJECT_SCHEMA);
+    }
+
+    private JsonModelHandlerImpl newHandler(
+        String schema)
+    {
         TestCatalogConfig catalog = GenericCatalogConfig.builder(TestCatalogConfig::new)
             .namespace("test")
             .name("test0")
             .type("test")
             .options(TestCatalogOptionsConfig::builder)
                 .id(9)
-                .schema(OBJECT_SCHEMA)
+                .schema(schema)
                 .build()
             .build();
         JsonModelConfig model = JsonModelConfig.builder()
