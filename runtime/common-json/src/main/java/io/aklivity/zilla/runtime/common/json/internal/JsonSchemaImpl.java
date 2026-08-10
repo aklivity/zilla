@@ -2392,6 +2392,13 @@ public final class JsonSchemaImpl implements JsonSchema
         private final boolean lenient;
         private final Trace trace = new Trace(diagnostics::add);
         private final Eval eval;
+        // captures a KEY_NAME's chars before forwarding to the sink (see transform()'s structural-event
+        // branch below): reading getStringView() only after the forward can return an empty remainder if
+        // the sink (or an intermediate stage) already rendered this same key, since that shared cursor
+        // has no notion of "consumed by whom" — reading first, while the cursor is still fresh, sidesteps
+        // that race entirely. Reused across every key on this validator; only ever holds one key at a time
+        private final StringBuilder keyCapture = new StringBuilder();
+        private final KeySource keySourceRO = new KeySource();
 
         private JsonController upstreamControl;
         private boolean downstreamVerbatim;
@@ -2402,6 +2409,88 @@ public final class JsonSchemaImpl implements JsonSchema
         {
             this.lenient = lenient;
             this.eval = eval(trace);
+        }
+
+        // Redirects getStringView() to the pre-forward key capture, delegating every other accessor to
+        // the real source unchanged (so the slow, String-materializing key path — which never calls
+        // getStringView() — is unaffected either way)
+        private final class KeySource implements JsonSource
+        {
+            private JsonSource delegate;
+
+            private KeySource wrap(
+                JsonSource delegate)
+            {
+                this.delegate = delegate;
+                return this;
+            }
+
+            @Override
+            public String getString()
+            {
+                return delegate.getString();
+            }
+
+            @Override
+            public CharSequence getStringView()
+            {
+                return keyCapture;
+            }
+
+            @Override
+            public BigDecimal getBigDecimal()
+            {
+                return delegate.getBigDecimal();
+            }
+
+            @Override
+            public boolean isIntegralNumber()
+            {
+                return delegate.isIntegralNumber();
+            }
+
+            @Override
+            public int getInt()
+            {
+                return delegate.getInt();
+            }
+
+            @Override
+            public long getLong()
+            {
+                return delegate.getLong();
+            }
+
+            @Override
+            public JsonLocation getLocation()
+            {
+                return delegate.getLocation();
+            }
+
+            @Override
+            public DirectBufferEx getSegment()
+            {
+                return delegate.getSegment();
+            }
+
+            @Override
+            public JsonVerbatim getVerbatim(
+                int limit)
+            {
+                return delegate.getVerbatim(limit);
+            }
+
+            @Override
+            public void skipValue()
+            {
+                delegate.skipValue();
+            }
+
+            @Override
+            public boolean deferredBytes()
+            {
+                return delegate.deferredBytes();
+            }
         }
 
         @Override
@@ -2481,10 +2570,18 @@ public final class JsonSchemaImpl implements JsonSchema
             }
             else
             {
+                // a key is captured before forwarding — see keyCapture's field comment — so Eval reads an
+                // intact view below regardless of what the sink does with the same live cursor
+                boolean keyName = event == JsonEvent.KEY_NAME;
+                if (keyName)
+                {
+                    keyCapture.setLength(0);
+                    keyCapture.append(source.getStringView());
+                }
                 // structural events and keys forward first, preserving the emit-then-reject ordering (e.g. a
                 // missing required property is detected at END_OBJECT only after the object has been emitted)
                 Status downstream = sink.transform(decline, source, forward(event));
-                Verdict verdict = eval.feed(toEvent(event), source);
+                Verdict verdict = eval.feed(toEvent(event), keyName ? keySourceRO.wrap(source) : source);
                 // throw a descriptive exception at the point of detection so the pipeline maps it to REJECTED
                 // and pushes the diagnostic to the reporter, rather than rejecting structurally with no message
                 if (verdict == Verdict.INVALID && !lenient)
@@ -2640,8 +2737,10 @@ public final class JsonSchemaImpl implements JsonSchema
         private boolean reused;
 
         private final boolean annotate;
-        // keys matched/tracked as a CharSequence (no String): a simple object, with neither annotation
-        // nor diagnostics needing the materialized key
+        // keys matched/tracked as a CharSequence (no String) for a simple object with no annotation
+        // tracking: required-key and property-schema resolution use array scans instead of a Set/Map. Not
+        // gated on trace activity — Validator now captures the key before forwarding downstream (see
+        // Validator.keyCapture), so this is safe even when diagnostics (and thus the pointer trail) are wanted
         private final boolean fastKeys;
         private boolean[] requiredSeen;
         private Set<String> evaluatedProps;
@@ -2675,7 +2774,7 @@ public final class JsonSchemaImpl implements JsonSchema
             this.elseEval = elseSchema != null ? elseSchema.eval(Trace.NONE, dynScope) : null;
             this.dependentSchemaEvals = evalsOfMap(dependentSchemas, Trace.NONE);
             this.trackKeys = required != null || dependentRequired != null || dependentSchemaEvals != null;
-            this.fastKeys = simpleObject && !annotate && !trace.active();
+            this.fastKeys = simpleObject && !annotate;
         }
 
         // resets to pre-feed state for reuse: eager combinator children reset in place, lazy children
@@ -3231,7 +3330,7 @@ public final class JsonSchemaImpl implements JsonSchema
             {
                 if (fastKeys)
                 {
-                    checkRequiredFast();
+                    checkRequiredFast(parser);
                 }
                 else if (required != null && !seen.containsAll(required))
                 {
@@ -3293,11 +3392,13 @@ public final class JsonSchemaImpl implements JsonSchema
                 }
             }
             JsonSchemaImpl schema = null;
+            int matchedIndex = -1;
             for (int i = 0; i < propertyKeys.length; i++)
             {
                 if (charsEqual(propertyKeys[i], key))
                 {
                     schema = propertySchemas[i];
+                    matchedIndex = i;
                     break;
                 }
             }
@@ -3305,20 +3406,52 @@ public final class JsonSchemaImpl implements JsonSchema
             {
                 schema = additionalSchema != null ? additionalSchema : additionalAllowed ? ANY : NONE;
             }
-            directChildMark = 0;
+            if (matchedIndex >= 0)
+            {
+                // a declared property: the schema already owns this exact name, so the pointer segment
+                // reuses it directly rather than copying the document's own key
+                directChildMark = trace.push(propertyKeys[matchedIndex]);
+            }
+            else if (schema != ANY && trace.active())
+            {
+                // an additionalProperties key the schema doesn't already know by name, routed to a
+                // fallible sub-schema (or disallowed outright via NONE): only here does the pointer
+                // need the document's own key text, materialized once, on this less-common path
+                directChildMark = trace.push(key.toString());
+            }
+            else
+            {
+                directChildMark = 0;
+            }
             directChild = propEvalFor(schema);
             directChildren = null;
         }
 
-        private void checkRequiredFast()
+        private void checkRequiredFast(
+            JsonSource parser)
         {
+            boolean missing = false;
             for (int i = 0; i < requiredKeys.length; i++)
             {
                 if (!requiredSeen[i])
                 {
                     directInvalid = true;
-                    break;
+                    missing = true;
                 }
+            }
+            // the message text is built only on this rare failure path, at parity with the slow path's
+            // equivalent seen.containsAll(required) branch
+            if (missing && trace.active())
+            {
+                Set<String> names = new LinkedHashSet<>();
+                for (int i = 0; i < requiredKeys.length; i++)
+                {
+                    if (!requiredSeen[i])
+                    {
+                        names.add(requiredKeys[i]);
+                    }
+                }
+                trace.report("required", "missing required " + names, parser);
             }
         }
 
