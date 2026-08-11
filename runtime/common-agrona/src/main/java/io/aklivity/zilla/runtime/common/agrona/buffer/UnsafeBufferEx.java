@@ -248,10 +248,15 @@ public final class UnsafeBufferEx implements AtomicBufferEx, DirectBufferViewEx
     public void wrap(
         byte[] buffer)
     {
+        // byteArray still holds whatever array (if any) backed the previous wrap of any kind, so this
+        // also catches — and correctly recomputes for — an intervening wrap of a different kind
+        if (buffer != byteArray)
+        {
+            segment = MemorySegment.ofArray(buffer);
+        }
         byteArray = buffer;
         byteBuffer = null;
         byteBufferView = null;
-        segment = MemorySegment.ofArray(buffer);
         addressOffset = BufferUtil.ARRAY_BASE_OFFSET;
         capacity = buffer.length;
         wrapAdjustment = 0;
@@ -264,10 +269,13 @@ public final class UnsafeBufferEx implements AtomicBufferEx, DirectBufferViewEx
         int offset,
         int length)
     {
+        if (buffer != byteArray)
+        {
+            segment = MemorySegment.ofArray(buffer);
+        }
         byteArray = buffer;
         byteBuffer = null;
         byteBufferView = null;
-        segment = MemorySegment.ofArray(buffer);
         addressOffset = BufferUtil.ARRAY_BASE_OFFSET + offset;
         capacity = length;
         wrapAdjustment = offset;
