@@ -146,6 +146,10 @@ public final class UnsafeBufferEx implements AtomicBufferEx, DirectBufferViewEx
     }
 
     private MemorySegment segment;
+    // the array segment was last derived from via wrap(byte[]...): MemorySegment.ofArray(array) depends
+    // only on the array's identity, so re-wrapping the same array (even via an intervening wrap of a
+    // different kind) can reuse it rather than deriving a fresh one
+    private byte[] segmentArray;
     private byte[] byteArray;
     private ByteBuffer byteBuffer;
     private ByteBuffer byteBufferView;
@@ -251,7 +255,11 @@ public final class UnsafeBufferEx implements AtomicBufferEx, DirectBufferViewEx
         byteArray = buffer;
         byteBuffer = null;
         byteBufferView = null;
-        segment = MemorySegment.ofArray(buffer);
+        if (buffer != segmentArray)
+        {
+            segmentArray = buffer;
+            segment = MemorySegment.ofArray(buffer);
+        }
         addressOffset = BufferUtil.ARRAY_BASE_OFFSET;
         capacity = buffer.length;
         wrapAdjustment = 0;
@@ -267,7 +275,11 @@ public final class UnsafeBufferEx implements AtomicBufferEx, DirectBufferViewEx
         byteArray = buffer;
         byteBuffer = null;
         byteBufferView = null;
-        segment = MemorySegment.ofArray(buffer);
+        if (buffer != segmentArray)
+        {
+            segmentArray = buffer;
+            segment = MemorySegment.ofArray(buffer);
+        }
         addressOffset = BufferUtil.ARRAY_BASE_OFFSET + offset;
         capacity = length;
         wrapAdjustment = offset;
