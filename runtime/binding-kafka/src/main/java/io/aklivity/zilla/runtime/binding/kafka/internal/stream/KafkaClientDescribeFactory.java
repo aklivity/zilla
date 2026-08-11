@@ -1303,6 +1303,8 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
 
                 doEnd(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                         traceId, authorization, EMPTY_EXTENSION);
+
+                deauthorizeGuardSession();
             }
 
             private void doNetworkAbortIfNecessary(
@@ -1317,6 +1319,8 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
 
                 cleanupEncodeSlotIfNecessary();
                 cleanupBudgetIfNecessary();
+
+                deauthorizeGuardSession();
             }
 
             private void doNetworkResetIfNecessary(
@@ -1330,6 +1334,8 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
                 }
 
                 cleanupDecodeSlotIfNecessary();
+
+                deauthorizeGuardSession();
             }
 
             private void doNetworkWindow(

@@ -55,4 +55,13 @@ public class DescribeClusterSaslIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/cluster.brokers.info.sasl.plain.twice/client",
+        "${net}/cluster.brokers.info.sasl.plain.twice/server"})
+    public void shouldDescribeClusterBrokerInfoTwiceWithSaslPlain() throws Exception
+    {
+        k3po.finish();
+    }
 }

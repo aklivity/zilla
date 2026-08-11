@@ -2541,6 +2541,8 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                         traceId, authorization, EMPTY_OCTETS);
 
                 cleanupEncodeSlotIfNecessary();
+
+                deauthorizeGuardSession();
             }
 
             private void doNetworkAbortIfNecessary(
@@ -2554,6 +2556,8 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                 }
 
                 cleanupEncodeSlotIfNecessary();
+
+                deauthorizeGuardSession();
             }
 
             private void doNetworkResetIfNecessary(
@@ -2567,6 +2571,8 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                 }
 
                 cleanupDecodeSlotIfNecessary();
+
+                deauthorizeGuardSession();
             }
 
             private void doNetworkWindow(

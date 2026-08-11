@@ -18,6 +18,7 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBearerErro
 
 public record McpAuthorizationResult(
     long authorization,
-    McpBearerError error)
+    McpBearerError error,
+    boolean owned)
 {
 }

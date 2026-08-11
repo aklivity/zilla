@@ -1469,6 +1469,8 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
 
                 cleanupEncodeSlotIfNecessary();
                 cleanupBudgetIfNecessary();
+
+                deauthorizeGuardSession();
             }
 
             private void doNetworkAbortIfNecessary(
@@ -1484,6 +1486,8 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
 
                 cleanupEncodeSlotIfNecessary();
                 cleanupBudgetIfNecessary();
+
+                deauthorizeGuardSession();
             }
 
             private void doNetworkResetIfNecessary(
@@ -1497,6 +1501,8 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
                 }
 
                 cleanupDecodeSlotIfNecessary();
+
+                deauthorizeGuardSession();
             }
 
             private void doNetworkWindow(

@@ -504,4 +504,14 @@ public class ConnectionIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.credentials.username.max.sessions.yaml")
+    @Specification({
+        "${net}/connect.username.reauthorize.after.disconnect/client",
+        "${app}/connect.username.reauthorize.after.disconnect/server"})
+    public void shouldReauthorizeUsernameAfterDisconnect() throws Exception
+    {
+        k3po.finish();
+    }
 }
