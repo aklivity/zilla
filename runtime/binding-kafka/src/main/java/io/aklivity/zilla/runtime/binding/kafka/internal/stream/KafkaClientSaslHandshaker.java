@@ -16,6 +16,8 @@
 package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CLIENT_ID_DEFAULT;
+import static io.aklivity.zilla.runtime.engine.guard.GuardHandler.MASK_AUTHORIZED;
+import static io.aklivity.zilla.runtime.engine.guard.GuardHandler.NOT_AUTHORIZED;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -172,6 +174,7 @@ public abstract class KafkaClientSaslHandshaker
         private LongLongConsumer encodeSaslAuthenticate;
         private KafkaSaslClientDecoder decodeSaslAuthenticate;
         private long guardSession;
+        private boolean guardSessionOwned;
         private final GuardHandler guard;
 
         protected long saslAuthorization;
@@ -206,6 +209,16 @@ public abstract class KafkaClientSaslHandshaker
             this.replyId = supplyReplyId.applyAsLong(initialId);
         }
 
+        protected final void deauthorizeGuardSession()
+        {
+            if (guardSessionOwned && (guardSession & MASK_AUTHORIZED) != 0)
+            {
+                guard.deauthorize(guardSession);
+                guardSession = NOT_AUTHORIZED;
+                guardSessionOwned = false;
+            }
+        }
+
         protected final void doEncodeSaslHandshakeRequest(
             long traceId,
             long budgetId)
@@ -214,9 +227,16 @@ public abstract class KafkaClientSaslHandshaker
                 (CREDENTIALS_TEMPLATE.equals(sasl.token) || CREDENTIALS_TEMPLATE.equals(sasl.password)))
             {
                 final String resolved = guard.credentials(saslAuthorization);
-                guardSession = resolved != null
-                        ? saslAuthorization
-                        : guard.reauthorize(traceId, routedId, initialId, null);
+                if (resolved != null)
+                {
+                    guardSession = saslAuthorization;
+                    guardSessionOwned = false;
+                }
+                else
+                {
+                    guardSession = guard.reauthorize(traceId, routedId, initialId, null);
+                    guardSessionOwned = true;
+                }
             }
 
             final MutableDirectBufferEx encodeBuffer = writeBuffer;

@@ -1668,6 +1668,7 @@ public final class McpClientFactory implements McpStreamFactory
 
         protected HttpStream http;
         protected String credentials;
+        protected long guardSessionId = GuardHandler.NOT_AUTHORIZED;
         protected int clientCapabilities;
         protected String authCallback;
         protected int serverCapabilities = SERVER_CAPABILITIES;
@@ -1912,6 +1913,16 @@ public final class McpClientFactory implements McpStreamFactory
 
         abstract McpBindingConfig binding();
 
+        final void deauthorizeGuardSession()
+        {
+            final GuardHandler guard = binding().guard;
+            if (guard != null && (guardSessionId & GuardHandler.MASK_AUTHORIZED) != 0L)
+            {
+                guard.deauthorize(guardSessionId);
+                guardSessionId = GuardHandler.NOT_AUTHORIZED;
+            }
+        }
+
         boolean proceedWithRequest(
             long traceId,
             long authorization,
@@ -1934,6 +1945,7 @@ public final class McpClientFactory implements McpStreamFactory
                     if ((sessionId & GuardHandler.MASK_AUTHORIZED) != 0L)
                     {
                         credentials = guard.credentials(sessionId);
+                        guardSessionId = sessionId;
                     }
                 }
             }
@@ -2691,6 +2703,9 @@ public final class McpClientFactory implements McpStreamFactory
         {
             if ((sessionId & GuardHandler.MASK_AUTHORIZED) != 0L)
             {
+                deauthorizeGuardSession();
+                guardSessionId = sessionId;
+
                 final McpFlushExFW flushEx = mcpFlushExRW
                     .wrap(extBuffer, 0, extBuffer.capacity())
                     .typeId(mcpTypeId)
@@ -2863,6 +2878,7 @@ public final class McpClientFactory implements McpStreamFactory
         {
             if (sessions.remove(sessionId) != null)
             {
+                deauthorizeGuardSession();
                 cancelKeepalive();
 
                 if (sse != null)
@@ -3048,6 +3064,7 @@ public final class McpClientFactory implements McpStreamFactory
             if ((sessionId & GuardHandler.MASK_AUTHORIZED) != 0L)
             {
                 credentials = guard.credentials(sessionId);
+                guardSessionId = sessionId;
                 return true;
             }
 
@@ -3337,6 +3354,7 @@ public final class McpClientFactory implements McpStreamFactory
             if ((sessionId & GuardHandler.MASK_AUTHORIZED) != 0L)
             {
                 credentials = session.binding.guard.credentials(sessionId);
+                guardSessionId = sessionId;
                 emitElicitComplete(elicitTraceId, elicitAuthorization);
 
                 http.doEncodeRequestBegin(elicitTraceId, elicitAuthorization);
@@ -3476,6 +3494,7 @@ public final class McpClientFactory implements McpStreamFactory
         {
             if (session.unregister(requestId))
             {
+                deauthorizeGuardSession();
                 new HttpNotifyCancelled(this).doNetBegin(traceId, authorization);
             }
         }
@@ -3487,6 +3506,7 @@ public final class McpClientFactory implements McpStreamFactory
         {
             if (McpState.closed(state))
             {
+                deauthorizeGuardSession();
                 session.unregister(requestId);
             }
         }

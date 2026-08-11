@@ -472,4 +472,13 @@ public class ConnectionIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/connect.username.reauthorize.after.disconnect/client",
+        "${net}/connect.username.reauthorize.after.disconnect/server"})
+    public void shouldReauthorizeUsernameAfterDisconnect() throws Exception
+    {
+        k3po.finish();
+    }
 }

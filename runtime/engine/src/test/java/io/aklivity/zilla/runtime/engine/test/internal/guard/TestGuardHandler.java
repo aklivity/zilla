@@ -18,6 +18,7 @@ package io.aklivity.zilla.runtime.engine.test.internal.guard;
 import static io.aklivity.zilla.config.engine.test.internal.guard.config.TestGuardOptionsConfigBuilder.DEFAULT_CHALLENGE_NEVER;
 import static io.aklivity.zilla.config.engine.test.internal.guard.config.TestGuardOptionsConfigBuilder.DEFAULT_IDENTITY;
 import static io.aklivity.zilla.config.engine.test.internal.guard.config.TestGuardOptionsConfigBuilder.DEFAULT_LIFETIME_FOREVER;
+import static io.aklivity.zilla.config.engine.test.internal.guard.config.TestGuardOptionsConfigBuilder.DEFAULT_MAX_SESSIONS_UNLIMITED;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -39,6 +40,10 @@ public final class TestGuardHandler implements GuardHandler
     private static final String REDIRECT_URI_PLACEHOLDER = "replace.me";
     private static final Pattern REDIRECT_URI_PARAM_PATTERN = Pattern.compile("redirect_uri=[^&]*");
 
+    // observability hook for tests that need to synchronize on an actual release,
+    // e.g. before opening a second guarded connection constrained by max-sessions
+    public static volatile Runnable onDeauthorized;
+
     private final String credentials;
     private final Duration challenge;
     private final Duration lifetime;
@@ -47,6 +52,7 @@ public final class TestGuardHandler implements GuardHandler
     private final Map<String, String> attributes;
     private final String preauthorize;
     private final boolean deferAcquire;
+    private final int maxSessions;
     private final Consumer<Runnable> dispatcher;
 
     private final Long2LongHashMap sessions;
@@ -64,6 +70,7 @@ public final class TestGuardHandler implements GuardHandler
         this.roles = config.options != null ? config.options.roles : null;
         this.preauthorize = config.options != null ? config.options.preauthorize : null;
         this.deferAcquire = config.options != null && config.options.deferAcquire;
+        this.maxSessions = config.options != null ? config.options.maxSessions : DEFAULT_MAX_SESSIONS_UNLIMITED;
         this.sessions = new Long2LongHashMap(-1L);
         this.nextSessionId = new MutableLong(1L);
         this.attributes = config.options != null ? config.options.attributes : null;
@@ -78,7 +85,13 @@ public final class TestGuardHandler implements GuardHandler
     {
         long sessionId = NOT_AUTHORIZED;
 
-        if (deferAcquire)
+        if (deferAcquire && credentials == null)
+        {
+            // no out-of-band credentials supplied and nothing to await turn-taking on
+            // synchronously -- same shortcut the async completion path takes
+            sessionId = createSession();
+        }
+        else if (deferAcquire)
         {
             sessionId = NOT_AUTHORIZED;
         }
@@ -157,12 +170,18 @@ public final class TestGuardHandler implements GuardHandler
 
     private long createSession()
     {
-        long expiresAt = DEFAULT_LIFETIME_FOREVER.equals(lifetime)
-                ? EXPIRES_NEVER
-                : Instant.now().toEpochMilli() + lifetime.toMillis();
+        long sessionId = NOT_AUTHORIZED;
 
-        long sessionId = nextSessionId.value++;
-        sessions.put(sessionId, expiresAt);
+        if (sessions.size() < maxSessions)
+        {
+            long expiresAt = DEFAULT_LIFETIME_FOREVER.equals(lifetime)
+                    ? EXPIRES_NEVER
+                    : Instant.now().toEpochMilli() + lifetime.toMillis();
+
+            sessionId = nextSessionId.value++;
+            sessions.put(sessionId, expiresAt);
+        }
+
         return sessionId;
     }
 
@@ -171,6 +190,12 @@ public final class TestGuardHandler implements GuardHandler
         long sessionId)
     {
         sessions.remove(sessionId);
+
+        final Runnable notify = onDeauthorized;
+        if (notify != null)
+        {
+            notify.run();
+        }
     }
 
     @Override
