@@ -36,9 +36,10 @@ final class McpProxyResourcesSubscribeFactory extends McpProxyItemFactory
         McpBeginExFW.Builder builder,
         String sessionId,
         String identifier,
-        int contentLength)
+        int contentLength,
+        long timeout)
     {
-        builder.resourcesSubscribe(r -> r.sessionId(sessionId).uri(identifier).contentLength(contentLength));
+        builder.resourcesSubscribe(r -> r.sessionId(sessionId).uri(identifier).contentLength(contentLength).timeout(timeout));
     }
 
     @Override
@@ -62,5 +63,12 @@ final class McpProxyResourcesSubscribeFactory extends McpProxyItemFactory
         McpBeginExFW beginEx)
     {
         return beginEx.resourcesSubscribe().contentLength();
+    }
+
+    @Override
+    protected long timeout(
+        McpBeginExFW beginEx)
+    {
+        return beginEx.resourcesSubscribe().timeout();
     }
 }
