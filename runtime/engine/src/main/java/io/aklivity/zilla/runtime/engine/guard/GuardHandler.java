@@ -79,6 +79,13 @@ public interface GuardHandler
      *       to obtain a URL for the user to visit</li>
      * </ul>
      * </p>
+     * <p>
+     * <b>A positive session id obliges the caller to release it.</b> The caller must invoke
+     * {@link #deauthorize} exactly once with that session id, when the stream or connection
+     * that acquired it ends — whether it closes cleanly, is aborted, or is reset. Neither
+     * {@link #NOT_AUTHORIZED} nor {@link #NEEDS_PREAUTHORIZE} creates a session, so neither
+     * requires a matching {@link #deauthorize} call.
+     * </p>
      *
      * @param traceId    the trace identifier for diagnostics
      * @param bindingId  the binding identifier requesting authorization
@@ -119,6 +126,12 @@ public interface GuardHandler
      * results to the correct stream — typically by issuing a {@code Signaler}
      * signal — without per-call lambda capture.
      * </p>
+     * <p>
+     * The same release obligation as the synchronous overload applies to a positive
+     * session id delivered to {@code completion}: the caller must invoke
+     * {@link #deauthorize} exactly once with that session id, when the stream or
+     * connection that acquired it ends.
+     * </p>
      *
      * @param traceId      the trace identifier for diagnostics
      * @param bindingId    the binding identifier requesting authorization
@@ -137,6 +150,14 @@ public interface GuardHandler
 
     /**
      * Invalidates and releases the given session.
+     * <p>
+     * Every positive session id returned by {@link #reauthorize} must be released with
+     * exactly one matching call to this method, once the stream or connection that
+     * acquired it ends — whether it closes cleanly, is aborted, or is reset. A guard is
+     * entitled to retain per-session state (e.g. identity, attributes, credentials,
+     * expiry) for as long as a session remains unreleased, so an acquiring caller that
+     * never releases causes that state to accumulate for the life of the process.
+     * </p>
      *
      * @param sessionId  the session identifier to deauthorize
      */

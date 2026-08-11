@@ -119,8 +119,8 @@ public class ModelTransformTest
     @Test
     public void shouldComposeAnIdentityStageThatIsNotNone()
     {
-        // an identity stage still runs — KafkaExtractor forwards every field while accumulating the
-        // configured ones — so it composes like any other stage
+        // an identity stage still runs — an observing stage forwards every field while reacting to the
+        // ones it cares about — so it composes like any other stage
         Observing observing = new Observing();
         Recorder recorder = new Recorder();
         ModelTransform composed = observing.andThen(new Appending("!"));

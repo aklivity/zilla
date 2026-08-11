@@ -1160,6 +1160,8 @@ public final class KafkaClientDeleteTopicsFactory extends KafkaClientSaslHandsha
 
             doEnd(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                 traceId, authorization, EMPTY_EXTENSION);
+
+            deauthorizeGuardSession();
         }
 
         private void doNetworkAbort(
@@ -1174,6 +1176,8 @@ public final class KafkaClientDeleteTopicsFactory extends KafkaClientSaslHandsha
 
             cleanupEncodeSlotIfNecessary();
             cleanupBudgetIfNecessary();
+
+            deauthorizeGuardSession();
         }
 
         private void doNetworkReset(
@@ -1187,6 +1191,8 @@ public final class KafkaClientDeleteTopicsFactory extends KafkaClientSaslHandsha
             }
 
             cleanupDecodeSlotIfNecessary();
+
+            deauthorizeGuardSession();
         }
 
         private void doNetworkWindow(

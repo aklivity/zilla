@@ -24,7 +24,10 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTes
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_SESSION_ID_NAME;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_SSE_KEEPALIVE_INTERVAL_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.junit.Assert.assertTrue;
 import static org.junit.rules.RuleChain.outerRule;
+
+import java.util.concurrent.CountDownLatch;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -37,6 +40,7 @@ import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
+import io.aklivity.zilla.runtime.engine.test.internal.guard.TestGuardHandler;
 
 public class McpServerIT
 {
@@ -149,6 +153,28 @@ public class McpServerIT
     public void shouldInitializeLifecycleWithGuardedBearer() throws Exception
     {
         k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.guarded.max.sessions.yaml")
+    @Specification({
+        "${net}/lifecycle.initialize.guarded.reauthorize.after.close/client",
+        "${app}/lifecycle.initialize.guarded.reauthorize.after.close/server"})
+    public void shouldReauthorizeGuardedBearerAfterClose() throws Exception
+    {
+        CountDownLatch deauthorized = new CountDownLatch(1);
+        TestGuardHandler.onDeauthorized = deauthorized::countDown;
+        try
+        {
+            k3po.start();
+            assertTrue(deauthorized.await(5, SECONDS));
+            k3po.notifyBarrier("SESSION_RELEASED");
+            k3po.finish();
+        }
+        finally
+        {
+            TestGuardHandler.onDeauthorized = null;
+        }
     }
 
     @Test

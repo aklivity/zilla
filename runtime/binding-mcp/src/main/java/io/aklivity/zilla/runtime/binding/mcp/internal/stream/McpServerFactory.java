@@ -20,6 +20,7 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.types.McpCapabiliti
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.McpCapabilities.SERVER_RESOURCES_SUBSCRIBE;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_LIFECYCLE;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
+import static io.aklivity.zilla.runtime.engine.guard.GuardHandler.MASK_AUTHORIZED;
 import static java.lang.Integer.toUnsignedLong;
 
 import java.net.URLDecoder;
@@ -407,6 +408,11 @@ public final class McpServerFactory implements McpStreamFactory
 
             if (sessionId != null && !isSessionIdAligned(routedId, sessionId))
             {
+                if (authResult.owned())
+                {
+                    binding.guard.deauthorize(resolvedAuthorization);
+                }
+
                 newStream = new McpRedirectHandler(
                     sender,
                     originId,
@@ -446,6 +452,7 @@ public final class McpServerFactory implements McpStreamFactory
                         routedId,
                         initialId,
                         resolvedAuthorization,
+                        authResult.owned(),
                         resolvedId,
                         binding,
                         session,
@@ -1463,7 +1470,10 @@ public final class McpServerFactory implements McpStreamFactory
         private final long initialId;
         private final long replyId;
         private final long authorization;
+        private final boolean guardSessionOwned;
         private final long resolvedId;
+
+        private boolean guardSessionDeauthorized;
 
         private McpLifecycleStream session;
 
@@ -1519,6 +1529,7 @@ public final class McpServerFactory implements McpStreamFactory
             long routedId,
             long initialId,
             long authorization,
+            boolean guardSessionOwned,
             long resolvedId,
             McpBindingConfig binding,
             McpLifecycleStream session,
@@ -1533,6 +1544,7 @@ public final class McpServerFactory implements McpStreamFactory
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.authorization = authorization;
+            this.guardSessionOwned = guardSessionOwned;
             this.resolvedId = resolvedId;
             this.binding = binding;
             this.session = session;
@@ -1928,6 +1940,7 @@ public final class McpServerFactory implements McpStreamFactory
             }
 
             cleanupEncodeSlot();
+            deauthorizeGuardSession();
         }
 
         private void doNetAbort(
@@ -1942,6 +1955,7 @@ public final class McpServerFactory implements McpStreamFactory
             }
 
             cleanupEncodeSlot();
+            deauthorizeGuardSession();
         }
 
         private void doNetWindow(
@@ -1973,6 +1987,18 @@ public final class McpServerFactory implements McpStreamFactory
                 state = McpState.closedInitial(state);
                 doReset(net, originId, routedId, initialId,
                     initialSeq, initialAck, initialMax, traceId, authorization, extension);
+            }
+
+            deauthorizeGuardSession();
+        }
+
+        private void deauthorizeGuardSession()
+        {
+            if (!guardSessionDeauthorized &&
+                guardSessionOwned && binding.guard != null && (authorization & MASK_AUTHORIZED) != 0L)
+            {
+                guardSessionDeauthorized = true;
+                binding.guard.deauthorize(authorization);
             }
         }
 

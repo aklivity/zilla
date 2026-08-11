@@ -21,7 +21,7 @@ import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public final class TestVaultOptionsConfig extends OptionsConfig
 {
-    public final TestVaultEntryConfig key;
+    public final List<TestVaultEntryConfig> keys;
     public final TestVaultEntryConfig signer;
     public final List<TestVaultEntryConfig> trust;
 
@@ -37,11 +37,11 @@ public final class TestVaultOptionsConfig extends OptionsConfig
     }
 
     TestVaultOptionsConfig(
-        TestVaultEntryConfig key,
+        List<TestVaultEntryConfig> keys,
         TestVaultEntryConfig signer,
         List<TestVaultEntryConfig> trust)
     {
-        this.key = key;
+        this.keys = keys;
         this.signer = signer;
         this.trust = trust;
     }

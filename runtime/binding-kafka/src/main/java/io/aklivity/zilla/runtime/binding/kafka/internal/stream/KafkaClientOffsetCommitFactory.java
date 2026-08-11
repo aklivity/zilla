@@ -1276,6 +1276,8 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
 
             doEnd(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                 traceId, authorization, EMPTY_EXTENSION);
+
+            deauthorizeGuardSession();
         }
 
         private void doNetworkAbortIfNecessary(
@@ -1290,6 +1292,8 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
 
             cleanupEncodeSlotIfNecessary();
             cleanupBudgetIfNecessary();
+
+            deauthorizeGuardSession();
         }
 
         private void doNetworkResetIfNecessary(
@@ -1303,6 +1307,8 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
             }
 
             cleanupDecodeSlotIfNecessary();
+
+            deauthorizeGuardSession();
         }
 
         private void doNetworkWindow(

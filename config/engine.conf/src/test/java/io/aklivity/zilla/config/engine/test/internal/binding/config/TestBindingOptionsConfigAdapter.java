@@ -51,6 +51,7 @@ public final class TestBindingOptionsConfigAdapter implements JsonbAdapter<Optio
     private static final String EXPECT_IDENTITY_NAME = "expectIdentity";
     private static final String EXPECT_CREDENTIALS_NAME = "expectCredentials";
     private static final String ATTRIBUTES_NAME = "attributes";
+    private static final String RELEASE_ON_END_NAME = "releaseOnEnd";
     private static final String EVENTS_NAME = "events";
     private static final String TIMESTAMP_NAME = "timestamp";
     private static final String MESSAGE_NAME = "message";
@@ -200,7 +201,14 @@ public final class TestBindingOptionsConfigAdapter implements JsonbAdapter<Optio
         {
             JsonObjectBuilder credentials = Json.createObjectBuilder();
             TestAuthorizationConfig authorization = testOptions.authorization;
-            credentials.add(CREDENTIALS_NAME, authorization.credentials);
+            if (authorization.credentials != null)
+            {
+                credentials.add(CREDENTIALS_NAME, authorization.credentials);
+            }
+            if (authorization.releaseOnEnd)
+            {
+                credentials.add(RELEASE_ON_END_NAME, authorization.releaseOnEnd);
+            }
             if (authorization.callback != null)
             {
                 credentials.add(CALLBACK_NAME, authorization.callback);
@@ -367,9 +375,13 @@ public final class TestBindingOptionsConfigAdapter implements JsonbAdapter<Optio
                 if (name != null)
                 {
                     JsonObject guard = authorization.getJsonObject(name);
-                    if (guard.containsKey(CREDENTIALS_NAME))
+                    if (guard.containsKey(CREDENTIALS_NAME) ||
+                        guard.containsKey(EXPECT_IDENTITY_NAME) ||
+                        guard.containsKey(EXPECT_CREDENTIALS_NAME))
                     {
-                        String credentials = guard.getString(CREDENTIALS_NAME);
+                        String credentials = guard.containsKey(CREDENTIALS_NAME)
+                            ? guard.getString(CREDENTIALS_NAME) : null;
+                        boolean releaseOnEnd = guard.getBoolean(RELEASE_ON_END_NAME, false);
                         String callback = guard.containsKey(CALLBACK_NAME) ? guard.getString(CALLBACK_NAME) : null;
                         Map<String, String> callbackParams = null;
                         if (guard.containsKey(CALLBACK_PARAMS_NAME))
@@ -390,7 +402,7 @@ public final class TestBindingOptionsConfigAdapter implements JsonbAdapter<Optio
                                 .forEach((key, value) -> attributes.put(key, ((JsonString) value).getString()));
                         }
                         testOptions.authorization(name, credentials, callback, callbackParams,
-                            expectIdentity, expectCredentials, attributes);
+                            expectIdentity, expectCredentials, attributes, releaseOnEnd);
                     }
                 }
             }

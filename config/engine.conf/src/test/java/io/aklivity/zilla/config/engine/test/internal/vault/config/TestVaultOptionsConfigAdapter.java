@@ -40,9 +40,18 @@ public final class TestVaultOptionsConfigAdapter implements JsonbAdapter<Options
 
         JsonObjectBuilder object = Json.createObjectBuilder();
 
-        if (options.key != null)
+        if (options.keys != null)
         {
-            object.add(KEY_NAME, entry.adaptToJson(options.key));
+            if (options.keys.size() == 1)
+            {
+                object.add(KEY_NAME, entry.adaptToJson(options.keys.get(0)));
+            }
+            else
+            {
+                JsonArrayBuilder keyArray = Json.createArrayBuilder();
+                options.keys.forEach(k -> keyArray.add(entry.adaptToJson(k)));
+                object.add(KEY_NAME, keyArray);
+            }
         }
 
         if (options.signer != null)
@@ -77,9 +86,21 @@ public final class TestVaultOptionsConfigAdapter implements JsonbAdapter<Options
         {
             if (object.containsKey(KEY_NAME))
             {
-                JsonObject key = object.getJsonObject(KEY_NAME);
-                TestVaultEntryConfig config = entry.adaptFromJson(key);
-                options.key(config.alias, config.entry);
+                JsonValue keyValue = object.get(KEY_NAME);
+                if (keyValue.getValueType() == JsonValue.ValueType.ARRAY)
+                {
+                    JsonArray keyArray = keyValue.asJsonArray();
+                    for (JsonValue value : keyArray)
+                    {
+                        TestVaultEntryConfig config = entry.adaptFromJson(value.asJsonObject());
+                        options.key(config.alias, config.entry);
+                    }
+                }
+                else
+                {
+                    TestVaultEntryConfig config = entry.adaptFromJson(keyValue.asJsonObject());
+                    options.key(config.alias, config.entry);
+                }
             }
 
             if (object.containsKey(SIGNER_NAME))

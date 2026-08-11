@@ -67,6 +67,8 @@ import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttP
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttPublishDataExFW.Builder.DEFAULT_FORMAT;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
+import static io.aklivity.zilla.runtime.engine.guard.GuardHandler.MASK_AUTHORIZED;
+import static io.aklivity.zilla.runtime.engine.guard.GuardHandler.NOT_AUTHORIZED;
 import static java.lang.System.currentTimeMillis;
 import static java.nio.ByteOrder.BIG_ENDIAN;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -2620,6 +2622,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
         private int state;
         private long sessionId;
+        private long guardSessionId = NOT_AUTHORIZED;
         private int decodableRemainingBytes;
         private final Int2ObjectHashMap<MqttSubscribeStream> qos1Subscribes;
         private final Int2ObjectHashMap<MqttSubscribeStream> qos2Subscribes;
@@ -3091,6 +3094,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     if (credentialsMatch != null)
                     {
                         sessionAuth = guard.reauthorize(traceId, routedId, initialId, credentialsMatch);
+                        guardSessionId = sessionAuth;
                     }
                 }
 
@@ -4514,6 +4518,8 @@ public final class MqttServerFactory implements MqttStreamFactory
                 doEnd(network, originId, routedId, replyId, encodeSeq, encodeAck, encodeMax,
                     traceId, authorization, EMPTY_OCTETS);
             }
+
+            deauthorizeGuardSession();
         }
 
         private void doNetworkAbort(
@@ -4529,6 +4535,8 @@ public final class MqttServerFactory implements MqttStreamFactory
                 doAbort(network, originId, routedId, replyId, encodeSeq, encodeAck, encodeMax,
                     traceId, authorization, EMPTY_OCTETS);
             }
+
+            deauthorizeGuardSession();
         }
 
         private void doNetworkReset(
@@ -4543,6 +4551,17 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 doReset(network, originId, routedId, initialId, decodeSeq, decodeAck, decodeMax,
                     traceId, authorization, EMPTY_OCTETS);
+            }
+
+            deauthorizeGuardSession();
+        }
+
+        private void deauthorizeGuardSession()
+        {
+            if (guard != null && (guardSessionId & MASK_AUTHORIZED) != 0)
+            {
+                guard.deauthorize(guardSessionId);
+                guardSessionId = NOT_AUTHORIZED;
             }
         }
 

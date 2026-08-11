@@ -88,12 +88,19 @@ public final class ModelFieldBridge
         private static final byte[] EMPTY = new byte[0];
 
         private final UnsafeBufferEx view;
+        // wrapped once at construction and never re-wrapped: UnsafeBufferEx.wrap(byte[]) allocates a new
+        // MemorySegment every call, so start()/end() (which carry no buffer) swap to this cached empty
+        // view instead of re-wrapping the same EMPTY array on every value run
+        private final DirectBufferEx empty;
 
         private String path;
+        private DirectBufferEx current;
 
         private Value()
         {
             this.view = new UnsafeBufferEx(EMPTY);
+            this.empty = new UnsafeBufferEx(EMPTY);
+            this.current = empty;
         }
 
         @Override
@@ -105,7 +112,7 @@ public final class ModelFieldBridge
         @Override
         public DirectBufferEx getValue()
         {
-            return view;
+            return current;
         }
 
         private void wrap(
@@ -118,10 +125,11 @@ public final class ModelFieldBridge
             if (buffer != null)
             {
                 view.wrap(buffer, index, length);
+                current = view;
             }
             else
             {
-                view.wrap(EMPTY);
+                current = empty;
             }
         }
     }

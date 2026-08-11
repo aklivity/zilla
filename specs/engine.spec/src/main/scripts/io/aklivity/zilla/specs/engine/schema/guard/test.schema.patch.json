@@ -78,6 +78,11 @@
                             {
                                 "enum": [ "immediate", "deferred" ],
                                 "default": "immediate"
+                            },
+                            "max-sessions":
+                            {
+                                "type": "integer",
+                                "minimum": 0
                             }
                         },
                         "additionalProperties": false

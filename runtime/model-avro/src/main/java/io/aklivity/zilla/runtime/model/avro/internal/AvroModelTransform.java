@@ -460,16 +460,25 @@ final class AvroModelTransform implements AvroTransform
         };
     }
 
-    // the generic view of the field in flight, over the capture buffer the adapter owns
+    // the generic view of the field in flight, over the capture buffer the adapter owns. contentView and
+    // emptyView are kept separate rather than one shared instance re-wrapped either way: START_VALUE and
+    // flush() wrap(null, ...) between every field's wrap(buffer, ...), and a shared UnsafeBufferEx has to
+    // re-derive its MemorySegment whenever the array it last wrapped changes — which alternating between a
+    // real buffer and EMPTY forces on every call. emptyView wraps EMPTY exactly once, ever, so switching
+    // which view is current is a reference assignment, not a re-wrap.
     private static final class Value implements ModelSource
     {
-        private final UnsafeBufferEx view;
+        private final UnsafeBufferEx contentView;
+        private final UnsafeBufferEx emptyView;
 
+        private DirectBufferEx view;
         private String path;
 
         private Value()
         {
-            this.view = new UnsafeBufferEx(EMPTY);
+            this.contentView = new UnsafeBufferEx(EMPTY);
+            this.emptyView = new UnsafeBufferEx(EMPTY);
+            this.view = emptyView;
         }
 
         @Override
@@ -493,11 +502,12 @@ final class AvroModelTransform implements AvroTransform
             this.path = path;
             if (buffer != null)
             {
-                view.wrap(buffer, index, length);
+                contentView.wrap(buffer, index, length);
+                view = contentView;
             }
             else
             {
-                view.wrap(EMPTY);
+                view = emptyView;
             }
             return this;
         }
