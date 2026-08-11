@@ -233,6 +233,8 @@ abstract class McpProxyItemFactory implements BindingHandler
                 }
                 else if (executeCache != null)
                 {
+                    final long timeout = timeout(beginEx);
+
                     newStream = new McpExecuteToolServer(
                         binding,
                         lifecycle,
@@ -241,7 +243,8 @@ abstract class McpProxyItemFactory implements BindingHandler
                         routedId,
                         initialId,
                         affinity,
-                        authorization)::onExecuteToolMessage;
+                        authorization,
+                        timeout)::onExecuteToolMessage;
                 }
                 else
                 {
@@ -250,6 +253,7 @@ abstract class McpProxyItemFactory implements BindingHandler
                     {
                         final String identifier = route.strip(beginEx);
                         final int contentLength = contentLength(beginEx);
+                        final long timeout = timeout(beginEx);
                         final String prefix = route.prefix(beginEx);
 
                         newStream = new McpServer(
@@ -264,6 +268,7 @@ abstract class McpProxyItemFactory implements BindingHandler
                             authorization,
                             identifier,
                             contentLength,
+                            timeout,
                             prefix)::onServerMessage;
                     }
                 }
@@ -425,7 +430,8 @@ abstract class McpProxyItemFactory implements BindingHandler
         McpBeginExFW.Builder builder,
         String sessionId,
         String identifier,
-        int contentLength);
+        int contentLength,
+        long timeout);
 
     protected abstract void injectReplyBeginEx(
         McpBeginExFW.Builder builder,
@@ -436,6 +442,9 @@ abstract class McpProxyItemFactory implements BindingHandler
         McpBeginExFW beginEx);
 
     protected abstract int contentLength(
+        McpBeginExFW beginEx);
+
+    protected abstract long timeout(
         McpBeginExFW beginEx);
 
     private final class McpServer
@@ -451,6 +460,7 @@ abstract class McpProxyItemFactory implements BindingHandler
         private final long authorization;
         private final String identifier;
         private final int contentLength;
+        private final long timeout;
         private final String prefix;
         private boolean prefixStripped;
         private ExpandableDirectByteBufferEx prefixCarryBuffer;
@@ -486,6 +496,7 @@ abstract class McpProxyItemFactory implements BindingHandler
             long authorization,
             String identifier,
             int contentLength,
+            long timeout,
             String prefix)
         {
             this.binding = binding;
@@ -499,6 +510,7 @@ abstract class McpProxyItemFactory implements BindingHandler
             this.authorization = authorization;
             this.identifier = identifier;
             this.contentLength = contentLength;
+            this.timeout = timeout;
             this.prefix = prefix;
             this.toolSchemaId = kind == McpBeginExFW.KIND_TOOLS_CALL && binding.validatesTools()
                 ? binding.toolSchemaId(prefix + identifier)
@@ -1739,6 +1751,7 @@ abstract class McpProxyItemFactory implements BindingHandler
         private final long replyId;
         private final long affinity;
         private final long authorization;
+        private final long timeout;
         private final McpExecuteToolCallScanner scanner;
         // survives the async gap between registering for the delegate's upstream lifecycle to settle
         // and that settlement actually happening -- unlike the factory's shared, per-worker scratch
@@ -1772,7 +1785,8 @@ abstract class McpProxyItemFactory implements BindingHandler
             long routedId,
             long initialId,
             long affinity,
-            long authorization)
+            long authorization,
+            long timeout)
         {
             this.binding = binding;
             this.lifecycle = lifecycle;
@@ -1783,6 +1797,7 @@ abstract class McpProxyItemFactory implements BindingHandler
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.affinity = affinity;
             this.authorization = authorization;
+            this.timeout = timeout;
             this.scanner = new McpExecuteToolCallScanner();
         }
 
@@ -2058,6 +2073,7 @@ abstract class McpProxyItemFactory implements BindingHandler
                 authorization,
                 identifier,
                 prefix.length() + bodyLength,
+                timeout,
                 prefix);
 
             driveDelegateBegin(traceId);
@@ -2329,7 +2345,8 @@ abstract class McpProxyItemFactory implements BindingHandler
                 final McpBeginExFW beginEx = mcpBeginExRW
                     .wrap(codecBuffer, 0, codecBuffer.capacity())
                     .typeId(mcpTypeId)
-                    .inject(b -> injectInitialBeginEx(b, sid, server.identifier, server.contentLength - server.prefix.length()))
+                    .inject(b -> injectInitialBeginEx(b, sid, server.identifier,
+                        server.contentLength - server.prefix.length(), server.timeout))
                     .build();
 
                 sender = newStream(this::onClientMessage, originId, routedId, initialId,

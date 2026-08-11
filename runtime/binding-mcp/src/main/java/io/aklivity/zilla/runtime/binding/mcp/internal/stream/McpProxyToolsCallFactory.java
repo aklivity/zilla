@@ -36,9 +36,10 @@ final class McpProxyToolsCallFactory extends McpProxyItemFactory
         McpBeginExFW.Builder builder,
         String sessionId,
         String identifier,
-        int contentLength)
+        int contentLength,
+        long timeout)
     {
-        builder.toolsCall(t -> t.sessionId(sessionId).name(identifier).contentLength(contentLength));
+        builder.toolsCall(t -> t.sessionId(sessionId).name(identifier).contentLength(contentLength).timeout(timeout));
     }
 
     @Override
@@ -62,5 +63,12 @@ final class McpProxyToolsCallFactory extends McpProxyItemFactory
         McpBeginExFW beginEx)
     {
         return beginEx.toolsCall().contentLength();
+    }
+
+    @Override
+    protected long timeout(
+        McpBeginExFW beginEx)
+    {
+        return beginEx.toolsCall().timeout();
     }
 }
