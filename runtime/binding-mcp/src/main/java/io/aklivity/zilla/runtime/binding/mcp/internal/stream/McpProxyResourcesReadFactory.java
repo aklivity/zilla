@@ -36,9 +36,10 @@ final class McpProxyResourcesReadFactory extends McpProxyItemFactory
         McpBeginExFW.Builder builder,
         String sessionId,
         String identifier,
-        int contentLength)
+        int contentLength,
+        long timeout)
     {
-        builder.resourcesRead(r -> r.sessionId(sessionId).uri(identifier).contentLength(contentLength));
+        builder.resourcesRead(r -> r.sessionId(sessionId).uri(identifier).contentLength(contentLength).timeout(timeout));
     }
 
     @Override
@@ -62,5 +63,12 @@ final class McpProxyResourcesReadFactory extends McpProxyItemFactory
         McpBeginExFW beginEx)
     {
         return beginEx.resourcesRead().contentLength();
+    }
+
+    @Override
+    protected long timeout(
+        McpBeginExFW beginEx)
+    {
+        return beginEx.resourcesRead().timeout();
     }
 }
