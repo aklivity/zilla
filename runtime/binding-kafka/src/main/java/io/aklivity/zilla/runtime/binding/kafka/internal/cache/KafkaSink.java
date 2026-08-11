@@ -39,7 +39,7 @@ import io.aklivity.zilla.runtime.engine.model.ModelStatus;
  * @see KafkaTransform
  */
 @FunctionalInterface
-interface KafkaSink
+public interface KafkaSink
 {
     /**
      * Consumes one event.

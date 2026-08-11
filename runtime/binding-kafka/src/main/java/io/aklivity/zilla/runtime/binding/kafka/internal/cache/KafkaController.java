@@ -25,7 +25,7 @@ package io.aklivity.zilla.runtime.binding.kafka.internal.cache;
  *
  * @see KafkaTransform
  */
-interface KafkaController
+public interface KafkaController
 {
     /**
      * Signals that the message in flight must be rejected, supplying the diagnostic the pipeline reports.

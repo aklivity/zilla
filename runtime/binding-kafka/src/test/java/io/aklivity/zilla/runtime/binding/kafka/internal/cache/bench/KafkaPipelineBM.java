@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.binding.kafka.internal.cache;
+package io.aklivity.zilla.runtime.binding.kafka.internal.cache.bench;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -36,6 +36,9 @@ import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
+import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheModel;
+import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaPipeline;
+import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaSink;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaTopicHeaderType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaTopicTransformsType;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;

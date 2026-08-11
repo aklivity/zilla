@@ -38,7 +38,7 @@ package io.aklivity.zilla.runtime.binding.kafka.internal.cache;
  * @see KafkaTransform
  * @see KafkaPipeline
  */
-enum KafkaEvent
+public enum KafkaEvent
 {
     /** selects the key lane; {@link #FIELD} events that follow carry key content */
     SWITCH_KEY,

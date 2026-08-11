@@ -29,7 +29,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
  *
  * @see KafkaTransform
  */
-interface KafkaSource
+public interface KafkaSource
 {
     /**
      * The name of the content at the current event: the field's path rooted at the key or value it
