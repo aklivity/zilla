@@ -157,17 +157,26 @@ final class ProtobufModelDecoderPipeline implements ModelPipeline
         bridge.start();
         for (int i = 0; i < extractor.captured(); i++)
         {
-            bridge.field("$." + extractor.name(i), extractor.value(i), 0, extractor.length(i));
+            bridge.field(extractor.path(i), extractor.value(i), 0, extractor.length(i));
         }
         bridge.end();
     }
 
+    // called on every message (not just once per messageName), so this checks the cache directly rather
+    // than through computeIfAbsent: that would evaluate the capturing "name -> ..." lambda as an argument
+    // on every call regardless of whether the map already has an entry, allocating it for nothing on the
+    // (overwhelmingly common) cache-hit path
     private ProtobufPipeline supplyPipeline(
         int schemaId,
         String messageName)
     {
-        return pipelines.computeIfAbsent(messageName,
-            name -> handler.newPipeline(schemaId, handler.decodeLenient, name, extractor, this::onRejected));
+        ProtobufPipeline pipeline = pipelines.get(messageName);
+        if (pipeline == null)
+        {
+            pipeline = handler.newPipeline(schemaId, handler.decodeLenient, messageName, extractor, this::onRejected);
+            pipelines.put(messageName, pipeline);
+        }
+        return pipeline;
     }
 
     private void onRejected(

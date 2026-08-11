@@ -46,6 +46,7 @@ public final class TestGuardHandler implements GuardHandler
     private final List<String> roles;
     private final Map<String, String> attributes;
     private final String preauthorize;
+    private final boolean deferAcquire;
     private final Consumer<Runnable> dispatcher;
 
     private final Long2LongHashMap sessions;
@@ -62,6 +63,7 @@ public final class TestGuardHandler implements GuardHandler
         this.identity = config.options != null ? config.options.identity : DEFAULT_IDENTITY;
         this.roles = config.options != null ? config.options.roles : null;
         this.preauthorize = config.options != null ? config.options.preauthorize : null;
+        this.deferAcquire = config.options != null && config.options.deferAcquire;
         this.sessions = new Long2LongHashMap(-1L);
         this.nextSessionId = new MutableLong(1L);
         this.attributes = config.options != null ? config.options.attributes : null;
@@ -76,7 +78,11 @@ public final class TestGuardHandler implements GuardHandler
     {
         long sessionId = NOT_AUTHORIZED;
 
-        if (this.credentials != null && this.credentials.equals(credentials))
+        if (deferAcquire)
+        {
+            sessionId = NOT_AUTHORIZED;
+        }
+        else if (this.credentials != null && this.credentials.equals(credentials))
         {
             sessionId = createSession();
         }
@@ -115,7 +121,13 @@ public final class TestGuardHandler implements GuardHandler
     {
         try
         {
-            completion.completed(contextId, reauthorize(traceId, bindingId, contextId, credentials));
+            // an acquiring guard holds nothing to decide with synchronously, but can obtain a
+            // session once given a turn -- that sync/async asymmetry is what `acquire: deferred`
+            // models. The deferral itself is not part of it: every guard defers now
+            long sessionId = deferAcquire && credentials == null
+                ? createSession()
+                : reauthorize(traceId, bindingId, contextId, credentials);
+            completion.completed(contextId, sessionId);
         }
         catch (Throwable ex)
         {
@@ -180,7 +192,9 @@ public final class TestGuardHandler implements GuardHandler
     public String credentials(
         long sessionId)
     {
-        return credentials;
+        // a deferring guard is cache-only until it has actually acquired, so an
+        // unknown session yields nothing; the default behaviour is unchanged
+        return !deferAcquire || sessions.containsKey(sessionId) ? credentials : null;
     }
 
     @Override

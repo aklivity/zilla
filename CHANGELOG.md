@@ -1,21 +1,47 @@
 # Changelog
 
-## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+## [2.1.1](https://github.com/aklivity/zilla/tree/2.1.1) (2026-08-10)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/2.0.0...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/2.1.0...2.1.1)
+
+**Closed issues:**
+
+- binding-http: scope client connection capacity per origin, not per route [\#2339](https://github.com/aklivity/zilla/issues/2339) ([jfallows](https://github.com/jfallows))
+- zpm install: module-generation phase logs nothing, making multi-minute stalls undiagnosable [\#2343](https://github.com/aklivity/zilla/issues/2343) ([jfallows](https://github.com/jfallows))
+
+**Merged pull requests:**
+
+- fix\(binding-http\): scope client connection capacity per origin, not per route [\#2341](https://github.com/aklivity/zilla/pull/2341) ([jfallows](https://github.com/jfallows))
+- test\(examples/mcp.proxy\): run the example verification inside the stack [\#2342](https://github.com/aklivity/zilla/pull/2342) ([jfallows](https://github.com/jfallows))
+- fix\(examples/mcp.proxy\): remove unnecessary waits and bound the gates that remain [\#2344](https://github.com/aklivity/zilla/pull/2344) ([jfallows](https://github.com/jfallows))
+- feat\(manager\): log phase and elapsed time during zpm install [\#2346](https://github.com/aklivity/zilla/pull/2346) ([jfallows](https://github.com/jfallows))
+- fix\(manager\): bound the transfer timeouts when resolving dependencies [\#2348](https://github.com/aklivity/zilla/pull/2348) ([jfallows](https://github.com/jfallows))
+
+## [2.1.0](https://github.com/aklivity/zilla/tree/2.1.0) (2026-08-08)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/2.0.0...2.1.0)
 
 **Closed issues:**
 
 - release: create GitHub Release with version-specific CHANGELOG section, marked latest only when released from develop [\#2303](https://github.com/aklivity/zilla/issues/2303) ([jfallows](https://github.com/jfallows))
 - Add a pluggable per-field ModelTransform hook to the model pipeline \(decode + encode\) [\#2325](https://github.com/aklivity/zilla/issues/2325) ([jfallows](https://github.com/jfallows))
+- tls binding: supply verified peer certificate chain as guard credentials [\#2333](https://github.com/aklivity/zilla/issues/2333) ([jfallows](https://github.com/jfallows))
+- x509 guard: authorize sessions from a verified client certificate chain [\#2334](https://github.com/aklivity/zilla/issues/2334) ([jfallows](https://github.com/jfallows))
 
 **Merged pull requests:**
 
 - feat\(release\): create GitHub Release with version-specific changelog section [\#2304](https://github.com/aklivity/zilla/pull/2304) ([jfallows](https://github.com/jfallows))
 - fix\(examples/mcp.proxy\): report failed assertions at the end of the log [\#2313](https://github.com/aklivity/zilla/pull/2313) ([jfallows](https://github.com/jfallows))
 - Revise README for improved clarity and structure [\#2321](https://github.com/aklivity/zilla/pull/2321) ([llukyanov](https://github.com/llukyanov))
+- fix\(binding-mcp\): acquire outbound guard credentials on the async path [\#2323](https://github.com/aklivity/zilla/pull/2323) ([jfallows](https://github.com/jfallows))
 - feat\(engine\): guarantee async guard reauthorize completes strictly later [\#2324](https://github.com/aklivity/zilla/pull/2324) ([jfallows](https://github.com/jfallows))
 - feat\(engine\): add pluggable per-field ModelTransform hook to the model pipeline [\#2326](https://github.com/aklivity/zilla/pull/2326) ([jfallows](https://github.com/jfallows))
+- fix\(binding-http\): guard flushNext against re-entrant drain [\#2327](https://github.com/aklivity/zilla/pull/2327) ([jfallows](https://github.com/jfallows))
+- fix\(command-dump\): reassemble Kafka payloads split across DATA frames [\#2330](https://github.com/aklivity/zilla/pull/2330) ([ankitk-me](https://github.com/ankitk-me))
+- fix\(binding-mcp\): surface an upstream non-2xx and keep an acquiring request alive [\#2332](https://github.com/aklivity/zilla/pull/2332) ([jfallows](https://github.com/jfallows))
+- feat\(guard-x509\): authorize sessions from a verified client certificate chain [\#2335](https://github.com/aklivity/zilla/pull/2335) ([jfallows](https://github.com/jfallows))
+- feat\(binding-tls\): supply verified peer certificate chain as guard credentials [\#2336](https://github.com/aklivity/zilla/pull/2336) ([jfallows](https://github.com/jfallows))
+- fix\(binding-http\): answer 503, not 431, when the client pool is exhausted [\#2337](https://github.com/aklivity/zilla/pull/2337) ([jfallows](https://github.com/jfallows))
 
 ## [2.0.0](https://github.com/aklivity/zilla/tree/2.0.0) (2026-08-04)
 

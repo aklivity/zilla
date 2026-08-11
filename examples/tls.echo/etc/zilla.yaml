@@ -8,6 +8,19 @@ vaults:
         store: tls/localhost.p12
         type: pkcs12
         password: ${{env.KEYSTORE_PASSWORD}}
+      trust:
+        store: tls/client-ca.p12
+        type: pkcs12
+        password: ${{env.TRUSTSTORE_PASSWORD}}
+guards:
+  my_clients:
+    type: x509
+    options:
+      identity: subject.cn
+      roles:
+        client:
+          - issuer.cn: Test Client CA
+            subject.cn: client-*
 bindings:
   north_tcp_server:
     type: tcp
@@ -23,11 +36,26 @@ bindings:
     options:
       keys:
         - localhost
+      trust:
+        - client-ca
+        - other-ca
+      mutual: requested
       sni:
         - localhost
       alpn:
         - echo
+        - secure-echo
+      authorization:
+        my_clients:
+          credentials:
+            certificates: pem
     routes:
+      - when:
+          - alpn: secure-echo
+        guarded:
+          my_clients:
+            - client
+        exit: north_echo_server
       - when:
           - alpn: echo
         exit: north_echo_server

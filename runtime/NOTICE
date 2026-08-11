@@ -57,6 +57,7 @@ This project includes:
   zilla::config::exporter-stdout.conf under Aklivity Community License Agreement
   zilla::config::guard-inline.conf under Aklivity Community License Agreement
   zilla::config::guard-jwt.conf under Aklivity Community License Agreement
+  zilla::config::guard-x509.conf under Aklivity Community License Agreement
   zilla::config::metrics-grpc.conf under Aklivity Community License Agreement
   zilla::config::metrics-http.conf under Aklivity Community License Agreement
   zilla::config::metrics-mcp.conf under Aklivity Community License Agreement

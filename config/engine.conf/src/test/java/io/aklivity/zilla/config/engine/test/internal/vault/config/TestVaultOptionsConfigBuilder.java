@@ -25,7 +25,7 @@ public final class TestVaultOptionsConfigBuilder<T> extends ConfigBuilder<T, Tes
 {
     private final Function<OptionsConfig, T> mapper;
 
-    private TestVaultEntryConfig key;
+    private List<TestVaultEntryConfig> keys;
     private TestVaultEntryConfig signer;
     private List<TestVaultEntryConfig> trust;
 
@@ -46,7 +46,11 @@ public final class TestVaultOptionsConfigBuilder<T> extends ConfigBuilder<T, Tes
         String alias,
         String entry)
     {
-        key = new TestVaultEntryConfig(alias, entry);
+        if (keys == null)
+        {
+            keys = new ArrayList<>();
+        }
+        keys.add(new TestVaultEntryConfig(alias, entry));
         return this;
     }
 
@@ -73,6 +77,6 @@ public final class TestVaultOptionsConfigBuilder<T> extends ConfigBuilder<T, Tes
     @Override
     public T build()
     {
-        return mapper.apply(new TestVaultOptionsConfig(key, signer, trust));
+        return mapper.apply(new TestVaultOptionsConfig(keys, signer, trust));
     }
 }

@@ -318,6 +318,36 @@ public class McpClientIT
     }
 
     @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/tools.call.reject.status/client",
+        "${net}/tools.call.reject.status/server"})
+    public void shouldCallToolRejectedByStatus() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.guarded.deferred.yaml")
+    @Specification({
+        "${app}/tools.call/client",
+        "${net}/tools.call.acquired/server"})
+    public void shouldCallToolWithDeferredlyAcquiredCredential() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.guarded.deferred.yaml")
+    @Specification({
+        "${app}/tools.list/client",
+        "${net}/tools.list.acquired/server"})
+    public void shouldListToolsWithDeferredlyAcquiredCredential() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("client.identity.yaml")
     @Specification({
         "${app}/tools.call/client",

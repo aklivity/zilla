@@ -18,6 +18,7 @@ module io.aklivity.zilla.runtime.binding.tls
     requires jdk.crypto.ec;
 
     requires io.aklivity.zilla.config.binding.tls;
+    requires io.aklivity.zilla.runtime.common.x509;
     requires io.aklivity.zilla.runtime.engine;
 
     provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi

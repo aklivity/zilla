@@ -64,6 +64,7 @@
     <module>model-protobuf.spec</module>
     <module>guard-inline.spec</module>
     <module>guard-jwt.spec</module>
+    <module>guard-x509.spec</module>
     <module>store-memory.spec</module>
     <module>vault-filesystem.spec</module>
   </modules>
@@ -193,6 +194,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>guard-jwt</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>guard-x509.spec</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

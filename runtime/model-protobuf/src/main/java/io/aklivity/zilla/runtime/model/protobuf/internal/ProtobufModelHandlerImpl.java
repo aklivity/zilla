@@ -20,6 +20,8 @@ import static java.util.Objects.requireNonNull;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.agrona.collections.Int2ObjectCache;
+
 import io.aklivity.zilla.config.model.protobuf.ProtobufModelConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
@@ -50,6 +52,10 @@ public final class ProtobufModelHandlerImpl extends ProtobufModelHandler impleme
         (traceId, bindingId, schemaId, data, index, length, next) -> 0;
 
     private final Map<String, Object> jsonConfig;
+    // the encode-side message-index path is fixed per schemaId (catalog.record never changes at runtime),
+    // so resolving it is cached exactly like supplySchema/supplyIndexPadding rather than re-derived (and
+    // defensively re-cloned by ProtobufSchema.messageIndexes) on every encode call
+    private final Int2ObjectCache<int[]> messagePaths;
 
     public ProtobufModelHandlerImpl(
         ProtobufModelConfig config,
@@ -59,6 +65,7 @@ public final class ProtobufModelHandlerImpl extends ProtobufModelHandler impleme
         this.jsonConfig = new HashMap<>();
         jsonConfig.put(ProtobufJson.FIELD_NAMES, ProtobufJson.FieldNames.PROTO);
         jsonConfig.put(ProtobufJson.INCLUDE_DEFAULTS, Boolean.TRUE);
+        this.messagePaths = new Int2ObjectCache<>(1, 1024, i -> {});
     }
 
     @Override
@@ -142,7 +149,24 @@ public final class ProtobufModelHandlerImpl extends ProtobufModelHandler impleme
         return schema != null ? schema.messageByIndexes(decodedPath()) : null;
     }
 
+    // avoids computeIfAbsent for the same reason as ProtobufModelHandler.supplySchema: a capturing method
+    // reference argument is allocated on every call, not just on a cache miss
     int[] messagePath(
+        int schemaId)
+    {
+        int[] path = messagePaths.get(schemaId);
+        if (path == null)
+        {
+            path = resolveMessagePath(schemaId);
+            if (path != null)
+            {
+                messagePaths.put(schemaId, path);
+            }
+        }
+        return path;
+    }
+
+    private int[] resolveMessagePath(
         int schemaId)
     {
         ProtobufSchema schema = supplySchema(schemaId);
@@ -177,7 +201,7 @@ public final class ProtobufModelHandlerImpl extends ProtobufModelHandler impleme
     {
         encodeIndexes(path);
         byte[] framing;
-        if (indexes.size() == 2 && indexes.get(0) == 1 && indexes.get(1) == 0)
+        if (indexes.size() == 2 && indexes.getInt(0) == 1 && indexes.getInt(1) == 0)
         {
             framing = ZERO_INDEX;
         }

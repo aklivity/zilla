@@ -98,6 +98,128 @@ public class ClientIT
     }
 
     @Test
+    @Configuration("client.with.certificate.subject.cn.yaml")
+    @Specification({
+        "${app}/client.auth.with.certificate/client",
+        "${net}/client.auth/server" })
+    public void shouldEstablishConnectionWithCertificateSubjectCommonName() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.with.certificate.subject.dn.yaml")
+    @Specification({
+        "${app}/client.auth.with.certificate/client",
+        "${net}/client.auth/server" })
+    public void shouldEstablishConnectionWithCertificateSubjectDistinguishedName() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.with.certificate.guarded.yaml")
+    @Specification({
+        "${app}/client.auth.with.certificate/client",
+        "${net}/client.auth/server" })
+    public void shouldEstablishConnectionWithCertificateGuardedIdentity() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.with.certificate.attribute.yaml")
+    @Specification({
+        "${app}/client.auth.with.certificate/client",
+        "${net}/client.auth/server" })
+    public void shouldEstablishConnectionWithCertificateGuardedAttribute() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // Two candidate keys, each signed by a different client ca, and the far end trusts only one
+    // of them. The handshake completes only if the route selected the key the far end trusts, so
+    // the pair pins which certificate reached the wire rather than merely that one did.
+    @Test
+    @Configuration("client.with.certificate.select.first.yaml")
+    @Specification({
+        "${app}/client.auth.with.certificate/client",
+        "${net}/client.auth.trusted.first/server" })
+    public void shouldEstablishConnectionWithCertificateSelectedFirst() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.with.certificate.select.second.yaml")
+    @Specification({
+        "${app}/client.auth.with.certificate/client",
+        "${net}/client.auth.trusted.second/server" })
+    public void shouldEstablishConnectionWithCertificateSelectedSecond() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // both candidates carry subject.cn client1, so the selection is decided by issue date; the
+    // later one is signed by the client ca the far end trusts and the earlier one is not
+    @Test
+    @Configuration("client.with.certificate.select.newest.yaml")
+    @Specification({
+        "${app}/client.auth.with.certificate/client",
+        "${net}/client.auth.trusted.second/server" })
+    public void shouldEstablishConnectionWithCertificateSelectedNewest() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // a failed TLS handshake cannot be scripted against a k3po tls:// accept, which completes
+    // only on success; `rejected` does not help, since no child channel is ever bound. Same
+    // limitation as shouldRejectClientAuthMismatched below. Covered by
+    // TlsClientX509ExtendedKeyManagerTest instead.
+    @Ignore("requires accepted only streams")
+    @Test
+    @Configuration("client.with.certificate.no.match.yaml")
+    @Specification({
+        "${app}/client.auth.with.certificate.rejected/client",
+        "${net}/client.auth.mismatched/server" })
+    public void shouldRejectConnectionWithCertificateNotMatched() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // The far end requests rather than requires the client certificate, so the handshake
+    // completes with none presented, and the far end then closes as a mutual: requested
+    // server finding no guarded route would. The application stream is already connected by
+    // the time that close arrives -- the connect completes as soon as the handshake does --
+    // so this is an orderly close, not an abort. Asserts that the close propagates to the
+    // application stream. It does NOT assert which certificate was presented: k3po's
+    // tls transport exposes no peer-certificate assertion, so with wantClientAuth the
+    // script cannot tell a matching certificate from none at all, and this would still
+    // pass if the wrong key were selected. TlsClientX509ExtendedKeyManagerTest is the
+    // authority for selection.
+    @Test
+    @Configuration("client.with.certificate.no.match.yaml")
+    @Specification({
+        "${app}/client.auth.with.certificate.not.matched/client",
+        "${net}/client.auth.with.certificate.not.matched/server" })
+    public void shouldCloseWhenCertificateNotMatched() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // the far end does not request a certificate, so an unresolved property is observable
+    // as the logged event rather than as a handshake failure
+    @Test
+    @Configuration("client.with.certificate.unresolved.yaml")
+    @Specification({
+        "${app}/connection.established/client",
+        "${net}/connection.established/server" })
+    public void shouldLogClientCertificateNotResolvedEvent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("client.yaml")
     @Specification({
         "${app}/connection.established.with.extension.data/client",

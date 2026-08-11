@@ -85,6 +85,17 @@ public class McpProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Specification({
+        "${app}/lifecycle.shutdown.events/client",
+        "${app}/lifecycle.shutdown.events/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldShutdownLifecycleEvents() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
         "${app}/tools.call/client",
         "${app}/tools.call/server" })
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")

@@ -18,3 +18,18 @@ openssl pkcs12 -export -in localhost.chain.pem -name localhost -out localhost.p1
 
 cp test-ca.crt ..
 cp localhost.p12 ../chart/files
+
+# optional mutual TLS: a separate CA that signs client certificates, so the
+# x509 guard can authorize a client without touching the server certificates above
+openssl genrsa -out client-ca.key 4096
+
+openssl req -new -key client-ca.key -x509 -out client-ca.crt -days 3650 -subj "/C=US/ST=California/L=Palo Alto/O=Aklivity/OU=Development/CN=Test Client CA"
+
+openssl req -new -nodes -newkey rsa:4096 -keyout client.key -out client.req -batch -subj "/C=US/ST=California/L=Palo Alto/O=Aklivity/OU=Development/CN=client-1"
+
+openssl x509 -req -in client.req -CA client-ca.crt -CAkey client-ca.key -CAcreateserial -out client.crt -days 3650 -sha256
+
+keytool -importcert -noprompt -alias client-ca -file client-ca.crt -keystore client-ca.p12 -storetype pkcs12 -storepass generated
+
+cp client-ca.p12 ../etc/tls
+cp client.crt client.key ..

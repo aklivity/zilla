@@ -113,9 +113,54 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/client.auth.with.certificate/client",
+        "${app}/client.auth.with.certificate/server"})
+    public void shouldEstablishConnectionWithCertificate() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/client.auth.with.certificate.not.matched/client",
+        "${app}/client.auth.with.certificate.not.matched/server"})
+    public void shouldCloseWhenCertificateNotMatched() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/client.auth.with.certificate.rejected/client",
+        "${app}/client.auth.with.certificate.rejected/server"})
+    public void shouldRejectClientAuthWithCertificateRejected() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/server.mutual.cert.absent/client",
         "${app}/server.mutual.cert.absent/server"})
     public void shouldEstablishConnectionWithoutClientCert() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/server.mutual.auth.guarded/client",
+        "${app}/server.mutual.auth.guarded/server"})
+    public void shouldEstablishConnectionWithGuardedClientCert() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/server.mutual.guarded.unauthorized/client",
+        "${app}/server.mutual.guarded.unauthorized/server"})
+    public void shouldEstablishConnectionOnUnguardedRouteWhenUnauthorized() throws Exception
     {
         k3po.finish();
     }
