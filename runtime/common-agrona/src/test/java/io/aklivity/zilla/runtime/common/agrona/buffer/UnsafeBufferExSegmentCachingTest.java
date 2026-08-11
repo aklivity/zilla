@@ -21,6 +21,7 @@ import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
 
 import java.lang.foreign.MemorySegment;
+import java.nio.ByteBuffer;
 
 import org.junit.Test;
 
@@ -73,5 +74,24 @@ public class UnsafeBufferExSegmentCachingTest
 
         assertNotSame(first, second);
         assertEquals((byte) 0x66, second.get(JAVA_BYTE, 0));
+    }
+
+    // A cache keyed off a field dedicated to wrap(byte[]...) alone goes stale here: an intervening
+    // wrap of a different kind (any of the other overloads) reassigns `segment` without touching that
+    // field, so re-wrapping the same array afterwards would wrongly skip recomputation and return the
+    // intervening wrap's segment instead of one for `array`.
+    @Test
+    public void shouldRecomputeSegmentAfterIntermediateNonArrayWrap()
+    {
+        UnsafeBufferEx buffer = new UnsafeBufferEx(new byte[0]);
+        byte[] array = {0x77};
+
+        buffer.wrap(array);
+        buffer.wrap(ByteBuffer.allocateDirect(16));
+        buffer.wrap(array);
+        MemorySegment after = buffer.segment();
+
+        assertEquals(1, after.byteSize());
+        assertEquals((byte) 0x77, after.get(JAVA_BYTE, 0));
     }
 }
