@@ -233,6 +233,8 @@ abstract class McpProxyItemFactory implements BindingHandler
                 }
                 else if (executeCache != null)
                 {
+                    final long timeout = timeout(beginEx);
+
                     newStream = new McpExecuteToolServer(
                         binding,
                         lifecycle,
@@ -242,7 +244,7 @@ abstract class McpProxyItemFactory implements BindingHandler
                         initialId,
                         affinity,
                         authorization,
-                        timeout(beginEx))::onExecuteToolMessage;
+                        timeout)::onExecuteToolMessage;
                 }
                 else
                 {
