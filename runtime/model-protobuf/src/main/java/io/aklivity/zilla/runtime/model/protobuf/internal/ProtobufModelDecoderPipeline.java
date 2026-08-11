@@ -157,7 +157,7 @@ final class ProtobufModelDecoderPipeline implements ModelPipeline
         bridge.start();
         for (int i = 0; i < extractor.captured(); i++)
         {
-            bridge.field("$." + extractor.name(i), extractor.value(i), 0, extractor.length(i));
+            bridge.field(extractor.path(i), extractor.value(i), 0, extractor.length(i));
         }
         bridge.end();
     }

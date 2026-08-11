@@ -36,7 +36,11 @@ public final class ProtobufSchema
     private final Map<String, ProtobufMessage> messages;
     private final Map<String, ProtobufEnum> enums;
     private final Map<String, int[]> indexesByRecord;
-    private final Map<String, ProtobufMessage> messageByIndexes;
+    private final Map<IndexPath, ProtobufMessage> messageByIndexes;
+    // a single mutable key reused for every lookup, so resolving a message by its decoded index path
+    // never materializes a String (or any other per-call object) as a map key; index() below is the only
+    // place that puts an (immutable, build-time-only) IndexPath into the map
+    private final IndexPath lookupPath;
 
     private ProtobufSchema(
         Map<String, ProtobufMessage> messages,
@@ -47,6 +51,7 @@ public final class ProtobufSchema
         this.enums = enums;
         this.indexesByRecord = new LinkedHashMap<>();
         this.messageByIndexes = new LinkedHashMap<>();
+        this.lookupPath = new IndexPath(null);
         index(ordered);
     }
 
@@ -71,7 +76,7 @@ public final class ProtobufSchema
     public ProtobufMessage messageByIndexes(
         int[] indexes)
     {
-        return indexes != null ? messageByIndexes.get(Arrays.toString(indexes)) : null;
+        return indexes != null ? messageByIndexes.get(lookupPath.wrap(indexes)) : null;
     }
 
     private void index(
@@ -127,8 +132,45 @@ public final class ProtobufSchema
             String simplePath = simplePrefix.isEmpty() ? simpleName : simplePrefix + "." + simpleName;
             indexesByRecord.put(message.name(), path);
             indexesByRecord.put(simplePath, path);
-            messageByIndexes.put(Arrays.toString(path), message);
+            // path is a fresh array owned by this node (never mutated after this point, and never handed
+            // to a caller by reference — messageIndexes(String) below always returns a defensive clone),
+            // so the key can wrap it directly with no extra copy
+            messageByIndexes.put(new IndexPath(path), message);
             index(childrenOf.getOrDefault(message.name(), List.of()), path, simplePath, childrenOf);
+        }
+    }
+
+    // a Map key over int[] content: equals/hashCode compare array contents rather than identity, exactly
+    // as Arrays.toString(indexes) achieved via a String key, but with a mutable variant (wrap) reused as a
+    // scratch lookup key so resolving a message by its decoded index path allocates nothing
+    private static final class IndexPath
+    {
+        private int[] value;
+
+        private IndexPath(
+            int[] value)
+        {
+            this.value = value;
+        }
+
+        private IndexPath wrap(
+            int[] value)
+        {
+            this.value = value;
+            return this;
+        }
+
+        @Override
+        public int hashCode()
+        {
+            return Arrays.hashCode(value);
+        }
+
+        @Override
+        public boolean equals(
+            Object obj)
+        {
+            return obj instanceof IndexPath && Arrays.equals(value, ((IndexPath) obj).value);
         }
     }
 

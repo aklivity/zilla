@@ -15,12 +15,11 @@
 package io.aklivity.zilla.runtime.model.protobuf.internal;
 
 import java.util.Arrays;
-import java.util.LinkedList;
-import java.util.List;
 
 import org.agrona.BitUtil;
 import org.agrona.collections.Int2IntHashMap;
 import org.agrona.collections.Int2ObjectCache;
+import org.agrona.collections.IntArrayList;
 
 import io.aklivity.zilla.config.engine.CatalogedConfig;
 import io.aklivity.zilla.config.engine.SchemaConfig;
@@ -46,7 +45,9 @@ public class ProtobufModelHandler
     protected final CatalogHandler handler;
     protected final String subject;
     protected final String view;
-    protected final List<Integer> indexes;
+    // a scratch path buffer, reused (not boxed) across every decode/encode call: IntArrayList backs its
+    // elements with a primitive int[] (no per-add Node/Integer allocation, unlike List<Integer>)
+    protected final IntArrayList indexes;
     protected final ProtobufModelEventContext event;
     // LENIENT per direction: a semantic-validation failure passes through (inert today — no protobuf
     // semantic validation stage throws yet, so the wired branch is unreached)
@@ -55,6 +56,9 @@ public class ProtobufModelHandler
 
     private final Int2ObjectCache<ProtobufSchema> schemas;
     private final Int2IntHashMap paddings;
+    // decodedPath()'s reused result buffer: resized only when the path depth actually changes, which is
+    // fixed per message shape, so a decode stream settles into zero allocation after its first message
+    private int[] pathScratch;
 
     protected ProtobufModelHandler(
         ProtobufModelConfig config,
@@ -70,9 +74,10 @@ public class ProtobufModelHandler
         this.decodeLenient = config.validate.decode == ValidateMode.LENIENT;
         this.encodeLenient = config.validate.encode == ValidateMode.LENIENT;
         this.schemas = new Int2ObjectCache<>(1, 1024, i -> {});
-        this.indexes = new LinkedList<>();
+        this.indexes = new IntArrayList();
         this.paddings = new Int2IntHashMap(-1);
         this.event = new ProtobufModelEventContext(context);
+        this.pathScratch = new int[0];
     }
 
     protected ProtobufSchema supplySchema(
@@ -90,7 +95,7 @@ public class ProtobufModelHandler
         int index = 0;
         for (int i = 0; i < size; i++)
         {
-            int entry = this.indexes.get(i);
+            int entry = this.indexes.getInt(i);
             int value = (entry << 1) ^ (entry >> 31);
             while ((value & ~0x7F) != 0)
             {
@@ -114,11 +119,11 @@ public class ProtobufModelHandler
         progress += BitUtil.SIZE_OF_BYTE;
         if (encodedLength == 0)
         {
-            indexes.add(encodedLength);
+            indexes.addInt(encodedLength);
         }
         for (int i = 0; i < encodedLength; i++)
         {
-            indexes.add(decodeIndex(data.getByte(index + progress)));
+            indexes.addInt(decodeIndex(data.getByte(index + progress)));
             progress += BitUtil.SIZE_OF_BYTE;
         }
         return progress;
@@ -126,22 +131,26 @@ public class ProtobufModelHandler
 
     protected int[] decodedPath()
     {
-        int[] path = new int[indexes.size()];
-        for (int i = 0; i < indexes.size(); i++)
+        int size = indexes.size();
+        if (pathScratch.length != size)
         {
-            path[i] = indexes.get(i);
+            pathScratch = new int[size];
         }
-        return path;
+        for (int i = 0; i < size; i++)
+        {
+            pathScratch[i] = indexes.getInt(i);
+        }
+        return pathScratch;
     }
 
     protected void encodeIndexes(
         int[] path)
     {
         indexes.clear();
-        indexes.add(path.length);
+        indexes.addInt(path.length);
         for (int entry : path)
         {
-            indexes.add(entry);
+            indexes.addInt(entry);
         }
     }
 
