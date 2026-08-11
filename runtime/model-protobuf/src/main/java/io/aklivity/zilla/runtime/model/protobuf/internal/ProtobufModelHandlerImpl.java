@@ -149,10 +149,21 @@ public final class ProtobufModelHandlerImpl extends ProtobufModelHandler impleme
         return schema != null ? schema.messageByIndexes(decodedPath()) : null;
     }
 
+    // avoids computeIfAbsent for the same reason as ProtobufModelHandler.supplySchema: a capturing method
+    // reference argument is allocated on every call, not just on a cache miss
     int[] messagePath(
         int schemaId)
     {
-        return messagePaths.computeIfAbsent(schemaId, this::resolveMessagePath);
+        int[] path = messagePaths.get(schemaId);
+        if (path == null)
+        {
+            path = resolveMessagePath(schemaId);
+            if (path != null)
+            {
+                messagePaths.put(schemaId, path);
+            }
+        }
+        return path;
     }
 
     private int[] resolveMessagePath(

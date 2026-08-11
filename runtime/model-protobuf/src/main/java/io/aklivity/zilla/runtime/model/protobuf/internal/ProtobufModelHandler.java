@@ -80,10 +80,23 @@ public class ProtobufModelHandler
         this.pathScratch = new int[0];
     }
 
+    // called on every decode/encode call, so this checks the cache directly rather than through
+    // computeIfAbsent: a capturing method reference like "this::createSchema" is allocated fresh on every
+    // evaluation of that argument expression, regardless of whether the cache already has an entry, so
+    // computeIfAbsent would pay that cost on every call instead of once per distinct schemaId
     protected ProtobufSchema supplySchema(
         int schemaId)
     {
-        return schemas.computeIfAbsent(schemaId, this::createSchema);
+        ProtobufSchema schema = schemas.get(schemaId);
+        if (schema == null)
+        {
+            schema = createSchema(schemaId);
+            if (schema != null)
+            {
+                schemas.put(schemaId, schema);
+            }
+        }
+        return schema;
     }
 
     protected byte[] encodeIndexes()
@@ -154,16 +167,30 @@ public class ProtobufModelHandler
         }
     }
 
+    // avoids computeIfAbsent for the same reason as supplySchema above: a capturing method reference
+    // argument is allocated on every call, not just on a cache miss
     protected int supplyIndexPadding(
         int schemaId)
     {
-        return paddings.computeIfAbsent(schemaId, this::calculateIndexPadding);
+        int padding = paddings.get(schemaId);
+        if (padding == paddings.missingValue())
+        {
+            padding = calculateIndexPadding(schemaId);
+            paddings.put(schemaId, padding);
+        }
+        return padding;
     }
 
     protected int supplyJsonFormatPadding(
         int schemaId)
     {
-        return paddings.computeIfAbsent(schemaId, this::calculateJsonFormatPadding);
+        int padding = paddings.get(schemaId);
+        if (padding == paddings.missingValue())
+        {
+            padding = calculateJsonFormatPadding(schemaId);
+            paddings.put(schemaId, padding);
+        }
+        return padding;
     }
 
     private int decodeIndex(
