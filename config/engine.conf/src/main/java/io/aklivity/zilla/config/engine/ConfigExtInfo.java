@@ -16,11 +16,11 @@ package io.aklivity.zilla.config.engine;
 
 import java.net.URL;
 
-public interface ConfigExtInfo
+public interface ConfigExtInfo<T extends Config>
 {
     String type();
 
     URL schema();
 
-    ConfigExtAdapter adapter();
+    ConfigExtAdapter<T> adapter();
 }

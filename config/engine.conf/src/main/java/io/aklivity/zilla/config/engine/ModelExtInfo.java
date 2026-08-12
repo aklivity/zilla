@@ -14,8 +14,6 @@
  */
 package io.aklivity.zilla.config.engine;
 
-public interface ModelExtInfo extends ConfigExtInfo
+public interface ModelExtInfo extends ConfigExtInfo<ModelConfig>
 {
-    @Override
-    ConfigExtAdapter<ModelConfig> adapter();
 }
