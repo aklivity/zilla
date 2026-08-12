@@ -66,9 +66,20 @@ before implementing the stream handler.
    configuration is needed. Add a corresponding `XxxConfigurationTest` that
    calls `shouldVerifyConstants()` (verifying property name strings match the
    `PropertyDef` names) to satisfy class coverage requirements.
-8. Write k3po IT scripts covering the stream state machine — see
-   [specs/AGENTS.md](../../../specs/AGENTS.md) for script conventions and
-   required coverage.
+8. Write k3po IT scripts covering the stream state machine — see the
+   `write-k3po-it` skill for wiring up the IT class, and
+   [specs/AGENTS.md](../../../specs/AGENTS.md) for script conventions.
+   Required spec coverage for every binding:
+   - Happy path for each `kind` and each `capability` the binding supports
+   - Flow control: sender blocked by zero WINDOW, WINDOW credit restores flow
+   - Orderly close: client-initiated END, server-initiated END
+   - Abortive close: ABORT mid-stream, RESET on rejected stream
+   - Protocol error: malformed input rejected with correct error response
+   - Config validation: invalid `zilla.yaml` produces a clear startup error
+
+   Write the spec script first by consulting the relevant protocol RFC or
+   specification. Do not derive expected behavior from existing
+   implementation code.
 
 The Maven plugin generates flyweight classes during `generate-sources`. Run
 `./mvnw generate-sources -pl runtime/binding-<n>` to regenerate after `.idl`

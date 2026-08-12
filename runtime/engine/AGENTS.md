@@ -34,12 +34,9 @@ or proprietary modules as motivation.
 
 ### Adding a method to `EngineContext`
 
-If a new engine concept requires adding a method to the `EngineContext`
-interface, search for all classes that implement it beyond `EngineWorker` —
-component modules such as `binding-tls` and `binding-echo` have their own
-`*Worker` classes that implement `EngineContext` for benchmarking or testing
-(e.g., `TlsWorker`, `EchoWorker`). Each of these must be updated with a no-op
-default implementation of the new method or the build will fail.
+See the `add-engine-concept` skill — adding a method to `EngineContext`
+requires updating every class that implements it beyond `EngineWorker`, or
+the build fails.
 
 ---
 

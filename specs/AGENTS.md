@@ -263,46 +263,15 @@ argument list.
 
 ### k3po and JUnit 4 rule compatibility
 
-The `.rpt` scripts are driven by [k3po](https://github.com/k3po/k3po), which
-integrates via a JUnit `@Rule` (`K3poRule`). JUnit `@Rule` is a JUnit 4
-construct. IT classes must therefore enable JUnit 4 rule migration support
-when running under JUnit 5:
-
-```java
-@ExtendWith(EngineExtension.class)
-@EnableRuleMigrationSupport          // required for K3poRule under JUnit 5
-class HttpRequestIT
-{
-    @Rule
-    public final K3poRule k3po = new K3poRule().addScriptRoot("specs", "io/aklivity/zilla/specs/binding/http");
-
-    @Test
-    @Specification({ "client.request/client", "client.request/server" })
-    public void shouldReceiveClientRequest() throws Exception
-    {
-        k3po.finish();
-    }
-}
-```
-
-Do not attempt to replace `K3poRule` with a JUnit 5 extension — k3po's
-script execution lifecycle is bound to the `@Rule` contract. The
-`@EnableRuleMigrationSupport` annotation from
-`org.junit.jupiter:junit-jupiter-migrationsupport` is the correct and only
-approach.
+Use the `write-k3po-it` skill to wire up a new `*IT.java` class — it covers
+the `K3poRule` + `@EnableRuleMigrationSupport` pattern and why it can't be
+replaced with a plain JUnit 5 extension.
 
 ### Required spec coverage for every binding
 
-- Happy path for each `kind` and each `capability` the binding supports
-- Flow control: sender blocked by zero WINDOW, WINDOW credit restores flow
-- Orderly close: client-initiated END, server-initiated END
-- Abortive close: ABORT mid-stream, RESET on rejected stream
-- Protocol error: malformed input rejected with correct error response
-- Config validation: invalid `zilla.yaml` produces a clear startup error
-
-When implementing a new protocol feature, write the spec script first by
-consulting the relevant protocol RFC or specification. Do not derive expected
-behavior from existing implementation code.
+See the `add-binding` skill for the coverage checklist (happy path, flow
+control, orderly/abortive close, protocol errors, config validation) every
+new binding's spec scripts must satisfy.
 
 ### Running integration tests
 

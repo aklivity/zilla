@@ -33,3 +33,12 @@ separate project. Do not create a `runtime/<concept>-test/` module.
 Each new concept also needs a `test.schema.patch.json` — see "Test schema
 patches" in [runtime/engine/AGENTS.md](../../../runtime/engine/AGENTS.md) for
 where that lives and how it's wired into the test classpath.
+
+## Adding a method to `EngineContext`
+
+If the new concept requires adding a method to the `EngineContext` interface,
+search for all classes that implement it beyond `EngineWorker` — component
+modules such as `binding-tls` and `binding-echo` have their own `*Worker`
+classes that implement `EngineContext` for benchmarking or testing (e.g.,
+`TlsWorker`, `EchoWorker`). Each of these must be updated with a no-op
+default implementation of the new method or the build will fail.
