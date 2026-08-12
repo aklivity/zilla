@@ -48,6 +48,11 @@ public final class FeatureFilter
             !feature.isAnnotationPresent(Incubating.class);
     }
 
+    public static boolean isIncubatorEnabled()
+    {
+        return INCUBATOR_ENABLED;
+    }
+
     private static boolean incubatorEnabled()
     {
         final Module module = FeatureFilter.class.getModule();
