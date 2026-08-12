@@ -52,7 +52,7 @@ public final class ConfigExtAdapter<T extends Config>
         });
     }
 
-    public <B extends ConfigBuilder<?, B>> B adaptFromJson(
+    public <B extends ConfigBuilder.Extensible<?, B>> B adaptFromJson(
         JsonObject object,
         B builder)
     {

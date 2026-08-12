@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.config.engine;
 
-class TestRootConfigBuilder extends ConfigBuilder<TestRootConfig, TestRootConfigBuilder>
+class TestRootConfigBuilder extends ConfigBuilder.Extensible<TestRootConfig, TestRootConfigBuilder>
 {
     private String name;
 

@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.config.engine;
 
-class TestLeafConfigBuilder extends ConfigBuilder<TestLeafConfig, TestLeafConfigBuilder>
+class TestLeafConfigBuilder extends ConfigBuilder.Extensible<TestLeafConfig, TestLeafConfigBuilder>
 {
     private String name;
 

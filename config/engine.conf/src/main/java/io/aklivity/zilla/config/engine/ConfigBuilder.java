@@ -21,8 +21,6 @@ import java.util.function.Function;
 
 public abstract class ConfigBuilder<T, B extends ConfigBuilder<T, B>>
 {
-    private Map<String, Config> extensions;
-
     protected abstract Class<B> thisType();
 
     public final <R> R inject(
@@ -31,28 +29,33 @@ public abstract class ConfigBuilder<T, B extends ConfigBuilder<T, B>>
         return visitor.apply(thisType().cast(this));
     }
 
-    public final <X extends ConfigExtBuilder<B>> X ext(
-        Function<BiFunction<String, Config, B>, X> factory)
-    {
-        return factory.apply(this::ext);
-    }
-
-    B ext(
-        String name,
-        Config value)
-    {
-        if (extensions == null)
-        {
-            extensions = new LinkedHashMap<>();
-        }
-        extensions.put(name, value);
-        return thisType().cast(this);
-    }
-
-    protected final Map<String, Config> extensions()
-    {
-        return extensions;
-    }
-
     public abstract T build();
+
+    public abstract static class Extensible<T, B extends ConfigBuilder<T, B>> extends ConfigBuilder<T, B>
+    {
+        private Map<String, Config> extensions;
+
+        public final <X extends ConfigExtBuilder<B>> X ext(
+            Function<BiFunction<String, Config, B>, X> factory)
+        {
+            return factory.apply(this::ext);
+        }
+
+        B ext(
+            String name,
+            Config value)
+        {
+            if (extensions == null)
+            {
+                extensions = new LinkedHashMap<>();
+            }
+            extensions.put(name, value);
+            return thisType().cast(this);
+        }
+
+        protected final Map<String, Config> extensions()
+        {
+            return extensions;
+        }
+    }
 }

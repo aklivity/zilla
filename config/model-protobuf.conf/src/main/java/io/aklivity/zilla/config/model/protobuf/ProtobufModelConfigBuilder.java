@@ -23,7 +23,7 @@ import io.aklivity.zilla.config.engine.CatalogedConfigBuilder;
 import io.aklivity.zilla.config.engine.ConfigBuilder;
 import io.aklivity.zilla.config.engine.ValidateConfig;
 
-public class ProtobufModelConfigBuilder<T> extends ConfigBuilder<T, ProtobufModelConfigBuilder<T>>
+public class ProtobufModelConfigBuilder<T> extends ConfigBuilder.Extensible<T, ProtobufModelConfigBuilder<T>>
 {
     private final Function<ProtobufModelConfig, T> mapper;
 
