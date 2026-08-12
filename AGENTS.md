@@ -130,35 +130,9 @@ Spec script conventions and unit-test conventions are detailed in
 
 ## Adding a new binding
 
-Repo-level scaffolding (everything before module-specific implementation):
-
-1. Open a GitHub Issue to discuss the design before writing any code
-2. Create `specs/binding-<n>.spec/` and write `.rpt` scripts for the happy
-   path and key error scenarios, derived from the relevant protocol
-   specification — see [specs/AGENTS.md](specs/AGENTS.md)
-3. Create `runtime/binding-<n>/` and `specs/binding-<n>.spec/` following the
-   existing module layout. Every new project directory (both `runtime/` and
-   `specs/`) must include these top-level files copied from an existing
-   module: `COPYRIGHT`, `LICENSE`, `NOTICE`, `NOTICE.template`, `mvnw`,
-   `mvnw.cmd`. All new components use the **Aklivity Community License** —
-   copy `LICENSE-AklivityCommunity`, `COPYRIGHT-AklivityCommunity`, and
-   `NOTICE-AklivityCommunity` from the top-level repository directory,
-   renaming them to `LICENSE`, `COPYRIGHT`, and `NOTICE.template` respectively
-   in the new module. Then generate `NOTICE` by running
-   `./mvnw notice:generate --projects <path/to/project>` from the repository
-   root; do not copy `NOTICE` from another module as it must reflect the new
-   module's actual dependencies. Never edit `NOTICE` files directly — always
-   regenerate via `./mvnw notice:generate --projects <path/to/project>`;
-   manual edits will be overwritten. Source file headers must carry the
-   Aklivity Community License copyright notice
-   (`Copyright 2021-2024 Aklivity Inc`); run `./mvnw license:format` to apply
-   the correct header automatically
-4. Add the module to `runtime/pom.xml` and the root `pom.xml`
-
-Then proceed with the runtime-side implementation steps in
-[runtime/AGENTS.md](runtime/AGENTS.md) and the spec/IT steps in
-[specs/AGENTS.md](specs/AGENTS.md). Confirm `./mvnw install` passes including
-all ITs before opening the PR.
+Use the `add-binding` skill for the full workflow — GitHub issue, spec
+scaffolding, license files, module-level implementation checklist, and JSON
+schema wiring.
 
 ---
 
@@ -242,17 +216,6 @@ import io.aklivity.zilla.runtime.engine.vault.VaultHandler;        // v
 
 When adding a new import, insert it at the correct alphabetical position —
 do not append it at the end of the group.
-
----
-
-## Key dependencies
-
-| Dependency | Purpose |
-| --- | --- |
-| `agrona` | Lock-free ring buffers, flyweight buffer access, `IoUtil` for mmap |
-| `zilla:maven-plugin` | Generates flyweight Java from `.idl` type definitions |
-| `junit5` | Unit and integration tests |
-| `mockito` | Mocking in unit tests |
 
 ---
 

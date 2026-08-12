@@ -122,15 +122,10 @@ The same pattern applies to all pluggable types:
 
 ### Adding a new component's schema
 
-When implementing a new binding, guard, vault, or other component:
-
-1. Create `binding-<type>.schema.json` in the spec project under
-   `src/main/resources/META-INF/zilla/schema/`
-2. Copy it to the runtime project under the same path
-3. The engine picks it up from the classpath at startup automatically —
-   no engine registration step required
-4. Validate the schema by running the spec IT with an intentionally invalid
-   `zilla.yaml` and confirming a clear validation error is produced
+When implementing a new binding, guard, vault, or other component, see the
+`add-binding` skill's schema-wiring steps (create the schema patch, copy it
+into the runtime project, validate with an intentionally invalid `zilla.yaml`)
+— the same steps apply to any pluggable component kind, not just bindings.
 
 ---
 

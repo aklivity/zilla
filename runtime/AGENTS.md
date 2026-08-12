@@ -498,44 +498,9 @@ patterns as server/client bindings, adapted to their two-sided model.
 
 ## Implementing a binding — module-level checklist
 
-The repo-wide steps for adding a new binding (issue, scaffolding, license
-headers) live in the root [AGENTS.md](../AGENTS.md). Once the module skeleton
-exists, the runtime-side work is:
-
-1. Declare `module-info.java` — exports SPI packages only, keeps `internal.*`
-   unexported, registers the factory SPI with `provides`
-2. Define flyweight types in `src/main/resources/META-INF/zilla/<n>.idl`
-3. Add the module to `runtime/pom.xml` and the root `pom.xml`
-4. Verify all new dependencies are fully modular (see Java module system above)
-5. Implement the type-prefixed factory SPI (e.g., `HttpBindingFactorySpi`,
-   `MqttBindingFactorySpi`) and register it in
-   `META-INF/services/io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi`.
-   The factory SPI receives a general `Configuration`; construct the
-   component-specific subclass from it (e.g., `new HttpKafkaConfiguration(config)`)
-   and pass that subclass — not the raw `Configuration` — into the stream handler
-   and any other collaborators that need config access
-6. Implement the type-prefixed stream handler (e.g., `HttpServerFactory`,
-   `MqttServerFactory`) extending `BindingHandler`, driven by the failing spec
-   scripts
-7. Add `XxxConfiguration extends Configuration` in `src/main/java/.../internal/`
-   — even as a placeholder with an empty `ConfigurationDef` — so that runtime
-   configuration properties can be added later without structural changes. See
-   `HttpKafkaConfiguration` for a minimal example. Include two constructors:
-   a no-args constructor that calls `super(XXX_CONFIG, new Configuration())`
-   for use in tests and tooling, and a `Configuration`-parameter constructor
-   that calls `super(XXX_CONFIG, config)` for production use. Prefer the
-   no-args constructor in unit tests and any context where no external
-   configuration is needed. Add a corresponding `XxxConfigurationTest` that
-   calls `shouldVerifyConstants()` (verifying property name strings match the
-   `PropertyDef` names) to satisfy class coverage requirements
-8. Write k3po IT scripts covering the stream state machine (see below)
-
-The Maven plugin generates flyweight classes during `generate-sources`. Run
-`./mvnw generate-sources -pl runtime/binding-<n>` to regenerate after `.idl`
-changes without a full build.
-
-JSON schema for `options` and `routes[].when` lives in the matching spec
-project — see [../specs/AGENTS.md](../specs/AGENTS.md).
+Use the `add-binding` skill for the full checklist (module-info, factory SPI,
+configuration class, k3po scripts) and how it fits with the repo-wide
+scaffolding steps and the spec/schema wiring.
 
 ---
 
@@ -622,27 +587,6 @@ PR and scoped narrowly.
 ## Benchmarks
 
 JMH benchmarks live alongside unit tests under `src/test/java/.../bench/` (e.g.
-`JsonPipelineBM`). They are compiled in the `test` phase but not run by Surefire.
-
-**Always run the affected benchmark before checking in any change to it** — a
-clean `test-compile` is not enough; a real JMH pass must succeed and produce
-sensible numbers. Build the module, then run the JMH harness over the test
-classpath:
-
-```bash
-# 1) compile (generates the JMH BenchmarkList) and resolve the test classpath
-./mvnw test-compile -pl runtime/<module>
-./mvnw dependency:build-classpath -pl runtime/<module> -DincludeScope=test -Dmdep.outputFile=/tmp/cp.txt -q
-
-# 2) run JMH (agrona needs the jdk.internal.misc open that Surefire adds for us)
-CP="runtime/<module>/target/classes:runtime/<module>/target/test-classes:$(cat /tmp/cp.txt)"
-java --add-opens java.base/jdk.internal.misc=ALL-UNNAMED -cp "$CP" \
-    org.openjdk.jmh.Main "<BenchmarkClass>" -prof gc          # full run
-# quick smoke pass while iterating:
-#   ... org.openjdk.jmh.Main "<BenchmarkClass>" -f 1 -wi 3 -i 4 -w 1 -r 1 -prof gc
-```
-
-Include `-prof gc` so allocation-per-op (`gc.alloc.rate.norm`, in B/op) is
-reported — it is the stable signal; throughput at smoke settings has wide error
-bars. Capture representative before/after numbers in the PR when a change is
-meant to affect performance.
+`JsonPipelineBM`). Use the `run-benchmark` skill to build and run one — always
+run the affected benchmark before checking in any change to it; a clean
+`test-compile` is not enough.
