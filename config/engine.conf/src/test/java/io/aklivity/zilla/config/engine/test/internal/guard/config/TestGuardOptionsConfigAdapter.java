@@ -16,6 +16,7 @@ package io.aklivity.zilla.config.engine.test.internal.guard.config;
 
 import static io.aklivity.zilla.config.engine.test.internal.guard.config.TestGuardOptionsConfigBuilder.DEFAULT_CHALLENGE_NEVER;
 import static io.aklivity.zilla.config.engine.test.internal.guard.config.TestGuardOptionsConfigBuilder.DEFAULT_LIFETIME_FOREVER;
+import static io.aklivity.zilla.config.engine.test.internal.guard.config.TestGuardOptionsConfigBuilder.DEFAULT_MAX_SESSIONS_UNLIMITED;
 
 import java.time.Duration;
 
@@ -39,6 +40,7 @@ public final class TestGuardOptionsConfigAdapter implements JsonbAdapter<Options
     private static final String PREAUTHORIZE_NAME = "preauthorize";
     private static final String ACQUIRE_NAME = "acquire";
     private static final String ACQUIRE_DEFERRED = "deferred";
+    private static final String MAX_SESSIONS_NAME = "max-sessions";
 
     @Override
     public JsonObject adaptToJson(
@@ -91,6 +93,11 @@ public final class TestGuardOptionsConfigAdapter implements JsonbAdapter<Options
         if (testOptions.deferAcquire)
         {
             object.add(ACQUIRE_NAME, ACQUIRE_DEFERRED);
+        }
+
+        if (testOptions.maxSessions != DEFAULT_MAX_SESSIONS_UNLIMITED)
+        {
+            object.add(MAX_SESSIONS_NAME, testOptions.maxSessions);
         }
 
         return object.build();
@@ -146,6 +153,11 @@ public final class TestGuardOptionsConfigAdapter implements JsonbAdapter<Options
             if (object.containsKey(ACQUIRE_NAME))
             {
                 testOptions.deferAcquire(ACQUIRE_DEFERRED.equals(object.getString(ACQUIRE_NAME)));
+            }
+
+            if (object.containsKey(MAX_SESSIONS_NAME))
+            {
+                testOptions.maxSessions(object.getInt(MAX_SESSIONS_NAME));
             }
         }
 

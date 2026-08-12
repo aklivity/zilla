@@ -15,15 +15,13 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.cache;
 
-import java.util.Set;
-
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
-import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
+import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 
 public final class KafkaCacheModel
 {
@@ -42,28 +40,16 @@ public final class KafkaCacheModel
     }
 
     private final ModelPipeline pipeline;
-    private final KafkaExtractor extractor;
     private final MutableDirectBufferEx scratch;
 
     public static KafkaCacheModel decoder(
         ModelHandler handler,
-        Set<String> extractPaths,
+        ModelTransform transform,
         MutableDirectBufferEx scratch)
     {
-        KafkaCacheModel model = NONE;
-        if (handler != null)
-        {
-            if (extractPaths != null && !extractPaths.isEmpty())
-            {
-                KafkaExtractor extractor = new KafkaExtractor(extractPaths);
-                model = new KafkaCacheModel(handler.supplyDecoder(extractor), extractor, scratch);
-            }
-            else
-            {
-                model = new KafkaCacheModel(handler.supplyDecoder(), null, scratch);
-            }
-        }
-        return model;
+        return handler != null
+            ? new KafkaCacheModel(handler.supplyDecoder(transform), scratch)
+            : NONE;
     }
 
     public static KafkaCacheModel encoder(
@@ -71,24 +57,21 @@ public final class KafkaCacheModel
         MutableDirectBufferEx scratch)
     {
         return handler != null
-            ? new KafkaCacheModel(handler.supplyEncoder(), null, scratch)
+            ? new KafkaCacheModel(handler.supplyEncoder(), scratch)
             : NONE;
     }
 
     private KafkaCacheModel()
     {
         this.pipeline = null;
-        this.extractor = null;
         this.scratch = null;
     }
 
     KafkaCacheModel(
         ModelPipeline pipeline,
-        KafkaExtractor extractor,
         MutableDirectBufferEx scratch)
     {
         this.pipeline = pipeline;
-        this.extractor = extractor;
         this.scratch = scratch;
     }
 
@@ -109,11 +92,6 @@ public final class KafkaCacheModel
         }
         else
         {
-            if (extractor != null)
-            {
-                extractor.reset();
-            }
-
             total = 0;
             int srcAt = index;
             int flags = FLAGS_INIT | FLAGS_FIN;
@@ -130,12 +108,6 @@ public final class KafkaCacheModel
                 {
                     total = -1;
                     done = true;
-                    // the transform captures each field as the value flows through, so a value that is
-                    // rejected part-way leaves partial captures behind that must not reach the cache entry
-                    if (extractor != null)
-                    {
-                        extractor.reset();
-                    }
                 }
                 else
                 {
@@ -170,32 +142,11 @@ public final class KafkaCacheModel
         return pipeline != null ? pipeline.padding(data, index, length) : 0;
     }
 
-    public int extractedLength(
-        String path)
-    {
-        return extractor != null ? extractor.extractedLength(path) : 0;
-    }
-
-    public void extracted(
-        String path,
-        ValueConsumer consumer)
-    {
-        if (extractor != null)
-        {
-            extractor.extracted(path, consumer);
-        }
-    }
-
     public void reset()
     {
         if (pipeline != null)
         {
             pipeline.reset();
-        }
-
-        if (extractor != null)
-        {
-            extractor.reset();
         }
     }
 }

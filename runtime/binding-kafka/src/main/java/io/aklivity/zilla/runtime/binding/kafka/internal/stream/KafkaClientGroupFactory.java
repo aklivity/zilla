@@ -2154,6 +2154,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             cleanupEncodeSlotIfNecessary();
             cleanupBudgetIfNecessary();
+
+            deauthorizeGuardSession();
         }
 
         @Override
@@ -2169,6 +2171,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             cleanupEncodeSlotIfNecessary();
             cleanupBudgetIfNecessary();
+
+            deauthorizeGuardSession();
         }
 
         @Override
@@ -2183,6 +2187,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             }
 
             cleanupDecodeSlotIfNecessary();
+
+            deauthorizeGuardSession();
         }
 
         private void doNetworkWindow(
@@ -2921,6 +2927,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             doEnd(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                 traceId, authorization, EMPTY_EXTENSION);
+
+            deauthorizeGuardSession();
         }
 
         @Override
@@ -2936,6 +2944,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             cleanupEncodeSlotIfNecessary();
             cleanupBudgetIfNecessary();
+
+            deauthorizeGuardSession();
         }
 
         @Override
@@ -2950,6 +2960,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             }
 
             cleanupDecodeSlotIfNecessary();
+
+            deauthorizeGuardSession();
         }
 
         private void doNetworkWindow(
@@ -3684,6 +3696,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             cleanupEncodeSlotIfNecessary();
             cleanupBudgetIfNecessary();
 
+            deauthorizeGuardSession();
         }
 
         @Override
@@ -3700,6 +3713,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             cleanupEncodeSlotIfNecessary();
             cleanupBudgetIfNecessary();
+
+            deauthorizeGuardSession();
         }
 
         @Override
@@ -3714,6 +3729,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             }
 
             cleanupDecodeSlotIfNecessary();
+
+            deauthorizeGuardSession();
         }
 
         private void doNetworkWindow(
@@ -4639,6 +4656,7 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             cleanupEncodeSlotIfNecessary();
             cleanupBudgetIfNecessary();
 
+            deauthorizeGuardSession();
         }
 
         @Override
@@ -4657,6 +4675,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
 
             cleanupEncodeSlotIfNecessary();
             cleanupBudgetIfNecessary();
+
+            deauthorizeGuardSession();
         }
 
         @Override
@@ -4671,6 +4691,8 @@ public final class KafkaClientGroupFactory extends KafkaClientSaslHandshaker imp
             }
 
             cleanupDecodeSlotIfNecessary();
+
+            deauthorizeGuardSession();
         }
 
         private void doNetworkWindow(

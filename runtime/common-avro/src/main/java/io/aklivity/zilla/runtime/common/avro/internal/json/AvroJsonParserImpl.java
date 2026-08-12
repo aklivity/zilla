@@ -71,6 +71,10 @@ public final class AvroJsonParserImpl implements AvroParser
     private final AvroType rootType;
     private final UnsafeBufferEx segment;
     private final UnsafeBufferEx segmentView;
+    // wraps the `bytes` scratch array; re-wrapped only when ensureBytes() grows it, so segmentUtf8()'s
+    // per-call segment.wrap(bytesView, ...) copies an existing MemorySegment reference instead of paying
+    // for UnsafeBufferEx.wrap(byte[]...)'s MemorySegment.ofArray() allocation on every string field
+    private final UnsafeBufferEx bytesView;
     private final Map<AvroType, List<AvroField>> fieldsByType;
     private final Map<AvroType, List<AvroType>> branchesByType;
     private final Map<AvroType, List<String>> symbolsByType;
@@ -131,6 +135,7 @@ public final class AvroJsonParserImpl implements AvroParser
         this.symbolsByType = new IdentityHashMap<>();
         this.stack = new Frame[16];
         this.bytes = new byte[64];
+        this.bytesView = new UnsafeBufferEx(bytes);
     }
 
     @Override
@@ -661,7 +666,7 @@ public final class AvroJsonParserImpl implements AvroParser
                 bytes[index++] = (byte) (0x80 | (ch & 0x3f));
             }
         }
-        segment.wrap(bytes, 0, index);
+        segment.wrap(bytesView, 0, index);
         segmentConsumed = 0;
     }
 
@@ -829,6 +834,7 @@ public final class AvroJsonParserImpl implements AvroParser
         if (capacity > bytes.length)
         {
             bytes = new byte[Math.max(bytes.length * 2, capacity)];
+            bytesView.wrap(bytes);
         }
     }
 

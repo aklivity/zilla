@@ -206,6 +206,10 @@
                                                         }
                                                     },
                                                     "additionalProperties": false
+                                                },
+                                                "releaseOnEnd":
+                                                {
+                                                    "type": "boolean"
                                                 }
                                             }
                                         }

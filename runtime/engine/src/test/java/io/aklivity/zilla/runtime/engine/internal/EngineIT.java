@@ -200,4 +200,14 @@ public class EngineIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.release.on.end.yaml")
+    @Specification({
+        "${net}/client.write.close/client",
+        "${app}/client.write.close/server"})
+    public void shouldReleaseGuardSessionOnClientSentWriteClose() throws Exception
+    {
+        k3po.finish();
+    }
 }

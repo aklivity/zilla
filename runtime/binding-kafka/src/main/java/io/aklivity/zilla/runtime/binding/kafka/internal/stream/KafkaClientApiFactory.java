@@ -21,6 +21,7 @@ import static io.aklivity.zilla.runtime.engine.budget.BudgetDebitor.NO_DEBITOR_I
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static io.aklivity.zilla.runtime.engine.guard.GuardHandler.MASK_AUTHORIZED;
+import static io.aklivity.zilla.runtime.engine.guard.GuardHandler.NOT_AUTHORIZED;
 import static java.lang.System.currentTimeMillis;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
@@ -1138,6 +1139,7 @@ public final class KafkaClientApiFactory implements BindingHandler
         private boolean saslResolved;
         private int saslMechanismsRemaining;
         private long guardSession;
+        private boolean guardSessionOwned;
 
         private BudgetDebitor initialDeb;
         private KafkaApiClientDecoder decoder;
@@ -1343,6 +1345,7 @@ public final class KafkaClientApiFactory implements BindingHandler
             final String resolved = guard.credentials(authorization);
             final boolean authorized = resolved != null;
             guardSession = authorized ? authorization : guard.reauthorize(traceId, routedId, initialId, null);
+            guardSessionOwned = !authorized;
 
             if (!authorized && (guardSession & MASK_AUTHORIZED) == 0L)
             {
@@ -1890,6 +1893,8 @@ public final class KafkaClientApiFactory implements BindingHandler
 
             cleanupEncodeSlot();
             cleanupBudget();
+
+            deauthorizeGuardSession();
         }
 
         private void doNetAbort(
@@ -1905,6 +1910,8 @@ public final class KafkaClientApiFactory implements BindingHandler
 
             cleanupEncodeSlot();
             cleanupBudget();
+
+            deauthorizeGuardSession();
         }
 
         private void doNetReset(
@@ -1919,6 +1926,18 @@ public final class KafkaClientApiFactory implements BindingHandler
             }
 
             cleanupDecodeSlot();
+
+            deauthorizeGuardSession();
+        }
+
+        private void deauthorizeGuardSession()
+        {
+            if (guardSessionOwned && (guardSession & MASK_AUTHORIZED) != 0)
+            {
+                guard.deauthorize(guardSession);
+                guardSession = NOT_AUTHORIZED;
+                guardSessionOwned = false;
+            }
         }
 
         private void doNetWindow(

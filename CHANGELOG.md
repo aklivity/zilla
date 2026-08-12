@@ -1,5 +1,33 @@
 # Changelog
 
+## [2.2.1](https://github.com/aklivity/zilla/tree/2.2.1) (2026-08-11)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/2.2.0...2.2.1)
+
+**Merged pull requests:**
+
+- fix\(binding-mcp\): preserve per-request elicitation timeout across proxy relay [\#2358](https://github.com/aklivity/zilla/pull/2358) ([jfallows](https://github.com/jfallows))
+
+## [2.2.0](https://github.com/aklivity/zilla/tree/2.2.0) (2026-08-11)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/2.1.1...2.2.0)
+
+**Closed issues:**
+
+- Add a KafkaPipeline for message-level key/headers/value composition, retire KafkaExtractor's stash-and-replay [\#2329](https://github.com/aklivity/zilla/issues/2329) ([jfallows](https://github.com/jfallows))
+- tls client binding: select client certificate from guarded session identity via routes\[\].with [\#2345](https://github.com/aklivity/zilla/issues/2345) ([jfallows](https://github.com/jfallows))
+- Guard sessions acquired via reauthorize are never released except by binding-http [\#2355](https://github.com/aklivity/zilla/issues/2355) ([jfallows](https://github.com/jfallows))
+
+**Merged pull requests:**
+
+- feat\(binding-kafka\): add KafkaPipeline for message-level key/headers/value composition, retire KafkaExtractor's stash-and-replay [\#2331](https://github.com/aklivity/zilla/pull/2331) ([jfallows](https://github.com/jfallows))
+- feat\(binding-tls\): select client certificate from guarded session identity [\#2347](https://github.com/aklivity/zilla/pull/2347) ([jfallows](https://github.com/jfallows))
+- test\(model-protobuf\): add JMH benchmarks, fix allocations they found [\#2351](https://github.com/aklivity/zilla/pull/2351) ([jfallows](https://github.com/jfallows))
+- test\(model-avro\): add JMH benchmarks for decode/encode pipeline [\#2352](https://github.com/aklivity/zilla/pull/2352) ([jfallows](https://github.com/jfallows))
+- test\(model-json\): add JMH benchmarks, fix allocations they found [\#2353](https://github.com/aklivity/zilla/pull/2353) ([jfallows](https://github.com/jfallows))
+- test\(engine\): let TestBindingFactory model guard session acquire+release [\#2356](https://github.com/aklivity/zilla/pull/2356) ([jfallows](https://github.com/jfallows))
+- fix\(engine,binding-mqtt,binding-kafka,binding-mcp\): release guard sessions on connection end [\#2357](https://github.com/aklivity/zilla/pull/2357) ([jfallows](https://github.com/jfallows))
+
 ## [2.1.1](https://github.com/aklivity/zilla/tree/2.1.1) (2026-08-10)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/2.1.0...2.1.1)

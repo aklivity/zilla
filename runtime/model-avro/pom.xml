@@ -90,6 +90,21 @@
       <artifactId>lang</artifactId>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>org.openjdk.jmh</groupId>
+      <artifactId>jmh-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.openjdk.jmh</groupId>
+      <artifactId>jmh-generator-annprocess</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.github.biboudis</groupId>
+      <artifactId>jmh-profilers</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <build>
@@ -217,6 +232,48 @@
             <version>${project.version}</version>
           </dependency>
         </dependencies>
+      </plugin>
+      <plugin>
+        <groupId>io.gatling</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <configuration>
+          <artifactSet>
+            <includes>
+              <include>org.agrona:agrona</include>
+              <include>jakarta.json:jakarta.json-api</include>
+              <include>io.aklivity.zilla:common-agrona</include>
+              <include>io.aklivity.zilla:engine</include>
+              <include>io.aklivity.zilla:engine:jar:tests</include>
+              <include>io.aklivity.zilla:engine:test-jar</include>
+              <include>io.aklivity.zilla:engine.conf</include>
+              <include>io.aklivity.zilla:engine.conf:jar:tests</include>
+              <include>io.aklivity.zilla:model-avro.conf</include>
+              <include>io.aklivity.zilla:common-avro</include>
+              <include>io.aklivity.zilla:common-json</include>
+              <include>org.mockito:mockito-core</include>
+              <include>net.bytebuddy:byte-buddy</include>
+              <include>net.bytebuddy:byte-buddy-agent</include>
+              <include>org.objenesis:objenesis</include>
+              <include>org.openjdk.jmh:jmh-core</include>
+              <include>net.sf.jopt-simple:jopt-simple</include>
+              <include>org.apache.commons:commons-math3</include>
+              <include>commons-cli:commons-cli</include>
+              <include>com.github.biboudis:jmh-profilers</include>
+            </includes>
+          </artifactSet>
+          <transformers>
+            <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+            <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+              <mainClass>org.openjdk.jmh.Main</mainClass>
+              <manifestEntries>
+                <!-- engine is a provided-scope dependency (supplied externally at runtime, same as the
+                     real Zilla distribution) so neither shaded artifact bundles it; reference the reactor
+                     build's own jar here alongside the sibling non-test shaded jar. -->
+                <Class-Path>${project.build.directory}/${project.artifactId}-shaded.jar ${settings.localRepository}/io/aklivity/zilla/engine/${project.version}/engine-${project.version}.jar</Class-Path>
+              </manifestEntries>
+            </transformer>
+          </transformers>
+        </configuration>
       </plugin>
     </plugins>
   </build>

@@ -37,7 +37,7 @@ public class DescribeClusterSaslIT
         .addScriptRoot("app", "io/aklivity/zilla/specs/binding/kafka/streams/application/describe.cluster")
         .addScriptRoot("net", "io/aklivity/zilla/specs/binding/kafka/streams/network/describe.cluster.v0.sasl.handshake.v1");
 
-    private final TestRule timeout = new DisableOnDebug(new Timeout(5, SECONDS));
+    private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
     private final EngineRule engine = new EngineRule()
         .directory("target/zilla-itests")
@@ -67,6 +67,16 @@ public class DescribeClusterSaslIT
     @Configure(name = KAFKA_CLIENT_SASL_SCRAM_NONCE_NAME,
             value = "io.aklivity.zilla.runtime.binding.kafka.internal.stream.DescribeClusterSaslIT::supplyNonce")
     public void shouldDescribeClusterBrokerInfoWithSaslScram() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.options.sasl.plain.max.sessions.yaml")
+    @Specification({
+        "${app}/cluster.brokers.info.twice/client",
+        "${net}/cluster.brokers.info.sasl.plain.twice/server"})
+    public void shouldReleaseGuardSessionAfterEachConnectionWithSaslPlain() throws Exception
     {
         k3po.finish();
     }

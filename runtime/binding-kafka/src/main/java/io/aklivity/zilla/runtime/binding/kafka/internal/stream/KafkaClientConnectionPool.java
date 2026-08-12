@@ -1374,6 +1374,8 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
             }
 
             cleanupBudgetCreditorIfNecessary();
+
+            deauthorizeGuardSession();
         }
 
         private void doConnectionAbort(
@@ -1388,6 +1390,8 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
             }
 
             cleanupBudgetCreditorIfNecessary();
+
+            deauthorizeGuardSession();
         }
 
         private void doConnectionSignalNow(
@@ -1436,6 +1440,8 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
 
                 state = KafkaState.closedReply(state);
             }
+
+            deauthorizeGuardSession();
         }
 
         private void doConnectionWindow(

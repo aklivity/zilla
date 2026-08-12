@@ -848,7 +848,7 @@ public final class McpBindingConfig
         HttpBeginExFW httpBeginEx,
         String path)
     {
-        McpAuthorizationResult result = new McpAuthorizationResult(authorization, null);
+        McpAuthorizationResult result = new McpAuthorizationResult(authorization, null, false);
         if (guard != null && !isAuthCallbackPath(path))
         {
             final String authorizationHeader = Optional.ofNullable(httpBeginEx.headers()
@@ -874,10 +874,10 @@ public final class McpBindingConfig
                     : GuardHandler.NOT_AUTHORIZED;
 
                 result = (sessionAuth & GuardHandler.MASK_AUTHORIZED) != 0L
-                    ? new McpAuthorizationResult(sessionAuth, null)
+                    ? new McpAuthorizationResult(sessionAuth, null, true)
                     : new McpAuthorizationResult(authorization, credentials == null
                         ? McpBearerError.INVALID_REQUEST
-                        : McpBearerError.INVALID_TOKEN);
+                        : McpBearerError.INVALID_TOKEN, false);
             }
         }
         return result;

@@ -1,0 +1,450 @@
+/*
+ * Copyright 2021-2026 Aklivity Inc.
+ *
+ * Aklivity licenses this file to you under the Apache License,
+ * version 2.0 (the "License"); you may not use this file except in compliance
+ * with the License. You may obtain a copy of the License at:
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+package io.aklivity.zilla.runtime.binding.kafka.internal.cache.bench;
+
+import java.net.InetAddress;
+import java.nio.channels.SelectableChannel;
+import java.nio.file.Path;
+import java.time.Clock;
+import java.util.function.LongConsumer;
+import java.util.function.LongSupplier;
+
+import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.config.engine.KindConfig;
+import io.aklivity.zilla.config.engine.ModelConfig;
+import io.aklivity.zilla.config.engine.NamespaceConfig;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.binding.function.MessageReader;
+import io.aklivity.zilla.runtime.engine.budget.BudgetCredit;
+import io.aklivity.zilla.runtime.engine.budget.BudgetCreditor;
+import io.aklivity.zilla.runtime.engine.budget.BudgetDebit;
+import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
+import io.aklivity.zilla.runtime.engine.budget.BudgetFlusher;
+import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
+import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
+import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
+import io.aklivity.zilla.runtime.engine.event.EventFormatter;
+import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
+import io.aklivity.zilla.runtime.engine.metrics.Metric;
+import io.aklivity.zilla.runtime.engine.model.ModelHandler;
+import io.aklivity.zilla.runtime.engine.poller.PollerKey;
+import io.aklivity.zilla.runtime.engine.store.StoreHandler;
+import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
+
+// A minimal EngineContext for constructing a real *ModelHandlerImpl outside a full engine, following the
+// EchoWorker / TlsWorker benchmark pattern: every method is stubbed except the handful a model handler's
+// constructor actually calls (supplyCatalog, clock, supplyEventWriter) — nothing else is reachable from
+// building a handler or driving its ModelPipeline.transform, so the rest never runs.
+final class KafkaModelWorker implements EngineContext
+{
+    private static final int BUFFER_SIZE = 1024 * 8;
+
+    private final MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[BUFFER_SIZE]);
+    private final CatalogHandler catalog;
+
+    KafkaModelWorker(
+        CatalogHandler catalog)
+    {
+        this.catalog = catalog;
+    }
+
+    @Override
+    public int index()
+    {
+        return 0;
+    }
+
+    @Override
+    public Signaler signaler()
+    {
+        return null;
+    }
+
+    @Override
+    public int supplyTypeId(
+        String name)
+    {
+        return 0;
+    }
+
+    @Override
+    public long supplyInitialId(
+        long bindingId)
+    {
+        return 0;
+    }
+
+    @Override
+    public long supplyInitialId(
+        long bindingId,
+        int hash)
+    {
+        return 0;
+    }
+
+    @Override
+    public boolean isLocalIndex(
+        long bindingId,
+        int hash)
+    {
+        return true;
+    }
+
+    @Override
+    public long supplyReplyId(
+        long initialId)
+    {
+        return 0;
+    }
+
+    @Override
+    public long supplyPromiseId(
+        long initialId)
+    {
+        return 0;
+    }
+
+    @Override
+    public long supplyAuthorizedId()
+    {
+        return 0;
+    }
+
+    @Override
+    public long supplyBudgetId()
+    {
+        return 0;
+    }
+
+    @Override
+    public long supplyTraceId()
+    {
+        return 0;
+    }
+
+    @Override
+    public MessageConsumer supplySender(
+        long streamId)
+    {
+        return null;
+    }
+
+    @Override
+    public MessageConsumer supplyReceiver(
+        long streamId)
+    {
+        return null;
+    }
+
+    @Override
+    public EventFormatter supplyEventFormatter()
+    {
+        return null;
+    }
+
+    @Override
+    public void report(
+        Throwable ex)
+    {
+    }
+
+    @Override
+    public void attachComposite(
+        NamespaceConfig composite)
+    {
+    }
+
+    @Override
+    public void detachComposite(
+        NamespaceConfig composite)
+    {
+    }
+
+    @Override
+    public void detachSender(
+        long replyId)
+    {
+    }
+
+    @Override
+    public void detachStreams(
+        long bindingId)
+    {
+    }
+
+    @Override
+    @Deprecated
+    public BudgetCreditor creditor()
+    {
+        return null;
+    }
+
+    @Override
+    @Deprecated
+    public BudgetDebitor supplyDebitor(
+        long budgetId)
+    {
+        return null;
+    }
+
+    @Override
+    public BudgetDebit supplyDebit(
+        long streamId,
+        long sharedStreamId,
+        BudgetFlusher onResume)
+    {
+        return null;
+    }
+
+    @Override
+    public BudgetCredit supplyCredit(
+        long streamId,
+        long sharedStreamId)
+    {
+        return null;
+    }
+
+    @Override
+    public MutableDirectBufferEx writeBuffer()
+    {
+        return writeBuffer;
+    }
+
+    @Override
+    public BufferPool bufferPool()
+    {
+        return null;
+    }
+
+    @Override
+    public LongSupplier supplyCounter(
+        long bindingId,
+        int metricId,
+        int attributesId)
+    {
+        return null;
+    }
+
+    @Override
+    public LongSupplier supplyGauge(
+        long bindingId,
+        int metricId,
+        int attributesId)
+    {
+        return null;
+    }
+
+    @Override
+    public LongSupplier[] supplyHistogram(
+        long bindingId,
+        int metricId,
+        int attributesId)
+    {
+        return new LongSupplier[0];
+    }
+
+    @Override
+    public MessageConsumer droppedFrameHandler()
+    {
+        return null;
+    }
+
+    @Override
+    public int supplyClientIndex(
+        long streamId)
+    {
+        return 0;
+    }
+
+    @Override
+    public InetAddress[] resolveHost(
+        String host)
+    {
+        return new InetAddress[0];
+    }
+
+    @Override
+    public PollerKey supplyPollerKey(
+        SelectableChannel channel)
+    {
+        return null;
+    }
+
+    @Override
+    public long supplyBindingId(
+        NamespaceConfig namespace,
+        BindingConfig binding)
+    {
+        return 0;
+    }
+
+    @Override
+    public String supplyNamespace(
+        long namespacedId)
+    {
+        return "";
+    }
+
+    @Override
+    public String supplyLocalName(
+        long namespacedId)
+    {
+        return "";
+    }
+
+    @Override
+    public String supplyQName(
+        long namespacedId)
+    {
+        return "";
+    }
+
+    @Override
+    public int supplyEventId(
+        String name)
+    {
+        return 0;
+    }
+
+    @Override
+    public String supplyEventName(
+        int eventId)
+    {
+        return "";
+    }
+
+    @Override
+    public BindingHandler streamFactory()
+    {
+        return null;
+    }
+
+    @Override
+    public GuardHandler supplyGuard(
+        long guardId)
+    {
+        return null;
+    }
+
+    @Override
+    public StoreHandler supplyStore(
+        long storeId)
+    {
+        return null;
+    }
+
+    @Override
+    public VaultHandler supplyVault(
+        long vaultId)
+    {
+        return null;
+    }
+
+    @Override
+    public CatalogHandler supplyCatalog(
+        long catalogId)
+    {
+        return catalog;
+    }
+
+    @Override
+    public ModelHandler supplyModel(
+        ModelConfig config)
+    {
+        return null;
+    }
+
+    @Override
+    public LongConsumer supplyUtilizationMetric()
+    {
+        return null;
+    }
+
+    @Override
+    public Path resolvePath(
+        String location)
+    {
+        return null;
+    }
+
+    @Override
+    public Path resolveLocalPath(
+        String location)
+    {
+        return null;
+    }
+
+    @Override
+    public Metric resolveMetric(
+        String name)
+    {
+        return null;
+    }
+
+    @Override
+    public void onExporterAttached(
+        long exporterId)
+    {
+    }
+
+    @Override
+    public void onExporterDetached(
+        long exporterId)
+    {
+    }
+
+    @Override
+    public LongConsumer supplyMetricWriter(
+        Metric.Kind kind,
+        long bindingId,
+        int metricId,
+        int attributesId,
+        KindConfig bindingKind)
+    {
+        return null;
+    }
+
+    @Override
+    public MessageConsumer supplyEventWriter()
+    {
+        return MessageConsumer.NOOP;
+    }
+
+    @Override
+    public MessageReader supplyEventReader()
+    {
+        return null;
+    }
+
+    @Override
+    public Clock clock()
+    {
+        return Clock.systemUTC();
+    }
+
+    // this harness has no event loop to defer onto, so it runs the task inline rather than
+    // strictly later; nothing here depends on the async SPI contracts that guarantee builds on
+    @Override
+    public void dispatch(
+        Runnable task)
+    {
+        task.run();
+    }
+}

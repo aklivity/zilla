@@ -1127,6 +1127,8 @@ public final class KafkaClientInitProducerIdFactory extends KafkaClientSaslHands
 
             doEnd(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                 traceId, authorization, EMPTY_EXTENSION);
+
+            deauthorizeGuardSession();
         }
 
         private void doNetworkAbortIfNecessary(
@@ -1141,6 +1143,8 @@ public final class KafkaClientInitProducerIdFactory extends KafkaClientSaslHands
 
             cleanupEncodeSlotIfNecessary();
             cleanupBudgetIfNecessary();
+
+            deauthorizeGuardSession();
         }
 
         private void doNetworkResetIfNecessary(
@@ -1154,6 +1158,8 @@ public final class KafkaClientInitProducerIdFactory extends KafkaClientSaslHands
             }
 
             cleanupDecodeSlotIfNecessary();
+
+            deauthorizeGuardSession();
         }
 
         private void doNetworkWindow(

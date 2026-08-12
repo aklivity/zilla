@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.engine.test.internal.binding;
 
 import static io.aklivity.zilla.config.engine.test.internal.binding.config.TestBindingOptionsConfigAdapter.DEFAULT_ASSERTION_SCHEMA;
+import static io.aklivity.zilla.runtime.engine.guard.GuardHandler.MASK_AUTHORIZED;
 import static io.aklivity.zilla.runtime.engine.guard.GuardHandler.NEEDS_PREAUTHORIZE;
 import static io.aklivity.zilla.runtime.engine.guard.GuardHandler.NOT_AUTHORIZED;
 import static java.util.Collections.emptyList;
@@ -77,6 +78,7 @@ final class TestBindingFactory implements BindingHandler
 {
     private static final int FLAGS_INIT = 0x02;
     private static final int FLAGS_FIN = 0x01;
+    private static final List<String> EMPTY_ROLES = emptyList();
 
     private final BeginFW beginRO = new BeginFW();
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
@@ -120,6 +122,7 @@ final class TestBindingFactory implements BindingHandler
     private String expectIdentity;
     private String expectCredentials;
     private Map<String, String> attributes;
+    private boolean releaseOnEnd;
     private List<Event> events;
     private int eventIndex;
     private VaultHandler vault;
@@ -181,6 +184,7 @@ final class TestBindingFactory implements BindingHandler
                 this.expectIdentity = options.authorization.expectIdentity;
                 this.expectCredentials = options.authorization.expectCredentials;
                 this.attributes = options.authorization.attributes;
+                this.releaseOnEnd = options.authorization.releaseOnEnd;
             }
 
             this.events = options.events;
@@ -352,7 +356,7 @@ final class TestBindingFactory implements BindingHandler
             long traceId,
             long authorization)
         {
-            if (guard == null)
+            if (guard == null || credentials == null)
             {
                 onAuthorized(traceId, authorization);
             }
@@ -501,7 +505,7 @@ final class TestBindingFactory implements BindingHandler
         {
             long traceId = begin.traceId();
 
-            doAuthorize(traceId, authorization);
+            doAuthorize(traceId, begin.authorization());
 
             if (target == null)
             {
@@ -945,7 +949,12 @@ final class TestBindingFactory implements BindingHandler
         {
             long traceId = end.traceId();
 
-            target.doInitialEnd(traceId);
+            releaseSession();
+
+            if (verifyReleased(traceId))
+            {
+                target.doInitialEnd(traceId);
+            }
         }
 
         private void onInitialAbort(
@@ -953,7 +962,34 @@ final class TestBindingFactory implements BindingHandler
         {
             long traceId = abort.traceId();
 
-            target.doInitialAbort(traceId);
+            releaseSession();
+
+            if (verifyReleased(traceId))
+            {
+                target.doInitialAbort(traceId);
+            }
+        }
+
+        private void releaseSession()
+        {
+            if (releaseOnEnd && guard != null && credentials != null && (authorization & MASK_AUTHORIZED) != 0)
+            {
+                guard.deauthorize(authorization);
+            }
+        }
+
+        private boolean verifyReleased(
+            long traceId)
+        {
+            boolean verified = true;
+
+            if (releaseOnEnd && guard != null && guard.verify(authorization, EMPTY_ROLES))
+            {
+                doInitialReset(traceId);
+                verified = false;
+            }
+
+            return verified;
         }
 
         private void onInitialFlush(
