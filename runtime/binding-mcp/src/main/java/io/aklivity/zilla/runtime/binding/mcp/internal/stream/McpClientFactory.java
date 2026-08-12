@@ -135,6 +135,7 @@ public final class McpClientFactory implements McpStreamFactory
     private static final String STATUS_SUCCESSFUL_PREFIX = "2";
     private static final int ERROR_CODE_INTERNAL = -32603;
     private static final String ERROR_MESSAGE_INTERNAL = "Internal error";
+    private static final String ELICIT_MESSAGE_PREAUTHORIZE = "Additional authorization is required to use this tool";
     private static final Pattern BEARER_CHALLENGE_PATTERN = Pattern.compile(
         "^\\s*Bearer\\b" +
         "(?=.*?\\brealm\\s*=\\s*\"(?<realm>[^\"]*)\")?" +
@@ -3073,6 +3074,7 @@ public final class McpClientFactory implements McpStreamFactory
                     .elicitCreate(b -> b
                         .id(createElicitationId)
                         .url(preauthorizeUrl)
+                        .message(ELICIT_MESSAGE_PREAUTHORIZE)
                         .correlationId(createCorrelationId))
                     .build();
                 doAppChallenge(traceId, authorization, challengeEx);

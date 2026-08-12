@@ -796,6 +796,10 @@ public final class McpBindingConfig
         String redirectURI = null;
         if (httpBeginEx != null)
         {
+            final String scheme = Optional.ofNullable(httpBeginEx.headers()
+                    .matchFirst(h -> HTTP_HEADER_SCHEME.equals(h.name().asString())))
+                .map(h -> h.value().asString())
+                .orElse(SCHEME_HTTPS);
             final String authority = Optional.ofNullable(httpBeginEx.headers()
                     .matchFirst(h -> HTTP_HEADER_AUTHORITY.equals(h.name().asString())))
                 .map(h -> h.value().asString())
@@ -812,7 +816,7 @@ public final class McpBindingConfig
                     .map(o -> o.elicitation)
                     .map(e -> e.callback)
                     .orElse(DEFAULT_CALLBACK_PATH);
-                redirectURI = "https://" + naturalAuthority(authority, SCHEME_HTTPS) + pathOnly + "/" + callback;
+                redirectURI = scheme + "://" + naturalAuthority(authority, scheme) + pathOnly + "/" + callback;
             }
         }
         return redirectURI;

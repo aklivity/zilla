@@ -482,10 +482,6 @@ final class McpProxyLifecycleFactory implements BindingHandler
                 }
                 else
                 {
-                    if (aggregating())
-                    {
-                        onServerResumeRoutes(traceId);
-                    }
                     for (McpLifecycleClient client : clients.values())
                     {
                         client.doClientResume(traceId, authorization);
