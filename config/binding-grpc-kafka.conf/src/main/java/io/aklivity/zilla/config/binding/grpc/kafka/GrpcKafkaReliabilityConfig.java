@@ -16,7 +16,9 @@ package io.aklivity.zilla.config.binding.grpc.kafka;
 
 import java.util.function.Function;
 
-public final class GrpcKafkaReliabilityConfig
+import io.aklivity.zilla.config.engine.Config;
+
+public final class GrpcKafkaReliabilityConfig extends Config
 {
     public final int field;
     public final String metadata;

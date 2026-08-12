@@ -17,7 +17,9 @@ package io.aklivity.zilla.config.exporter.otlp;
 import java.net.URI;
 import java.util.function.Function;
 
-public class OtlpOverridesConfig
+import io.aklivity.zilla.config.engine.Config;
+
+public class OtlpOverridesConfig extends Config
 {
     public URI metrics;
     public URI logs;

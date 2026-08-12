@@ -17,9 +17,10 @@ package io.aklivity.zilla.config.binding.mcp.http;
 import java.util.Map;
 import java.util.function.Function;
 
+import io.aklivity.zilla.config.engine.Config;
 import io.aklivity.zilla.config.engine.ModelConfig;
 
-public final class McpHttpBodyConfig
+public final class McpHttpBodyConfig extends Config
 {
     public final ModelConfig model;
     public final Map<String, String> template;

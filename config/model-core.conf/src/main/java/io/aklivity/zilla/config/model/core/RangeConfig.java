@@ -16,7 +16,9 @@ package io.aklivity.zilla.config.model.core;
 
 import java.util.function.Function;
 
-public class RangeConfig
+import io.aklivity.zilla.config.engine.Config;
+
+public class RangeConfig extends Config
 {
     public final String max;
     public final String min;

@@ -14,6 +14,6 @@
  */
 package io.aklivity.zilla.config.engine;
 
-public abstract class ConditionConfig
+public abstract class ConditionConfig extends Config
 {
 }

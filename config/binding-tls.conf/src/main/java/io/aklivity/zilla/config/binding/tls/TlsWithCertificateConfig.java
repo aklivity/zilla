@@ -17,7 +17,9 @@ package io.aklivity.zilla.config.binding.tls;
 import java.util.Map;
 import java.util.function.Function;
 
-public final class TlsWithCertificateConfig
+import io.aklivity.zilla.config.engine.Config;
+
+public final class TlsWithCertificateConfig extends Config
 {
     public static final String SUBJECT_CN = "subject.cn";
     public static final String SUBJECT_DN = "subject.dn";

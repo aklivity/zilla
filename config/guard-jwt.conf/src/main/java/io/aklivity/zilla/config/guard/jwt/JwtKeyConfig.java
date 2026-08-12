@@ -16,7 +16,9 @@ package io.aklivity.zilla.config.guard.jwt;
 
 import static java.util.function.Function.identity;
 
-public class JwtKeyConfig
+import io.aklivity.zilla.config.engine.Config;
+
+public class JwtKeyConfig extends Config
 {
     public final String alg;
     public final String kty;

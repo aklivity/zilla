@@ -17,6 +17,7 @@ module io.aklivity.zilla.runtime.common.asyncapi
     requires transitive jakarta.json;
     requires transitive org.agrona;
     requires jakarta.json.bind;
+    requires io.aklivity.zilla.config.engine;
     requires io.aklivity.zilla.runtime.common.json;
     requires io.aklivity.zilla.runtime.common.yaml;
 

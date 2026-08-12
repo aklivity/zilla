@@ -16,7 +16,9 @@ package io.aklivity.zilla.config.binding.proxy;
 
 import java.util.function.Function;
 
-public class ProxyInfoConfig
+import io.aklivity.zilla.config.engine.Config;
+
+public class ProxyInfoConfig extends Config
 {
     public final String alpn;
 

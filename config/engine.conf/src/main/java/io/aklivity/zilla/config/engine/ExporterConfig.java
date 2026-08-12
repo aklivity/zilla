@@ -16,7 +16,7 @@ package io.aklivity.zilla.config.engine;
 
 import static java.util.Objects.requireNonNull;
 
-public abstract class ExporterConfig
+public abstract class ExporterConfig extends Config
 {
     public final String namespace;
     public final String name;

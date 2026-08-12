@@ -19,7 +19,9 @@ import static java.util.function.Function.identity;
 import java.util.Set;
 import java.util.regex.Matcher;
 
-public final class HttpAllowConfig
+import io.aklivity.zilla.config.engine.Config;
+
+public final class HttpAllowConfig extends Config
 {
     public final Set<String> origins;
     public final Set<String> methods;

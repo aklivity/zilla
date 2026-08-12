@@ -16,7 +16,9 @@ package io.aklivity.zilla.runtime.common.asyncapi.config;
 
 import java.util.function.Function;
 
-public class AsyncapiCatalogConfig
+import io.aklivity.zilla.config.engine.Config;
+
+public class AsyncapiCatalogConfig extends Config
 {
     public final String name;
     public final String subject;

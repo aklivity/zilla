@@ -29,7 +29,9 @@ import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public final class HttpAccessControlConfig
+import io.aklivity.zilla.config.engine.Config;
+
+public final class HttpAccessControlConfig extends Config
 {
     private static final Pattern ORIGIN_PATTERN = Pattern.compile("(?<scheme>https?)://(?<authority>[^/]+)");
     private static final Pattern HEADERS_PATTERN = Pattern.compile("([^,\\s]+)(:?,\\s*([^,\\\\s]+))*", CASE_INSENSITIVE);

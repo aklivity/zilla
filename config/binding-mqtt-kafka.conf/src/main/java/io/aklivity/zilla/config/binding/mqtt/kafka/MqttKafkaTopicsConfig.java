@@ -16,7 +16,9 @@ package io.aklivity.zilla.config.binding.mqtt.kafka;
 
 import java.util.function.Function;
 
-public class MqttKafkaTopicsConfig
+import io.aklivity.zilla.config.engine.Config;
+
+public class MqttKafkaTopicsConfig extends Config
 {
     public final String sessions;
     public final String messages;

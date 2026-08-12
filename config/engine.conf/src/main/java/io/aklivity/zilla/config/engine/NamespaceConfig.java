@@ -21,7 +21,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.regex.Pattern;
 
-public class NamespaceConfig
+public class NamespaceConfig extends Config
 {
     public static final String FILESYSTEM = "filesystem";
 

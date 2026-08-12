@@ -19,7 +19,9 @@ import static java.util.function.Function.identity;
 import java.time.Duration;
 import java.util.function.Function;
 
-public final class McpCacheConfig
+import io.aklivity.zilla.config.engine.Config;
+
+public final class McpCacheConfig extends Config
 {
     public final String store;
     public final Duration ttl;

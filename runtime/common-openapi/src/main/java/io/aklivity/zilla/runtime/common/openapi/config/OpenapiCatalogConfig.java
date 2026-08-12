@@ -16,7 +16,9 @@ package io.aklivity.zilla.runtime.common.openapi.config;
 
 import java.util.function.Function;
 
-public class OpenapiCatalogConfig
+import io.aklivity.zilla.config.engine.Config;
+
+public class OpenapiCatalogConfig extends Config
 {
     public final String name;
     public final String subject;

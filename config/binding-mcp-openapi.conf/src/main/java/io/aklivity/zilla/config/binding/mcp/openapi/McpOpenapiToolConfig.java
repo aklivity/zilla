@@ -16,9 +16,10 @@ package io.aklivity.zilla.config.binding.mcp.openapi;
 
 import java.util.function.Function;
 
+import io.aklivity.zilla.config.engine.Config;
 import io.aklivity.zilla.config.engine.ModelConfig;
 
-public final class McpOpenapiToolConfig
+public final class McpOpenapiToolConfig extends Config
 {
     public final String name;
     public final String title;

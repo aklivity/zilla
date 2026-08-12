@@ -17,7 +17,9 @@ package io.aklivity.zilla.config.binding.kafka;
 import java.util.List;
 import java.util.function.Function;
 
-public class KafkaTopicTransformsConfig
+import io.aklivity.zilla.config.engine.Config;
+
+public class KafkaTopicTransformsConfig extends Config
 {
     public final String extractKey;
 

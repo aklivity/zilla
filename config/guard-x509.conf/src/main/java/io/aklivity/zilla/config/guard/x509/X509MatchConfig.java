@@ -17,7 +17,9 @@ package io.aklivity.zilla.config.guard.x509;
 import java.util.Map;
 import java.util.function.Function;
 
-public final class X509MatchConfig
+import io.aklivity.zilla.config.engine.Config;
+
+public final class X509MatchConfig extends Config
 {
     public final Map<String, String> fields;
 

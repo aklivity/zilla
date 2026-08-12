@@ -16,7 +16,9 @@ package io.aklivity.zilla.config.exporter.prometheus;
 
 import java.util.function.Function;
 
-public class PrometheusEndpointConfig
+import io.aklivity.zilla.config.engine.Config;
+
+public class PrometheusEndpointConfig extends Config
 {
     public final String scheme;
     public final int port;

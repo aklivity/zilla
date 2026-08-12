@@ -20,7 +20,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
-public final class McpCacheToolsSearchConfig
+import io.aklivity.zilla.config.engine.Config;
+
+public final class McpCacheToolsSearchConfig extends Config
 {
     public final String toolkit;
     public final int limit;

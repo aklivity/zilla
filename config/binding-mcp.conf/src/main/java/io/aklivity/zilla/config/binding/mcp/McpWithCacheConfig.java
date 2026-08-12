@@ -18,7 +18,9 @@ import static java.util.function.Function.identity;
 
 import java.util.function.Function;
 
-public final class McpWithCacheConfig
+import io.aklivity.zilla.config.engine.Config;
+
+public final class McpWithCacheConfig extends Config
 {
     public final String credentials;
 

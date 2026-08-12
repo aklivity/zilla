@@ -16,7 +16,9 @@ package io.aklivity.zilla.config.binding.grpc.kafka;
 
 import java.util.function.Function;
 
-public class GrpcKafkaMetadataValueConfig
+import io.aklivity.zilla.config.engine.Config;
+
+public class GrpcKafkaMetadataValueConfig extends Config
 {
     public final String textValue;
     public final String base64Value;

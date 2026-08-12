@@ -16,7 +16,7 @@ package io.aklivity.zilla.config.engine;
 
 import static java.util.Objects.requireNonNull;
 
-public abstract class CatalogConfig
+public abstract class CatalogConfig extends Config
 {
     public transient long id;
     public transient long vaultId;
