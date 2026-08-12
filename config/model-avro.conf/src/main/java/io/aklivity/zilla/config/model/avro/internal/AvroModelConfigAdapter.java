@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.config.model.avro.internal;
 
+import static java.util.stream.Collectors.toList;
+
 import java.util.LinkedList;
 import java.util.List;
 
@@ -26,8 +28,10 @@ import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.engine.CatalogedConfig;
+import io.aklivity.zilla.config.engine.ConfigExtAdapter;
 import io.aklivity.zilla.config.engine.ModelConfig;
 import io.aklivity.zilla.config.engine.ModelConfigAdapterSpi;
+import io.aklivity.zilla.config.engine.ModelExtInfo;
 import io.aklivity.zilla.config.engine.SchemaConfig;
 import io.aklivity.zilla.config.engine.SchemaConfigAdapter;
 import io.aklivity.zilla.config.engine.ValidateConfig;
@@ -46,6 +50,13 @@ public final class AvroModelConfigAdapter implements ModelConfigAdapterSpi, Json
 
     private final SchemaConfigAdapter schema = new SchemaConfigAdapter();
     private final ValidateConfigAdapter validate = new ValidateConfigAdapter();
+    private final List<ConfigExtAdapter<ModelConfig>> extensions;
+
+    public AvroModelConfigAdapter(
+        List<ModelExtInfo> extensions)
+    {
+        this.extensions = extensions.stream().map(ModelExtInfo::adapter).collect(toList());
+    }
 
     @Override
     public String type()
@@ -86,6 +97,8 @@ public final class AvroModelConfigAdapter implements ModelConfigAdapterSpi, Json
         {
             builder.add(VALIDATE_NAME, validateJson);
         }
+
+        extensions.forEach(extension -> extension.adaptToJson(model, builder));
 
         return builder.build();
     }
@@ -128,6 +141,11 @@ public final class AvroModelConfigAdapter implements ModelConfigAdapterSpi, Json
             .view(view)
             .validate(validateConfig);
         catalogs.forEach(builder::catalog);
+
+        for (ConfigExtAdapter<ModelConfig> extension : extensions)
+        {
+            builder = extension.adaptFromJson(object, builder);
+        }
 
         return builder.build();
     }

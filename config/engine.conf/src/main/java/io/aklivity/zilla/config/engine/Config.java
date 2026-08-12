@@ -14,32 +14,27 @@
  */
 package io.aklivity.zilla.config.engine;
 
-import java.util.List;
 import java.util.Map;
 
-public abstract class ModelConfig extends Config
+public abstract class Config
 {
-    public final String model;
-    public final List<CatalogedConfig> cataloged;
-    public final ValidateConfig validate;
+    private final Map<String, Config> extensions;
 
-    protected ModelConfig(
-        String model,
-        List<CatalogedConfig> cataloged,
-        ValidateConfig validate)
+    protected Config()
     {
-        this(model, cataloged, validate, null);
+        this(null);
     }
 
-    protected ModelConfig(
-        String model,
-        List<CatalogedConfig> cataloged,
-        ValidateConfig validate,
+    protected Config(
         Map<String, Config> extensions)
     {
-        super(extensions);
-        this.model = model;
-        this.cataloged = cataloged;
-        this.validate = validate != null ? validate : ValidateConfig.STRICT;
+        this.extensions = extensions;
+    }
+
+    public final <T extends Config> T ext(
+        String name,
+        Class<T> type)
+    {
+        return extensions != null ? type.cast(extensions.get(name)) : null;
     }
 }

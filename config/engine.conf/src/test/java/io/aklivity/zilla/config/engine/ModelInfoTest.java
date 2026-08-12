@@ -14,25 +14,27 @@
  */
 package io.aklivity.zilla.config.engine;
 
-import static java.util.stream.Collectors.toList;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasSize;
 
 import java.util.List;
-import java.util.ServiceLoader;
 
-import jakarta.json.JsonValue;
-import jakarta.json.bind.adapter.JsonbAdapter;
+import org.junit.Test;
 
-import io.aklivity.zilla.config.engine.factory.Factory;
+import io.aklivity.zilla.config.engine.test.internal.model.TestModelExtInfo;
+import io.aklivity.zilla.config.engine.test.internal.model.TestModelInfo;
 
-public interface ModelInfo extends ConfigInfo
+public class ModelInfoTest
 {
-    JsonbAdapter<ModelConfig, JsonValue> adapter();
-
-    default List<ModelExtInfo> extensions()
+    @Test
+    public void shouldReturnOnlyMatchingExtensions()
     {
-        return Factory.instantiate(ServiceLoader.load(ModelExtInfo.class))
-            .stream()
-            .filter(info -> info.type().equals(type()))
-            .collect(toList());
+        ModelInfo info = new TestModelInfo();
+
+        List<ModelExtInfo> extensions = info.extensions();
+
+        assertThat(extensions, hasSize(1));
+        assertThat(extensions.get(0).type(), equalTo(TestModelExtInfo.TYPE));
     }
 }

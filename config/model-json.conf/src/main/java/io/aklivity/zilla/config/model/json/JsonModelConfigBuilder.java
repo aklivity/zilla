@@ -77,6 +77,6 @@ public class JsonModelConfigBuilder<T> extends ConfigBuilder<T, JsonModelConfigB
     @Override
     public T build()
     {
-        return mapper.apply(new JsonModelConfig(catalogs, subject, validate));
+        return mapper.apply(new JsonModelConfig(catalogs, subject, validate, extensions()));
     }
 }

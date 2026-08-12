@@ -41,6 +41,6 @@ public final class ProtobufModelInfo implements ModelInfo
     @Override
     public JsonbAdapter<ModelConfig, JsonValue> adapter()
     {
-        return new ProtobufModelConfigAdapter();
+        return new ProtobufModelConfigAdapter(extensions());
     }
 }

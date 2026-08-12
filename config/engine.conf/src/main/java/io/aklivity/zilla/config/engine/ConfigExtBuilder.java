@@ -14,25 +14,17 @@
  */
 package io.aklivity.zilla.config.engine;
 
-import static java.util.stream.Collectors.toList;
+import java.util.function.BiFunction;
 
-import java.util.List;
-import java.util.ServiceLoader;
-
-import jakarta.json.JsonValue;
-import jakarta.json.bind.adapter.JsonbAdapter;
-
-import io.aklivity.zilla.config.engine.factory.Factory;
-
-public interface ModelInfo extends ConfigInfo
+public abstract class ConfigExtBuilder<B>
 {
-    JsonbAdapter<ModelConfig, JsonValue> adapter();
+    protected final BiFunction<String, Config, B> mapper;
 
-    default List<ModelExtInfo> extensions()
+    protected ConfigExtBuilder(
+        BiFunction<String, Config, B> mapper)
     {
-        return Factory.instantiate(ServiceLoader.load(ModelExtInfo.class))
-            .stream()
-            .filter(info -> info.type().equals(type()))
-            .collect(toList());
+        this.mapper = mapper;
     }
+
+    public abstract B build();
 }

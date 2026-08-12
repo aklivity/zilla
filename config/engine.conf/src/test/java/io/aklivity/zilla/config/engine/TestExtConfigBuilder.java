@@ -12,35 +12,30 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.config.model.avro.internal;
+package io.aklivity.zilla.config.engine;
 
-import java.net.URL;
+import java.util.function.BiFunction;
 
-import jakarta.json.JsonValue;
-import jakarta.json.bind.adapter.JsonbAdapter;
-
-import io.aklivity.zilla.config.engine.ModelConfig;
-import io.aklivity.zilla.config.engine.ModelInfo;
-
-public final class AvroModelInfo implements ModelInfo
+final class TestExtConfigBuilder<B> extends ConfigExtBuilder<B>
 {
-    public static final String TYPE = "avro";
+    private String value;
 
-    @Override
-    public String type()
+    TestExtConfigBuilder(
+        BiFunction<String, Config, B> mapper)
     {
-        return TYPE;
+        super(mapper);
+    }
+
+    TestExtConfigBuilder<B> value(
+        String value)
+    {
+        this.value = value;
+        return this;
     }
 
     @Override
-    public URL schema()
+    public B build()
     {
-        return getClass().getResource("schema/avro.schema.patch.json");
-    }
-
-    @Override
-    public JsonbAdapter<ModelConfig, JsonValue> adapter()
-    {
-        return new AvroModelConfigAdapter(extensions());
+        return mapper.apply(TestExtConfig.NAME, new TestExtConfig(value));
     }
 }

@@ -41,6 +41,6 @@ public final class JsonModelInfo implements ModelInfo
     @Override
     public JsonbAdapter<ModelConfig, JsonValue> adapter()
     {
-        return new JsonModelConfigAdapter();
+        return new JsonModelConfigAdapter(extensions());
     }
 }

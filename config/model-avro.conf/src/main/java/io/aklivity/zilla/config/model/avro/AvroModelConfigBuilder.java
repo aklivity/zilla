@@ -85,6 +85,6 @@ public class AvroModelConfigBuilder<T> extends ConfigBuilder<T, AvroModelConfigB
     @Override
     public T build()
     {
-        return mapper.apply(new AvroModelConfig(catalogs, subject, view, validate));
+        return mapper.apply(new AvroModelConfig(catalogs, subject, view, validate, extensions()));
     }
 }

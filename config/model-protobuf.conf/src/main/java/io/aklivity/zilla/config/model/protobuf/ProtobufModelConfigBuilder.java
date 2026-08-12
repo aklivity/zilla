@@ -85,6 +85,6 @@ public class ProtobufModelConfigBuilder<T> extends ConfigBuilder<T, ProtobufMode
     @Override
     public T build()
     {
-        return mapper.apply(new ProtobufModelConfig(catalogs, subject, view, validate));
+        return mapper.apply(new ProtobufModelConfig(catalogs, subject, view, validate, extensions()));
     }
 }

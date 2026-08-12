@@ -15,8 +15,11 @@
 package io.aklivity.zilla.config.engine.factory;
 
 import static io.aklivity.zilla.runtime.common.feature.FeatureFilter.filter;
+import static java.util.Collections.unmodifiableList;
 import static java.util.Collections.unmodifiableMap;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.function.Function;
@@ -34,5 +37,17 @@ public abstract class Factory
         }
 
         return construct.apply(unmodifiableMap(factoriesByType));
+    }
+
+    public static <S> List<S> instantiate(
+        Iterable<S> factories)
+    {
+        List<S> instances = new ArrayList<>();
+        for (S factory : filter(factories))
+        {
+            instances.add(factory);
+        }
+
+        return unmodifiableList(instances);
     }
 }

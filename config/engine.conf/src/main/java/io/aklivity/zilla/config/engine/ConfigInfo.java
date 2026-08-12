@@ -14,25 +14,11 @@
  */
 package io.aklivity.zilla.config.engine;
 
-import static java.util.stream.Collectors.toList;
+import java.net.URL;
 
-import java.util.List;
-import java.util.ServiceLoader;
+import io.aklivity.zilla.config.engine.factory.FactorySpi;
 
-import jakarta.json.JsonValue;
-import jakarta.json.bind.adapter.JsonbAdapter;
-
-import io.aklivity.zilla.config.engine.factory.Factory;
-
-public interface ModelInfo extends ConfigInfo
+public interface ConfigInfo extends FactorySpi
 {
-    JsonbAdapter<ModelConfig, JsonValue> adapter();
-
-    default List<ModelExtInfo> extensions()
-    {
-        return Factory.instantiate(ServiceLoader.load(ModelExtInfo.class))
-            .stream()
-            .filter(info -> info.type().equals(type()))
-            .collect(toList());
-    }
+    URL schema();
 }

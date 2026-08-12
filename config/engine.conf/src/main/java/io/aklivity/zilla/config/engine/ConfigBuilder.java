@@ -14,16 +14,44 @@
  */
 package io.aklivity.zilla.config.engine;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 public abstract class ConfigBuilder<T, B extends ConfigBuilder<T, B>>
 {
+    private Map<String, Config> extensions;
+
     protected abstract Class<B> thisType();
 
     public final <R> R inject(
         Function<B, R> visitor)
     {
         return visitor.apply(thisType().cast(this));
+    }
+
+    public final <X extends ConfigExtBuilder<B>> X ext(
+        Function<BiFunction<String, Config, B>, X> factory)
+    {
+        return factory.apply(this::ext);
+    }
+
+    B ext(
+        String name,
+        Config value)
+    {
+        if (extensions == null)
+        {
+            extensions = new LinkedHashMap<>();
+        }
+        extensions.put(name, value);
+        return thisType().cast(this);
+    }
+
+    protected final Map<String, Config> extensions()
+    {
+        return extensions;
     }
 
     public abstract T build();

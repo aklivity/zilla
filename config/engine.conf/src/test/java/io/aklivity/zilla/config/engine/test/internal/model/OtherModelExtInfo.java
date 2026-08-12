@@ -12,19 +12,18 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.config.model.avro.internal;
+package io.aklivity.zilla.config.engine.test.internal.model;
 
 import java.net.URL;
+import java.util.Map;
 
-import jakarta.json.JsonValue;
-import jakarta.json.bind.adapter.JsonbAdapter;
-
+import io.aklivity.zilla.config.engine.ConfigExtAdapter;
 import io.aklivity.zilla.config.engine.ModelConfig;
-import io.aklivity.zilla.config.engine.ModelInfo;
+import io.aklivity.zilla.config.engine.ModelExtInfo;
 
-public final class AvroModelInfo implements ModelInfo
+public final class OtherModelExtInfo implements ModelExtInfo
 {
-    public static final String TYPE = "avro";
+    public static final String TYPE = "other";
 
     @Override
     public String type()
@@ -35,12 +34,12 @@ public final class AvroModelInfo implements ModelInfo
     @Override
     public URL schema()
     {
-        return getClass().getResource("schema/avro.schema.patch.json");
+        return null;
     }
 
     @Override
-    public JsonbAdapter<ModelConfig, JsonValue> adapter()
+    public ConfigExtAdapter<ModelConfig> adapter()
     {
-        return new AvroModelConfigAdapter(extensions());
+        return new ConfigExtAdapter<>(Map.of());
     }
 }
