@@ -103,7 +103,7 @@ read 'data: {'
          '"mode":"url",'
          '"elicitationId":"elicit-1",'
          '"url":"https://server.example.com/authorize?state=transport-1.elicit-1.7f3a9b1c&redirect_uri='
-         ${http:encodeQuery("https://localhost:8080/mcp/auth/callback")}
+         ${http:encodeQuery("http://localhost:8080/mcp/auth/callback")}
          '"'
        '}'
      '}\n'

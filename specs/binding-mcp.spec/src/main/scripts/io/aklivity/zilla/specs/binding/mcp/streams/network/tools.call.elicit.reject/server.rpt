@@ -110,7 +110,7 @@ write '{'
             '{'
               '"mode":"url",'
               '"url":"https://server.example.com/authorize?state=transport-1.elicit-1.7f3a9b1c&redirect_uri='
-             ${http:encodeQuery("https://localhost:8080/mcp/auth/callback")}
+             ${http:encodeQuery("http://localhost:8080/mcp/auth/callback")}
              '",'
               '"elicitationId":"elicit-1"'
             '}'
