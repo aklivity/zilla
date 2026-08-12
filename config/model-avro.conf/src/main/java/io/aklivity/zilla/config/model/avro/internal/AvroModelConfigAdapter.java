@@ -18,6 +18,7 @@ import static java.util.stream.Collectors.toList;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.ServiceLoader;
 
 import jakarta.json.Json;
 import jakarta.json.JsonArray;
@@ -36,6 +37,7 @@ import io.aklivity.zilla.config.engine.SchemaConfig;
 import io.aklivity.zilla.config.engine.SchemaConfigAdapter;
 import io.aklivity.zilla.config.engine.ValidateConfig;
 import io.aklivity.zilla.config.engine.ValidateConfigAdapter;
+import io.aklivity.zilla.config.engine.factory.Factory;
 import io.aklivity.zilla.config.model.avro.AvroModelConfig;
 import io.aklivity.zilla.config.model.avro.AvroModelConfigBuilder;
 
@@ -51,6 +53,14 @@ public final class AvroModelConfigAdapter implements ModelConfigAdapterSpi, Json
     private final SchemaConfigAdapter schema = new SchemaConfigAdapter();
     private final ValidateConfigAdapter validate = new ValidateConfigAdapter();
     private final List<ConfigExtAdapter<ModelConfig>> extensions;
+
+    public AvroModelConfigAdapter()
+    {
+        this(Factory.instantiate(ServiceLoader.load(ModelExtInfo.class))
+            .stream()
+            .filter(info -> info.type().equals(AVRO))
+            .collect(toList()));
+    }
 
     public AvroModelConfigAdapter(
         List<ModelExtInfo> extensions)
