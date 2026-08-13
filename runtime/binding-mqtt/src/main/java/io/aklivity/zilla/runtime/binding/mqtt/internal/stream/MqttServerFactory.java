@@ -1441,7 +1441,8 @@ public final class MqttServerFactory implements MqttStreamFactory
 
             final MqttPublishHelper mqttPublishHelper = this.mqttPublishHelper.reset();
 
-            reasonCode = mqttPublishHelper.decodeV5(traceId, server, topicName, properties, typeAndFlags, qos, packetId);
+            reasonCode = mqttPublishHelper.decodeV5(traceId, authorization, server, topicName, properties, typeAndFlags,
+                qos, packetId);
 
             if (reasonCode == SUCCESS)
             {
@@ -1554,7 +1555,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     else
                     {
                         final int produced =
-                            model.transform(traceId, publisher.routedId, buffer, offset, offset + sourceBytes);
+                            model.transform(traceId, publisher.routedId, authorization, buffer, offset, offset + sourceBytes);
                         if (produced < 0)
                         {
                             reasonCode = PAYLOAD_FORMAT_INVALID;
@@ -1603,7 +1604,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     final boolean first = !server.publishPayloadValidating;
                     final boolean last = sizeClaimed == server.decodeablePublishPayloadBytes;
                     server.publishPayloadValidating = !last;
-                    if (!model.validate(traceId, publisher.routedId, first, last,
+                    if (!model.validate(traceId, publisher.routedId, authorization, first, last,
                             payloadBuffer, payloadOffset, payloadOffset + sizeClaimed))
                     {
                         reasonCode = PAYLOAD_FORMAT_INVALID;
@@ -7535,6 +7536,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
         private int decodeV5(
             long traceId,
+            long authorization,
             MqttServer server,
             String16FW topicName,
             MqttPropertiesFW properties,
@@ -7638,7 +7640,8 @@ public final class MqttServerFactory implements MqttStreamFactory
                             MqttModel.decoder(config != null ? supplyModel.apply(config) : null, modelBuffer);
                         if (model.active())
                         {
-                            final int produced = model.transform(traceId, server.routedId, userPropertyValue.buffer(),
+                            final int produced = model.transform(traceId, server.routedId, authorization,
+                                userPropertyValue.buffer(),
                                 userPropertyValue.offset() + BitUtil.SIZE_OF_SHORT, userPropertyValue.limit());
                             if (produced < 0)
                             {

@@ -27,6 +27,18 @@ package io.aklivity.zilla.runtime.engine.model;
 public interface ModelController
 {
     /**
+     * Returns the authorization in effect for the message currently being transformed.
+     * <p>
+     * A mediating stage may override this to scope the authorization further for a nested composition; a
+     * non-mediating stage passes {@code control} through, so this reflects the authorization the pipeline
+     * received for the current message unless some stage along the way has narrowed it.
+     * </p>
+     *
+     * @return the authorization in effect for the current message
+     */
+    long authorization();
+
+    /**
      * Signals that the current value must be rejected, supplying the diagnostic the adapter reports.
      * <p>
      * A stage raising this also returns {@link ModelStatus#REJECTED}; the diagnostic is what distinguishes

@@ -103,7 +103,7 @@ public class AvroModelEncoderPipelineBM
     @Benchmark
     public int encodeFromJson()
     {
-        ModelPipelineResult result = fromJson.transform(0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = fromJson.transform(0L, 0L, 0L, FLAGS_COMPLETE,
             jsonSrc, 0, JSON.length, dst, 0, dst.capacity());
         return result.produced();
     }
@@ -111,7 +111,7 @@ public class AvroModelEncoderPipelineBM
     @Benchmark
     public int encodeIdentity()
     {
-        ModelPipelineResult result = identity.transform(0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = identity.transform(0L, 0L, 0L, FLAGS_COMPLETE,
             avroSrc, 0, AVRO.length, dst, 0, dst.capacity());
         return result.produced();
     }

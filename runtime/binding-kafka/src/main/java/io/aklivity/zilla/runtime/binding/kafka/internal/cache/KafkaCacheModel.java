@@ -78,6 +78,7 @@ public final class KafkaCacheModel
     public int transform(
         long traceId,
         long bindingId,
+        long authorization,
         DirectBufferEx data,
         int index,
         int limit,
@@ -98,7 +99,7 @@ public final class KafkaCacheModel
             boolean done = false;
             while (!done)
             {
-                final ModelPipelineResult result = pipeline.transform(traceId, bindingId, flags,
+                final ModelPipelineResult result = pipeline.transform(traceId, bindingId, authorization, flags,
                     data, srcAt, limit, scratch, 0, scratch.capacity());
                 final ModelStatus status = result.status();
                 final int produced = result.produced();

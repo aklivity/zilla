@@ -224,7 +224,7 @@ public class KafkaCachePartitionTest
 
         KafkaPipeline pipeline = KafkaPipeline.decoder(null, handler(5), null, scratch);
 
-        partition.writeEntry(null, 1L, 1L, 11L, entryMark, valueMark, 0L, KafkaTimestampType.ADVISORY, -1L,
+        partition.writeEntry(null, 1L, 1L, 0L, 11L, entryMark, valueMark, 0L, KafkaTimestampType.ADVISORY, -1L,
             key, headers, value, 0x00, KafkaDeltaType.NONE, pipeline, false);
 
         KafkaCacheEntryFW entry = head.segment().logFile().readBytes(entryMark.value, entryRO::wrap);
@@ -251,7 +251,7 @@ public class KafkaCachePartitionTest
 
         KafkaPipeline pipeline = KafkaPipeline.decoder(null, handler(99), null, scratch);
 
-        partition.writeEntry(null, 1L, 1L, 11L, entryMark, valueMark, 0L, KafkaTimestampType.ADVISORY, -1L,
+        partition.writeEntry(null, 1L, 1L, 0L, 11L, entryMark, valueMark, 0L, KafkaTimestampType.ADVISORY, -1L,
             key, headers, value, 0x00, KafkaDeltaType.NONE, pipeline, false);
 
         int flags = head.segment().logFile().readInt(entryMark.value + KafkaCacheEntryFW.FIELD_OFFSET_FLAGS);
@@ -278,7 +278,7 @@ public class KafkaCachePartitionTest
         KafkaPipeline pipeline = KafkaPipeline.decoder(extractingHandler("$.key"), extractingHandler("$.region"),
             transforms, scratch);
 
-        partition.writeEntry(null, 1L, 1L, 11L, entryMark, valueMark, 0L, KafkaTimestampType.ADVISORY, -1L,
+        partition.writeEntry(null, 1L, 1L, 0L, 11L, entryMark, valueMark, 0L, KafkaTimestampType.ADVISORY, -1L,
             key, headers, value, 0x00, KafkaDeltaType.NONE, pipeline, false);
 
         KafkaCacheEntryFW entry = head.segment().logFile().readBytes(entryMark.value, entryRO::wrap);
@@ -316,7 +316,7 @@ public class KafkaCachePartitionTest
         KafkaPipeline pipeline = KafkaPipeline.decoder(
             fieldsHandler("$.tenant", "tenantA", "$.id", "id42", "$.zone", "euw1"), null, transforms, scratch);
 
-        partition.writeEntry(null, 1L, 1L, 11L, entryMark, valueMark, 0L, KafkaTimestampType.ADVISORY, -1L,
+        partition.writeEntry(null, 1L, 1L, 0L, 11L, entryMark, valueMark, 0L, KafkaTimestampType.ADVISORY, -1L,
             key, headers, value, 0x00, KafkaDeltaType.NONE, pipeline, false);
 
         KafkaCacheEntryFW entry = head.segment().logFile().readBytes(entryMark.value, entryRO::wrap);
@@ -358,7 +358,7 @@ public class KafkaCachePartitionTest
         Array32FW<KafkaHeaderFW> headers = noHeaders(buffer, key.limit());
         OctetsFW value = value(buffer, headers.limit(), valueText);
 
-        partition.writeEntry(null, 1L, 1L, offset, entryMark, valueMark, 0L, KafkaTimestampType.ADVISORY, -1L,
+        partition.writeEntry(null, 1L, 1L, 0L, offset, entryMark, valueMark, 0L, KafkaTimestampType.ADVISORY, -1L,
             key, headers, value, 0x00, KafkaDeltaType.NONE, pipeline, false);
 
         KafkaCacheEntryFW entry = head.segment().logFile().readBytes(entryMark.value, entryRO::wrap);
@@ -477,6 +477,7 @@ public class KafkaCachePartitionTest
         public ModelPipelineResult transform(
             long traceId,
             long bindingId,
+            long authorization,
             int flags,
             DirectBufferEx src,
             int srcIndex,
@@ -488,7 +489,7 @@ public class KafkaCachePartitionTest
             final int srcLength = srcLimit - srcIndex;
             dst.putBytes(dstIndex, src, srcIndex, srcLength);
 
-            bridge.start();
+            bridge.start(authorization);
             for (int index = 0; index < pathsAndValues.length; index += 2)
             {
                 final String text = pathsAndValues[index + 1];
@@ -560,13 +561,13 @@ public class KafkaCachePartitionTest
             Node head10 = partition.append(10L);
             KafkaCacheSegment head10s = head10.segment();
 
-            partition.writeEntry(null, 1L, 1L, 11L, entryMark, valueMark, 0L, KafkaTimestampType.ADVISORY, -1L,
+            partition.writeEntry(null, 1L, 1L, 0L, 11L, entryMark, valueMark, 0L, KafkaTimestampType.ADVISORY, -1L,
                 key, headers, value, 0x00, KafkaDeltaType.NONE, KafkaPipeline.NONE, false);
 
             long keyHash = partition.computeKeyHash(key);
             KafkaCacheEntryFW ancestor = head10.findAndMarkAncestor(key, keyHash, 11L, ancestorRO);
 
-            partition.writeEntry(null, 1L, 1L, 12L, entryMark, valueMark, 0L, KafkaTimestampType.ADVISORY, -1L,
+            partition.writeEntry(null, 1L, 1L, 0L, 12L, entryMark, valueMark, 0L, KafkaTimestampType.ADVISORY, -1L,
                 key, headers, value, 0x00, KafkaDeltaType.NONE, KafkaPipeline.NONE, false);
 
             Node head15 = partition.append(15L);
@@ -616,13 +617,13 @@ public class KafkaCachePartitionTest
             KafkaCachePartition partition = new KafkaCachePartition(location, config, "cache", "test", 0, 65536, long[]::new);
             Node head10 = partition.append(10L);
 
-            partition.writeEntry(null, 1L, 1L, 11L, entryMark, valueMark, 0L, KafkaTimestampType.ADVISORY, -1L,
+            partition.writeEntry(null, 1L, 1L, 0L, 11L, entryMark, valueMark, 0L, KafkaTimestampType.ADVISORY, -1L,
                 key, headers, value, 0x00, KafkaDeltaType.NONE, KafkaPipeline.NONE, false);
 
             long keyHash = partition.computeKeyHash(key);
             KafkaCacheEntryFW ancestor = head10.findAndMarkAncestor(key, keyHash, 11L, ancestorRO);
 
-            partition.writeEntry(null, 1L, 1L, 12L, entryMark, valueMark, 0L, KafkaTimestampType.ADVISORY, -1L,
+            partition.writeEntry(null, 1L, 1L, 0L, 12L, entryMark, valueMark, 0L, KafkaTimestampType.ADVISORY, -1L,
                 key, headers, value, 0x00, KafkaDeltaType.NONE, KafkaPipeline.NONE, false);
 
             Node head15 = partition.append(15L);

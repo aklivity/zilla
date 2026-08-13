@@ -48,9 +48,13 @@ public final class ModelFieldBridge
 
     /**
      * Delivers {@link ModelEvent#START_VALUE}, opening the field run for one value.
+     *
+     * @param authorization  the authorization in effect for the value being opened
      */
-    public void start()
+    public void start(
+        long authorization)
     {
+        control.authorization = authorization;
         value.wrap(null, null, 0, 0);
         transform.transform(control, value, ModelEvent.START_VALUE, discard);
     }
@@ -137,6 +141,14 @@ public final class ModelFieldBridge
     // observation-only: there is no output left to reject into by the time a field is delivered here
     private static final class Control implements ModelController
     {
+        private long authorization;
+
+        @Override
+        public long authorization()
+        {
+            return authorization;
+        }
+
         @Override
         public void reject(
             String diagnostic)

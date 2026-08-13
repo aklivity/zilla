@@ -104,7 +104,7 @@ public class ProtobufModelDecoderPipelineBM
         ModelPipeline pipeline)
     {
         pipeline.reset();
-        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
             inputBuffer, 0, WIRE.length, outputBuffer, 0, outputBuffer.capacity());
         return result.produced();
     }

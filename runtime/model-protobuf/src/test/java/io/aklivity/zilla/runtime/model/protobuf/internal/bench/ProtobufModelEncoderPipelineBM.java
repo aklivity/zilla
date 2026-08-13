@@ -89,7 +89,7 @@ public class ProtobufModelEncoderPipelineBM
     public int encodeToWire()
     {
         pipeline.reset();
-        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
             inputBuffer, 0, JSON.length, outputBuffer, 0, outputBuffer.capacity());
         return result.produced();
     }

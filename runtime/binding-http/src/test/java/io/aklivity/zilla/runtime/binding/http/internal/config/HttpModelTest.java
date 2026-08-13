@@ -40,7 +40,7 @@ public class HttpModelTest
     {
         HttpModel model = HttpModel.decoder(handler(5), new UnsafeBufferEx(new byte[256]));
 
-        int produced = model.transform(0L, 0L, value("hello"), 0, 5);
+        int produced = model.transform(0L, 0L, 0L, value("hello"), 0, 5);
 
         assertEquals(5, produced);
         assertValue(model, produced, "hello");
@@ -51,7 +51,7 @@ public class HttpModelTest
     {
         HttpModel model = HttpModel.decoder(handler(5), new UnsafeBufferEx(new byte[256]));
 
-        assertEquals(-1, model.transform(0L, 0L, value("nope"), 0, 4));
+        assertEquals(-1, model.transform(0L, 0L, 0L, value("nope"), 0, 4));
     }
 
     @Test
@@ -59,7 +59,7 @@ public class HttpModelTest
     {
         HttpModel model = HttpModel.decoder(handler(5, 8), new UnsafeBufferEx(new byte[256]));
 
-        int produced = model.transform(0L, 0L, value("hello"), 0, 5);
+        int produced = model.transform(0L, 0L, 0L, value("hello"), 0, 5);
 
         assertEquals(8, produced);
         assertValue(model, 5, "hello");
@@ -70,7 +70,7 @@ public class HttpModelTest
     {
         HttpModel model = HttpModel.decoder(handler(5, 3), new UnsafeBufferEx(new byte[256]));
 
-        int produced = model.transform(0L, 0L, value("hello"), 0, 5);
+        int produced = model.transform(0L, 0L, 0L, value("hello"), 0, 5);
 
         assertEquals(3, produced);
         assertValue(model, produced, "hel");
@@ -87,7 +87,7 @@ public class HttpModelTest
     {
         HttpModel model = HttpModel.decoder(handler(5), new UnsafeBufferEx(new byte[256]));
 
-        int consumed = model.transform(0L, 0L, FLAGS_COMPLETE, value("hello"), 0, 5, 256);
+        int consumed = model.transform(0L, 0L, 0L, FLAGS_COMPLETE, value("hello"), 0, 5, 256);
 
         assertEquals(5, consumed);
         assertEquals(5, model.produced());
@@ -99,7 +99,7 @@ public class HttpModelTest
     {
         HttpModel model = HttpModel.decoder(handler(5), new UnsafeBufferEx(new byte[256]));
 
-        int consumed = model.transform(0L, 0L, FLAGS_COMPLETE, value("nope"), 0, 4, 256);
+        int consumed = model.transform(0L, 0L, 0L, FLAGS_COMPLETE, value("nope"), 0, 4, 256);
 
         assertEquals(-1, consumed);
     }
@@ -109,12 +109,12 @@ public class HttpModelTest
     {
         HttpModel model = HttpModel.decoder(handler(10), new UnsafeBufferEx(new byte[256]));
 
-        int consumed1 = model.transform(0L, 0L, FLAGS_INIT, value("hello"), 0, 5, 256);
+        int consumed1 = model.transform(0L, 0L, 0L, FLAGS_INIT, value("hello"), 0, 5, 256);
         assertEquals(5, consumed1);
         assertEquals(5, model.produced());
         assertOutput(model, "hello");
 
-        int consumed2 = model.transform(0L, 0L, FLAGS_FIN, value("world"), 0, 5, 256);
+        int consumed2 = model.transform(0L, 0L, 0L, FLAGS_FIN, value("world"), 0, 5, 256);
         assertEquals(5, consumed2);
         assertEquals(5, model.produced());
         assertOutput(model, "world");
@@ -125,12 +125,12 @@ public class HttpModelTest
     {
         HttpModel model = HttpModel.decoder(handler(5), new UnsafeBufferEx(new byte[256]));
 
-        int consumed1 = model.transform(0L, 0L, FLAGS_COMPLETE, value("hello"), 0, 5, 2);
+        int consumed1 = model.transform(0L, 0L, 0L, FLAGS_COMPLETE, value("hello"), 0, 5, 2);
         assertEquals(2, consumed1);
         assertEquals(2, model.produced());
         assertOutput(model, "he");
 
-        int consumed2 = model.transform(0L, 0L, FLAGS_FIN, value("hello"), 2, 5, 256);
+        int consumed2 = model.transform(0L, 0L, 0L, FLAGS_FIN, value("hello"), 2, 5, 256);
         assertEquals(3, consumed2);
         assertEquals(3, model.produced());
         assertOutput(model, "llo");

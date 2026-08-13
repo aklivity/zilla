@@ -56,7 +56,7 @@ public class BooleanModelPipelineTest
 
         byte[] bytes = {0x00};
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[8]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
             new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.COMPLETE, result.status());
@@ -71,7 +71,7 @@ public class BooleanModelPipelineTest
 
         byte[] bytes = {0x01, 0x00};
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[8]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
             new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.REJECTED, result.status());

@@ -53,7 +53,7 @@ public class KafkaCacheModelTest
     {
         KafkaCacheModel model = KafkaCacheModel.decoder(handler(5), ModelTransform.NONE, new UnsafeBufferEx(new byte[256]));
 
-        int produced = model.transform(0L, 0L, value("hello"), 0, 5, sink);
+        int produced = model.transform(0L, 0L, 0L, value("hello"), 0, 5, sink);
 
         assertEquals(5, produced);
         assertOutput("hello");
@@ -64,7 +64,7 @@ public class KafkaCacheModelTest
     {
         KafkaCacheModel model = KafkaCacheModel.decoder(handler(5), ModelTransform.NONE, new UnsafeBufferEx(new byte[256]));
 
-        int produced = model.transform(0L, 0L, value("nope"), 0, 4, sink);
+        int produced = model.transform(0L, 0L, 0L, value("nope"), 0, 4, sink);
 
         assertEquals(-1, produced);
     }
@@ -74,7 +74,7 @@ public class KafkaCacheModelTest
     {
         KafkaCacheModel model = KafkaCacheModel.decoder(handler(5, 8), ModelTransform.NONE, new UnsafeBufferEx(new byte[256]));
 
-        int produced = model.transform(0L, 0L, value("hello"), 0, 5, sink);
+        int produced = model.transform(0L, 0L, 0L, value("hello"), 0, 5, sink);
 
         assertEquals(8, produced);
         assertEquals(8, outputLength.value);
@@ -88,7 +88,7 @@ public class KafkaCacheModelTest
     {
         KafkaCacheModel model = KafkaCacheModel.decoder(handler(5, 3), ModelTransform.NONE, new UnsafeBufferEx(new byte[256]));
 
-        int produced = model.transform(0L, 0L, value("hello"), 0, 5, sink);
+        int produced = model.transform(0L, 0L, 0L, value("hello"), 0, 5, sink);
 
         assertEquals(3, produced);
         assertOutput("hel");
@@ -99,7 +99,7 @@ public class KafkaCacheModelTest
     {
         KafkaCacheModel model = KafkaCacheModel.decoder(handler(5), ModelTransform.NONE, new UnsafeBufferEx(new byte[2]));
 
-        int produced = model.transform(0L, 0L, value("hello"), 0, 5, sink);
+        int produced = model.transform(0L, 0L, 0L, value("hello"), 0, 5, sink);
 
         assertEquals(5, produced);
         assertOutput("hello");
@@ -110,7 +110,7 @@ public class KafkaCacheModelTest
     {
         KafkaCacheModel model = KafkaCacheModel.encoder(handler(3), new UnsafeBufferEx(new byte[256]));
 
-        int produced = model.transform(0L, 0L, value("abc"), 0, 3, sink);
+        int produced = model.transform(0L, 0L, 0L, value("abc"), 0, 3, sink);
 
         assertEquals(3, produced);
         assertOutput("abc");
@@ -119,7 +119,7 @@ public class KafkaCacheModelTest
     @Test
     public void shouldForwardWhenNone()
     {
-        int produced = KafkaCacheModel.NONE.transform(0L, 0L, value("passthrough"), 0, 11, sink);
+        int produced = KafkaCacheModel.NONE.transform(0L, 0L, 0L, value("passthrough"), 0, 11, sink);
 
         assertEquals(11, produced);
         assertOutput("passthrough");
@@ -141,7 +141,7 @@ public class KafkaCacheModelTest
         KafkaCacheModel model = new KafkaCacheModel(rejectingHandler("$.id").supplyDecoder(),
             new UnsafeBufferEx(new byte[256]));
 
-        int produced = model.transform(0L, 0L, value("hello"), 0, 5, sink);
+        int produced = model.transform(0L, 0L, 0L, value("hello"), 0, 5, sink);
 
         assertEquals(-1, produced);
     }
@@ -159,11 +159,11 @@ public class KafkaCacheModelTest
     {
         KafkaCacheModel model = KafkaCacheModel.decoder(handler(5), ModelTransform.NONE, new UnsafeBufferEx(new byte[256]));
 
-        model.transform(0L, 0L, value("hello"), 0, 5, sink);
+        model.transform(0L, 0L, 0L, value("hello"), 0, 5, sink);
         model.reset();
         outputLength.value = 0;
 
-        int produced = model.transform(0L, 0L, value("world"), 0, 5, sink);
+        int produced = model.transform(0L, 0L, 0L, value("world"), 0, 5, sink);
 
         assertEquals(5, produced);
         assertOutput("world");
@@ -238,6 +238,7 @@ public class KafkaCacheModelTest
         public ModelPipelineResult transform(
             long traceId,
             long bindingId,
+            long authorization,
             int flags,
             DirectBufferEx src,
             int srcIndex,
@@ -246,7 +247,7 @@ public class KafkaCacheModelTest
             int dstIndex,
             int dstLimit)
         {
-            bridge.start();
+            bridge.start(authorization);
             bridge.field(path, src, srcIndex, srcLimit - srcIndex);
             return result.set(ModelStatus.REJECTED, 0, 0);
         }

@@ -110,7 +110,7 @@ public class AvroModelDecoderPipelineBM
     private int decode(
         ModelPipeline pipeline)
     {
-        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
             src, 0, AVRO.length, dst, 0, dst.capacity());
         return result.produced();
     }

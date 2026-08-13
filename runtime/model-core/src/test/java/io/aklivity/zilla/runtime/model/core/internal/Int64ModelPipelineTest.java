@@ -58,7 +58,7 @@ public class Int64ModelPipelineTest
 
         byte[] bytes = "+8449999L".getBytes();
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[32]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
             new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.COMPLETE, result.status());
@@ -73,7 +73,7 @@ public class Int64ModelPipelineTest
 
         byte[] bytes = "-125".getBytes();
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[32]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
             new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.COMPLETE, result.status());
@@ -87,7 +87,7 @@ public class Int64ModelPipelineTest
 
         byte[] bytes = "8449999".getBytes();
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[32]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
             new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.REJECTED, result.status());
@@ -105,7 +105,7 @@ public class Int64ModelPipelineTest
 
         byte[] bytes = "999".getBytes();
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[32]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
             new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.REJECTED, result.status());
@@ -123,7 +123,7 @@ public class Int64ModelPipelineTest
 
         byte[] bytes = "999".getBytes();
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[32]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
             new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.REJECTED, result.status());
@@ -137,7 +137,7 @@ public class Int64ModelPipelineTest
 
         byte[] bytes = {0, 0, 0, 0, 0, 0, 0, 42};
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[16]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
             new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.COMPLETE, result.status());
@@ -152,7 +152,7 @@ public class Int64ModelPipelineTest
 
         byte[] bytes = {-1, -1, -1, -1, -1, -1, -1, -32};
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[16]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
             new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.COMPLETE, result.status());
@@ -166,7 +166,7 @@ public class Int64ModelPipelineTest
 
         byte[] bytes = "Test value!".getBytes();
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[64]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
             new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.REJECTED, result.status());
@@ -182,11 +182,11 @@ public class Int64ModelPipelineTest
         byte[] tail = {0, 0, 1, 42};
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[16]);
 
-        ModelPipelineResult first = pipeline.transform(0L, 0L, FLAGS_INIT,
+        ModelPipelineResult first = pipeline.transform(0L, 0L, 0L, FLAGS_INIT,
             new UnsafeBufferEx(head), 0, head.length, dst, 0, dst.capacity());
         assertEquals(ModelStatus.UNDERFLOW, first.status());
 
-        ModelPipelineResult second = pipeline.transform(0L, 0L, FLAGS_FIN,
+        ModelPipelineResult second = pipeline.transform(0L, 0L, 0L, FLAGS_FIN,
             new UnsafeBufferEx(tail), 0, tail.length, dst, head.length, dst.capacity());
         assertEquals(ModelStatus.COMPLETE, second.status());
     }
