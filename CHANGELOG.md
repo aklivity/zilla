@@ -1,5 +1,19 @@
 # Changelog
 
+## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/2.2.2...HEAD)
+
+**Closed issues:**
+
+- engine: add Config/ConfigBuilder extension mechanism \(ConfigInfo, ConfigExtInfo, ConfigExtAdapter\) [\#2360](https://github.com/aklivity/zilla/issues/2360) ([jfallows](https://github.com/jfallows))
+- engine: support x-incubating property-level schema annotation [\#2361](https://github.com/aklivity/zilla/issues/2361) ([jfallows](https://github.com/jfallows))
+
+**Merged pull requests:**
+
+- engine: support x-incubating property-level schema annotation [\#2362](https://github.com/aklivity/zilla/pull/2362) ([jfallows](https://github.com/jfallows))
+- engine: add Config/ConfigBuilder extension mechanism [\#2363](https://github.com/aklivity/zilla/pull/2363) ([jfallows](https://github.com/jfallows))
+
 ## [2.2.2](https://github.com/aklivity/zilla/tree/2.2.2) (2026-08-12)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/2.2.1...2.2.2)
