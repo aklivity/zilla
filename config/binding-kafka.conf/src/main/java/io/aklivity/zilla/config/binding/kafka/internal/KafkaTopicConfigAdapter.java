@@ -20,13 +20,13 @@ import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonValue;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.binding.kafka.KafkaTopicConfig;
 import io.aklivity.zilla.config.binding.kafka.KafkaTopicConfigBuilder;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.ModelConfigAdapter;
 
-public final class KafkaTopicConfigAdapter implements JsonbAdapter<KafkaTopicConfig, JsonObject>
+public final class KafkaTopicConfigAdapter extends ConfigAdapter<KafkaTopicConfig, JsonObject>
 {
     private static final String NAME_NAME = "name";
     private static final String DEFAULT_OFFSET_NAME = "defaultOffset";

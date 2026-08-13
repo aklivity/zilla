@@ -17,12 +17,12 @@ package io.aklivity.zilla.config.binding.kafka.internal;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.binding.kafka.KafkaWithConfig;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.WithConfig;
 
-public final class KafkaWithConfigAdapter implements JsonbAdapter<WithConfig, JsonObject>
+public final class KafkaWithConfigAdapter extends ConfigAdapter<WithConfig, JsonObject>
 {
     private static final String DEFAULT_OFFSET_NAME = "defaultOffset";
     private static final String DELTA_TYPE_NAME = "deltaType";

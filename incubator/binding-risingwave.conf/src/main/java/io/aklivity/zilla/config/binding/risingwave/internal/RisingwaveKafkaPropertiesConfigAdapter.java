@@ -17,12 +17,13 @@ package io.aklivity.zilla.config.binding.risingwave.internal;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.binding.risingwave.RisingwaveKafkaPropertiesConfig;
 import io.aklivity.zilla.config.binding.risingwave.RisingwaveKafkaPropertiesConfigBuilder;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 
-public final class RisingwaveKafkaPropertiesConfigAdapter implements JsonbAdapter<RisingwaveKafkaPropertiesConfig, JsonObject>
+public final class RisingwaveKafkaPropertiesConfigAdapter
+    extends ConfigAdapter<RisingwaveKafkaPropertiesConfig, JsonObject>
 {
     private static final String BOOTSTRAP_SERVER_NAME = "bootstrap.server";
 

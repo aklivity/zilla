@@ -22,15 +22,15 @@ import jakarta.json.JsonArray;
 import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.binding.grpc.kafka.GrpcKafkaCapability;
 import io.aklivity.zilla.config.binding.grpc.kafka.GrpcKafkaWithConfig;
 import io.aklivity.zilla.config.binding.grpc.kafka.GrpcKafkaWithFetchConfig;
 import io.aklivity.zilla.config.binding.grpc.kafka.GrpcKafkaWithFetchFilterConfig;
 import io.aklivity.zilla.config.binding.grpc.kafka.GrpcKafkaWithFetchFilterHeaderConfig;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 
-public final class GrpcKafkaWithFetchConfigAdapter implements JsonbAdapter<GrpcKafkaWithConfig, JsonObject>
+public final class GrpcKafkaWithFetchConfigAdapter extends ConfigAdapter<GrpcKafkaWithConfig, JsonObject>
 {
     private static final String CAPABILITY_NAME = "capability";
     private static final String TOPIC_NAME = "topic";

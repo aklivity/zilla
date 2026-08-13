@@ -23,13 +23,13 @@ import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonString;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.binding.mcp.kafka.McpKafkaConditionConfig;
 import io.aklivity.zilla.config.engine.ConditionConfig;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.runtime.common.json.JsonStrings;
 
-public final class McpKafkaConditionConfigAdapter implements JsonbAdapter<ConditionConfig, JsonObject>
+public final class McpKafkaConditionConfigAdapter extends ConfigAdapter<ConditionConfig, JsonObject>
 {
     private static final String TOOL_NAME = "tool";
     private static final String RESOURCE_NAME = "resource";

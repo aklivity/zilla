@@ -18,12 +18,11 @@ import java.util.List;
 
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
-public abstract class ConfigAdapter<T extends Config> implements JsonbAdapter<T, JsonValue>
+public abstract class ConfigAdapter<T extends Config, A> implements JsonbAdapter<T, A>
 {
-    public abstract static class Extensible<T extends Config.Extensible> extends ConfigAdapter<T>
+    public abstract static class Extensible<T extends Config.Extensible, A> extends ConfigAdapter<T, A>
     {
         private final List<ConfigExtAdapter<T>> extensions;
 

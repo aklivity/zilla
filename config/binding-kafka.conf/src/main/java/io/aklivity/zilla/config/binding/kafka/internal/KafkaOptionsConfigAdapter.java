@@ -23,13 +23,13 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.binding.kafka.KafkaOptionsConfig;
 import io.aklivity.zilla.config.binding.kafka.KafkaOptionsConfigBuilder;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
-public final class KafkaOptionsConfigAdapter implements JsonbAdapter<OptionsConfig, JsonObject>
+public final class KafkaOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, JsonObject>
 {
     private static final Pattern SERVER_PATTERN = Pattern.compile("([^\\:]+):(\\d+)");
     private static final String BOOTSTRAP_NAME = "bootstrap";

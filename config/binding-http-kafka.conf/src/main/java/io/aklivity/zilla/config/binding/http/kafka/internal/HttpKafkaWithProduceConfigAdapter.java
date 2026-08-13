@@ -20,15 +20,15 @@ import java.util.List;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaCapability;
 import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaWithConfig;
 import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaWithProduceAsyncHeaderConfig;
 import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaWithProduceConfig;
 import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaWithProduceOverrideConfig;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 
-public final class HttpKafkaWithProduceConfigAdapter implements JsonbAdapter<HttpKafkaWithConfig, JsonObject>
+public final class HttpKafkaWithProduceConfigAdapter extends ConfigAdapter<HttpKafkaWithConfig, JsonObject>
 {
     private static final String CAPABILITY_NAME = "capability";
     private static final String TOPIC_NAME = "topic";

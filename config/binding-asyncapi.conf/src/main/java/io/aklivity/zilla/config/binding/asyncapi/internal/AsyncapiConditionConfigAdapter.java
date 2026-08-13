@@ -22,13 +22,13 @@ import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonValue;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.binding.asyncapi.AsyncapiConditionConfig;
 import io.aklivity.zilla.config.binding.asyncapi.AsyncapiConditionServerConfig;
 import io.aklivity.zilla.config.engine.ConditionConfig;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 
-public final class AsyncapiConditionConfigAdapter implements JsonbAdapter<ConditionConfig, JsonObject>
+public final class AsyncapiConditionConfigAdapter extends ConfigAdapter<ConditionConfig, JsonObject>
 {
     private static final String SPEC_NAME = "spec";
     private static final String OPERATION_NAME = "operation";

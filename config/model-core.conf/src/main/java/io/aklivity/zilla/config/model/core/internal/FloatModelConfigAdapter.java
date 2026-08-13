@@ -30,7 +30,7 @@ import io.aklivity.zilla.config.model.core.FloatModelConfig;
 import io.aklivity.zilla.config.model.core.FloatModelConfigBuilder;
 import io.aklivity.zilla.config.model.core.RangeConfig;
 
-public class FloatModelConfigAdapter extends ConfigAdapter<ModelConfig> implements ModelConfigAdapterSpi
+public class FloatModelConfigAdapter extends ConfigAdapter<ModelConfig, JsonValue> implements ModelConfigAdapterSpi
 {
     private static final String MODEL_NAME = "model";
     private static final String FORMAT_NAME = "format";

@@ -41,7 +41,9 @@ import io.aklivity.zilla.config.engine.factory.Factory;
 import io.aklivity.zilla.config.model.protobuf.ProtobufModelConfig;
 import io.aklivity.zilla.config.model.protobuf.ProtobufModelConfigBuilder;
 
-public final class ProtobufModelConfigAdapter extends ConfigAdapter.Extensible<ModelConfig> implements ModelConfigAdapterSpi
+public final class ProtobufModelConfigAdapter
+    extends ConfigAdapter.Extensible<ModelConfig, JsonValue>
+    implements ModelConfigAdapterSpi
 {
     private static final String PROTOBUF = "protobuf";
     private static final String MODEL_NAME = "model";

@@ -17,12 +17,12 @@ package io.aklivity.zilla.config.binding.mqtt.kafka.internal;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.binding.mqtt.kafka.MqttKafkaWithConfig;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.WithConfig;
 
-public class MqttKafkaWithConfigAdapter implements JsonbAdapter<WithConfig, JsonObject>
+public class MqttKafkaWithConfigAdapter extends ConfigAdapter<WithConfig, JsonObject>
 {
     private static final String MESSAGES_NAME = "messages";
 

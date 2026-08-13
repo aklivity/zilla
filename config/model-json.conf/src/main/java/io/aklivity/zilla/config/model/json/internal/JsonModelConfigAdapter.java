@@ -41,7 +41,9 @@ import io.aklivity.zilla.config.engine.factory.Factory;
 import io.aklivity.zilla.config.model.json.JsonModelConfig;
 import io.aklivity.zilla.config.model.json.JsonModelConfigBuilder;
 
-public final class JsonModelConfigAdapter extends ConfigAdapter.Extensible<ModelConfig> implements ModelConfigAdapterSpi
+public final class JsonModelConfigAdapter
+    extends ConfigAdapter.Extensible<ModelConfig, JsonValue>
+    implements ModelConfigAdapterSpi
 {
     private static final String JSON = "json";
     private static final String MODEL_NAME = "model";

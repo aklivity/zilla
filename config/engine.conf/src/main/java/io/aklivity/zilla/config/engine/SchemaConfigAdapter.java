@@ -17,9 +17,8 @@ package io.aklivity.zilla.config.engine;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
-public class SchemaConfigAdapter implements JsonbAdapter<SchemaConfig, JsonObject>
+public class SchemaConfigAdapter extends ConfigAdapter<SchemaConfig, JsonObject>
 {
     private static final String STRATEGY_NAME = "strategy";
     private static final String SUBJECT_NAME = "subject";

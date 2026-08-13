@@ -27,7 +27,7 @@ import io.aklivity.zilla.config.engine.ValidateConfigAdapter;
 import io.aklivity.zilla.config.model.core.BooleanModelConfig;
 import io.aklivity.zilla.config.model.core.BooleanModelConfigBuilder;
 
-public class BooleanModelConfigAdapter extends ConfigAdapter<ModelConfig> implements ModelConfigAdapterSpi
+public class BooleanModelConfigAdapter extends ConfigAdapter<ModelConfig, JsonValue> implements ModelConfigAdapterSpi
 {
     private static final String MODEL_NAME = "model";
     private static final String VALIDATE_NAME = "validate";

@@ -31,7 +31,7 @@ import io.aklivity.zilla.config.model.core.Int32ModelConfig;
 import io.aklivity.zilla.config.model.core.Int32ModelConfigBuilder;
 import io.aklivity.zilla.config.model.core.RangeConfig;
 
-public class Int32ModelConfigAdapter extends ConfigAdapter<ModelConfig> implements ModelConfigAdapterSpi
+public class Int32ModelConfigAdapter extends ConfigAdapter<ModelConfig, JsonValue> implements ModelConfigAdapterSpi
 {
     private static final String MODEL_NAME = "model";
     private static final String FORMAT_NAME = "format";

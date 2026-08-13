@@ -27,7 +27,7 @@ import io.aklivity.zilla.config.engine.ValidateConfigAdapter;
 import io.aklivity.zilla.config.model.core.StringModelConfig;
 import io.aklivity.zilla.config.model.core.StringModelConfigBuilder;
 
-public final class StringModelConfigAdapter extends ConfigAdapter<ModelConfig> implements ModelConfigAdapterSpi
+public final class StringModelConfigAdapter extends ConfigAdapter<ModelConfig, JsonValue> implements ModelConfigAdapterSpi
 {
     private static final String MODEL_NAME = "model";
     private static final String ENCODING_NAME = "encoding";

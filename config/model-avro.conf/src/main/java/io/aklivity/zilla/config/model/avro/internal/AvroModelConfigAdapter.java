@@ -41,7 +41,9 @@ import io.aklivity.zilla.config.engine.factory.Factory;
 import io.aklivity.zilla.config.model.avro.AvroModelConfig;
 import io.aklivity.zilla.config.model.avro.AvroModelConfigBuilder;
 
-public final class AvroModelConfigAdapter extends ConfigAdapter.Extensible<ModelConfig> implements ModelConfigAdapterSpi
+public final class AvroModelConfigAdapter
+    extends ConfigAdapter.Extensible<ModelConfig, JsonValue>
+    implements ModelConfigAdapterSpi
 {
     private static final String AVRO = "avro";
     private static final String MODEL_NAME = "model";

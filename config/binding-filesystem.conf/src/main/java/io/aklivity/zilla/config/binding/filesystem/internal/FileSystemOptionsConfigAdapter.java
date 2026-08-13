@@ -21,13 +21,13 @@ import java.net.URI;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.binding.filesystem.FileSystemOptionsConfig;
 import io.aklivity.zilla.config.binding.filesystem.FileSystemSymbolicLinksConfig;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
-public class FileSystemOptionsConfigAdapter implements JsonbAdapter<OptionsConfig, JsonObject>
+public class FileSystemOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, JsonObject>
 {
     private static final String LOCATION_NAME = "location";
     private static final String SYMLINKS_NAME = "symlinks";

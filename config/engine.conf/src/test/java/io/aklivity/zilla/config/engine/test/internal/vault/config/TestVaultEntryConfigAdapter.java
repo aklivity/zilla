@@ -17,9 +17,10 @@ package io.aklivity.zilla.config.engine.test.internal.vault.config;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
-public final class TestVaultEntryConfigAdapter implements JsonbAdapter<TestVaultEntryConfig, JsonObject>
+import io.aklivity.zilla.config.engine.ConfigAdapter;
+
+public final class TestVaultEntryConfigAdapter extends ConfigAdapter<TestVaultEntryConfig, JsonObject>
 {
     private static final String ALIAS_NAME = "alias";
     private static final String ENTRY_NAME = "entry";

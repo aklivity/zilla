@@ -16,9 +16,8 @@ package io.aklivity.zilla.config.engine;
 
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
-final class TestExtConfigAdapter implements JsonbAdapter<TestExtConfig, JsonObject>
+final class TestExtConfigAdapter extends ConfigAdapter<TestExtConfig, JsonObject>
 {
     private static final String VALUE = "value";
 

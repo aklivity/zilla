@@ -21,7 +21,7 @@ import jakarta.json.JsonValue;
 import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.MetricConfig;
 
-public class MetricConfigAdapter extends ConfigAdapter<MetricConfig>
+public class MetricConfigAdapter extends ConfigAdapter<MetricConfig, JsonValue>
 {
     @Override
     public JsonValue adaptToJson(

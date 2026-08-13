@@ -25,13 +25,13 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 import io.aklivity.zilla.config.exporter.otlp.OtlpOptionsConfig;
 import io.aklivity.zilla.config.exporter.otlp.OtlpOptionsConfigBuilder;
 
-public class OtlpOptionsConfigAdapter implements JsonbAdapter<OptionsConfig, JsonObject>
+public class OtlpOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, JsonObject>
 {
     private static final String INTERVAL_NAME = "interval";
     private static final String SIGNALS_NAME = "signals";

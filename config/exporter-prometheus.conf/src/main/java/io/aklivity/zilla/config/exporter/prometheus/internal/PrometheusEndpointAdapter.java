@@ -17,11 +17,11 @@ package io.aklivity.zilla.config.exporter.prometheus.internal;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.exporter.prometheus.PrometheusEndpointConfig;
 
-public class PrometheusEndpointAdapter implements JsonbAdapter<PrometheusEndpointConfig, JsonObject>
+public class PrometheusEndpointAdapter extends ConfigAdapter<PrometheusEndpointConfig, JsonObject>
 {
     private static final String SCHEME_NAME = "scheme";
     private static final String PORT_NAME = "port";

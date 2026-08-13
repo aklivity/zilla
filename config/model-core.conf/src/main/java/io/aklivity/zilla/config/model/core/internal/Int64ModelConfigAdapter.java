@@ -30,7 +30,7 @@ import io.aklivity.zilla.config.model.core.Int64ModelConfig;
 import io.aklivity.zilla.config.model.core.Int64ModelConfigBuilder;
 import io.aklivity.zilla.config.model.core.RangeConfig;
 
-public class Int64ModelConfigAdapter extends ConfigAdapter<ModelConfig> implements ModelConfigAdapterSpi
+public class Int64ModelConfigAdapter extends ConfigAdapter<ModelConfig, JsonValue> implements ModelConfigAdapterSpi
 {
     private static final String MODEL_NAME = "model";
     private static final String FORMAT_NAME = "format";

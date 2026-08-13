@@ -20,12 +20,12 @@ import static org.agrona.BitUtil.toHex;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.binding.proxy.ProxyInfoConfig;
 import io.aklivity.zilla.config.binding.proxy.ProxyInfoConfigBuilder;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 
-public final class ProxyInfoConfigAdapter implements JsonbAdapter<ProxyInfoConfig, JsonObject>
+public final class ProxyInfoConfigAdapter extends ConfigAdapter<ProxyInfoConfig, JsonObject>
 {
     private static final String ALPN_NAME = "alpn";
     private static final String AUTHORITY_NAME = "authority";

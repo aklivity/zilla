@@ -17,13 +17,13 @@ package io.aklivity.zilla.config.binding.mcp.kafka.connect.internal;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.binding.mcp.kafka.connect.McpKafkaConnectConditionConfig;
 import io.aklivity.zilla.config.engine.ConditionConfig;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.runtime.common.json.JsonStrings;
 
-public final class McpKafkaConnectConditionConfigAdapter implements JsonbAdapter<ConditionConfig, JsonObject>
+public final class McpKafkaConnectConditionConfigAdapter extends ConfigAdapter<ConditionConfig, JsonObject>
 {
     private static final String TOOL_NAME = "tool";
 

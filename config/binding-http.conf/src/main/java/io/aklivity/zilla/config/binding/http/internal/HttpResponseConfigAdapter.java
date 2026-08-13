@@ -26,15 +26,15 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.binding.http.HttpParamConfig;
 import io.aklivity.zilla.config.binding.http.HttpResponseConfig;
 import io.aklivity.zilla.config.binding.http.HttpResponseConfigBuilder;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.ModelConfig;
 import io.aklivity.zilla.config.engine.ModelConfigAdapter;
 
-public class HttpResponseConfigAdapter implements JsonbAdapter<HttpResponseConfig, JsonObject>
+public class HttpResponseConfigAdapter extends ConfigAdapter<HttpResponseConfig, JsonObject>
 {
     private static final String STATUS_NAME = "status";
     private static final String CONTENT_TYPE_NAME = "content-type";

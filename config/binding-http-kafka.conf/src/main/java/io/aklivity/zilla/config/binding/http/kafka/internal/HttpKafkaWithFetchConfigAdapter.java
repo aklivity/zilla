@@ -22,7 +22,6 @@ import jakarta.json.JsonArray;
 import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaCapability;
 import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaWithConfig;
@@ -30,8 +29,9 @@ import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaWithFetchConfig;
 import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaWithFetchFilterConfig;
 import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaWithFetchFilterHeaderConfig;
 import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaWithFetchMergeConfig;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 
-public final class HttpKafkaWithFetchConfigAdapter implements JsonbAdapter<HttpKafkaWithConfig, JsonObject>
+public final class HttpKafkaWithFetchConfigAdapter extends ConfigAdapter<HttpKafkaWithConfig, JsonObject>
 {
     private static final String CAPABILITY_NAME = "capability";
     private static final String TOPIC_NAME = "topic";

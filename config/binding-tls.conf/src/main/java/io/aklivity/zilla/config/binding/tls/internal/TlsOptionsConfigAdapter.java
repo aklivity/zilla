@@ -25,7 +25,6 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.binding.tls.TlsAuthorizationConfig;
 import io.aklivity.zilla.config.binding.tls.TlsAuthorizationConfigBuilder;
@@ -34,9 +33,10 @@ import io.aklivity.zilla.config.binding.tls.TlsCredentialsConfig;
 import io.aklivity.zilla.config.binding.tls.TlsMutualConfig;
 import io.aklivity.zilla.config.binding.tls.TlsOptionsConfig;
 import io.aklivity.zilla.config.binding.tls.TlsOptionsConfigBuilder;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
-public final class TlsOptionsConfigAdapter implements JsonbAdapter<OptionsConfig, JsonObject>
+public final class TlsOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, JsonObject>
 {
     private static final String VERSION_NAME = "version";
     private static final String KEYS_NAME = "keys";

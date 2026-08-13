@@ -17,12 +17,12 @@ package io.aklivity.zilla.config.binding.mcp.schema.registry.internal;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.binding.mcp.schema.registry.McpSchemaRegistryOptionsConfig;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
-public final class McpSchemaRegistryOptionsConfigAdapter implements JsonbAdapter<OptionsConfig, JsonObject>
+public final class McpSchemaRegistryOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, JsonObject>
 {
     private static final String SERVER_NAME = "server";
 

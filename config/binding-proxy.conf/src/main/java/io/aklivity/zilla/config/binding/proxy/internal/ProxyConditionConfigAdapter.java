@@ -17,13 +17,13 @@ package io.aklivity.zilla.config.binding.proxy.internal;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.binding.proxy.ProxyConditionConfig;
 import io.aklivity.zilla.config.binding.proxy.ProxyConditionConfigBuilder;
 import io.aklivity.zilla.config.engine.ConditionConfig;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 
-public final class ProxyConditionConfigAdapter implements JsonbAdapter<ConditionConfig, JsonObject>
+public final class ProxyConditionConfigAdapter extends ConfigAdapter<ConditionConfig, JsonObject>
 {
     private static final String TRANSPORT_NAME = "transport";
     private static final String FAMILY_NAME = "family";

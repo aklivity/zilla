@@ -18,12 +18,12 @@ import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonString;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.guard.x509.X509MatchConfig;
 import io.aklivity.zilla.config.guard.x509.X509MatchConfigBuilder;
 
-public final class X509MatchConfigAdapter implements JsonbAdapter<X509MatchConfig, JsonObject>
+public final class X509MatchConfigAdapter extends ConfigAdapter<X509MatchConfig, JsonObject>
 {
     @Override
     public JsonObject adaptToJson(

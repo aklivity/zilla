@@ -21,13 +21,13 @@ import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonValue;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.binding.openapi.OpenapiConditionConfig;
 import io.aklivity.zilla.config.binding.openapi.OpenapiConditionServerConfig;
 import io.aklivity.zilla.config.engine.ConditionConfig;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 
-public final class OpenapiConditionConfigAdapter implements JsonbAdapter<ConditionConfig, JsonObject>
+public final class OpenapiConditionConfigAdapter extends ConfigAdapter<ConditionConfig, JsonObject>
 {
     private static final String SPEC_NAME = "spec";
     private static final String OPERATION_NAME = "operation";

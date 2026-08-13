@@ -19,12 +19,12 @@ import java.net.URI;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.exporter.otlp.OtlpOverridesConfig;
 import io.aklivity.zilla.config.exporter.otlp.OtlpOverridesConfigBuilder;
 
-public class OtlpOverridesAdapter implements JsonbAdapter<OtlpOverridesConfig, JsonObject>
+public class OtlpOverridesAdapter extends ConfigAdapter<OtlpOverridesConfig, JsonObject>
 {
     private static final String METRICS_NAME = "metrics";
     private static final String LOGS_NAME = "logs";

@@ -17,15 +17,15 @@ package io.aklivity.zilla.config.binding.tls.internal;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.binding.tls.TlsWithCertificateConfig;
 import io.aklivity.zilla.config.binding.tls.TlsWithCertificateConfigBuilder;
 import io.aklivity.zilla.config.binding.tls.TlsWithConfig;
 import io.aklivity.zilla.config.binding.tls.TlsWithConfigBuilder;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.WithConfig;
 
-public final class TlsWithConfigAdapter implements JsonbAdapter<WithConfig, JsonObject>
+public final class TlsWithConfigAdapter extends ConfigAdapter<WithConfig, JsonObject>
 {
     private static final String CERTIFICATE_NAME = "certificate";
 

@@ -21,16 +21,16 @@ import jakarta.json.JsonArray;
 import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.binding.sse.kafka.SseKafkaWithConfig;
 import io.aklivity.zilla.config.binding.sse.kafka.SseKafkaWithConfigBuilder;
 import io.aklivity.zilla.config.binding.sse.kafka.SseKafkaWithFilterConfig;
 import io.aklivity.zilla.config.binding.sse.kafka.SseKafkaWithFilterConfigBuilder;
 import io.aklivity.zilla.config.binding.sse.kafka.SseKafkaWithFilterHeaderConfig;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.WithConfig;
 
-public final class SseKafkaWithConfigAdapter implements JsonbAdapter<WithConfig, JsonObject>
+public final class SseKafkaWithConfigAdapter extends ConfigAdapter<WithConfig, JsonObject>
 {
     private static final String TOPIC_NAME = "topic";
     private static final String FILTERS_NAME = "filters";
