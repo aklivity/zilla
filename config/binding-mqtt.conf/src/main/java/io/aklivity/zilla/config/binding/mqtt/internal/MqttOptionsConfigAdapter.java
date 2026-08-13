@@ -22,7 +22,6 @@ import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonString;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.binding.mqtt.MqttAuthorizationConfig;
 import io.aklivity.zilla.config.binding.mqtt.MqttAuthorizationConfigBuilder;
@@ -33,9 +32,10 @@ import io.aklivity.zilla.config.binding.mqtt.MqttOptionsConfigBuilder;
 import io.aklivity.zilla.config.binding.mqtt.MqttPatternConfig;
 import io.aklivity.zilla.config.binding.mqtt.MqttTopicConfig;
 import io.aklivity.zilla.config.binding.mqtt.MqttVersion;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
-public class MqttOptionsConfigAdapter implements JsonbAdapter<OptionsConfig, JsonObject>
+public class MqttOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, JsonObject>
 {
     private static final String AUTHORIZATION_NAME = "authorization";
     private static final String AUTHORIZATION_CREDENTIALS_NAME = "credentials";

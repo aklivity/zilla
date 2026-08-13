@@ -16,11 +16,11 @@ package io.aklivity.zilla.config.binding.http.filesystem.internal;
 
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
-public final class HttpFileSystemOptionsConfigAdapter implements JsonbAdapter<OptionsConfig, JsonObject>
+public final class HttpFileSystemOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, JsonObject>
 {
     @Override
     public JsonObject adaptToJson(

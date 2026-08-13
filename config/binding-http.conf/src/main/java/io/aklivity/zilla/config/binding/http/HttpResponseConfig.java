@@ -18,9 +18,10 @@ import static java.util.function.Function.identity;
 
 import java.util.List;
 
+import io.aklivity.zilla.config.engine.Config;
 import io.aklivity.zilla.config.engine.ModelConfig;
 
-public class HttpResponseConfig
+public class HttpResponseConfig extends Config
 {
     public final List<String> status;
     public final List<String> contentType;

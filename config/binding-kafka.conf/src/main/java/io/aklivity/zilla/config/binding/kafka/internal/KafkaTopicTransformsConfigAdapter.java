@@ -21,13 +21,13 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.binding.kafka.KafkaTopicHeaderConfig;
 import io.aklivity.zilla.config.binding.kafka.KafkaTopicTransformsConfig;
 import io.aklivity.zilla.config.binding.kafka.KafkaTopicTransformsConfigBuilder;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 
-public final class KafkaTopicTransformsConfigAdapter implements JsonbAdapter<KafkaTopicTransformsConfig, JsonObject>
+public final class KafkaTopicTransformsConfigAdapter extends ConfigAdapter<KafkaTopicTransformsConfig, JsonObject>
 {
     private static final String EXTRACT_KEY_NAME = "extract-key";
     private static final String EXTRACT_HEADERS_NAME = "extract-headers";

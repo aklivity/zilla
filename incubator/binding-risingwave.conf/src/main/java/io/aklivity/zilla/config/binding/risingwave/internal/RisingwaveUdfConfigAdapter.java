@@ -17,12 +17,12 @@ package io.aklivity.zilla.config.binding.risingwave.internal;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.binding.risingwave.RisingwaveUdfConfig;
 import io.aklivity.zilla.config.binding.risingwave.RisingwaveUdfConfigBuilder;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 
-public final class RisingwaveUdfConfigAdapter implements JsonbAdapter<RisingwaveUdfConfig, JsonObject>
+public final class RisingwaveUdfConfigAdapter extends ConfigAdapter<RisingwaveUdfConfig, JsonObject>
 {
     private static final String SERVER_NAME = "server";
     private static final String LANGUAGE_NAME = "language";

@@ -18,16 +18,15 @@ import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonValue;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.ModelConfig;
-import io.aklivity.zilla.config.engine.ModelConfigAdapterSpi;
 import io.aklivity.zilla.config.engine.ValidateConfig;
 import io.aklivity.zilla.config.engine.ValidateConfigAdapter;
 import io.aklivity.zilla.config.model.core.StringModelConfig;
 import io.aklivity.zilla.config.model.core.StringModelConfigBuilder;
 
-public final class StringModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAdapter<ModelConfig, JsonValue>
+public final class StringModelConfigAdapter extends ConfigAdapter<ModelConfig, JsonValue>
 {
     private static final String MODEL_NAME = "model";
     private static final String ENCODING_NAME = "encoding";
@@ -52,12 +51,12 @@ public final class StringModelConfigAdapter implements ModelConfigAdapterSpi, Js
             options.minLength == 0 &&
             validateJson == null)
         {
-            result = Json.createValue(type());
+            result = Json.createValue("string");
         }
         else
         {
             JsonObjectBuilder builder = Json.createObjectBuilder();
-            builder.add(MODEL_NAME, type());
+            builder.add(MODEL_NAME, "string");
 
             if (!options.encoding.equals(StringModelConfigBuilder.DEFAULT_ENCODING))
             {
@@ -128,11 +127,5 @@ public final class StringModelConfigAdapter implements ModelConfigAdapterSpi, Js
             throw new IllegalArgumentException("Unexpected type: " + valueType);
         }
         return builder.build();
-    }
-
-    @Override
-    public String type()
-    {
-        return "string";
     }
 }

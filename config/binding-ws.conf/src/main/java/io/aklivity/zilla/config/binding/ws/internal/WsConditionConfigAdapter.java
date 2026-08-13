@@ -17,12 +17,12 @@ package io.aklivity.zilla.config.binding.ws.internal;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.binding.ws.WsConditionConfig;
 import io.aklivity.zilla.config.engine.ConditionConfig;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 
-public final class WsConditionConfigAdapter implements JsonbAdapter<ConditionConfig, JsonObject>
+public final class WsConditionConfigAdapter extends ConfigAdapter<ConditionConfig, JsonObject>
 {
     private static final String PROTOCOL_NAME = "protocol";
     private static final String SCHEME_NAME = "scheme";

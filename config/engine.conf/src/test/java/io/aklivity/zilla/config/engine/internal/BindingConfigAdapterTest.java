@@ -395,7 +395,7 @@ public class BindingConfigAdapterTest
 
         assertThat(object, not(nullValue()));
         assertThat(object.toString(), equalTo("{\"type\":\"test\",\"kind\":\"server\",\"catalog\":" +
-            "[{\"catalog0\":[{\"subject\":\"echo\"}]}]}"));
+            "{\"catalog0\":[{\"subject\":\"echo\"}]}}"));
     }
 
     @Test

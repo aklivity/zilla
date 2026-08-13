@@ -17,12 +17,12 @@ package io.aklivity.zilla.config.binding.tcp;
 import java.net.URL;
 
 import jakarta.json.JsonObject;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.binding.tcp.internal.TcpConditionConfigAdapter;
 import io.aklivity.zilla.config.binding.tcp.internal.TcpOptionsConfigAdapter;
 import io.aklivity.zilla.config.engine.BindingInfo;
 import io.aklivity.zilla.config.engine.ConditionConfig;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public final class TcpBindingInfo implements BindingInfo
@@ -42,13 +42,13 @@ public final class TcpBindingInfo implements BindingInfo
     }
 
     @Override
-    public JsonbAdapter<OptionsConfig, JsonObject> options()
+    public ConfigAdapter<OptionsConfig, JsonObject> options()
     {
         return new TcpOptionsConfigAdapter();
     }
 
     @Override
-    public JsonbAdapter<ConditionConfig, JsonObject> condition()
+    public ConfigAdapter<ConditionConfig, JsonObject> condition()
     {
         return new TcpConditionConfigAdapter();
     }

@@ -22,18 +22,18 @@ import java.util.Map;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.binding.mcp.http.McpHttpAuthorizationConfig;
 import io.aklivity.zilla.config.binding.mcp.http.McpHttpOptionsConfig;
 import io.aklivity.zilla.config.binding.mcp.http.McpHttpResourceConfig;
 import io.aklivity.zilla.config.binding.mcp.http.McpHttpToolAnnotationsConfig;
 import io.aklivity.zilla.config.binding.mcp.http.McpHttpToolConfig;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.ModelConfig;
 import io.aklivity.zilla.config.engine.ModelConfigAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
-public final class McpHttpOptionsConfigAdapter implements JsonbAdapter<OptionsConfig, JsonObject>
+public final class McpHttpOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, JsonObject>
 {
     private static final String AUTHORIZATION_NAME = "authorization";
     private static final String CREDENTIALS_NAME = "credentials";

@@ -22,13 +22,13 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 import io.aklivity.zilla.config.guard.x509.X509OptionsConfig;
 import io.aklivity.zilla.config.guard.x509.X509OptionsConfigBuilder;
 
-public final class X509OptionsConfigAdapter implements JsonbAdapter<OptionsConfig, JsonObject>
+public final class X509OptionsConfigAdapter extends ConfigAdapter<OptionsConfig, JsonObject>
 {
     private static final String IDENTITY_NAME = "identity";
     private static final String ATTRIBUTES_NAME = "attributes";

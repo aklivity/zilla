@@ -51,7 +51,7 @@ public class TelemetryConfigAdapter
     }
 
     public JsonObject adaptToJson(
-        TelemetryConfig telemetry) throws Exception
+        TelemetryConfig telemetry)
     {
         JsonObjectBuilder item = Json.createObjectBuilder();
 
@@ -83,7 +83,7 @@ public class TelemetryConfigAdapter
 
     public TelemetryConfig adaptFromJson(
         String namespace,
-        JsonObject object) throws Exception
+        JsonObject object)
     {
         TelemetryConfigBuilder<TelemetryConfig> telemetry = TelemetryConfig.builder()
             .namespace(namespace);

@@ -20,17 +20,16 @@ import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonValue;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.ModelConfig;
-import io.aklivity.zilla.config.engine.ModelConfigAdapterSpi;
 import io.aklivity.zilla.config.engine.ValidateConfig;
 import io.aklivity.zilla.config.engine.ValidateConfigAdapter;
 import io.aklivity.zilla.config.model.core.DoubleModelConfig;
 import io.aklivity.zilla.config.model.core.DoubleModelConfigBuilder;
 import io.aklivity.zilla.config.model.core.RangeConfig;
 
-public class DoubleModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAdapter<ModelConfig, JsonValue>
+public class DoubleModelConfigAdapter extends ConfigAdapter<ModelConfig, JsonValue>
 {
     private static final String MODEL_NAME = "model";
     private static final String FORMAT_NAME = "format";
@@ -40,12 +39,6 @@ public class DoubleModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAda
 
     private final RangeConfigAdapter adapter = new RangeConfigAdapter();
     private final ValidateConfigAdapter validate = new ValidateConfigAdapter();
-
-    @Override
-    public String type()
-    {
-        return DOUBLE;
-    }
 
     @Override
     public JsonValue adaptToJson(
@@ -63,12 +56,12 @@ public class DoubleModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAda
             config.multiple == null &&
             validateJson == null)
         {
-            result = Json.createValue(type());
+            result = Json.createValue(DOUBLE);
         }
         else
         {
             JsonObjectBuilder builder = Json.createObjectBuilder();
-            builder.add(MODEL_NAME, type());
+            builder.add(MODEL_NAME, DOUBLE);
 
             if (!config.format.equals(DoubleModelConfigBuilder.DEFAULT_FORMAT))
             {

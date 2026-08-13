@@ -16,9 +16,10 @@ package io.aklivity.zilla.config.binding.mcp.http;
 
 import java.util.function.Function;
 
+import io.aklivity.zilla.config.engine.Config;
 import io.aklivity.zilla.config.engine.ModelConfig;
 
-public final class McpHttpResourceConfig
+public final class McpHttpResourceConfig extends Config
 {
     public final String name;
     public final String uri;

@@ -18,7 +18,6 @@ import java.net.URL;
 import java.util.List;
 
 import jakarta.json.JsonObject;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.engine.factory.FactorySpi;
 
@@ -31,5 +30,5 @@ public interface VaultInfo extends FactorySpi
 
     URL schema();
 
-    JsonbAdapter<OptionsConfig, JsonObject> options();
+    ConfigAdapter<OptionsConfig, JsonObject> options();
 }

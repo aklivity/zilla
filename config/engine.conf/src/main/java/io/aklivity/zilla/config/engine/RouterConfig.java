@@ -17,7 +17,7 @@ package io.aklivity.zilla.config.engine;
 import static java.util.Objects.requireNonNull;
 import static java.util.function.Function.identity;
 
-public class RouterConfig
+public class RouterConfig extends Config
 {
     public final long id;
     public final String name;

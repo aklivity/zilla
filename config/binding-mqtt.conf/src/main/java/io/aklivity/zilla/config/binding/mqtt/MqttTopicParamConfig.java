@@ -18,7 +18,9 @@ import static java.util.function.Function.identity;
 
 import java.util.function.Function;
 
-public class MqttTopicParamConfig
+import io.aklivity.zilla.config.engine.Config;
+
+public class MqttTopicParamConfig extends Config
 {
     public final String name;
 

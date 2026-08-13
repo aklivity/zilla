@@ -28,16 +28,16 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.engine.CatalogedConfig;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.ModelConfigAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 import io.aklivity.zilla.config.engine.SchemaConfig;
 import io.aklivity.zilla.config.engine.SchemaConfigAdapter;
 import io.aklivity.zilla.config.engine.test.internal.binding.config.TestBindingOptionsConfig.VaultAssertion;
 
-public final class TestBindingOptionsConfigAdapter implements JsonbAdapter<OptionsConfig, JsonObject>
+public final class TestBindingOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, JsonObject>
 {
     public static final String DEFAULT_ASSERTION_SCHEMA = new String();
 

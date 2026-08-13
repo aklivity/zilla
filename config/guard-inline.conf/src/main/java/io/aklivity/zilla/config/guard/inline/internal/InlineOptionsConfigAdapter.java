@@ -17,12 +17,12 @@ package io.aklivity.zilla.config.guard.inline.internal;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 import io.aklivity.zilla.config.guard.inline.InlineOptionsConfig;
 
-public final class InlineOptionsConfigAdapter implements JsonbAdapter<OptionsConfig, JsonObject>
+public final class InlineOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, JsonObject>
 {
     private static final String IDENTITY_NAME = "identity";
     private static final String CREDENTIALS_NAME = "credentials";

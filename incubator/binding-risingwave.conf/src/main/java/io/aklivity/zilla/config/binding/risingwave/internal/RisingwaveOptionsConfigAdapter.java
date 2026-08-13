@@ -19,13 +19,13 @@ import jakarta.json.JsonArray;
 import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.binding.risingwave.RisingwaveOptionConfigBuilder;
 import io.aklivity.zilla.config.binding.risingwave.RisingwaveOptionsConfig;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
-public final class RisingwaveOptionsConfigAdapter implements JsonbAdapter<OptionsConfig, JsonObject>
+public final class RisingwaveOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, JsonObject>
 {
     private static final String KAFKA_NAME = "kafka";
     private static final String UDF_NAME = "udf";

@@ -21,14 +21,14 @@ import jakarta.json.JsonArray;
 import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.binding.risingwave.RisingwaveCommandType;
 import io.aklivity.zilla.config.binding.risingwave.RisingwaveConditionConfig;
 import io.aklivity.zilla.config.binding.risingwave.RisingwaveConditionConfigBuilder;
 import io.aklivity.zilla.config.engine.ConditionConfig;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 
-public final class RisingwaveConditionConfigAdapter implements JsonbAdapter<ConditionConfig, JsonObject>
+public final class RisingwaveConditionConfigAdapter extends ConfigAdapter<ConditionConfig, JsonObject>
 {
     private static final String COMMANDS_NAME = "commands";
 

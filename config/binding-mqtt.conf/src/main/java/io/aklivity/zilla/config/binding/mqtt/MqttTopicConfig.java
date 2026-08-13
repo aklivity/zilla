@@ -18,9 +18,10 @@ import static java.util.function.Function.identity;
 
 import java.util.List;
 
+import io.aklivity.zilla.config.engine.Config;
 import io.aklivity.zilla.config.engine.ModelConfig;
 
-public class MqttTopicConfig
+public class MqttTopicConfig extends Config
 {
     public final String name;
     public final ModelConfig content;

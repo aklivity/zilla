@@ -16,7 +16,7 @@ package io.aklivity.zilla.config.engine;
 
 import java.util.function.Function;
 
-public final class ValidateConfig
+public final class ValidateConfig extends Config
 {
     public static final ValidateConfig STRICT = new ValidateConfig(ValidateMode.STRICT, ValidateMode.STRICT);
 

@@ -20,8 +20,7 @@ module io.aklivity.zilla.config.model.protobuf
 
     exports io.aklivity.zilla.config.model.protobuf;
 
-    provides io.aklivity.zilla.config.engine.ModelConfigAdapterSpi
-        with io.aklivity.zilla.config.model.protobuf.internal.ProtobufModelConfigAdapter;
+    uses io.aklivity.zilla.config.engine.ModelExtInfo;
 
     provides io.aklivity.zilla.config.engine.ModelInfo
         with io.aklivity.zilla.config.model.protobuf.internal.ProtobufModelInfo;

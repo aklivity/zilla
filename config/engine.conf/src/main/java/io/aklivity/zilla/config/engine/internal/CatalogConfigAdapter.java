@@ -17,10 +17,10 @@ package io.aklivity.zilla.config.engine.internal;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.engine.CatalogConfig;
 import io.aklivity.zilla.config.engine.CatalogInfo;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.GenericCatalogConfig;
 import io.aklivity.zilla.config.engine.GenericCatalogConfigBuilder;
 import io.aklivity.zilla.config.engine.OptionsConfig;
@@ -32,7 +32,7 @@ public class CatalogConfigAdapter
     private static final String OPTIONS_NAME = "options";
 
     private final String type;
-    private final JsonbAdapter<OptionsConfig, JsonObject> options;
+    private final ConfigAdapter<OptionsConfig, JsonObject> options;
 
     public CatalogConfigAdapter(
         CatalogInfo info)
@@ -42,7 +42,7 @@ public class CatalogConfigAdapter
     }
 
     public JsonObject adaptToJson(
-        CatalogConfig catalog) throws Exception
+        CatalogConfig catalog)
     {
         JsonObjectBuilder object = Json.createObjectBuilder();
 
@@ -59,7 +59,7 @@ public class CatalogConfigAdapter
     public CatalogConfig adaptFromJson(
         String namespace,
         String name,
-        JsonObject object) throws Exception
+        JsonObject object)
     {
         GenericCatalogConfigBuilder<GenericCatalogConfig> builder = GenericCatalogConfig.builder()
             .namespace(namespace)

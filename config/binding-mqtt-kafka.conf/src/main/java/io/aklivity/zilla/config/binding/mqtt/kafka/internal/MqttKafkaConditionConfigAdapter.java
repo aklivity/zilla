@@ -19,14 +19,14 @@ import jakarta.json.JsonArray;
 import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.binding.mqtt.kafka.MqttKafkaConditionConfig;
 import io.aklivity.zilla.config.binding.mqtt.kafka.MqttKafkaConditionConfigBuilder;
 import io.aklivity.zilla.config.binding.mqtt.kafka.MqttKafkaConditionKind;
 import io.aklivity.zilla.config.engine.ConditionConfig;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 
-public class MqttKafkaConditionConfigAdapter implements JsonbAdapter<ConditionConfig, JsonObject>
+public class MqttKafkaConditionConfigAdapter extends ConfigAdapter<ConditionConfig, JsonObject>
 {
     private static final String SUBSCRIBE_NAME = "subscribe";
     private static final String PUBLISH_NAME = "publish";

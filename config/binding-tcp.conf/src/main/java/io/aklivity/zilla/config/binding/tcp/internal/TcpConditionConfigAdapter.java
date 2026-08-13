@@ -22,7 +22,6 @@ import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonValue;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import org.agrona.collections.IntHashSet;
 import org.agrona.collections.MutableInteger;
@@ -30,8 +29,9 @@ import org.agrona.collections.MutableInteger;
 import io.aklivity.zilla.config.binding.tcp.TcpConditionConfig;
 import io.aklivity.zilla.config.binding.tcp.TcpConditionConfigBuilder;
 import io.aklivity.zilla.config.engine.ConditionConfig;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 
-public final class TcpConditionConfigAdapter implements JsonbAdapter<ConditionConfig, JsonObject>
+public final class TcpConditionConfigAdapter extends ConfigAdapter<ConditionConfig, JsonObject>
 {
     private static final String CIDR_NAME = "cidr";
     private static final String AUTHORITY_NAME = "authority";

@@ -17,8 +17,8 @@ package io.aklivity.zilla.config.guard.inline.internal;
 import java.net.URL;
 
 import jakarta.json.JsonObject;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.GuardInfo;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
@@ -39,7 +39,7 @@ public final class InlineGuardInfo implements GuardInfo
     }
 
     @Override
-    public JsonbAdapter<OptionsConfig, JsonObject> options()
+    public ConfigAdapter<OptionsConfig, JsonObject> options()
     {
         return new InlineOptionsConfigAdapter();
     }

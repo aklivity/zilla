@@ -17,7 +17,7 @@ package io.aklivity.zilla.config.engine;
 import java.util.List;
 import java.util.function.Function;
 
-public class CatalogedConfig
+public class CatalogedConfig extends Config
 {
     public transient long id;
 

@@ -17,14 +17,14 @@ package io.aklivity.zilla.config.catalog.filesystem.internal;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.catalog.filesystem.FilesystemOptionsConfig;
 import io.aklivity.zilla.config.catalog.filesystem.FilesystemOptionsConfigBuilder;
 import io.aklivity.zilla.config.catalog.filesystem.FilesystemSchemaConfig;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
-public class FilesystemOptionsConfigAdapter implements JsonbAdapter<OptionsConfig, JsonObject>
+public class FilesystemOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, JsonObject>
 {
     private static final String SUBJECTS_NAME = "subjects";
     private static final String PATH_NAME = "path";

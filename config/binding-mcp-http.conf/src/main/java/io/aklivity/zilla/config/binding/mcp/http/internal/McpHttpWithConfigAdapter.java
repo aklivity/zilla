@@ -20,15 +20,15 @@ import java.util.Map;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.binding.mcp.http.McpHttpBodyConfig;
 import io.aklivity.zilla.config.binding.mcp.http.McpHttpWithConfig;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.ModelConfig;
 import io.aklivity.zilla.config.engine.ModelConfigAdapter;
 import io.aklivity.zilla.config.engine.WithConfig;
 
-public final class McpHttpWithConfigAdapter implements JsonbAdapter<WithConfig, JsonObject>
+public final class McpHttpWithConfigAdapter extends ConfigAdapter<WithConfig, JsonObject>
 {
     private static final String HEADERS_NAME = "headers";
     private static final String COOKIES_NAME = "cookies";

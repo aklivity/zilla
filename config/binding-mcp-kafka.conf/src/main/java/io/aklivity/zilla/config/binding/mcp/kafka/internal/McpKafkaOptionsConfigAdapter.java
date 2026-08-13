@@ -22,16 +22,16 @@ import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonString;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.binding.kafka.KafkaTopicConfig;
 import io.aklivity.zilla.config.binding.kafka.KafkaTopicConfigBuilder;
 import io.aklivity.zilla.config.binding.mcp.kafka.McpKafkaOptionsConfig;
 import io.aklivity.zilla.config.binding.mcp.kafka.McpKafkaOptionsConfigBuilder;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.ModelConfigAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
-public final class McpKafkaOptionsConfigAdapter implements JsonbAdapter<OptionsConfig, JsonObject>
+public final class McpKafkaOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, JsonObject>
 {
     private static final Pattern SERVER_PATTERN = Pattern.compile("([^\\:]+):(\\d+)");
     private static final String SERVERS_NAME = "servers";

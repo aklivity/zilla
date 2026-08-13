@@ -21,7 +21,6 @@ import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonValue;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiAuthorizationConfig;
 import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiCatalogConfig;
@@ -33,11 +32,12 @@ import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiSpecificationConfi
 import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiSpecificationConfigBuilder;
 import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiToolAnnotationsConfig;
 import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiToolConfig;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.ModelConfig;
 import io.aklivity.zilla.config.engine.ModelConfigAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
-public final class McpOpenapiOptionsConfigAdapter implements JsonbAdapter<OptionsConfig, JsonObject>
+public final class McpOpenapiOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, JsonObject>
 {
     private static final String AUTHORIZATION_NAME = "authorization";
     private static final String CREDENTIALS_NAME = "credentials";

@@ -17,7 +17,7 @@ package io.aklivity.zilla.config.engine;
 import java.util.Collections;
 import java.util.List;
 
-public class OptionsConfig
+public class OptionsConfig extends Config
 {
     public final List<ModelConfig> models;
     public final List<String> resources;

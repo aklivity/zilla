@@ -17,12 +17,12 @@ package io.aklivity.zilla.config.guard.jwt.internal;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.guard.jwt.JwtKeyConfig;
 import io.aklivity.zilla.config.guard.jwt.JwtKeyConfigBuilder;
 
-public final class JwtKeyConfigAdapter implements JsonbAdapter<JwtKeyConfig, JsonObject>
+public final class JwtKeyConfigAdapter extends ConfigAdapter<JwtKeyConfig, JsonObject>
 {
     private static final String ALG_NAME = "alg";
     private static final String KTY_NAME = "kty";

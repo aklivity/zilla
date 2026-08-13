@@ -25,11 +25,11 @@ import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonString;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
-public final class TestGuardOptionsConfigAdapter implements JsonbAdapter<OptionsConfig, JsonObject>
+public final class TestGuardOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, JsonObject>
 {
     private static final String CREDENTIALS_NAME = "credentials";
     private static final String LIFETIME_NAME = "lifetime";

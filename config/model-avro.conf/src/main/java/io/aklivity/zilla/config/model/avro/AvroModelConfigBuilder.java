@@ -23,7 +23,7 @@ import io.aklivity.zilla.config.engine.CatalogedConfigBuilder;
 import io.aklivity.zilla.config.engine.ConfigBuilder;
 import io.aklivity.zilla.config.engine.ValidateConfig;
 
-public class AvroModelConfigBuilder<T> extends ConfigBuilder<T, AvroModelConfigBuilder<T>>
+public class AvroModelConfigBuilder<T> extends ConfigBuilder.Extensible<T, AvroModelConfigBuilder<T>>
 {
     private final Function<AvroModelConfig, T> mapper;
 
@@ -85,6 +85,6 @@ public class AvroModelConfigBuilder<T> extends ConfigBuilder<T, AvroModelConfigB
     @Override
     public T build()
     {
-        return mapper.apply(new AvroModelConfig(catalogs, subject, view, validate));
+        return mapper.apply(new AvroModelConfig(catalogs, subject, view, validate, extensions()));
     }
 }

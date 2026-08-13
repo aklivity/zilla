@@ -16,7 +16,9 @@ package io.aklivity.zilla.config.binding.kafka.grpc;
 
 import java.util.function.Function;
 
-public class KafkaGrpcCorrelationConfig
+import io.aklivity.zilla.config.engine.Config;
+
+public class KafkaGrpcCorrelationConfig extends Config
 {
     public final String correlationId;
     public final String service;

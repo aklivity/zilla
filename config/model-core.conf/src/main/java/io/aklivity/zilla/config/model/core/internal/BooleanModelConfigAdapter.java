@@ -19,26 +19,19 @@ import static io.aklivity.zilla.config.model.core.BooleanModelConfig.BOOLEAN;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonValue;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.ModelConfig;
-import io.aklivity.zilla.config.engine.ModelConfigAdapterSpi;
 import io.aklivity.zilla.config.engine.ValidateConfigAdapter;
 import io.aklivity.zilla.config.model.core.BooleanModelConfig;
 import io.aklivity.zilla.config.model.core.BooleanModelConfigBuilder;
 
-public class BooleanModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAdapter<ModelConfig, JsonValue>
+public class BooleanModelConfigAdapter extends ConfigAdapter<ModelConfig, JsonValue>
 {
     private static final String MODEL_NAME = "model";
     private static final String VALIDATE_NAME = "validate";
 
     private final ValidateConfigAdapter validate = new ValidateConfigAdapter();
-
-    @Override
-    public String type()
-    {
-        return BOOLEAN;
-    }
 
     @Override
     public JsonValue adaptToJson(
@@ -50,13 +43,13 @@ public class BooleanModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAd
         if (validateJson != null)
         {
             result = Json.createObjectBuilder()
-                .add(MODEL_NAME, type())
+                .add(MODEL_NAME, BOOLEAN)
                 .add(VALIDATE_NAME, validateJson)
                 .build();
         }
         else
         {
-            result = Json.createValue(type());
+            result = Json.createValue(BOOLEAN);
         }
         return result;
     }

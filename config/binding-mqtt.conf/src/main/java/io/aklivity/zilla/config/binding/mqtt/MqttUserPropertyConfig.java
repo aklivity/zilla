@@ -16,9 +16,10 @@ package io.aklivity.zilla.config.binding.mqtt;
 
 import static java.util.function.Function.identity;
 
+import io.aklivity.zilla.config.engine.Config;
 import io.aklivity.zilla.config.engine.ModelConfig;
 
-public class MqttUserPropertyConfig
+public class MqttUserPropertyConfig extends Config
 {
     public final String name;
     public final ModelConfig value;

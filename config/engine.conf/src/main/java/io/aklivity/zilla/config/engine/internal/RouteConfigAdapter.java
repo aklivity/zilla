@@ -23,10 +23,10 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.engine.BindingInfo;
 import io.aklivity.zilla.config.engine.ConditionConfig;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.GenericRouteConfigBuilder;
 import io.aklivity.zilla.config.engine.GuardedConfig;
 import io.aklivity.zilla.config.engine.GuardedConfigBuilder;
@@ -40,8 +40,8 @@ public class RouteConfigAdapter
     private static final String WITH_NAME = "with";
     private static final String GUARDED_NAME = "guarded";
 
-    private final JsonbAdapter<ConditionConfig, JsonObject> condition;
-    private final JsonbAdapter<WithConfig, JsonObject> with;
+    private final ConfigAdapter<ConditionConfig, JsonObject> condition;
+    private final ConfigAdapter<WithConfig, JsonObject> with;
 
     public RouteConfigAdapter(
         BindingInfo info)
@@ -51,7 +51,7 @@ public class RouteConfigAdapter
     }
 
     public JsonObject adaptToJson(
-        RouteConfig route) throws Exception
+        RouteConfig route)
     {
         JsonObjectBuilder object = Json.createObjectBuilder();
 
@@ -98,7 +98,7 @@ public class RouteConfigAdapter
 
     public RouteConfig adaptFromJson(
         int index,
-        JsonObject object) throws Exception
+        JsonObject object)
     {
         GenericRouteConfigBuilder<RouteConfig> route = RouteConfig.builder()
             .order(index);

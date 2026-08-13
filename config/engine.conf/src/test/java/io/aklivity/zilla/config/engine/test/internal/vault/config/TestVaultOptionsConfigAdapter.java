@@ -20,11 +20,11 @@ import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonValue;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
-public final class TestVaultOptionsConfigAdapter implements JsonbAdapter<OptionsConfig, JsonObject>
+public final class TestVaultOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, JsonObject>
 {
     private static final String KEY_NAME = "key";
     private static final String SIGNER_NAME = "signer";

@@ -20,14 +20,14 @@ import java.util.List;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.binding.grpc.kafka.GrpcKafkaCapability;
 import io.aklivity.zilla.config.binding.grpc.kafka.GrpcKafkaWithConfig;
 import io.aklivity.zilla.config.binding.grpc.kafka.GrpcKafkaWithProduceConfig;
 import io.aklivity.zilla.config.binding.grpc.kafka.GrpcKafkaWithProduceOverrideConfig;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 
-public final class GrpcKafkaWithProduceConfigAdapter implements JsonbAdapter<GrpcKafkaWithConfig, JsonObject>
+public final class GrpcKafkaWithProduceConfigAdapter extends ConfigAdapter<GrpcKafkaWithConfig, JsonObject>
 {
     private static final String ACKS_DEFAULT = "in_sync_replicas";
 

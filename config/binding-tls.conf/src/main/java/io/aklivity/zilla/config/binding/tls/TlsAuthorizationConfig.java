@@ -16,7 +16,9 @@ package io.aklivity.zilla.config.binding.tls;
 
 import java.util.function.Function;
 
-public final class TlsAuthorizationConfig
+import io.aklivity.zilla.config.engine.Config;
+
+public final class TlsAuthorizationConfig extends Config
 {
     public final String name;
     public final TlsCredentialsConfig credentials;

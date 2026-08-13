@@ -17,8 +17,8 @@ package io.aklivity.zilla.config.engine.internal;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.GenericStoreConfig;
 import io.aklivity.zilla.config.engine.GenericStoreConfigBuilder;
 import io.aklivity.zilla.config.engine.OptionsConfig;
@@ -31,7 +31,7 @@ public class StoreConfigAdapter
     private static final String OPTIONS_NAME = "options";
 
     private final String type;
-    private final JsonbAdapter<OptionsConfig, JsonObject> options;
+    private final ConfigAdapter<OptionsConfig, JsonObject> options;
 
     public StoreConfigAdapter(
         StoreInfo info)
@@ -41,7 +41,7 @@ public class StoreConfigAdapter
     }
 
     public JsonObject adaptToJson(
-        StoreConfig store) throws Exception
+        StoreConfig store)
     {
         JsonObjectBuilder object = Json.createObjectBuilder();
 
@@ -58,7 +58,7 @@ public class StoreConfigAdapter
     public StoreConfig adaptFromJson(
         String namespace,
         String name,
-        JsonObject object) throws Exception
+        JsonObject object)
     {
         GenericStoreConfigBuilder<GenericStoreConfig> store = GenericStoreConfig.builder()
             .namespace(namespace)

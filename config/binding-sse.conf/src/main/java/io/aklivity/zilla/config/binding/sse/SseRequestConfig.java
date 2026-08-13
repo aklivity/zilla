@@ -16,9 +16,10 @@ package io.aklivity.zilla.config.binding.sse;
 
 import static java.util.function.Function.identity;
 
+import io.aklivity.zilla.config.engine.Config;
 import io.aklivity.zilla.config.engine.ModelConfig;
 
-public class SseRequestConfig
+public class SseRequestConfig extends Config
 {
     public final String path;
     public final ModelConfig content;

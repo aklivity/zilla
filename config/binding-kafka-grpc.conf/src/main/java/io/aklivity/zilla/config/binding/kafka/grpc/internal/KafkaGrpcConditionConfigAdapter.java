@@ -22,14 +22,14 @@ import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonString;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import org.agrona.collections.Object2ObjectHashMap;
 
 import io.aklivity.zilla.config.binding.kafka.grpc.KafkaGrpcConditionConfig;
 import io.aklivity.zilla.config.engine.ConditionConfig;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 
-public final class KafkaGrpcConditionConfigAdapter implements JsonbAdapter<ConditionConfig, JsonObject>
+public final class KafkaGrpcConditionConfigAdapter extends ConfigAdapter<ConditionConfig, JsonObject>
 {
     private static final Pattern METHOD_PATTERN = Pattern.compile("^(?<Service>[^/]+)/(?<Method>[^/]+)");
     private static final String SERVICE_NAME = "Service";

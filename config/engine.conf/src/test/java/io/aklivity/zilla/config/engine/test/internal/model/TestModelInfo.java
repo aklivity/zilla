@@ -17,8 +17,8 @@ package io.aklivity.zilla.config.engine.test.internal.model;
 import java.net.URL;
 
 import jakarta.json.JsonValue;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.ModelConfig;
 import io.aklivity.zilla.config.engine.ModelInfo;
 import io.aklivity.zilla.config.engine.test.internal.model.config.TestModelConfigAdapter;
@@ -40,7 +40,7 @@ public final class TestModelInfo implements ModelInfo
     }
 
     @Override
-    public JsonbAdapter<ModelConfig, JsonValue> adapter()
+    public ConfigAdapter<ModelConfig, JsonValue> adapter()
     {
         return new TestModelConfigAdapter();
     }

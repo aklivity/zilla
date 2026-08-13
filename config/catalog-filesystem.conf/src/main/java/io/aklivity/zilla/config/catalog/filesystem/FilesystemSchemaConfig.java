@@ -16,7 +16,9 @@ package io.aklivity.zilla.config.catalog.filesystem;
 
 import java.util.function.Function;
 
-public class FilesystemSchemaConfig
+import io.aklivity.zilla.config.engine.Config;
+
+public class FilesystemSchemaConfig extends Config
 {
     public final String subject;
     public final String path;

@@ -16,7 +16,9 @@ package io.aklivity.zilla.config.binding.mcp.openapi;
 
 import java.util.function.Function;
 
-public final class McpOpenapiCatalogConfig
+import io.aklivity.zilla.config.engine.Config;
+
+public final class McpOpenapiCatalogConfig extends Config
 {
     public final String name;
     public final String subject;

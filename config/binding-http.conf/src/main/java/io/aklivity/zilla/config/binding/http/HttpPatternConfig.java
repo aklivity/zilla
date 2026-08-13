@@ -16,7 +16,9 @@ package io.aklivity.zilla.config.binding.http;
 
 import static java.util.function.Function.identity;
 
-public final class HttpPatternConfig
+import io.aklivity.zilla.config.engine.Config;
+
+public final class HttpPatternConfig extends Config
 {
     public final String name;
     public final String pattern;
