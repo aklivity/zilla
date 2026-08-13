@@ -19,7 +19,9 @@ import static java.util.function.Function.identity;
 import java.util.List;
 import java.util.function.Function;
 
-public final class McpCacheToolsEagerConfig
+import io.aklivity.zilla.config.engine.Config;
+
+public final class McpCacheToolsEagerConfig extends Config
 {
     public final McpCacheToolsEagerPolicy policy;
     public final List<String> match;

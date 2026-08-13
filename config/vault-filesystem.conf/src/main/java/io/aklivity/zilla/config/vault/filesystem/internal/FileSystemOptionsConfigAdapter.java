@@ -17,13 +17,13 @@ package io.aklivity.zilla.config.vault.filesystem.internal;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 import io.aklivity.zilla.config.vault.filesystem.FileSystemOptionsConfig;
 import io.aklivity.zilla.config.vault.filesystem.FileSystemOptionsConfigBuilder;
 
-public final class FileSystemOptionsConfigAdapter implements JsonbAdapter<OptionsConfig, JsonObject>
+public final class FileSystemOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, JsonObject>
 {
     private static final String KEYS_NAME = "keys";
     private static final String TRUST_NAME = "trust";

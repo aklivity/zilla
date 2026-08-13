@@ -19,12 +19,12 @@ import java.net.URI;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.exporter.otlp.OtlpEndpointConfig;
 import io.aklivity.zilla.config.exporter.otlp.OtlpEndpointConfigBuilder;
 
-public class OtlpEndpointAdapter implements JsonbAdapter<OtlpEndpointConfig, JsonObject>
+public class OtlpEndpointAdapter extends ConfigAdapter<OtlpEndpointConfig, JsonObject>
 {
     private static final String PROTOCOL_NAME = "protocol";
     private static final String PROTOCOL_DEFAULT = "http";

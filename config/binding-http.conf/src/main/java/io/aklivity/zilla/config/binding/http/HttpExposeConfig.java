@@ -17,7 +17,9 @@ package io.aklivity.zilla.config.binding.http;
 import java.util.Set;
 import java.util.function.Function;
 
-public final class HttpExposeConfig
+import io.aklivity.zilla.config.engine.Config;
+
+public final class HttpExposeConfig extends Config
 {
     public final Set<String> headers;
 

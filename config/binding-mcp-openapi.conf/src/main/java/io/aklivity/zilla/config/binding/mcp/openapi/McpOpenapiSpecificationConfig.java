@@ -18,7 +18,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
-public final class McpOpenapiSpecificationConfig
+import io.aklivity.zilla.config.engine.Config;
+
+public final class McpOpenapiSpecificationConfig extends Config
 {
     public final String label;
     public final String server;

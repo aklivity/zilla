@@ -16,9 +16,10 @@ package io.aklivity.zilla.config.binding.risingwave;
 
 import java.util.function.Function;
 
+import io.aklivity.zilla.config.engine.Config;
 import io.aklivity.zilla.config.engine.ModelConfig;
 
-public class RisingwaveKafkaConfig
+public class RisingwaveKafkaConfig extends Config
 {
     public final RisingwaveKafkaPropertiesConfig properties;
     public final ModelConfig format;

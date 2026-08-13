@@ -25,16 +25,16 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.binding.openapi.OpenapiOptionsConfig;
 import io.aklivity.zilla.config.binding.openapi.OpenapiOptionsConfigBuilder;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiCatalogConfig;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiCatalogConfigBuilder;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiSpecificationConfig;
 
-public final class OpenapiOptionsConfigAdapter implements JsonbAdapter<OptionsConfig, JsonObject>
+public final class OpenapiOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, JsonObject>
 {
     private static final String SPECS_NAME = "specs";
     private static final String SERVERS_NAME = "servers";

@@ -28,12 +28,12 @@ import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonValue;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.config.engine.BindingInfo;
 import io.aklivity.zilla.config.engine.CatalogConfig;
 import io.aklivity.zilla.config.engine.CatalogInfo;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.EngineInfo;
 import io.aklivity.zilla.config.engine.GuardConfig;
 import io.aklivity.zilla.config.engine.GuardInfo;
@@ -44,7 +44,7 @@ import io.aklivity.zilla.config.engine.StoreInfo;
 import io.aklivity.zilla.config.engine.VaultConfig;
 import io.aklivity.zilla.config.engine.VaultInfo;
 
-public class NamespaceConfigAdapter implements JsonbAdapter<NamespaceConfig, JsonObject>
+public class NamespaceConfigAdapter extends ConfigAdapter<NamespaceConfig, JsonObject>
 {
     private static final String NAME_NAME = "name";
     private static final String TYPE_NAME = "type";
@@ -75,7 +75,7 @@ public class NamespaceConfigAdapter implements JsonbAdapter<NamespaceConfig, Jso
 
     @Override
     public JsonObject adaptToJson(
-        NamespaceConfig config) throws Exception
+        NamespaceConfig config)
     {
         JsonObjectBuilder object = Json.createObjectBuilder();
 
@@ -152,7 +152,7 @@ public class NamespaceConfigAdapter implements JsonbAdapter<NamespaceConfig, Jso
 
     @Override
     public NamespaceConfig adaptFromJson(
-        JsonObject object) throws Exception
+        JsonObject object)
     {
         NamespaceConfigBuilder<NamespaceConfig> builder = NamespaceConfig.builder();
         String namespace = object.getString(NAME_NAME);

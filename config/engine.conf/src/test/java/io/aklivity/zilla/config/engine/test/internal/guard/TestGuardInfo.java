@@ -17,8 +17,8 @@ package io.aklivity.zilla.config.engine.test.internal.guard;
 import java.net.URL;
 
 import jakarta.json.JsonObject;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.GuardInfo;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 import io.aklivity.zilla.config.engine.test.internal.guard.config.TestGuardOptionsConfigAdapter;
@@ -40,7 +40,7 @@ public final class TestGuardInfo implements GuardInfo
     }
 
     @Override
-    public JsonbAdapter<OptionsConfig, JsonObject> options()
+    public ConfigAdapter<OptionsConfig, JsonObject> options()
     {
         return new TestGuardOptionsConfigAdapter();
     }

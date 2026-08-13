@@ -14,8 +14,6 @@
  */
 package io.aklivity.zilla.config.vault.filesystem.internal;
 
-import static java.util.stream.Collectors.toList;
-
 import java.util.List;
 
 import jakarta.json.Json;
@@ -25,12 +23,12 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.vault.filesystem.FileSystemStoreConfig;
 import io.aklivity.zilla.config.vault.filesystem.FileSystemStoreConfigBuilder;
 
-public final class FileSystemStoreConfigAdapter implements JsonbAdapter<FileSystemStoreConfig, JsonObject>
+public final class FileSystemStoreConfigAdapter extends ConfigAdapter<FileSystemStoreConfig, JsonObject>
 {
     private static final String STORE_NAME = "store";
     private static final String TYPE_NAME = "type";
@@ -95,7 +93,7 @@ public final class FileSystemStoreConfigAdapter implements JsonbAdapter<FileSyst
     {
         return array.stream()
             .map(FileSystemStoreConfigAdapter::asString)
-            .collect(toList());
+            .toList();
     }
 
     private static String asString(

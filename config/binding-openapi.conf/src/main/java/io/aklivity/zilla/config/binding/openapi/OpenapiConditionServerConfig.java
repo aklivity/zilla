@@ -16,9 +16,10 @@ package io.aklivity.zilla.config.binding.openapi;
 
 import java.util.function.Function;
 
+import io.aklivity.zilla.config.engine.Config;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiServerView;
 
-public class OpenapiConditionServerConfig
+public class OpenapiConditionServerConfig extends Config
 {
     public final String url;
 

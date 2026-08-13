@@ -19,15 +19,15 @@ import jakarta.json.JsonArray;
 import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.binding.mqtt.MqttConditionConfig;
 import io.aklivity.zilla.config.binding.mqtt.MqttConditionConfigBuilder;
 import io.aklivity.zilla.config.binding.mqtt.MqttPublishConfigBuilder;
 import io.aklivity.zilla.config.binding.mqtt.MqttSubscribeConfigBuilder;
 import io.aklivity.zilla.config.engine.ConditionConfig;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 
-public final class MqttConditionConfigAdapter implements JsonbAdapter<ConditionConfig, JsonObject>
+public final class MqttConditionConfigAdapter extends ConfigAdapter<ConditionConfig, JsonObject>
 {
     private static final String SESSION_NAME = "session";
     private static final String SUBSCRIBE_NAME = "subscribe";

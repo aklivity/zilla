@@ -17,14 +17,14 @@ package io.aklivity.zilla.config.binding.mcp.internal;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.binding.mcp.McpWithCacheConfigBuilder;
 import io.aklivity.zilla.config.binding.mcp.McpWithConfig;
 import io.aklivity.zilla.config.binding.mcp.McpWithConfigBuilder;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.WithConfig;
 
-public final class McpWithConfigAdapter implements JsonbAdapter<WithConfig, JsonObject>
+public final class McpWithConfigAdapter extends ConfigAdapter<WithConfig, JsonObject>
 {
     private static final String CACHE_NAME = "cache";
     private static final String CACHE_CREDENTIALS_NAME = "credentials";

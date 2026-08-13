@@ -26,14 +26,14 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 import io.aklivity.zilla.config.guard.jwt.JwtKeyConfig;
 import io.aklivity.zilla.config.guard.jwt.JwtOptionsConfig;
 import io.aklivity.zilla.config.guard.jwt.JwtOptionsConfigBuilder;
 
-public final class JwtOptionsConfigAdapter implements JsonbAdapter<OptionsConfig, JsonObject>
+public final class JwtOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, JsonObject>
 {
     private static final String ISSUER_NAME = "issuer";
     private static final String AUDIENCE_NAME = "audience";

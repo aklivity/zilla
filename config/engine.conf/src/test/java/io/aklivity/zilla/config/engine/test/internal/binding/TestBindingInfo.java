@@ -17,10 +17,10 @@ package io.aklivity.zilla.config.engine.test.internal.binding;
 import java.net.URL;
 
 import jakarta.json.JsonObject;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.engine.BindingInfo;
 import io.aklivity.zilla.config.engine.ConditionConfig;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 import io.aklivity.zilla.config.engine.WithConfig;
 import io.aklivity.zilla.config.engine.test.internal.binding.config.TestBindingOptionsConfigAdapter;
@@ -44,19 +44,19 @@ public final class TestBindingInfo implements BindingInfo
     }
 
     @Override
-    public JsonbAdapter<OptionsConfig, JsonObject> options()
+    public ConfigAdapter<OptionsConfig, JsonObject> options()
     {
         return new TestBindingOptionsConfigAdapter();
     }
 
     @Override
-    public JsonbAdapter<ConditionConfig, JsonObject> condition()
+    public ConfigAdapter<ConditionConfig, JsonObject> condition()
     {
         return new TestConditionConfigAdapter();
     }
 
     @Override
-    public JsonbAdapter<WithConfig, JsonObject> with()
+    public ConfigAdapter<WithConfig, JsonObject> with()
     {
         return new TestWithConfigAdapter();
     }

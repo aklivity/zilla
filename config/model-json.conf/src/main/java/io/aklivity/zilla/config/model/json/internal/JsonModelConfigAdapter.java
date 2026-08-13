@@ -23,11 +23,11 @@ import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonValue;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.engine.CatalogedConfig;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
+import io.aklivity.zilla.config.engine.ConfigExtAdapter;
 import io.aklivity.zilla.config.engine.ModelConfig;
-import io.aklivity.zilla.config.engine.ModelConfigAdapterSpi;
 import io.aklivity.zilla.config.engine.SchemaConfig;
 import io.aklivity.zilla.config.engine.SchemaConfigAdapter;
 import io.aklivity.zilla.config.engine.ValidateConfig;
@@ -35,7 +35,7 @@ import io.aklivity.zilla.config.engine.ValidateConfigAdapter;
 import io.aklivity.zilla.config.model.json.JsonModelConfig;
 import io.aklivity.zilla.config.model.json.JsonModelConfigBuilder;
 
-public final class JsonModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAdapter<ModelConfig, JsonValue>
+public final class JsonModelConfigAdapter extends ConfigAdapter.Extensible<ModelConfig, JsonValue>
 {
     private static final String JSON = "json";
     private static final String MODEL_NAME = "model";
@@ -46,10 +46,10 @@ public final class JsonModelConfigAdapter implements ModelConfigAdapterSpi, Json
     private final SchemaConfigAdapter schema = new SchemaConfigAdapter();
     private final ValidateConfigAdapter validate = new ValidateConfigAdapter();
 
-    @Override
-    public String type()
+    public JsonModelConfigAdapter(
+        List<ConfigExtAdapter<ModelConfig>> extensions)
     {
-        return JSON;
+        super(extensions);
     }
 
     @Override
@@ -79,6 +79,8 @@ public final class JsonModelConfigAdapter implements ModelConfigAdapterSpi, Json
         {
             builder.add(VALIDATE_NAME, validateJson);
         }
+
+        injectExtensions(model, builder);
 
         return builder.build();
     }
@@ -116,6 +118,8 @@ public final class JsonModelConfigAdapter implements ModelConfigAdapterSpi, Json
             .subject(subject)
             .validate(validateConfig);
         catalogs.forEach(builder::catalog);
+
+        injectExtensions(object, builder);
 
         return builder.build();
     }

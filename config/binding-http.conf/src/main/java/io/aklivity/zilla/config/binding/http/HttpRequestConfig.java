@@ -18,9 +18,10 @@ import static java.util.function.Function.identity;
 
 import java.util.List;
 
+import io.aklivity.zilla.config.engine.Config;
 import io.aklivity.zilla.config.engine.ModelConfig;
 
-public class HttpRequestConfig
+public class HttpRequestConfig extends Config
 {
     public enum Method
     {

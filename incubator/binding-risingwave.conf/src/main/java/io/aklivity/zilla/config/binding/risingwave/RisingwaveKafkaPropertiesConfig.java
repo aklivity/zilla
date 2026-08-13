@@ -16,7 +16,9 @@ package io.aklivity.zilla.config.binding.risingwave;
 
 import java.util.function.Function;
 
-public class RisingwaveKafkaPropertiesConfig
+import io.aklivity.zilla.config.engine.Config;
+
+public class RisingwaveKafkaPropertiesConfig extends Config
 {
     public final String bootstrapServer;
 

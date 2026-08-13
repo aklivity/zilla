@@ -17,10 +17,10 @@ package io.aklivity.zilla.config.binding.grpc.internal;
 import java.net.URL;
 
 import jakarta.json.JsonObject;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.engine.BindingInfo;
 import io.aklivity.zilla.config.engine.ConditionConfig;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public final class GrpcBindingInfo implements BindingInfo
@@ -40,13 +40,13 @@ public final class GrpcBindingInfo implements BindingInfo
     }
 
     @Override
-    public JsonbAdapter<OptionsConfig, JsonObject> options()
+    public ConfigAdapter<OptionsConfig, JsonObject> options()
     {
         return new GrpcOptionsConfigAdapter();
     }
 
     @Override
-    public JsonbAdapter<ConditionConfig, JsonObject> condition()
+    public ConfigAdapter<ConditionConfig, JsonObject> condition()
     {
         return new GrpcConditionConfigAdapter();
     }

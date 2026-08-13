@@ -16,7 +16,9 @@ package io.aklivity.zilla.config.binding.http.kafka;
 
 import java.util.function.Function;
 
-public final class HttpKafkaCorrelationConfig
+import io.aklivity.zilla.config.engine.Config;
+
+public final class HttpKafkaCorrelationConfig extends Config
 {
     public final String replyTo;
     public final String correlationId;

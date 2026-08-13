@@ -17,8 +17,8 @@ package io.aklivity.zilla.config.model.core.internal;
 import java.net.URL;
 
 import jakarta.json.JsonValue;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.ModelConfig;
 import io.aklivity.zilla.config.engine.ModelInfo;
 
@@ -39,7 +39,7 @@ public final class BooleanModelInfo implements ModelInfo
     }
 
     @Override
-    public JsonbAdapter<ModelConfig, JsonValue> adapter()
+    public ConfigAdapter<ModelConfig, JsonValue> adapter()
     {
         return new BooleanModelConfigAdapter();
     }

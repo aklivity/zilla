@@ -16,7 +16,9 @@ package io.aklivity.zilla.config.binding.proxy;
 
 import java.util.function.Function;
 
-public class ProxyAddressConfig
+import io.aklivity.zilla.config.engine.Config;
+
+public class ProxyAddressConfig extends Config
 {
     public final String host;
 

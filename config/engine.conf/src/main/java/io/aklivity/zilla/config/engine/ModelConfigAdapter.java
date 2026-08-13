@@ -14,33 +14,30 @@
  */
 package io.aklivity.zilla.config.engine;
 
-import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toMap;
 
 import java.util.Map;
 import java.util.ServiceLoader;
-import java.util.function.Supplier;
 
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
-public final class ModelConfigAdapter implements JsonbAdapter<ModelConfig, JsonValue>
+import io.aklivity.zilla.config.engine.factory.Factory;
+
+public final class ModelConfigAdapter extends ConfigAdapter<ModelConfig, JsonValue>
 {
     private static final String MODEL_NAME = "model";
 
-    private final Map<String, ModelConfigAdapterSpi> delegatesByName;
-    private ModelConfigAdapterSpi delegate;
+    private final Map<String, ConfigAdapter<ModelConfig, JsonValue>> delegatesByName;
+    private ConfigAdapter<ModelConfig, JsonValue> delegate;
 
     public ModelConfigAdapter()
     {
-        delegatesByName = ServiceLoader
-            .load(ModelConfigAdapterSpi.class)
+        delegatesByName = Factory.instantiate(ServiceLoader.load(ModelInfo.class))
             .stream()
-            .map(Supplier::get)
-            .collect(toMap(ModelConfigAdapterSpi::type, identity()));
+            .collect(toMap(ModelInfo::type, ModelInfo::adapter));
     }
 
     public void adaptType(

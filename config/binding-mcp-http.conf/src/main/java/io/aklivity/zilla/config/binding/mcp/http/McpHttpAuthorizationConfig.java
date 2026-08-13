@@ -17,7 +17,9 @@ package io.aklivity.zilla.config.binding.mcp.http;
 import java.util.Map;
 import java.util.function.Function;
 
-public final class McpHttpAuthorizationConfig
+import io.aklivity.zilla.config.engine.Config;
+
+public final class McpHttpAuthorizationConfig extends Config
 {
     public final String name;
     public final Map<String, String> headers;

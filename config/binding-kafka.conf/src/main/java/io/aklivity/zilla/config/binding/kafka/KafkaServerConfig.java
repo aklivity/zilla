@@ -16,7 +16,9 @@ package io.aklivity.zilla.config.binding.kafka;
 
 import java.util.function.Function;
 
-public class KafkaServerConfig
+import io.aklivity.zilla.config.engine.Config;
+
+public class KafkaServerConfig extends Config
 {
     public final String host;
     public final int port;

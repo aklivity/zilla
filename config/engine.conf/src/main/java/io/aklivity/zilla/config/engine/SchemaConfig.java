@@ -16,7 +16,7 @@ package io.aklivity.zilla.config.engine;
 
 import java.util.function.Function;
 
-public class SchemaConfig
+public class SchemaConfig extends Config
 {
     public final String strategy;
     public final String version;

@@ -20,17 +20,16 @@ import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonValue;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.ModelConfig;
-import io.aklivity.zilla.config.engine.ModelConfigAdapterSpi;
 import io.aklivity.zilla.config.engine.ValidateConfig;
 import io.aklivity.zilla.config.engine.ValidateConfigAdapter;
 import io.aklivity.zilla.config.model.core.Int64ModelConfig;
 import io.aklivity.zilla.config.model.core.Int64ModelConfigBuilder;
 import io.aklivity.zilla.config.model.core.RangeConfig;
 
-public class Int64ModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAdapter<ModelConfig, JsonValue>
+public class Int64ModelConfigAdapter extends ConfigAdapter<ModelConfig, JsonValue>
 {
     private static final String MODEL_NAME = "model";
     private static final String FORMAT_NAME = "format";
@@ -40,12 +39,6 @@ public class Int64ModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAdap
 
     private final RangeConfigAdapter adapter = new RangeConfigAdapter();
     private final ValidateConfigAdapter validate = new ValidateConfigAdapter();
-
-    @Override
-    public String type()
-    {
-        return INT_64;
-    }
 
     @Override
     public JsonValue adaptToJson(
@@ -63,7 +56,7 @@ public class Int64ModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAdap
             config.multiple == Int64ModelConfigBuilder.DEFAULT_MULTIPLE &&
             validateJson == null)
         {
-            result = Json.createValue(type());
+            result = Json.createValue(INT_64);
         }
         else
         {

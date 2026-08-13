@@ -18,13 +18,13 @@ import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonString;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.binding.http.HttpWithConfig;
 import io.aklivity.zilla.config.binding.http.HttpWithConfigBuilder;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.WithConfig;
 
-public class HttpWithConfigAdapter implements JsonbAdapter<WithConfig, JsonObject>
+public class HttpWithConfigAdapter extends ConfigAdapter<WithConfig, JsonObject>
 {
     private static final String HEADERS_NAME = "headers";
     private static final String OVERRIDES_NAME = "overrides";

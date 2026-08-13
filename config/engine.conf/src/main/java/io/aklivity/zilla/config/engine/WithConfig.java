@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.config.engine;
 
-public abstract class WithConfig
+public abstract class WithConfig extends Config
 {
     public static final long NO_COMPOSITE_ID = 0L;
 

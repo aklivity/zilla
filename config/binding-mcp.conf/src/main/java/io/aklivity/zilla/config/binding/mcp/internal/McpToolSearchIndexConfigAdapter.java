@@ -23,12 +23,12 @@ import java.util.function.Supplier;
 
 import jakarta.json.JsonException;
 import jakarta.json.JsonObject;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.binding.mcp.McpToolSearchIndexConfig;
 import io.aklivity.zilla.config.binding.mcp.McpToolSearchIndexConfigAdapterSpi;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 
-public final class McpToolSearchIndexConfigAdapter implements JsonbAdapter<McpToolSearchIndexConfig, JsonObject>
+public final class McpToolSearchIndexConfigAdapter extends ConfigAdapter<McpToolSearchIndexConfig, JsonObject>
 {
     private static final String TYPE_NAME = "type";
 

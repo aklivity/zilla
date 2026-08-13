@@ -23,7 +23,7 @@ import java.util.function.UnaryOperator;
 
 import io.aklivity.zilla.runtime.common.lang.util.function.LongObjectPredicate;
 
-public class RouteConfig
+public class RouteConfig extends Config
 {
     public transient long id;
     public transient LongObjectPredicate<UnaryOperator<String>> authorized;

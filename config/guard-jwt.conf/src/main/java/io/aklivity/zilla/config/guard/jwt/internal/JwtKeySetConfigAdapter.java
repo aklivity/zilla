@@ -21,12 +21,12 @@ import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonValue;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.guard.jwt.JwtKeyConfig;
 import io.aklivity.zilla.config.guard.jwt.JwtKeySetConfig;
 
-public final class JwtKeySetConfigAdapter implements JsonbAdapter<JwtKeySetConfig, JsonObject>
+public final class JwtKeySetConfigAdapter extends ConfigAdapter<JwtKeySetConfig, JsonObject>
 {
     private static final String KEYS_NAME = "keys";
 

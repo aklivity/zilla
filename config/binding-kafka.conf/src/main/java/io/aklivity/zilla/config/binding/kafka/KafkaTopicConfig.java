@@ -17,9 +17,10 @@ package io.aklivity.zilla.config.binding.kafka;
 import java.util.Objects;
 import java.util.function.Function;
 
+import io.aklivity.zilla.config.engine.Config;
 import io.aklivity.zilla.config.engine.ModelConfig;
 
-public class KafkaTopicConfig
+public class KafkaTopicConfig extends Config
 {
     public final String name;
     public final String defaultOffset;

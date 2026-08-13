@@ -17,12 +17,12 @@ package io.aklivity.zilla.config.binding.openapi;
 import java.net.URL;
 
 import jakarta.json.JsonObject;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.binding.openapi.internal.OpenapiConditionConfigAdapter;
 import io.aklivity.zilla.config.binding.openapi.internal.OpenapiOptionsConfigAdapter;
 import io.aklivity.zilla.config.engine.BindingInfo;
 import io.aklivity.zilla.config.engine.ConditionConfig;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public final class OpenapiBindingInfo implements BindingInfo
@@ -42,13 +42,13 @@ public final class OpenapiBindingInfo implements BindingInfo
     }
 
     @Override
-    public JsonbAdapter<OptionsConfig, JsonObject> options()
+    public ConfigAdapter<OptionsConfig, JsonObject> options()
     {
         return new OpenapiOptionsConfigAdapter();
     }
 
     @Override
-    public JsonbAdapter<ConditionConfig, JsonObject> condition()
+    public ConfigAdapter<ConditionConfig, JsonObject> condition()
     {
         return new OpenapiConditionConfigAdapter();
     }

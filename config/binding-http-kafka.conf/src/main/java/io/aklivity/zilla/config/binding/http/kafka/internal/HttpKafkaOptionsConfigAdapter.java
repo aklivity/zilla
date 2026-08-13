@@ -17,16 +17,16 @@ package io.aklivity.zilla.config.binding.http.kafka.internal;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaCorrelationConfig;
 import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaCorrelationConfigBuilder;
 import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaIdempotencyConfig;
 import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaOptionsConfig;
 import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaOptionsConfigBuilder;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
-public final class HttpKafkaOptionsConfigAdapter implements JsonbAdapter<OptionsConfig, JsonObject>
+public final class HttpKafkaOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, JsonObject>
 {
     private static final String IDEMPOTENCY_NAME = "idempotency";
     private static final String IDEMPOTENCY_HEADER_NAME = "header";

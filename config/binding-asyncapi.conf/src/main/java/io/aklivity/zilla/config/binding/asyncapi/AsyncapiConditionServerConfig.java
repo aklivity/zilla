@@ -16,9 +16,10 @@ package io.aklivity.zilla.config.binding.asyncapi;
 
 import java.util.function.Function;
 
+import io.aklivity.zilla.config.engine.Config;
 import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiServerView;
 
-public final class AsyncapiConditionServerConfig
+public final class AsyncapiConditionServerConfig extends Config
 {
     public final String name;
     public final String url;

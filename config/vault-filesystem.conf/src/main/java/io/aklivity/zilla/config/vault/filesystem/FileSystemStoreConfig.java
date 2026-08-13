@@ -18,7 +18,9 @@ import static java.util.function.Function.identity;
 
 import java.util.List;
 
-public final class FileSystemStoreConfig
+import io.aklivity.zilla.config.engine.Config;
+
+public final class FileSystemStoreConfig extends Config
 {
     public final String store;
     public final String type;

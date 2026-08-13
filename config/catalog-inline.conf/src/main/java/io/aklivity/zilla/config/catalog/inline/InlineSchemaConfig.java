@@ -16,7 +16,9 @@ package io.aklivity.zilla.config.catalog.inline;
 
 import java.util.function.Function;
 
-public class InlineSchemaConfig
+import io.aklivity.zilla.config.engine.Config;
+
+public class InlineSchemaConfig extends Config
 {
     public final String subject;
     public final String version;

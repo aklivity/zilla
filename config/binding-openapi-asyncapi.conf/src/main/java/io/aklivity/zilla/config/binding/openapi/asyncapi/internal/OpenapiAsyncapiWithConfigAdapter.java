@@ -17,12 +17,12 @@ package io.aklivity.zilla.config.binding.openapi.asyncapi.internal;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.binding.openapi.asyncapi.OpenapiAsyncapiWithConfig;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.WithConfig;
 
-public class OpenapiAsyncapiWithConfigAdapter implements JsonbAdapter<WithConfig, JsonObject>
+public class OpenapiAsyncapiWithConfigAdapter extends ConfigAdapter<WithConfig, JsonObject>
 {
     private static final String SPEC_NAME = "spec";
     private static final String OPERATION_NAME = "operation";

@@ -18,7 +18,9 @@ import static java.util.function.Function.identity;
 
 import java.util.List;
 
-public final class HttpCredentialsConfig
+import io.aklivity.zilla.config.engine.Config;
+
+public final class HttpCredentialsConfig extends Config
 {
     public final List<HttpPatternConfig> headers;
     public final List<HttpPatternConfig> parameters;

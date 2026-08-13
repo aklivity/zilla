@@ -24,15 +24,15 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import org.agrona.collections.Object2ObjectHashMap;
 
 import io.aklivity.zilla.config.binding.grpc.kafka.GrpcKafkaConditionConfig;
 import io.aklivity.zilla.config.binding.grpc.kafka.GrpcKafkaMetadataValueConfig;
 import io.aklivity.zilla.config.engine.ConditionConfig;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 
-public final class GrpcKafkaConditionConfigAdapter implements JsonbAdapter<ConditionConfig, JsonObject>
+public final class GrpcKafkaConditionConfigAdapter extends ConfigAdapter<ConditionConfig, JsonObject>
 {
     private static final Pattern METHOD_PATTERN = Pattern.compile("^(?<Service>[^/]+)/(?<Method>[^/]+)");
     private static final String SERVICE_NAME = "Service";

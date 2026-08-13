@@ -17,11 +17,11 @@ package io.aklivity.zilla.config.engine.test.internal.catalog.config;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
-public class TestCatalogOptionsConfigAdapter implements JsonbAdapter<OptionsConfig, JsonObject>
+public class TestCatalogOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, JsonObject>
 {
     private static final String SUBJECT_NAME = "subject";
     private static final String SCHEMA_NAME = "schema";

@@ -17,12 +17,12 @@ package io.aklivity.zilla.config.binding.proxy.internal;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.binding.proxy.ProxySecureInfoConfig;
 import io.aklivity.zilla.config.binding.proxy.ProxySecureInfoConfigBuilder;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 
-public final class ProxySecureInfoConfigAdapter implements JsonbAdapter<ProxySecureInfoConfig, JsonObject>
+public final class ProxySecureInfoConfigAdapter extends ConfigAdapter<ProxySecureInfoConfig, JsonObject>
 {
     private static final String VERSION_NAME = "version";
     private static final String CIPHER_NAME = "cipher";

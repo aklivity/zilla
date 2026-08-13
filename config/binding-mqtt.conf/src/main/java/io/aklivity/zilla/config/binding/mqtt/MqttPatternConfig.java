@@ -16,7 +16,9 @@ package io.aklivity.zilla.config.binding.mqtt;
 
 import java.util.function.Function;
 
-public final class MqttPatternConfig
+import io.aklivity.zilla.config.engine.Config;
+
+public final class MqttPatternConfig extends Config
 {
     public final MqttConnectProperty property;
     public final String pattern;

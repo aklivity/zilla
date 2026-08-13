@@ -17,7 +17,7 @@ package io.aklivity.zilla.config.engine;
 import static java.util.Objects.requireNonNull;
 import static java.util.function.Function.identity;
 
-public class MetricRefConfig
+public class MetricRefConfig extends Config
 {
     public final String name;
 

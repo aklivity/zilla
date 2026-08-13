@@ -18,7 +18,9 @@ import static java.util.function.Function.identity;
 
 import java.util.function.Function;
 
-public final class HttpAuthorizationConfig
+import io.aklivity.zilla.config.engine.Config;
+
+public final class HttpAuthorizationConfig extends Config
 {
     public final String name;
     public final HttpCredentialsConfig credentials;

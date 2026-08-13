@@ -16,9 +16,10 @@ package io.aklivity.zilla.config.binding.http;
 
 import static java.util.function.Function.identity;
 
+import io.aklivity.zilla.config.engine.Config;
 import io.aklivity.zilla.config.engine.ModelConfig;
 
-public class HttpParamConfig
+public class HttpParamConfig extends Config
 {
     public String name;
     public ModelConfig model;

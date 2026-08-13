@@ -16,7 +16,9 @@ package io.aklivity.zilla.config.binding.risingwave;
 
 import java.util.function.Function;
 
-public class RisingwaveUdfConfig
+import io.aklivity.zilla.config.engine.Config;
+
+public class RisingwaveUdfConfig extends Config
 {
     public final String server;
     public final String language;
