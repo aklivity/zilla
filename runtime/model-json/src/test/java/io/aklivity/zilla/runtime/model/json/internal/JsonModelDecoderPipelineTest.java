@@ -100,20 +100,20 @@ public class JsonModelDecoderPipelineTest
         ByteArrayOutputStream outA = new ByteArrayOutputStream();
 
         // stream A: first fragment, incomplete -> UNDERFLOW
-        ModelPipelineResult ra1 = a.transform(0L, 0L, FLAGS_INIT,
+        ModelPipelineResult ra1 = a.transform(0L, 0L, 0L, FLAGS_INIT,
             new UnsafeBufferEx(a1), 0, a1.length, dst, 0, dst.capacity());
         assertEquals(ModelStatus.UNDERFLOW, ra1.status());
         drain(dst, ra1.produced(), outA);
 
         // stream B: a whole value fed in the middle of A — would corrupt A if state were shared
-        ModelPipelineResult rb = b.transform(0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult rb = b.transform(0L, 0L, 0L, FLAGS_COMPLETE,
             new UnsafeBufferEx(bWhole), 0, bWhole.length, dst, 0, dst.capacity());
         assertEquals(ModelStatus.COMPLETE, rb.status());
         assertEquals("{\"id\":\"B\",\"status\":\"NO\"}", text(dst, rb.produced()));
 
         // stream A: finish, prepending A's unconsumed remainder (the caller's decode-slot residue)
         byte[] a2 = concat(a1, ra1.consumed(), a2tail);
-        ModelPipelineResult ra2 = a.transform(0L, 0L, FLAGS_FIN,
+        ModelPipelineResult ra2 = a.transform(0L, 0L, 0L, FLAGS_FIN,
             new UnsafeBufferEx(a2), 0, a2.length, dst, 0, dst.capacity());
         assertEquals(ModelStatus.COMPLETE, ra2.status());
         drain(dst, ra2.produced(), outA);
@@ -130,7 +130,7 @@ public class JsonModelDecoderPipelineTest
 
         byte[] in = "{\"id\":\"123\",\"status\":\"OK\"}".getBytes(UTF_8);
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
             new UnsafeBufferEx(in), 0, in.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.COMPLETE, result.status());
@@ -148,7 +148,7 @@ public class JsonModelDecoderPipelineTest
         // "id" holds a 3-byte BMP char (中) and a 2-byte char (é); "status" holds a surrogate-pair emoji (😀)
         byte[] in = "{\"id\":\"中é\",\"status\":\"😀\"}".getBytes(UTF_8);
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
             new UnsafeBufferEx(in), 0, in.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.COMPLETE, result.status());
@@ -166,7 +166,7 @@ public class JsonModelDecoderPipelineTest
         // \uD800 is an unpaired high surrogate; String.getBytes(UTF_8) replaces it with '?' (0x3F)
         byte[] in = "{\"id\":\"a\\uD800b\",\"status\":\"OK\"}".getBytes(UTF_8);
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
             new UnsafeBufferEx(in), 0, in.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.COMPLETE, result.status());
@@ -188,7 +188,7 @@ public class JsonModelDecoderPipelineTest
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[512]);
 
         // window 1: everything up to (not including) the value
-        ModelPipelineResult r1 = pipeline.transform(0L, 0L, FLAGS_INIT,
+        ModelPipelineResult r1 = pipeline.transform(0L, 0L, 0L, FLAGS_INIT,
             new UnsafeBufferEx(head), 0, head.length, dst, 0, dst.capacity());
         assertEquals(ModelStatus.UNDERFLOW, r1.status());
 
@@ -197,7 +197,7 @@ public class JsonModelDecoderPipelineTest
         byte[] remainder1 = concat(head, r1.consumed(), new byte[0]);
         byte[] valueChunk1 = ("\"" + note.substring(0, 20)).getBytes(UTF_8);
         byte[] window2 = concat(remainder1, 0, valueChunk1);
-        ModelPipelineResult r2 = pipeline.transform(0L, 0L, FLAGS_NONE,
+        ModelPipelineResult r2 = pipeline.transform(0L, 0L, 0L, FLAGS_NONE,
             new UnsafeBufferEx(window2), 0, window2.length, dst, 0, dst.capacity());
         assertEquals(ModelStatus.UNDERFLOW, r2.status());
 
@@ -205,7 +205,7 @@ public class JsonModelDecoderPipelineTest
         byte[] remainder2 = concat(window2, r2.consumed(), new byte[0]);
         byte[] tail = (note.substring(20) + "\"}").getBytes(UTF_8);
         byte[] window3 = concat(remainder2, 0, tail);
-        ModelPipelineResult r3 = pipeline.transform(0L, 0L, FLAGS_FIN,
+        ModelPipelineResult r3 = pipeline.transform(0L, 0L, 0L, FLAGS_FIN,
             new UnsafeBufferEx(window3), 0, window3.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.COMPLETE, r3.status());
@@ -232,7 +232,7 @@ public class JsonModelDecoderPipelineTest
 
         byte[] in = "{\"id\":\"123\",\"status\":\"OK\"}".getBytes(UTF_8);
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
-        pipeline.transform(0L, 0L, FLAGS_COMPLETE,
+        pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
             new UnsafeBufferEx(in), 0, in.length, dst, 0, dst.capacity());
 
         assertTrue(pipeline.identity());

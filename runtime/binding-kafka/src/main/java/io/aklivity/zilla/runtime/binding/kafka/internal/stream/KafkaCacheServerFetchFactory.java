@@ -102,6 +102,10 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
 
     private static final int ERROR_NOT_LEADER_FOR_PARTITION = 6;
 
+    // populating the cache from the topic itself, ahead of any consumer's authorized read, carries no
+    // per-consumer authorization to thread through the model pipeline
+    private static final long NO_AUTHORIZATION = 0L;
+
     private static final DirectBufferEx EMPTY_BUFFER = new UnsafeBufferEx();
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
@@ -819,8 +823,8 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                     entryFlags |= CACHE_ENTRY_FLAGS_ABORTED;
                 }
 
-                partition.writeEntry(context, traceId, routedId, partitionOffset, entryMark, valueMark, timestamp, AUTHORITATIVE,
-                    producerId, EMPTY_KEY, EMPTY_HEADERS, EMPTY_OCTETS,
+                partition.writeEntry(context, traceId, routedId, NO_AUTHORIZATION, partitionOffset, entryMark, valueMark,
+                    timestamp, AUTHORITATIVE, producerId, EMPTY_KEY, EMPTY_HEADERS, EMPTY_OCTETS,
                     entryFlags, KafkaDeltaType.NONE, pipeline, verbose);
 
                 if (result == KafkaTransactionResult.ABORT)
@@ -926,7 +930,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                 final int entryFlags =
                     ((flags & FLAGS_SKIP) != 0x00 ? CACHE_ENTRY_FLAGS_ABORTED : 0x00) |
                     (timestampType == AUTHORITATIVE ? CACHE_ENTRY_FLAGS_AUTHORITATIVE : 0x00);
-                partition.writeEntryStart(context, traceId, routedId, partitionOffset, entryMark, valueMark,
+                partition.writeEntryStart(context, traceId, routedId, NO_AUTHORIZATION, partitionOffset, entryMark, valueMark,
                     timestamp, timestampType, producerId, key, valueLength, findAncestor, entryFlags, deltaType, valueFragment,
                     pipeline, verbose);
             }
@@ -952,8 +956,8 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                 assert partitionId == partition.id();
                 assert partitionOffset >= this.partitionOffset;
 
-                partition.writeEntryFinish(headers, deltaType, context, traceId, routedId, flags, partitionOffset,
-                    entryMark, valueMark, pipeline, verbose);
+                partition.writeEntryFinish(headers, deltaType, context, traceId, routedId, NO_AUTHORIZATION, flags,
+                    partitionOffset, entryMark, valueMark, pipeline, verbose);
 
                 this.partitionOffset = partitionOffset;
                 this.stableOffset = stableOffset;

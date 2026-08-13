@@ -219,6 +219,7 @@ public final class McpBindingConfig
         int schemaId,
         long traceId,
         long bindingId,
+        long authorization,
         DirectBufferEx data,
         int index,
         int limit)
@@ -235,7 +236,7 @@ public final class McpBindingConfig
             boolean done = false;
             while (!done)
             {
-                final ModelPipelineResult result = decoder.transform(traceId, bindingId, flags,
+                final ModelPipelineResult result = decoder.transform(traceId, bindingId, authorization, flags,
                     data, srcAt, limit, scratch, produced, scratch.capacity());
                 final ModelStatus status = result.status();
                 if (status == ModelStatus.REJECTED)
@@ -312,6 +313,7 @@ public final class McpBindingConfig
         int schemaId,
         long traceId,
         long bindingId,
+        long authorization,
         DirectBufferEx params,
         int index,
         int limit)
@@ -321,7 +323,7 @@ public final class McpBindingConfig
         if (arguments != null)
         {
             final int length = argsScratch.putStringWithoutLengthUtf8(0, arguments);
-            valid = validateToolArgs(schemaId, traceId, bindingId, argsScratch, 0, length);
+            valid = validateToolArgs(schemaId, traceId, bindingId, authorization, argsScratch, 0, length);
         }
         return valid;
     }

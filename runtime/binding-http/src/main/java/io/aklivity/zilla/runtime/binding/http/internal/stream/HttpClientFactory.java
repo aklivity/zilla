@@ -5130,7 +5130,8 @@ public final class HttpClientFactory implements HttpStreamFactory
                 final int responseNoAck = (int)(responseSeq - responseAck);
                 final int window = Math.max(responseMax - responseNoAck - responsePad, 0);
                 final int dstMax = Math.min(window, modelBuffer.capacity());
-                final int consumed = content.transform(traceId, routedId, flags, buffer, offset, limit, dstMax);
+                final int consumed =
+                    content.transform(traceId, routedId, authorization, flags, buffer, offset, limit, dstMax);
 
                 if (consumed < 0)
                 {
@@ -5393,7 +5394,8 @@ public final class HttpClientFactory implements HttpStreamFactory
                         final HttpModel model = response.headers.get(name);
                         if (model != null && model != HttpModel.NONE)
                         {
-                            final int produced = model.transform(traceId, routedId, value.value(), 0, value.length());
+                            final int produced =
+                                model.transform(traceId, routedId, requestAuth, value.value(), 0, value.length());
                             if (produced < 0)
                             {
                                 modelValid.value = false;

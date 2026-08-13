@@ -718,7 +718,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                     assert partitionOffset >= 0 && partitionOffset >= nextOffset
                         : String.format("%d >= 0 && %d >= %d", partitionOffset, partitionOffset, nextOffset);
 
-                    if (partition.writeProduceEntryStart(traceId, routedId, partitionOffset, stream.segment,
+                    if (partition.writeProduceEntryStart(traceId, routedId, authorization, partitionOffset, stream.segment,
                         stream.entryMark, stream.valueMark, stream.valueLimit, timestamp, stream.initialId,
                         producerId, producerEpoch, sequence, ackMode, key, valueLength,
                         headers, trailersSizeMax, valueFragment, transformKey, transformValue) == -1)
@@ -737,7 +737,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
 
             if (valueFragment != null && error == NO_ERROR)
             {
-                if (partition.writeProduceEntryContinue(traceId, routedId, flags, stream.segment,
+                if (partition.writeProduceEntryContinue(traceId, routedId, authorization, flags, stream.segment,
                         stream.entryMark, stream.valueMark, stream.valueLimit,
                         valueFragment, transformValue) == -1)
                 {
@@ -798,10 +798,10 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 assert partitionOffset >= 0 && partitionOffset >= nextOffset
                     : String.format("%d >= 0 && %d >= %d", partitionOffset, partitionOffset, nextOffset);
 
-                partition.writeProduceEntryStart(traceId, routedId, partitionOffset, stream.segment, stream.entryMark,
-                    stream.valueMark, stream.valueLimit, now().toEpochMilli(), stream.initialId, PRODUCE_FLUSH_PRODUCER_ID,
-                    PRODUCE_FLUSH_PRODUCER_EPOCH, PRODUCE_FLUSH_SEQUENCE, KafkaAckMode.LEADER_ONLY, EMPTY_KEY,
-                    0, EMPTY_TRAILERS, trailersSizeMax, EMPTY_OCTETS, transformKey, transformValue);
+                partition.writeProduceEntryStart(traceId, routedId, authorization, partitionOffset, stream.segment,
+                    stream.entryMark, stream.valueMark, stream.valueLimit, now().toEpochMilli(), stream.initialId,
+                    PRODUCE_FLUSH_PRODUCER_ID, PRODUCE_FLUSH_PRODUCER_EPOCH, PRODUCE_FLUSH_SEQUENCE, KafkaAckMode.LEADER_ONLY,
+                    EMPTY_KEY, 0, EMPTY_TRAILERS, trailersSizeMax, EMPTY_OCTETS, transformKey, transformValue);
                 stream.partitionOffset = partitionOffset;
                 partitionOffset++;
 

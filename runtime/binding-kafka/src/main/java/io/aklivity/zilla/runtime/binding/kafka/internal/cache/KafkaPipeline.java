@@ -180,50 +180,54 @@ public final class KafkaPipeline
      * Drives the key through its model, selecting the key lane for the transform chain. A stage may append
      * to the key lane while this runs; appending to any other lane is not supported.
      *
-     * @param traceId    the trace identifier for diagnostics
-     * @param bindingId  the binding identifier
-     * @param data       the buffer holding the untransformed key
-     * @param index      the offset of the key
-     * @param limit      the offset just past the key
-     * @param next       receives the transformed key bytes
-     * @param sink       the terminal each lane's content is written through
+     * @param traceId       the trace identifier for diagnostics
+     * @param bindingId     the binding identifier
+     * @param authorization the authorization in effect for the message being transformed
+     * @param data          the buffer holding the untransformed key
+     * @param index         the offset of the key
+     * @param limit         the offset just past the key
+     * @param next          receives the transformed key bytes
+     * @param sink          the terminal each lane's content is written through
      * @return the transformed key length, or {@code -1} if the key was rejected
      */
     public int transformKey(
         long traceId,
         long bindingId,
+        long authorization,
         DirectBufferEx data,
         int index,
         int limit,
         KafkaCacheModel.Output next,
         KafkaSink sink)
     {
-        return drive(key, KafkaEvent.SWITCH_KEY, traceId, bindingId, data, index, limit, next, sink);
+        return drive(key, KafkaEvent.SWITCH_KEY, traceId, bindingId, authorization, data, index, limit, next, sink);
     }
 
     /**
      * Drives the value through its model, selecting the value lane for the transform chain. A stage may
      * append to the headers lane while this runs; appending to the key lane is not supported.
      *
-     * @param traceId    the trace identifier for diagnostics
-     * @param bindingId  the binding identifier
-     * @param data       the buffer holding the untransformed value
-     * @param index      the offset of the value
-     * @param limit      the offset just past the value
-     * @param next       receives the transformed value bytes
-     * @param sink       the terminal each lane's content is written through
+     * @param traceId       the trace identifier for diagnostics
+     * @param bindingId     the binding identifier
+     * @param authorization the authorization in effect for the message being transformed
+     * @param data          the buffer holding the untransformed value
+     * @param index         the offset of the value
+     * @param limit         the offset just past the value
+     * @param next          receives the transformed value bytes
+     * @param sink          the terminal each lane's content is written through
      * @return the transformed value length, or {@code -1} if the value was rejected
      */
     public int transformValue(
         long traceId,
         long bindingId,
+        long authorization,
         DirectBufferEx data,
         int index,
         int limit,
         KafkaCacheModel.Output next,
         KafkaSink sink)
     {
-        return drive(value, KafkaEvent.SWITCH_VALUE, traceId, bindingId, data, index, limit, next, sink);
+        return drive(value, KafkaEvent.SWITCH_VALUE, traceId, bindingId, authorization, data, index, limit, next, sink);
     }
 
     /**
@@ -257,6 +261,7 @@ public final class KafkaPipeline
         KafkaEvent lane,
         long traceId,
         long bindingId,
+        long authorization,
         DirectBufferEx data,
         int index,
         int limit,
@@ -266,7 +271,7 @@ public final class KafkaPipeline
         this.sink = guard.begin(lane, sink);
         transform.reset();
 
-        final int transformed = model.transform(traceId, bindingId, data, index, limit, next);
+        final int transformed = model.transform(traceId, bindingId, authorization, data, index, limit, next);
 
         this.sink = ANNOUNCE;
 

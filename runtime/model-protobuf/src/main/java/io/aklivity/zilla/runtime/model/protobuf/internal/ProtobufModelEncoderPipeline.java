@@ -58,6 +58,7 @@ final class ProtobufModelEncoderPipeline implements ModelPipeline
     public ModelPipelineResult transform(
         long traceId,
         long bindingId,
+        long authorization,
         int flags,
         DirectBufferEx src,
         int srcIndex,

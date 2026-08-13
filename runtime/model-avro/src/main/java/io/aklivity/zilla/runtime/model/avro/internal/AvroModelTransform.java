@@ -192,6 +192,14 @@ final class AvroModelTransform implements AvroTransform
         return transform.identity();
     }
 
+    // stored on the shared Control so every transform.transform(...) call this adapter drives during the
+    // current message sees the authorization the owning pipeline received for it
+    void authorization(
+        long authorization)
+    {
+        control.authorization = authorization;
+    }
+
     // observing mode: track as a side-effect before forwarding — the downstream consumes a length-delimited
     // value off the source as it writes it, so the bytes must be captured while the source still exposes them
     private Status observe(
@@ -515,7 +523,14 @@ final class AvroModelTransform implements AvroTransform
 
     private static final class Control implements ModelController
     {
+        private long authorization;
         private String diagnostic;
+
+        @Override
+        public long authorization()
+        {
+            return authorization;
+        }
 
         @Override
         public void reject(

@@ -118,7 +118,7 @@ public class JsonModelDecoderPipelineBM
     private int run(
         ModelPipeline pipeline)
     {
-        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
             validBuffer, 0, validLength, dst, 0, dst.capacity());
         return result.produced();
     }

@@ -67,7 +67,7 @@ public class KafkaPipelineTest
         KafkaTopicTransformsType transforms = new KafkaTopicTransformsType("$.id", emptyList());
         KafkaPipeline pipeline = KafkaPipeline.decoder(handler("$.id", "id0"), null, transforms, scratch);
 
-        int transformed = pipeline.transformKey(0L, 0L, message("key0"), 0, 4, sink, recorder);
+        int transformed = pipeline.transformKey(0L, 0L, 0L, message("key0"), 0, 4, sink, recorder);
 
         assertEquals(4, transformed);
         assertEquals("key0", output.toString());
@@ -85,7 +85,7 @@ public class KafkaPipelineTest
             singletonList(new KafkaTopicHeaderType("region", "$.region")));
         KafkaPipeline pipeline = KafkaPipeline.decoder(null, handler("$.region", "east"), transforms, scratch);
 
-        int transformed = pipeline.transformValue(0L, 0L, message("payload"), 0, 7, sink, recorder);
+        int transformed = pipeline.transformValue(0L, 0L, 0L, message("payload"), 0, 7, sink, recorder);
 
         assertEquals(7, transformed);
         assertEquals("payload", output.toString());
@@ -100,7 +100,7 @@ public class KafkaPipelineTest
         KafkaPipeline pipeline = KafkaPipeline.decoder(null,
             handler("$.region", "east", "$.status", "ok"), transforms, scratch);
 
-        pipeline.transformValue(0L, 0L, message("payload"), 0, 7, sink, recorder);
+        pipeline.transformValue(0L, 0L, 0L, message("payload"), 0, 7, sink, recorder);
 
         // the headers land in the order the fields are encountered, not the order they are configured in
         assertEquals(asList(
@@ -119,7 +119,7 @@ public class KafkaPipelineTest
         KafkaPipeline pipeline = KafkaPipeline.stagedDecoder(handler("$.id", "id0"), null,
             new KafkaExtractTransform(KafkaEvent.SWITCH_KEY, KafkaEvent.SWITCH_HEADERS, "$.id", "id"), scratch);
 
-        pipeline.transformKey(0L, 0L, message("key0"), 0, 4, sink, recorder);
+        pipeline.transformKey(0L, 0L, 0L, message("key0"), 0, 4, sink, recorder);
     }
 
     @Test(expected = AssertionError.class)
@@ -128,7 +128,7 @@ public class KafkaPipelineTest
         KafkaPipeline pipeline = KafkaPipeline.stagedDecoder(handler("$.id", "id0"), null,
             new KafkaExtractTransform(KafkaEvent.SWITCH_KEY, KafkaEvent.SWITCH_VALUE, "$.id", "id"), scratch);
 
-        pipeline.transformKey(0L, 0L, message("key0"), 0, 4, sink, recorder);
+        pipeline.transformKey(0L, 0L, 0L, message("key0"), 0, 4, sink, recorder);
     }
 
     @Test(expected = AssertionError.class)
@@ -137,7 +137,7 @@ public class KafkaPipelineTest
         KafkaPipeline pipeline = KafkaPipeline.stagedDecoder(null, handler("$.region", "east"),
             new KafkaExtractTransform(KafkaEvent.SWITCH_VALUE, KafkaEvent.SWITCH_KEY, "$.region", "region"), scratch);
 
-        pipeline.transformValue(0L, 0L, message("payload"), 0, 7, sink, recorder);
+        pipeline.transformValue(0L, 0L, 0L, message("payload"), 0, 7, sink, recorder);
     }
 
     @Test(expected = AssertionError.class)
@@ -146,7 +146,7 @@ public class KafkaPipelineTest
         KafkaPipeline pipeline = KafkaPipeline.stagedDecoder(null, handler("$.region", "east"),
             new AppendingOnSwitch(), scratch);
 
-        pipeline.transformValue(0L, 0L, message("payload"), 0, 7, sink, recorder);
+        pipeline.transformValue(0L, 0L, 0L, message("payload"), 0, 7, sink, recorder);
     }
 
     @Test
@@ -154,7 +154,7 @@ public class KafkaPipelineTest
     {
         KafkaPipeline pipeline = KafkaPipeline.decoder(null, handler("$.region", "east"), null, scratch);
 
-        int transformed = pipeline.transformValue(0L, 0L, message("payload"), 0, 7, sink, recorder);
+        int transformed = pipeline.transformValue(0L, 0L, 0L, message("payload"), 0, 7, sink, recorder);
 
         assertEquals(7, transformed);
         assertEquals(emptyList(), events);
@@ -177,7 +177,7 @@ public class KafkaPipelineTest
         assertFalse(KafkaPipeline.NONE.transformsValue());
         assertEquals(0, KafkaPipeline.NONE.padding(message("x"), 0, 1));
 
-        int transformed = KafkaPipeline.NONE.transformValue(0L, 0L, message("passthrough"), 0, 11, sink, recorder);
+        int transformed = KafkaPipeline.NONE.transformValue(0L, 0L, 0L, message("passthrough"), 0, 11, sink, recorder);
 
         assertEquals(11, transformed);
         assertEquals("passthrough", output.toString());
@@ -202,7 +202,7 @@ public class KafkaPipelineTest
             singletonList(new KafkaTopicHeaderType("region", "$.region")));
         KafkaPipeline pipeline = KafkaPipeline.decoder(null, rejectingHandler("$.region"), transforms, scratch);
 
-        int transformed = pipeline.transformValue(0L, 0L, message("payload"), 0, 7, sink, recorder);
+        int transformed = pipeline.transformValue(0L, 0L, 0L, message("payload"), 0, 7, sink, recorder);
 
         assertEquals(-1, transformed);
     }
@@ -214,11 +214,11 @@ public class KafkaPipelineTest
             singletonList(new KafkaTopicHeaderType("region", "$.region")));
         KafkaPipeline pipeline = KafkaPipeline.decoder(null, handler("$.region", "east"), transforms, scratch);
 
-        pipeline.transformValue(0L, 0L, message("first"), 0, 5, sink, recorder);
+        pipeline.transformValue(0L, 0L, 0L, message("first"), 0, 5, sink, recorder);
         pipeline.reset();
         events.clear();
 
-        pipeline.transformValue(0L, 0L, message("second"), 0, 6, sink, recorder);
+        pipeline.transformValue(0L, 0L, 0L, message("second"), 0, 6, sink, recorder);
 
         assertEquals(asList("SWITCH_HEADERS", "FIELD(region=east)", "SWITCH_VALUE", "FIELD($.region=east)"), events);
     }
@@ -326,6 +326,7 @@ public class KafkaPipelineTest
         public ModelPipelineResult transform(
             long traceId,
             long bindingId,
+            long authorization,
             int flags,
             DirectBufferEx src,
             int srcIndex,
@@ -336,7 +337,7 @@ public class KafkaPipelineTest
         {
             final int srcLength = srcLimit - srcIndex;
 
-            bridge.start();
+            bridge.start(authorization);
             for (int index = 0; index < pathsAndValues.length; index += 2)
             {
                 final byte[] value = pathsAndValues[index + 1].getBytes(UTF_8);

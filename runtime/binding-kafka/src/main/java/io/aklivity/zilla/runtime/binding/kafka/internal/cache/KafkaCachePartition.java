@@ -353,6 +353,7 @@ public final class KafkaCachePartition
         EngineContext context,
         long traceId,
         long bindingId,
+        long authorization,
         long offset,
         MutableInteger entryMark,
         MutableInteger valueMark,
@@ -368,17 +369,18 @@ public final class KafkaCachePartition
         boolean verbose)
     {
         final int valueLength = value != null ? value.sizeof() : -1;
-        writeEntryStart(context, traceId, bindingId, offset, entryMark, valueMark, timestamp, timestampType, producerId, key,
-            valueLength, null, entryFlags, deltaType, value, pipeline, verbose);
+        writeEntryStart(context, traceId, bindingId, authorization, offset, entryMark, valueMark, timestamp, timestampType,
+            producerId, key, valueLength, null, entryFlags, deltaType, value, pipeline, verbose);
         writeEntryContinue(value);
-        writeEntryFinish(headers, deltaType, context, traceId, bindingId, FLAGS_COMPLETE, offset, entryMark, valueMark,
-            pipeline, verbose);
+        writeEntryFinish(headers, deltaType, context, traceId, bindingId, authorization, FLAGS_COMPLETE, offset, entryMark,
+            valueMark, pipeline, verbose);
     }
 
     public void writeEntryStart(
         EngineContext context,
         long traceId,
         long bindingId,
+        long authorization,
         long offset,
         MutableInteger entryMark,
         MutableInteger valueMark,
@@ -475,7 +477,7 @@ public final class KafkaCachePartition
             entrySink.begin(null);
 
             OctetsFW value = key.value();
-            int transformed = pipeline.transformKey(traceId, bindingId,
+            int transformed = pipeline.transformKey(traceId, bindingId, authorization,
                     value.buffer(), value.offset(), value.limit(), writeKey, entrySink);
 
             if (transformed == -1)
@@ -556,6 +558,7 @@ public final class KafkaCachePartition
         EngineContext context,
         long traceId,
         long bindingId,
+        long authorization,
         int flags,
         long offset,
         MutableInteger entryMark,
@@ -606,7 +609,7 @@ public final class KafkaCachePartition
             {
                 entrySink.begin(trailersRW.wrap(trailersRW.buffer(), 0, trailersRW.maxLimit()));
 
-                int transformed = pipeline.transformValue(traceId, bindingId, logFile.buffer(),
+                int transformed = pipeline.transformValue(traceId, bindingId, authorization, logFile.buffer(),
                     valueMark.value, valueMark.value + valueLength, consumeTransformed, entrySink);
                 if (transformed == -1)
                 {
@@ -704,6 +707,7 @@ public final class KafkaCachePartition
     public int writeProduceEntryStart(
         long traceId,
         long bindingId,
+        long authorization,
         long offset,
         Node head,
         MutableInteger entryMark,
@@ -798,7 +802,7 @@ public final class KafkaCachePartition
                     logFile.appendBytes(buffer, index, length);
                 };
 
-                transformed = transformKey.transform(traceId, bindingId,
+                transformed = transformKey.transform(traceId, bindingId, authorization,
                     value.buffer(), value.offset(), value.limit(), writeKey);
 
                 if (transformed == -1)
@@ -834,6 +838,7 @@ public final class KafkaCachePartition
     public int writeProduceEntryContinue(
         long traceId,
         long bindingId,
+        long authorization,
         int flags,
         Node head,
         MutableInteger entryMark,
@@ -872,7 +877,7 @@ public final class KafkaCachePartition
                 final int valueLength = valueLimit.value - valueMark.value;
                 if ((flags & FLAGS_FIN) != 0x00)
                 {
-                    transformed = transformValue.transform(traceId, bindingId, logFile.buffer(),
+                    transformed = transformValue.transform(traceId, bindingId, authorization, logFile.buffer(),
                         valueMark.value, valueMark.value + valueLength, consumeTransformed);
                 }
             }
