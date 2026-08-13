@@ -25,7 +25,6 @@ public class AsyncapiSpecificationConfig
     public final List<AsyncapiCatalogConfig> catalogs;
     public final Map<String, String> security;
     public final String store;
-    public final AsyncapiCatalogConfig overlay;
 
     public static AsyncapiSpecificationConfigBuilder<AsyncapiSpecificationConfig> builder()
     {
@@ -43,14 +42,12 @@ public class AsyncapiSpecificationConfig
         List<String> servers,
         List<AsyncapiCatalogConfig> catalogs,
         Map<String, String> security,
-        String store,
-        AsyncapiCatalogConfig overlay)
+        String store)
     {
         this.label = label;
         this.servers = servers;
         this.catalogs = catalogs;
         this.security = security;
         this.store = store;
-        this.overlay = overlay;
     }
 }

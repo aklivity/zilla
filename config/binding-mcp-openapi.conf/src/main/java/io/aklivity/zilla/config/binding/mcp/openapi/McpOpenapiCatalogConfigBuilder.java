@@ -25,6 +25,7 @@ public final class McpOpenapiCatalogConfigBuilder<T> extends ConfigBuilder<T, Mc
     private String name;
     private String subject;
     private String version;
+    private McpOpenapiCatalogConfig overlay;
 
     McpOpenapiCatalogConfigBuilder(
         Function<McpOpenapiCatalogConfig, T> mapper)
@@ -60,9 +61,16 @@ public final class McpOpenapiCatalogConfigBuilder<T> extends ConfigBuilder<T, Mc
         return this;
     }
 
+    public McpOpenapiCatalogConfigBuilder<T> overlay(
+        McpOpenapiCatalogConfig overlay)
+    {
+        this.overlay = overlay;
+        return this;
+    }
+
     @Override
     public T build()
     {
-        return mapper.apply(new McpOpenapiCatalogConfig(name, subject, version));
+        return mapper.apply(new McpOpenapiCatalogConfig(name, subject, version, overlay));
     }
 }

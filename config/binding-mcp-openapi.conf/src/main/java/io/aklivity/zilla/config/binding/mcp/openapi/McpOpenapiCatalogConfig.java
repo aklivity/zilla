@@ -23,6 +23,7 @@ public final class McpOpenapiCatalogConfig extends Config
     public final String name;
     public final String subject;
     public final String version;
+    public final McpOpenapiCatalogConfig overlay;
 
     public static McpOpenapiCatalogConfigBuilder<McpOpenapiCatalogConfig> builder()
     {
@@ -38,10 +39,12 @@ public final class McpOpenapiCatalogConfig extends Config
     McpOpenapiCatalogConfig(
         String name,
         String subject,
-        String version)
+        String version,
+        McpOpenapiCatalogConfig overlay)
     {
         this.name = name;
         this.subject = subject;
         this.version = version;
+        this.overlay = overlay;
     }
 }

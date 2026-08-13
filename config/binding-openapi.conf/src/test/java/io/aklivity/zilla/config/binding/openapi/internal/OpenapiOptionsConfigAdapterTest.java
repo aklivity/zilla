@@ -78,8 +78,35 @@ public class OpenapiOptionsConfigAdapterTest
                   catalog0:
                     subject: petstore
                     version: latest
-                overlay:
+                    overlay:
+                      catalog1:
+                        subject: petstore-overlay
+                        version: latest
+            """;
+
+        OpenapiOptionsConfig options = jsonb.fromJson(text, OpenapiOptionsConfig.class);
+
+        OpenapiSpecificationConfig spec = options.specs.get(0);
+        OpenapiCatalogConfig catalog = spec.catalogs.get(0);
+        assertThat(catalog.overlay, not(nullValue()));
+        assertEquals("catalog1", catalog.overlay.name);
+        assertEquals("petstore-overlay", catalog.overlay.subject);
+        assertEquals("latest", catalog.overlay.version);
+    }
+
+    @Test
+    public void shouldReadOptionsWithDeprecatedOverlay()
+    {
+        String text =
+            """
+            specs:
+              petstore:
+                catalog:
                   catalog0:
+                    subject: petstore
+                    version: latest
+                overlay:
+                  catalog1:
                     subject: petstore-overlay
                     version: latest
             """;
@@ -87,10 +114,11 @@ public class OpenapiOptionsConfigAdapterTest
         OpenapiOptionsConfig options = jsonb.fromJson(text, OpenapiOptionsConfig.class);
 
         OpenapiSpecificationConfig spec = options.specs.get(0);
-        assertThat(spec.overlay, not(nullValue()));
-        assertEquals("catalog0", spec.overlay.name);
-        assertEquals("petstore-overlay", spec.overlay.subject);
-        assertEquals("latest", spec.overlay.version);
+        OpenapiCatalogConfig catalog = spec.catalogs.get(0);
+        assertThat(catalog.overlay, not(nullValue()));
+        assertEquals("catalog1", catalog.overlay.name);
+        assertEquals("petstore-overlay", catalog.overlay.subject);
+        assertEquals("latest", catalog.overlay.version);
     }
 
     @Test
@@ -128,19 +156,19 @@ public class OpenapiOptionsConfigAdapterTest
                   catalog0:
                     subject: petstore
                     version: latest
-                overlay:
-                  catalog0:
-                    subject: petstore-overlay
-                    version: latest
+                    overlay:
+                      catalog1:
+                        subject: petstore-overlay
+                        version: latest
             """;
 
         OpenapiOptionsConfig options = OpenapiOptionsConfig.builder()
             .spec(new OpenapiSpecificationConfig(
                 "test",
                 null,
-                of(new OpenapiCatalogConfig("catalog0", "petstore", "latest")),
-                null,
-                new OpenapiCatalogConfig("catalog0", "petstore-overlay", "latest")))
+                of(new OpenapiCatalogConfig("catalog0", "petstore", "latest",
+                    new OpenapiCatalogConfig("catalog1", "petstore-overlay", "latest"))),
+                null))
             .build();
 
         String text = jsonb.toJson(options);

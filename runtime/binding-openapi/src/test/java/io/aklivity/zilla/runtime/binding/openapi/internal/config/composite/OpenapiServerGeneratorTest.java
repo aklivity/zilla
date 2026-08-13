@@ -231,9 +231,9 @@ public class OpenapiServerGeneratorTest
                 .spec(new OpenapiSpecificationConfig(
                     "petstore",
                     List.of("http://localhost:8080"),
-                    List.of(new OpenapiCatalogConfig("catalog0", "test", "latest")),
-                    security,
-                    new OpenapiCatalogConfig("catalog0", "test-overlay", "latest")))
+                    List.of(new OpenapiCatalogConfig("catalog0", "test", "latest",
+                        new OpenapiCatalogConfig("catalog0", "test-overlay", "latest"))),
+                    security))
                 .build())
             .exit("openapi0")
             .build();

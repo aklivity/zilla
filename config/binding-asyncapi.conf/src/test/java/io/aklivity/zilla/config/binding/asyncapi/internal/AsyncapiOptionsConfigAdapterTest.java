@@ -31,6 +31,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.config.binding.asyncapi.AsyncapiOptionsConfig;
+import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiCatalogConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfig;
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 
@@ -114,8 +115,35 @@ public class AsyncapiOptionsConfigAdapterTest
                       catalog0:
                         subject: smartylighting
                         version: latest
-                    overlay:
+                        overlay:
+                          catalog1:
+                            subject: smartylighting-overlay
+                            version: latest
+                """;
+
+        AsyncapiOptionsConfig options = jsonb.fromJson(yaml, AsyncapiOptionsConfig.class);
+
+        AsyncapiSpecificationConfig spec = options.specs.get(0);
+        AsyncapiCatalogConfig catalog = spec.catalogs.get(0);
+        assertThat(catalog.overlay, not(nullValue()));
+        assertThat(catalog.overlay.name, equalTo("catalog1"));
+        assertThat(catalog.overlay.subject, equalTo("smartylighting-overlay"));
+        assertThat(catalog.overlay.version, equalTo("latest"));
+    }
+
+    @Test
+    public void shouldReadOptionsWithDeprecatedOverlay() throws IOException
+    {
+        String yaml =
+                """
+                specs:
+                  mqtt-api:
+                    catalog:
                       catalog0:
+                        subject: smartylighting
+                        version: latest
+                    overlay:
+                      catalog1:
                         subject: smartylighting-overlay
                         version: latest
                 """;
@@ -123,10 +151,11 @@ public class AsyncapiOptionsConfigAdapterTest
         AsyncapiOptionsConfig options = jsonb.fromJson(yaml, AsyncapiOptionsConfig.class);
 
         AsyncapiSpecificationConfig spec = options.specs.get(0);
-        assertThat(spec.overlay, not(nullValue()));
-        assertThat(spec.overlay.name, equalTo("catalog0"));
-        assertThat(spec.overlay.subject, equalTo("smartylighting-overlay"));
-        assertThat(spec.overlay.version, equalTo("latest"));
+        AsyncapiCatalogConfig catalog = spec.catalogs.get(0);
+        assertThat(catalog.overlay, not(nullValue()));
+        assertThat(catalog.overlay.name, equalTo("catalog1"));
+        assertThat(catalog.overlay.subject, equalTo("smartylighting-overlay"));
+        assertThat(catalog.overlay.version, equalTo("latest"));
     }
 
     @Test
@@ -136,16 +165,16 @@ public class AsyncapiOptionsConfigAdapterTest
             .inject(Function.identity())
             .spec()
                 .label("mqtt-api")
-                .catalog()
+                .catalog(AsyncapiCatalogConfig.builder()
                     .name("catalog0")
                     .subject("smartylighting")
                     .version("latest")
-                    .build()
-                .overlay()
-                    .name("catalog0")
-                    .subject("smartylighting-overlay")
-                    .version("latest")
-                    .build()
+                    .overlay(AsyncapiCatalogConfig.builder()
+                        .name("catalog1")
+                        .subject("smartylighting-overlay")
+                        .version("latest")
+                        .build())
+                    .build())
                 .build()
             .build();
 
@@ -160,10 +189,10 @@ public class AsyncapiOptionsConfigAdapterTest
                   catalog0:
                     subject: smartylighting
                     version: latest
-                overlay:
-                  catalog0:
-                    subject: smartylighting-overlay
-                    version: latest
+                    overlay:
+                      catalog1:
+                        subject: smartylighting-overlay
+                        version: latest
             """));
     }
 

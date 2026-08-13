@@ -21,15 +21,26 @@ public class OpenapiCatalogConfig
     public final String name;
     public final String subject;
     public final String version;
+    public final OpenapiCatalogConfig overlay;
+
+    public OpenapiCatalogConfig(
+        String name,
+        String subject,
+        String version,
+        OpenapiCatalogConfig overlay)
+    {
+        this.name = name;
+        this.subject = subject;
+        this.version = version;
+        this.overlay = overlay;
+    }
 
     public OpenapiCatalogConfig(
         String name,
         String subject,
         String version)
     {
-        this.name = name;
-        this.subject = subject;
-        this.version = version;
+        this(name, subject, version, null);
     }
 
     public static OpenapiCatalogConfigBuilder<OpenapiCatalogConfig> builder()

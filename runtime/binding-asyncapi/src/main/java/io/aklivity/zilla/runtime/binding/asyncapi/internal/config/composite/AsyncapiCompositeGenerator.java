@@ -158,7 +158,7 @@ public abstract class AsyncapiCompositeGenerator
                 final CatalogHandler handler = binding.supplyCatalog.apply(catalogId);
                 final int schemaId = handler.resolve(catalog.subject, catalog.version);
                 final String payload = handler.resolve(schemaId);
-                final String materialized = materialize(binding, specification, payload);
+                final String materialized = materialize(binding, catalog, payload);
                 final AsyncapiView asyncapi = AsyncapiView.of(tagIndex++, label, parser.parse(materialized));
 
                 unresolved.addAll(asyncapi.unresolvedRefs());
@@ -232,15 +232,15 @@ public abstract class AsyncapiCompositeGenerator
 
     private String materialize(
         AsyncapiBindingConfig binding,
-        AsyncapiSpecificationConfig specification,
+        AsyncapiCatalogConfig catalog,
         String payload)
     {
         String materialized = payload;
-        if (specification.overlay != null)
+        if (catalog.overlay != null)
         {
-            final long catalogId = binding.resolveId.applyAsLong(specification.overlay.name);
+            final long catalogId = binding.resolveId.applyAsLong(catalog.overlay.name);
             final CatalogHandler handler = binding.supplyCatalog.apply(catalogId);
-            final int schemaId = handler.resolve(specification.overlay.subject, specification.overlay.version);
+            final int schemaId = handler.resolve(catalog.overlay.subject, catalog.overlay.version);
             final String overlayPayload = handler.resolve(schemaId);
 
             final JsonObject document = YamlJson.createReader(new StringReader(payload)).readObject();

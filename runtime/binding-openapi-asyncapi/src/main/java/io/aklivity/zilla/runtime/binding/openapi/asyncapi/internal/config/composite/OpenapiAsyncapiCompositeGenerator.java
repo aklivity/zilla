@@ -81,7 +81,7 @@ public abstract class OpenapiAsyncapiCompositeGenerator
                 final CatalogHandler handler = binding.supplyCatalog.apply(catalogId);
                 final int schemaId = handler.resolve(catalog.subject, catalog.version);
                 final String payload = handler.resolve(schemaId);
-                final String materialized = materialize(binding, openapiSpec, payload);
+                final String materialized = materialize(binding, catalog, payload);
                 final OpenapiView openapi = OpenapiView.of(tagIndex++, label, openapiParser.parse(materialized));
 
                 unresolved.addAll(openapi.unresolvedRefs());
@@ -102,7 +102,7 @@ public abstract class OpenapiAsyncapiCompositeGenerator
                 final CatalogHandler handler = binding.supplyCatalog.apply(catalogId);
                 final int schemaId = handler.resolve(catalog.subject, catalog.version);
                 final String payload = handler.resolve(schemaId);
-                final String materialized = materialize(binding, asyncapiSpec, payload);
+                final String materialized = materialize(binding, catalog, payload);
                 final AsyncapiView asyncapi = AsyncapiView.of(tagIndex++, label, asyncapiParser.parse(materialized));
 
                 unresolved.addAll(asyncapi.unresolvedRefs());
@@ -116,15 +116,15 @@ public abstract class OpenapiAsyncapiCompositeGenerator
 
     private String materialize(
         OpenapiAsyncapiBindingConfig binding,
-        OpenapiSpecificationConfig specification,
+        OpenapiCatalogConfig catalog,
         String payload)
     {
         String materialized = payload;
-        if (specification.overlay != null)
+        if (catalog.overlay != null)
         {
-            final long catalogId = binding.resolveId.applyAsLong(specification.overlay.name);
+            final long catalogId = binding.resolveId.applyAsLong(catalog.overlay.name);
             final CatalogHandler handler = binding.supplyCatalog.apply(catalogId);
-            final int schemaId = handler.resolve(specification.overlay.subject, specification.overlay.version);
+            final int schemaId = handler.resolve(catalog.overlay.subject, catalog.overlay.version);
             final String overlayPayload = handler.resolve(schemaId);
 
             final JsonObject document = YamlJson.createReader(new StringReader(payload)).readObject();
@@ -137,15 +137,15 @@ public abstract class OpenapiAsyncapiCompositeGenerator
 
     private String materialize(
         OpenapiAsyncapiBindingConfig binding,
-        AsyncapiSpecificationConfig specification,
+        AsyncapiCatalogConfig catalog,
         String payload)
     {
         String materialized = payload;
-        if (specification.overlay != null)
+        if (catalog.overlay != null)
         {
-            final long catalogId = binding.resolveId.applyAsLong(specification.overlay.name);
+            final long catalogId = binding.resolveId.applyAsLong(catalog.overlay.name);
             final CatalogHandler handler = binding.supplyCatalog.apply(catalogId);
-            final int schemaId = handler.resolve(specification.overlay.subject, specification.overlay.version);
+            final int schemaId = handler.resolve(catalog.overlay.subject, catalog.overlay.version);
             final String overlayPayload = handler.resolve(schemaId);
 
             final JsonObject document = YamlJson.createReader(new StringReader(payload)).readObject();

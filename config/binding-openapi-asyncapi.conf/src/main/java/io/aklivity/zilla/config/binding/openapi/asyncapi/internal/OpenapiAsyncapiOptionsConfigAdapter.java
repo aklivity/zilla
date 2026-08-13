@@ -32,6 +32,10 @@ import io.aklivity.zilla.config.binding.openapi.asyncapi.OpenapiAsyncapiOptionsC
 import io.aklivity.zilla.config.binding.openapi.asyncapi.OpenapiAsyncapiSpecConfig;
 import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfig;
+import io.aklivity.zilla.config.engine.OverlayConfig;
+import io.aklivity.zilla.config.engine.SchemaConfig;
+import io.aklivity.zilla.config.engine.SchemaConfigAdapter;
+import io.aklivity.zilla.config.engine.SchemaConfigBuilder;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiCatalogConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiCatalogConfigBuilder;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfig;
@@ -46,10 +50,10 @@ public final class OpenapiAsyncapiOptionsConfigAdapter extends ConfigAdapter<Opt
     private static final String ASYNCAPI_NAME = "asyncapi";
     private static final String SPECS_NAME = "specs";
     private static final String CATALOG_NAME = "catalog";
-    private static final String SUBJECT_NAME = "subject";
-    private static final String VERSION_NAME = "version";
     private static final String SECURITY_NAME = "security";
     private static final String OVERLAY_NAME = "overlay";
+
+    private final SchemaConfigAdapter schema = new SchemaConfigAdapter();
 
     @Override
     public JsonObject adaptToJson(
@@ -68,15 +72,7 @@ public final class OpenapiAsyncapiOptionsConfigAdapter extends ConfigAdapter<Opt
 
             for (OpenapiCatalogConfig catalog : openapiConfig.catalogs)
             {
-                JsonObjectBuilder schemaObject = Json.createObjectBuilder();
-                schemaObject.add(SUBJECT_NAME, catalog.subject);
-
-                if (catalog.version != null)
-                {
-                    schemaObject.add(VERSION_NAME, catalog.version);
-                }
-
-                subjectObject.add(catalog.name, schemaObject);
+                subjectObject.add(catalog.name, schema.adaptToJson(asOpenapiSchemaConfig(catalog)));
             }
             catalogObject.add(CATALOG_NAME, subjectObject);
 
@@ -85,20 +81,6 @@ public final class OpenapiAsyncapiOptionsConfigAdapter extends ConfigAdapter<Opt
                 final JsonObjectBuilder security = Json.createObjectBuilder();
                 openapiConfig.security.forEach(security::add);
                 catalogObject.add(SECURITY_NAME, security);
-            }
-
-            if (openapiConfig.overlay != null)
-            {
-                final JsonObjectBuilder overlaySchema = Json.createObjectBuilder();
-                overlaySchema.add(SUBJECT_NAME, openapiConfig.overlay.subject);
-                if (openapiConfig.overlay.version != null)
-                {
-                    overlaySchema.add(VERSION_NAME, openapiConfig.overlay.version);
-                }
-
-                final JsonObjectBuilder overlaySubject = Json.createObjectBuilder();
-                overlaySubject.add(openapiConfig.overlay.name, overlaySchema);
-                catalogObject.add(OVERLAY_NAME, overlaySubject);
             }
 
             openapi.add(openapiConfig.label, catalogObject);
@@ -113,31 +95,9 @@ public final class OpenapiAsyncapiOptionsConfigAdapter extends ConfigAdapter<Opt
 
             for (AsyncapiCatalogConfig catalog : asyncapiConfig.catalogs)
             {
-                JsonObjectBuilder schemaObject = Json.createObjectBuilder();
-                schemaObject.add(SUBJECT_NAME, catalog.subject);
-
-                if (catalog.version != null)
-                {
-                    schemaObject.add(VERSION_NAME, catalog.version);
-                }
-
-                subjectObject.add(catalog.name, schemaObject);
+                subjectObject.add(catalog.name, schema.adaptToJson(asAsyncapiSchemaConfig(catalog)));
             }
             catalogObject.add(CATALOG_NAME, subjectObject);
-
-            if (asyncapiConfig.overlay != null)
-            {
-                final JsonObjectBuilder overlaySchema = Json.createObjectBuilder();
-                overlaySchema.add(SUBJECT_NAME, asyncapiConfig.overlay.subject);
-                if (asyncapiConfig.overlay.version != null)
-                {
-                    overlaySchema.add(VERSION_NAME, asyncapiConfig.overlay.version);
-                }
-
-                final JsonObjectBuilder overlaySubject = Json.createObjectBuilder();
-                overlaySubject.add(asyncapiConfig.overlay.name, overlaySchema);
-                catalogObject.add(OVERLAY_NAME, overlaySubject);
-            }
 
             asyncapi.add(asyncapiConfig.label, catalogObject);
         }
@@ -165,24 +125,29 @@ public final class OpenapiAsyncapiOptionsConfigAdapter extends ConfigAdapter<Opt
             {
                 final JsonObject catalog = specObject.getJsonObject(CATALOG_NAME);
 
+                OpenapiCatalogConfig deprecatedOverlay = null;
+                if (specObject.containsKey(OVERLAY_NAME))
+                {
+                    final JsonObject overlayObject = specObject.getJsonObject(OVERLAY_NAME);
+                    final Map.Entry<String, JsonValue> overlayEntry = overlayObject.entrySet().iterator().next();
+                    deprecatedOverlay = asOpenapiCatalogConfig(overlayEntry.getKey(), overlayEntry.getValue().asJsonObject());
+                }
+
                 List<OpenapiCatalogConfig> catalogs = new ArrayList<>();
                 for (Map.Entry<String, JsonValue> catalogEntry : catalog.entrySet())
                 {
-                    OpenapiCatalogConfigBuilder<OpenapiCatalogConfig> catalogBuilder = OpenapiCatalogConfig.builder();
-                    JsonObject catalogObject = catalogEntry.getValue().asJsonObject();
+                    final String catalogName = catalogEntry.getKey();
+                    final SchemaConfig parsed = schema.adaptFromJson(catalogEntry.getValue().asJsonObject());
+                    final OpenapiCatalogConfig overlay = parsed.overlay != null
+                        ? asOpenapiCatalogConfig(parsed.overlay.name, parsed.overlay.schema)
+                        : deprecatedOverlay;
 
-                    catalogBuilder.name(catalogEntry.getKey());
-
-                    if (catalogObject.containsKey(SUBJECT_NAME))
-                    {
-                        catalogBuilder.subject(catalogObject.getString(SUBJECT_NAME));
-                    }
-
-                    if (catalogObject.containsKey(VERSION_NAME))
-                    {
-                        catalogBuilder.version(catalogObject.getString(VERSION_NAME));
-                    }
-                    catalogs.add(catalogBuilder.build());
+                    catalogs.add(OpenapiCatalogConfig.builder()
+                        .name(catalogName)
+                        .subject(parsed.subject)
+                        .version(parsed.version)
+                        .overlay(overlay)
+                        .build());
                 }
 
                 Map<String, String> security = null;
@@ -196,29 +161,7 @@ public final class OpenapiAsyncapiOptionsConfigAdapter extends ConfigAdapter<Opt
                     }
                 }
 
-                OpenapiCatalogConfig overlay = null;
-                if (specObject.containsKey(OVERLAY_NAME))
-                {
-                    final JsonObject overlayObject = specObject.getJsonObject(OVERLAY_NAME);
-                    final Map.Entry<String, JsonValue> overlayEntry = overlayObject.entrySet().iterator().next();
-                    final JsonObject overlaySchemaObject = overlayEntry.getValue().asJsonObject();
-
-                    OpenapiCatalogConfigBuilder<OpenapiCatalogConfig> overlayBuilder = OpenapiCatalogConfig.builder();
-                    overlayBuilder.name(overlayEntry.getKey());
-
-                    if (overlaySchemaObject.containsKey(SUBJECT_NAME))
-                    {
-                        overlayBuilder.subject(overlaySchemaObject.getString(SUBJECT_NAME));
-                    }
-
-                    if (overlaySchemaObject.containsKey(VERSION_NAME))
-                    {
-                        overlayBuilder.version(overlaySchemaObject.getString(VERSION_NAME));
-                    }
-                    overlay = overlayBuilder.build();
-                }
-
-                openapis.add(new OpenapiSpecificationConfig(specLabel, null, catalogs, security, overlay));
+                openapis.add(new OpenapiSpecificationConfig(specLabel, null, catalogs, security));
             }
         }
 
@@ -236,47 +179,28 @@ public final class OpenapiAsyncapiOptionsConfigAdapter extends ConfigAdapter<Opt
             {
                 final JsonObject catalogObject = specObject.getJsonObject(CATALOG_NAME);
 
-                for (Map.Entry<String, JsonValue> catalogEntry : catalogObject.entrySet())
-                {
-                    String catalogName = catalogEntry.getKey();
-                    JsonObject catalogValue = catalogEntry.getValue().asJsonObject();
-
-                    AsyncapiCatalogConfigBuilder<?> catalog = asyncapi.catalog()
-                        .name(catalogName);
-
-                    if (catalogValue.containsKey(SUBJECT_NAME))
-                    {
-                        catalog.subject(catalogValue.getString(SUBJECT_NAME));
-                    }
-
-                    if (catalogValue.containsKey(VERSION_NAME))
-                    {
-                        catalog.version(catalogValue.getString(VERSION_NAME));
-                    }
-
-                    catalog.build();
-                }
-
+                AsyncapiCatalogConfig deprecatedOverlay = null;
                 if (specObject.containsKey(OVERLAY_NAME))
                 {
                     final JsonObject overlayObject = specObject.getJsonObject(OVERLAY_NAME);
                     final Map.Entry<String, JsonValue> overlayEntry = overlayObject.entrySet().iterator().next();
-                    final JsonObject overlaySchemaObject = overlayEntry.getValue().asJsonObject();
+                    deprecatedOverlay = asAsyncapiCatalogConfig(overlayEntry.getKey(), overlayEntry.getValue().asJsonObject());
+                }
 
-                    final AsyncapiCatalogConfigBuilder<?> overlayBuilder = asyncapi.overlay();
-                    overlayBuilder.name(overlayEntry.getKey());
+                for (Map.Entry<String, JsonValue> catalogEntry : catalogObject.entrySet())
+                {
+                    final String catalogName = catalogEntry.getKey();
+                    final SchemaConfig parsed = schema.adaptFromJson(catalogEntry.getValue().asJsonObject());
+                    final AsyncapiCatalogConfig overlay = parsed.overlay != null
+                        ? asAsyncapiCatalogConfig(parsed.overlay.name, parsed.overlay.schema)
+                        : deprecatedOverlay;
 
-                    if (overlaySchemaObject.containsKey(SUBJECT_NAME))
-                    {
-                        overlayBuilder.subject(overlaySchemaObject.getString(SUBJECT_NAME));
-                    }
-
-                    if (overlaySchemaObject.containsKey(VERSION_NAME))
-                    {
-                        overlayBuilder.version(overlaySchemaObject.getString(VERSION_NAME));
-                    }
-
-                    overlayBuilder.build();
+                    asyncapi.catalog(AsyncapiCatalogConfig.builder()
+                        .name(catalogName)
+                        .subject(parsed.subject)
+                        .version(parsed.version)
+                        .overlay(overlay)
+                        .build());
                 }
 
                 asyncapis.add(asyncapi.build());
@@ -291,5 +215,89 @@ public final class OpenapiAsyncapiOptionsConfigAdapter extends ConfigAdapter<Opt
         return OpenapiAsyncapiOptionsConfig.builder()
             .specs(specConfig)
             .build();
+    }
+
+    private OpenapiCatalogConfig asOpenapiCatalogConfig(
+        String name,
+        JsonObject catalogObject)
+    {
+        return asOpenapiCatalogConfig(name, schema.adaptFromJson(catalogObject));
+    }
+
+    private OpenapiCatalogConfig asOpenapiCatalogConfig(
+        String name,
+        SchemaConfig parsed)
+    {
+        OpenapiCatalogConfigBuilder<OpenapiCatalogConfig> builder = OpenapiCatalogConfig.builder()
+            .name(name)
+            .subject(parsed.subject)
+            .version(parsed.version);
+
+        if (parsed.overlay != null)
+        {
+            builder.overlay(asOpenapiCatalogConfig(parsed.overlay.name, parsed.overlay.schema));
+        }
+
+        return builder.build();
+    }
+
+    private SchemaConfig asOpenapiSchemaConfig(
+        OpenapiCatalogConfig catalog)
+    {
+        SchemaConfigBuilder<SchemaConfig> builder = SchemaConfig.builder()
+            .subject(catalog.subject)
+            .version(catalog.version);
+
+        if (catalog.overlay != null)
+        {
+            builder.overlay(OverlayConfig.builder()
+                .name(catalog.overlay.name)
+                .schema(asOpenapiSchemaConfig(catalog.overlay))
+                .build());
+        }
+
+        return builder.build();
+    }
+
+    private AsyncapiCatalogConfig asAsyncapiCatalogConfig(
+        String name,
+        JsonObject catalogObject)
+    {
+        return asAsyncapiCatalogConfig(name, schema.adaptFromJson(catalogObject));
+    }
+
+    private AsyncapiCatalogConfig asAsyncapiCatalogConfig(
+        String name,
+        SchemaConfig parsed)
+    {
+        AsyncapiCatalogConfigBuilder<AsyncapiCatalogConfig> builder = AsyncapiCatalogConfig.builder()
+            .name(name)
+            .subject(parsed.subject)
+            .version(parsed.version);
+
+        if (parsed.overlay != null)
+        {
+            builder.overlay(asAsyncapiCatalogConfig(parsed.overlay.name, parsed.overlay.schema));
+        }
+
+        return builder.build();
+    }
+
+    private SchemaConfig asAsyncapiSchemaConfig(
+        AsyncapiCatalogConfig catalog)
+    {
+        SchemaConfigBuilder<SchemaConfig> builder = SchemaConfig.builder()
+            .subject(catalog.subject)
+            .version(catalog.version);
+
+        if (catalog.overlay != null)
+        {
+            builder.overlay(OverlayConfig.builder()
+                .name(catalog.overlay.name)
+                .schema(asAsyncapiSchemaConfig(catalog.overlay))
+                .build());
+        }
+
+        return builder.build();
     }
 }

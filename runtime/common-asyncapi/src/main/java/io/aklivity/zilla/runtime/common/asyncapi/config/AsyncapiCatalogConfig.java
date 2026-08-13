@@ -21,15 +21,26 @@ public class AsyncapiCatalogConfig
     public final String name;
     public final String subject;
     public final String version;
+    public final AsyncapiCatalogConfig overlay;
+
+    public AsyncapiCatalogConfig(
+        String name,
+        String subject,
+        String version,
+        AsyncapiCatalogConfig overlay)
+    {
+        this.name = name;
+        this.subject = subject;
+        this.version = version;
+        this.overlay = overlay;
+    }
 
     public AsyncapiCatalogConfig(
         String name,
         String subject,
         String version)
     {
-        this.name = name;
-        this.subject = subject;
-        this.version = version;
+        this(name, subject, version, null);
     }
 
     public static AsyncapiCatalogConfigBuilder<AsyncapiCatalogConfig> builder()

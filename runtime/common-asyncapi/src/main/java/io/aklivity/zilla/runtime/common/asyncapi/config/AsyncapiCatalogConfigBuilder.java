@@ -23,6 +23,7 @@ public final class AsyncapiCatalogConfigBuilder<T>
     private String name;
     private String subject;
     private String version;
+    private AsyncapiCatalogConfig overlay;
 
     AsyncapiCatalogConfigBuilder(
         Function<AsyncapiCatalogConfig, T> mapper)
@@ -51,8 +52,15 @@ public final class AsyncapiCatalogConfigBuilder<T>
         return this;
     }
 
+    public AsyncapiCatalogConfigBuilder<T> overlay(
+        AsyncapiCatalogConfig overlay)
+    {
+        this.overlay = overlay;
+        return this;
+    }
+
     public T build()
     {
-        return mapper.apply(new AsyncapiCatalogConfig(name, subject, version));
+        return mapper.apply(new AsyncapiCatalogConfig(name, subject, version, overlay));
     }
 }

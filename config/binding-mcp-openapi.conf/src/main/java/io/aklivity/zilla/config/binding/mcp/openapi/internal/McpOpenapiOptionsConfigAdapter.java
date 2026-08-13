@@ -36,6 +36,10 @@ import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.ModelConfig;
 import io.aklivity.zilla.config.engine.ModelConfigAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfig;
+import io.aklivity.zilla.config.engine.OverlayConfig;
+import io.aklivity.zilla.config.engine.SchemaConfig;
+import io.aklivity.zilla.config.engine.SchemaConfigAdapter;
+import io.aklivity.zilla.config.engine.SchemaConfigBuilder;
 
 public final class McpOpenapiOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, JsonObject>
 {
@@ -47,8 +51,6 @@ public final class McpOpenapiOptionsConfigAdapter extends ConfigAdapter<OptionsC
     private static final String OVERLAY_NAME = "overlay";
     private static final String SERVER_NAME = "server";
     private static final String CATALOG_NAME = "catalog";
-    private static final String SUBJECT_NAME = "subject";
-    private static final String VERSION_NAME = "version";
     private static final String TOOLS_NAME = "tools";
     private static final String RESOURCES_NAME = "resources";
     private static final String DESCRIPTION_NAME = "description";
@@ -64,6 +66,7 @@ public final class McpOpenapiOptionsConfigAdapter extends ConfigAdapter<OptionsC
     private static final String OPEN_WORLD_HINT_NAME = "openWorldHint";
 
     private final ModelConfigAdapter model = new ModelConfigAdapter();
+    private final SchemaConfigAdapter schema = new SchemaConfigAdapter();
 
     @Override
     public JsonObject adaptToJson(
@@ -99,13 +102,7 @@ public final class McpOpenapiOptionsConfigAdapter extends ConfigAdapter<OptionsC
                 final JsonObjectBuilder catalogObject = Json.createObjectBuilder();
                 for (McpOpenapiCatalogConfig catalog : spec.catalogs)
                 {
-                    JsonObjectBuilder schemaObject = Json.createObjectBuilder();
-                    schemaObject.add(SUBJECT_NAME, catalog.subject);
-                    if (catalog.version != null)
-                    {
-                        schemaObject.add(VERSION_NAME, catalog.version);
-                    }
-                    catalogObject.add(catalog.name, schemaObject);
+                    catalogObject.add(catalog.name, schema.adaptToJson(asSchemaConfig(catalog)));
                 }
                 specObject.add(CATALOG_NAME, catalogObject);
 
@@ -119,20 +116,6 @@ public final class McpOpenapiOptionsConfigAdapter extends ConfigAdapter<OptionsC
                     final JsonObjectBuilder security = Json.createObjectBuilder();
                     spec.security.forEach(security::add);
                     specObject.add(SECURITY_NAME, security);
-                }
-
-                if (spec.overlay != null)
-                {
-                    final JsonObjectBuilder overlaySchema = Json.createObjectBuilder();
-                    overlaySchema.add(SUBJECT_NAME, spec.overlay.subject);
-                    if (spec.overlay.version != null)
-                    {
-                        overlaySchema.add(VERSION_NAME, spec.overlay.version);
-                    }
-
-                    final JsonObjectBuilder overlaySubject = Json.createObjectBuilder();
-                    overlaySubject.add(spec.overlay.name, overlaySchema);
-                    specObject.add(OVERLAY_NAME, overlaySubject);
                 }
 
                 specs.add(spec.label, specObject);
@@ -250,23 +233,31 @@ public final class McpOpenapiOptionsConfigAdapter extends ConfigAdapter<OptionsC
                         .label(label)
                         .server(server);
 
+                McpOpenapiCatalogConfig deprecatedOverlay = null;
+                if (specObject.containsKey(OVERLAY_NAME))
+                {
+                    final JsonObject overlayObject = specObject.getJsonObject(OVERLAY_NAME);
+                    final Map.Entry<String, JsonValue> overlayEntry = overlayObject.entrySet().iterator().next();
+                    deprecatedOverlay = asCatalogConfig(overlayEntry.getKey(), overlayEntry.getValue().asJsonObject());
+                }
+
                 if (specObject.containsKey(CATALOG_NAME))
                 {
                     final JsonObject catalog = specObject.getJsonObject(CATALOG_NAME);
                     for (Map.Entry<String, JsonValue> catalogEntry : catalog.entrySet())
                     {
-                        JsonObject catalogObject = catalogEntry.getValue().asJsonObject();
-                        String subject = catalogObject.containsKey(SUBJECT_NAME)
-                            ? catalogObject.getString(SUBJECT_NAME)
-                            : null;
-                        String version = catalogObject.containsKey(VERSION_NAME)
-                            ? catalogObject.getString(VERSION_NAME)
-                            : "latest";
-                        spec.catalog()
-                            .name(catalogEntry.getKey())
-                            .subject(subject)
-                            .version(version)
-                            .build();
+                        final String catalogName = catalogEntry.getKey();
+                        final SchemaConfig parsed = schema.adaptFromJson(catalogEntry.getValue().asJsonObject());
+                        final McpOpenapiCatalogConfig overlay = parsed.overlay != null
+                            ? asCatalogConfig(parsed.overlay.name, parsed.overlay.schema)
+                            : deprecatedOverlay;
+
+                        spec.catalog(McpOpenapiCatalogConfig.builder()
+                            .name(catalogName)
+                            .subject(parsed.subject)
+                            .version(parsed.version)
+                            .overlay(overlay)
+                            .build());
                     }
                 }
 
@@ -279,28 +270,6 @@ public final class McpOpenapiOptionsConfigAdapter extends ConfigAdapter<OptionsC
                         security.put(scheme, securityObject.getString(scheme));
                     }
                     spec.security(security);
-                }
-
-                if (specObject.containsKey(OVERLAY_NAME))
-                {
-                    final JsonObject overlayObject = specObject.getJsonObject(OVERLAY_NAME);
-                    final Map.Entry<String, JsonValue> overlayEntry = overlayObject.entrySet().iterator().next();
-                    final JsonObject overlaySchemaObject = overlayEntry.getValue().asJsonObject();
-
-                    final McpOpenapiCatalogConfigBuilder<?> overlayBuilder = spec.overlay();
-                    overlayBuilder.name(overlayEntry.getKey());
-
-                    if (overlaySchemaObject.containsKey(SUBJECT_NAME))
-                    {
-                        overlayBuilder.subject(overlaySchemaObject.getString(SUBJECT_NAME));
-                    }
-
-                    if (overlaySchemaObject.containsKey(VERSION_NAME))
-                    {
-                        overlayBuilder.version(overlaySchemaObject.getString(VERSION_NAME));
-                    }
-
-                    overlayBuilder.build();
                 }
 
                 spec.build();
@@ -373,6 +342,48 @@ public final class McpOpenapiOptionsConfigAdapter extends ConfigAdapter<OptionsC
         }
 
         return mcpOpenapiOptions.build();
+    }
+
+    private McpOpenapiCatalogConfig asCatalogConfig(
+        String name,
+        JsonObject catalogObject)
+    {
+        return asCatalogConfig(name, schema.adaptFromJson(catalogObject));
+    }
+
+    private McpOpenapiCatalogConfig asCatalogConfig(
+        String name,
+        SchemaConfig parsed)
+    {
+        McpOpenapiCatalogConfigBuilder<McpOpenapiCatalogConfig> builder = McpOpenapiCatalogConfig.builder()
+            .name(name)
+            .subject(parsed.subject)
+            .version(parsed.version);
+
+        if (parsed.overlay != null)
+        {
+            builder.overlay(asCatalogConfig(parsed.overlay.name, parsed.overlay.schema));
+        }
+
+        return builder.build();
+    }
+
+    private SchemaConfig asSchemaConfig(
+        McpOpenapiCatalogConfig catalog)
+    {
+        SchemaConfigBuilder<SchemaConfig> builder = SchemaConfig.builder()
+            .subject(catalog.subject)
+            .version(catalog.version);
+
+        if (catalog.overlay != null)
+        {
+            builder.overlay(OverlayConfig.builder()
+                .name(catalog.overlay.name)
+                .schema(asSchemaConfig(catalog.overlay))
+                .build());
+        }
+
+        return builder.build();
     }
 
     private static JsonObjectBuilder annotationsObject(

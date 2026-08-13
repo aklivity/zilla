@@ -26,6 +26,14 @@ public class SchemaConfigAdapter extends ConfigAdapter<SchemaConfig, JsonObject>
     private static final String VERSION_DEFAULT = "latest";
     private static final String ID_NAME = "id";
     private static final String RECORD_NAME = "record";
+    private static final String OVERLAY_NAME = "overlay";
+
+    private final OverlayConfigAdapter overlay;
+
+    public SchemaConfigAdapter()
+    {
+        this.overlay = new OverlayConfigAdapter(this);
+    }
 
     @Override
     public JsonObject adaptToJson(
@@ -51,6 +59,10 @@ public class SchemaConfigAdapter extends ConfigAdapter<SchemaConfig, JsonObject>
         if (schema.record != null)
         {
             object.add(RECORD_NAME, schema.record);
+        }
+        if (schema.overlay != null)
+        {
+            object.add(OVERLAY_NAME, overlay.adaptToJson(schema.overlay));
         }
         return object.build();
     }
@@ -88,6 +100,11 @@ public class SchemaConfigAdapter extends ConfigAdapter<SchemaConfig, JsonObject>
         if (object.containsKey(RECORD_NAME))
         {
             builder.record(object.getString(RECORD_NAME));
+        }
+
+        if (object.containsKey(OVERLAY_NAME))
+        {
+            builder.overlay(overlay.adaptFromJson(object.getJsonObject(OVERLAY_NAME)));
         }
 
         return builder.build();
