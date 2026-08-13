@@ -12,41 +12,42 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.config.binding.mcp.openapi;
+package io.aklivity.zilla.config.binding.asyncapi;
 
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
-import io.aklivity.zilla.config.engine.Config;
-
-public final class McpOpenapiSpecificationConfig extends Config
+public class AsyncapiSpecificationConfig
 {
     public final String label;
-    public final String server;
-    public final List<McpOpenapiCatalogConfig> catalogs;
+    public final List<String> servers;
+    public final List<AsyncapiCatalogConfig> catalogs;
     public final Map<String, String> security;
+    public final String store;
 
-    public static McpOpenapiSpecificationConfigBuilder<McpOpenapiSpecificationConfig> builder()
+    public static AsyncapiSpecificationConfigBuilder<AsyncapiSpecificationConfig> builder()
     {
-        return new McpOpenapiSpecificationConfigBuilder<>(McpOpenapiSpecificationConfig.class::cast);
+        return new AsyncapiSpecificationConfigBuilder<>(AsyncapiSpecificationConfig.class::cast);
     }
 
-    public static <T> McpOpenapiSpecificationConfigBuilder<T> builder(
-        Function<McpOpenapiSpecificationConfig, T> mapper)
+    public static <T> AsyncapiSpecificationConfigBuilder<T> builder(
+        Function<AsyncapiSpecificationConfig, T> mapper)
     {
-        return new McpOpenapiSpecificationConfigBuilder<>(mapper);
+        return new AsyncapiSpecificationConfigBuilder<>(mapper);
     }
 
-    McpOpenapiSpecificationConfig(
+    AsyncapiSpecificationConfig(
         String label,
-        String server,
-        List<McpOpenapiCatalogConfig> catalogs,
-        Map<String, String> security)
+        List<String> servers,
+        List<AsyncapiCatalogConfig> catalogs,
+        Map<String, String> security,
+        String store)
     {
         this.label = label;
-        this.server = server;
+        this.servers = servers;
         this.catalogs = catalogs;
         this.security = security;
+        this.store = store;
     }
 }

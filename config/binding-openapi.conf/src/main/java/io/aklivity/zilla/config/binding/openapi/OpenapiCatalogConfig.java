@@ -12,40 +12,45 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.config.binding.mcp.openapi;
+package io.aklivity.zilla.config.binding.openapi;
 
 import java.util.function.Function;
 
-import io.aklivity.zilla.config.engine.Config;
-import io.aklivity.zilla.config.engine.OverlayConfig;
-
-public final class McpOpenapiCatalogConfig extends Config
+public class OpenapiCatalogConfig
 {
     public final String name;
     public final String subject;
     public final String version;
-    public final OverlayConfig overlay;
+    public final OpenapiCatalogConfig overlay;
 
-    public static McpOpenapiCatalogConfigBuilder<McpOpenapiCatalogConfig> builder()
-    {
-        return new McpOpenapiCatalogConfigBuilder<>(McpOpenapiCatalogConfig.class::cast);
-    }
-
-    public static <T> McpOpenapiCatalogConfigBuilder<T> builder(
-        Function<McpOpenapiCatalogConfig, T> mapper)
-    {
-        return new McpOpenapiCatalogConfigBuilder<>(mapper);
-    }
-
-    McpOpenapiCatalogConfig(
+    public OpenapiCatalogConfig(
         String name,
         String subject,
         String version,
-        OverlayConfig overlay)
+        OpenapiCatalogConfig overlay)
     {
         this.name = name;
         this.subject = subject;
         this.version = version;
         this.overlay = overlay;
+    }
+
+    public OpenapiCatalogConfig(
+        String name,
+        String subject,
+        String version)
+    {
+        this(name, subject, version, null);
+    }
+
+    public static OpenapiCatalogConfigBuilder<OpenapiCatalogConfig> builder()
+    {
+        return new OpenapiCatalogConfigBuilder<>(OpenapiCatalogConfig.class::cast);
+    }
+
+    public static <T> OpenapiCatalogConfigBuilder<T> builder(
+        Function<OpenapiCatalogConfig, T> mapper)
+    {
+        return new OpenapiCatalogConfigBuilder<>(mapper);
     }
 }

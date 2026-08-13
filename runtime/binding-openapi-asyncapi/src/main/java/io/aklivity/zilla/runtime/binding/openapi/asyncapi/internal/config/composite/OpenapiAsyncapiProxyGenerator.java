@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config.compo
 import static io.aklivity.zilla.config.engine.KindConfig.PROXY;
 import static java.util.function.Function.identity;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -202,7 +203,11 @@ public final class OpenapiAsyncapiProxyGenerator extends OpenapiAsyncapiComposit
                 private boolean matches(
                     OpenapiOperationView candidate)
                 {
-                    return condition.matches(condition.spec, candidate.id, candidate.tags, candidate.servers);
+                    List<URI> servers = candidate.servers != null
+                        ? candidate.servers.stream().map(s -> s.url).collect(Collectors.toList())
+                        : null;
+
+                    return condition.matches(condition.spec, candidate.id, candidate.tags, servers);
                 }
             }
 

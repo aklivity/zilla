@@ -18,8 +18,6 @@ import java.util.Set;
 import java.util.function.Function;
 
 import io.aklivity.zilla.config.engine.ConfigBuilder;
-import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfig;
-import io.aklivity.zilla.runtime.common.openapi.config.OpenapiSpecificationConfig;
 
 public final class OpenapiAsyncapiSpecConfigBuilder<T> extends ConfigBuilder<T, OpenapiAsyncapiSpecConfigBuilder<T>>
 {

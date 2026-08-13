@@ -20,7 +20,6 @@ import java.util.function.Function;
 
 import io.aklivity.zilla.config.engine.ConfigBuilder;
 import io.aklivity.zilla.config.engine.OptionsConfig;
-import io.aklivity.zilla.runtime.common.openapi.config.OpenapiSpecificationConfig;
 
 public final class OpenapiOptionsConfigBuilder<T> extends ConfigBuilder<T, OpenapiOptionsConfigBuilder<T>>
 {

@@ -16,6 +16,5 @@ This project includes:
   zilla::config::engine.conf under Aklivity Community License Agreement
   zilla::runtime::common-feature under The Apache Software License, Version 2.0
   zilla::runtime::common-lang under Aklivity Community License Agreement
-  zilla::runtime::common-openapi under Aklivity Community License Agreement
   zilla::runtime::common-yaml under Aklivity Community License Agreement
 

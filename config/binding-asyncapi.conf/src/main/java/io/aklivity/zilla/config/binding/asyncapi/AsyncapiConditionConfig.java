@@ -14,12 +14,13 @@
  */
 package io.aklivity.zilla.config.binding.asyncapi;
 
+import java.net.URI;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 
 import io.aklivity.zilla.config.engine.ConditionConfig;
-import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiServerView;
 
 public class AsyncapiConditionConfig extends ConditionConfig
 {
@@ -60,7 +61,7 @@ public class AsyncapiConditionConfig extends ConditionConfig
         String spec,
         String operation,
         List<String> tags,
-        List<AsyncapiServerView> operationServers)
+        Map<String, URI> operationServers)
     {
         return matchesSpec(spec) &&
             matchesOperation(operation) &&
@@ -88,10 +89,12 @@ public class AsyncapiConditionConfig extends ConditionConfig
     }
 
     private boolean matchesServers(
-        List<AsyncapiServerView> operationServers)
+        Map<String, URI> operationServers)
     {
         return servers == null || servers.isEmpty() ||
-            operationServers != null && servers.stream().anyMatch(s -> operationServers.stream().anyMatch(s::matches));
+            operationServers != null && servers.stream()
+                .anyMatch(s -> operationServers.entrySet().stream()
+                    .anyMatch(e -> s.matches(e.getKey(), e.getValue())));
     }
 
     private static Pattern compileGlob(

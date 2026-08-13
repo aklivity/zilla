@@ -16,8 +16,11 @@ package io.aklivity.zilla.runtime.binding.asyncapi.internal.config;
 
 import static java.util.function.UnaryOperator.identity;
 import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toMap;
 
+import java.net.URI;
 import java.util.List;
+import java.util.Map;
 import java.util.function.UnaryOperator;
 
 import io.aklivity.zilla.config.binding.asyncapi.AsyncapiConditionConfig;
@@ -57,6 +60,10 @@ public final class AsyncapiRouteConfig
         List<String> tags,
         List<AsyncapiServerView> operationServers)
     {
-        return when.isEmpty() || when.stream().anyMatch(m -> m.matches(spec, operation, tags, operationServers));
+        Map<String, URI> servers = operationServers != null
+            ? operationServers.stream().collect(toMap(s -> s.name, s -> s.url, (a, b) -> a))
+            : null;
+
+        return when.isEmpty() || when.stream().anyMatch(m -> m.matches(spec, operation, tags, servers));
     }
 }

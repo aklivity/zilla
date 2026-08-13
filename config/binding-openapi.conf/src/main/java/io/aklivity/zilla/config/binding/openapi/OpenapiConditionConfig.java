@@ -14,12 +14,12 @@
  */
 package io.aklivity.zilla.config.binding.openapi;
 
+import java.net.URI;
 import java.util.List;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 
 import io.aklivity.zilla.config.engine.ConditionConfig;
-import io.aklivity.zilla.runtime.common.openapi.view.OpenapiServerView;
 
 public class OpenapiConditionConfig extends ConditionConfig
 {
@@ -67,7 +67,7 @@ public class OpenapiConditionConfig extends ConditionConfig
     }
 
     public boolean matchesServers(
-        List<OpenapiServerView> operationServers)
+        List<URI> operationServers)
     {
         return servers == null ||
             servers.stream().anyMatch(s -> operationServers != null &&

@@ -30,11 +30,12 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.config.binding.openapi.asyncapi.AsyncapiCatalogConfig;
+import io.aklivity.zilla.config.binding.openapi.asyncapi.AsyncapiSpecificationConfig;
 import io.aklivity.zilla.config.binding.openapi.asyncapi.OpenapiAsyncapiOptionsConfig;
 import io.aklivity.zilla.config.binding.openapi.asyncapi.OpenapiAsyncapiSpecConfig;
-import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfig;
-import io.aklivity.zilla.runtime.common.openapi.config.OpenapiCatalogConfig;
-import io.aklivity.zilla.runtime.common.openapi.config.OpenapiSpecificationConfig;
+import io.aklivity.zilla.config.binding.openapi.asyncapi.OpenapiCatalogConfig;
+import io.aklivity.zilla.config.binding.openapi.asyncapi.OpenapiSpecificationConfig;
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 
 public class OpenapiAsyncapiOptionsConfigAdapterTest
@@ -94,38 +95,40 @@ public class OpenapiAsyncapiOptionsConfigAdapterTest
                     catalog0:
                       subject: petstore
                       version: latest
-                  overlay:
-                    overlay0:
-                      subject: petstore-overlay
-                      version: latest
+                      overlay:
+                        overlay0:
+                          subject: petstore-overlay
+                          version: latest
               asyncapi:
                 asyncapi-id:
                   catalog:
                     catalog1:
                       subject: petstore
                       version: latest
-                  overlay:
-                    overlay1:
-                      subject: petstore-overlay
-                      version: latest
+                      overlay:
+                        overlay1:
+                          subject: petstore-overlay
+                          version: latest
             """;
 
         OpenapiAsyncapiOptionsConfig options = jsonb.fromJson(text, OpenapiAsyncapiOptionsConfig.class);
         OpenapiSpecificationConfig openapi = options.specs.openapi.stream().findFirst().get();
-        assertThat(openapi.overlay, not(nullValue()));
-        assertEquals("overlay0", openapi.overlay.name);
-        assertEquals("petstore-overlay", openapi.overlay.subject);
+        OpenapiCatalogConfig openapiCatalog = openapi.catalogs.get(0);
+        assertThat(openapiCatalog.overlay, not(nullValue()));
+        assertEquals("overlay0", openapiCatalog.overlay.name);
+        assertEquals("petstore-overlay", openapiCatalog.overlay.subject);
 
         AsyncapiSpecificationConfig asyncapi = options.specs.asyncapi.stream().findFirst().get();
-        assertThat(asyncapi.overlay, not(nullValue()));
-        assertEquals("overlay1", asyncapi.overlay.name);
-        assertEquals("petstore-overlay", asyncapi.overlay.subject);
+        AsyncapiCatalogConfig asyncapiCatalog = asyncapi.catalogs.get(0);
+        assertThat(asyncapiCatalog.overlay, not(nullValue()));
+        assertEquals("overlay1", asyncapiCatalog.overlay.name);
+        assertEquals("petstore-overlay", asyncapiCatalog.overlay.subject);
     }
 
     @Test
-    public void shouldWriteOptionsWithOverlay()
+    public void shouldReadOptionsWithDeprecatedOverlay()
     {
-        String expected =
+        String text =
             """
             specs:
               openapi:
@@ -150,27 +153,61 @@ public class OpenapiAsyncapiOptionsConfigAdapterTest
                       version: latest
             """;
 
+        OpenapiAsyncapiOptionsConfig options = jsonb.fromJson(text, OpenapiAsyncapiOptionsConfig.class);
+        OpenapiSpecificationConfig openapi = options.specs.openapi.stream().findFirst().get();
+        OpenapiCatalogConfig openapiCatalog = openapi.catalogs.get(0);
+        assertThat(openapiCatalog.overlay, not(nullValue()));
+        assertEquals("overlay0", openapiCatalog.overlay.name);
+        assertEquals("petstore-overlay", openapiCatalog.overlay.subject);
+
+        AsyncapiSpecificationConfig asyncapi = options.specs.asyncapi.stream().findFirst().get();
+        AsyncapiCatalogConfig asyncapiCatalog = asyncapi.catalogs.get(0);
+        assertThat(asyncapiCatalog.overlay, not(nullValue()));
+        assertEquals("overlay1", asyncapiCatalog.overlay.name);
+        assertEquals("petstore-overlay", asyncapiCatalog.overlay.subject);
+    }
+
+    @Test
+    public void shouldWriteOptionsWithOverlay()
+    {
+        String expected =
+            """
+            specs:
+              openapi:
+                openapi-id:
+                  catalog:
+                    catalog0:
+                      subject: petstore
+                      version: latest
+                      overlay:
+                        overlay0:
+                          subject: petstore-overlay
+                          version: latest
+              asyncapi:
+                asyncapi-id:
+                  catalog:
+                    catalog1:
+                      subject: petstore
+                      version: latest
+                      overlay:
+                        overlay1:
+                          subject: petstore-overlay
+                          version: latest
+            """;
+
         Set<OpenapiSpecificationConfig> openapiConfigs = new HashSet<>();
         openapiConfigs.add(new OpenapiSpecificationConfig(
             "openapi-id",
             null,
-            List.of(new OpenapiCatalogConfig("catalog0", "petstore", "latest")),
-            null,
-            new OpenapiCatalogConfig("overlay0", "petstore-overlay", "latest")));
+            List.of(new OpenapiCatalogConfig("catalog0", "petstore", "latest",
+                new OpenapiCatalogConfig("overlay0", "petstore-overlay", "latest"))),
+            null));
 
         Set<AsyncapiSpecificationConfig> asyncapiConfigs = new HashSet<>();
         asyncapiConfigs.add(AsyncapiSpecificationConfig.builder()
             .label("asyncapi-id")
-            .catalog()
-                .name("catalog1")
-                .subject("petstore")
-                .version("latest")
-                .build()
-            .overlay()
-                .name("overlay1")
-                .subject("petstore-overlay")
-                .version("latest")
-                .build()
+            .catalog(new AsyncapiCatalogConfig("catalog1", "petstore", "latest",
+                new AsyncapiCatalogConfig("overlay1", "petstore-overlay", "latest")))
             .build());
 
         final OpenapiAsyncapiOptionsConfig options = OpenapiAsyncapiOptionsConfig.builder()
