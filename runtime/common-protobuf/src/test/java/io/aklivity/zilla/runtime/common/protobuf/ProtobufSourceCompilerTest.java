@@ -236,6 +236,75 @@ public class ProtobufSourceCompilerTest
     }
 
     @Test
+    public void shouldCompileProto3ServiceAndRpc()
+    {
+        ProtobufSchema schema = Protobuf.schema(
+            "syntax = \"proto3\";\n" +
+            "package test;\n" +
+            "message Req { string id = 1; }\n" +
+            "message Res { string id = 1; }\n" +
+            "service Greeter {\n" +
+            "  rpc SayHello (Req) returns (Res);\n" +
+            "  rpc StreamHello (stream Req) returns (stream Res);\n" +
+            "}\n");
+
+        ProtobufService service = schema.service("test.Greeter");
+        assertNotNull(service);
+        assertEquals("test.Greeter", service.name());
+        assertEquals(2, service.methods().size());
+
+        ProtobufMethod sayHello = service.method("SayHello");
+        assertEquals("test.Req", sayHello.inputType());
+        assertEquals("test.Res", sayHello.outputType());
+        assertFalse(sayHello.clientStreaming());
+        assertFalse(sayHello.serverStreaming());
+
+        ProtobufMethod streamHello = service.method("StreamHello");
+        assertTrue(streamHello.clientStreaming());
+        assertTrue(streamHello.serverStreaming());
+
+        assertNull(schema.service("test.Missing"));
+    }
+
+    @Test
+    public void shouldExposeCustomMethodOptionsInProto3()
+    {
+        ProtobufSchema schema = Protobuf.schema(
+            "syntax = \"proto3\";\n" +
+            "package test;\n" +
+            "message Req { string id = 1; }\n" +
+            "message Res { string id = 1; }\n" +
+            "service Greeter {\n" +
+            "  rpc SayHello (Req) returns (Res) {\n" +
+            "    option (acme.kind) = \"A\";\n" +
+            "    option deprecated = true;\n" +
+            "  }\n" +
+            "}\n");
+
+        ProtobufMethod sayHello = schema.service("test.Greeter").method("SayHello");
+        assertEquals(new ProtobufConstant.TextValue("A"), sayHello.option("(acme.kind)"));
+        assertEquals(new ProtobufConstant.BooleanValue(true), sayHello.option("deprecated"));
+        assertNull(sayHello.option("(acme.missing)"));
+    }
+
+    @Test
+    public void shouldCompileProto2ServiceAndRpc()
+    {
+        ProtobufSchema schema = Protobuf.schema(
+            "syntax = \"proto2\";\n" +
+            "package test;\n" +
+            "message Req { required string id = 1; }\n" +
+            "message Res { required string id = 1; }\n" +
+            "service Greeter {\n" +
+            "  rpc SayHello (Req) returns (Res);\n" +
+            "}\n");
+
+        ProtobufMethod sayHello = schema.service("test.Greeter").method("SayHello");
+        assertEquals("test.Req", sayHello.inputType());
+        assertEquals("test.Res", sayHello.outputType());
+    }
+
+    @Test
     public void shouldDeriveJsonNameForSnakeCaseField()
     {
         ProtobufSchema schema = Protobuf.schema(
