@@ -27,9 +27,9 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.config.binding.openapi.OpenapiCatalogConfig;
 import io.aklivity.zilla.config.binding.openapi.OpenapiOptionsConfig;
-import io.aklivity.zilla.runtime.common.openapi.config.OpenapiCatalogConfig;
-import io.aklivity.zilla.runtime.common.openapi.config.OpenapiSpecificationConfig;
+import io.aklivity.zilla.config.binding.openapi.OpenapiSpecificationConfig;
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 
 public class OpenapiOptionsConfigAdapterTest

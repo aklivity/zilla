@@ -12,60 +12,60 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.common.openapi.config;
+package io.aklivity.zilla.config.binding.asyncapi;
 
 import java.util.function.Function;
 
-public final class OpenapiCatalogConfigBuilder<T>
+public final class AsyncapiCatalogConfigBuilder<T>
 {
-    private final Function<OpenapiCatalogConfig, T> mapper;
+    private final Function<AsyncapiCatalogConfig, T> mapper;
 
     private String name;
     private String subject;
     private String version;
-    private OpenapiCatalogConfig overlay;
+    private AsyncapiCatalogConfig overlay;
 
-    OpenapiCatalogConfigBuilder(
-        Function<OpenapiCatalogConfig, T> mapper)
+    AsyncapiCatalogConfigBuilder(
+        Function<AsyncapiCatalogConfig, T> mapper)
     {
         this.mapper = mapper;
     }
 
-    public OpenapiCatalogConfigBuilder<T> name(
+    public AsyncapiCatalogConfigBuilder<T> name(
         String name)
     {
         this.name = name;
         return this;
     }
 
-    public OpenapiCatalogConfigBuilder<T> subject(
+    public AsyncapiCatalogConfigBuilder<T> subject(
         String subject)
     {
         this.subject = subject;
         return this;
     }
 
-    public OpenapiCatalogConfigBuilder<T> version(
+    public AsyncapiCatalogConfigBuilder<T> version(
         String version)
     {
         this.version = version;
         return this;
     }
 
-    public OpenapiCatalogConfigBuilder<T> overlay(
-        OpenapiCatalogConfig overlay)
+    public AsyncapiCatalogConfigBuilder<T> overlay(
+        AsyncapiCatalogConfig overlay)
     {
         this.overlay = overlay;
         return this;
     }
 
-    public OpenapiCatalogConfigBuilder<OpenapiCatalogConfigBuilder<T>> overlay()
+    public AsyncapiCatalogConfigBuilder<AsyncapiCatalogConfigBuilder<T>> overlay()
     {
-        return new OpenapiCatalogConfigBuilder<>(this::overlay);
+        return new AsyncapiCatalogConfigBuilder<>(this::overlay);
     }
 
     public T build()
     {
-        return mapper.apply(new OpenapiCatalogConfig(name, subject, version, overlay));
+        return mapper.apply(new AsyncapiCatalogConfig(name, subject, version, overlay));
     }
 }

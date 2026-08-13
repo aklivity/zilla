@@ -28,17 +28,17 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonValue;
 
+import io.aklivity.zilla.config.binding.openapi.asyncapi.AsyncapiCatalogConfig;
+import io.aklivity.zilla.config.binding.openapi.asyncapi.AsyncapiCatalogConfigBuilder;
+import io.aklivity.zilla.config.binding.openapi.asyncapi.AsyncapiSpecificationConfig;
+import io.aklivity.zilla.config.binding.openapi.asyncapi.AsyncapiSpecificationConfigBuilder;
 import io.aklivity.zilla.config.binding.openapi.asyncapi.OpenapiAsyncapiOptionsConfig;
 import io.aklivity.zilla.config.binding.openapi.asyncapi.OpenapiAsyncapiSpecConfig;
+import io.aklivity.zilla.config.binding.openapi.asyncapi.OpenapiCatalogConfig;
+import io.aklivity.zilla.config.binding.openapi.asyncapi.OpenapiCatalogConfigBuilder;
+import io.aklivity.zilla.config.binding.openapi.asyncapi.OpenapiSpecificationConfig;
 import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfig;
-import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiCatalogConfig;
-import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiCatalogConfigBuilder;
-import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfig;
-import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfigBuilder;
-import io.aklivity.zilla.runtime.common.openapi.config.OpenapiCatalogConfig;
-import io.aklivity.zilla.runtime.common.openapi.config.OpenapiCatalogConfigBuilder;
-import io.aklivity.zilla.runtime.common.openapi.config.OpenapiSpecificationConfig;
 
 public final class OpenapiAsyncapiOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, JsonObject>
 {

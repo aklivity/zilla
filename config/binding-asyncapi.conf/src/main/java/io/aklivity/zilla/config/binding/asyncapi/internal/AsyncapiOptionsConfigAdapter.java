@@ -23,14 +23,14 @@ import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
 
+import io.aklivity.zilla.config.binding.asyncapi.AsyncapiCatalogConfig;
+import io.aklivity.zilla.config.binding.asyncapi.AsyncapiCatalogConfigBuilder;
 import io.aklivity.zilla.config.binding.asyncapi.AsyncapiOptionsConfig;
 import io.aklivity.zilla.config.binding.asyncapi.AsyncapiOptionsConfigBuilder;
+import io.aklivity.zilla.config.binding.asyncapi.AsyncapiSpecificationConfig;
+import io.aklivity.zilla.config.binding.asyncapi.AsyncapiSpecificationConfigBuilder;
 import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfig;
-import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiCatalogConfig;
-import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiCatalogConfigBuilder;
-import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfig;
-import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfigBuilder;
 
 public final class AsyncapiOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, JsonObject>
 {

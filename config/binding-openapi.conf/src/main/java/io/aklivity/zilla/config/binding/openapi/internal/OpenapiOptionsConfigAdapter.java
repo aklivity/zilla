@@ -26,13 +26,13 @@ import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
 
+import io.aklivity.zilla.config.binding.openapi.OpenapiCatalogConfig;
+import io.aklivity.zilla.config.binding.openapi.OpenapiCatalogConfigBuilder;
 import io.aklivity.zilla.config.binding.openapi.OpenapiOptionsConfig;
 import io.aklivity.zilla.config.binding.openapi.OpenapiOptionsConfigBuilder;
+import io.aklivity.zilla.config.binding.openapi.OpenapiSpecificationConfig;
 import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfig;
-import io.aklivity.zilla.runtime.common.openapi.config.OpenapiCatalogConfig;
-import io.aklivity.zilla.runtime.common.openapi.config.OpenapiCatalogConfigBuilder;
-import io.aklivity.zilla.runtime.common.openapi.config.OpenapiSpecificationConfig;
 
 public final class OpenapiOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, JsonObject>
 {

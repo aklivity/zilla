@@ -41,6 +41,8 @@ import jakarta.json.JsonWriter;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 
+import io.aklivity.zilla.config.binding.asyncapi.AsyncapiCatalogConfig;
+import io.aklivity.zilla.config.binding.asyncapi.AsyncapiSpecificationConfig;
 import io.aklivity.zilla.config.binding.http.HttpOptionsConfigBuilder;
 import io.aklivity.zilla.config.binding.kafka.KafkaOptionsConfigBuilder;
 import io.aklivity.zilla.config.binding.mqtt.MqttCredentialsConfigBuilder;
@@ -75,12 +77,10 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.kafka.
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.sse.AsyncapiSseOperationBindingEx;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.sse.kafka.AsyncapiSseKafkaOperationBindingEx;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.extensions.mqtt.kafka.AsyncapiMqttKafkaChannelEx;
-import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiCatalogConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiExtension;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiParser;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiParserFactory;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSchemaConfig;
-import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.model.AsyncapiSchemaItem;
 import io.aklivity.zilla.runtime.common.asyncapi.security.AsyncapiGuardResolver;
 import io.aklivity.zilla.runtime.common.asyncapi.security.GuardedResolution;

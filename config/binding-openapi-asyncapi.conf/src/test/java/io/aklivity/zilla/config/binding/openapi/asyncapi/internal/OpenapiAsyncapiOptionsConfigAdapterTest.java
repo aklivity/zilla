@@ -30,12 +30,12 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.config.binding.openapi.asyncapi.AsyncapiCatalogConfig;
+import io.aklivity.zilla.config.binding.openapi.asyncapi.AsyncapiSpecificationConfig;
 import io.aklivity.zilla.config.binding.openapi.asyncapi.OpenapiAsyncapiOptionsConfig;
 import io.aklivity.zilla.config.binding.openapi.asyncapi.OpenapiAsyncapiSpecConfig;
-import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiCatalogConfig;
-import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfig;
-import io.aklivity.zilla.runtime.common.openapi.config.OpenapiCatalogConfig;
-import io.aklivity.zilla.runtime.common.openapi.config.OpenapiSpecificationConfig;
+import io.aklivity.zilla.config.binding.openapi.asyncapi.OpenapiCatalogConfig;
+import io.aklivity.zilla.config.binding.openapi.asyncapi.OpenapiSpecificationConfig;
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 
 public class OpenapiAsyncapiOptionsConfigAdapterTest

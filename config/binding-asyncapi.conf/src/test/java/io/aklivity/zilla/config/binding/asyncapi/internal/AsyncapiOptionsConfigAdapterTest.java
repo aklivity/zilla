@@ -30,9 +30,9 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.config.binding.asyncapi.AsyncapiCatalogConfig;
 import io.aklivity.zilla.config.binding.asyncapi.AsyncapiOptionsConfig;
-import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiCatalogConfig;
-import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfig;
+import io.aklivity.zilla.config.binding.asyncapi.AsyncapiSpecificationConfig;
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 
 public class AsyncapiOptionsConfigAdapterTest
