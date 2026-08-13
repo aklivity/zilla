@@ -22,7 +22,7 @@ package io.aklivity.zilla.runtime.common.avro;
  * obtain the runnable, resumable {@link AvroPipeline}. An {@code AvroStream} carries no state and is not
  * itself runnable.
  */
-public interface AvroStream
+public interface AvroStream extends AvroTransformable
 {
     /**
      * Appends a stage, in data-flow order. {@link AvroTransform#NONE} is dropped rather than appended, so a

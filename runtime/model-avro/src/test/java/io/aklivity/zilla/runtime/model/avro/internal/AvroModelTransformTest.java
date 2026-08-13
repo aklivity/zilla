@@ -50,6 +50,7 @@ import io.aklivity.zilla.runtime.engine.model.ModelSource;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.TestCatalogHandler;
+import io.aklivity.zilla.runtime.model.avro.ext.AvroModelExtContext;
 
 public class AvroModelTransformTest
 {
@@ -231,6 +232,17 @@ public class AvroModelTransformTest
         ModelPipeline pipeline = handler.supplyDecoder(new Declining("$.ssn"));
 
         assertEquals("{\"id\":\"a\",\"user\":{\"ssn\":\"ssn0\"}}", decode(pipeline, NESTED));
+    }
+
+    @Test
+    public void shouldApplyInstalledExtensionAheadOfCallerSuppliedTransform()
+    {
+        List<AvroModelExtContext> exts = List.of(
+            (schema, config) -> stream -> stream.transform(AvroModelTransform.of(new Declining("$.status"))));
+        AvroModelHandlerImpl handler = newHandler(SCHEMA, "json", exts);
+        ModelPipeline pipeline = handler.supplyDecoder(new Observing());
+
+        assertEquals("{\"id\":\"id0\",\"status\":\"\"}", decode(pipeline, AVRO));
     }
 
     @Test
@@ -431,6 +443,14 @@ public class AvroModelTransformTest
         String schema,
         String view)
     {
+        return newHandler(schema, view, List.of());
+    }
+
+    private AvroModelHandlerImpl newHandler(
+        String schema,
+        String view,
+        List<AvroModelExtContext> exts)
+    {
         TestCatalogConfig catalog = GenericCatalogConfig.builder(TestCatalogConfig::new)
             .namespace("test")
             .name("test0")
@@ -452,7 +472,7 @@ public class AvroModelTransformTest
                 .build()
             .build();
         when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
-        return new AvroModelHandlerImpl(config, model, context);
+        return new AvroModelHandlerImpl(config, model, context, exts);
     }
 
     private static boolean matches(

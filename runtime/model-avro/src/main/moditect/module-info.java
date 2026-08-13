@@ -20,6 +20,10 @@ module io.aklivity.zilla.runtime.model.avro
 
     requires io.aklivity.zilla.config.model.avro;
 
+    exports io.aklivity.zilla.runtime.model.avro.ext;
+
+    uses io.aklivity.zilla.runtime.model.avro.ext.AvroModelExtFactorySpi;
+
     provides io.aklivity.zilla.runtime.engine.model.ModelFactorySpi
         with io.aklivity.zilla.runtime.model.avro.internal.AvroModelFactorySpi;
 
