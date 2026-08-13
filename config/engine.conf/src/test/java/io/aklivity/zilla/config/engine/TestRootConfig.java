@@ -16,7 +16,7 @@ package io.aklivity.zilla.config.engine;
 
 import java.util.Map;
 
-class TestRootConfig extends Config
+class TestRootConfig extends Config.Extensible
 {
     final String name;
 

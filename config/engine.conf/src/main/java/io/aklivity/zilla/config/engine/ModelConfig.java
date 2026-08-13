@@ -17,7 +17,7 @@ package io.aklivity.zilla.config.engine;
 import java.util.List;
 import java.util.Map;
 
-public abstract class ModelConfig extends Config
+public abstract class ModelConfig extends Config.Extensible
 {
     public final String model;
     public final List<CatalogedConfig> cataloged;

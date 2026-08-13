@@ -18,23 +18,30 @@ import java.util.Map;
 
 public abstract class Config
 {
-    private final Map<String, Config> extensions;
-
     protected Config()
     {
-        this(null);
     }
 
-    protected Config(
-        Map<String, Config> extensions)
+    public abstract static class Extensible extends Config
     {
-        this.extensions = extensions;
-    }
+        private final Map<String, Config> extensions;
 
-    public final <T extends Config> T ext(
-        String name,
-        Class<T> type)
-    {
-        return extensions != null ? type.cast(extensions.get(name)) : null;
+        protected Extensible()
+        {
+            this(null);
+        }
+
+        protected Extensible(
+            Map<String, Config> extensions)
+        {
+            this.extensions = extensions;
+        }
+
+        public final <T extends Config> T ext(
+            String name,
+            Class<T> type)
+        {
+            return extensions != null ? type.cast(extensions.get(name)) : null;
+        }
     }
 }

@@ -20,7 +20,7 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
-public final class ConfigExtAdapter<T extends Config>
+public final class ConfigExtAdapter<T extends Config.Extensible>
 {
     private final Map<String, JsonbAdapter<? extends Config, JsonObject>> adaptersByName;
 
