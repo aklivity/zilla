@@ -165,4 +165,115 @@ public class FileSystemOptionsConfigAdapterTest
                     - localhost
                 """));
     }
+
+    @Test
+    public void shouldReadOptionsWithSecretsPlainStringEntry()
+    {
+        String yaml =
+                """
+                secrets:
+                  store: secrets.p12
+                  password: generated
+                  entries:
+                    app-key: app-key-alias
+                """;
+
+        FileSystemOptionsConfig options = jsonb.fromJson(yaml, FileSystemOptionsConfig.class);
+
+        assertThat(options, not(nullValue()));
+        assertThat(options.secrets, not(nullValue()));
+        assertThat(options.secrets.store, equalTo("secrets.p12"));
+        assertThat(options.secrets.password, equalTo("generated"));
+        assertThat(options.secrets.entries.get("app-key").active, equalTo("1"));
+        assertThat(options.secrets.entries.get("app-key").versions.get("1"), equalTo("app-key-alias"));
+        assertThat(options.secrets.entries.get("app-key").algorithm, nullValue());
+    }
+
+    @Test
+    public void shouldReadOptionsWithSecretsRotatedEntry()
+    {
+        String yaml =
+                """
+                secrets:
+                  store: secrets.p12
+                  password: generated
+                  entries:
+                    session-key:
+                      active: "2"
+                      versions:
+                        "1": session-key-v1-alias
+                        "2": session-key-v2-alias
+                      algorithm: AES256_GCM
+                """;
+
+        FileSystemOptionsConfig options = jsonb.fromJson(yaml, FileSystemOptionsConfig.class);
+
+        assertThat(options, not(nullValue()));
+        assertThat(options.secrets.entries.get("session-key").active, equalTo("2"));
+        assertThat(options.secrets.entries.get("session-key").versions.get("1"), equalTo("session-key-v1-alias"));
+        assertThat(options.secrets.entries.get("session-key").versions.get("2"), equalTo("session-key-v2-alias"));
+        assertThat(options.secrets.entries.get("session-key").algorithm, equalTo("AES256_GCM"));
+    }
+
+    @Test
+    public void shouldWriteOptionsWithSecretsPlainStringEntry()
+    {
+        FileSystemOptionsConfig options = FileSystemOptionsConfig.builder()
+            .inject(identity())
+            .secrets()
+                .inject(identity())
+                .store("secrets.p12")
+                .password("generated")
+                .entry("app-key")
+                    .alias("app-key-alias")
+                    .build()
+                .build()
+            .build();
+
+        String yaml = jsonb.toJson(options);
+
+        assertThat(yaml, not(nullValue()));
+        assertThat(yaml, equalTo(
+                """
+                secrets:
+                  store: secrets.p12
+                  password: generated
+                  entries:
+                    app-key: app-key-alias
+                """));
+    }
+
+    @Test
+    public void shouldWriteOptionsWithSecretsRotatedEntry()
+    {
+        FileSystemOptionsConfig options = FileSystemOptionsConfig.builder()
+            .inject(identity())
+            .secrets()
+                .inject(identity())
+                .store("secrets.p12")
+                .password("generated")
+                .entry("session-key")
+                    .active("2")
+                    .version("1", "session-key-v1-alias")
+                    .version("2", "session-key-v2-alias")
+                    .build()
+                .build()
+            .build();
+
+        String yaml = jsonb.toJson(options);
+
+        assertThat(yaml, not(nullValue()));
+        assertThat(yaml, equalTo(
+                """
+                secrets:
+                  store: secrets.p12
+                  password: generated
+                  entries:
+                    session-key:
+                      active: "2"
+                      versions:
+                        "1": session-key-v1-alias
+                        "2": session-key-v2-alias
+                """));
+    }
 }

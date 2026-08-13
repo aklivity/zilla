@@ -28,9 +28,11 @@ public final class FileSystemOptionsConfigAdapter extends ConfigAdapter<OptionsC
     private static final String KEYS_NAME = "keys";
     private static final String TRUST_NAME = "trust";
     private static final String SIGNERS_NAME = "signers";
+    private static final String SECRETS_NAME = "secrets";
     private static final String REVOCATION_NAME = "revocation";
 
     private final FileSystemStoreConfigAdapter store = new FileSystemStoreConfigAdapter();
+    private final FileSystemSecretsConfigAdapter secrets = new FileSystemSecretsConfigAdapter();
 
     @Override
     public JsonObject adaptToJson(
@@ -53,6 +55,11 @@ public final class FileSystemOptionsConfigAdapter extends ConfigAdapter<OptionsC
         if (fsOptions.signers != null)
         {
             object.add(SIGNERS_NAME, store.adaptToJson(fsOptions.signers));
+        }
+
+        if (fsOptions.secrets != null)
+        {
+            object.add(SECRETS_NAME, secrets.adaptToJson(fsOptions.secrets));
         }
 
         if (fsOptions.revocation != null)
@@ -82,6 +89,11 @@ public final class FileSystemOptionsConfigAdapter extends ConfigAdapter<OptionsC
         if (object.containsKey(SIGNERS_NAME))
         {
             fsOptions.signers(store.adaptFromJson(object.getJsonObject(SIGNERS_NAME)));
+        }
+
+        if (object.containsKey(SECRETS_NAME))
+        {
+            fsOptions.secrets(secrets.adaptFromJson(object.getJsonObject(SECRETS_NAME)));
         }
 
         if (object.containsKey(REVOCATION_NAME))
