@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.common.json.internal;
+package io.aklivity.zilla.runtime.common.json;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -23,12 +23,8 @@ import org.junit.jupiter.api.Test;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
-import io.aklivity.zilla.runtime.common.json.JsonEx;
-import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
-import io.aklivity.zilla.runtime.common.json.JsonPipeline;
-import io.aklivity.zilla.runtime.common.json.JsonTransforms;
 
-class JsonSchemaPathsTest
+class JsonSchemaRetainedPathsTest
 {
     @Test
     void shouldCollectTopLevelProperties()
@@ -109,11 +105,12 @@ class JsonSchemaPathsTest
         JsonGeneratorEx gen = JsonEx.createGenerator();
         MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[1024]);
         gen.wrap(buffer, 0, buffer.capacity());
+        JsonSchema schema = JsonSchema.of(
+            "{\"type\":\"object\",\"properties\":{" +
+            "\"items\":{\"type\":\"array\",\"items\":{\"type\":\"object\"," +
+            "\"properties\":{\"id\":{\"type\":\"integer\"}}}}}}");
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
-            .transform(JsonTransforms.projector(JsonSchemaPaths.retained(
-                "{\"type\":\"object\",\"properties\":{" +
-                "\"items\":{\"type\":\"array\",\"items\":{\"type\":\"object\"," +
-                "\"properties\":{\"id\":{\"type\":\"integer\"}}}}}}")))
+            .transform(JsonTransforms.projector(schema.retainedPaths()))
             .into(JsonEx.createSink(gen));
         pipeline.reset();
         byte[] bytes = "{\"items\":[{\"id\":1,\"x\":9},{\"id\":2}],\"k\":0} ".getBytes(UTF_8);
@@ -126,6 +123,6 @@ class JsonSchemaPathsTest
     private static List<String> retained(
         String schema)
     {
-        return JsonSchemaPaths.retained(schema);
+        return JsonSchema.of(schema).retainedPaths();
     }
 }

@@ -18,6 +18,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -177,6 +178,61 @@ public class ProtobufSourceCompilerTest
 
         assertFalse(schema.message("M").field(1).packed());
         assertEquals("uid", schema.message("M").field(2).jsonName());
+    }
+
+    @Test
+    public void shouldExposeCustomFieldOptionsInProto3()
+    {
+        ProtobufSchema schema = Protobuf.schema(
+            "syntax = \"proto3\";\n" +
+            "message M {\n" +
+            "  string email = 1 [(acme.kind) = \"A\", (acme.limit) = 123,\n" +
+            "      (acme.ratio) = 1.5, (acme.enabled) = true, (acme.owner) = SOMEONE,\n" +
+            "      (acme.meta) = { kind: \"A\" level: 2 }];\n" +
+            "  string plain = 2;\n" +
+            "}\n");
+
+        ProtobufField email = schema.message("M").field(1);
+        assertEquals(new ProtobufConstant.TextValue("A"), email.option("(acme.kind)"));
+        assertEquals(new ProtobufConstant.IntegerValue(123), email.option("(acme.limit)"));
+        assertEquals(new ProtobufConstant.FloatValue(1.5), email.option("(acme.ratio)"));
+        assertEquals(new ProtobufConstant.BooleanValue(true), email.option("(acme.enabled)"));
+        assertEquals(new ProtobufConstant.Identifier("SOMEONE"), email.option("(acme.owner)"));
+        assertNull(email.option("(acme.missing)"));
+
+        ProtobufConstant.MessageValue meta = (ProtobufConstant.MessageValue) email.option("(acme.meta)");
+        assertEquals(new ProtobufConstant.TextValue("A"), meta.fields().get("kind"));
+        assertEquals(new ProtobufConstant.IntegerValue(2), meta.fields().get("level"));
+
+        ProtobufField plain = schema.message("M").field(2);
+        assertNull(plain.option("(acme.kind)"));
+    }
+
+    @Test
+    public void shouldExposeCustomFieldOptionsInProto2()
+    {
+        ProtobufSchema schema = Protobuf.schema(
+            "syntax = \"proto2\";\n" +
+            "message M {\n" +
+            "  optional string email = 1 [(acme.kind) = \"A\"];\n" +
+            "}\n");
+
+        ProtobufField email = schema.message("M").field(1);
+        assertEquals(new ProtobufConstant.TextValue("A"), email.option("(acme.kind)"));
+    }
+
+    @Test
+    public void shouldStillRecognizeWellKnownOptionsAlongsideCustomOnes()
+    {
+        ProtobufSchema schema = Protobuf.schema(
+            "syntax = \"proto3\";\n" +
+            "message M {\n" +
+            "  repeated int32 nums = 1 [packed = false, (acme.kind) = \"A\"];\n" +
+            "}\n");
+
+        ProtobufField nums = schema.message("M").field(1);
+        assertFalse(nums.packed());
+        assertEquals(new ProtobufConstant.TextValue("A"), nums.option("(acme.kind)"));
     }
 
     @Test

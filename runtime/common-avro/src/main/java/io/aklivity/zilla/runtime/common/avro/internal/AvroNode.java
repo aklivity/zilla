@@ -15,8 +15,13 @@
 package io.aklivity.zilla.runtime.common.avro.internal;
 
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.function.Predicate;
 
+import jakarta.json.JsonObject;
 import jakarta.json.JsonValue;
 
 import io.aklivity.zilla.runtime.common.avro.AvroField;
@@ -44,6 +49,7 @@ final class AvroNode implements AvroType
     final String[] aliases;
     final String[][] fieldAliases;
     final JsonValue[] fieldDefaults;
+    final JsonObject[] fieldAttributes;
 
     private AvroNode(
         AvroKind kind,
@@ -57,7 +63,8 @@ final class AvroNode implements AvroType
         int scale,
         String[] aliases,
         String[][] fieldAliases,
-        JsonValue[] fieldDefaults)
+        JsonValue[] fieldDefaults,
+        JsonObject[] fieldAttributes)
     {
         this.kind = kind;
         this.name = name;
@@ -71,6 +78,7 @@ final class AvroNode implements AvroType
         this.aliases = aliases;
         this.fieldAliases = fieldAliases;
         this.fieldDefaults = fieldDefaults;
+        this.fieldAttributes = fieldAttributes;
     }
 
     @Override
@@ -118,11 +126,63 @@ final class AvroNode implements AvroType
             List<AvroField> fields = new ArrayList<>(fieldNames.length);
             for (int i = 0; i < fieldNames.length; i++)
             {
-                fields.add(new AvroFieldImpl(fieldNames[i], children[i], fieldAliases[i], fieldDefaults[i]));
+                fields.add(new AvroFieldImpl(fieldNames[i], children[i], fieldAliases[i], fieldDefaults[i],
+                    fieldAttributes[i]));
             }
             result = List.copyOf(fields);
         }
         return result;
+    }
+
+    @Override
+    public List<String> matchingPaths(
+        Predicate<AvroField> filter)
+    {
+        Set<String> pointers = new LinkedHashSet<>();
+        // identity-based (AvroNode has no equals/hashCode override): guards against a recursive
+        // record revisiting itself along the same descent, not against revisiting via a different path
+        collectPaths("", filter, new HashSet<>(), pointers);
+        return new ArrayList<>(pointers);
+    }
+
+    private void collectPaths(
+        String pointer,
+        Predicate<AvroField> filter,
+        Set<AvroNode> visiting,
+        Set<String> pointers)
+    {
+        switch (kind)
+        {
+        case RECORD:
+            if (visiting.add(this))
+            {
+                List<AvroField> recordFields = fields();
+                for (int i = 0; i < recordFields.size(); i++)
+                {
+                    AvroField field = recordFields.get(i);
+                    String fieldPointer = pointer + "/" + field.name();
+                    if (filter.test(field))
+                    {
+                        pointers.add(fieldPointer);
+                    }
+                    children[i].collectPaths(fieldPointer, filter, visiting, pointers);
+                }
+                visiting.remove(this);
+            }
+            break;
+        case ARRAY:
+        case MAP:
+            children[0].collectPaths(pointer + "/-", filter, visiting, pointers);
+            break;
+        case UNION:
+            for (AvroNode branch : children)
+            {
+                branch.collectPaths(pointer, filter, visiting, pointers);
+            }
+            break;
+        default:
+            break;
+        }
     }
 
     @Override
@@ -171,7 +231,7 @@ final class AvroNode implements AvroType
         int precision,
         int scale)
     {
-        return new AvroNode(kind, null, null, null, null, 0, logicalType, precision, scale, null, null, null);
+        return new AvroNode(kind, null, null, null, null, 0, logicalType, precision, scale, null, null, null, null);
     }
 
     static AvroNode ofRecord(
@@ -180,30 +240,31 @@ final class AvroNode implements AvroType
         AvroNode[] fieldTypes,
         String[] aliases,
         String[][] fieldAliases,
-        JsonValue[] fieldDefaults)
+        JsonValue[] fieldDefaults,
+        JsonObject[] fieldAttributes)
     {
         return new AvroNode(AvroKind.RECORD, name, fieldNames, fieldTypes, null, 0, null, 0, 0,
-            aliases, fieldAliases, fieldDefaults);
+            aliases, fieldAliases, fieldDefaults, fieldAttributes);
     }
 
     static AvroNode ofArray(
         AvroNode elementType)
     {
         return new AvroNode(AvroKind.ARRAY, null, null, new AvroNode[] { elementType }, null, 0, null, 0, 0,
-            null, null, null);
+            null, null, null, null);
     }
 
     static AvroNode ofMap(
         AvroNode valueType)
     {
         return new AvroNode(AvroKind.MAP, null, null, new AvroNode[] { valueType }, null, 0, null, 0, 0,
-            null, null, null);
+            null, null, null, null);
     }
 
     static AvroNode ofUnion(
         AvroNode[] branches)
     {
-        return new AvroNode(AvroKind.UNION, null, null, branches, null, 0, null, 0, 0, null, null, null);
+        return new AvroNode(AvroKind.UNION, null, null, branches, null, 0, null, 0, 0, null, null, null, null);
     }
 
     static AvroNode ofEnum(
@@ -211,7 +272,7 @@ final class AvroNode implements AvroType
         String[] symbols,
         String[] aliases)
     {
-        return new AvroNode(AvroKind.ENUM, name, null, null, symbols, 0, null, 0, 0, aliases, null, null);
+        return new AvroNode(AvroKind.ENUM, name, null, null, symbols, 0, null, 0, 0, aliases, null, null, null);
     }
 
     static AvroNode ofFixed(
@@ -223,6 +284,6 @@ final class AvroNode implements AvroType
         String[] aliases)
     {
         return new AvroNode(AvroKind.FIXED, name, null, null, null, size, logicalType, precision, scale,
-            aliases, null, null);
+            aliases, null, null, null);
     }
 }
