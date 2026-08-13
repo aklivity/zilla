@@ -87,6 +87,23 @@ public class AvroModelTransformTest
     // id="id0" (len 3) then status="positive" (len 8)
     private static final byte[] AVRO = {0x06, 0x69, 0x64, 0x30, 0x10, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65};
 
+    private static final String NESTED_SCHEMA = """
+        {
+            "fields":
+            [
+                { "name": "id", "type": "string" },
+                { "name": "user", "type":
+                    { "type": "record", "name": "User", "fields":
+                        [ { "name": "ssn", "type": "string" } ] } }
+            ],
+            "name": "Envelope",
+            "namespace": "io.aklivity.example",
+            "type": "record"
+        }""";
+
+    // id="a" (len 1) then user.ssn="ssn0" (len 4)
+    private static final byte[] NESTED = {0x02, 0x61, 0x08, 0x73, 0x73, 0x6e, 0x30};
+
     private static final String MIXED_SCHEMA = """
         {
             "fields":
@@ -187,6 +204,33 @@ public class AvroModelTransformTest
         ModelPipeline pipeline = handler.supplyDecoder(new Declining("$.i", "$.b", "$.e"));
 
         assertEquals("{\"i\":0,\"l\":7,\"f\":1.5,\"d\":2.5,\"b\":false,\"e\":\"LOW\"}", decode(pipeline, SCALARS));
+    }
+
+    @Test
+    public void shouldReplaceNestedScalarField()
+    {
+        AvroModelHandlerImpl handler = newHandler(NESTED_SCHEMA, "json");
+        ModelPipeline pipeline = handler.supplyDecoder(new Rewriting("$.user.ssn", "replaced"));
+
+        assertEquals("{\"id\":\"a\",\"user\":{\"ssn\":\"replaced\"}}", decode(pipeline, NESTED));
+    }
+
+    @Test
+    public void shouldDeclineNestedScalarField()
+    {
+        AvroModelHandlerImpl handler = newHandler(NESTED_SCHEMA, "json");
+        ModelPipeline pipeline = handler.supplyDecoder(new Declining("$.user.ssn"));
+
+        assertEquals("{\"id\":\"a\",\"user\":{\"ssn\":\"\"}}", decode(pipeline, NESTED));
+    }
+
+    @Test
+    public void shouldNotDescendMatchingByLeafNameAloneAcrossDepths()
+    {
+        AvroModelHandlerImpl handler = newHandler(NESTED_SCHEMA, "json");
+        ModelPipeline pipeline = handler.supplyDecoder(new Declining("$.ssn"));
+
+        assertEquals("{\"id\":\"a\",\"user\":{\"ssn\":\"ssn0\"}}", decode(pipeline, NESTED));
     }
 
     @Test
