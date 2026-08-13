@@ -16,20 +16,18 @@ package io.aklivity.zilla.runtime.common.asyncapi.config;
 
 import java.util.function.Function;
 
-import io.aklivity.zilla.config.engine.OverlayConfig;
-
 public class AsyncapiCatalogConfig
 {
     public final String name;
     public final String subject;
     public final String version;
-    public final OverlayConfig overlay;
+    public final AsyncapiCatalogConfig overlay;
 
     public AsyncapiCatalogConfig(
         String name,
         String subject,
         String version,
-        OverlayConfig overlay)
+        AsyncapiCatalogConfig overlay)
     {
         this.name = name;
         this.subject = subject;

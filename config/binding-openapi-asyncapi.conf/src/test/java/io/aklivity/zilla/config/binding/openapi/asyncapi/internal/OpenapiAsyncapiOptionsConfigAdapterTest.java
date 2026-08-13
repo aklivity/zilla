@@ -32,7 +32,6 @@ import org.junit.Test;
 
 import io.aklivity.zilla.config.binding.openapi.asyncapi.OpenapiAsyncapiOptionsConfig;
 import io.aklivity.zilla.config.binding.openapi.asyncapi.OpenapiAsyncapiSpecConfig;
-import io.aklivity.zilla.config.engine.OverlayConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiCatalogConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfig;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiCatalogConfig;
@@ -117,13 +116,13 @@ public class OpenapiAsyncapiOptionsConfigAdapterTest
         OpenapiCatalogConfig openapiCatalog = openapi.catalogs.get(0);
         assertThat(openapiCatalog.overlay, not(nullValue()));
         assertEquals("overlay0", openapiCatalog.overlay.name);
-        assertEquals("petstore-overlay", openapiCatalog.overlay.schema.subject);
+        assertEquals("petstore-overlay", openapiCatalog.overlay.subject);
 
         AsyncapiSpecificationConfig asyncapi = options.specs.asyncapi.stream().findFirst().get();
         AsyncapiCatalogConfig asyncapiCatalog = asyncapi.catalogs.get(0);
         assertThat(asyncapiCatalog.overlay, not(nullValue()));
         assertEquals("overlay1", asyncapiCatalog.overlay.name);
-        assertEquals("petstore-overlay", asyncapiCatalog.overlay.schema.subject);
+        assertEquals("petstore-overlay", asyncapiCatalog.overlay.subject);
     }
 
     @Test
@@ -159,13 +158,13 @@ public class OpenapiAsyncapiOptionsConfigAdapterTest
         OpenapiCatalogConfig openapiCatalog = openapi.catalogs.get(0);
         assertThat(openapiCatalog.overlay, not(nullValue()));
         assertEquals("overlay0", openapiCatalog.overlay.name);
-        assertEquals("petstore-overlay", openapiCatalog.overlay.schema.subject);
+        assertEquals("petstore-overlay", openapiCatalog.overlay.subject);
 
         AsyncapiSpecificationConfig asyncapi = options.specs.asyncapi.stream().findFirst().get();
         AsyncapiCatalogConfig asyncapiCatalog = asyncapi.catalogs.get(0);
         assertThat(asyncapiCatalog.overlay, not(nullValue()));
         assertEquals("overlay1", asyncapiCatalog.overlay.name);
-        assertEquals("petstore-overlay", asyncapiCatalog.overlay.schema.subject);
+        assertEquals("petstore-overlay", asyncapiCatalog.overlay.subject);
     }
 
     @Test
@@ -196,29 +195,19 @@ public class OpenapiAsyncapiOptionsConfigAdapterTest
                           version: latest
             """;
 
-        OverlayConfig openapiOverlay = OverlayConfig.builder()
-            .name("overlay0")
-            .subject("petstore-overlay")
-            .version("latest")
-            .build();
-
         Set<OpenapiSpecificationConfig> openapiConfigs = new HashSet<>();
         openapiConfigs.add(new OpenapiSpecificationConfig(
             "openapi-id",
             null,
-            List.of(new OpenapiCatalogConfig("catalog0", "petstore", "latest", openapiOverlay)),
+            List.of(new OpenapiCatalogConfig("catalog0", "petstore", "latest",
+                new OpenapiCatalogConfig("overlay0", "petstore-overlay", "latest"))),
             null));
-
-        OverlayConfig asyncapiOverlay = OverlayConfig.builder()
-            .name("overlay1")
-            .subject("petstore-overlay")
-            .version("latest")
-            .build();
 
         Set<AsyncapiSpecificationConfig> asyncapiConfigs = new HashSet<>();
         asyncapiConfigs.add(AsyncapiSpecificationConfig.builder()
             .label("asyncapi-id")
-            .catalog(new AsyncapiCatalogConfig("catalog1", "petstore", "latest", asyncapiOverlay))
+            .catalog(new AsyncapiCatalogConfig("catalog1", "petstore", "latest",
+                new AsyncapiCatalogConfig("overlay1", "petstore-overlay", "latest")))
             .build());
 
         final OpenapiAsyncapiOptionsConfig options = OpenapiAsyncapiOptionsConfig.builder()

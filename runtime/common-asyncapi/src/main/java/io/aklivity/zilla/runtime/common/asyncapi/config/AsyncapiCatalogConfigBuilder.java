@@ -16,9 +16,6 @@ package io.aklivity.zilla.runtime.common.asyncapi.config;
 
 import java.util.function.Function;
 
-import io.aklivity.zilla.config.engine.OverlayConfig;
-import io.aklivity.zilla.config.engine.OverlayConfigBuilder;
-
 public final class AsyncapiCatalogConfigBuilder<T>
 {
     private final Function<AsyncapiCatalogConfig, T> mapper;
@@ -26,7 +23,7 @@ public final class AsyncapiCatalogConfigBuilder<T>
     private String name;
     private String subject;
     private String version;
-    private OverlayConfig overlay;
+    private AsyncapiCatalogConfig overlay;
 
     AsyncapiCatalogConfigBuilder(
         Function<AsyncapiCatalogConfig, T> mapper)
@@ -56,15 +53,15 @@ public final class AsyncapiCatalogConfigBuilder<T>
     }
 
     public AsyncapiCatalogConfigBuilder<T> overlay(
-        OverlayConfig overlay)
+        AsyncapiCatalogConfig overlay)
     {
         this.overlay = overlay;
         return this;
     }
 
-    public OverlayConfigBuilder<AsyncapiCatalogConfigBuilder<T>> overlay()
+    public AsyncapiCatalogConfigBuilder<AsyncapiCatalogConfigBuilder<T>> overlay()
     {
-        return OverlayConfig.builder(this::overlay);
+        return new AsyncapiCatalogConfigBuilder<>(this::overlay);
     }
 
     public T build()

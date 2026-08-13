@@ -45,7 +45,6 @@ import io.aklivity.zilla.config.binding.openapi.asyncapi.OpenapiAsyncapiWithConf
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.config.engine.GenericBindingConfig;
 import io.aklivity.zilla.config.engine.GuardedConfig;
-import io.aklivity.zilla.config.engine.OverlayConfig;
 import io.aklivity.zilla.config.engine.RouteConfig;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config.OpenapiAsyncapiBindingConfig;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config.OpenapiAsyncapiCompositeConfig;
@@ -257,18 +256,6 @@ public class OpenapiAsyncapiProxyGeneratorTest
 
     private BindingConfig bindingWithOverlay()
     {
-        OverlayConfig openapiOverlay = OverlayConfig.builder()
-            .name("catalog0")
-            .subject("test-overlay")
-            .version("latest")
-            .build();
-
-        OverlayConfig asyncapiOverlay = OverlayConfig.builder()
-            .name("catalog1")
-            .subject("test-overlay")
-            .version("latest")
-            .build();
-
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("composite0")
@@ -279,11 +266,13 @@ public class OpenapiAsyncapiProxyGeneratorTest
                     .openapi(Set.of(new OpenapiSpecificationConfig(
                         "openapi-id",
                         null,
-                        List.of(new OpenapiCatalogConfig("catalog0", "test", "latest", openapiOverlay)),
+                        List.of(new OpenapiCatalogConfig("catalog0", "test", "latest",
+                            new OpenapiCatalogConfig("catalog0", "test-overlay", "latest"))),
                         Map.of("bearerAuth", "guard0"))))
                     .asyncapi(Set.of(AsyncapiSpecificationConfig.builder()
                         .label("asyncapi-id")
-                        .catalog(new AsyncapiCatalogConfig("catalog1", "test", "latest", asyncapiOverlay))
+                        .catalog(new AsyncapiCatalogConfig("catalog1", "test", "latest",
+                            new AsyncapiCatalogConfig("catalog1", "test-overlay", "latest")))
                         .build()))
                     .build()
                 .build())

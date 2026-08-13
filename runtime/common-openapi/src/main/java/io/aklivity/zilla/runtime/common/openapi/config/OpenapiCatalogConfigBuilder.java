@@ -16,9 +16,6 @@ package io.aklivity.zilla.runtime.common.openapi.config;
 
 import java.util.function.Function;
 
-import io.aklivity.zilla.config.engine.OverlayConfig;
-import io.aklivity.zilla.config.engine.OverlayConfigBuilder;
-
 public final class OpenapiCatalogConfigBuilder<T>
 {
     private final Function<OpenapiCatalogConfig, T> mapper;
@@ -26,7 +23,7 @@ public final class OpenapiCatalogConfigBuilder<T>
     private String name;
     private String subject;
     private String version;
-    private OverlayConfig overlay;
+    private OpenapiCatalogConfig overlay;
 
     OpenapiCatalogConfigBuilder(
         Function<OpenapiCatalogConfig, T> mapper)
@@ -56,15 +53,15 @@ public final class OpenapiCatalogConfigBuilder<T>
     }
 
     public OpenapiCatalogConfigBuilder<T> overlay(
-        OverlayConfig overlay)
+        OpenapiCatalogConfig overlay)
     {
         this.overlay = overlay;
         return this;
     }
 
-    public OverlayConfigBuilder<OpenapiCatalogConfigBuilder<T>> overlay()
+    public OpenapiCatalogConfigBuilder<OpenapiCatalogConfigBuilder<T>> overlay()
     {
-        return OverlayConfig.builder(this::overlay);
+        return new OpenapiCatalogConfigBuilder<>(this::overlay);
     }
 
     public T build()

@@ -30,8 +30,6 @@ import io.aklivity.zilla.config.binding.openapi.OpenapiOptionsConfig;
 import io.aklivity.zilla.config.binding.openapi.OpenapiOptionsConfigBuilder;
 import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfig;
-import io.aklivity.zilla.config.engine.OverlayConfig;
-import io.aklivity.zilla.config.engine.OverlayConfigAdapter;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiCatalogConfig;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiCatalogConfigBuilder;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiSpecificationConfig;
@@ -45,8 +43,6 @@ public final class OpenapiOptionsConfigAdapter extends ConfigAdapter<OptionsConf
     private static final String VERSION_NAME = "version";
     private static final String SECURITY_NAME = "security";
     private static final String OVERLAY_NAME = "overlay";
-
-    private final OverlayConfigAdapter overlay = new OverlayConfigAdapter();
 
     @Override
     public JsonObject adaptToJson(
@@ -83,7 +79,7 @@ public final class OpenapiOptionsConfigAdapter extends ConfigAdapter<OptionsConf
 
                     if (catalog.overlay != null)
                     {
-                        schemaObject.add(OVERLAY_NAME, overlay.adaptToJson(catalog.overlay));
+                        schemaObject.add(OVERLAY_NAME, overlayObject(catalog.overlay));
                     }
 
                     subjectObject.add(catalog.name, schemaObject);
@@ -129,10 +125,10 @@ public final class OpenapiOptionsConfigAdapter extends ConfigAdapter<OptionsConf
                     }
                 }
 
-                OverlayConfig deprecatedOverlay = null;
+                OpenapiCatalogConfig deprecatedOverlay = null;
                 if (specObject.containsKey(OVERLAY_NAME))
                 {
-                    deprecatedOverlay = overlay.adaptFromJson(specObject.getJsonObject(OVERLAY_NAME));
+                    deprecatedOverlay = asOverlay(specObject.getJsonObject(OVERLAY_NAME));
                 }
 
                 List<OpenapiCatalogConfig> catalogs = new ArrayList<>();
@@ -157,8 +153,8 @@ public final class OpenapiOptionsConfigAdapter extends ConfigAdapter<OptionsConf
                             catalogBuilder.version(catalogObject.getString(VERSION_NAME));
                         }
 
-                        final OverlayConfig catalogOverlay = catalogObject.containsKey(OVERLAY_NAME)
-                            ? overlay.adaptFromJson(catalogObject.getJsonObject(OVERLAY_NAME))
+                        final OpenapiCatalogConfig catalogOverlay = catalogObject.containsKey(OVERLAY_NAME)
+                            ? asOverlay(catalogObject.getJsonObject(OVERLAY_NAME))
                             : deprecatedOverlay;
 
                         if (catalogOverlay != null)
@@ -186,5 +182,42 @@ public final class OpenapiOptionsConfigAdapter extends ConfigAdapter<OptionsConf
         }
 
         return openapiOptions.build();
+    }
+
+    private static OpenapiCatalogConfig asOverlay(
+        JsonObject overlayObject)
+    {
+        final Map.Entry<String, JsonValue> overlayEntry = overlayObject.entrySet().iterator().next();
+        final JsonObject overlaySchemaObject = overlayEntry.getValue().asJsonObject();
+
+        OpenapiCatalogConfigBuilder<OpenapiCatalogConfig> overlayBuilder = OpenapiCatalogConfig.builder()
+            .name(overlayEntry.getKey());
+
+        if (overlaySchemaObject.containsKey(SUBJECT_NAME))
+        {
+            overlayBuilder.subject(overlaySchemaObject.getString(SUBJECT_NAME));
+        }
+
+        if (overlaySchemaObject.containsKey(VERSION_NAME))
+        {
+            overlayBuilder.version(overlaySchemaObject.getString(VERSION_NAME));
+        }
+
+        return overlayBuilder.build();
+    }
+
+    private static JsonObjectBuilder overlayObject(
+        OpenapiCatalogConfig overlay)
+    {
+        final JsonObjectBuilder overlaySchema = Json.createObjectBuilder();
+        overlaySchema.add(SUBJECT_NAME, overlay.subject);
+        if (overlay.version != null)
+        {
+            overlaySchema.add(VERSION_NAME, overlay.version);
+        }
+
+        final JsonObjectBuilder overlaySubject = Json.createObjectBuilder();
+        overlaySubject.add(overlay.name, overlaySchema);
+        return overlaySubject;
     }
 }
