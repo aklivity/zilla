@@ -18,9 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
-import io.aklivity.zilla.config.engine.Config;
-
-public class AsyncapiSpecificationConfig extends Config
+public class AsyncapiSpecificationConfig
 {
     public final String label;
     public final List<String> servers;
