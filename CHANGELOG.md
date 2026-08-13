@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.2.2](https://github.com/aklivity/zilla/tree/2.2.2) (2026-08-12)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/2.2.1...2.2.2)
+
+**Merged pull requests:**
+
+- fix\(binding-mcp\): fix DCR authorization-code elicitation flow for tools/call [\#2359](https://github.com/aklivity/zilla/pull/2359) ([jfallows](https://github.com/jfallows))
+
 ## [2.2.1](https://github.com/aklivity/zilla/tree/2.2.1) (2026-08-11)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/2.2.0...2.2.1)
