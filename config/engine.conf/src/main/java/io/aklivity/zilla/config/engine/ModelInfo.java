@@ -14,8 +14,6 @@
  */
 package io.aklivity.zilla.config.engine;
 
-import static java.util.stream.Collectors.toList;
-
 import java.util.List;
 import java.util.ServiceLoader;
 
@@ -32,6 +30,6 @@ public interface ModelInfo extends ConfigInfo
         return Factory.instantiate(ServiceLoader.load(ModelExtInfo.class))
             .stream()
             .filter(info -> info.type().equals(type()))
-            .collect(toList());
+            .toList();
     }
 }

@@ -131,6 +131,8 @@ public final class ProtobufModelConfigAdapter extends ConfigAdapter.Extensible<M
             .validate(validateConfig);
         catalogs.forEach(builder::catalog);
 
-        return builder.inject(b -> injectExtensions(object, b)).build();
+        injectExtensions(object, builder);
+
+        return builder.build();
     }
 }

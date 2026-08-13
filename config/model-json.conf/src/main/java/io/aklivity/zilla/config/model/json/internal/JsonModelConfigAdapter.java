@@ -119,6 +119,8 @@ public final class JsonModelConfigAdapter extends ConfigAdapter.Extensible<Model
             .validate(validateConfig);
         catalogs.forEach(builder::catalog);
 
-        return builder.inject(b -> injectExtensions(object, b)).build();
+        injectExtensions(object, builder);
+
+        return builder.build();
     }
 }
