@@ -124,6 +124,74 @@
                                 },
                                 "additionalProperties": false
                             },
+                            "secrets":
+                            {
+                                "title": "Secrets",
+                                "x-incubating": true,
+                                "type": "object",
+                                "properties":
+                                {
+                                    "store":
+                                    {
+                                        "type": "string"
+                                    },
+                                    "type":
+                                    {
+                                        "type": "string",
+                                        "default": "pkcs12"
+                                    },
+                                    "password":
+                                    {
+                                        "type": "string"
+                                    },
+                                    "entries":
+                                    {
+                                        "title": "Entries",
+                                        "type": "object",
+                                        "additionalProperties":
+                                        {
+                                            "oneOf":
+                                            [
+                                                {
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties":
+                                                    {
+                                                        "active":
+                                                        {
+                                                            "type": "string",
+                                                            "pattern": "^[0-9]+$"
+                                                        },
+                                                        "versions":
+                                                        {
+                                                            "type": "object",
+                                                            "propertyNames":
+                                                            {
+                                                                "pattern": "^[0-9]+$"
+                                                            },
+                                                            "additionalProperties":
+                                                            {
+                                                                "type": "string"
+                                                            },
+                                                            "minProperties": 1
+                                                        },
+                                                        "algorithm":
+                                                        {
+                                                            "type": "string",
+                                                            "enum": [ "AES128_GCM", "AES256_GCM" ]
+                                                        }
+                                                    },
+                                                    "required": [ "active", "versions" ],
+                                                    "additionalProperties": false
+                                                }
+                                            ]
+                                        }
+                                    }
+                                },
+                                "additionalProperties": false
+                            },
                             "revocation":
                             {
                                 "title": "Revocation Method",

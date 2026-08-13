@@ -101,6 +101,7 @@
             <exclude>**/keys</exclude>
             <exclude>**/trust</exclude>
             <exclude>**/signers</exclude>
+            <exclude>**/secrets</exclude>
             <exclude>**/*.csr</exclude>
             <exclude>**/*.crt</exclude>
           </excludes>
