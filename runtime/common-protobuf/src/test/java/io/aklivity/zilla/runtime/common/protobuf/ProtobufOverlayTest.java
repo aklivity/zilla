@@ -37,7 +37,7 @@ class ProtobufOverlayTest
         "message Other { string email = 1; string name = 2; }\n" +
         "service Greeter {\n" +
         "  rpc SayHello (Req) returns (Res) {\n" +
-        "    option (zilla.mcp.v1) = { title: \"Say Hello\" };\n" +
+        "    option (acme.doc) = { title: \"Say Hello\" };\n" +
         "  }\n" +
         "  rpc StreamHello (Req) returns (Res);\n" +
         "}\n" +
@@ -52,12 +52,12 @@ class ProtobufOverlayTest
         ProtobufSchema schema = Protobuf.schema(PROTO);
         ProtobufOverlay overlay = ProtobufOverlay.of(read(
             "[{\"method\":\"test.Greeter/SayHello\"," +
-                "\"options\":{\"zilla.mcp.v1\":{\"annotations\":{\"readOnlyHint\":true}}}}]"));
+                "\"options\":{\"acme.doc\":{\"tags\":[\"public\"]}}}]"));
 
         ProtobufSchema result = overlay.apply(schema);
 
         assertEquals(
-            "{\"zilla.mcp.v1\":{\"title\":\"Say Hello\",\"annotations\":{\"readOnlyHint\":true}}}",
+            "{\"acme.doc\":{\"title\":\"Say Hello\",\"tags\":[\"public\"]}}",
             result.service("test.Greeter").method("SayHello").options().toString());
     }
 
@@ -66,11 +66,11 @@ class ProtobufOverlayTest
     {
         ProtobufSchema schema = Protobuf.schema(PROTO);
         ProtobufOverlay overlay = ProtobufOverlay.of(read(
-            "[{\"field\":\"test.Other.email\",\"options\":{\"zilla\":{\"tags\":[\"EMAIL\"]}}}]"));
+            "[{\"field\":\"test.Other.email\",\"options\":{\"acme\":{\"tags\":[\"EMAIL\"]}}}]"));
 
         ProtobufSchema result = overlay.apply(schema);
 
-        assertEquals("{\"zilla\":{\"tags\":[\"EMAIL\"]}}",
+        assertEquals("{\"acme\":{\"tags\":[\"EMAIL\"]}}",
             result.message("test.Other").field("email").options().toString());
         assertEquals("{}", result.message("test.Other").field("name").options().toString());
     }
@@ -80,12 +80,12 @@ class ProtobufOverlayTest
     {
         ProtobufSchema schema = Protobuf.schema(PROTO);
         ProtobufOverlay overlay = ProtobufOverlay.of(read(
-            "[{\"method\":\"test.Other1/*\",\"options\":{\"zilla\":{\"tagged\":true}}}]"));
+            "[{\"method\":\"test.Other1/*\",\"options\":{\"acme\":{\"tagged\":true}}}]"));
 
         ProtobufSchema result = overlay.apply(schema);
 
-        assertEquals("{\"zilla\":{\"tagged\":true}}", result.service("test.Other1").method("First").options().toString());
-        assertEquals("{\"zilla\":{\"tagged\":true}}", result.service("test.Other1").method("Second").options().toString());
+        assertEquals("{\"acme\":{\"tagged\":true}}", result.service("test.Other1").method("First").options().toString());
+        assertEquals("{\"acme\":{\"tagged\":true}}", result.service("test.Other1").method("Second").options().toString());
     }
 
     @Test
@@ -93,13 +93,13 @@ class ProtobufOverlayTest
     {
         ProtobufSchema schema = Protobuf.schema(PROTO);
         ProtobufOverlay overlay = ProtobufOverlay.of(read(
-            "[{\"method\":\"test.Greeter/SayHello\",\"options\":{\"zilla.mcp.v1\":{\"title\":\"Overridden\"}}}," +
-                "{\"method\":\"test.Greeter/SayHello\",\"options\":{\"zilla.mcp.v1\":{\"description\":\"desc\"}}}]"));
+            "[{\"method\":\"test.Greeter/SayHello\",\"options\":{\"acme.doc\":{\"title\":\"Overridden\"}}}," +
+                "{\"method\":\"test.Greeter/SayHello\",\"options\":{\"acme.doc\":{\"description\":\"desc\"}}}]"));
 
         ProtobufSchema result = overlay.apply(schema);
 
         assertEquals(
-            "{\"zilla.mcp.v1\":{\"title\":\"Overridden\",\"description\":\"desc\"}}",
+            "{\"acme.doc\":{\"title\":\"Overridden\",\"description\":\"desc\"}}",
             result.service("test.Greeter").method("SayHello").options().toString());
     }
 
@@ -123,7 +123,7 @@ class ProtobufOverlayTest
         ProtobufMessage untouchedMessage = schema.message("test.Req");
         ProtobufService untouchedService = schema.service("test.Other1");
         ProtobufOverlay overlay = ProtobufOverlay.of(read(
-            "[{\"field\":\"test.Other.email\",\"options\":{\"zilla\":{\"tags\":[\"EMAIL\"]}}}]"));
+            "[{\"field\":\"test.Other.email\",\"options\":{\"acme\":{\"tags\":[\"EMAIL\"]}}}]"));
 
         ProtobufSchema result = overlay.apply(schema);
 
@@ -140,12 +140,12 @@ class ProtobufOverlayTest
             "package other;\n" +
             "message M { string v = 1; }\n");
         ProtobufOverlay overlay = ProtobufOverlay.of(read(
-            "[{\"method\":\"test.Greeter/SayHello\",\"options\":{\"zilla.mcp.v1\":{\"title\":\"X\"}}}]"));
+            "[{\"method\":\"test.Greeter/SayHello\",\"options\":{\"acme.doc\":{\"title\":\"X\"}}}]"));
 
         ProtobufSchema matchedResult = overlay.apply(matching);
         ProtobufSchema unmatchedResult = overlay.apply(nonMatching);
 
-        assertEquals("{\"zilla.mcp.v1\":{\"title\":\"X\"}}",
+        assertEquals("{\"acme.doc\":{\"title\":\"X\"}}",
             matchedResult.service("test.Greeter").method("SayHello").options().toString());
         assertSame(nonMatching, unmatchedResult);
     }
@@ -181,9 +181,9 @@ class ProtobufOverlayTest
         ProtobufSchema schema = Protobuf.schema(PROTO);
 
         assertEquals("{\"title\":\"Say Hello\"}",
-            schema.service("test.Greeter").method("SayHello").option("(zilla.mcp.v1)").toJson().toString());
-        assertTrue(schema.service("test.Greeter").method("SayHello").options().containsKey("zilla.mcp.v1"));
-        assertNull(schema.service("test.Greeter").method("StreamHello").option("(zilla.mcp.v1)"));
+            schema.service("test.Greeter").method("SayHello").option("(acme.doc)").toJson().toString());
+        assertTrue(schema.service("test.Greeter").method("SayHello").options().containsKey("acme.doc"));
+        assertNull(schema.service("test.Greeter").method("StreamHello").option("(acme.doc)"));
     }
 
     private static JsonValue read(

@@ -89,8 +89,8 @@ public sealed interface ProtobufConstant
      * custom/extension option's surrounding {@code ( ... )} stripped from its key — that punctuation is
      * only how the {@code .proto} grammar distinguishes an extension reference from a built-in option
      * name, not part of the option's logical (dotted) identity, and a {@link ProtobufOverlay} entry's
-     * {@code options:} bag always addresses that identity unparenthesized (e.g. {@code "zilla.mcp.v1"},
-     * never {@code "(zilla.mcp.v1)"}); stripping it here is what lets the two sides merge onto the same
+     * {@code options:} bag always addresses that identity unparenthesized (e.g. {@code "acme.meta"},
+     * never {@code "(acme.meta)"}); stripping it here is what lets the two sides merge onto the same
      * key rather than coexist as unrelated siblings. A nested {@code MessageValue}'s own field names are
      * never parenthesized, so this is a no-op wherever it doesn't apply. {@code null} converts to an
      * empty object.
