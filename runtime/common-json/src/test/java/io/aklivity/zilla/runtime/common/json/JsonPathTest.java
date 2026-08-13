@@ -115,6 +115,80 @@ class JsonPathTest
     }
 
     @Test
+    void shouldMatchArrayElementByFilterEqualityOnName()
+    {
+        assertEquals(List.of("/fields/1"),
+            matches("$.fields[?(@.name=='email')]",
+                "{\"fields\":[{\"name\":\"id\"},{\"name\":\"email\"}]}"));
+    }
+
+    @Test
+    void shouldMatchMultipleArrayElementsByFilterEquality()
+    {
+        assertEquals(List.of("/fields/0", "/fields/2"),
+            matches("$.fields[?(@.name=='email')]",
+                "{\"fields\":[{\"name\":\"email\"},{\"name\":\"id\"},{\"name\":\"email\"}]}"));
+    }
+
+    @Test
+    void shouldMatchFilterWithDoubleQuotedValue()
+    {
+        assertEquals(List.of("/fields/0"),
+            matches("$.fields[?(@.name==\"email\")]", "{\"fields\":[{\"name\":\"email\"}]}"));
+    }
+
+    @Test
+    void shouldNotMatchArrayElementMissingFilteredProperty()
+    {
+        assertEquals(List.of(),
+            matches("$.fields[?(@.name=='email')]", "{\"fields\":[{\"other\":1}]}"));
+    }
+
+    @Test
+    void shouldYieldEmptyListWhenFilterMatchesNothing()
+    {
+        assertEquals(List.of(),
+            matches("$.fields[?(@.name=='missing')]",
+                "{\"fields\":[{\"name\":\"id\"},{\"name\":\"email\"}]}"));
+    }
+
+    @Test
+    void shouldSupportChainedSegmentAfterFilterMatch()
+    {
+        assertEquals(List.of("/fields/1/zilla:tags"),
+            matches("$.fields[?(@.name=='email')]['zilla:tags']",
+                "{\"fields\":[{\"name\":\"id\"},{\"name\":\"email\",\"zilla:tags\":[]}]}"));
+    }
+
+    @Test
+    void shouldRejectFilterMissingEqualityOperator()
+    {
+        assertThrows(IllegalArgumentException.class,
+            () -> JsonPath.compile("$.fields[?(@.name'email')]"));
+    }
+
+    @Test
+    void shouldRejectFilterNotStartingWithAtDot()
+    {
+        assertThrows(IllegalArgumentException.class,
+            () -> JsonPath.compile("$.fields[?(name=='email')]"));
+    }
+
+    @Test
+    void shouldRejectUnterminatedFilterExpression()
+    {
+        assertThrows(IllegalArgumentException.class,
+            () -> JsonPath.compile("$.fields[?(@.name=='email'"));
+    }
+
+    @Test
+    void shouldRejectFilterWithUnquotedValue()
+    {
+        assertThrows(IllegalArgumentException.class,
+            () -> JsonPath.compile("$.fields[?(@.name==email)]"));
+    }
+
+    @Test
     void shouldRejectExpressionNotStartingWithRoot()
     {
         assertThrows(IllegalArgumentException.class, () -> JsonPath.compile("a.b"));
