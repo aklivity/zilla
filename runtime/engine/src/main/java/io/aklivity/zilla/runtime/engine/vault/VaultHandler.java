@@ -21,8 +21,11 @@ import java.util.List;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.TrustManagerFactory;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+
 /**
- * Provides access to TLS cryptographic material from an attached vault.
+ * Provides access to cryptographic material from an attached vault, for TLS contexts and
+ * for wrapping and unwrapping named keys.
  * <p>
  * Obtained from {@link VaultContext#attach(VaultConfig)}, a {@code VaultHandler} resolves
  * named key and certificate references from the vault's backing store (e.g., a PKCS#12 file
@@ -119,4 +122,81 @@ public interface VaultHandler
      */
     TrustManagerFactory initTrust(
         KeyStore cacerts);
+
+    /**
+     * Wraps a data encryption key under the named key held by this vault, without the
+     * data encryption key's raw material ever leaving the vault's implementation.
+     * <p>
+     * The result is delivered asynchronously to {@code next}, since resolving the named
+     * key may require a call outside this thread. On success, {@code next} receives the
+     * wrapped bytes; on failure (e.g., the named key could not be resolved), {@code next}
+     * receives a {@code null} buffer and the caller treats the operation as failed. The
+     * reason for a failure is reported separately, through this vault's own diagnostics.
+     * </p>
+     *
+     * @param traceId  the trace identifier correlating this operation with its caller
+     * @param name     the vault-specific name of the key to wrap under
+     * @param dek      the buffer containing the data encryption key to wrap
+     * @param index    the index within {@code dek} at which the data encryption key begins
+     * @param length   the length in bytes of the data encryption key
+     * @param next     invoked with the wrapped bytes on success, or a {@code null} buffer
+     *                 on failure
+     */
+    default void wrap(
+        long traceId,
+        String name,
+        DirectBufferEx dek,
+        int index,
+        int length,
+        BytesConsumer next)
+    {
+        next.accept(null, 0, 0);
+    }
+
+    /**
+     * Unwraps a data encryption key under the named key held by this vault, without the
+     * data encryption key's raw material ever leaving the vault's implementation.
+     * <p>
+     * The result is delivered asynchronously to {@code next}, since resolving the named
+     * key may require a call outside this thread. On success, {@code next} receives the
+     * unwrapped bytes; on failure (e.g., the named key could not be resolved), {@code next}
+     * receives a {@code null} buffer and the caller treats the operation as failed. The
+     * reason for a failure is reported separately, through this vault's own diagnostics.
+     * </p>
+     *
+     * @param traceId  the trace identifier correlating this operation with its caller
+     * @param name     the vault-specific name of the key to unwrap under
+     * @param edek     the buffer containing the wrapped data encryption key
+     * @param index    the index within {@code edek} at which the wrapped data encryption
+     *                 key begins
+     * @param length   the length in bytes of the wrapped data encryption key
+     * @param next     invoked with the unwrapped bytes on success, or a {@code null} buffer
+     *                 on failure
+     */
+    default void unwrap(
+        long traceId,
+        String name,
+        DirectBufferEx edek,
+        int index,
+        int length,
+        BytesConsumer next)
+    {
+        next.accept(null, 0, 0);
+    }
+
+    /**
+     * Receives the result of a {@link #wrap} or {@link #unwrap} operation.
+     * <p>
+     * A {@code null} buffer signals that the operation failed; the reason is reported
+     * separately, through the vault's own diagnostics.
+     * </p>
+     */
+    @FunctionalInterface
+    interface BytesConsumer
+    {
+        void accept(
+            DirectBufferEx buffer,
+            int index,
+            int length);
+    }
 }
