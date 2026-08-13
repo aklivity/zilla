@@ -14,12 +14,15 @@
  */
 package io.aklivity.zilla.config.model.json.internal;
 
+import static java.util.stream.Collectors.toList;
+
 import java.net.URL;
 
 import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.engine.ModelConfig;
+import io.aklivity.zilla.config.engine.ModelExtInfo;
 import io.aklivity.zilla.config.engine.ModelInfo;
 
 public final class JsonModelInfo implements ModelInfo
@@ -41,6 +44,6 @@ public final class JsonModelInfo implements ModelInfo
     @Override
     public JsonbAdapter<ModelConfig, JsonValue> adapter()
     {
-        return new JsonModelConfigAdapter(extensions());
+        return new JsonModelConfigAdapter(extensions().stream().map(ModelExtInfo::adapter).collect(toList()));
     }
 }

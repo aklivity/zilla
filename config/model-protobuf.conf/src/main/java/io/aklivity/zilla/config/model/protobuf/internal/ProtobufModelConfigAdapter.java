@@ -26,9 +26,9 @@ import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonValue;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.engine.CatalogedConfig;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.ConfigExtAdapter;
 import io.aklivity.zilla.config.engine.ModelConfig;
 import io.aklivity.zilla.config.engine.ModelConfigAdapterSpi;
@@ -41,7 +41,7 @@ import io.aklivity.zilla.config.engine.factory.Factory;
 import io.aklivity.zilla.config.model.protobuf.ProtobufModelConfig;
 import io.aklivity.zilla.config.model.protobuf.ProtobufModelConfigBuilder;
 
-public final class ProtobufModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAdapter<ModelConfig, JsonValue>
+public final class ProtobufModelConfigAdapter extends ConfigAdapter.Extensible<ModelConfig> implements ModelConfigAdapterSpi
 {
     private static final String PROTOBUF = "protobuf";
     private static final String MODEL_NAME = "model";
@@ -52,20 +52,20 @@ public final class ProtobufModelConfigAdapter implements ModelConfigAdapterSpi, 
 
     private final SchemaConfigAdapter schema = new SchemaConfigAdapter();
     private final ValidateConfigAdapter validate = new ValidateConfigAdapter();
-    private final List<ConfigExtAdapter<ModelConfig>> extensions;
 
     public ProtobufModelConfigAdapter()
     {
         this(Factory.instantiate(ServiceLoader.load(ModelExtInfo.class))
             .stream()
             .filter(info -> info.type().equals(PROTOBUF))
+            .map(ModelExtInfo::adapter)
             .collect(toList()));
     }
 
     public ProtobufModelConfigAdapter(
-        List<ModelExtInfo> extensions)
+        List<ConfigExtAdapter<ModelConfig>> extensions)
     {
-        this.extensions = extensions.stream().map(ModelExtInfo::adapter).collect(toList());
+        super(extensions);
     }
 
     @Override
@@ -108,7 +108,7 @@ public final class ProtobufModelConfigAdapter implements ModelConfigAdapterSpi, 
             builder.add(VALIDATE_NAME, validateJson);
         }
 
-        extensions.forEach(extension -> extension.adaptToJson(model, builder));
+        adaptExtensionsToJson(model, builder);
 
         return builder.build();
     }
@@ -152,10 +152,7 @@ public final class ProtobufModelConfigAdapter implements ModelConfigAdapterSpi, 
             .validate(validateConfig);
         catalogs.forEach(builder::catalog);
 
-        for (ConfigExtAdapter<ModelConfig> extension : extensions)
-        {
-            builder = extension.adaptFromJson(object, builder);
-        }
+        builder = adaptExtensionsFromJson(object, builder);
 
         return builder.build();
     }

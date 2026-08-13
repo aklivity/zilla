@@ -21,8 +21,8 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonValue;
 import jakarta.json.JsonValue.ValueType;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.ModelConfig;
 import io.aklivity.zilla.config.engine.ModelConfigAdapterSpi;
 import io.aklivity.zilla.config.engine.ValidateConfig;
@@ -31,7 +31,7 @@ import io.aklivity.zilla.config.model.core.Int32ModelConfig;
 import io.aklivity.zilla.config.model.core.Int32ModelConfigBuilder;
 import io.aklivity.zilla.config.model.core.RangeConfig;
 
-public class Int32ModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAdapter<ModelConfig, JsonValue>
+public class Int32ModelConfigAdapter extends ConfigAdapter<ModelConfig> implements ModelConfigAdapterSpi
 {
     private static final String MODEL_NAME = "model";
     private static final String FORMAT_NAME = "format";

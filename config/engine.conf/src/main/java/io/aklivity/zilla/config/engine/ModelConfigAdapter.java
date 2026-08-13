@@ -25,9 +25,8 @@ import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
-public final class ModelConfigAdapter implements JsonbAdapter<ModelConfig, JsonValue>
+public final class ModelConfigAdapter extends ConfigAdapter<ModelConfig>
 {
     private static final String MODEL_NAME = "model";
 

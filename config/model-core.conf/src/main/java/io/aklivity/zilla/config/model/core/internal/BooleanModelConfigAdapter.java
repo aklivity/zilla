@@ -19,15 +19,15 @@ import static io.aklivity.zilla.config.model.core.BooleanModelConfig.BOOLEAN;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonValue;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.ModelConfig;
 import io.aklivity.zilla.config.engine.ModelConfigAdapterSpi;
 import io.aklivity.zilla.config.engine.ValidateConfigAdapter;
 import io.aklivity.zilla.config.model.core.BooleanModelConfig;
 import io.aklivity.zilla.config.model.core.BooleanModelConfigBuilder;
 
-public class BooleanModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAdapter<ModelConfig, JsonValue>
+public class BooleanModelConfigAdapter extends ConfigAdapter<ModelConfig> implements ModelConfigAdapterSpi
 {
     private static final String MODEL_NAME = "model";
     private static final String VALIDATE_NAME = "validate";

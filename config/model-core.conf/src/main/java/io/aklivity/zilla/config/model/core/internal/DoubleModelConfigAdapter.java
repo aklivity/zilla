@@ -20,8 +20,8 @@ import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonValue;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.ModelConfig;
 import io.aklivity.zilla.config.engine.ModelConfigAdapterSpi;
 import io.aklivity.zilla.config.engine.ValidateConfig;
@@ -30,7 +30,7 @@ import io.aklivity.zilla.config.model.core.DoubleModelConfig;
 import io.aklivity.zilla.config.model.core.DoubleModelConfigBuilder;
 import io.aklivity.zilla.config.model.core.RangeConfig;
 
-public class DoubleModelConfigAdapter implements ModelConfigAdapterSpi, JsonbAdapter<ModelConfig, JsonValue>
+public class DoubleModelConfigAdapter extends ConfigAdapter<ModelConfig> implements ModelConfigAdapterSpi
 {
     private static final String MODEL_NAME = "model";
     private static final String FORMAT_NAME = "format";
