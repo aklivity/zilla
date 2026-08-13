@@ -124,7 +124,7 @@ public abstract class OpenapiAsyncapiCompositeGenerator
         {
             final long catalogId = binding.resolveId.applyAsLong(catalog.overlay.name);
             final CatalogHandler handler = binding.supplyCatalog.apply(catalogId);
-            final int schemaId = handler.resolve(catalog.overlay.subject, catalog.overlay.version);
+            final int schemaId = handler.resolve(catalog.overlay.schema.subject, catalog.overlay.schema.version);
             final String overlayPayload = handler.resolve(schemaId);
 
             final JsonObject document = YamlJson.createReader(new StringReader(payload)).readObject();
@@ -145,7 +145,7 @@ public abstract class OpenapiAsyncapiCompositeGenerator
         {
             final long catalogId = binding.resolveId.applyAsLong(catalog.overlay.name);
             final CatalogHandler handler = binding.supplyCatalog.apply(catalogId);
-            final int schemaId = handler.resolve(catalog.overlay.subject, catalog.overlay.version);
+            final int schemaId = handler.resolve(catalog.overlay.schema.subject, catalog.overlay.schema.version);
             final String overlayPayload = handler.resolve(schemaId);
 
             final JsonObject document = YamlJson.createReader(new StringReader(payload)).readObject();

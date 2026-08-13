@@ -23,18 +23,7 @@ import jakarta.json.JsonValue;
 
 public class OverlayConfigAdapter extends ConfigAdapter<OverlayConfig, JsonObject>
 {
-    private final SchemaConfigAdapter schema;
-
-    public OverlayConfigAdapter()
-    {
-        this(new SchemaConfigAdapter());
-    }
-
-    OverlayConfigAdapter(
-        SchemaConfigAdapter schema)
-    {
-        this.schema = schema;
-    }
+    private final SchemaConfigAdapter schema = new SchemaConfigAdapter();
 
     @Override
     public JsonObject adaptToJson(

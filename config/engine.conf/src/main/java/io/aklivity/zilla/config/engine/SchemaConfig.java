@@ -23,22 +23,19 @@ public class SchemaConfig extends Config
     public final String subject;
     public final int id;
     public final String record;
-    public final OverlayConfig overlay;
 
     SchemaConfig(
         String strategy,
         String subject,
         String version,
         int id,
-        String record,
-        OverlayConfig overlay)
+        String record)
     {
         this.strategy = strategy;
         this.version = version;
         this.subject = subject;
         this.id = id;
         this.record = record;
-        this.overlay = overlay;
     }
 
     public static <T> SchemaConfigBuilder<T> builder(

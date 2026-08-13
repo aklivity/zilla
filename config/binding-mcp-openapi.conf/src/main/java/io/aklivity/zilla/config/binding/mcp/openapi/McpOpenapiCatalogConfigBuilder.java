@@ -17,6 +17,8 @@ package io.aklivity.zilla.config.binding.mcp.openapi;
 import java.util.function.Function;
 
 import io.aklivity.zilla.config.engine.ConfigBuilder;
+import io.aklivity.zilla.config.engine.OverlayConfig;
+import io.aklivity.zilla.config.engine.OverlayConfigBuilder;
 
 public final class McpOpenapiCatalogConfigBuilder<T> extends ConfigBuilder<T, McpOpenapiCatalogConfigBuilder<T>>
 {
@@ -25,7 +27,7 @@ public final class McpOpenapiCatalogConfigBuilder<T> extends ConfigBuilder<T, Mc
     private String name;
     private String subject;
     private String version;
-    private McpOpenapiCatalogConfig overlay;
+    private OverlayConfig overlay;
 
     McpOpenapiCatalogConfigBuilder(
         Function<McpOpenapiCatalogConfig, T> mapper)
@@ -62,10 +64,15 @@ public final class McpOpenapiCatalogConfigBuilder<T> extends ConfigBuilder<T, Mc
     }
 
     public McpOpenapiCatalogConfigBuilder<T> overlay(
-        McpOpenapiCatalogConfig overlay)
+        OverlayConfig overlay)
     {
         this.overlay = overlay;
         return this;
+    }
+
+    public OverlayConfigBuilder<McpOpenapiCatalogConfigBuilder<T>> overlay()
+    {
+        return OverlayConfig.builder(this::overlay);
     }
 
     @Override

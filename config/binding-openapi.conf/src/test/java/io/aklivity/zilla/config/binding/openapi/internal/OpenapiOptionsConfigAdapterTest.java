@@ -28,6 +28,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.config.binding.openapi.OpenapiOptionsConfig;
+import io.aklivity.zilla.config.engine.OverlayConfig;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiCatalogConfig;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiSpecificationConfig;
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
@@ -90,8 +91,8 @@ public class OpenapiOptionsConfigAdapterTest
         OpenapiCatalogConfig catalog = spec.catalogs.get(0);
         assertThat(catalog.overlay, not(nullValue()));
         assertEquals("catalog1", catalog.overlay.name);
-        assertEquals("petstore-overlay", catalog.overlay.subject);
-        assertEquals("latest", catalog.overlay.version);
+        assertEquals("petstore-overlay", catalog.overlay.schema.subject);
+        assertEquals("latest", catalog.overlay.schema.version);
     }
 
     @Test
@@ -117,8 +118,8 @@ public class OpenapiOptionsConfigAdapterTest
         OpenapiCatalogConfig catalog = spec.catalogs.get(0);
         assertThat(catalog.overlay, not(nullValue()));
         assertEquals("catalog1", catalog.overlay.name);
-        assertEquals("petstore-overlay", catalog.overlay.subject);
-        assertEquals("latest", catalog.overlay.version);
+        assertEquals("petstore-overlay", catalog.overlay.schema.subject);
+        assertEquals("latest", catalog.overlay.schema.version);
     }
 
     @Test
@@ -162,12 +163,19 @@ public class OpenapiOptionsConfigAdapterTest
                         version: latest
             """;
 
+        OverlayConfig overlay = OverlayConfig.builder()
+            .name("catalog1")
+            .schema()
+                .subject("petstore-overlay")
+                .version("latest")
+                .build()
+            .build();
+
         OpenapiOptionsConfig options = OpenapiOptionsConfig.builder()
             .spec(new OpenapiSpecificationConfig(
                 "test",
                 null,
-                of(new OpenapiCatalogConfig("catalog0", "petstore", "latest",
-                    new OpenapiCatalogConfig("catalog1", "petstore-overlay", "latest"))),
+                of(new OpenapiCatalogConfig("catalog0", "petstore", "latest", overlay)),
                 null))
             .build();
 

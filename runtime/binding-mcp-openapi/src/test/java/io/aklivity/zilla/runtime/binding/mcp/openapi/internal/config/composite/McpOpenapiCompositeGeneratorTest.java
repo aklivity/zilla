@@ -54,7 +54,6 @@ import io.aklivity.zilla.config.binding.mcp.http.McpHttpToolAnnotationsConfig;
 import io.aklivity.zilla.config.binding.mcp.http.McpHttpToolConfig;
 import io.aklivity.zilla.config.binding.mcp.http.McpHttpWithConfig;
 import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiAuthorizationConfig;
-import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiCatalogConfig;
 import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiConditionConfig;
 import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiOptionsConfig;
 import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiToolAnnotationsConfig;
@@ -654,11 +653,13 @@ public class McpOpenapiCompositeGeneratorTest
                         .name("catalog0")
                         .subject("rest-api")
                         .version("latest")
-                        .overlay(McpOpenapiCatalogConfig.builder()
+                        .overlay()
                             .name("catalog0")
-                            .subject("rest-api-overlay")
-                            .version("latest")
-                            .build())
+                            .schema()
+                                .subject("rest-api-overlay")
+                                .version("latest")
+                                .build()
+                            .build()
                         .build()
                     .build()
                 .build())

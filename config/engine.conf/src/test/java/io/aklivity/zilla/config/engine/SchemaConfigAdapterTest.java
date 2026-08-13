@@ -52,7 +52,6 @@ public class SchemaConfigAdapterTest
         assertThat(schema, not(nullValue()));
         assertThat(schema.subject, equalTo("echo"));
         assertThat(schema.version, equalTo("1"));
-        assertThat(schema.overlay, nullValue());
     }
 
     @Test
@@ -67,52 +66,5 @@ public class SchemaConfigAdapterTest
 
         assertThat(object, not(nullValue()));
         assertThat(object.toString(), equalTo("{\"subject\":\"echo\",\"version\":\"1\"}"));
-    }
-
-    @Test
-    public void shouldReadSchemaWithOverlay()
-    {
-        String text =
-            "{" +
-                "\"subject\": \"echo\"," +
-                "\"version\": \"1\"," +
-                "\"overlay\":" +
-                "{" +
-                    "\"overlay0\":" +
-                    "{" +
-                        "\"subject\": \"echo-overlay\"," +
-                        "\"version\": \"2\"" +
-                    "}" +
-                "}" +
-            "}";
-
-        JsonObject object = Json.createReader(new StringReader(text)).readObject();
-        SchemaConfig schema = adapter.adaptFromJson(object);
-
-        assertThat(schema.overlay, not(nullValue()));
-        assertThat(schema.overlay.name, equalTo("overlay0"));
-        assertThat(schema.overlay.schema.subject, equalTo("echo-overlay"));
-        assertThat(schema.overlay.schema.version, equalTo("2"));
-    }
-
-    @Test
-    public void shouldWriteSchemaWithOverlay()
-    {
-        SchemaConfig schema = SchemaConfig.builder()
-            .subject("echo")
-            .version("1")
-            .overlay()
-                .name("overlay0")
-                .schema()
-                    .subject("echo-overlay")
-                    .version("2")
-                    .build()
-                .build()
-            .build();
-
-        JsonObject object = adapter.adaptToJson(schema);
-
-        assertThat(object.toString(), equalTo("{\"subject\":\"echo\",\"version\":\"1\",\"overlay\":" +
-            "{\"overlay0\":{\"subject\":\"echo-overlay\",\"version\":\"2\"}}}"));
     }
 }

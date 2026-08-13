@@ -49,6 +49,7 @@ import io.aklivity.zilla.config.engine.ConditionConfig;
 import io.aklivity.zilla.config.engine.GenericBindingConfig;
 import io.aklivity.zilla.config.engine.GenericBindingConfigBuilder;
 import io.aklivity.zilla.config.engine.GuardedConfig;
+import io.aklivity.zilla.config.engine.OverlayConfig;
 import io.aklivity.zilla.config.engine.RouteConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiBindingConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiCompositeConfig;
@@ -232,7 +233,13 @@ public class OpenapiServerGeneratorTest
                     "petstore",
                     List.of("http://localhost:8080"),
                     List.of(new OpenapiCatalogConfig("catalog0", "test", "latest",
-                        new OpenapiCatalogConfig("catalog0", "test-overlay", "latest"))),
+                        OverlayConfig.builder()
+                            .name("catalog0")
+                            .schema()
+                                .subject("test-overlay")
+                                .version("latest")
+                                .build()
+                            .build())),
                     security))
                 .build())
             .exit("openapi0")

@@ -17,13 +17,14 @@ package io.aklivity.zilla.config.binding.mcp.openapi;
 import java.util.function.Function;
 
 import io.aklivity.zilla.config.engine.Config;
+import io.aklivity.zilla.config.engine.OverlayConfig;
 
 public final class McpOpenapiCatalogConfig extends Config
 {
     public final String name;
     public final String subject;
     public final String version;
-    public final McpOpenapiCatalogConfig overlay;
+    public final OverlayConfig overlay;
 
     public static McpOpenapiCatalogConfigBuilder<McpOpenapiCatalogConfig> builder()
     {
@@ -40,7 +41,7 @@ public final class McpOpenapiCatalogConfig extends Config
         String name,
         String subject,
         String version,
-        McpOpenapiCatalogConfig overlay)
+        OverlayConfig overlay)
     {
         this.name = name;
         this.subject = subject;

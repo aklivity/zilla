@@ -25,7 +25,6 @@ public class SchemaConfigBuilder<T> extends ConfigBuilder<T, SchemaConfigBuilder
     private String subject;
     private int id;
     private String record;
-    private OverlayConfig overlay;
 
     public SchemaConfigBuilder(
         Function<SchemaConfig, T> mapper)
@@ -75,21 +74,9 @@ public class SchemaConfigBuilder<T> extends ConfigBuilder<T, SchemaConfigBuilder
         return this;
     }
 
-    public OverlayConfigBuilder<SchemaConfigBuilder<T>> overlay()
-    {
-        return new OverlayConfigBuilder<>(this::overlay);
-    }
-
-    public SchemaConfigBuilder<T> overlay(
-        OverlayConfig overlay)
-    {
-        this.overlay = overlay;
-        return this;
-    }
-
     @Override
     public T build()
     {
-        return mapper.apply(new SchemaConfig(strategy, subject, version, id, record, overlay));
+        return mapper.apply(new SchemaConfig(strategy, subject, version, id, record));
     }
 }

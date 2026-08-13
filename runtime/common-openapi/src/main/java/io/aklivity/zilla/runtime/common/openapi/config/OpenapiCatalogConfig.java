@@ -16,18 +16,20 @@ package io.aklivity.zilla.runtime.common.openapi.config;
 
 import java.util.function.Function;
 
+import io.aklivity.zilla.config.engine.OverlayConfig;
+
 public class OpenapiCatalogConfig
 {
     public final String name;
     public final String subject;
     public final String version;
-    public final OpenapiCatalogConfig overlay;
+    public final OverlayConfig overlay;
 
     public OpenapiCatalogConfig(
         String name,
         String subject,
         String version,
-        OpenapiCatalogConfig overlay)
+        OverlayConfig overlay)
     {
         this.name = name;
         this.subject = subject;

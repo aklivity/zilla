@@ -264,7 +264,7 @@ public class McpOpenapiOptionsConfigAdapterTest
         McpOpenapiCatalogConfig catalog = spec.catalogs.get(0);
         assertThat(catalog.overlay, not(nullValue()));
         assertThat(catalog.overlay.name, equalTo("overlay0"));
-        assertThat(catalog.overlay.subject, equalTo("rest-api-overlay"));
+        assertThat(catalog.overlay.schema.subject, equalTo("rest-api-overlay"));
     }
 
     @Test
@@ -298,7 +298,7 @@ public class McpOpenapiOptionsConfigAdapterTest
         McpOpenapiCatalogConfig catalog = spec.catalogs.get(0);
         assertThat(catalog.overlay, not(nullValue()));
         assertThat(catalog.overlay.name, equalTo("overlay0"));
-        assertThat(catalog.overlay.subject, equalTo("rest-api-overlay"));
+        assertThat(catalog.overlay.schema.subject, equalTo("rest-api-overlay"));
     }
 
     @Test
@@ -316,11 +316,13 @@ public class McpOpenapiOptionsConfigAdapterTest
                     .name("catalog0")
                     .subject("rest-api")
                     .version("latest")
-                    .overlay(McpOpenapiCatalogConfig.builder()
+                    .overlay()
                         .name("overlay0")
-                        .subject("rest-api-overlay")
-                        .version("latest")
-                        .build())
+                        .schema()
+                            .subject("rest-api-overlay")
+                            .version("latest")
+                            .build()
+                        .build()
                     .build()
                 .build()
             .build();

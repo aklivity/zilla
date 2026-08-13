@@ -127,8 +127,8 @@ public class AsyncapiOptionsConfigAdapterTest
         AsyncapiCatalogConfig catalog = spec.catalogs.get(0);
         assertThat(catalog.overlay, not(nullValue()));
         assertThat(catalog.overlay.name, equalTo("catalog1"));
-        assertThat(catalog.overlay.subject, equalTo("smartylighting-overlay"));
-        assertThat(catalog.overlay.version, equalTo("latest"));
+        assertThat(catalog.overlay.schema.subject, equalTo("smartylighting-overlay"));
+        assertThat(catalog.overlay.schema.version, equalTo("latest"));
     }
 
     @Test
@@ -154,8 +154,8 @@ public class AsyncapiOptionsConfigAdapterTest
         AsyncapiCatalogConfig catalog = spec.catalogs.get(0);
         assertThat(catalog.overlay, not(nullValue()));
         assertThat(catalog.overlay.name, equalTo("catalog1"));
-        assertThat(catalog.overlay.subject, equalTo("smartylighting-overlay"));
-        assertThat(catalog.overlay.version, equalTo("latest"));
+        assertThat(catalog.overlay.schema.subject, equalTo("smartylighting-overlay"));
+        assertThat(catalog.overlay.schema.version, equalTo("latest"));
     }
 
     @Test
@@ -169,11 +169,13 @@ public class AsyncapiOptionsConfigAdapterTest
                     .name("catalog0")
                     .subject("smartylighting")
                     .version("latest")
-                    .overlay(AsyncapiCatalogConfig.builder()
+                    .overlay()
                         .name("catalog1")
-                        .subject("smartylighting-overlay")
-                        .version("latest")
-                        .build())
+                        .schema()
+                            .subject("smartylighting-overlay")
+                            .version("latest")
+                            .build()
+                        .build()
                     .build())
                 .build()
             .build();
