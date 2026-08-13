@@ -23,14 +23,13 @@ import jakarta.json.JsonValue;
 
 import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.ModelConfig;
-import io.aklivity.zilla.config.engine.ModelConfigAdapterSpi;
 import io.aklivity.zilla.config.engine.ValidateConfig;
 import io.aklivity.zilla.config.engine.ValidateConfigAdapter;
 import io.aklivity.zilla.config.model.core.FloatModelConfig;
 import io.aklivity.zilla.config.model.core.FloatModelConfigBuilder;
 import io.aklivity.zilla.config.model.core.RangeConfig;
 
-public class FloatModelConfigAdapter extends ConfigAdapter<ModelConfig, JsonValue> implements ModelConfigAdapterSpi
+public class FloatModelConfigAdapter extends ConfigAdapter<ModelConfig, JsonValue>
 {
     private static final String MODEL_NAME = "model";
     private static final String FORMAT_NAME = "format";
@@ -41,8 +40,7 @@ public class FloatModelConfigAdapter extends ConfigAdapter<ModelConfig, JsonValu
     private final RangeConfigAdapter adapter = new RangeConfigAdapter();
     private final ValidateConfigAdapter validate = new ValidateConfigAdapter();
 
-    @Override
-    public String type()
+    private String type()
     {
         return FLOAT;
     }

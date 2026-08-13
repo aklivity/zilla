@@ -14,11 +14,8 @@
  */
 package io.aklivity.zilla.config.model.avro.internal;
 
-import static java.util.stream.Collectors.toList;
-
 import java.util.LinkedList;
 import java.util.List;
-import java.util.ServiceLoader;
 
 import jakarta.json.Json;
 import jakarta.json.JsonArray;
@@ -31,19 +28,14 @@ import io.aklivity.zilla.config.engine.CatalogedConfig;
 import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.ConfigExtAdapter;
 import io.aklivity.zilla.config.engine.ModelConfig;
-import io.aklivity.zilla.config.engine.ModelConfigAdapterSpi;
-import io.aklivity.zilla.config.engine.ModelExtInfo;
 import io.aklivity.zilla.config.engine.SchemaConfig;
 import io.aklivity.zilla.config.engine.SchemaConfigAdapter;
 import io.aklivity.zilla.config.engine.ValidateConfig;
 import io.aklivity.zilla.config.engine.ValidateConfigAdapter;
-import io.aklivity.zilla.config.engine.factory.Factory;
 import io.aklivity.zilla.config.model.avro.AvroModelConfig;
 import io.aklivity.zilla.config.model.avro.AvroModelConfigBuilder;
 
-public final class AvroModelConfigAdapter
-    extends ConfigAdapter.Extensible<ModelConfig, JsonValue>
-    implements ModelConfigAdapterSpi
+public final class AvroModelConfigAdapter extends ConfigAdapter.Extensible<ModelConfig, JsonValue>
 {
     private static final String AVRO = "avro";
     private static final String MODEL_NAME = "model";
@@ -55,25 +47,10 @@ public final class AvroModelConfigAdapter
     private final SchemaConfigAdapter schema = new SchemaConfigAdapter();
     private final ValidateConfigAdapter validate = new ValidateConfigAdapter();
 
-    public AvroModelConfigAdapter()
-    {
-        this(Factory.instantiate(ServiceLoader.load(ModelExtInfo.class))
-            .stream()
-            .filter(info -> info.type().equals(AVRO))
-            .map(ModelExtInfo::adapter)
-            .collect(toList()));
-    }
-
     public AvroModelConfigAdapter(
         List<ConfigExtAdapter<ModelConfig>> extensions)
     {
         super(extensions);
-    }
-
-    @Override
-    public String type()
-    {
-        return AVRO;
     }
 
     @Override

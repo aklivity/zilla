@@ -26,13 +26,12 @@ import jakarta.json.JsonValue;
 import io.aklivity.zilla.config.engine.CatalogedConfig;
 import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.ModelConfig;
-import io.aklivity.zilla.config.engine.ModelConfigAdapterSpi;
 import io.aklivity.zilla.config.engine.SchemaConfig;
 import io.aklivity.zilla.config.engine.SchemaConfigAdapter;
 import io.aklivity.zilla.config.engine.ValidateConfig;
 import io.aklivity.zilla.config.engine.ValidateConfigAdapter;
 
-public class TestModelConfigAdapter extends ConfigAdapter<ModelConfig, JsonValue> implements ModelConfigAdapterSpi
+public class TestModelConfigAdapter extends ConfigAdapter<ModelConfig, JsonValue>
 {
     private static final String TEST = "test";
     private static final String LENGTH = "length";
@@ -44,12 +43,6 @@ public class TestModelConfigAdapter extends ConfigAdapter<ModelConfig, JsonValue
 
     private final SchemaConfigAdapter schema = new SchemaConfigAdapter();
     private final ValidateConfigAdapter validate = new ValidateConfigAdapter();
-
-    @Override
-    public String type()
-    {
-        return TEST;
-    }
 
     @Override
     public JsonValue adaptToJson(

@@ -14,32 +14,31 @@
  */
 package io.aklivity.zilla.config.engine;
 
-import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toMap;
 
 import java.util.Map;
 import java.util.ServiceLoader;
-import java.util.function.Supplier;
 
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
+import jakarta.json.bind.adapter.JsonbAdapter;
+
+import io.aklivity.zilla.config.engine.factory.Factory;
 
 public final class ModelConfigAdapter extends ConfigAdapter<ModelConfig, JsonValue>
 {
     private static final String MODEL_NAME = "model";
 
-    private final Map<String, ModelConfigAdapterSpi> delegatesByName;
-    private ModelConfigAdapterSpi delegate;
+    private final Map<String, JsonbAdapter<ModelConfig, JsonValue>> delegatesByName;
+    private JsonbAdapter<ModelConfig, JsonValue> delegate;
 
     public ModelConfigAdapter()
     {
-        delegatesByName = ServiceLoader
-            .load(ModelConfigAdapterSpi.class)
+        delegatesByName = Factory.instantiate(ServiceLoader.load(ModelInfo.class))
             .stream()
-            .map(Supplier::get)
-            .collect(toMap(ModelConfigAdapterSpi::type, identity()));
+            .collect(toMap(ModelInfo::type, ModelInfo::adapter));
     }
 
     public void adaptType(
@@ -52,7 +51,19 @@ public final class ModelConfigAdapter extends ConfigAdapter<ModelConfig, JsonVal
     public JsonValue adaptToJson(
         ModelConfig options)
     {
-        return delegate != null ? delegate.adaptToJson(options) : null;
+        JsonValue value = null;
+        if (delegate != null)
+        {
+            try
+            {
+                value = delegate.adaptToJson(options);
+            }
+            catch (Exception ex)
+            {
+                throw new IllegalArgumentException(ex);
+            }
+        }
+        return value;
     }
 
     @Override
@@ -81,6 +92,18 @@ public final class ModelConfigAdapter extends ConfigAdapter<ModelConfig, JsonVal
 
         adaptType(type);
 
-        return delegate != null ? delegate.adaptFromJson(object) : null;
+        ModelConfig config = null;
+        if (delegate != null)
+        {
+            try
+            {
+                config = delegate.adaptFromJson(object);
+            }
+            catch (Exception ex)
+            {
+                throw new IllegalArgumentException(ex);
+            }
+        }
+        return config;
     }
 }

@@ -22,20 +22,18 @@ import jakarta.json.JsonValue;
 
 import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.ModelConfig;
-import io.aklivity.zilla.config.engine.ModelConfigAdapterSpi;
 import io.aklivity.zilla.config.engine.ValidateConfigAdapter;
 import io.aklivity.zilla.config.model.core.BooleanModelConfig;
 import io.aklivity.zilla.config.model.core.BooleanModelConfigBuilder;
 
-public class BooleanModelConfigAdapter extends ConfigAdapter<ModelConfig, JsonValue> implements ModelConfigAdapterSpi
+public class BooleanModelConfigAdapter extends ConfigAdapter<ModelConfig, JsonValue>
 {
     private static final String MODEL_NAME = "model";
     private static final String VALIDATE_NAME = "validate";
 
     private final ValidateConfigAdapter validate = new ValidateConfigAdapter();
 
-    @Override
-    public String type()
+    private String type()
     {
         return BOOLEAN;
     }

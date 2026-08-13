@@ -21,13 +21,12 @@ import jakarta.json.JsonValue;
 
 import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.ModelConfig;
-import io.aklivity.zilla.config.engine.ModelConfigAdapterSpi;
 import io.aklivity.zilla.config.engine.ValidateConfig;
 import io.aklivity.zilla.config.engine.ValidateConfigAdapter;
 import io.aklivity.zilla.config.model.core.StringModelConfig;
 import io.aklivity.zilla.config.model.core.StringModelConfigBuilder;
 
-public final class StringModelConfigAdapter extends ConfigAdapter<ModelConfig, JsonValue> implements ModelConfigAdapterSpi
+public final class StringModelConfigAdapter extends ConfigAdapter<ModelConfig, JsonValue>
 {
     private static final String MODEL_NAME = "model";
     private static final String ENCODING_NAME = "encoding";
@@ -37,6 +36,11 @@ public final class StringModelConfigAdapter extends ConfigAdapter<ModelConfig, J
     private static final String VALIDATE_NAME = "validate";
 
     private final ValidateConfigAdapter validate = new ValidateConfigAdapter();
+
+    private String type()
+    {
+        return "string";
+    }
 
     @Override
     public JsonValue adaptToJson(
@@ -128,11 +132,5 @@ public final class StringModelConfigAdapter extends ConfigAdapter<ModelConfig, J
             throw new IllegalArgumentException("Unexpected type: " + valueType);
         }
         return builder.build();
-    }
-
-    @Override
-    public String type()
-    {
-        return "string";
     }
 }

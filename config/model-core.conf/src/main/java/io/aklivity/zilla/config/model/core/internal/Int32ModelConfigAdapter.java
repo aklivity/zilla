@@ -24,14 +24,13 @@ import jakarta.json.JsonValue.ValueType;
 
 import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.ModelConfig;
-import io.aklivity.zilla.config.engine.ModelConfigAdapterSpi;
 import io.aklivity.zilla.config.engine.ValidateConfig;
 import io.aklivity.zilla.config.engine.ValidateConfigAdapter;
 import io.aklivity.zilla.config.model.core.Int32ModelConfig;
 import io.aklivity.zilla.config.model.core.Int32ModelConfigBuilder;
 import io.aklivity.zilla.config.model.core.RangeConfig;
 
-public class Int32ModelConfigAdapter extends ConfigAdapter<ModelConfig, JsonValue> implements ModelConfigAdapterSpi
+public class Int32ModelConfigAdapter extends ConfigAdapter<ModelConfig, JsonValue>
 {
     private static final String MODEL_NAME = "model";
     private static final String FORMAT_NAME = "format";
@@ -42,8 +41,7 @@ public class Int32ModelConfigAdapter extends ConfigAdapter<ModelConfig, JsonValu
     private final RangeConfigAdapter adapter = new RangeConfigAdapter();
     private final ValidateConfigAdapter validate = new ValidateConfigAdapter();
 
-    @Override
-    public String type()
+    private String type()
     {
         return INT_32;
     }

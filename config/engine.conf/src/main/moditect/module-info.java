@@ -34,5 +34,4 @@ module io.aklivity.zilla.config.engine
     uses io.aklivity.zilla.config.engine.ModelExtInfo;
     uses io.aklivity.zilla.config.engine.StoreInfo;
     uses io.aklivity.zilla.config.engine.MetricGroupInfo;
-    uses io.aklivity.zilla.config.engine.ModelConfigAdapterSpi;
 }
