@@ -235,10 +235,8 @@ public class OpenapiServerGeneratorTest
                     List.of(new OpenapiCatalogConfig("catalog0", "test", "latest",
                         OverlayConfig.builder()
                             .name("catalog0")
-                            .schema()
-                                .subject("test-overlay")
-                                .version("latest")
-                                .build()
+                            .subject("test-overlay")
+                            .version("latest")
                             .build())),
                     security))
                 .build())

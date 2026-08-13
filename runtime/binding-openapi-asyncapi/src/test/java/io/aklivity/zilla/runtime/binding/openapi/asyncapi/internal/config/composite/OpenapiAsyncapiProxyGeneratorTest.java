@@ -259,18 +259,14 @@ public class OpenapiAsyncapiProxyGeneratorTest
     {
         OverlayConfig openapiOverlay = OverlayConfig.builder()
             .name("catalog0")
-            .schema()
-                .subject("test-overlay")
-                .version("latest")
-                .build()
+            .subject("test-overlay")
+            .version("latest")
             .build();
 
         OverlayConfig asyncapiOverlay = OverlayConfig.builder()
             .name("catalog1")
-            .schema()
-                .subject("test-overlay")
-                .version("latest")
-                .build()
+            .subject("test-overlay")
+            .version("latest")
             .build();
 
         BindingConfig binding = GenericBindingConfig.builder()

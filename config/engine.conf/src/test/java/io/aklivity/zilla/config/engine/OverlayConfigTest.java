@@ -53,4 +53,18 @@ public class OverlayConfigTest
         assertThat(overlay.schema.subject, equalTo("echo"));
         assertThat(overlay.schema.version, equalTo("1"));
     }
+
+    @Test
+    public void shouldWorkWithFlatSubjectVersion()
+    {
+        OverlayConfig overlay = OverlayConfig.builder()
+                    .name("test")
+                    .subject("echo")
+                    .version("1")
+                    .build();
+
+        assertThat(overlay.name, equalTo("test"));
+        assertThat(overlay.schema.subject, equalTo("echo"));
+        assertThat(overlay.schema.version, equalTo("1"));
+    }
 }

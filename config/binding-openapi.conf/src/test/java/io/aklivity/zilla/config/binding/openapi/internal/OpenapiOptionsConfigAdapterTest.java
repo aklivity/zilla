@@ -165,10 +165,8 @@ public class OpenapiOptionsConfigAdapterTest
 
         OverlayConfig overlay = OverlayConfig.builder()
             .name("catalog1")
-            .schema()
-                .subject("petstore-overlay")
-                .version("latest")
-                .build()
+            .subject("petstore-overlay")
+            .version("latest")
             .build();
 
         OpenapiOptionsConfig options = OpenapiOptionsConfig.builder()

@@ -21,6 +21,8 @@ public final class OverlayConfigBuilder<T> extends ConfigBuilder<T, OverlayConfi
     private final Function<OverlayConfig, T> mapper;
 
     private String name;
+    private String subject;
+    private String version;
     private SchemaConfig schema;
 
     OverlayConfigBuilder(
@@ -43,6 +45,20 @@ public final class OverlayConfigBuilder<T> extends ConfigBuilder<T, OverlayConfi
         return this;
     }
 
+    public OverlayConfigBuilder<T> subject(
+        String subject)
+    {
+        this.subject = subject;
+        return this;
+    }
+
+    public OverlayConfigBuilder<T> version(
+        String version)
+    {
+        this.version = version;
+        return this;
+    }
+
     public SchemaConfigBuilder<OverlayConfigBuilder<T>> schema()
     {
         return new SchemaConfigBuilder<>(this::schema);
@@ -58,6 +74,10 @@ public final class OverlayConfigBuilder<T> extends ConfigBuilder<T, OverlayConfi
     @Override
     public T build()
     {
-        return mapper.apply(new OverlayConfig(name, schema));
+        SchemaConfig resolved = schema != null
+            ? schema
+            : SchemaConfig.builder().subject(subject).version(version).build();
+
+        return mapper.apply(new OverlayConfig(name, resolved));
     }
 }

@@ -198,10 +198,8 @@ public class OpenapiAsyncapiOptionsConfigAdapterTest
 
         OverlayConfig openapiOverlay = OverlayConfig.builder()
             .name("overlay0")
-            .schema()
-                .subject("petstore-overlay")
-                .version("latest")
-                .build()
+            .subject("petstore-overlay")
+            .version("latest")
             .build();
 
         Set<OpenapiSpecificationConfig> openapiConfigs = new HashSet<>();
@@ -213,10 +211,8 @@ public class OpenapiAsyncapiOptionsConfigAdapterTest
 
         OverlayConfig asyncapiOverlay = OverlayConfig.builder()
             .name("overlay1")
-            .schema()
-                .subject("petstore-overlay")
-                .version("latest")
-                .build()
+            .subject("petstore-overlay")
+            .version("latest")
             .build();
 
         Set<AsyncapiSpecificationConfig> asyncapiConfigs = new HashSet<>();
