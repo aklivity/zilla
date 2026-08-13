@@ -37,11 +37,6 @@ public final class StringModelConfigAdapter extends ConfigAdapter<ModelConfig, J
 
     private final ValidateConfigAdapter validate = new ValidateConfigAdapter();
 
-    private String type()
-    {
-        return "string";
-    }
-
     @Override
     public JsonValue adaptToJson(
         ModelConfig config)
@@ -56,12 +51,12 @@ public final class StringModelConfigAdapter extends ConfigAdapter<ModelConfig, J
             options.minLength == 0 &&
             validateJson == null)
         {
-            result = Json.createValue(type());
+            result = Json.createValue("string");
         }
         else
         {
             JsonObjectBuilder builder = Json.createObjectBuilder();
-            builder.add(MODEL_NAME, type());
+            builder.add(MODEL_NAME, "string");
 
             if (!options.encoding.equals(StringModelConfigBuilder.DEFAULT_ENCODING))
             {

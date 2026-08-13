@@ -40,11 +40,6 @@ public class FloatModelConfigAdapter extends ConfigAdapter<ModelConfig, JsonValu
     private final RangeConfigAdapter adapter = new RangeConfigAdapter();
     private final ValidateConfigAdapter validate = new ValidateConfigAdapter();
 
-    private String type()
-    {
-        return FLOAT;
-    }
-
     @Override
     public JsonValue adaptToJson(
         ModelConfig options)
@@ -61,12 +56,12 @@ public class FloatModelConfigAdapter extends ConfigAdapter<ModelConfig, JsonValu
             config.multiple == null &&
             validateJson == null)
         {
-            result = Json.createValue(type());
+            result = Json.createValue(FLOAT);
         }
         else
         {
             JsonObjectBuilder builder = Json.createObjectBuilder();
-            builder.add(MODEL_NAME, type());
+            builder.add(MODEL_NAME, FLOAT);
 
             if (!config.format.equals(FloatModelConfigBuilder.DEFAULT_FORMAT))
             {

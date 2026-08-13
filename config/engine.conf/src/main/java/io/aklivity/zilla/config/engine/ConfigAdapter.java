@@ -22,6 +22,14 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 
 public abstract class ConfigAdapter<T extends Config, A> implements JsonbAdapter<T, A>
 {
+    @Override
+    public abstract A adaptToJson(
+        T config);
+
+    @Override
+    public abstract T adaptFromJson(
+        A object);
+
     public abstract static class Extensible<T extends Config.Extensible, A> extends ConfigAdapter<T, A>
     {
         private final List<ConfigExtAdapter<T>> extensions;
@@ -32,14 +40,14 @@ public abstract class ConfigAdapter<T extends Config, A> implements JsonbAdapter
             this.extensions = extensions;
         }
 
-        protected final void adaptExtensionsToJson(
+        protected final void injectExtensions(
             T config,
             JsonObjectBuilder builder)
         {
             extensions.forEach(extension -> extension.adaptToJson(config, builder));
         }
 
-        protected final <B extends ConfigBuilder.Extensible<?, B>> B adaptExtensionsFromJson(
+        protected final <B extends ConfigBuilder.Extensible<?, B>> B injectExtensions(
             JsonObject object,
             B builder)
         {

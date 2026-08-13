@@ -40,11 +40,6 @@ public class Int64ModelConfigAdapter extends ConfigAdapter<ModelConfig, JsonValu
     private final RangeConfigAdapter adapter = new RangeConfigAdapter();
     private final ValidateConfigAdapter validate = new ValidateConfigAdapter();
 
-    private String type()
-    {
-        return INT_64;
-    }
-
     @Override
     public JsonValue adaptToJson(
         ModelConfig options)
@@ -61,7 +56,7 @@ public class Int64ModelConfigAdapter extends ConfigAdapter<ModelConfig, JsonValu
             config.multiple == Int64ModelConfigBuilder.DEFAULT_MULTIPLE &&
             validateJson == null)
         {
-            result = Json.createValue(type());
+            result = Json.createValue(INT_64);
         }
         else
         {

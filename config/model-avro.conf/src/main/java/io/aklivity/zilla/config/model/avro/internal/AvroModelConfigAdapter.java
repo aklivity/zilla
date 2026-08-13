@@ -87,7 +87,7 @@ public final class AvroModelConfigAdapter extends ConfigAdapter.Extensible<Model
             builder.add(VALIDATE_NAME, validateJson);
         }
 
-        adaptExtensionsToJson(model, builder);
+        injectExtensions(model, builder);
 
         return builder.build();
     }
@@ -131,8 +131,6 @@ public final class AvroModelConfigAdapter extends ConfigAdapter.Extensible<Model
             .validate(validateConfig);
         catalogs.forEach(builder::catalog);
 
-        builder = adaptExtensionsFromJson(object, builder);
-
-        return builder.build();
+        return builder.inject(b -> injectExtensions(object, b)).build();
     }
 }

@@ -20,13 +20,12 @@ import java.util.List;
 import java.util.ServiceLoader;
 
 import jakarta.json.JsonValue;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.engine.factory.Factory;
 
 public interface ModelInfo extends ConfigInfo
 {
-    JsonbAdapter<ModelConfig, JsonValue> adapter();
+    ConfigAdapter<ModelConfig, JsonValue> adapter();
 
     default List<ModelExtInfo> extensions()
     {

@@ -40,11 +40,6 @@ public class DoubleModelConfigAdapter extends ConfigAdapter<ModelConfig, JsonVal
     private final RangeConfigAdapter adapter = new RangeConfigAdapter();
     private final ValidateConfigAdapter validate = new ValidateConfigAdapter();
 
-    private String type()
-    {
-        return DOUBLE;
-    }
-
     @Override
     public JsonValue adaptToJson(
         ModelConfig options)
@@ -61,12 +56,12 @@ public class DoubleModelConfigAdapter extends ConfigAdapter<ModelConfig, JsonVal
             config.multiple == null &&
             validateJson == null)
         {
-            result = Json.createValue(type());
+            result = Json.createValue(DOUBLE);
         }
         else
         {
             JsonObjectBuilder builder = Json.createObjectBuilder();
-            builder.add(MODEL_NAME, type());
+            builder.add(MODEL_NAME, DOUBLE);
 
             if (!config.format.equals(DoubleModelConfigBuilder.DEFAULT_FORMAT))
             {

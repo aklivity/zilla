@@ -17,10 +17,10 @@ package io.aklivity.zilla.config.catalog.karapace.internal;
 import java.net.URL;
 
 import jakarta.json.JsonObject;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.catalog.karapace.KarapaceOptionsConfig;
 import io.aklivity.zilla.config.engine.CatalogInfo;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public final class KarapaceCatalogInfo implements CatalogInfo
@@ -40,7 +40,7 @@ public final class KarapaceCatalogInfo implements CatalogInfo
     }
 
     @Override
-    public JsonbAdapter<OptionsConfig, JsonObject> options()
+    public ConfigAdapter<OptionsConfig, JsonObject> options()
     {
         return new KarapaceOptionsConfigAdapter();
     }

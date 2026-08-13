@@ -33,11 +33,6 @@ public class BooleanModelConfigAdapter extends ConfigAdapter<ModelConfig, JsonVa
 
     private final ValidateConfigAdapter validate = new ValidateConfigAdapter();
 
-    private String type()
-    {
-        return BOOLEAN;
-    }
-
     @Override
     public JsonValue adaptToJson(
         ModelConfig options)
@@ -48,13 +43,13 @@ public class BooleanModelConfigAdapter extends ConfigAdapter<ModelConfig, JsonVa
         if (validateJson != null)
         {
             result = Json.createObjectBuilder()
-                .add(MODEL_NAME, type())
+                .add(MODEL_NAME, BOOLEAN)
                 .add(VALIDATE_NAME, validateJson)
                 .build();
         }
         else
         {
-            result = Json.createValue(type());
+            result = Json.createValue(BOOLEAN);
         }
         return result;
     }

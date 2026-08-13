@@ -17,10 +17,10 @@ package io.aklivity.zilla.config.binding.http.kafka.internal;
 import java.net.URL;
 
 import jakarta.json.JsonObject;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.engine.BindingInfo;
 import io.aklivity.zilla.config.engine.ConditionConfig;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 import io.aklivity.zilla.config.engine.WithConfig;
 
@@ -41,19 +41,19 @@ public final class HttpKafkaBindingInfo implements BindingInfo
     }
 
     @Override
-    public JsonbAdapter<OptionsConfig, JsonObject> options()
+    public ConfigAdapter<OptionsConfig, JsonObject> options()
     {
         return new HttpKafkaOptionsConfigAdapter();
     }
 
     @Override
-    public JsonbAdapter<ConditionConfig, JsonObject> condition()
+    public ConfigAdapter<ConditionConfig, JsonObject> condition()
     {
         return new HttpKafkaConditionConfigAdapter();
     }
 
     @Override
-    public JsonbAdapter<WithConfig, JsonObject> with()
+    public ConfigAdapter<WithConfig, JsonObject> with()
     {
         return new HttpKafkaWithConfigAdapter();
     }

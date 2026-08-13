@@ -17,8 +17,8 @@ package io.aklivity.zilla.config.engine.internal;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.GenericGuardConfig;
 import io.aklivity.zilla.config.engine.GenericGuardConfigBuilder;
 import io.aklivity.zilla.config.engine.GuardConfig;
@@ -33,7 +33,7 @@ public class GuardConfigAdapter
     private static final String OPTIONS_NAME = "options";
 
     private final String type;
-    private final JsonbAdapter<OptionsConfig, JsonObject> options;
+    private final ConfigAdapter<OptionsConfig, JsonObject> options;
 
     public GuardConfigAdapter(
         GuardInfo info)
@@ -43,7 +43,7 @@ public class GuardConfigAdapter
     }
 
     public JsonObject adaptToJson(
-        GuardConfig guard) throws Exception
+        GuardConfig guard)
     {
         JsonObjectBuilder object = Json.createObjectBuilder();
 
@@ -70,7 +70,7 @@ public class GuardConfigAdapter
     public GuardConfig adaptFromJson(
         String namespace,
         String name,
-        JsonObject object) throws Exception
+        JsonObject object)
     {
         GenericGuardConfigBuilder<GenericGuardConfig> guard = GenericGuardConfig.builder()
             .namespace(namespace)

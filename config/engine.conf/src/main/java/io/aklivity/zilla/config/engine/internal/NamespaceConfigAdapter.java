@@ -75,7 +75,7 @@ public class NamespaceConfigAdapter extends ConfigAdapter<NamespaceConfig, JsonO
 
     @Override
     public JsonObject adaptToJson(
-        NamespaceConfig config) throws Exception
+        NamespaceConfig config)
     {
         JsonObjectBuilder object = Json.createObjectBuilder();
 
@@ -152,7 +152,7 @@ public class NamespaceConfigAdapter extends ConfigAdapter<NamespaceConfig, JsonO
 
     @Override
     public NamespaceConfig adaptFromJson(
-        JsonObject object) throws Exception
+        JsonObject object)
     {
         NamespaceConfigBuilder<NamespaceConfig> builder = NamespaceConfig.builder();
         String namespace = object.getString(NAME_NAME);
