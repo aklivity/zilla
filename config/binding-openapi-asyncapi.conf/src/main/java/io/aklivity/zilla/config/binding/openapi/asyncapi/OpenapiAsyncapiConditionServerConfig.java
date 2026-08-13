@@ -14,10 +14,10 @@
  */
 package io.aklivity.zilla.config.binding.openapi.asyncapi;
 
+import java.net.URI;
 import java.util.function.Function;
 
 import io.aklivity.zilla.config.engine.Config;
-import io.aklivity.zilla.runtime.common.openapi.view.OpenapiServerView;
 
 public final class OpenapiAsyncapiConditionServerConfig extends Config
 {
@@ -41,8 +41,8 @@ public final class OpenapiAsyncapiConditionServerConfig extends Config
     }
 
     boolean matches(
-        OpenapiServerView server)
+        URI serverUrl)
     {
-        return url == null || url.equals(server.url.toString());
+        return url == null || url.equals(serverUrl.toString());
     }
 }

@@ -14,10 +14,10 @@
  */
 package io.aklivity.zilla.config.binding.asyncapi;
 
+import java.net.URI;
 import java.util.function.Function;
 
 import io.aklivity.zilla.config.engine.Config;
-import io.aklivity.zilla.runtime.common.asyncapi.view.AsyncapiServerView;
 
 public final class AsyncapiConditionServerConfig extends Config
 {
@@ -44,9 +44,10 @@ public final class AsyncapiConditionServerConfig extends Config
     }
 
     boolean matches(
-        AsyncapiServerView server)
+        String serverName,
+        URI serverUrl)
     {
-        return (name == null || name.equals(server.name)) &&
-            (url == null || server.url != null && url.equals(server.url.toString()));
+        return (name == null || name.equals(serverName)) &&
+            (url == null || serverUrl != null && url.equals(serverUrl.toString()));
     }
 }
