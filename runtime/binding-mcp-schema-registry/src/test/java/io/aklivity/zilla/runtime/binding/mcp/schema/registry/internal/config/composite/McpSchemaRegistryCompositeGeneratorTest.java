@@ -51,6 +51,7 @@ import io.aklivity.zilla.config.engine.CatalogConfig;
 import io.aklivity.zilla.config.engine.GenericBindingConfig;
 import io.aklivity.zilla.config.engine.GuardedConfig;
 import io.aklivity.zilla.config.engine.NamespaceConfig;
+import io.aklivity.zilla.config.engine.OverlayConfig;
 import io.aklivity.zilla.config.engine.RouteConfig;
 import io.aklivity.zilla.runtime.binding.mcp.schema.registry.internal.config.McpSchemaRegistryBindingConfig;
 import io.aklivity.zilla.runtime.binding.mcp.schema.registry.internal.config.McpSchemaRegistryCompositeConfig;
@@ -145,11 +146,11 @@ public class McpSchemaRegistryCompositeGeneratorTest
         assertThat(specCatalog.subject, equalTo("schema-registry"));
         assertThat(specCatalog.version, equalTo("latest"));
 
-        McpOpenapiCatalogConfig specOverlay = spec.overlay;
+        OverlayConfig specOverlay = specCatalog.overlay;
         assertThat(specOverlay, notNullValue());
         assertThat(specOverlay.name, equalTo("overlays"));
-        assertThat(specOverlay.subject, equalTo("schema-registry"));
-        assertThat(specOverlay.version, equalTo("latest"));
+        assertThat(specOverlay.schema.subject, equalTo("schema-registry"));
+        assertThat(specOverlay.schema.version, equalTo("latest"));
 
         assertThat(mcpOpenapi.routes, hasSize(TOOLS.size()));
         for (int i = 0; i < TOOLS.size(); i++)
