@@ -14,8 +14,6 @@
  */
 package io.aklivity.zilla.config.binding.tls.internal;
 
-import static java.util.stream.Collectors.toList;
-
 import java.util.List;
 
 import jakarta.json.Json;
@@ -213,7 +211,7 @@ public final class TlsOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, 
     {
         return array.stream()
             .map(TlsOptionsConfigAdapter::asString)
-            .collect(toList());
+            .toList();
     }
 
     private static String asString(

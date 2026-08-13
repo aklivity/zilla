@@ -14,8 +14,6 @@
  */
 package io.aklivity.zilla.config.catalog.schema.registry;
 
-import static java.util.stream.Collectors.toList;
-
 import java.time.Duration;
 import java.util.List;
 import java.util.function.Supplier;
@@ -176,7 +174,7 @@ public abstract class AbstractSchemaRegistryOptionsConfigAdapter<T extends Abstr
     {
         return array.stream()
             .map(AbstractSchemaRegistryOptionsConfigAdapter::asString)
-            .collect(toList());
+            .toList();
     }
 
     private static String asString(

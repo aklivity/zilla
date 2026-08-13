@@ -14,8 +14,6 @@
  */
 package io.aklivity.zilla.config.vault.filesystem.internal;
 
-import static java.util.stream.Collectors.toList;
-
 import java.util.List;
 
 import jakarta.json.Json;
@@ -95,7 +93,7 @@ public final class FileSystemStoreConfigAdapter extends ConfigAdapter<FileSystem
     {
         return array.stream()
             .map(FileSystemStoreConfigAdapter::asString)
-            .collect(toList());
+            .toList();
     }
 
     private static String asString(

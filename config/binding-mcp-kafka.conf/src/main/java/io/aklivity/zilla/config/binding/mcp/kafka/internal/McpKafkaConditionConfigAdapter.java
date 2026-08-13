@@ -14,8 +14,6 @@
  */
 package io.aklivity.zilla.config.binding.mcp.kafka.internal;
 
-import static java.util.stream.Collectors.toList;
-
 import java.util.List;
 
 import jakarta.json.Json;
@@ -72,7 +70,7 @@ public final class McpKafkaConditionConfigAdapter extends ConfigAdapter<Conditio
             ? object.getJsonArray(TOPICS_NAME).stream()
                 .map(JsonString.class::cast)
                 .map(JsonString::getString)
-                .collect(toList())
+                .toList()
             : null;
 
         return McpKafkaConditionConfig.builder()

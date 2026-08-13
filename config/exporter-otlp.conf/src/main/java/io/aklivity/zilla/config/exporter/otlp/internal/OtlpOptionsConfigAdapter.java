@@ -14,8 +14,6 @@
  */
 package io.aklivity.zilla.config.exporter.otlp.internal;
 
-import static java.util.stream.Collectors.toList;
-
 import java.time.Duration;
 import java.util.List;
 
@@ -132,7 +130,7 @@ public class OtlpOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, JsonO
     {
         return array.stream()
             .map(OtlpOptionsConfigAdapter::asString)
-            .collect(toList());
+            .toList();
     }
 
     private static String asString(
