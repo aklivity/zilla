@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.common.protobuf.internal;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -30,6 +31,7 @@ import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
 
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufConstant;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufEnum;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufException;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufField;
@@ -182,6 +184,10 @@ public final class ProtobufSourceCompiler
         {
             builder.defaultValue(field.defaultValue);
         }
+        if (field.options != null)
+        {
+            builder.options(field.options);
+        }
         boolean packed = field.packed != null
             ? field.packed
             : proto3 && field.repeated && type.packable();
@@ -309,6 +315,7 @@ public final class ProtobufSourceCompiler
         private String oneofName;
         private String defaultValue;
         private Set<String> enumNames;
+        private Map<String, ProtobufConstant> options;
     }
 
     private static final class Assembler
@@ -547,6 +554,7 @@ public final class ProtobufSourceCompiler
         {
             if (ctx != null)
             {
+                field.options = new LinkedHashMap<>();
                 for (Protobuf3Parser.FieldOptionContext option : ctx.fieldOption())
                 {
                     String name = option.optionName().getText();
@@ -563,8 +571,65 @@ public final class ProtobufSourceCompiler
                     {
                         field.defaultValue = stripQuotes(value);
                     }
+                    field.options.put(name, toConstant(option.constant()));
                 }
             }
+        }
+
+        private ProtobufConstant toConstant(
+            Protobuf3Parser.ConstantContext ctx)
+        {
+            ProtobufConstant constant;
+            if (ctx.blockLit() != null)
+            {
+                constant = new ProtobufConstant.MessageValue(toFields(ctx.blockLit()));
+            }
+            else if (ctx.strLit() != null)
+            {
+                constant = new ProtobufConstant.TextValue(stripQuotes(ctx.strLit().getText()));
+            }
+            else if (ctx.intLit() != null)
+            {
+                long value = Long.parseLong(ctx.intLit().getText());
+                constant = new ProtobufConstant.IntegerValue(ctx.MINUS() != null ? -value : value);
+            }
+            else if (ctx.floatLit() != null)
+            {
+                double value = Double.parseDouble(ctx.floatLit().getText());
+                constant = new ProtobufConstant.FloatValue(ctx.MINUS() != null ? -value : value);
+            }
+            else if (isBoolLit(ctx))
+            {
+                constant = new ProtobufConstant.BooleanValue("true".equals(ctx.getText()));
+            }
+            else
+            {
+                constant = new ProtobufConstant.Identifier(ctx.fullIdent().getText());
+            }
+            return constant;
+        }
+
+        // "true"/"false" are grammatically ambiguous with a bare fullIdent (the ident rule folds
+        // BOOL_LIT into keywords so identifiers may use those names), and the constant rule lists
+        // fullIdent first, so ANTLR resolves the ambiguity by parsing them as fullIdent rather than
+        // boolLit: check the literal text alongside ctx.boolLit() rather than relying on the latter alone
+        private static boolean isBoolLit(
+            Protobuf3Parser.ConstantContext ctx)
+        {
+            return ctx.boolLit() != null || "true".equals(ctx.getText()) || "false".equals(ctx.getText());
+        }
+
+        private Map<String, ProtobufConstant> toFields(
+            Protobuf3Parser.BlockLitContext ctx)
+        {
+            Map<String, ProtobufConstant> fields = new LinkedHashMap<>();
+            List<Protobuf3Parser.IdentContext> idents = ctx.ident();
+            List<Protobuf3Parser.ConstantContext> values = ctx.constant();
+            for (int i = 0; i < idents.size(); i++)
+            {
+                fields.put(idents.get(i).getText(), toConstant(values.get(i)));
+            }
+            return fields;
         }
     }
 
@@ -687,6 +752,7 @@ public final class ProtobufSourceCompiler
         {
             if (ctx != null)
             {
+                field.options = new LinkedHashMap<>();
                 for (Protobuf2Parser.FieldOptionContext option : ctx.fieldOption())
                 {
                     String name = option.optionName().getText();
@@ -703,8 +769,63 @@ public final class ProtobufSourceCompiler
                     {
                         field.defaultValue = stripQuotes(value);
                     }
+                    field.options.put(name, toConstant(option.constant()));
                 }
             }
+        }
+
+        private ProtobufConstant toConstant(
+            Protobuf2Parser.ConstantContext ctx)
+        {
+            ProtobufConstant constant;
+            if (ctx.blockLit() != null)
+            {
+                constant = new ProtobufConstant.MessageValue(toFields(ctx.blockLit()));
+            }
+            else if (ctx.strLit() != null)
+            {
+                constant = new ProtobufConstant.TextValue(stripQuotes(ctx.strLit().getText()));
+            }
+            else if (ctx.intLit() != null)
+            {
+                long value = Long.parseLong(ctx.intLit().getText());
+                constant = new ProtobufConstant.IntegerValue(ctx.MINUS() != null ? -value : value);
+            }
+            else if (ctx.floatLit() != null)
+            {
+                double value = Double.parseDouble(ctx.floatLit().getText());
+                constant = new ProtobufConstant.FloatValue(ctx.MINUS() != null ? -value : value);
+            }
+            else if (isBoolLit(ctx))
+            {
+                constant = new ProtobufConstant.BooleanValue("true".equals(ctx.getText()));
+            }
+            else
+            {
+                constant = new ProtobufConstant.Identifier(ctx.fullIdent().getText());
+            }
+            return constant;
+        }
+
+        // see the identically-named helper in Proto3Listener for why this text check is needed
+        // alongside ctx.boolLit()
+        private static boolean isBoolLit(
+            Protobuf2Parser.ConstantContext ctx)
+        {
+            return ctx.boolLit() != null || "true".equals(ctx.getText()) || "false".equals(ctx.getText());
+        }
+
+        private Map<String, ProtobufConstant> toFields(
+            Protobuf2Parser.BlockLitContext ctx)
+        {
+            Map<String, ProtobufConstant> fields = new LinkedHashMap<>();
+            List<Protobuf2Parser.IdentContext> idents = ctx.ident();
+            List<Protobuf2Parser.ConstantContext> values = ctx.constant();
+            for (int i = 0; i < idents.size(); i++)
+            {
+                fields.put(idents.get(i).getText(), toConstant(values.get(i)));
+            }
+            return fields;
         }
     }
 }

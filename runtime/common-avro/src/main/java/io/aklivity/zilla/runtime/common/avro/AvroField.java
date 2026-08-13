@@ -39,4 +39,12 @@ public interface AvroField
      * null default (distinguishing the two).
      */
     JsonValue defaultValue();
+
+    /**
+     * The value of an arbitrary member declared on this field object in the schema document, read
+     * from the field object only — never from this field's {@link #type()}, and never inherited from
+     * a named type reference. {@code null} when the field declares no such key.
+     */
+    JsonValue attribute(
+        String name);
 }
