@@ -37,10 +37,10 @@ public class VaultHandlerTest
     public void shouldFailWrapWithNoOverride()
     {
         VaultHandler handler = new EmptyVaultHandler();
-        DirectBufferEx dek = new UnsafeBufferEx(new byte[] { 0x01, 0x02, 0x03, 0x04 });
+        DirectBufferEx bytes = new UnsafeBufferEx(new byte[] { 0x01, 0x02, 0x03, 0x04 });
         CapturedResult captured = new CapturedResult();
 
-        handler.wrap(1L, "kek", dek, 0, dek.capacity(), captured::accept);
+        handler.wrap(1L, "kek", bytes, 0, bytes.capacity(), captured::accept);
 
         assertNull(captured.buffer);
         assertEquals(0, captured.index);
@@ -51,10 +51,10 @@ public class VaultHandlerTest
     public void shouldFailUnwrapWithNoOverride()
     {
         VaultHandler handler = new EmptyVaultHandler();
-        DirectBufferEx edek = new UnsafeBufferEx(new byte[] { 0x05, 0x06, 0x07, 0x08 });
+        DirectBufferEx bytes = new UnsafeBufferEx(new byte[] { 0x05, 0x06, 0x07, 0x08 });
         CapturedResult captured = new CapturedResult();
 
-        handler.unwrap(1L, "kek", edek, 0, edek.capacity(), captured::accept);
+        handler.unwrap(1L, "kek", bytes, 0, bytes.capacity(), captured::accept);
 
         assertNull(captured.buffer);
         assertEquals(0, captured.index);
@@ -62,27 +62,27 @@ public class VaultHandlerTest
     }
 
     @Test
-    public void shouldWrapNamedKey()
+    public void shouldWrapWithNamedKey()
     {
         VaultHandler handler = new NamedKeyVaultHandler("kek");
-        DirectBufferEx dek = new UnsafeBufferEx(new byte[] { 0x01, 0x02, 0x03, 0x04 });
+        DirectBufferEx bytes = new UnsafeBufferEx(new byte[] { 0x01, 0x02, 0x03, 0x04 });
         CapturedResult captured = new CapturedResult();
 
-        handler.wrap(1L, "kek", dek, 0, dek.capacity(), captured::accept);
+        handler.wrap(1L, "kek", bytes, 0, bytes.capacity(), captured::accept);
 
-        assertSame(dek, captured.buffer);
+        assertSame(bytes, captured.buffer);
         assertEquals(0, captured.index);
-        assertEquals(dek.capacity(), captured.length);
+        assertEquals(bytes.capacity(), captured.length);
     }
 
     @Test
-    public void shouldFailWrapWithUnnamedKey()
+    public void shouldFailWrapWithUnknownKey()
     {
         VaultHandler handler = new NamedKeyVaultHandler("kek");
-        DirectBufferEx dek = new UnsafeBufferEx(new byte[] { 0x01, 0x02, 0x03, 0x04 });
+        DirectBufferEx bytes = new UnsafeBufferEx(new byte[] { 0x01, 0x02, 0x03, 0x04 });
         CapturedResult captured = new CapturedResult();
 
-        handler.wrap(1L, "unknown", dek, 0, dek.capacity(), captured::accept);
+        handler.wrap(1L, "unknown", bytes, 0, bytes.capacity(), captured::accept);
 
         assertNull(captured.buffer);
         assertEquals(0, captured.index);
@@ -90,27 +90,27 @@ public class VaultHandlerTest
     }
 
     @Test
-    public void shouldUnwrapNamedKey()
+    public void shouldUnwrapWithNamedKey()
     {
         VaultHandler handler = new NamedKeyVaultHandler("kek");
-        DirectBufferEx edek = new UnsafeBufferEx(new byte[] { 0x05, 0x06, 0x07, 0x08 });
+        DirectBufferEx bytes = new UnsafeBufferEx(new byte[] { 0x05, 0x06, 0x07, 0x08 });
         CapturedResult captured = new CapturedResult();
 
-        handler.unwrap(1L, "kek", edek, 0, edek.capacity(), captured::accept);
+        handler.unwrap(1L, "kek", bytes, 0, bytes.capacity(), captured::accept);
 
-        assertSame(edek, captured.buffer);
+        assertSame(bytes, captured.buffer);
         assertEquals(0, captured.index);
-        assertEquals(edek.capacity(), captured.length);
+        assertEquals(bytes.capacity(), captured.length);
     }
 
     @Test
-    public void shouldFailUnwrapWithUnnamedKey()
+    public void shouldFailUnwrapWithUnknownKey()
     {
         VaultHandler handler = new NamedKeyVaultHandler("kek");
-        DirectBufferEx edek = new UnsafeBufferEx(new byte[] { 0x05, 0x06, 0x07, 0x08 });
+        DirectBufferEx bytes = new UnsafeBufferEx(new byte[] { 0x05, 0x06, 0x07, 0x08 });
         CapturedResult captured = new CapturedResult();
 
-        handler.unwrap(1L, "unknown", edek, 0, edek.capacity(), captured::accept);
+        handler.unwrap(1L, "unknown", bytes, 0, bytes.capacity(), captured::accept);
 
         assertNull(captured.buffer);
         assertEquals(0, captured.index);
@@ -180,26 +180,26 @@ public class VaultHandlerTest
 
     private static final class NamedKeyVaultHandler extends EmptyVaultHandler
     {
-        private final String name;
+        private final String key;
 
         private NamedKeyVaultHandler(
-            String name)
+            String key)
         {
-            this.name = name;
+            this.key = key;
         }
 
         @Override
         public void wrap(
             long traceId,
-            String name,
-            DirectBufferEx dek,
+            String key,
+            DirectBufferEx bytes,
             int index,
             int length,
             BytesConsumer next)
         {
-            if (this.name.equals(name))
+            if (this.key.equals(key))
             {
-                next.accept(dek, index, length);
+                next.accept(bytes, index, length);
             }
             else
             {
@@ -210,15 +210,15 @@ public class VaultHandlerTest
         @Override
         public void unwrap(
             long traceId,
-            String name,
-            DirectBufferEx edek,
+            String key,
+            DirectBufferEx bytes,
             int index,
             int length,
             BytesConsumer next)
         {
-            if (this.name.equals(name))
+            if (this.key.equals(key))
             {
-                next.accept(edek, index, length);
+                next.accept(bytes, index, length);
             }
             else
             {
