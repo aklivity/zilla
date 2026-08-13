@@ -110,6 +110,16 @@ public class ClientFetchIT
     @Test
     @Configuration("client.when.topic.yaml")
     @Specification({
+        "${app}/partition.not.leader.reconnect/client",
+        "${net}/partition.not.leader.reconnect/server"})
+    public void shouldReconnectPartitionNotLeader() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.when.topic.yaml")
+    @Specification({
         "${app}/partition.not.leader/client",
         "${net}/storage.error/server"})
     public void shouldRejectStorageError() throws Exception
