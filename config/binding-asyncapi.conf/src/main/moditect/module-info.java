@@ -15,7 +15,6 @@
 module io.aklivity.zilla.config.binding.asyncapi
 {
     requires jakarta.json;
-    requires jakarta.json.bind;
     requires io.aklivity.zilla.config.engine;
 
     exports io.aklivity.zilla.config.binding.asyncapi;
