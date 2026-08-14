@@ -14,7 +14,10 @@
  */
 package io.aklivity.zilla.runtime.common.protobuf;
 
+import java.util.Map;
 import java.util.Objects;
+
+import jakarta.json.JsonObject;
 
 /**
  * An immutable Protobuf field descriptor: its number, declared {@link ProtobufType}, cardinality,
@@ -33,6 +36,8 @@ public final class ProtobufField
     private final String typeName;
     private final String oneofName;
     private final String defaultValue;
+    private final Map<String, ProtobufConstant> options;
+    private final JsonObject overlay;
 
     private ProtobufMessage message;
     private ProtobufEnum enumeration;
@@ -48,7 +53,9 @@ public final class ProtobufField
         boolean proto3Optional,
         String typeName,
         String oneofName,
-        String defaultValue)
+        String defaultValue,
+        Map<String, ProtobufConstant> options,
+        JsonObject overlay)
     {
         this.number = number;
         this.name = name;
@@ -61,6 +68,8 @@ public final class ProtobufField
         this.typeName = typeName;
         this.oneofName = oneofName;
         this.defaultValue = defaultValue;
+        this.options = options;
+        this.overlay = overlay;
     }
 
     public int number()
@@ -124,6 +133,35 @@ public final class ProtobufField
     public String defaultValue()
     {
         return defaultValue;
+    }
+
+    /**
+     * The value of field option {@code name}, parsed from the {@code .proto} source's {@code [ ... ]}
+     * field options — read from this field's own options only, with no descriptor resolution, so an
+     * option need not be declared by any imported {@code .proto} to be retained. {@code null} when this
+     * field declares no such option.
+     */
+    public ProtobufConstant option(
+        String name)
+    {
+        return options != null ? options.get(name) : null;
+    }
+
+    /**
+     * The effective options for this field as a {@link JsonObject}: the overlay-merged view once a
+     * {@link ProtobufOverlay} has been applied, or the inline {@code .proto} source options converted
+     * to JSON otherwise. Unlike {@link #option(String)}, which always surfaces only the raw inline
+     * value, a consumer that must not care whether an option came from the {@code .proto} source or an
+     * overlay reads this instead.
+     */
+    public JsonObject options()
+    {
+        return overlay != null ? overlay : ProtobufConstant.toJsonObject(options);
+    }
+
+    Map<String, ProtobufConstant> rawOptions()
+    {
+        return options;
     }
 
     public boolean composite()
@@ -209,6 +247,8 @@ public final class ProtobufField
         private String typeName;
         private String oneofName;
         private String defaultValue;
+        private Map<String, ProtobufConstant> options;
+        private JsonObject overlay;
 
         public Builder number(
             int number)
@@ -287,6 +327,20 @@ public final class ProtobufField
             return this;
         }
 
+        public Builder options(
+            Map<String, ProtobufConstant> options)
+        {
+            this.options = options;
+            return this;
+        }
+
+        public Builder overlay(
+            JsonObject overlay)
+        {
+            this.overlay = overlay;
+            return this;
+        }
+
         public ProtobufField build()
         {
             Objects.requireNonNull(name, "field name");
@@ -294,7 +348,7 @@ public final class ProtobufField
             String resolvedJsonName = jsonName != null ? jsonName : toJsonName(name);
             boolean resolvedPacked = packed != null ? packed : repeated && type.packable();
             return new ProtobufField(number, name, resolvedJsonName, type, repeated, required, resolvedPacked,
-                proto3Optional, typeName, oneofName, defaultValue);
+                proto3Optional, typeName, oneofName, defaultValue, options, overlay);
         }
     }
 }

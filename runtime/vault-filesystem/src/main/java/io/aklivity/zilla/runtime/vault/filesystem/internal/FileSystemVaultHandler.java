@@ -16,13 +16,16 @@
 package io.aklivity.zilla.runtime.vault.filesystem.internal;
 
 import java.io.InputStream;
+import java.nio.ByteOrder;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
 import java.security.KeyStore.Entry;
 import java.security.KeyStore.PrivateKeyEntry;
+import java.security.KeyStore.SecretKeyEntry;
 import java.security.KeyStore.TrustedCertificateEntry;
+import java.security.SecureRandom;
 import java.security.cert.CertPathValidator;
 import java.security.cert.Certificate;
 import java.security.cert.PKIXBuilderParameters;
@@ -31,12 +34,18 @@ import java.security.cert.X509CertSelector;
 import java.security.cert.X509Certificate;
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
+import javax.crypto.Cipher;
+import javax.crypto.SecretKey;
+import javax.crypto.ShortBufferException;
+import javax.crypto.spec.GCMParameterSpec;
 import javax.net.ssl.CertPathTrustManagerParameters;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.TrustManagerFactory;
@@ -45,7 +54,11 @@ import javax.security.auth.x500.X500Principal;
 import org.agrona.LangUtil;
 
 import io.aklivity.zilla.config.vault.filesystem.FileSystemOptionsConfig;
+import io.aklivity.zilla.config.vault.filesystem.FileSystemSecretEntryConfig;
+import io.aklivity.zilla.config.vault.filesystem.FileSystemSecretsConfig;
 import io.aklivity.zilla.config.vault.filesystem.FileSystemStoreConfig;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.security.RevocationStrategy;
 import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
 
@@ -53,6 +66,14 @@ public class FileSystemVaultHandler implements VaultHandler
 {
     private static final String STORE_TYPE_DEFAULT = "pkcs12";
     private static final String PKIX_ALGORITHM = "PKIX";
+    private static final String AES_GCM_TRANSFORM = "AES/GCM/NoPadding";
+    private static final String ALGORITHM_AES128_GCM = "AES128_GCM";
+    private static final String ALGORITHM_AES256_GCM = "AES256_GCM";
+    private static final int GCM_IV_LENGTH = 12;
+    private static final int GCM_TAG_LENGTH_BITS = 128;
+    private static final int PREFIX_LENGTH = Integer.BYTES + GCM_IV_LENGTH;
+    private static final int CHUNK_CAPACITY = 128;
+    private static final int OUTPUT_CAPACITY_DEFAULT = 192;
 
     private final Function<List<String>, KeyManagerFactory> supplyKeys;
     private final Function<List<String>, KeyManagerFactory> supplySigners;
@@ -61,6 +82,13 @@ public class FileSystemVaultHandler implements VaultHandler
     private final FileSystemStoreInfo keys;
     private final FileSystemStoreInfo signers;
     private final FileSystemStoreInfo trust;
+    private final FileSystemSecretsInfo secrets;
+    private final SecureRandom random;
+    private final Cipher cipher;
+    private final byte[] iv;
+    private final byte[] chunk;
+    private final UnsafeBufferEx scratchBuffer;
+    private byte[] output;
 
     public FileSystemVaultHandler(
         FileSystemOptionsConfig options,
@@ -89,6 +117,14 @@ public class FileSystemVaultHandler implements VaultHandler
             : revocation;
         this.trust = supplyStoreInfo(resolvePath, options.trust);
         supplyTrust = (aliases, cacerts) -> newTrustFactory(trust, aliases, cacerts);
+
+        this.secrets = supplySecretsInfo(resolvePath, options.secrets);
+        this.random = new SecureRandom();
+        this.cipher = newCipher();
+        this.iv = new byte[GCM_IV_LENGTH];
+        this.chunk = new byte[CHUNK_CAPACITY];
+        this.scratchBuffer = new UnsafeBufferEx();
+        this.output = new byte[OUTPUT_CAPACITY_DEFAULT];
     }
 
     @Override
@@ -130,6 +166,222 @@ public class FileSystemVaultHandler implements VaultHandler
     public KeyManagerFactory initSigners()
     {
         return signers != null ? initSigners(signers.allCertificateAliases()) : null;
+    }
+
+    @Override
+    public void wrap(
+        long traceId,
+        String key,
+        DirectBufferEx bytes,
+        int index,
+        int length,
+        BytesConsumer next)
+    {
+        DirectBufferEx wrapped = null;
+        int wrappedLength = 0;
+
+        FileSystemSecretEntryInfo entry = secrets != null ? secrets.entry(key) : null;
+        String alias = entry != null ? entry.activeAlias() : null;
+        SecretKey secretKey = alias != null ? secrets.secretKey(alias) : null;
+        String algorithm = secretKey != null ? resolveAlgorithm(entry, secretKey) : null;
+
+        if (algorithm != null)
+        {
+            try
+            {
+                random.nextBytes(iv);
+                cipher.init(Cipher.ENCRYPT_MODE, secretKey, new GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv));
+
+                byte[] wire = output(PREFIX_LENGTH + cipher.getOutputSize(length));
+                putInt(wire, 0, entry.active);
+                System.arraycopy(iv, 0, wire, Integer.BYTES, GCM_IV_LENGTH);
+
+                int position = update(bytes, index, length, wire, PREFIX_LENGTH);
+                position += cipher.doFinal(wire, position);
+
+                scratchBuffer.wrap(wire, 0, position);
+                wrapped = scratchBuffer;
+                wrappedLength = position;
+            }
+            catch (GeneralSecurityException ex)
+            {
+                wrapped = null;
+                wrappedLength = 0;
+            }
+        }
+
+        next.accept(wrapped, 0, wrappedLength);
+    }
+
+    @Override
+    public void unwrap(
+        long traceId,
+        String key,
+        DirectBufferEx bytes,
+        int index,
+        int length,
+        BytesConsumer next)
+    {
+        DirectBufferEx unwrapped = null;
+        int unwrappedLength = 0;
+
+        FileSystemSecretEntryInfo entry = secrets != null ? secrets.entry(key) : null;
+
+        if (entry != null && length >= PREFIX_LENGTH)
+        {
+            int version = bytes.getInt(index, ByteOrder.BIG_ENDIAN);
+            int cipherIndex = index + PREFIX_LENGTH;
+            int cipherLength = length - PREFIX_LENGTH;
+
+            String alias = entry.alias(version);
+            SecretKey secretKey = alias != null ? secrets.secretKey(alias) : null;
+
+            if (secretKey != null)
+            {
+                try
+                {
+                    bytes.getBytes(index + Integer.BYTES, iv, 0, GCM_IV_LENGTH);
+
+                    // codeql[java/static-initialization-vector]: iv comes from wrap, not static
+                    cipher.init(Cipher.DECRYPT_MODE, secretKey, new GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv));
+
+                    byte[] plaintext = output(cipher.getOutputSize(cipherLength));
+                    int position = update(bytes, cipherIndex, cipherLength, plaintext, 0);
+                    position += cipher.doFinal(plaintext, position);
+
+                    scratchBuffer.wrap(plaintext, 0, position);
+                    unwrapped = scratchBuffer;
+                    unwrappedLength = position;
+                }
+                catch (GeneralSecurityException ex)
+                {
+                    unwrapped = null;
+                    unwrappedLength = 0;
+                }
+            }
+        }
+
+        next.accept(unwrapped, 0, unwrappedLength);
+    }
+
+    private static Cipher newCipher()
+    {
+        Cipher cipher = null;
+
+        try
+        {
+            cipher = Cipher.getInstance(AES_GCM_TRANSFORM);
+        }
+        catch (GeneralSecurityException ex)
+        {
+            LangUtil.rethrowUnchecked(ex);
+        }
+
+        return cipher;
+    }
+
+    private String resolveAlgorithm(
+        FileSystemSecretEntryInfo entry,
+        SecretKey secretKey)
+    {
+        return entry.algorithm != null ? entry.algorithm : inferAlgorithm(secretKey.getEncoded().length);
+    }
+
+    private static String inferAlgorithm(
+        int keyLength)
+    {
+        String algorithm = null;
+
+        switch (keyLength)
+        {
+        case 16:
+            algorithm = ALGORITHM_AES128_GCM;
+            break;
+        case 32:
+            algorithm = ALGORITHM_AES256_GCM;
+            break;
+        default:
+            break;
+        }
+
+        return algorithm;
+    }
+
+    private byte[] output(
+        int length)
+    {
+        if (length > output.length)
+        {
+            output = new byte[length];
+        }
+
+        return output;
+    }
+
+    private int update(
+        DirectBufferEx bytes,
+        int index,
+        int length,
+        byte[] output,
+        int outputOffset)
+        throws ShortBufferException
+    {
+        int position = outputOffset;
+        int offset = index;
+        int remaining = length;
+
+        while (remaining > 0)
+        {
+            int chunkLength = Math.min(remaining, chunk.length);
+            bytes.getBytes(offset, chunk, 0, chunkLength);
+            position += cipher.update(chunk, 0, chunkLength, output, position);
+            offset += chunkLength;
+            remaining -= chunkLength;
+        }
+
+        return position;
+    }
+
+    private static void putInt(
+        byte[] buffer,
+        int offset,
+        int value)
+    {
+        buffer[offset] = (byte) (value >>> 24);
+        buffer[offset + 1] = (byte) (value >>> 16);
+        buffer[offset + 2] = (byte) (value >>> 8);
+        buffer[offset + 3] = (byte) value;
+    }
+
+    private static FileSystemSecretsInfo supplySecretsInfo(
+        Function<String, Path> resolvePath,
+        FileSystemSecretsConfig config)
+    {
+        FileSystemSecretsInfo info = null;
+
+        if (config != null)
+        {
+            try
+            {
+                Path storePath = resolvePath.apply(config.store);
+                try (InputStream input = Files.newInputStream(storePath))
+                {
+                    String type = Optional.ofNullable(config.type).orElse(STORE_TYPE_DEFAULT);
+                    char[] password = Optional.ofNullable(config.password).map(String::toCharArray).orElse(null);
+
+                    KeyStore store = KeyStore.getInstance(type);
+                    store.load(input, password);
+
+                    info = new FileSystemSecretsInfo(store, password, config.entries);
+                }
+            }
+            catch (Exception ex)
+            {
+                LangUtil.rethrowUnchecked(ex);
+            }
+        }
+
+        return info;
     }
 
     private static FileSystemStoreInfo supplyStoreInfo(
@@ -413,6 +665,93 @@ public class FileSystemVaultHandler implements VaultHandler
             }
 
             return typed;
+        }
+    }
+
+    private static final class FileSystemSecretsInfo
+    {
+        private final KeyStore store;
+        private final KeyStore.PasswordProtection protection;
+        private final Map<String, FileSystemSecretEntryInfo> entries;
+        private final Map<String, SecretKey> resolvedKeys;
+
+        private FileSystemSecretsInfo(
+            KeyStore store,
+            char[] password,
+            Map<String, FileSystemSecretEntryConfig> entries)
+        {
+            this.store = store;
+            this.protection = password != null ? new KeyStore.PasswordProtection(password) : null;
+
+            Map<String, FileSystemSecretEntryInfo> resolved = new LinkedHashMap<>();
+            if (entries != null)
+            {
+                entries.forEach((name, entry) -> resolved.put(name, new FileSystemSecretEntryInfo(entry)));
+            }
+            this.entries = resolved;
+            this.resolvedKeys = new LinkedHashMap<>();
+        }
+
+        private FileSystemSecretEntryInfo entry(
+            String name)
+        {
+            return entries.get(name);
+        }
+
+        private SecretKey secretKey(
+            String alias)
+        {
+            return resolvedKeys.computeIfAbsent(alias, this::resolveSecretKey);
+        }
+
+        private SecretKey resolveSecretKey(
+            String alias)
+        {
+            SecretKey key = null;
+
+            try
+            {
+                Entry entry = store.getEntry(alias, protection);
+                if (entry instanceof SecretKeyEntry secretKeyEntry)
+                {
+                    key = secretKeyEntry.getSecretKey();
+                }
+            }
+            catch (GeneralSecurityException ex)
+            {
+            }
+
+            return key;
+        }
+    }
+
+    private static final class FileSystemSecretEntryInfo
+    {
+        private final int active;
+        private final Map<Integer, String> aliases;
+        private final String algorithm;
+
+        private FileSystemSecretEntryInfo(
+            FileSystemSecretEntryConfig config)
+        {
+            this.active = Integer.parseInt(config.active);
+
+            Map<Integer, String> aliases = new LinkedHashMap<>();
+            config.versions.forEach((version, alias) -> aliases.put(Integer.parseInt(version), alias));
+            this.aliases = aliases;
+
+            this.algorithm = config.algorithm;
+        }
+
+        private String alias(
+            int version)
+        {
+            return aliases.get(version);
+        }
+
+        private String activeAlias()
+        {
+            return aliases.get(active);
         }
     }
 }

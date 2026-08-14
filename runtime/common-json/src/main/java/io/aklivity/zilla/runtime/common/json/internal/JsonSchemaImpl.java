@@ -40,9 +40,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import jakarta.json.JsonArrayBuilder;
+import jakarta.json.JsonObjectBuilder;
+import jakarta.json.JsonValue;
 import jakarta.json.stream.JsonLocation;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParser.Event;
@@ -62,6 +66,7 @@ import io.aklivity.zilla.runtime.common.json.JsonSource;
 import io.aklivity.zilla.runtime.common.json.JsonTransform;
 import io.aklivity.zilla.runtime.common.json.JsonValidationException;
 import io.aklivity.zilla.runtime.common.json.JsonVerbatim;
+import io.aklivity.zilla.runtime.common.json.internal.json.JsonValues;
 
 /**
  * An immutable, compiled JSON Schema that validates an instance by consuming a streaming
@@ -182,6 +187,7 @@ public final class JsonSchemaImpl implements JsonSchema
     // than risk following a cyclic reference to precompute it). false means the position needs only the
     // event kind/count, so a window-fragmented value can stream through instead of being buffered whole.
     private final boolean needsContent;
+    private final JsonNode raw;
 
     private List<String> retainedPaths;
 
@@ -219,7 +225,7 @@ public final class JsonSchemaImpl implements JsonSchema
         JsonSchemaImpl result = from(root, new Context(registry, rootBase));
         if (result != ANY && result != NONE)
         {
-            result.retainedPaths = JsonSchemaPaths.retained(schema);
+            result.retainedPaths = result.collectMatchingPaths((node, structured) -> !structured && !node.deny);
         }
         return result;
     }
@@ -296,6 +302,158 @@ public final class JsonSchemaImpl implements JsonSchema
     public List<String> retainedPaths()
     {
         return retainedPaths != null ? retainedPaths : List.of();
+    }
+
+    @Override
+    public List<String> matchingPaths(
+        Predicate<JsonSchema> filter)
+    {
+        return collectMatchingPaths((node, structured) -> filter.test(node));
+    }
+
+    private List<String> collectMatchingPaths(
+        PathVisitor visitor)
+    {
+        Set<String> pointers = new LinkedHashSet<>();
+        collectPaths("", visitor, pointers);
+        return new ArrayList<>(pointers);
+    }
+
+    // Pre-order: this node is offered to the visitor before its children, regardless of whether it
+    // matches — a match never stops descent, since properties/items/combinators are independent of
+    // any keyword this node itself carries. $ref, patternProperties, and tuple items are not expanded:
+    // a node bearing only those has none of the eight fields below, so it is offered but never descended.
+    private void collectPaths(
+        String pointer,
+        PathVisitor visitor,
+        Set<String> pointers)
+    {
+        boolean structured = properties != null || items != null ||
+            allOf != null || anyOf != null || oneOf != null ||
+            ifSchema != null || thenSchema != null || elseSchema != null;
+
+        if (visitor.shouldCollect(this, structured))
+        {
+            pointers.add(pointer);
+        }
+
+        if (properties != null)
+        {
+            for (Map.Entry<String, JsonSchemaImpl> entry : properties.entrySet())
+            {
+                entry.getValue().collectPaths(pointer + "/" + escapePointer(entry.getKey()), visitor, pointers);
+            }
+        }
+        if (items != null)
+        {
+            items.collectPaths(pointer + "/-", visitor, pointers);
+        }
+        collectBranches(allOf, pointer, visitor, pointers);
+        collectBranches(anyOf, pointer, visitor, pointers);
+        collectBranches(oneOf, pointer, visitor, pointers);
+        collectBranch(ifSchema, pointer, visitor, pointers);
+        collectBranch(thenSchema, pointer, visitor, pointers);
+        collectBranch(elseSchema, pointer, visitor, pointers);
+    }
+
+    private static void collectBranches(
+        List<JsonSchemaImpl> branches,
+        String pointer,
+        PathVisitor visitor,
+        Set<String> pointers)
+    {
+        if (branches != null)
+        {
+            for (JsonSchemaImpl branch : branches)
+            {
+                branch.collectPaths(pointer, visitor, pointers);
+            }
+        }
+    }
+
+    private static void collectBranch(
+        JsonSchemaImpl branch,
+        String pointer,
+        PathVisitor visitor,
+        Set<String> pointers)
+    {
+        if (branch != null)
+        {
+            branch.collectPaths(pointer, visitor, pointers);
+        }
+    }
+
+    private static String escapePointer(
+        String name)
+    {
+        return name.replace("~", "~0").replace("/", "~1");
+    }
+
+    @FunctionalInterface
+    private interface PathVisitor
+    {
+        boolean shouldCollect(
+            JsonSchemaImpl schema,
+            boolean structured);
+    }
+
+    @Override
+    public JsonSchema property(
+        String name)
+    {
+        return properties != null ? properties.get(name) : null;
+    }
+
+    @Override
+    public JsonValue attribute(
+        String name)
+    {
+        return raw != null && raw.has(name) ? toJsonValue(raw.get(name)) : null;
+    }
+
+    private static JsonValue toJsonValue(
+        JsonNode node)
+    {
+        JsonValue result;
+        switch (node.kind())
+        {
+        case OBJECT:
+        {
+            JsonObjectBuilder builder = JsonValues.objectBuilder();
+            for (Map.Entry<String, JsonNode> entry : node.members().entrySet())
+            {
+                builder.add(entry.getKey(), toJsonValue(entry.getValue()));
+            }
+            result = builder.build();
+            break;
+        }
+        case ARRAY:
+        {
+            JsonArrayBuilder builder = JsonValues.arrayBuilder();
+            for (JsonNode element : node.elements())
+            {
+                builder.add(toJsonValue(element));
+            }
+            result = builder.build();
+            break;
+        }
+        case STRING:
+            result = JsonValues.string(node.string());
+            break;
+        case NUMBER:
+            result = JsonValues.numberLiteral(node.string());
+            break;
+        case TRUE:
+            result = JsonValue.TRUE;
+            break;
+        case FALSE:
+            result = JsonValue.FALSE;
+            break;
+        default:
+            result = JsonValue.NULL;
+            break;
+        }
+        return result;
     }
 
     private JsonSchemaImpl(
@@ -416,6 +574,7 @@ public final class JsonSchemaImpl implements JsonSchema
             needsContentOne(notSchema) || needsContentOne(ifSchema) ||
             needsContentOne(thenSchema) || needsContentOne(elseSchema) ||
             needsContentAny(dependentSchemas);
+        this.raw = schema;
     }
 
     private static boolean needsContentOne(
@@ -520,6 +679,7 @@ public final class JsonSchemaImpl implements JsonSchema
         // lazily resolved via eval()'s ref chase; conservatively assumed to need content rather than
         // resolve (and risk cycling through) the target schema just to precompute this flag
         this.needsContent = true;
+        this.raw = null;
     }
 
     private JsonSchemaImpl(
@@ -580,6 +740,7 @@ public final class JsonSchemaImpl implements JsonSchema
         this.elseSchema = null;
         // ANY has no keywords at all; NONE (deny) rejects unconditionally regardless of content
         this.needsContent = false;
+        this.raw = null;
     }
 
     private Eval eval()

@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.common.asyncapi.config;
+package io.aklivity.zilla.config.binding.asyncapi;
 
 import java.util.function.Function;
 
@@ -23,6 +23,7 @@ public final class AsyncapiCatalogConfigBuilder<T>
     private String name;
     private String subject;
     private String version;
+    private AsyncapiCatalogConfig overlay;
 
     AsyncapiCatalogConfigBuilder(
         Function<AsyncapiCatalogConfig, T> mapper)
@@ -51,8 +52,20 @@ public final class AsyncapiCatalogConfigBuilder<T>
         return this;
     }
 
+    public AsyncapiCatalogConfigBuilder<T> overlay(
+        AsyncapiCatalogConfig overlay)
+    {
+        this.overlay = overlay;
+        return this;
+    }
+
+    public AsyncapiCatalogConfigBuilder<AsyncapiCatalogConfigBuilder<T>> overlay()
+    {
+        return new AsyncapiCatalogConfigBuilder<>(this::overlay);
+    }
+
     public T build()
     {
-        return mapper.apply(new AsyncapiCatalogConfig(name, subject, version));
+        return mapper.apply(new AsyncapiCatalogConfig(name, subject, version, overlay));
     }
 }

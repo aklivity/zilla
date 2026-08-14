@@ -168,8 +168,8 @@ public class KafkaAvroPipelineBM
     {
         pipeline.reset();
         final int transformed = key
-            ? pipeline.transformKey(0L, 0L, data, 0, length, next, sink)
-            : pipeline.transformValue(0L, 0L, data, 0, length, next, sink);
+            ? pipeline.transformKey(0L, 0L, 0L, data, 0, length, next, sink)
+            : pipeline.transformValue(0L, 0L, 0L, data, 0, length, next, sink);
         return checksum + transformed;
     }
 

@@ -26,6 +26,7 @@ public final class FileSystemOptionsConfigBuilder<T> extends ConfigBuilder<T, Fi
     private FileSystemStoreConfig keys;
     private FileSystemStoreConfig trust;
     private FileSystemStoreConfig signers;
+    private FileSystemSecretsConfig secrets;
     private String revocation;
 
     FileSystemOptionsConfigBuilder(
@@ -56,6 +57,11 @@ public final class FileSystemOptionsConfigBuilder<T> extends ConfigBuilder<T, Fi
         return new FileSystemStoreConfigBuilder<>(this::signers);
     }
 
+    public FileSystemSecretsConfigBuilder<FileSystemOptionsConfigBuilder<T>> secrets()
+    {
+        return new FileSystemSecretsConfigBuilder<>(this::secrets);
+    }
+
     public FileSystemOptionsConfigBuilder<T> keys(
         FileSystemStoreConfig keys)
     {
@@ -77,6 +83,13 @@ public final class FileSystemOptionsConfigBuilder<T> extends ConfigBuilder<T, Fi
         return this;
     }
 
+    public FileSystemOptionsConfigBuilder<T> secrets(
+        FileSystemSecretsConfig secrets)
+    {
+        this.secrets = secrets;
+        return this;
+    }
+
     public FileSystemOptionsConfigBuilder<T> revocation(
         String revocation)
     {
@@ -87,6 +100,6 @@ public final class FileSystemOptionsConfigBuilder<T> extends ConfigBuilder<T, Fi
     @Override
     public T build()
     {
-        return mapper.apply(new FileSystemOptionsConfig(keys, trust, signers, revocation));
+        return mapper.apply(new FileSystemOptionsConfig(keys, trust, signers, secrets, revocation));
     }
 }

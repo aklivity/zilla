@@ -38,7 +38,7 @@ public class SseModelTest
     {
         SseModel model = SseModel.decoder(handler(5), new UnsafeBufferEx(new byte[256]));
 
-        int produced = model.transform(0L, 0L, value("hello"), 0, 5);
+        int produced = model.transform(0L, 0L, 0L, value("hello"), 0, 5);
 
         assertTrue(model.active());
         assertEquals(5, produced);
@@ -50,7 +50,7 @@ public class SseModelTest
     {
         SseModel model = SseModel.decoder(handler(5), new UnsafeBufferEx(new byte[256]));
 
-        assertEquals(-1, model.transform(0L, 0L, value("nope"), 0, 4));
+        assertEquals(-1, model.transform(0L, 0L, 0L, value("nope"), 0, 4));
     }
 
     @Test
@@ -58,7 +58,7 @@ public class SseModelTest
     {
         SseModel model = SseModel.decoder(handler(5, 8), new UnsafeBufferEx(new byte[256]));
 
-        int produced = model.transform(0L, 0L, value("hello"), 0, 5);
+        int produced = model.transform(0L, 0L, 0L, value("hello"), 0, 5);
 
         assertEquals(8, produced);
         assertValue(model, 5, "hello");
@@ -69,7 +69,7 @@ public class SseModelTest
     {
         SseModel model = SseModel.decoder(handler(5, 3), new UnsafeBufferEx(new byte[256]));
 
-        int produced = model.transform(0L, 0L, value("hello"), 0, 5);
+        int produced = model.transform(0L, 0L, 0L, value("hello"), 0, 5);
 
         assertEquals(3, produced);
         assertValue(model, produced, "hel");

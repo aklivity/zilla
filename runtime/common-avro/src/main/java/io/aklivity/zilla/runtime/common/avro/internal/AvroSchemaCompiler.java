@@ -145,8 +145,9 @@ final class AvroSchemaCompiler
         AvroNode[] fieldTypes = new AvroNode[count];
         String[][] fieldAliases = new String[count][];
         JsonValue[] fieldDefaults = new JsonValue[count];
+        JsonObject[] fieldAttributes = new JsonObject[count];
         AvroNode record = AvroNode.ofRecord(object.getString("name"), fieldNames, fieldTypes,
-            aliases, fieldAliases, fieldDefaults);
+            aliases, fieldAliases, fieldDefaults, fieldAttributes);
         register(object, namespace, record);
         for (int i = 0; i < count; i++)
         {
@@ -155,6 +156,7 @@ final class AvroSchemaCompiler
             fieldTypes[i] = parse(field.get("type"), namespace);
             fieldAliases[i] = field.containsKey("aliases") ? toStringArray(field.getJsonArray("aliases")) : null;
             fieldDefaults[i] = field.containsKey("default") ? field.get("default") : null;
+            fieldAttributes[i] = field;
         }
         return record;
     }

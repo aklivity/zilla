@@ -289,7 +289,7 @@ public class AvroModelTransformTest
         ModelPipeline pipeline = handler.supplyDecoder(new Rejecting("$.status"));
 
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
             new UnsafeBufferEx(AVRO), 0, AVRO.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.REJECTED, result.status());
@@ -302,7 +302,7 @@ public class AvroModelTransformTest
         ModelPipeline pipeline = handler.supplyDecoder(new Rewriting("$.id", "replaced"));
 
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
-        pipeline.transform(0L, 0L, FLAGS_COMPLETE,
+        pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
             new UnsafeBufferEx(AVRO), 0, AVRO.length, dst, 0, dst.capacity());
 
         assertFalse(pipeline.identity());
@@ -315,7 +315,7 @@ public class AvroModelTransformTest
         ModelPipeline pipeline = handler.supplyDecoder(new Observing());
 
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
-        pipeline.transform(0L, 0L, FLAGS_COMPLETE,
+        pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
             new UnsafeBufferEx(AVRO), 0, AVRO.length, dst, 0, dst.capacity());
 
         assertTrue(pipeline.identity());
@@ -329,7 +329,7 @@ public class AvroModelTransformTest
 
         byte[] json = "{\"id\":\"id0\",\"status\":\"positive\"}".getBytes(UTF_8);
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
             new UnsafeBufferEx(json), 0, json.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.COMPLETE, result.status());
@@ -352,7 +352,7 @@ public class AvroModelTransformTest
         ModelStatus status = ModelStatus.OK;
         for (int rounds = 0; rounds < 64 && status != ModelStatus.COMPLETE && status != ModelStatus.REJECTED; rounds++)
         {
-            ModelPipelineResult result = pipeline.transform(0L, 0L, flags,
+            ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, flags,
                 new UnsafeBufferEx(avro), srcAt, avro.length, dst, 0, dst.capacity());
             status = result.status();
             if (result.produced() > 0)
@@ -373,7 +373,7 @@ public class AvroModelTransformTest
         byte[] avro)
     {
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[512]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
             new UnsafeBufferEx(avro), 0, avro.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.COMPLETE, result.status());

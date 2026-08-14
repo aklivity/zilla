@@ -41,6 +41,8 @@ import jakarta.json.JsonWriter;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 
+import io.aklivity.zilla.config.binding.asyncapi.AsyncapiCatalogConfig;
+import io.aklivity.zilla.config.binding.asyncapi.AsyncapiSpecificationConfig;
 import io.aklivity.zilla.config.binding.http.HttpOptionsConfigBuilder;
 import io.aklivity.zilla.config.binding.kafka.KafkaOptionsConfigBuilder;
 import io.aklivity.zilla.config.binding.mqtt.MqttCredentialsConfigBuilder;
@@ -75,12 +77,10 @@ import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.kafka.
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.sse.AsyncapiSseOperationBindingEx;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.bindings.sse.kafka.AsyncapiSseKafkaOperationBindingEx;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.model.extensions.mqtt.kafka.AsyncapiMqttKafkaChannelEx;
-import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiCatalogConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiExtension;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiParser;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiParserFactory;
 import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSchemaConfig;
-import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfig;
 import io.aklivity.zilla.runtime.common.asyncapi.model.AsyncapiSchemaItem;
 import io.aklivity.zilla.runtime.common.asyncapi.security.AsyncapiGuardResolver;
 import io.aklivity.zilla.runtime.common.asyncapi.security.GuardedResolution;
@@ -158,7 +158,7 @@ public abstract class AsyncapiCompositeGenerator
                 final CatalogHandler handler = binding.supplyCatalog.apply(catalogId);
                 final int schemaId = handler.resolve(catalog.subject, catalog.version);
                 final String payload = handler.resolve(schemaId);
-                final String materialized = materialize(binding, specification, payload);
+                final String materialized = materialize(binding, catalog, payload);
                 final AsyncapiView asyncapi = AsyncapiView.of(tagIndex++, label, parser.parse(materialized));
 
                 unresolved.addAll(asyncapi.unresolvedRefs());
@@ -232,15 +232,15 @@ public abstract class AsyncapiCompositeGenerator
 
     private String materialize(
         AsyncapiBindingConfig binding,
-        AsyncapiSpecificationConfig specification,
+        AsyncapiCatalogConfig catalog,
         String payload)
     {
         String materialized = payload;
-        if (specification.overlay != null)
+        if (catalog.overlay != null)
         {
-            final long catalogId = binding.resolveId.applyAsLong(specification.overlay.name);
+            final long catalogId = binding.resolveId.applyAsLong(catalog.overlay.name);
             final CatalogHandler handler = binding.supplyCatalog.apply(catalogId);
-            final int schemaId = handler.resolve(specification.overlay.subject, specification.overlay.version);
+            final int schemaId = handler.resolve(catalog.overlay.subject, catalog.overlay.version);
             final String overlayPayload = handler.resolve(schemaId);
 
             final JsonObject document = YamlJson.createReader(new StringReader(payload)).readObject();

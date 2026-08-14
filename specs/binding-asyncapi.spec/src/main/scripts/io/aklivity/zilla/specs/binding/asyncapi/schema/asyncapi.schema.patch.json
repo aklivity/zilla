@@ -77,6 +77,37 @@
                                                             {
                                                                 "type": "string",
                                                                 "default": "latest"
+                                                            },
+                                                            "overlay":
+                                                            {
+                                                                "title": "Overlay",
+                                                                "type": "object",
+                                                                "patternProperties":
+                                                                {
+                                                                    "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                                                                    {
+                                                                        "type": "object",
+                                                                        "properties":
+                                                                        {
+                                                                            "subject":
+                                                                            {
+                                                                                "type": "string"
+                                                                            },
+                                                                            "version":
+                                                                            {
+                                                                                "type": "string",
+                                                                                "default": "latest"
+                                                                            }
+                                                                        },
+                                                                        "required":
+                                                                        [
+                                                                            "subject"
+                                                                        ],
+                                                                        "additionalProperties": false
+                                                                    },
+                                                                    "additionalProperties": false
+                                                                },
+                                                                "maxProperties": 1
                                                             }
                                                         },
                                                         "required":
@@ -109,6 +140,7 @@
                                             "overlay":
                                             {
                                                 "title": "Overlay",
+                                                "deprecated": true,
                                                 "type": "object",
                                                 "patternProperties":
                                                 {
@@ -134,14 +166,44 @@
                                                         "additionalProperties": false
                                                     }
                                                 },
-                                                "additionalProperties": false
+                                                "additionalProperties": false,
+                                                "maxProperties": 1
                                             }
                                         },
                                         "required":
                                         [
                                             "servers"
                                         ],
-                                        "additionalProperties": false
+                                        "additionalProperties": false,
+                                        "if":
+                                        {
+                                            "required":
+                                            [
+                                                "overlay"
+                                            ]
+                                        },
+                                        "then":
+                                        {
+                                            "properties":
+                                            {
+                                                "catalog":
+                                                {
+                                                    "patternProperties":
+                                                    {
+                                                        "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                                                        {
+                                                            "not":
+                                                            {
+                                                                "required":
+                                                                [
+                                                                    "overlay"
+                                                                ]
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
                                     }
                                 },
                                 "additionalProperties": false

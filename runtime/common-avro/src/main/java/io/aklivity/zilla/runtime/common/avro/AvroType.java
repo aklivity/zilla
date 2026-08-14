@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.common.avro;
 
 import java.util.List;
+import java.util.function.Predicate;
 
 /**
  * An immutable, read-only node in a compiled Avro type graph. The {@link #kind()} selects which
@@ -91,4 +92,16 @@ public interface AvroType
      * The byte count of a {@link AvroKind#FIXED}; {@code 0} otherwise.
      */
     int size();
+
+    /**
+     * The paths of every {@link AvroField} reachable from this type — through record fields,
+     * array {@link #items()}, map {@link #values()}, and union {@link #branches()} — for which
+     * {@code filter} returns {@code true}, in schema declaration order. A field's own match does
+     * not stop descent into its type: a matching field nested beneath an already-matching ancestor
+     * is still reported, independently, at its own path. The one thing that does stop descent is a
+     * recursive type revisiting a record already on the current path (see the class documentation);
+     * that record's fields are not re-examined a second time along the same descent.
+     */
+    List<String> matchingPaths(
+        Predicate<AvroField> filter);
 }

@@ -26,10 +26,10 @@ import io.aklivity.zilla.runtime.engine.model.ModelStatus;
  * Per-stream driver around a decode {@link ModelPipeline} for the http binding.
  * <p>
  * Scalar metadata (header, path and query values) is transformed whole-value via the
- * {@link #transform(long, long, DirectBufferEx, int, int)} overload: the value is driven through the
+ * {@link #transform(long, long, long, DirectBufferEx, int, int)} overload: the value is driven through the
  * pipeline and the produced (possibly changed) bytes are exposed via {@link #buffer} / {@link #produced}
  * for the caller to substitute downstream, or {@code -1} signals the model rejected it. Streaming content
- * is transformed via {@link #transform(long, long, int, DirectBufferEx, int, int, int)}: each fragment is
+ * is transformed via {@link #transform(long, long, long, int, DirectBufferEx, int, int, int)}: each fragment is
  * driven through the pipeline and the produced bytes are exposed for the caller to forward downstream.
  * </p>
  */
@@ -71,6 +71,7 @@ public final class HttpModel
     public int transform(
         long traceId,
         long bindingId,
+        long authorization,
         DirectBufferEx data,
         int index,
         int limit)
@@ -90,7 +91,7 @@ public final class HttpModel
             boolean done = false;
             while (!done)
             {
-                final ModelPipelineResult result = pipeline.transform(traceId, bindingId, flags,
+                final ModelPipelineResult result = pipeline.transform(traceId, bindingId, authorization, flags,
                     data, srcAt, limit, scratch, total, scratch.capacity());
                 final ModelStatus status = result.status();
 
@@ -123,13 +124,14 @@ public final class HttpModel
     public int transform(
         long traceId,
         long bindingId,
+        long authorization,
         int flags,
         DirectBufferEx src,
         int srcIndex,
         int srcLimit,
         int dstMax)
     {
-        final ModelPipelineResult result = pipeline.transform(traceId, bindingId, flags,
+        final ModelPipelineResult result = pipeline.transform(traceId, bindingId, authorization, flags,
             src, srcIndex, srcLimit, scratch, 0, dstMax);
         final ModelStatus status = result.status();
 

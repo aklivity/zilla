@@ -886,6 +886,7 @@ final class TestBindingFactory implements BindingHandler
         {
             long sequence = data.sequence();
             long traceId = data.traceId();
+            long authorization = data.authorization();
             int reserved = data.reserved();
             int flags = data.flags();
             OctetsFW payload = data.payload();
@@ -893,7 +894,7 @@ final class TestBindingFactory implements BindingHandler
             initialSeq = sequence + reserved;
 
             if (valuePipeline != null &&
-                transform(traceId, payload.buffer(), payload.offset(), payload.limit()) < 0)
+                transform(traceId, authorization, payload.buffer(), payload.offset(), payload.limit()) < 0)
             {
                 target.doInitialAbort(traceId);
             }
@@ -905,6 +906,7 @@ final class TestBindingFactory implements BindingHandler
 
         private int transform(
             long traceId,
+            long authorization,
             DirectBufferEx data,
             int index,
             int limit)
@@ -915,7 +917,7 @@ final class TestBindingFactory implements BindingHandler
             boolean done = false;
             while (!done)
             {
-                final ModelPipelineResult result = valuePipeline.transform(traceId, routedId, flags,
+                final ModelPipelineResult result = valuePipeline.transform(traceId, routedId, authorization, flags,
                         data, srcAt, limit, modelBuffer, total, modelBuffer.capacity());
                 final ModelStatus status = result.status();
 

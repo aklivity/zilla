@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.common.asyncapi.config;
+package io.aklivity.zilla.config.binding.asyncapi;
 
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -29,7 +29,6 @@ public class AsyncapiSpecificationConfigBuilder<T>
     private List<AsyncapiCatalogConfig> catalogs;
     private Map<String, String> security;
     private String store;
-    private AsyncapiCatalogConfig overlay;
 
     public AsyncapiSpecificationConfigBuilder<T> label(
         String label)
@@ -87,22 +86,10 @@ public class AsyncapiSpecificationConfigBuilder<T>
         return this;
     }
 
-    public AsyncapiCatalogConfigBuilder<AsyncapiSpecificationConfigBuilder<T>> overlay()
-    {
-        return new AsyncapiCatalogConfigBuilder<>(this::overlay);
-    }
-
-    public AsyncapiSpecificationConfigBuilder<T> overlay(
-        AsyncapiCatalogConfig overlay)
-    {
-        this.overlay = overlay;
-        return this;
-    }
-
     public T build()
     {
         return mapper.apply(
-            new AsyncapiSpecificationConfig(label, servers, catalogs, security, store, overlay));
+            new AsyncapiSpecificationConfig(label, servers, catalogs, security, store));
     }
 
     AsyncapiSpecificationConfigBuilder(

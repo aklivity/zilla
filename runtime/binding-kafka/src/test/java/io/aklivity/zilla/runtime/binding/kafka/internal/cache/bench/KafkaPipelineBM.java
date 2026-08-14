@@ -142,8 +142,8 @@ public class KafkaPipelineBM
     {
         pipeline.reset();
         final int transformed = key
-            ? pipeline.transformKey(0L, 0L, data, 0, length, next, sink)
-            : pipeline.transformValue(0L, 0L, data, 0, length, next, sink);
+            ? pipeline.transformKey(0L, 0L, 0L, data, 0, length, next, sink)
+            : pipeline.transformValue(0L, 0L, 0L, data, 0, length, next, sink);
         return checksum + transformed;
     }
 
@@ -189,6 +189,7 @@ public class KafkaPipelineBM
         public ModelPipelineResult transform(
             long traceId,
             long bindingId,
+            long authorization,
             int flags,
             DirectBufferEx src,
             int srcIndex,
@@ -199,7 +200,7 @@ public class KafkaPipelineBM
         {
             final int srcLength = srcLimit - srcIndex;
 
-            bridge.start();
+            bridge.start(authorization);
             for (int index = 0; index < pathsAndValues.length; index += 2)
             {
                 final byte[] value = pathsAndValues[index + 1].getBytes(UTF_8);

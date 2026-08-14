@@ -25,6 +25,7 @@ public final class FileSystemOptionsConfig extends OptionsConfig
     public final FileSystemStoreConfig keys;
     public final FileSystemStoreConfig trust;
     public final FileSystemStoreConfig signers;
+    public final FileSystemSecretsConfig secrets;
     public final String revocation;
 
     public static FileSystemOptionsConfigBuilder<FileSystemOptionsConfig> builder()
@@ -42,18 +43,21 @@ public final class FileSystemOptionsConfig extends OptionsConfig
         FileSystemStoreConfig keys,
         FileSystemStoreConfig trust,
         FileSystemStoreConfig signers,
+        FileSystemSecretsConfig secrets,
         String revocation)
     {
-        super(List.of(), resolveResources(keys, trust));
+        super(List.of(), resolveResources(keys, trust, secrets));
         this.keys = keys;
         this.trust = trust;
         this.signers = signers;
+        this.secrets = secrets;
         this.revocation = revocation;
     }
 
     private static List<String> resolveResources(
         FileSystemStoreConfig keys,
-        FileSystemStoreConfig trust)
+        FileSystemStoreConfig trust,
+        FileSystemSecretsConfig secrets)
     {
         List<String> resources = new LinkedList<>();
         if (keys != null && keys.store != null)
@@ -63,6 +67,10 @@ public final class FileSystemOptionsConfig extends OptionsConfig
         if (trust != null && trust.store != null)
         {
             resources.add(trust.store);
+        }
+        if (secrets != null && secrets.store != null)
+        {
+            resources.add(secrets.store);
         }
         return resources;
     }

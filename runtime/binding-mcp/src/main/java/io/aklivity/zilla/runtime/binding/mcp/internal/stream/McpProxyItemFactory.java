@@ -735,7 +735,7 @@ abstract class McpProxyItemFactory implements BindingHandler
             long traceId)
         {
             final boolean valid =
-                binding.validateToolCall(toolSchemaId, traceId, routedId, argsBuffer, 0, argsProgress);
+                binding.validateToolCall(toolSchemaId, traceId, routedId, authorization, argsBuffer, 0, argsProgress);
             if (valid)
             {
                 client.doClientData(traceId, 0L, DATA_FLAG_COMPLETE, argsProgress,

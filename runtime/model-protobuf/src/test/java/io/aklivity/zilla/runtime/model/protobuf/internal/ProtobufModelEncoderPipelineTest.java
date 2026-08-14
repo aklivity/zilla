@@ -82,14 +82,14 @@ public class ProtobufModelEncoderPipelineTest
         ByteArrayOutputStream outA = new ByteArrayOutputStream();
 
         // stream A: first fragment, incomplete -> UNDERFLOW
-        ModelPipelineResult ra1 = a.transform(0L, 0L, FLAGS_INIT,
+        ModelPipelineResult ra1 = a.transform(0L, 0L, 0L, FLAGS_INIT,
             new UnsafeBufferEx(a1), 0, a1.length, dst, 0, dst.capacity());
         assertEquals(ModelStatus.UNDERFLOW, ra1.status());
         drain(dst, ra1.produced(), outA);
 
         // stream B: a whole value fed in the middle of A — would corrupt A if state were shared
         byte[] bIn = JSON.getBytes(UTF_8);
-        ModelPipelineResult rb = b.transform(0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult rb = b.transform(0L, 0L, 0L, FLAGS_COMPLETE,
             new UnsafeBufferEx(bIn), 0, bIn.length, dst, 0, dst.capacity());
         assertEquals(ModelStatus.COMPLETE, rb.status());
         byte[] outB = new byte[rb.produced()];
@@ -98,7 +98,7 @@ public class ProtobufModelEncoderPipelineTest
 
         // stream A: finish, prepending A's unconsumed remainder (the caller's decode-slot residue)
         byte[] a2 = concat(a1, ra1.consumed(), a2tail);
-        ModelPipelineResult ra2 = a.transform(0L, 0L, FLAGS_FIN,
+        ModelPipelineResult ra2 = a.transform(0L, 0L, 0L, FLAGS_FIN,
             new UnsafeBufferEx(a2), 0, a2.length, dst, 0, dst.capacity());
         assertEquals(ModelStatus.COMPLETE, ra2.status());
         drain(dst, ra2.produced(), outA);
@@ -123,7 +123,7 @@ public class ProtobufModelEncoderPipelineTest
         int guard = 0;
         do
         {
-            result = pipeline.transform(0L, 0L, flags, new UnsafeBufferEx(in), 0, in.length, dst, 0, dst.capacity());
+            result = pipeline.transform(0L, 0L, 0L, flags, new UnsafeBufferEx(in), 0, in.length, dst, 0, dst.capacity());
             drain(dst, result.produced(), out);
             flags = FLAGS_FIN;
             guard++;
@@ -147,7 +147,7 @@ public class ProtobufModelEncoderPipelineTest
 
         byte[] in = JSON.getBytes(UTF_8);
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
             new UnsafeBufferEx(in), 0, in.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.REJECTED, result.status());

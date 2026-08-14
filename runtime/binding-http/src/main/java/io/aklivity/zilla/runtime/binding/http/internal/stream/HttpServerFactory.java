@@ -2367,7 +2367,8 @@ public final class HttpServerFactory implements HttpStreamFactory
         {
             final HttpExchange exchange = new HttpExchange(originId, routedId, requestId, affinity,
                 authorization, traceId, policy, origin, requestType);
-            final HttpBeginExFW transformedBeginEx = transformRequestBeginEx(traceId, routedId, beginEx, requestType);
+            final HttpBeginExFW transformedBeginEx =
+                transformRequestBeginEx(traceId, routedId, authorization, beginEx, requestType);
             boolean headersValid = transformedBeginEx != null;
             if (headersValid)
             {
@@ -2961,7 +2962,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 else
                 {
                     final int dstMax = Math.min(window, modelBuffer.capacity());
-                    final int consumed = content.transform(traceId, routedId, flags & FLAG_COM,
+                    final int consumed = content.transform(traceId, routedId, sessionId, flags & FLAG_COM,
                         buffer, offset, limit, dstMax);
 
                     if (consumed < 0)
@@ -3421,6 +3422,7 @@ public final class HttpServerFactory implements HttpStreamFactory
     private HttpBeginExFW transformRequestBeginEx(
         long traceId,
         long routedId,
+        long authorization,
         HttpBeginExFW beginEx,
         HttpRequestType requestType)
     {
@@ -3444,7 +3446,8 @@ public final class HttpServerFactory implements HttpStreamFactory
                     final String16FW value = header.value();
                     if (HEADER_PATH.equals(name))
                     {
-                        final String path = transformPath(traceId, routedId, value.asString(), requestType);
+                        final String path =
+                            transformPath(traceId, routedId, authorization, value.asString(), requestType);
                         if (path == null)
                         {
                             modelValid.value = false;
@@ -3459,7 +3462,8 @@ public final class HttpServerFactory implements HttpStreamFactory
                         final HttpModel model = requestType.headers.get(name);
                         if (model != null && model != HttpModel.NONE)
                         {
-                            final int produced = model.transform(traceId, routedId, value.value(), 0, value.length());
+                            final int produced =
+                                model.transform(traceId, routedId, authorization, value.value(), 0, value.length());
                             if (produced < 0)
                             {
                                 modelValid.value = false;
@@ -3485,6 +3489,7 @@ public final class HttpServerFactory implements HttpStreamFactory
     private String transformPath(
         long traceId,
         long routedId,
+        long authorization,
         String path,
         HttpRequestType requestType)
     {
@@ -3502,7 +3507,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 if (start >= 0)
                 {
                     final int end = pathMatcher.end(entry.getKey());
-                    final String produced = transformValue(traceId, routedId, model, path, start, end);
+                    final String produced = transformValue(traceId, routedId, authorization, model, path, start, end);
                     valid = produced != null;
                     if (!valid)
                     {
@@ -3524,7 +3529,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 {
                     final int start = queryMatcher.start(2);
                     final int end = queryMatcher.end(2);
-                    final String produced = transformValue(traceId, routedId, model, path, start, end);
+                    final String produced = transformValue(traceId, routedId, authorization, model, path, start, end);
                     valid = produced != null;
                     if (valid)
                     {
@@ -3555,13 +3560,14 @@ public final class HttpServerFactory implements HttpStreamFactory
     private String transformValue(
         long traceId,
         long routedId,
+        long authorization,
         HttpModel model,
         String value,
         int start,
         int end)
     {
         final int length = modelValueBuffer.putStringWithoutLengthUtf8(0, value.substring(start, end));
-        final int produced = model.transform(traceId, routedId, modelValueBuffer, 0, length);
+        final int produced = model.transform(traceId, routedId, authorization, modelValueBuffer, 0, length);
         return produced < 0 ? null : model.buffer().getStringWithoutLengthUtf8(0, produced);
     }
 
@@ -5341,7 +5347,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                                 streamId, exchangeAuth, traceId, policy, origin, contentLength, requestType);
 
                             final HttpBeginExFW transformedBeginEx =
-                                transformRequestBeginEx(traceId, routedId, beginEx, requestType);
+                                transformRequestBeginEx(traceId, routedId, exchangeAuth, beginEx, requestType);
                             boolean headersValid = transformedBeginEx != null;
                             if (headersValid)
                             {
@@ -6150,7 +6156,8 @@ public final class HttpServerFactory implements HttpStreamFactory
                 {
                     final int window = Math.max(Math.min(initialWindow() - requestPad, remaining.value), 0);
                     final int dstMax = Math.min(window, modelBuffer.capacity());
-                    final int consumed = content.transform(traceId, routedId, flags, buffer, 0, remaining.value, dstMax);
+                    final int consumed =
+                        content.transform(traceId, routedId, sessionId, flags, buffer, 0, remaining.value, dstMax);
 
                     if (consumed < 0)
                     {

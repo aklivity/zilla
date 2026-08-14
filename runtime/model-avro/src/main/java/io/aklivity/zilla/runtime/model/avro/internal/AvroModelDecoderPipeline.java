@@ -66,6 +66,7 @@ final class AvroModelDecoderPipeline implements ModelPipeline
     public ModelPipelineResult transform(
         long traceId,
         long bindingId,
+        long authorization,
         int flags,
         DirectBufferEx src,
         int srcIndex,
@@ -74,6 +75,11 @@ final class AvroModelDecoderPipeline implements ModelPipeline
         int dstIndex,
         int dstLimit)
     {
+        if (adapter instanceof AvroModelTransform mediating)
+        {
+            mediating.authorization(authorization);
+        }
+
         int srcLength = srcLimit - srcIndex;
         int dstLength = dstLimit - dstIndex;
         int prefix = 0;

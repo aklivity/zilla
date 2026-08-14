@@ -20,9 +20,11 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertArrayEquals;
 
 import java.net.URI;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
@@ -38,6 +40,8 @@ import javax.net.ssl.X509TrustManager;
 import org.junit.Test;
 
 import io.aklivity.zilla.config.vault.filesystem.FileSystemOptionsConfig;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public class FileSystemVaultTest
 {
@@ -293,11 +297,327 @@ public class FileSystemVaultTest
         assertThat(issuers, hasSize(1));
     }
 
+    @Test
+    public void shouldWrapAndUnwrapPlainStringSecretEntry() throws Exception
+    {
+        FileSystemOptionsConfig options = FileSystemOptionsConfig.builder()
+            .secrets()
+                .store("stores/secrets/secrets")
+                .password("generated")
+                .entry("app-key")
+                    .alias("alias128")
+                    .build()
+                .build()
+            .build();
+
+        FileSystemVaultHandler vault = new FileSystemVaultHandler(options, FileSystemVaultTest::resourcePath);
+
+        byte[] plaintext = "top secret payload".getBytes(StandardCharsets.UTF_8);
+        Captured wrapped = wrap(vault, "app-key", plaintext);
+
+        assertThat(wrapped.buffer, not(nullValue()));
+        assertThat(wrapped.bytes()[3], equalTo((byte) 1));
+
+        Captured unwrapped = unwrap(vault, "app-key", wrapped.bytes());
+
+        assertThat(unwrapped.buffer, not(nullValue()));
+        assertArrayEquals(plaintext, unwrapped.bytes());
+    }
+
+    @Test
+    public void shouldUseActiveVersionForNewWraps() throws Exception
+    {
+        FileSystemOptionsConfig options = FileSystemOptionsConfig.builder()
+            .secrets()
+                .store("stores/secrets/secrets")
+                .password("generated")
+                .entry("session-key")
+                    .active("2")
+                    .version("1", "v1")
+                    .version("2", "v2")
+                    .build()
+                .build()
+            .build();
+
+        FileSystemVaultHandler vault = new FileSystemVaultHandler(options, FileSystemVaultTest::resourcePath);
+
+        byte[] plaintext = "session secret".getBytes(StandardCharsets.UTF_8);
+        Captured wrapped = wrap(vault, "session-key", plaintext);
+
+        assertThat(wrapped.buffer, not(nullValue()));
+        assertThat(wrapped.bytes()[3], equalTo((byte) 2));
+
+        Captured unwrapped = unwrap(vault, "session-key", wrapped.bytes());
+        assertArrayEquals(plaintext, unwrapped.bytes());
+    }
+
+    @Test
+    public void shouldUnwrapOlderVersionCiphertext() throws Exception
+    {
+        FileSystemOptionsConfig beforeRotation = FileSystemOptionsConfig.builder()
+            .secrets()
+                .store("stores/secrets/secrets")
+                .password("generated")
+                .entry("session-key")
+                    .active("1")
+                    .version("1", "v1")
+                    .build()
+                .build()
+            .build();
+
+        FileSystemVaultHandler vaultBeforeRotation =
+            new FileSystemVaultHandler(beforeRotation, FileSystemVaultTest::resourcePath);
+
+        byte[] plaintext = "session secret v1".getBytes(StandardCharsets.UTF_8);
+        Captured wrappedBeforeRotation = wrap(vaultBeforeRotation, "session-key", plaintext);
+
+        FileSystemOptionsConfig afterRotation = FileSystemOptionsConfig.builder()
+            .secrets()
+                .store("stores/secrets/secrets")
+                .password("generated")
+                .entry("session-key")
+                    .active("2")
+                    .version("1", "v1")
+                    .version("2", "v2")
+                    .build()
+                .build()
+            .build();
+
+        FileSystemVaultHandler vaultAfterRotation = new FileSystemVaultHandler(afterRotation, FileSystemVaultTest::resourcePath);
+
+        Captured unwrapped = unwrap(vaultAfterRotation, "session-key", wrappedBeforeRotation.bytes());
+
+        assertThat(unwrapped.buffer, not(nullValue()));
+        assertArrayEquals(plaintext, unwrapped.bytes());
+    }
+
+    @Test
+    public void shouldFailUnwrapForUnknownVersion() throws Exception
+    {
+        FileSystemOptionsConfig options = FileSystemOptionsConfig.builder()
+            .secrets()
+                .store("stores/secrets/secrets")
+                .password("generated")
+                .entry("session-key")
+                    .active("2")
+                    .version("1", "v1")
+                    .version("2", "v2")
+                    .build()
+                .build()
+            .build();
+
+        FileSystemVaultHandler vault = new FileSystemVaultHandler(options, FileSystemVaultTest::resourcePath);
+
+        Captured wrapped = wrap(vault, "session-key", "session secret".getBytes(StandardCharsets.UTF_8));
+        byte[] corrupted = wrapped.bytes();
+        corrupted[3] = (byte) 9;
+
+        Captured unwrapped = unwrap(vault, "session-key", corrupted);
+
+        assertThat(unwrapped.buffer, nullValue());
+        assertThat(unwrapped.length, equalTo(0));
+    }
+
+    @Test
+    public void shouldUnwrapImplicitVersionOneAfterPromotionToVersionsMap() throws Exception
+    {
+        FileSystemOptionsConfig plainString = FileSystemOptionsConfig.builder()
+            .secrets()
+                .store("stores/secrets/secrets")
+                .password("generated")
+                .entry("app-key")
+                    .alias("alias128")
+                    .build()
+                .build()
+            .build();
+
+        FileSystemVaultHandler plainVault = new FileSystemVaultHandler(plainString, FileSystemVaultTest::resourcePath);
+
+        byte[] plaintext = "app secret".getBytes(StandardCharsets.UTF_8);
+        Captured wrapped = wrap(plainVault, "app-key", plaintext);
+
+        FileSystemOptionsConfig promoted = FileSystemOptionsConfig.builder()
+            .secrets()
+                .store("stores/secrets/secrets")
+                .password("generated")
+                .entry("app-key")
+                    .active("1")
+                    .version("1", "alias128")
+                    .build()
+                .build()
+            .build();
+
+        FileSystemVaultHandler promotedVault = new FileSystemVaultHandler(promoted, FileSystemVaultTest::resourcePath);
+
+        Captured unwrapped = unwrap(promotedVault, "app-key", wrapped.bytes());
+
+        assertThat(unwrapped.buffer, not(nullValue()));
+        assertArrayEquals(plaintext, unwrapped.bytes());
+    }
+
+    @Test
+    public void shouldInferAlgorithmFromKeyLength() throws Exception
+    {
+        FileSystemOptionsConfig options = FileSystemOptionsConfig.builder()
+            .secrets()
+                .store("stores/secrets/secrets")
+                .password("generated")
+                .entry("key-128")
+                    .alias("alias128")
+                    .build()
+                .entry("key-256")
+                    .alias("alias256")
+                    .build()
+                .build()
+            .build();
+
+        FileSystemVaultHandler vault = new FileSystemVaultHandler(options, FileSystemVaultTest::resourcePath);
+
+        byte[] plaintext = "secret".getBytes(StandardCharsets.UTF_8);
+
+        Captured wrapped128 = wrap(vault, "key-128", plaintext);
+        Captured wrapped256 = wrap(vault, "key-256", plaintext);
+
+        assertThat(wrapped128.buffer, not(nullValue()));
+        assertThat(wrapped256.buffer, not(nullValue()));
+
+        assertArrayEquals(plaintext, unwrap(vault, "key-128", wrapped128.bytes()).bytes());
+        assertArrayEquals(plaintext, unwrap(vault, "key-256", wrapped256.bytes()).bytes());
+    }
+
+    @Test
+    public void shouldFailWrapForUnsupportedKeyLengthWithoutAlgorithmOverride() throws Exception
+    {
+        FileSystemOptionsConfig options = FileSystemOptionsConfig.builder()
+            .secrets()
+                .store("stores/secrets/secrets")
+                .password("generated")
+                .entry("wide-key")
+                    .alias("alias192")
+                    .build()
+                .build()
+            .build();
+
+        FileSystemVaultHandler vault = new FileSystemVaultHandler(options, FileSystemVaultTest::resourcePath);
+
+        Captured wrapped = wrap(vault, "wide-key", "secret".getBytes(StandardCharsets.UTF_8));
+
+        assertThat(wrapped.buffer, nullValue());
+    }
+
+    @Test
+    public void shouldWrapWithAlgorithmOverrideForUnsupportedKeyLength() throws Exception
+    {
+        FileSystemOptionsConfig options = FileSystemOptionsConfig.builder()
+            .secrets()
+                .store("stores/secrets/secrets")
+                .password("generated")
+                .entry("wide-key")
+                    .active("1")
+                    .version("1", "alias192")
+                    .algorithm("AES256_GCM")
+                    .build()
+                .build()
+            .build();
+
+        FileSystemVaultHandler vault = new FileSystemVaultHandler(options, FileSystemVaultTest::resourcePath);
+
+        byte[] plaintext = "secret".getBytes(StandardCharsets.UTF_8);
+        Captured wrapped = wrap(vault, "wide-key", plaintext);
+
+        assertThat(wrapped.buffer, not(nullValue()));
+        assertArrayEquals(plaintext, unwrap(vault, "wide-key", wrapped.bytes()).bytes());
+    }
+
+    @Test
+    public void shouldFailWrapForUnknownSecretName() throws Exception
+    {
+        FileSystemOptionsConfig options = FileSystemOptionsConfig.builder()
+            .secrets()
+                .store("stores/secrets/secrets")
+                .password("generated")
+                .entry("app-key")
+                    .alias("alias128")
+                    .build()
+                .build()
+            .build();
+
+        FileSystemVaultHandler vault = new FileSystemVaultHandler(options, FileSystemVaultTest::resourcePath);
+
+        Captured wrapped = wrap(vault, "unknown-key", "secret".getBytes(StandardCharsets.UTF_8));
+
+        assertThat(wrapped.buffer, nullValue());
+    }
+
+    @Test
+    public void shouldFailWrapWhenSecretsNotConfigured() throws Exception
+    {
+        FileSystemOptionsConfig options = FileSystemOptionsConfig.builder()
+            .build();
+
+        FileSystemVaultHandler vault = new FileSystemVaultHandler(options, FileSystemVaultTest::resourcePath);
+
+        Captured wrapped = wrap(vault, "app-key", "secret".getBytes(StandardCharsets.UTF_8));
+
+        assertThat(wrapped.buffer, nullValue());
+    }
+
+    private static Captured wrap(
+        FileSystemVaultHandler vault,
+        String key,
+        byte[] plaintext)
+    {
+        Captured captured = new Captured();
+        DirectBufferEx bytes = new UnsafeBufferEx(plaintext);
+        vault.wrap(1L, key, bytes, 0, bytes.capacity(), captured::accept);
+        return captured;
+    }
+
+    private static Captured unwrap(
+        FileSystemVaultHandler vault,
+        String key,
+        byte[] wrapped)
+    {
+        Captured captured = new Captured();
+        DirectBufferEx bytes = new UnsafeBufferEx(wrapped);
+        vault.unwrap(1L, key, bytes, 0, bytes.capacity(), captured::accept);
+        return captured;
+    }
+
     public static Path resourcePath(
         String resource)
     {
         URL url = FileSystemVaultTest.class.getResource(resource);
         assert url != null;
         return Path.of(URI.create(url.toString()));
+    }
+
+    private static final class Captured
+    {
+        private DirectBufferEx buffer;
+        private int index;
+        private int length;
+        private byte[] copy;
+
+        private void accept(
+            DirectBufferEx buffer,
+            int index,
+            int length)
+        {
+            this.buffer = buffer;
+            this.index = index;
+            this.length = length;
+
+            this.copy = new byte[length];
+            if (buffer != null)
+            {
+                buffer.getBytes(index, copy, 0, length);
+            }
+        }
+
+        private byte[] bytes()
+        {
+            return copy;
+        }
     }
 }

@@ -1132,7 +1132,7 @@ public final class SseServerFactory implements SseStreamFactory
                     }
                     else if (payload != null)
                     {
-                        final int produced = contentType.transform(traceId, routedId,
+                        final int produced = contentType.transform(traceId, routedId, authorization,
                             payload.buffer(), payload.offset(), payload.limit());
                         content = produced < 0 ? null : contentRO.wrap(contentType.buffer(), 0, produced);
                         encode = content != null;

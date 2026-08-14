@@ -73,6 +73,7 @@ final class JsonModelDecoderPipeline implements ModelPipeline
     public ModelPipelineResult transform(
         long traceId,
         long bindingId,
+        long authorization,
         int flags,
         DirectBufferEx src,
         int srcIndex,
@@ -124,7 +125,7 @@ final class JsonModelDecoderPipeline implements ModelPipeline
             // under LENIENT the value still completes (original bytes passed through) and the event still fired
             if (status == ModelStatus.COMPLETE && extractor != null)
             {
-                visitExtracted();
+                visitExtracted(authorization);
             }
         }
         return result.set(status, consumed, produced);
@@ -156,9 +157,10 @@ final class JsonModelDecoderPipeline implements ModelPipeline
         diagnostic = null;
     }
 
-    private void visitExtracted()
+    private void visitExtracted(
+        long authorization)
     {
-        bridge.start();
+        bridge.start(authorization);
         for (int i = 0; i < extractor.captured(); i++)
         {
             bridge.field(extractor.path(i), extractor.value(i), 0, extractor.length(i));

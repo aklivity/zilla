@@ -68,7 +68,7 @@ public class CoreModelLenientTest
 
         byte[] bytes = "12x".getBytes();
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[16]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
             new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.REJECTED, result.status());
@@ -83,7 +83,7 @@ public class CoreModelLenientTest
 
         byte[] bytes = "12x".getBytes();
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[16]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
             new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.REJECTED, result.status());
@@ -100,13 +100,13 @@ public class CoreModelLenientTest
 
         ModelPipeline decoder = handler.supplyDecoder(ModelTransform.NONE);
         MutableDirectBufferEx decodeDst = new UnsafeBufferEx(new byte[16]);
-        ModelPipelineResult decoded = decoder.transform(0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult decoded = decoder.transform(0L, 0L, 0L, FLAGS_COMPLETE,
             new UnsafeBufferEx(bytes), 0, bytes.length, decodeDst, 0, decodeDst.capacity());
         assertEquals(ModelStatus.COMPLETE, decoded.status());
 
         ModelPipeline encoder = handler.supplyEncoder(ModelTransform.NONE);
         MutableDirectBufferEx encodeDst = new UnsafeBufferEx(new byte[16]);
-        ModelPipelineResult encoded = encoder.transform(0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult encoded = encoder.transform(0L, 0L, 0L, FLAGS_COMPLETE,
             new UnsafeBufferEx(bytes), 0, bytes.length, encodeDst, 0, encodeDst.capacity());
         assertEquals(ModelStatus.REJECTED, encoded.status());
     }
@@ -122,7 +122,7 @@ public class CoreModelLenientTest
 
         byte[] bytes = "hello".getBytes();
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[16]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
             new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.REJECTED, result.status());
@@ -137,7 +137,7 @@ public class CoreModelLenientTest
 
         byte[] bytes = "hello".getBytes();
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[16]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
             new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.COMPLETE, result.status());

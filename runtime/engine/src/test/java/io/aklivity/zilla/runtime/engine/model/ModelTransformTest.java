@@ -33,7 +33,20 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public class ModelTransformTest
 {
-    private static final ModelController NO_CONTROL = diagnostic -> {};
+    private static final ModelController NO_CONTROL = new ModelController()
+    {
+        @Override
+        public long authorization()
+        {
+            return 0L;
+        }
+
+        @Override
+        public void reject(
+            String diagnostic)
+        {
+        }
+    };
 
     @Test
     public void shouldForwardEveryFieldWhenNone()
@@ -164,12 +177,44 @@ public class ModelTransformTest
         ModelFieldBridge bridge = new ModelFieldBridge(transform);
         DirectBufferEx value = new UnsafeBufferEx("one".getBytes(UTF_8));
 
-        bridge.start();
+        bridge.start(0L);
         bridge.field("$.id", value, 0, value.capacity());
         bridge.end();
 
         assertEquals(List.of("START_VALUE", "$.id=one", "END_VALUE"), transform.events);
         assertEquals(1, transform.flushes);
+    }
+
+    @Test
+    public void shouldExposeAuthorizationToBridgedTransform()
+    {
+        Recording transform = new Recording();
+        ModelFieldBridge bridge = new ModelFieldBridge(transform);
+        DirectBufferEx value = new UnsafeBufferEx("one".getBytes(UTF_8));
+
+        bridge.start(0x0102L);
+        bridge.field("$.id", value, 0, value.capacity());
+        bridge.end();
+
+        assertEquals(List.of(0x0102L, 0x0102L, 0x0102L), transform.authorizations);
+    }
+
+    @Test
+    public void shouldObserveChangedAuthorizationOnNextValue()
+    {
+        Recording transform = new Recording();
+        ModelFieldBridge bridge = new ModelFieldBridge(transform);
+        DirectBufferEx value = new UnsafeBufferEx("one".getBytes(UTF_8));
+
+        bridge.start(0x0102L);
+        bridge.field("$.id", value, 0, value.capacity());
+        bridge.end();
+
+        bridge.start(0x0304L);
+        bridge.field("$.id", value, 0, value.capacity());
+        bridge.end();
+
+        assertEquals(List.of(0x0102L, 0x0102L, 0x0102L, 0x0304L, 0x0304L, 0x0304L), transform.authorizations);
     }
 
     private static String text(
@@ -349,6 +394,7 @@ public class ModelTransformTest
     private static final class Recording implements ModelTransform
     {
         private final List<String> events = new ArrayList<>();
+        private final List<Long> authorizations = new ArrayList<>();
 
         private int flushes;
 
@@ -360,6 +406,7 @@ public class ModelTransformTest
             ModelSink sink)
         {
             events.add(event == ModelEvent.FIELD ? source.getPath() + "=" + text(source) : event.name());
+            authorizations.add(control.authorization());
             return sink.transform(control, source, event);
         }
 

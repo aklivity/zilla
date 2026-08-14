@@ -19,6 +19,7 @@ import static io.aklivity.zilla.config.engine.KindConfig.PROXY;
 import static java.util.Objects.requireNonNull;
 import static java.util.function.Function.identity;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -252,7 +253,11 @@ public final class AsyncapiProxyGenerator extends AsyncapiCompositeGenerator
                 private boolean matches(
                     AsyncapiOperationView candidate)
                 {
-                    return condition.matches(condition.spec, candidate.name, candidate.tags, candidate.servers);
+                    Map<String, URI> servers = candidate.servers != null
+                        ? candidate.servers.stream().collect(Collectors.toMap(s -> s.name, s -> s.url, (a, b) -> a))
+                        : null;
+
+                    return condition.matches(condition.spec, candidate.name, candidate.tags, servers);
                 }
             }
 

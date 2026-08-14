@@ -48,4 +48,11 @@ public class FileSystemVaultIT
     {
         System.out.println("done!");
     }
+
+    @Test
+    @Configuration("vault.secrets.yaml")
+    public void shouldInitializeWithSecrets() throws Exception
+    {
+        System.out.println("done!");
+    }
 }

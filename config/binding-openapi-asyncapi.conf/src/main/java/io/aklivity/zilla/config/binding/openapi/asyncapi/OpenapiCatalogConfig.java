@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.common.openapi.config;
+package io.aklivity.zilla.config.binding.openapi.asyncapi;
 
 import java.util.function.Function;
 
@@ -21,15 +21,26 @@ public class OpenapiCatalogConfig
     public final String name;
     public final String subject;
     public final String version;
+    public final OpenapiCatalogConfig overlay;
+
+    public OpenapiCatalogConfig(
+        String name,
+        String subject,
+        String version,
+        OpenapiCatalogConfig overlay)
+    {
+        this.name = name;
+        this.subject = subject;
+        this.version = version;
+        this.overlay = overlay;
+    }
 
     public OpenapiCatalogConfig(
         String name,
         String subject,
         String version)
     {
-        this.name = name;
-        this.subject = subject;
-        this.version = version;
+        this(name, subject, version, null);
     }
 
     public static OpenapiCatalogConfigBuilder<OpenapiCatalogConfig> builder()

@@ -71,6 +71,7 @@ final class TestModelPipeline implements ModelPipeline
     public ModelPipelineResult transform(
         long traceId,
         long bindingId,
+        long authorization,
         int flags,
         DirectBufferEx src,
         int srcIndex,
@@ -115,7 +116,7 @@ final class TestModelPipeline implements ModelPipeline
             consumed = available;
             produced = transformLength;
             status = ModelStatus.COMPLETE;
-            visitExtracted();
+            visitExtracted(authorization);
         }
         else
         {
@@ -133,7 +134,7 @@ final class TestModelPipeline implements ModelPipeline
                 status = ModelStatus.COMPLETE;
                 if (lengthValid)
                 {
-                    visitExtracted();
+                    visitExtracted(authorization);
                 }
             }
             else
@@ -156,11 +157,12 @@ final class TestModelPipeline implements ModelPipeline
         processed = 0;
     }
 
-    private void visitExtracted()
+    private void visitExtracted(
+        long authorization)
     {
         if (bridge != null)
         {
-            bridge.start();
+            bridge.start(authorization);
             for (int i = 0; i < fields.size(); i++)
             {
                 bridge.field("$." + fields.get(i), extractedValue, 0, extractedValue.capacity());

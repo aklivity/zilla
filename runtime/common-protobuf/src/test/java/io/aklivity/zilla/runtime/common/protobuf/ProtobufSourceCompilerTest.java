@@ -18,6 +18,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -177,6 +178,130 @@ public class ProtobufSourceCompilerTest
 
         assertFalse(schema.message("M").field(1).packed());
         assertEquals("uid", schema.message("M").field(2).jsonName());
+    }
+
+    @Test
+    public void shouldExposeCustomFieldOptionsInProto3()
+    {
+        ProtobufSchema schema = Protobuf.schema(
+            "syntax = \"proto3\";\n" +
+            "message M {\n" +
+            "  string email = 1 [(acme.kind) = \"A\", (acme.limit) = 123,\n" +
+            "      (acme.ratio) = 1.5, (acme.enabled) = true, (acme.owner) = SOMEONE,\n" +
+            "      (acme.meta) = { kind: \"A\" level: 2 }];\n" +
+            "  string plain = 2;\n" +
+            "}\n");
+
+        ProtobufField email = schema.message("M").field(1);
+        assertEquals(new ProtobufConstant.TextValue("A"), email.option("(acme.kind)"));
+        assertEquals(new ProtobufConstant.IntegerValue(123), email.option("(acme.limit)"));
+        assertEquals(new ProtobufConstant.FloatValue(1.5), email.option("(acme.ratio)"));
+        assertEquals(new ProtobufConstant.BooleanValue(true), email.option("(acme.enabled)"));
+        assertEquals(new ProtobufConstant.Identifier("SOMEONE"), email.option("(acme.owner)"));
+        assertNull(email.option("(acme.missing)"));
+
+        ProtobufConstant.MessageValue meta = (ProtobufConstant.MessageValue) email.option("(acme.meta)");
+        assertEquals(new ProtobufConstant.TextValue("A"), meta.fields().get("kind"));
+        assertEquals(new ProtobufConstant.IntegerValue(2), meta.fields().get("level"));
+
+        ProtobufField plain = schema.message("M").field(2);
+        assertNull(plain.option("(acme.kind)"));
+    }
+
+    @Test
+    public void shouldExposeCustomFieldOptionsInProto2()
+    {
+        ProtobufSchema schema = Protobuf.schema(
+            "syntax = \"proto2\";\n" +
+            "message M {\n" +
+            "  optional string email = 1 [(acme.kind) = \"A\"];\n" +
+            "}\n");
+
+        ProtobufField email = schema.message("M").field(1);
+        assertEquals(new ProtobufConstant.TextValue("A"), email.option("(acme.kind)"));
+    }
+
+    @Test
+    public void shouldStillRecognizeWellKnownOptionsAlongsideCustomOnes()
+    {
+        ProtobufSchema schema = Protobuf.schema(
+            "syntax = \"proto3\";\n" +
+            "message M {\n" +
+            "  repeated int32 nums = 1 [packed = false, (acme.kind) = \"A\"];\n" +
+            "}\n");
+
+        ProtobufField nums = schema.message("M").field(1);
+        assertFalse(nums.packed());
+        assertEquals(new ProtobufConstant.TextValue("A"), nums.option("(acme.kind)"));
+    }
+
+    @Test
+    public void shouldCompileProto3ServiceAndRpc()
+    {
+        ProtobufSchema schema = Protobuf.schema(
+            "syntax = \"proto3\";\n" +
+            "package test;\n" +
+            "message Req { string id = 1; }\n" +
+            "message Res { string id = 1; }\n" +
+            "service Greeter {\n" +
+            "  rpc SayHello (Req) returns (Res);\n" +
+            "  rpc StreamHello (stream Req) returns (stream Res);\n" +
+            "}\n");
+
+        ProtobufService service = schema.service("test.Greeter");
+        assertNotNull(service);
+        assertEquals("test.Greeter", service.name());
+        assertEquals(2, service.methods().size());
+
+        ProtobufMethod sayHello = service.method("SayHello");
+        assertEquals("test.Req", sayHello.inputType());
+        assertEquals("test.Res", sayHello.outputType());
+        assertFalse(sayHello.clientStreaming());
+        assertFalse(sayHello.serverStreaming());
+
+        ProtobufMethod streamHello = service.method("StreamHello");
+        assertTrue(streamHello.clientStreaming());
+        assertTrue(streamHello.serverStreaming());
+
+        assertNull(schema.service("test.Missing"));
+    }
+
+    @Test
+    public void shouldExposeCustomMethodOptionsInProto3()
+    {
+        ProtobufSchema schema = Protobuf.schema(
+            "syntax = \"proto3\";\n" +
+            "package test;\n" +
+            "message Req { string id = 1; }\n" +
+            "message Res { string id = 1; }\n" +
+            "service Greeter {\n" +
+            "  rpc SayHello (Req) returns (Res) {\n" +
+            "    option (acme.kind) = \"A\";\n" +
+            "    option deprecated = true;\n" +
+            "  }\n" +
+            "}\n");
+
+        ProtobufMethod sayHello = schema.service("test.Greeter").method("SayHello");
+        assertEquals(new ProtobufConstant.TextValue("A"), sayHello.option("(acme.kind)"));
+        assertEquals(new ProtobufConstant.BooleanValue(true), sayHello.option("deprecated"));
+        assertNull(sayHello.option("(acme.missing)"));
+    }
+
+    @Test
+    public void shouldCompileProto2ServiceAndRpc()
+    {
+        ProtobufSchema schema = Protobuf.schema(
+            "syntax = \"proto2\";\n" +
+            "package test;\n" +
+            "message Req { required string id = 1; }\n" +
+            "message Res { required string id = 1; }\n" +
+            "service Greeter {\n" +
+            "  rpc SayHello (Req) returns (Res);\n" +
+            "}\n");
+
+        ProtobufMethod sayHello = schema.service("test.Greeter").method("SayHello");
+        assertEquals("test.Req", sayHello.inputType());
+        assertEquals("test.Res", sayHello.outputType());
     }
 
     @Test

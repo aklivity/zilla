@@ -25,7 +25,7 @@ import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 /**
  * Per-stream driver around a decode {@link ModelPipeline} for the sse binding.
  * <p>
- * An event payload is transformed whole-value via {@link #transform(long, long, DirectBufferEx, int, int)}: the
+ * An event payload is transformed whole-value via {@link #transform(long, long, long, DirectBufferEx, int, int)}: the
  * value is driven through the pipeline and the produced (possibly changed) bytes are exposed via
  * {@link #buffer} for the caller to encode downstream, or {@code -1} signals the model rejected it.
  * </p>
@@ -71,6 +71,7 @@ public final class SseModel
     public int transform(
         long traceId,
         long bindingId,
+        long authorization,
         DirectBufferEx data,
         int index,
         int limit)
@@ -81,7 +82,7 @@ public final class SseModel
         boolean done = false;
         while (!done)
         {
-            final ModelPipelineResult result = pipeline.transform(traceId, bindingId, flags,
+            final ModelPipelineResult result = pipeline.transform(traceId, bindingId, authorization, flags,
                 data, srcAt, limit, scratch, total, scratch.capacity());
             final ModelStatus status = result.status();
 

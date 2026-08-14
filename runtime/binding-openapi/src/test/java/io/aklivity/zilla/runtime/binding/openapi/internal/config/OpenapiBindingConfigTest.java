@@ -29,13 +29,13 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
+import io.aklivity.zilla.config.binding.openapi.OpenapiCatalogConfig;
 import io.aklivity.zilla.config.binding.openapi.OpenapiOptionsConfig;
+import io.aklivity.zilla.config.binding.openapi.OpenapiSpecificationConfig;
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.config.engine.GenericBindingConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
-import io.aklivity.zilla.runtime.common.openapi.config.OpenapiCatalogConfig;
-import io.aklivity.zilla.runtime.common.openapi.config.OpenapiSpecificationConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 
 public class OpenapiBindingConfigTest

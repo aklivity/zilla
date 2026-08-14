@@ -123,7 +123,7 @@ public class JsonModelEncoderPipelineBM
         UnsafeBufferEx buffer,
         int length)
     {
-        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
             buffer, 0, length, dst, 0, dst.capacity());
         return result.produced();
     }

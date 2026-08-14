@@ -37,6 +37,8 @@ import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 
 import io.aklivity.zilla.config.binding.http.HttpOptionsConfigBuilder;
+import io.aklivity.zilla.config.binding.openapi.OpenapiCatalogConfig;
+import io.aklivity.zilla.config.binding.openapi.OpenapiSpecificationConfig;
 import io.aklivity.zilla.config.catalog.inline.InlineOptionsConfig;
 import io.aklivity.zilla.config.catalog.inline.InlineOptionsConfigBuilder;
 import io.aklivity.zilla.config.engine.BindingConfigBuilder;
@@ -56,10 +58,8 @@ import io.aklivity.zilla.config.model.json.JsonModelConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiBindingConfig;
 import io.aklivity.zilla.runtime.binding.openapi.internal.config.OpenapiCompositeConfig;
 import io.aklivity.zilla.runtime.common.json.JsonOverlay;
-import io.aklivity.zilla.runtime.common.openapi.config.OpenapiCatalogConfig;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiParser;
 import io.aklivity.zilla.runtime.common.openapi.config.OpenapiSchemaConfig;
-import io.aklivity.zilla.runtime.common.openapi.config.OpenapiSpecificationConfig;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiHeaderView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiMediaTypeView;
 import io.aklivity.zilla.runtime.common.openapi.view.OpenapiOperationView;
@@ -93,7 +93,7 @@ public abstract class OpenapiCompositeGenerator
                 final CatalogHandler handler = binding.supplyCatalog.apply(catalogId);
                 final int schemaId = handler.resolve(catalog.subject, catalog.version);
                 final String payload = handler.resolve(schemaId);
-                final String materialized = materialize(binding, specification, payload);
+                final String materialized = materialize(binding, catalog, payload);
                 final OpenapiView openapi = OpenapiView.of(tagIndex++, label, parser.parse(materialized));
 
                 unresolved.addAll(openapi.unresolvedRefs());
@@ -149,15 +149,15 @@ public abstract class OpenapiCompositeGenerator
 
     private String materialize(
         OpenapiBindingConfig binding,
-        OpenapiSpecificationConfig specification,
+        OpenapiCatalogConfig catalog,
         String payload)
     {
         String materialized = payload;
-        if (specification.overlay != null)
+        if (catalog.overlay != null)
         {
-            final long catalogId = binding.resolveId.applyAsLong(specification.overlay.name);
+            final long catalogId = binding.resolveId.applyAsLong(catalog.overlay.name);
             final CatalogHandler handler = binding.supplyCatalog.apply(catalogId);
-            final int schemaId = handler.resolve(specification.overlay.subject, specification.overlay.version);
+            final int schemaId = handler.resolve(catalog.overlay.subject, catalog.overlay.version);
             final String overlayPayload = handler.resolve(schemaId);
 
             final JsonObject document = YamlJson.createReader(new StringReader(payload)).readObject();

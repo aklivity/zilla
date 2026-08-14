@@ -20,8 +20,6 @@ import java.util.function.Function;
 
 import io.aklivity.zilla.config.engine.ConfigBuilder;
 import io.aklivity.zilla.config.engine.OptionsConfig;
-import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfig;
-import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfigBuilder;
 
 public final class AsyncapiOptionsConfigBuilder<T> extends ConfigBuilder<T, AsyncapiOptionsConfigBuilder<T>>
 {

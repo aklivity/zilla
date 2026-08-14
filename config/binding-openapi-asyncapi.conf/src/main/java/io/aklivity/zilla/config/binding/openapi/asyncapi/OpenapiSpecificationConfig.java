@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.common.openapi.config;
+package io.aklivity.zilla.config.binding.openapi.asyncapi;
 
 import java.util.List;
 import java.util.Map;
@@ -23,21 +23,6 @@ public class OpenapiSpecificationConfig
     public final List<String> servers;
     public final List<OpenapiCatalogConfig> catalogs;
     public final Map<String, String> security;
-    public final OpenapiCatalogConfig overlay;
-
-    public OpenapiSpecificationConfig(
-        String label,
-        List<String> servers,
-        List<OpenapiCatalogConfig> catalogs,
-        Map<String, String> security,
-        OpenapiCatalogConfig overlay)
-    {
-        this.label = label;
-        this.servers = servers;
-        this.catalogs = catalogs;
-        this.security = security;
-        this.overlay = overlay;
-    }
 
     public OpenapiSpecificationConfig(
         String label,
@@ -45,7 +30,10 @@ public class OpenapiSpecificationConfig
         List<OpenapiCatalogConfig> catalogs,
         Map<String, String> security)
     {
-        this(label, servers, catalogs, security, null);
+        this.label = label;
+        this.servers = servers;
+        this.catalogs = catalogs;
+        this.security = security;
     }
 
     public OpenapiSpecificationConfig(
@@ -53,13 +41,13 @@ public class OpenapiSpecificationConfig
         List<String> servers,
         List<OpenapiCatalogConfig> catalogs)
     {
-        this(label, servers, catalogs, null, null);
+        this(label, servers, catalogs, null);
     }
 
     public OpenapiSpecificationConfig(
         String label,
         List<OpenapiCatalogConfig> catalogs)
     {
-        this(label, null, catalogs, null, null);
+        this(label, null, catalogs, null);
     }
 }

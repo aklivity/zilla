@@ -17,7 +17,9 @@ package io.aklivity.zilla.runtime.common.json;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 
+import jakarta.json.JsonValue;
 import jakarta.json.stream.JsonParser;
 
 import io.aklivity.zilla.runtime.common.json.internal.JsonSchemaImpl;
@@ -139,4 +141,32 @@ public interface JsonSchema
      * JsonEx#projector(java.util.List)}.
      */
     List<String> retainedPaths();
+
+    /**
+     * The compiled sub-schema declared for object property {@code name} under this schema's {@code
+     * properties} keyword, or {@code null} when this schema declares no such property.
+     */
+    JsonSchema property(
+        String name);
+
+    /**
+     * The value of an arbitrary member declared alongside this schema's own keywords — read from
+     * this schema object only, never inherited from a {@code $ref} target or a named type this
+     * schema resolves to. {@code null} when this schema declares no such key.
+     */
+    JsonValue attribute(
+        String name);
+
+    /**
+     * The RFC 6901 JSON Pointers of every schema node — this schema and any reachable through
+     * {@code properties}, single-schema {@code items}, and the {@code allOf}/{@code anyOf}/{@code
+     * oneOf}/{@code if}/{@code then}/{@code else} combinators — for which {@code filter} returns
+     * {@code true}, in schema declaration order. A node's own match does not stop descent into its
+     * children: a matching property nested beneath an already-matching ancestor is still reported,
+     * independently, at its own pointer. {@code $ref}, {@code patternProperties}, and tuple {@code
+     * items} are not expanded — same scope boundary as {@link #retainedPaths()} — so {@code filter}
+     * never sees into them.
+     */
+    List<String> matchingPaths(
+        Predicate<JsonSchema> filter);
 }

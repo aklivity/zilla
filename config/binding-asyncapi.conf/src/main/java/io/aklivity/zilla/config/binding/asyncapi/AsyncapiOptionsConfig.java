@@ -18,7 +18,6 @@ import java.util.List;
 import java.util.function.Function;
 
 import io.aklivity.zilla.config.engine.OptionsConfig;
-import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfig;
 
 public final class AsyncapiOptionsConfig extends OptionsConfig
 {

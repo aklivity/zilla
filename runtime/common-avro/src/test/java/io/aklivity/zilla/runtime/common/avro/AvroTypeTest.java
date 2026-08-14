@@ -20,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
+import java.util.function.Predicate;
 
 import jakarta.json.JsonNumber;
 import jakarta.json.JsonString;
@@ -162,6 +163,134 @@ public class AvroTypeTest
 
         // no default declared
         assertNull(fields.get(3).defaultValue());
+    }
+
+    @Test
+    public void shouldExposeFieldAttributes()
+    {
+        AvroType type = Avro.schema("""
+            {"type":"record","name":"R","fields":[
+            {"name":"email","type":"string","x-labels":["A"]},
+            {"name":"ssn","type":"string","x-flag":true},
+            {"name":"note","type":"string","x-meta":{"kind":"A"}},
+            {"name":"plain","type":"string"}]}""").type();
+
+        List<AvroField> fields = type.fields();
+        AvroField email = fields.get(0);
+        assertEquals(JsonValue.ValueType.ARRAY, email.attribute("x-labels").getValueType());
+        assertEquals("A", email.attribute("x-labels").asJsonArray().getString(0));
+        assertNull(email.attribute("x-flag"));
+
+        AvroField ssn = fields.get(1);
+        assertEquals(JsonValue.TRUE, ssn.attribute("x-flag"));
+
+        AvroField note = fields.get(2);
+        assertEquals("A", note.attribute("x-meta").asJsonObject().getString("kind"));
+
+        AvroField plain = fields.get(3);
+        assertNull(plain.attribute("x-labels"));
+        assertNull(plain.attribute("x-flag"));
+        assertNull(plain.attribute("x-meta"));
+    }
+
+    @Test
+    public void shouldMatchAnnotatedTopLevelField()
+    {
+        AvroType type = Avro.schema("""
+            {"type":"record","name":"R","fields":[
+            {"name":"email","type":"string","x-labels":["A"]},
+            {"name":"name","type":"string"}]}""").type();
+
+        assertEquals(List.of("/email"), type.matchingPaths(hasLabel("A")));
+    }
+
+    @Test
+    public void shouldReturnEmptyWhenNothingMatches()
+    {
+        AvroType type = Avro.schema("""
+            {"type":"record","name":"R","fields":[{"name":"name","type":"string"}]}""").type();
+
+        assertEquals(List.of(), type.matchingPaths(hasLabel("A")));
+    }
+
+    @Test
+    public void shouldMatchNestedFieldUnderNonMatchingAncestor()
+    {
+        AvroType type = Avro.schema("""
+            {"type":"record","name":"R","fields":[
+            {"name":"user","type":{"type":"record","name":"User","fields":[
+              {"name":"ssn","type":"string","x-labels":["A"]}]}}]}""").type();
+
+        assertEquals(List.of("/user/ssn"), type.matchingPaths(hasLabel("A")));
+    }
+
+    @Test
+    public void shouldNotStopDescentAtAMatchedAncestor()
+    {
+        AvroType type = Avro.schema("""
+            {"type":"record","name":"R","fields":[
+            {"name":"user","x-labels":["A"],"type":{"type":"record","name":"User","fields":[
+              {"name":"ssn","type":"string","x-labels":["A"]},
+              {"name":"name","type":"string"}]}}]}""").type();
+
+        assertEquals(List.of("/user", "/user/ssn"), type.matchingPaths(hasLabel("A")));
+    }
+
+    @Test
+    public void shouldMatchWithinArrayItems()
+    {
+        AvroType type = Avro.schema("""
+            {"type":"record","name":"R","fields":[
+            {"name":"contacts","type":{"type":"array","items":{"type":"record","name":"Contact","fields":[
+              {"name":"email","type":"string","x-labels":["A"]}]}}}]}""").type();
+
+        assertEquals(List.of("/contacts/-/email"), type.matchingPaths(hasLabel("A")));
+    }
+
+    @Test
+    public void shouldMatchWithinMapValues()
+    {
+        AvroType type = Avro.schema("""
+            {"type":"record","name":"R","fields":[
+            {"name":"byId","type":{"type":"map","values":{"type":"record","name":"Contact","fields":[
+              {"name":"email","type":"string","x-labels":["A"]}]}}}]}""").type();
+
+        assertEquals(List.of("/byId/-/email"), type.matchingPaths(hasLabel("A")));
+    }
+
+    @Test
+    public void shouldMatchAcrossUnionBranches()
+    {
+        AvroType type = Avro.schema("""
+            {"type":"record","name":"R","fields":[
+            {"name":"contact","type":[
+              {"type":"record","name":"Email","fields":[{"name":"a","type":"string","x-labels":["A"]}]},
+              {"type":"record","name":"Phone","fields":[{"name":"b","type":"string"}]}]}]}""").type();
+
+        assertEquals(List.of("/contact/a"), type.matchingPaths(hasLabel("A")));
+    }
+
+    @Test
+    public void shouldTerminateOnRecursiveTypeWithoutInfiniteLoop()
+    {
+        AvroType type = Avro.schema("""
+            {"type":"record","name":"Node","fields":[
+            {"name":"secret","type":"string","x-labels":["A"]},
+            {"name":"next","type":["null","Node"]}]}""").type();
+
+        assertEquals(List.of("/secret"), type.matchingPaths(hasLabel("A")));
+    }
+
+    private static Predicate<AvroField> hasLabel(
+        String tag)
+    {
+        return field ->
+        {
+            JsonValue tags = field.attribute("x-labels");
+            return tags != null && tags.getValueType() == JsonValue.ValueType.ARRAY &&
+                tags.asJsonArray().stream().anyMatch(value -> value.getValueType() == JsonValue.ValueType.STRING &&
+                    tag.equals(((JsonString) value).getString()));
+        };
     }
 
     @Test

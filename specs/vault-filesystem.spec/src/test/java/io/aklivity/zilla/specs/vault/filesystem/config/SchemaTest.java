@@ -56,4 +56,12 @@ public class SchemaTest
 
         assertThat(config, not(nullValue()));
     }
+
+    @Test
+    public void shouldValidateVaultWithSecrets()
+    {
+        JsonObject config = schema.validate("vault.secrets.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
 }
