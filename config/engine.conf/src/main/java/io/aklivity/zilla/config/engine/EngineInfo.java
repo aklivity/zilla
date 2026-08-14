@@ -64,6 +64,11 @@ public final class EngineInfo
         patches.addAll(exporters.values().stream().map(ExporterInfo::schema).filter(Objects::nonNull).collect(toList()));
         patches.addAll(stores.values().stream().map(StoreInfo::schema).filter(Objects::nonNull).collect(toList()));
         patches.addAll(models.values().stream().map(ModelInfo::schema).filter(Objects::nonNull).collect(toList()));
+        patches.addAll(models.values().stream()
+            .flatMap(model -> model.extensions().stream())
+            .map(ModelExtInfo::schema)
+            .filter(Objects::nonNull)
+            .collect(toList()));
         patches.addAll(metrics.values().stream().map(MetricGroupInfo::schema).filter(Objects::nonNull).collect(toList()));
         return patches;
     }
