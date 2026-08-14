@@ -144,4 +144,15 @@ public class JsonModelIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("value.overlay.yaml")
+    @Specification({
+        "${net}/client.sent.json.overlay.required/client",
+        "${app}/client.sent.json.overlay.required/server"
+    })
+    public void shouldRejectJsonMissingOverlayRequiredProperty() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -84,6 +84,76 @@ class JsonOverlayTest
     }
 
     @Test
+    void shouldAppendArrayUpdateAsSingleElementUnderOverlay100()
+    {
+        JsonValue overlayDoc = read(
+            "{\"overlay\":\"1.0.0\",\"actions\":[" +
+                "{\"target\":\"$.tags\",\"update\":[\"c\",\"d\"]}" +
+            "]}");
+        JsonValue document = read("{\"tags\":[\"a\",\"b\"]}");
+
+        JsonValue result = JsonOverlay.of(overlayDoc).apply(document);
+
+        assertEquals("{\"tags\":[\"a\",\"b\",[\"c\",\"d\"]]}", result.toString());
+    }
+
+    @Test
+    void shouldConcatenateArrayUpdateIntoMatchedArrayUnderOverlay110()
+    {
+        JsonValue overlayDoc = read(
+            "{\"overlay\":\"1.1.0\",\"actions\":[" +
+                "{\"target\":\"$.tags\",\"update\":[\"c\",\"d\"]}" +
+            "]}");
+        JsonValue document = read("{\"tags\":[\"a\",\"b\"]}");
+
+        JsonValue result = JsonOverlay.of(overlayDoc).apply(document);
+
+        assertEquals("{\"tags\":[\"a\",\"b\",\"c\",\"d\"]}", result.toString());
+    }
+
+    @Test
+    void shouldAppendScalarUpdateToMatchedArrayUnderOverlay110()
+    {
+        JsonValue overlayDoc = read(
+            "{\"overlay\":\"1.1.0\",\"actions\":[" +
+                "{\"target\":\"$.tags\",\"update\":\"c\"}" +
+            "]}");
+        JsonValue document = read("{\"tags\":[\"a\",\"b\"]}");
+
+        JsonValue result = JsonOverlay.of(overlayDoc).apply(document);
+
+        assertEquals("{\"tags\":[\"a\",\"b\",\"c\"]}", result.toString());
+    }
+
+    @Test
+    void shouldAppendObjectUpdateToMatchedArrayUnderOverlay110()
+    {
+        JsonValue overlayDoc = read(
+            "{\"overlay\":\"1.1.0\",\"actions\":[" +
+                "{\"target\":\"$.items\",\"update\":{\"x\":1}}" +
+            "]}");
+        JsonValue document = read("{\"items\":[\"a\"]}");
+
+        JsonValue result = JsonOverlay.of(overlayDoc).apply(document);
+
+        assertEquals("{\"items\":[\"a\",{\"x\":1}]}", result.toString());
+    }
+
+    @Test
+    void shouldConcatenateArrayUpdateAtEveryWildcardMatchedArrayUnderOverlay110()
+    {
+        JsonValue overlayDoc = read(
+            "{\"overlay\":\"1.1.0\",\"actions\":[" +
+                "{\"target\":\"$.groups[*]\",\"update\":[\"x\"]}" +
+            "]}");
+        JsonValue document = read("{\"groups\":[[\"a\"],[\"b\"]]}");
+
+        JsonValue result = JsonOverlay.of(overlayDoc).apply(document);
+
+        assertEquals("{\"groups\":[[\"a\",\"x\"],[\"b\",\"x\"]]}", result.toString());
+    }
+
+    @Test
     void shouldApplyUpdateToEveryWildcardMatchedObject()
     {
         JsonValue document = read("{\"paths\":{\"/a\":{\"get\":{}},\"/b\":{\"get\":{}}}}");

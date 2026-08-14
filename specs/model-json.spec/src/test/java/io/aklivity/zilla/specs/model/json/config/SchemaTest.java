@@ -18,6 +18,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
+import jakarta.json.JsonException;
 import jakarta.json.JsonObject;
 
 import org.junit.Rule;
@@ -40,5 +41,19 @@ public class SchemaTest
         JsonObject config = schema.validate("model.yaml");
 
         assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateCatalogWithOverlay()
+    {
+        JsonObject config = schema.validate("model.overlay.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectCatalogWithInvalidOverlay()
+    {
+        schema.validate("model.overlay.invalid.yaml");
     }
 }

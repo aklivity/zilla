@@ -63,6 +63,7 @@ import io.aklivity.zilla.config.engine.ModelConfig;
 import io.aklivity.zilla.config.engine.NamespaceConfig;
 import io.aklivity.zilla.config.engine.NamespaceConfigReader;
 import io.aklivity.zilla.config.engine.RouteConfig;
+import io.aklivity.zilla.config.engine.SchemaConfig;
 import io.aklivity.zilla.config.engine.StoreConfig;
 import io.aklivity.zilla.config.engine.TelemetryRefConfig;
 import io.aklivity.zilla.config.engine.VaultConfig;
@@ -444,6 +445,13 @@ public class EngineManager
                         for (CatalogedConfig cataloged : model.cataloged)
                         {
                             cataloged.id = resolver.resolve(cataloged.name);
+                            for (SchemaConfig schema : cataloged.schemas)
+                            {
+                                if (schema.overlay != null)
+                                {
+                                    schema.overlay.id = resolver.resolve(schema.overlay.name);
+                                }
+                            }
                         }
                     }
                 }

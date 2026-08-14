@@ -125,4 +125,14 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/client.sent.json.overlay.required/client",
+        "${net}/client.sent.json.overlay.required/server"
+    })
+    public void shouldForwardJsonMissingOverlayRequiredProperty() throws Exception
+    {
+        k3po.finish();
+    }
 }
