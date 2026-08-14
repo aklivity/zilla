@@ -596,11 +596,23 @@ public final class KafkaCachePartition
                 final int convertedValueLimit = convertedLengthAt + SIZE_OF_INT + convertedLength;
                 final int convertedPadding = convertedFile.readInt(convertedValueLimit);
 
-                assert convertedPadding - length >= 0;
-
-                convertedFile.writeInt(convertedLengthAt, convertedLength + length);
-                convertedFile.writeBytes(convertedValueLimit, buffer, index, length);
-                convertedFile.writeInt(convertedValueLimit + length, convertedPadding - length);
+                if (convertedPadding < length)
+                {
+                    logFile.writeInt(entryMark.value + FIELD_OFFSET_FLAGS, CACHE_ENTRY_FLAGS_ABORTED);
+                    if (verbose)
+                    {
+                        System.out.printf("%s:%s %s: Skipping message on topic %s, partition %d, offset %d: " +
+                            "transformed value exceeded reserved capacity\n",
+                            System.currentTimeMillis(), context.supplyNamespace(bindingId),
+                            context.supplyLocalName(bindingId), topic, id, offset);
+                    }
+                }
+                else
+                {
+                    convertedFile.writeInt(convertedLengthAt, convertedLength + length);
+                    convertedFile.writeBytes(convertedValueLimit, buffer, index, length);
+                    convertedFile.writeInt(convertedValueLimit + length, convertedPadding - length);
+                }
             };
 
             int entryFlags = logFile.readInt(entryMark.value + FIELD_OFFSET_FLAGS);
@@ -867,11 +879,16 @@ public final class KafkaCachePartition
                     final int convertedValueLimit = convertedLengthAt + SIZE_OF_INT + convertedLength;
                     final int convertedPadding = convertedFile.readInt(convertedValueLimit);
 
-                    assert convertedPadding - length >= 0;
-
-                    convertedFile.writeInt(convertedLengthAt, convertedLength + length);
-                    convertedFile.writeBytes(convertedValueLimit, buffer, index, length);
-                    convertedFile.writeInt(convertedValueLimit + length, convertedPadding - length);
+                    if (convertedPadding < length)
+                    {
+                        logFile.writeInt(entryMark.value + FIELD_OFFSET_FLAGS, CACHE_ENTRY_FLAGS_ABORTED);
+                    }
+                    else
+                    {
+                        convertedFile.writeInt(convertedLengthAt, convertedLength + length);
+                        convertedFile.writeBytes(convertedValueLimit, buffer, index, length);
+                        convertedFile.writeInt(convertedValueLimit + length, convertedPadding - length);
+                    }
                 };
 
                 final int valueLength = valueLimit.value - valueMark.value;
