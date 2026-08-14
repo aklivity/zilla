@@ -125,4 +125,14 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/client.sent.json.overlay.required/client",
+        "${app}/client.sent.json.overlay.required/server"
+    })
+    public void shouldRejectJsonMissingOverlayRequiredProperty() throws Exception
+    {
+        k3po.finish();
+    }
 }

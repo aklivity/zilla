@@ -18,6 +18,8 @@ import java.util.function.Function;
 
 public class OverlayConfig extends Config
 {
+    public transient long id;
+
     public final String name;
     public final SchemaConfig schema;
 
