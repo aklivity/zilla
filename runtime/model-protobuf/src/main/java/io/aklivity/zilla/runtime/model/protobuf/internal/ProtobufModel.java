@@ -14,21 +14,27 @@
  */
 package io.aklivity.zilla.runtime.model.protobuf.internal;
 
+import java.util.List;
+
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.Model;
 import io.aklivity.zilla.runtime.engine.model.ModelContext;
+import io.aklivity.zilla.runtime.model.protobuf.ext.ProtobufModelExt;
 
 public class ProtobufModel implements Model
 {
     public static final String NAME = "protobuf";
 
     private final Configuration config;
+    private final List<ProtobufModelExt> exts;
 
     public ProtobufModel(
-        Configuration config)
+        Configuration config,
+        List<ProtobufModelExt> exts)
     {
         this.config = config;
+        this.exts = exts;
     }
 
     @Override
@@ -41,6 +47,6 @@ public class ProtobufModel implements Model
     public ModelContext supply(
         EngineContext context)
     {
-        return new ProtobufModelContext(config, context);
+        return new ProtobufModelContext(config, context, exts);
     }
 }

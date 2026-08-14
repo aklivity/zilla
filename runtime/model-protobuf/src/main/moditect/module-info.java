@@ -21,6 +21,10 @@ module io.aklivity.zilla.runtime.model.protobuf
 
     requires io.aklivity.zilla.config.model.protobuf;
 
+    exports io.aklivity.zilla.runtime.model.protobuf.ext;
+
+    uses io.aklivity.zilla.runtime.model.protobuf.ext.ProtobufModelExtFactorySpi;
+
     provides io.aklivity.zilla.runtime.engine.model.ModelFactorySpi
         with io.aklivity.zilla.runtime.model.protobuf.internal.ProtobufModelFactorySpi;
 

@@ -19,6 +19,8 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.util.List;
+
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -119,7 +121,7 @@ public class ProtobufModelEncoderPipelineBM
             .build();
         EngineContext context = mock(EngineContext.class);
         when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
-        return new ProtobufModelHandlerImpl(model, context);
+        return new ProtobufModelHandlerImpl(model, context, List.of());
     }
 
     public static void main(

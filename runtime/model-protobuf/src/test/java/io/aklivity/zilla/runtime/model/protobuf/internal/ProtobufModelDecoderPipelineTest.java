@@ -24,6 +24,7 @@ import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayOutputStream;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.junit.Before;
@@ -36,6 +37,8 @@ import io.aklivity.zilla.config.model.protobuf.ProtobufModelConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufSchema;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufTransformable;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.ModelController;
 import io.aklivity.zilla.runtime.engine.model.ModelEvent;
@@ -46,6 +49,8 @@ import io.aklivity.zilla.runtime.engine.model.ModelSource;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.TestCatalogHandler;
+import io.aklivity.zilla.runtime.model.protobuf.ext.ProtobufModelExtContext;
+import io.aklivity.zilla.runtime.model.protobuf.ext.ProtobufModelExtHandler;
 
 public class ProtobufModelDecoderPipelineTest
 {
@@ -177,7 +182,7 @@ public class ProtobufModelDecoderPipelineTest
                     .build()
                 .build()
             .build();
-        ProtobufModelHandlerImpl handler = new ProtobufModelHandlerImpl(model, context);
+        ProtobufModelHandlerImpl handler = new ProtobufModelHandlerImpl(model, context, List.of());
 
         Map<String, String> extracted = new HashMap<>();
         ModelPipeline pipeline = handler.supplyDecoder(observer(extracted));
@@ -271,8 +276,29 @@ public class ProtobufModelDecoderPipelineTest
         assertFalse(pipeline.identity());
     }
 
+    @Test
+    public void shouldIncludeExtensionPaddingContribution()
+    {
+        ProtobufModelHandlerImpl baseline = newHandler("json", List.of());
+        ProtobufModelHandlerImpl extended = newHandler("json", List.of(expandingExt(64)));
+
+        int basePadding = baseline.supplyDecoder(ModelTransform.NONE)
+            .padding(new UnsafeBufferEx(WIRE), 0, WIRE.length);
+        int extPadding = extended.supplyDecoder(ModelTransform.NONE)
+            .padding(new UnsafeBufferEx(WIRE), 0, WIRE.length);
+
+        assertEquals(basePadding + 64, extPadding);
+    }
+
     private ProtobufModelHandlerImpl newHandler(
         String view)
+    {
+        return newHandler(view, List.of());
+    }
+
+    private ProtobufModelHandlerImpl newHandler(
+        String view,
+        List<ProtobufModelExtContext> exts)
     {
         TestCatalogConfig catalog = GenericCatalogConfig.builder(TestCatalogConfig::new)
             .namespace("test")
@@ -299,7 +325,28 @@ public class ProtobufModelDecoderPipelineTest
                 .build()
             .build();
         when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
-        return new ProtobufModelHandlerImpl(model, context);
+        return new ProtobufModelHandlerImpl(model, context, exts);
+    }
+
+    private static ProtobufModelExtContext expandingExt(
+        int padding)
+    {
+        return (schema, config) -> new ProtobufModelExtHandler()
+        {
+            @Override
+            public ProtobufTransformable transform(
+                ProtobufTransformable stream)
+            {
+                return stream;
+            }
+
+            @Override
+            public int padding(
+                ProtobufSchema schema)
+            {
+                return padding;
+            }
+        };
     }
 
     private static byte[] concat(

@@ -15,10 +15,15 @@
 package io.aklivity.zilla.runtime.model.protobuf.internal;
 
 import java.net.URL;
+import java.util.List;
+import java.util.ServiceLoader;
 
+import io.aklivity.zilla.config.engine.factory.Factory;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.model.Model;
 import io.aklivity.zilla.runtime.engine.model.ModelFactorySpi;
+import io.aklivity.zilla.runtime.model.protobuf.ext.ProtobufModelExt;
+import io.aklivity.zilla.runtime.model.protobuf.ext.ProtobufModelExtFactorySpi;
 
 public final class ProtobufModelFactorySpi implements ModelFactorySpi
 {
@@ -37,6 +42,10 @@ public final class ProtobufModelFactorySpi implements ModelFactorySpi
     public Model create(
         Configuration config)
     {
-        return new ProtobufModel(config);
+        List<ProtobufModelExt> exts = Factory.instantiate(ServiceLoader.load(ProtobufModelExtFactorySpi.class))
+            .stream()
+            .map(spi -> spi.create(config))
+            .toList();
+        return new ProtobufModel(config, exts);
     }
 }

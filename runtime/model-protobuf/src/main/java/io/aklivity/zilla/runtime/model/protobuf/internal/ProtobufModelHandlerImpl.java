@@ -18,6 +18,7 @@ import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_
 import static java.util.Objects.requireNonNull;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.agrona.collections.Int2ObjectCache;
@@ -32,6 +33,7 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufParser;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufPipeline;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufReporter;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSchema;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufStream;
 import io.aklivity.zilla.runtime.common.protobuf.json.ProtobufJson;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
@@ -39,6 +41,7 @@ import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
+import io.aklivity.zilla.runtime.model.protobuf.ext.ProtobufModelExtContext;
 
 // Per-worker factory for a protobuf model. One handler serves both directions: supplyDecoder vends a
 // per-stream ProtobufModelDecoderPipeline (catalog framing and message-index prefix stripped, value validated and
@@ -56,16 +59,21 @@ public final class ProtobufModelHandlerImpl extends ProtobufModelHandler impleme
     // so resolving it is cached exactly like supplySchema/supplyIndexPadding rather than re-derived (and
     // defensively re-cloned by ProtobufSchema.messageIndexes) on every encode call
     private final Int2ObjectCache<int[]> messagePaths;
+    private final ProtobufModelConfig options;
+    private final List<ProtobufModelExtContext> exts;
 
     public ProtobufModelHandlerImpl(
         ProtobufModelConfig config,
-        EngineContext context)
+        EngineContext context,
+        List<ProtobufModelExtContext> exts)
     {
         super(config, context);
         this.jsonConfig = new HashMap<>();
         jsonConfig.put(ProtobufJson.FIELD_NAMES, ProtobufJson.FieldNames.PROTO);
         jsonConfig.put(ProtobufJson.INCLUDE_DEFAULTS, Boolean.TRUE);
         this.messagePaths = new Int2ObjectCache<>(1, 1024, i -> {});
+        this.options = config;
+        this.exts = exts;
     }
 
     @Override
@@ -87,10 +95,26 @@ public final class ProtobufModelHandlerImpl extends ProtobufModelHandler impleme
         int index,
         int length)
     {
-        int padding = handler.decodePadding(data, index, length);
+        int schemaId = resolveSchemaId(data, index, length);
+        int padding = handler.decodePadding(data, index, length) + supplyExtPadding(schemaId);
         if (VIEW_JSON.equals(view))
         {
-            padding += supplyJsonFormatPadding(resolveSchemaId(data, index, length));
+            padding += supplyJsonFormatPadding(schemaId);
+        }
+        return padding;
+    }
+
+    @Override
+    protected int extPadding(
+        ProtobufSchema schema)
+    {
+        int padding = 0;
+        if (schema != null)
+        {
+            for (ProtobufModelExtContext ext : exts)
+            {
+                padding += ext.supplyHandler(schema, options).padding(schema);
+            }
         }
         return padding;
     }
@@ -232,12 +256,12 @@ public final class ProtobufModelHandlerImpl extends ProtobufModelHandler impleme
                 ? ProtobufJson.generator(JsonEx.createGenerator(), schema, messageName, jsonConfig)
                 : Protobuf.generator();
             pipeline = extractor != null
-                ? Protobuf.stream(Protobuf.parser(schema, messageName))
+                ? extend(Protobuf.stream(Protobuf.parser(schema, messageName)), schema)
                     .transform(extractor)
                     .lenient(lenient)
                     .reporting(reporter)
                     .into(generator, schema, messageName)
-                : Protobuf.stream(Protobuf.parser(schema, messageName))
+                : extend(Protobuf.stream(Protobuf.parser(schema, messageName)), schema)
                     .lenient(lenient)
                     .reporting(reporter)
                     .into(generator, schema, messageName);
@@ -257,6 +281,9 @@ public final class ProtobufModelHandlerImpl extends ProtobufModelHandler impleme
         {
             // a json view parses JSON into the wire message; any other view re-encodes the incoming wire value,
             // validating it against the schema in both cases
+            //
+            // model extensions are decode-only: encode is the write path into the broker, which must
+            // keep the source of truth intact, so extensions never fold into the encoder stream here
             ProtobufParser parser = VIEW_JSON.equals(view)
                 ? ProtobufJson.parser(JsonEx.createParser(), schema, messageName,
                     Map.of(ProtobufJson.REJECT_UNKNOWN_FIELDS, Boolean.TRUE))
@@ -267,6 +294,21 @@ public final class ProtobufModelHandlerImpl extends ProtobufModelHandler impleme
                 .into(Protobuf.generator(), schema, messageName);
         }
         return pipeline;
+    }
+
+    // folds every installed protobuf model extension's own stage(s) into the decoder stream, in discovery
+    // order, ahead of this handler's own extractor stage; decode is the read path out of the broker, where
+    // a read-side concern like disclosure redaction belongs
+    private ProtobufStream extend(
+        ProtobufStream stream,
+        ProtobufSchema schema)
+    {
+        ProtobufStream extended = stream;
+        for (ProtobufModelExtContext ext : exts)
+        {
+            extended = (ProtobufStream) ext.supplyHandler(schema, options).transform(extended);
+        }
+        return extended;
     }
 
     void validationFailure(
