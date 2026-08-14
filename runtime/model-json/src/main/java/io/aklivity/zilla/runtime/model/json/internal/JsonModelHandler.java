@@ -68,13 +68,25 @@ public abstract class JsonModelHandler
         this.event = new JsonModelEventContext(context);
     }
 
+    // avoids computeIfAbsent: a capturing lambda argument is allocated fresh on every call, hit or
+    // miss, so this checks the cache directly instead (see ProtobufModelHandler.supplySchema)
     protected JsonSchema supplySchema(
         int schemaId)
     {
         int overlaySchemaId = overlayHandler != null
             ? overlayHandler.resolve(overlaySubject, overlayVersion)
             : NO_SCHEMA_ID;
-        return schemas.computeIfAbsent(cacheKey(schemaId, overlaySchemaId), key -> resolveSchema(schemaId, overlaySchemaId));
+        long key = cacheKey(schemaId, overlaySchemaId);
+        JsonSchema schema = schemas.get(key);
+        if (schema == null)
+        {
+            schema = resolveSchema(schemaId, overlaySchemaId);
+            if (schema != null)
+            {
+                schemas.put(key, schema);
+            }
+        }
+        return schema;
     }
 
     private static long cacheKey(
