@@ -336,6 +336,9 @@ final class TestBindingFactory implements BindingHandler
         private long pendingTraceId;
         private boolean storeAssertionsStarted;
         private final ModelPipeline valuePipeline;
+        // mirrors valuePipeline for the opposite direction: a real binding decodes on read (reply) and
+        // encodes on write (initial), so this test binding applies the same configured model both ways
+        private final ModelPipeline replyPipeline;
 
         private TestSource(
             MessageConsumer source,
@@ -352,6 +355,7 @@ final class TestBindingFactory implements BindingHandler
             this.replyId = replyId;
             this.target = resolvedId != 0L ? new TestTarget(routedId, resolvedId) : null;
             this.valuePipeline = valueModel != null ? valueModel.supplyEncoder() : null;
+            this.replyPipeline = valueModel != null ? valueModel.supplyDecoder() : null;
         }
 
         private void doAuthorize(
@@ -901,7 +905,8 @@ final class TestBindingFactory implements BindingHandler
             }
             else
             {
-                int total = transform(traceId, authorization, payload.buffer(), payload.offset(), payload.limit());
+                int total = transform(valuePipeline, traceId, authorization,
+                    payload.buffer(), payload.offset(), payload.limit());
                 if (total < 0)
                 {
                     target.doInitialAbort(traceId);
@@ -915,6 +920,7 @@ final class TestBindingFactory implements BindingHandler
         }
 
         private int transform(
+            ModelPipeline pipeline,
             long traceId,
             long authorization,
             DirectBufferEx data,
@@ -927,7 +933,7 @@ final class TestBindingFactory implements BindingHandler
             boolean done = false;
             while (!done)
             {
-                final ModelPipelineResult result = valuePipeline.transform(traceId, routedId, authorization, flags,
+                final ModelPipelineResult result = pipeline.transform(traceId, routedId, authorization, flags,
                         data, srcAt, limit, modelBuffer, total, modelBuffer.capacity());
                 final ModelStatus status = result.status();
 
@@ -952,7 +958,7 @@ final class TestBindingFactory implements BindingHandler
                 }
             }
 
-            valuePipeline.reset();
+            pipeline.reset();
             return total;
         }
 
@@ -1235,13 +1241,31 @@ final class TestBindingFactory implements BindingHandler
             {
                 long sequence = data.sequence();
                 long traceId = data.traceId();
+                long authorization = data.authorization();
                 int reserved = data.reserved();
                 int flags = data.flags();
                 OctetsFW payload = data.payload();
 
                 replySeq = sequence + reserved;
 
-                source.doReplyData(traceId, flags, reserved, payload);
+                if (source.replyPipeline == null)
+                {
+                    source.doReplyData(traceId, flags, reserved, payload);
+                }
+                else
+                {
+                    int total = source.transform(source.replyPipeline, traceId, authorization,
+                        payload.buffer(), payload.offset(), payload.limit());
+                    if (total < 0)
+                    {
+                        source.doReplyAbort(traceId);
+                    }
+                    else
+                    {
+                        OctetsFW transformed = octetsRO.wrap(modelBuffer, 0, total);
+                        source.doReplyData(traceId, flags, total, transformed);
+                    }
+                }
             }
 
             private void onReplyEnd(
