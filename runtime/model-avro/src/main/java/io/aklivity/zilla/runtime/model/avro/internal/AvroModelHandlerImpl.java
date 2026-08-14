@@ -17,6 +17,8 @@ package io.aklivity.zilla.runtime.model.avro.internal;
 import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_ID;
 import static java.util.Objects.requireNonNull;
 
+import java.util.List;
+
 import io.aklivity.zilla.config.model.avro.AvroModelConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
@@ -25,6 +27,7 @@ import io.aklivity.zilla.runtime.common.avro.AvroGenerator;
 import io.aklivity.zilla.runtime.common.avro.AvroPipeline;
 import io.aklivity.zilla.runtime.common.avro.AvroReporter;
 import io.aklivity.zilla.runtime.common.avro.AvroSchema;
+import io.aklivity.zilla.runtime.common.avro.AvroStream;
 import io.aklivity.zilla.runtime.common.avro.AvroTransform;
 import io.aklivity.zilla.runtime.common.avro.json.AvroJson;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
@@ -35,6 +38,7 @@ import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
+import io.aklivity.zilla.runtime.model.avro.ext.AvroModelExtContext;
 
 // Per-worker factory for an Avro model. One handler serves both directions: supplyDecoder vends a
 // per-stream AvroModelDecoderPipeline (catalog framing stripped, value validated and re-encoded) and supplyEncoder
@@ -46,12 +50,18 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
     private static final CatalogHandler.Encoder NONE_ENCODER =
         (traceId, bindingId, schemaId, data, index, length, next) -> 0;
 
+    private final AvroModelConfig options;
+    private final List<AvroModelExtContext> exts;
+
     public AvroModelHandlerImpl(
         AvroModelConfiguration config,
         AvroModelConfig options,
-        EngineContext context)
+        EngineContext context,
+        List<AvroModelExtContext> exts)
     {
         super(config, options, context);
+        this.options = options;
+        this.exts = exts;
     }
 
     @Override
@@ -147,7 +157,7 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
             AvroGenerator generator = VIEW_JSON.equals(view)
                 ? AvroJson.generator(schema, json, true)
                 : Avro.generator(schema, new UnsafeBufferEx(new byte[1]), 0);
-            pipeline = Avro.stream(Avro.parser(schema))
+            pipeline = extend(Avro.stream(Avro.parser(schema)), schema)
                 .transform(adapter)
                 .lenient(lenient)
                 .reporting(reporter)
@@ -169,15 +179,34 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
             // a json view parses JSON input and re-encodes it as Avro binary; any other view validates
             // Avro binary input and reproduces it, so a malformed datum yields a binary "truncated datum"
             // diagnostic rather than a JSON parse failure
-            pipeline = (VIEW_JSON.equals(view)
+            //
+            // model extensions are decode-only: encode is the write path into the broker, which must
+            // keep the source of truth intact, so extensions never fold into the encoder stream here
+            AvroStream stream = VIEW_JSON.equals(view)
                 ? AvroJson.stream(schema, JsonEx.createParser(), true)
-                : Avro.stream(Avro.parser(schema)))
+                : Avro.stream(Avro.parser(schema));
+            pipeline = stream
                 .transform(adapter)
                 .lenient(lenient)
                 .reporting(reporter)
                 .into(Avro.generator(schema, new UnsafeBufferEx(new byte[1]), 0));
         }
         return pipeline;
+    }
+
+    // folds every installed avro model extension's own stage(s) into the decoder stream, in discovery
+    // order, ahead of this handler's own adapter stage; decode is the read path out of the broker, where
+    // a read-side concern like disclosure redaction belongs
+    private AvroStream extend(
+        AvroStream stream,
+        AvroSchema schema)
+    {
+        AvroStream extended = stream;
+        for (AvroModelExtContext ext : exts)
+        {
+            extended = (AvroStream) ext.supplyHandler(schema, options).transform(extended);
+        }
+        return extended;
     }
 
     void validationFailure(

@@ -34,7 +34,7 @@ public final class TestModelExtInfo implements ModelExtInfo
     @Override
     public URL schema()
     {
-        return null;
+        return getClass().getResource("testext.schema.patch.json");
     }
 
     @Override

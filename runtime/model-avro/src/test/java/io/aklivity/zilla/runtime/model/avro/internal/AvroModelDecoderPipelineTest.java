@@ -23,6 +23,7 @@ import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayOutputStream;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.junit.Before;
@@ -246,7 +247,7 @@ public class AvroModelDecoderPipelineTest
                 .build()
             .build();
         when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
-        return new AvroModelHandlerImpl(config, model, context);
+        return new AvroModelHandlerImpl(config, model, context, List.of());
     }
 
     private static byte[] concat(

@@ -104,6 +104,8 @@ final class TestBindingFactory implements BindingHandler
     private final ChallengeFW challengeRO = new ChallengeFW();
     private final ChallengeFW.Builder challengeRW = new ChallengeFW.Builder();
 
+    private final OctetsFW octetsRO = new OctetsFW();
+
     private final Configuration config;
     private final EngineContext context;
     private final TestEventContext event;
@@ -893,14 +895,22 @@ final class TestBindingFactory implements BindingHandler
 
             initialSeq = sequence + reserved;
 
-            if (valuePipeline != null &&
-                transform(traceId, authorization, payload.buffer(), payload.offset(), payload.limit()) < 0)
+            if (valuePipeline == null)
             {
-                target.doInitialAbort(traceId);
+                target.doInitialData(traceId, flags, reserved, payload);
             }
             else
             {
-                target.doInitialData(traceId, flags, reserved, payload);
+                int total = transform(traceId, authorization, payload.buffer(), payload.offset(), payload.limit());
+                if (total < 0)
+                {
+                    target.doInitialAbort(traceId);
+                }
+                else
+                {
+                    OctetsFW transformed = octetsRO.wrap(modelBuffer, 0, total);
+                    target.doInitialData(traceId, flags, total, transformed);
+                }
             }
         }
 

@@ -213,7 +213,7 @@ public class KafkaAvroPipelineBM
                 .build()
             .build();
         EngineContext context = new KafkaModelWorker(new TestCatalogHandler(catalog.options));
-        return new AvroModelHandlerImpl(config, model, context);
+        return new AvroModelHandlerImpl(config, model, context, List.of());
     }
 
     // Avro strings are length-prefixed with a zigzag varint; every fixture value here is under 64 bytes,

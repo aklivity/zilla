@@ -146,8 +146,7 @@
                 "required":
                 [
                     "catalog"
-                ],
-                "additionalProperties": false
+                ]
             }
         }
     }

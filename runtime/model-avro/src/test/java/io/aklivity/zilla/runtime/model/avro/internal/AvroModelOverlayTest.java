@@ -19,6 +19,8 @@ import static org.junit.Assert.assertNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.util.List;
+
 import jakarta.json.JsonValue;
 
 import org.junit.Before;
@@ -165,7 +167,7 @@ public class AvroModelOverlayTest
         when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
         when(context.supplyCatalog(10L)).thenReturn(overlayHandler);
 
-        return new AvroModelHandlerImpl(config, model, context);
+        return new AvroModelHandlerImpl(config, model, context, List.of());
     }
 
     private static final class MovingOverlayCatalogHandler implements CatalogHandler

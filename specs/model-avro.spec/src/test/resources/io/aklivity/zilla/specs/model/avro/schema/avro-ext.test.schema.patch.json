@@ -1,0 +1,29 @@
+[
+    {
+        "op": "add",
+        "path": "/$defs/models/model/allOf/-",
+        "value":
+        {
+            "if":
+            {
+                "properties":
+                {
+                    "model":
+                    {
+                        "const": "avro"
+                    }
+                }
+            },
+            "then":
+            {
+                "properties":
+                {
+                    "extra":
+                    {
+                        "type": "boolean"
+                    }
+                }
+            }
+        }
+    }
+]
