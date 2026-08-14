@@ -331,4 +331,5 @@ public class AvroModelConfigAdapterTest
         // THEN
         assertThat(json, not(containsString("validate")));
     }
+
 }

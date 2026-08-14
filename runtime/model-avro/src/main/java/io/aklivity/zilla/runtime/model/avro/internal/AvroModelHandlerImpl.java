@@ -179,10 +179,13 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
             // a json view parses JSON input and re-encodes it as Avro binary; any other view validates
             // Avro binary input and reproduces it, so a malformed datum yields a binary "truncated datum"
             // diagnostic rather than a JSON parse failure
+            //
+            // model extensions are decode-only: encode is the write path into the broker, which must
+            // keep the source of truth intact, so extensions never fold into the encoder stream here
             AvroStream stream = VIEW_JSON.equals(view)
                 ? AvroJson.stream(schema, JsonEx.createParser(), true)
                 : Avro.stream(Avro.parser(schema));
-            pipeline = extend(stream, schema)
+            pipeline = stream
                 .transform(adapter)
                 .lenient(lenient)
                 .reporting(reporter)
@@ -191,8 +194,9 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
         return pipeline;
     }
 
-    // folds every installed avro model extension's own stage(s) into the stream, in discovery order, ahead
-    // of this handler's own adapter stage
+    // folds every installed avro model extension's own stage(s) into the decoder stream, in discovery
+    // order, ahead of this handler's own adapter stage; decode is the read path out of the broker, where
+    // a read-side concern like disclosure redaction belongs
     private AvroStream extend(
         AvroStream stream,
         AvroSchema schema)
