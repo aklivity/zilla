@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.model.avro.ext;
 
+import io.aklivity.zilla.runtime.common.avro.AvroSchema;
 import io.aklivity.zilla.runtime.common.avro.AvroTransformable;
 
 /**
@@ -31,4 +32,19 @@ public interface AvroModelExtHandler
      */
     AvroTransformable transform(
         AvroTransformable stream);
+
+    /**
+     * Returns the maximum number of additional bytes this extension's transform may add to a decoded
+     * value of {@code schema}, beyond what the untransformed value would occupy — for example, a
+     * substitute value whose length does not derive from the original field's length. A caller sizing a
+     * buffer to hold the transformed output adds this to its own estimate.
+     *
+     * @param schema  the resolved schema
+     * @return the additional byte count (0 if this extension's transform never expands a value)
+     */
+    default int padding(
+        AvroSchema schema)
+    {
+        return 0;
+    }
 }

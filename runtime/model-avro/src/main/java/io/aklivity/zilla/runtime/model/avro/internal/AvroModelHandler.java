@@ -62,6 +62,7 @@ public abstract class AvroModelHandler
 
     private final Long2ObjectCache<AvroSchema> schemas;
     private final Int2IntHashMap paddings;
+    private final Int2IntHashMap extPaddings;
     private final int paddingMaxItems;
 
     protected AvroModelHandler(
@@ -84,6 +85,7 @@ public abstract class AvroModelHandler
         this.encodeLenient = options.validate.encode == ValidateMode.LENIENT;
         this.schemas = new Long2ObjectCache<>(1, 1024, i -> {});
         this.paddings = new Int2IntHashMap(-1);
+        this.extPaddings = new Int2IntHashMap(-1);
         this.event = new AvroModelEventContext(context);
         this.paddingMaxItems = config.paddingMaxItems();
     }
@@ -124,6 +126,20 @@ public abstract class AvroModelHandler
             AvroSchema schema = supplySchema(id);
             return calculatePadding(schema != null ? schema.type() : null);
         });
+    }
+
+    protected final int supplyExtPadding(
+        int schemaId)
+    {
+        return extPaddings.computeIfAbsent(schemaId, id -> extPadding(supplySchema(id)));
+    }
+
+    // overridden by AvroModelHandlerImpl to sum the padding contributed by each installed model extension;
+    // the base (encoder) handler never installs extensions, so this stays 0 there
+    protected int extPadding(
+        AvroSchema schema)
+    {
+        return 0;
     }
 
     private AvroSchema resolveSchema(

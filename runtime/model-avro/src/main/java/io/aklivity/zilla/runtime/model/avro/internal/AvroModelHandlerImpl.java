@@ -83,10 +83,26 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
         int index,
         int length)
     {
-        int padding = handler.decodePadding(data, index, length);
+        int schemaId = resolveSchemaId(data, index, length);
+        int padding = handler.decodePadding(data, index, length) + supplyExtPadding(schemaId);
         if (VIEW_JSON.equals(view))
         {
-            padding += supplyPadding(resolveSchemaId(data, index, length));
+            padding += supplyPadding(schemaId);
+        }
+        return padding;
+    }
+
+    @Override
+    protected int extPadding(
+        AvroSchema schema)
+    {
+        int padding = 0;
+        if (schema != null)
+        {
+            for (AvroModelExtContext ext : exts)
+            {
+                padding += ext.supplyHandler(schema, options).padding(schema);
+            }
         }
         return padding;
     }
