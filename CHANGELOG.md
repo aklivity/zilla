@@ -1,5 +1,28 @@
 # Changelog
 
+## [2.3.0](https://github.com/aklivity/zilla/tree/2.3.0) (2026-08-14)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/2.2.3...2.3.0)
+
+**Closed issues:**
+
+- Extend vault SPI with KMS encryption operations [\#1678](https://github.com/aklivity/zilla/issues/1678) ([jfallows](https://github.com/jfallows))
+- Add SecretKeyEntry encryption key support to filesystem vault [\#1679](https://github.com/aklivity/zilla/issues/1679) ([jfallows](https://github.com/jfallows))
+- common-protobuf: support method- and field-level options overlay for FileDescriptorSet [\#2279](https://github.com/aklivity/zilla/issues/2279) ([jfallows](https://github.com/jfallows))
+- engine: add per-message authorization to ModelPipeline.transform [\#2310](https://github.com/aklivity/zilla/issues/2310) ([jfallows](https://github.com/jfallows))
+- Consolidate overlay: config across binding-openapi, binding-asyncapi, binding-openapi-asyncapi, binding-mcp-openapi; reposition as a peer of subject/version [\#2365](https://github.com/aklivity/zilla/issues/2365) ([jfallows](https://github.com/jfallows))
+- Unused jakarta.json.bind module dependency in binding-openapi.conf/binding-asyncapi.conf/binding-openapi-asyncapi.conf [\#2372](https://github.com/aklivity/zilla/issues/2372) ([jfallows](https://github.com/jfallows))
+
+**Merged pull requests:**
+
+- feat\(engine\): extend VaultHandler SPI with wrap/unwrap KMS operations [\#2367](https://github.com/aklivity/zilla/pull/2367) ([jfallows](https://github.com/jfallows))
+- feat\(common-avro,common-json,common-protobuf\): retain and expose field-level schema annotations [\#2368](https://github.com/aklivity/zilla/pull/2368) ([jfallows](https://github.com/jfallows))
+- feat\(engine\): add per-message authorization to ModelPipeline.transform [\#2369](https://github.com/aklivity/zilla/pull/2369) ([jfallows](https://github.com/jfallows))
+- feat\(config\): reposition overlay as peer of subject/version, share one implementation [\#2370](https://github.com/aklivity/zilla/pull/2370) ([jfallows](https://github.com/jfallows))
+- feat\(vault-filesystem\): add SecretKeyEntry encryption key support [\#2371](https://github.com/aklivity/zilla/pull/2371) ([jfallows](https://github.com/jfallows))
+- fix\(config\): remove unused jakarta.json.bind dependency from openapi/asyncapi bindings [\#2373](https://github.com/aklivity/zilla/pull/2373) ([jfallows](https://github.com/jfallows))
+- feat\(common-protobuf\): support method- and field-level options overlay [\#2374](https://github.com/aklivity/zilla/pull/2374) ([jfallows](https://github.com/jfallows))
+
 ## [2.2.3](https://github.com/aklivity/zilla/tree/2.2.3) (2026-08-13)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/2.2.2...2.2.3)
