@@ -36,7 +36,9 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufEnum;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufException;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufField;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufMessage;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufMethod;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSchema;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufService;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufType;
 import io.aklivity.zilla.runtime.common.protobuf.internal.parser.Protobuf2BaseListener;
 import io.aklivity.zilla.runtime.common.protobuf.internal.parser.Protobuf2Lexer;
@@ -140,7 +142,45 @@ public final class ProtobufSourceCompiler
             }
             schema.message(builder.build());
         }
+        for (DraftService service : draft.services)
+        {
+            ProtobufService.Builder builder = ProtobufService.builder(service.fullName);
+            for (DraftMethod method : service.methods)
+            {
+                builder.method(linkMethod(method, names));
+            }
+            schema.service(builder.build());
+        }
         return schema.build();
+    }
+
+    private ProtobufMethod linkMethod(
+        DraftMethod method,
+        Set<String> names)
+    {
+        String inputType = resolveTypeName(method.inputTypeToken, method.scope, names);
+        if (inputType == null)
+        {
+            throw new ProtobufException("unresolved type " + method.inputTypeToken);
+        }
+        String outputType = resolveTypeName(method.outputTypeToken, method.scope, names);
+        if (outputType == null)
+        {
+            throw new ProtobufException("unresolved type " + method.outputTypeToken);
+        }
+
+        ProtobufMethod.Builder builder = ProtobufMethod.builder()
+            .name(method.name)
+            .inputType(inputType)
+            .outputType(outputType)
+            .clientStreaming(method.clientStreaming)
+            .serverStreaming(method.serverStreaming);
+        if (method.options != null)
+        {
+            builder.options(method.options);
+        }
+
+        return builder.build();
     }
 
     private ProtobufField linkField(
@@ -256,6 +296,7 @@ public final class ProtobufSourceCompiler
         private final boolean proto3;
         private final List<DraftMessage> messages;
         private final List<DraftEnum> enums;
+        private final List<DraftService> services;
         private final Set<String> enumNames;
         private String packageName;
 
@@ -265,6 +306,7 @@ public final class ProtobufSourceCompiler
             this.proto3 = proto3;
             this.messages = new ArrayList<>();
             this.enums = new ArrayList<>();
+            this.services = new ArrayList<>();
             this.enumNames = new LinkedHashSet<>();
             this.packageName = "";
         }
@@ -318,12 +360,37 @@ public final class ProtobufSourceCompiler
         private Map<String, ProtobufConstant> options;
     }
 
+    private static final class DraftService
+    {
+        private final String fullName;
+        private final List<DraftMethod> methods;
+
+        private DraftService(
+            String fullName)
+        {
+            this.fullName = fullName;
+            this.methods = new ArrayList<>();
+        }
+    }
+
+    private static final class DraftMethod
+    {
+        private String name;
+        private String scope;
+        private String inputTypeToken;
+        private String outputTypeToken;
+        private boolean clientStreaming;
+        private boolean serverStreaming;
+        private Map<String, ProtobufConstant> options;
+    }
+
     private static final class Assembler
     {
         private final Draft draft;
         private final Deque<String> scope;
         private final Deque<DraftMessage> messages;
         private String oneof;
+        private DraftService service;
 
         private Assembler(
             Draft draft)
@@ -432,6 +499,25 @@ public final class ProtobufSourceCompiler
         private boolean inMessage()
         {
             return !messages.isEmpty();
+        }
+
+        private void enterService(
+            String name)
+        {
+            service = new DraftService(qualify(name));
+            draft.services.add(service);
+        }
+
+        private void exitService()
+        {
+            service = null;
+        }
+
+        private void addMethod(
+            DraftMethod method)
+        {
+            method.scope = currentScope();
+            service.methods.add(method);
         }
     }
 
@@ -546,6 +632,48 @@ public final class ProtobufSourceCompiler
                 }
             }
             helper.addEnum(ctx.enumName().getText(), valueNames, valueNumbers);
+        }
+
+        @Override
+        public void enterServiceDef(
+            Protobuf3Parser.ServiceDefContext ctx)
+        {
+            helper.enterService(ctx.serviceName().getText());
+        }
+
+        @Override
+        public void exitServiceDef(
+            Protobuf3Parser.ServiceDefContext ctx)
+        {
+            helper.exitService();
+        }
+
+        @Override
+        public void enterRpc(
+            Protobuf3Parser.RpcContext ctx)
+        {
+            DraftMethod method = new DraftMethod();
+            method.name = ctx.rpcName().getText();
+            method.inputTypeToken = ctx.messageType(0).getText();
+            method.outputTypeToken = ctx.messageType(1).getText();
+            method.clientStreaming = ctx.clientStreaming != null;
+            method.serverStreaming = ctx.serverStreaming != null;
+            applyMethodOptions(method, ctx.optionStatement());
+            helper.addMethod(method);
+        }
+
+        private void applyMethodOptions(
+            DraftMethod method,
+            List<Protobuf3Parser.OptionStatementContext> statements)
+        {
+            if (!statements.isEmpty())
+            {
+                method.options = new LinkedHashMap<>();
+                for (Protobuf3Parser.OptionStatementContext option : statements)
+                {
+                    method.options.put(option.optionName().getText(), toConstant(option.constant()));
+                }
+            }
         }
 
         private void applyOptions(
@@ -744,6 +872,48 @@ public final class ProtobufSourceCompiler
                 }
             }
             helper.addEnum(ctx.enumName().getText(), valueNames, valueNumbers);
+        }
+
+        @Override
+        public void enterServiceDef(
+            Protobuf2Parser.ServiceDefContext ctx)
+        {
+            helper.enterService(ctx.serviceName().getText());
+        }
+
+        @Override
+        public void exitServiceDef(
+            Protobuf2Parser.ServiceDefContext ctx)
+        {
+            helper.exitService();
+        }
+
+        @Override
+        public void enterRpc(
+            Protobuf2Parser.RpcContext ctx)
+        {
+            DraftMethod method = new DraftMethod();
+            method.name = ctx.rpcName().getText();
+            method.inputTypeToken = ctx.messageType(0).getText();
+            method.outputTypeToken = ctx.messageType(1).getText();
+            method.clientStreaming = ctx.clientStreaming != null;
+            method.serverStreaming = ctx.serverStreaming != null;
+            applyMethodOptions(method, ctx.optionStatement());
+            helper.addMethod(method);
+        }
+
+        private void applyMethodOptions(
+            DraftMethod method,
+            List<Protobuf2Parser.OptionStatementContext> statements)
+        {
+            if (!statements.isEmpty())
+            {
+                method.options = new LinkedHashMap<>();
+                for (Protobuf2Parser.OptionStatementContext option : statements)
+                {
+                    method.options.put(option.optionName().getText(), toConstant(option.constant()));
+                }
+            }
         }
 
         private void applyOptions(
