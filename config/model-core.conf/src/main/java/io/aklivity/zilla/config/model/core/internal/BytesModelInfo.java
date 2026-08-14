@@ -23,9 +23,9 @@ import io.aklivity.zilla.config.engine.ModelConfig;
 import io.aklivity.zilla.config.engine.ModelExtInfo;
 import io.aklivity.zilla.config.engine.ModelInfo;
 
-public final class StringModelInfo implements ModelInfo
+public final class BytesModelInfo implements ModelInfo
 {
-    public static final String TYPE = "string";
+    public static final String TYPE = "bytes";
 
     @Override
     public String type()
@@ -36,12 +36,12 @@ public final class StringModelInfo implements ModelInfo
     @Override
     public URL schema()
     {
-        return getClass().getResource("schema/string.schema.patch.json");
+        return getClass().getResource("schema/bytes.schema.patch.json");
     }
 
     @Override
     public ConfigAdapter<ModelConfig, JsonValue> adapter()
     {
-        return new StringModelConfigAdapter(extensions().stream().map(ModelExtInfo::adapter).toList());
+        return new BytesModelConfigAdapter(extensions().stream().map(ModelExtInfo::adapter).toList());
     }
 }

@@ -14,35 +14,30 @@
  */
 package io.aklivity.zilla.runtime.model.core.internal;
 
-import java.util.List;
+import java.util.function.Supplier;
 
-import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.model.Model;
-import io.aklivity.zilla.runtime.engine.model.ModelContext;
-import io.aklivity.zilla.runtime.model.core.ext.StringModelExt;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 
-public class StringModel implements Model
+// bytes is opaque: any byte sequence, of any length, is a valid value. There is no field traversal, no
+// schema, and no catalog to validate against, so every fragment is unconditionally VALID.
+final class BytesModelValidator implements CoreModelValidator
 {
-    public static final String NAME = "string";
-
-    private final List<StringModelExt> exts;
-
-    public StringModel(
-        List<StringModelExt> exts)
+    static Supplier<CoreModelValidator> supplier()
     {
-        this.exts = exts;
+        return BytesModelValidator::new;
+    }
+
+    private BytesModelValidator()
+    {
     }
 
     @Override
-    public String name()
+    public Validity validate(
+        int flags,
+        DirectBufferEx data,
+        int index,
+        int length)
     {
-        return NAME;
-    }
-
-    @Override
-    public ModelContext supply(
-        EngineContext context)
-    {
-        return new StringModelContext(context, exts.stream().map(ext -> ext.supply(context)).toList());
+        return Validity.VALID;
     }
 }

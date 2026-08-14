@@ -19,6 +19,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.time.Clock;
+import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -160,6 +161,6 @@ public class StringModelPipelineTest
     private ModelHandler handler(
         StringModelConfig config)
     {
-        return new StringModelContext(context).supplyHandler(config);
+        return new StringModelContext(context, List.of()).supplyHandler(config);
     }
 }

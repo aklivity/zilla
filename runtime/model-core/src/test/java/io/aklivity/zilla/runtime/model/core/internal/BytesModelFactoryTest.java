@@ -25,7 +25,7 @@ import java.util.List;
 import org.junit.Test;
 
 import io.aklivity.zilla.config.engine.ModelConfig;
-import io.aklivity.zilla.config.model.core.StringModelConfig;
+import io.aklivity.zilla.config.model.core.BytesModelConfig;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.Model;
@@ -33,30 +33,44 @@ import io.aklivity.zilla.runtime.engine.model.ModelContext;
 import io.aklivity.zilla.runtime.engine.model.ModelFactory;
 import io.aklivity.zilla.runtime.engine.model.ModelFactorySpi;
 
-public class StringModelFactoryTest
+public class BytesModelFactoryTest
 {
     @Test
     public void shouldCreateReader()
     {
         Configuration config = new Configuration();
         ModelFactory factory = ModelFactory.instantiate();
-        Model model = factory.create("string", config);
+        Model model = factory.create("bytes", config);
 
-        ModelContext context = new StringModelContext(mock(EngineContext.class), List.of());
+        ModelContext context = new BytesModelContext(mock(EngineContext.class), List.of());
 
-        ModelConfig modelConfig = StringModelConfig.builder().encoding("utf_8").build();
+        ModelConfig modelConfig = BytesModelConfig.builder().build();
 
-        assertThat(model, instanceOf(StringModel.class));
+        assertThat(model, instanceOf(BytesModel.class));
         assertThat(context.supplyHandler(modelConfig), instanceOf(CoreModelHandler.class));
     }
 
     @Test
     public void shouldReportTypeAndSchema()
     {
-        ModelFactorySpi spi = new StringModelFactorySpi();
+        ModelFactorySpi spi = new BytesModelFactorySpi();
 
-        assertEquals(StringModel.NAME, spi.type());
+        assertEquals(BytesModel.NAME, spi.type());
         assertNotNull(spi.schema());
-        assertThat(spi.create(new Configuration()), instanceOf(StringModel.class));
+        assertThat(spi.create(new Configuration()), instanceOf(BytesModel.class));
+    }
+
+    @Test
+    public void shouldDiscoverNoExtensionsByDefault()
+    {
+        ModelFactorySpi spi = new BytesModelFactorySpi();
+
+        Model model = spi.create(new Configuration());
+        ModelContext context = model.supply(mock(EngineContext.class));
+
+        // a deployment with zero installed extensions pays nothing for this type: the fold is a no-op
+        // and the model behaves exactly as if the ModelExtFactorySpi didn't exist
+        ModelConfig modelConfig = BytesModelConfig.builder().build();
+        assertThat(context.supplyHandler(modelConfig), instanceOf(CoreModelHandler.class));
     }
 }

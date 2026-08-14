@@ -22,31 +22,31 @@ import io.aklivity.zilla.config.engine.factory.Factory;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.model.Model;
 import io.aklivity.zilla.runtime.engine.model.ModelFactorySpi;
-import io.aklivity.zilla.runtime.model.core.ext.StringModelExt;
-import io.aklivity.zilla.runtime.model.core.ext.StringModelExtFactorySpi;
+import io.aklivity.zilla.runtime.model.core.ext.BytesModelExt;
+import io.aklivity.zilla.runtime.model.core.ext.BytesModelExtFactorySpi;
 
-public final class StringModelFactorySpi implements ModelFactorySpi
+public final class BytesModelFactorySpi implements ModelFactorySpi
 {
     @Override
     public String type()
     {
-        return "string";
+        return BytesModel.NAME;
     }
 
     @Override
     public URL schema()
     {
-        return getClass().getResource("schema/string.schema.patch.json");
+        return getClass().getResource("schema/bytes.schema.patch.json");
     }
 
     @Override
     public Model create(
         Configuration config)
     {
-        List<StringModelExt> exts = Factory.instantiate(ServiceLoader.load(StringModelExtFactorySpi.class))
+        List<BytesModelExt> exts = Factory.instantiate(ServiceLoader.load(BytesModelExtFactorySpi.class))
             .stream()
             .map(spi -> spi.create(config))
             .toList();
-        return new StringModel(exts);
+        return new BytesModel(exts);
     }
 }

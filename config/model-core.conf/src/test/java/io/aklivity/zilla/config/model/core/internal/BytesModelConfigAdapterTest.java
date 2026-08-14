@@ -31,9 +31,9 @@ import org.junit.Test;
 
 import io.aklivity.zilla.config.engine.ValidateConfig;
 import io.aklivity.zilla.config.engine.ValidateMode;
-import io.aklivity.zilla.config.model.core.StringModelConfig;
+import io.aklivity.zilla.config.model.core.BytesModelConfig;
 
-public class StringModelConfigAdapterTest
+public class BytesModelConfigAdapterTest
 {
     private Jsonb jsonb;
 
@@ -41,103 +41,46 @@ public class StringModelConfigAdapterTest
     public void initJson()
     {
         JsonbConfig config = new JsonbConfig()
-            .withAdapters(new StringModelConfigAdapter(List.of()));
+            .withAdapters(new BytesModelConfigAdapter(List.of()));
         jsonb = JsonbBuilder.create(config);
-    }
-
-    @Test
-    public void shouldReadString()
-    {
-        // GIVEN
-        String json = """
-            {
-                "model": "string",
-                "encoding": "utf_8",
-                "pattern": "^[a-zA-Z]",
-                "maxLength": 5,
-                "minLength": 2
-            }""";
-
-        // WHEN
-        StringModelConfig model = jsonb.fromJson(json, StringModelConfig.class);
-
-        // THEN
-        assertThat(model, not(nullValue()));
-        assertThat(model.model, equalTo("string"));
-        assertThat(model.encoding, equalTo("utf_8"));
-        assertThat(model.pattern, equalTo("^[a-zA-Z]"));
-        assertThat(model.maxLength, equalTo(5));
-        assertThat(model.minLength, equalTo(2));
-    }
-
-    @Test
-    public void shouldWriteString()
-    {
-        // GIVEN
-        String expectedJson =
-            "{" +
-                "\"model\":\"string\"," +
-                "\"encoding\":\"utf_16\"," +
-                "\"pattern\":\"^[a-zA-Z]\"," +
-                "\"maxLength\":5," +
-                "\"minLength\":2" +
-            "}";
-        StringModelConfig model = StringModelConfig.builder()
-            .encoding("utf_16")
-            .pattern("^[a-zA-Z]")
-            .maxLength(5)
-            .minLength(2)
-            .build();
-
-        // WHEN
-        String json = jsonb.toJson(model);
-
-        // THEN
-        assertThat(json, not(nullValue()));
-        assertThat(json, equalTo(expectedJson));
-    }
-
-    @Test
-    public void shouldWriteDefaultConfig()
-    {
-        // GIVEN
-        String expectedJson = "\"string\"";
-        StringModelConfig model = StringModelConfig.builder()
-            .build();
-
-        // WHEN
-        String json = jsonb.toJson(model);
-
-        // THEN
-        assertThat(json, not(nullValue()));
-        assertThat(json, equalTo(expectedJson));
     }
 
     @Test
     public void shouldReadDefaultConfig()
     {
         // GIVEN
-        String json = "\"string\"";
+        String json = "\"bytes\"";
 
         // WHEN
-        StringModelConfig model = jsonb.fromJson(json, StringModelConfig.class);
+        BytesModelConfig model = jsonb.fromJson(json, BytesModelConfig.class);
 
         // THEN
         assertThat(model, not(nullValue()));
-        assertThat(model.model, equalTo("string"));
-        assertThat(model.encoding, equalTo("utf_8"));
-        assertThat(model.maxLength, equalTo(0));
-        assertThat(model.minLength, equalTo(0));
+        assertThat(model.model, equalTo("bytes"));
+    }
+
+    @Test
+    public void shouldWriteDefaultConfig()
+    {
+        // GIVEN
+        String expectedJson = "\"bytes\"";
+        BytesModelConfig model = BytesModelConfig.builder().build();
+
+        // WHEN
+        String json = jsonb.toJson(model);
+
+        // THEN
+        assertThat(json, equalTo(expectedJson));
     }
 
     @Test
     public void shouldDefaultValidateStrictWhenAbsent()
     {
         // GIVEN
-        String json = "\"string\"";
+        String json = "\"bytes\"";
 
         // WHEN
-        StringModelConfig model = jsonb.fromJson(json, StringModelConfig.class);
+        BytesModelConfig model = jsonb.fromJson(json, BytesModelConfig.class);
 
         // THEN
         assertThat(model.validate, not(nullValue()));
@@ -151,12 +94,12 @@ public class StringModelConfigAdapterTest
         // GIVEN
         String json = """
             {
-                "model": "string",
+                "model": "bytes",
                 "validate": "lenient"
             }""";
 
         // WHEN
-        StringModelConfig model = jsonb.fromJson(json, StringModelConfig.class);
+        BytesModelConfig model = jsonb.fromJson(json, BytesModelConfig.class);
 
         // THEN
         assertThat(model.validate.decode, equalTo(ValidateMode.LENIENT));
@@ -169,7 +112,7 @@ public class StringModelConfigAdapterTest
         // GIVEN
         String json = """
             {
-                "model": "string",
+                "model": "bytes",
                 "validate":
                 {
                     "decode": "lenient",
@@ -178,7 +121,7 @@ public class StringModelConfigAdapterTest
             }""";
 
         // WHEN
-        StringModelConfig model = jsonb.fromJson(json, StringModelConfig.class);
+        BytesModelConfig model = jsonb.fromJson(json, BytesModelConfig.class);
 
         // THEN
         assertThat(model.validate.decode, equalTo(ValidateMode.LENIENT));
@@ -191,10 +134,10 @@ public class StringModelConfigAdapterTest
         // GIVEN
         String expectedJson =
             "{" +
-                "\"model\":\"string\"," +
+                "\"model\":\"bytes\"," +
                 "\"validate\":\"lenient\"" +
             "}";
-        StringModelConfig model = StringModelConfig.builder()
+        BytesModelConfig model = BytesModelConfig.builder()
             .validate(ValidateConfig.builder().decode(ValidateMode.LENIENT).encode(ValidateMode.LENIENT).build())
             .build();
 
@@ -211,14 +154,14 @@ public class StringModelConfigAdapterTest
         // GIVEN
         String expectedJson =
             "{" +
-                "\"model\":\"string\"," +
+                "\"model\":\"bytes\"," +
                 "\"validate\":" +
                 "{" +
                     "\"decode\":\"lenient\"," +
                     "\"encode\":\"strict\"" +
                 "}" +
             "}";
-        StringModelConfig model = StringModelConfig.builder()
+        BytesModelConfig model = BytesModelConfig.builder()
             .validate(ValidateConfig.builder().decode(ValidateMode.LENIENT).encode(ValidateMode.STRICT).build())
             .build();
 
@@ -233,8 +176,8 @@ public class StringModelConfigAdapterTest
     public void shouldWriteBareStringWhenValidateStrict()
     {
         // GIVEN
-        String expectedJson = "\"string\"";
-        StringModelConfig model = StringModelConfig.builder()
+        String expectedJson = "\"bytes\"";
+        BytesModelConfig model = BytesModelConfig.builder()
             .validate(ValidateConfig.builder().decode(ValidateMode.STRICT).encode(ValidateMode.STRICT).build())
             .build();
 

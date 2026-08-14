@@ -195,4 +195,14 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/client.sent.bytes/client",
+        "${net}/client.sent.bytes/server"
+    })
+    public void shouldForwardBytes() throws Exception
+    {
+        k3po.finish();
+    }
 }

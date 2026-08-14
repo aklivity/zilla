@@ -19,16 +19,16 @@ import java.util.List;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.Model;
 import io.aklivity.zilla.runtime.engine.model.ModelContext;
-import io.aklivity.zilla.runtime.model.core.ext.StringModelExt;
+import io.aklivity.zilla.runtime.model.core.ext.BytesModelExt;
 
-public class StringModel implements Model
+public class BytesModel implements Model
 {
-    public static final String NAME = "string";
+    public static final String NAME = "bytes";
 
-    private final List<StringModelExt> exts;
+    private final List<BytesModelExt> exts;
 
-    public StringModel(
-        List<StringModelExt> exts)
+    public BytesModel(
+        List<BytesModelExt> exts)
     {
         this.exts = exts;
     }
@@ -43,6 +43,6 @@ public class StringModel implements Model
     public ModelContext supply(
         EngineContext context)
     {
-        return new StringModelContext(context, exts.stream().map(ext -> ext.supply(context)).toList());
+        return new BytesModelContext(context, exts.stream().map(ext -> ext.supply(context)).toList());
     }
 }

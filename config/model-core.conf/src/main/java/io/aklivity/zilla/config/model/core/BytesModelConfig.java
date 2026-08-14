@@ -21,37 +21,23 @@ import io.aklivity.zilla.config.engine.Config;
 import io.aklivity.zilla.config.engine.ModelConfig;
 import io.aklivity.zilla.config.engine.ValidateConfig;
 
-public final class StringModelConfig extends ModelConfig
+public final class BytesModelConfig extends ModelConfig
 {
-    public final String encoding;
-    public final String pattern;
-    public final int maxLength;
-    public final int minLength;
-
-    StringModelConfig(
-        String encoding,
-        String pattern,
-        int maxLength,
-        int minLength,
+    BytesModelConfig(
         ValidateConfig validate,
         Map<String, Config> extensions)
     {
-        super("string", null, validate, extensions);
-        this.encoding = encoding;
-        this.pattern = pattern;
-        this.maxLength = maxLength;
-        this.minLength = minLength;
-
+        super("bytes", null, validate, extensions);
     }
 
-    public static <T> StringModelConfigBuilder<T> builder(
+    public static <T> BytesModelConfigBuilder<T> builder(
         Function<ModelConfig, T> mapper)
     {
-        return new StringModelConfigBuilder<>(mapper::apply);
+        return new BytesModelConfigBuilder<>(mapper::apply);
     }
 
-    public static StringModelConfigBuilder<StringModelConfig> builder()
+    public static BytesModelConfigBuilder<BytesModelConfig> builder()
     {
-        return new StringModelConfigBuilder<>(StringModelConfig.class::cast);
+        return new BytesModelConfigBuilder<>(BytesModelConfig.class::cast);
     }
 }

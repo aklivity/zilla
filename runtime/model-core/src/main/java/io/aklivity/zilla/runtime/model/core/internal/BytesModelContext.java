@@ -19,25 +19,25 @@ import java.util.List;
 
 import io.aklivity.zilla.config.engine.ModelConfig;
 import io.aklivity.zilla.config.engine.ValidateMode;
-import io.aklivity.zilla.config.model.core.StringModelConfig;
+import io.aklivity.zilla.config.model.core.BytesModelConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.ModelContext;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
-import io.aklivity.zilla.runtime.model.core.ext.StringModelExtContext;
-import io.aklivity.zilla.runtime.model.core.ext.StringModelExtHandler;
-import io.aklivity.zilla.runtime.model.core.ext.StringTransform;
-import io.aklivity.zilla.runtime.model.core.ext.StringTransformable;
+import io.aklivity.zilla.runtime.model.core.ext.BytesModelExtContext;
+import io.aklivity.zilla.runtime.model.core.ext.BytesModelExtHandler;
+import io.aklivity.zilla.runtime.model.core.ext.BytesTransform;
+import io.aklivity.zilla.runtime.model.core.ext.BytesTransformable;
 
-public class StringModelContext implements ModelContext
+public class BytesModelContext implements ModelContext
 {
     private final EngineContext context;
-    private final List<StringModelExtContext> exts;
+    private final List<BytesModelExtContext> exts;
 
-    public StringModelContext(
+    public BytesModelContext(
         EngineContext context,
-        List<StringModelExtContext> exts)
+        List<BytesModelExtContext> exts)
     {
         this.context = context;
         this.exts = exts;
@@ -47,48 +47,47 @@ public class StringModelContext implements ModelContext
     public ModelHandler supplyHandler(
         ModelConfig config)
     {
-        StringModelConfig options = StringModelConfig.class.cast(config);
+        BytesModelConfig options = BytesModelConfig.class.cast(config);
         boolean decodeLenient = config.validate.decode == ValidateMode.LENIENT;
         boolean encodeLenient = config.validate.encode == ValidateMode.LENIENT;
 
         // resolved once per model config, at handler construction — there is no schema to resolve per,
         // so the composed chain is reused for every message this handler processes
-        List<StringModelExtHandler> handlers = exts.stream().map(ext -> ext.supplyHandler(options)).toList();
-        StringTransformable stream = StringTransformStream.NONE;
-        for (StringModelExtHandler handler : handlers)
+        List<BytesModelExtHandler> handlers = exts.stream().map(ext -> ext.supplyHandler(options)).toList();
+        BytesTransformable stream = BytesTransformStream.NONE;
+        for (BytesModelExtHandler handler : handlers)
         {
             stream = handler.transform(stream);
         }
-        List<ValueTransform> transforms = ((StringTransformStream) stream).transforms();
+        List<ValueTransform> transforms = ((BytesTransformStream) stream).transforms();
 
         return transforms.isEmpty()
-            ? new CoreModelHandler(context, StringModel.NAME, StringModelValidator.supplier(options),
-                decodeLenient, encodeLenient)
-            : new CoreExtModelHandler(context, StringModel.NAME, StringModelValidator.supplier(options),
+            ? new CoreModelHandler(context, BytesModel.NAME, BytesModelValidator.supplier(), decodeLenient, encodeLenient)
+            : new CoreExtModelHandler(context, BytesModel.NAME, BytesModelValidator.supplier(),
                 decodeLenient, encodeLenient, transforms);
     }
 
-    // Minimal StringTransformable used only to collect the composed chain of installed extensions, in
+    // Minimal BytesTransformable used only to collect the composed chain of installed extensions, in
     // discovery order, into a plain List<ValueTransform> for CoreExtModelPipeline to execute.
-    private static final class StringTransformStream implements StringTransformable
+    private static final class BytesTransformStream implements BytesTransformable
     {
-        static final StringTransformStream NONE = new StringTransformStream(List.of());
+        static final BytesTransformStream NONE = new BytesTransformStream(List.of());
 
         private final List<ValueTransform> transforms;
 
-        private StringTransformStream(
+        private BytesTransformStream(
             List<ValueTransform> transforms)
         {
             this.transforms = transforms;
         }
 
         @Override
-        public StringTransformable transform(
-            StringTransform transform)
+        public BytesTransformable transform(
+            BytesTransform transform)
         {
             List<ValueTransform> next = new ArrayList<>(transforms);
             next.add(adapt(transform));
-            return new StringTransformStream(next);
+            return new BytesTransformStream(next);
         }
 
         List<ValueTransform> transforms()
@@ -97,7 +96,7 @@ public class StringModelContext implements ModelContext
         }
 
         private static ValueTransform adapt(
-            StringTransform transform)
+            BytesTransform transform)
         {
             return new ValueTransform()
             {

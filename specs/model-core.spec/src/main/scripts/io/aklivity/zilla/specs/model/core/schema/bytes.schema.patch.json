@@ -1,0 +1,38 @@
+[
+    {
+        "op": "add",
+        "path": "/$defs/models/types/enum/-",
+        "value": "bytes"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/models/model/allOf/-",
+        "value":
+        {
+            "if":
+            {
+                "properties":
+                {
+                    "model":
+                    {
+                        "const": "bytes"
+                    }
+                }
+            },
+            "then":
+            {
+                "properties":
+                {
+                    "model":
+                    {
+                        "const": "bytes"
+                    },
+                    "validate":
+                    {
+                        "$ref": "#/$defs/validate"
+                    }
+                }
+            }
+        }
+    }
+]

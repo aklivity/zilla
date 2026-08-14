@@ -19,6 +19,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.time.Clock;
+import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -116,7 +117,7 @@ public class CoreModelLenientTest
     @Test
     public void shouldRejectStringLengthViolationUnderStrict()
     {
-        ModelHandler handler = new StringModelContext(context).supplyHandler(
+        ModelHandler handler = new StringModelContext(context, List.of()).supplyHandler(
             StringModelConfig.builder().maxLength(2).validate(STRICT).build());
         ModelPipeline pipeline = handler.supplyDecoder(ModelTransform.NONE);
 
@@ -131,7 +132,7 @@ public class CoreModelLenientTest
     @Test
     public void shouldPassStringLengthViolationThroughUnderLenient()
     {
-        ModelHandler handler = new StringModelContext(context).supplyHandler(
+        ModelHandler handler = new StringModelContext(context, List.of()).supplyHandler(
             StringModelConfig.builder().maxLength(2).validate(LENIENT).build());
         ModelPipeline pipeline = handler.supplyDecoder(ModelTransform.NONE);
 

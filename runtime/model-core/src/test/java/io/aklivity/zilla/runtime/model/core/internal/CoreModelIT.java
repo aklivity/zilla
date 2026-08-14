@@ -210,4 +210,15 @@ public class CoreModelIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("bytes.yaml")
+    @Specification({
+        "${net}/client.sent.bytes/client",
+        "${app}/client.sent.bytes/server"
+    })
+    public void shouldForwardBytes() throws Exception
+    {
+        k3po.finish();
+    }
 }
