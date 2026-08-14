@@ -27,10 +27,11 @@ Two conventions to follow when adding to or modifying them:
   (`Set.of()`, `List.of()`) return cached singletons, the project convention
   is `null` so callers learn one rule across the SPI rather than mixing styles.
 
-PR descriptions for engine SPI changes follow the same neutrality — describe
-the engine-level addition and the in-tree consumer that justifies it (e.g.
-"required by `binding-mcp` elicitation flow"); do not name downstream products
-or proprietary modules as motivation.
+PR and issue descriptions for engine SPI changes follow the same neutrality:
+justify the change entirely by the SPI's own contract gap, never by naming or
+describing the consumer that motivated it — in-tree or downstream, oss or
+commercial. See the root [AGENTS.md](../../AGENTS.md#justifying-changes-to-shared-components)
+for the general rule and the self-check to apply before writing one.
 
 ### Adding a method to `EngineContext`
 
