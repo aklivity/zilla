@@ -1625,7 +1625,6 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                     .build();
 
             doClientInitialReset(traceId, kafkaResetEx);
-            doClientReplyAbortIfNecessary(traceId);
             fan.onClientFanMemberClosed(traceId, this);
         }
 

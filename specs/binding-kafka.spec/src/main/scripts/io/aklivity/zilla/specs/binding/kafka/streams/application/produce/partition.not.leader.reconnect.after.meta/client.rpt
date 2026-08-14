@@ -46,16 +46,12 @@ read zilla:data.ext ${kafka:dataEx()
 
 read notify ROUTED_BROKER_CLIENT
 
-read await ROUTED_BROKER_CLIENT_ERRORED
-
 read zilla:data.ext ${kafka:dataEx()
                              .typeId(zilla:id("kafka"))
                              .meta()
                                  .partition(0, 178)
                                  .build()
                              .build()}
-
-read notify ROUTED_BROKER_CLIENT_2
 
 connect await ROUTED_BROKER_CLIENT
         "zilla://streams/app0"
@@ -101,7 +97,7 @@ read abort
 
 read notify ROUTED_BROKER_CLIENT_ERRORED
 
-connect await ROUTED_BROKER_CLIENT_2
+connect await ROUTED_BROKER_CLIENT_ERRORED
         "zilla://streams/app0"
     option zilla:window 8192
     option zilla:transmission "half-duplex"
