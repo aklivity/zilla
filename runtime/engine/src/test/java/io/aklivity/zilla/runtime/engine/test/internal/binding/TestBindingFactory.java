@@ -335,10 +335,7 @@ final class TestBindingFactory implements BindingHandler
         private boolean pendingBegin;
         private long pendingTraceId;
         private boolean storeAssertionsStarted;
-        private final ModelPipeline valuePipeline;
-        // mirrors valuePipeline for the opposite direction: a real binding decodes on read (reply) and
-        // encodes on write (initial), so this test binding applies the same configured model both ways
-        private final ModelPipeline replyPipeline;
+        private final ModelPipeline pipeline;
 
         private TestSource(
             MessageConsumer source,
@@ -354,8 +351,7 @@ final class TestBindingFactory implements BindingHandler
             this.initialId = initialId;
             this.replyId = replyId;
             this.target = resolvedId != 0L ? new TestTarget(routedId, resolvedId) : null;
-            this.valuePipeline = valueModel != null ? valueModel.supplyEncoder() : null;
-            this.replyPipeline = valueModel != null ? valueModel.supplyDecoder() : null;
+            this.pipeline = valueModel != null ? valueModel.supplyEncoder() : null;
         }
 
         private void doAuthorize(
@@ -899,13 +895,13 @@ final class TestBindingFactory implements BindingHandler
 
             initialSeq = sequence + reserved;
 
-            if (valuePipeline == null)
+            if (pipeline == null)
             {
                 target.doInitialData(traceId, flags, reserved, payload);
             }
             else
             {
-                int total = transform(valuePipeline, traceId, authorization,
+                int total = transform(pipeline, traceId, authorization,
                     payload.buffer(), payload.offset(), payload.limit());
                 if (total < 0)
                 {
@@ -1143,6 +1139,7 @@ final class TestBindingFactory implements BindingHandler
             private int replyCap;
 
             private final TestSource source;
+            private final ModelPipeline pipeline;
 
             private TestTarget(
                 long originId,
@@ -1153,6 +1150,7 @@ final class TestBindingFactory implements BindingHandler
                 this.initialId = context.supplyInitialId(routedId);
                 this.replyId = context.supplyReplyId(initialId);
                 this.source = TestSource.this;
+                this.pipeline = valueModel != null ? valueModel.supplyDecoder() : null;
             }
 
             private void onMessage(
@@ -1248,13 +1246,13 @@ final class TestBindingFactory implements BindingHandler
 
                 replySeq = sequence + reserved;
 
-                if (source.replyPipeline == null)
+                if (pipeline == null)
                 {
                     source.doReplyData(traceId, flags, reserved, payload);
                 }
                 else
                 {
-                    int total = source.transform(source.replyPipeline, traceId, authorization,
+                    int total = source.transform(pipeline, traceId, authorization,
                         payload.buffer(), payload.offset(), payload.limit());
                     if (total < 0)
                     {
