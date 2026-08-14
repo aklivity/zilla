@@ -20,8 +20,6 @@ import java.util.List;
 import io.aklivity.zilla.config.engine.ModelConfig;
 import io.aklivity.zilla.config.engine.ValidateMode;
 import io.aklivity.zilla.config.model.core.BytesModelConfig;
-import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
-import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.ModelContext;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
@@ -54,6 +52,8 @@ public class BytesModelContext implements ModelContext
         // resolved once per model config, at handler construction — there is no schema to resolve per,
         // so the composed chain is reused for every message this handler processes
         List<BytesModelExtHandler> handlers = exts.stream().map(ext -> ext.supplyHandler(options)).toList();
+        int padding = handlers.stream().mapToInt(BytesModelExtHandler::padding).sum();
+
         BytesTransformable stream = BytesTransformStream.NONE;
         for (BytesModelExtHandler handler : handlers)
         {
@@ -64,7 +64,7 @@ public class BytesModelContext implements ModelContext
         return transforms.isEmpty()
             ? new CoreModelHandler(context, BytesModel.NAME, BytesModelValidator.supplier(), decodeLenient, encodeLenient)
             : new CoreExtModelHandler(context, BytesModel.NAME, BytesModelValidator.supplier(),
-                decodeLenient, encodeLenient, transforms);
+                decodeLenient, encodeLenient, transforms, padding);
     }
 
     // Minimal BytesTransformable used only to collect the composed chain of installed extensions, in
@@ -86,37 +86,13 @@ public class BytesModelContext implements ModelContext
             BytesTransform transform)
         {
             List<ValueTransform> next = new ArrayList<>(transforms);
-            next.add(adapt(transform));
+            next.add(transform::transform);
             return new BytesTransformStream(next);
         }
 
         List<ValueTransform> transforms()
         {
             return transforms;
-        }
-
-        private static ValueTransform adapt(
-            BytesTransform transform)
-        {
-            return new ValueTransform()
-            {
-                @Override
-                public int transform(
-                    DirectBufferEx value,
-                    int index,
-                    int length,
-                    MutableDirectBufferEx dst,
-                    int dstIndex)
-                {
-                    return transform.transform(value, index, length, dst, dstIndex);
-                }
-
-                @Override
-                public int padding()
-                {
-                    return transform.padding();
-                }
-            };
         }
     }
 }

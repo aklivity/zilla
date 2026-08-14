@@ -22,8 +22,6 @@ import java.util.List;
 import org.junit.Test;
 
 import io.aklivity.zilla.config.model.core.BytesModelConfig;
-import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
-import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
@@ -32,7 +30,9 @@ import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 import io.aklivity.zilla.runtime.model.core.ext.BytesModelExtContext;
+import io.aklivity.zilla.runtime.model.core.ext.BytesModelExtHandler;
 import io.aklivity.zilla.runtime.model.core.ext.BytesTransform;
+import io.aklivity.zilla.runtime.model.core.ext.BytesTransformable;
 
 public class CoreExtModelPipelineTest
 {
@@ -108,8 +108,8 @@ public class CoreExtModelPipelineTest
     @Test
     public void shouldReportSummedExtensionPadding()
     {
-        BytesModelExtContext ext1 = config -> stream -> stream.transform(padded(4));
-        BytesModelExtContext ext2 = config -> stream -> stream.transform(padded(6));
+        BytesModelExtContext ext1 = config -> paddedHandler(4);
+        BytesModelExtContext ext2 = config -> paddedHandler(6);
 
         BytesModelContext context = new BytesModelContext(mock(EngineContext.class), List.of(ext1, ext2));
         ModelHandler handler = context.supplyHandler(BytesModelConfig.builder().build());
@@ -127,58 +127,32 @@ public class CoreExtModelPipelineTest
 
     private static BytesTransform omit()
     {
-        return new BytesTransform()
-        {
-            @Override
-            public int transform(
-                DirectBufferEx value,
-                int index,
-                int length,
-                MutableDirectBufferEx dst,
-                int dstIndex)
-            {
-                return OMIT;
-            }
-        };
+        return (value, index, length, dst, dstIndex) -> BytesTransform.OMIT;
     }
 
     private static BytesTransform uppercase()
     {
-        return new BytesTransform()
+        return (value, index, length, dst, dstIndex) ->
         {
-            @Override
-            public int transform(
-                DirectBufferEx value,
-                int index,
-                int length,
-                MutableDirectBufferEx dst,
-                int dstIndex)
+            for (int i = 0; i < length; i++)
             {
-                for (int i = 0; i < length; i++)
-                {
-                    byte b = value.getByte(index + i);
-                    dst.putByte(dstIndex + i, (byte) Character.toUpperCase((char) b));
-                }
-                return length;
+                byte b = value.getByte(index + i);
+                dst.putByte(dstIndex + i, (byte) Character.toUpperCase((char) b));
             }
+            return length;
         };
     }
 
-    private static BytesTransform padded(
+    private static BytesModelExtHandler paddedHandler(
         int amount)
     {
-        return new BytesTransform()
+        return new BytesModelExtHandler()
         {
             @Override
-            public int transform(
-                DirectBufferEx value,
-                int index,
-                int length,
-                MutableDirectBufferEx dst,
-                int dstIndex)
+            public BytesTransformable transform(
+                BytesTransformable stream)
             {
-                dst.putBytes(dstIndex, value, index, length);
-                return length;
+                return stream.transform(BytesTransform.NONE);
             }
 
             @Override

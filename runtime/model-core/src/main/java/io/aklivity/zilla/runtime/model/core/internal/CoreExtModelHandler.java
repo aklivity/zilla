@@ -41,19 +41,14 @@ final class CoreExtModelHandler implements ModelHandler
         Supplier<CoreModelValidator> supplier,
         boolean decodeLenient,
         boolean encodeLenient,
-        List<ValueTransform> transforms)
+        List<ValueTransform> transforms,
+        int padding)
     {
         this.plain = new CoreModelHandler(context, model, supplier, decodeLenient, encodeLenient);
         this.supplier = supplier;
         this.decodeLenient = decodeLenient;
         this.transforms = transforms;
-
-        int total = 0;
-        for (ValueTransform transform : transforms)
-        {
-            total += transform.padding();
-        }
-        this.padding = total;
+        this.padding = padding;
     }
 
     @Override

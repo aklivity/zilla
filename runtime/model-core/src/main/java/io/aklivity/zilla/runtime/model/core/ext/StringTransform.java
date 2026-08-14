@@ -75,19 +75,6 @@ public interface StringTransform
         int dstIndex);
 
     /**
-     * Returns the maximum number of additional bytes this stage's transform may add to a value, beyond
-     * what the untransformed value would occupy — for example, a substitute value whose length does not
-     * derive from the original value's length. A caller sizing a buffer to hold the transformed output
-     * adds this to its own estimate.
-     *
-     * @return the additional byte count (0 if this stage's transform never expands a value)
-     */
-    default int padding()
-    {
-        return 0;
-    }
-
-    /**
      * Whether this stage forwards every value verbatim, leaving the bytes unchanged. A validating or
      * observing stage is identity; a stage that substitutes, drops, or rewrites values is not.
      */

@@ -31,9 +31,4 @@ interface ValueTransform
         int length,
         MutableDirectBufferEx dst,
         int dstIndex);
-
-    default int padding()
-    {
-        return 0;
-    }
 }

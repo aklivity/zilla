@@ -20,8 +20,6 @@ import java.util.List;
 import io.aklivity.zilla.config.engine.ModelConfig;
 import io.aklivity.zilla.config.engine.ValidateMode;
 import io.aklivity.zilla.config.model.core.StringModelConfig;
-import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
-import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.ModelContext;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
@@ -54,6 +52,8 @@ public class StringModelContext implements ModelContext
         // resolved once per model config, at handler construction — there is no schema to resolve per,
         // so the composed chain is reused for every message this handler processes
         List<StringModelExtHandler> handlers = exts.stream().map(ext -> ext.supplyHandler(options)).toList();
+        int padding = handlers.stream().mapToInt(StringModelExtHandler::padding).sum();
+
         StringTransformable stream = StringTransformStream.NONE;
         for (StringModelExtHandler handler : handlers)
         {
@@ -65,7 +65,7 @@ public class StringModelContext implements ModelContext
             ? new CoreModelHandler(context, StringModel.NAME, StringModelValidator.supplier(options),
                 decodeLenient, encodeLenient)
             : new CoreExtModelHandler(context, StringModel.NAME, StringModelValidator.supplier(options),
-                decodeLenient, encodeLenient, transforms);
+                decodeLenient, encodeLenient, transforms, padding);
     }
 
     // Minimal StringTransformable used only to collect the composed chain of installed extensions, in
@@ -87,37 +87,13 @@ public class StringModelContext implements ModelContext
             StringTransform transform)
         {
             List<ValueTransform> next = new ArrayList<>(transforms);
-            next.add(adapt(transform));
+            next.add(transform::transform);
             return new StringTransformStream(next);
         }
 
         List<ValueTransform> transforms()
         {
             return transforms;
-        }
-
-        private static ValueTransform adapt(
-            StringTransform transform)
-        {
-            return new ValueTransform()
-            {
-                @Override
-                public int transform(
-                    DirectBufferEx value,
-                    int index,
-                    int length,
-                    MutableDirectBufferEx dst,
-                    int dstIndex)
-                {
-                    return transform.transform(value, index, length, dst, dstIndex);
-                }
-
-                @Override
-                public int padding()
-                {
-                    return transform.padding();
-                }
-            };
         }
     }
 }

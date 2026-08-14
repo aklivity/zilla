@@ -26,8 +26,6 @@ import org.junit.Test;
 
 import io.aklivity.zilla.config.model.core.BytesModelConfig;
 import io.aklivity.zilla.config.model.core.StringModelConfig;
-import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
-import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
@@ -38,6 +36,7 @@ import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 import io.aklivity.zilla.runtime.model.core.ext.BytesModelExtContext;
 import io.aklivity.zilla.runtime.model.core.ext.BytesModelExtHandler;
 import io.aklivity.zilla.runtime.model.core.ext.BytesTransform;
+import io.aklivity.zilla.runtime.model.core.ext.BytesTransformable;
 
 public class BytesModelContextTest
 {
@@ -152,25 +151,10 @@ public class BytesModelContextTest
         String value)
     {
         byte[] replacement = value.getBytes();
-        return new BytesTransform()
+        return (src, index, length, dst, dstIndex) ->
         {
-            @Override
-            public int transform(
-                DirectBufferEx src,
-                int index,
-                int length,
-                MutableDirectBufferEx dst,
-                int dstIndex)
-            {
-                dst.putBytes(dstIndex, new UnsafeBufferEx(replacement), 0, replacement.length);
-                return replacement.length;
-            }
-
-            @Override
-            public int padding()
-            {
-                return replacement.length;
-            }
+            dst.putBytes(dstIndex, new UnsafeBufferEx(replacement), 0, replacement.length);
+            return replacement.length;
         };
     }
 
@@ -179,19 +163,19 @@ public class BytesModelContextTest
         int padding)
     {
         byte[] suffixBytes = suffix.getBytes();
-        BytesTransform append = new BytesTransform()
+        BytesTransform append = (value, index, length, dst, dstIndex) ->
+        {
+            dst.putBytes(dstIndex, value, index, length);
+            dst.putBytes(dstIndex + length, new UnsafeBufferEx(suffixBytes), 0, suffixBytes.length);
+            return length + suffixBytes.length;
+        };
+        return new BytesModelExtHandler()
         {
             @Override
-            public int transform(
-                DirectBufferEx value,
-                int index,
-                int length,
-                MutableDirectBufferEx dst,
-                int dstIndex)
+            public BytesTransformable transform(
+                BytesTransformable stream)
             {
-                dst.putBytes(dstIndex, value, index, length);
-                dst.putBytes(dstIndex + length, new UnsafeBufferEx(suffixBytes), 0, suffixBytes.length);
-                return length + suffixBytes.length;
+                return stream.transform(append);
             }
 
             @Override
@@ -200,6 +184,5 @@ public class BytesModelContextTest
                 return padding;
             }
         };
-        return stream -> stream.transform(append);
     }
 }
