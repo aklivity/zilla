@@ -14,12 +14,19 @@
  */
 package io.aklivity.zilla.runtime.model.avro.internal;
 
+import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_ID;
+
+import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 
+import jakarta.json.Json;
+import jakarta.json.JsonValue;
+
 import org.agrona.collections.Int2IntHashMap;
-import org.agrona.collections.Int2ObjectCache;
+import org.agrona.collections.Long2ObjectCache;
 
 import io.aklivity.zilla.config.engine.CatalogedConfig;
+import io.aklivity.zilla.config.engine.OverlayConfig;
 import io.aklivity.zilla.config.engine.SchemaConfig;
 import io.aklivity.zilla.config.engine.ValidateMode;
 import io.aklivity.zilla.config.model.avro.AvroModelConfig;
@@ -27,6 +34,7 @@ import io.aklivity.zilla.runtime.common.avro.Avro;
 import io.aklivity.zilla.runtime.common.avro.AvroKind;
 import io.aklivity.zilla.runtime.common.avro.AvroSchema;
 import io.aklivity.zilla.runtime.common.avro.AvroType;
+import io.aklivity.zilla.runtime.common.json.JsonOverlay;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 
@@ -42,6 +50,9 @@ public abstract class AvroModelHandler
     protected final SchemaConfig catalog;
     protected final CatalogHandler handler;
     protected final String subject;
+    protected final CatalogHandler overlayHandler;
+    protected final String overlaySubject;
+    protected final String overlayVersion;
     protected final String view;
     protected final AvroModelEventContext event;
     // LENIENT per direction: a semantic-validation failure passes through (inert today — no avro semantic
@@ -49,7 +60,7 @@ public abstract class AvroModelHandler
     protected final boolean decodeLenient;
     protected final boolean encodeLenient;
 
-    private final Int2ObjectCache<AvroSchema> schemas;
+    private final Long2ObjectCache<AvroSchema> schemas;
     private final Int2IntHashMap paddings;
     private final int paddingMaxItems;
 
@@ -65,18 +76,44 @@ public abstract class AvroModelHandler
         this.subject = catalog != null && catalog.subject != null
                 ? catalog.subject
                 : options.subject;
+        OverlayConfig overlay = catalog != null ? catalog.overlay : null;
+        this.overlayHandler = overlay != null ? context.supplyCatalog(overlay.id) : null;
+        this.overlaySubject = overlay != null ? overlay.schema.subject : null;
+        this.overlayVersion = overlay != null ? overlay.schema.version : null;
         this.decodeLenient = options.validate.decode == ValidateMode.LENIENT;
         this.encodeLenient = options.validate.encode == ValidateMode.LENIENT;
-        this.schemas = new Int2ObjectCache<>(1, 1024, i -> {});
+        this.schemas = new Long2ObjectCache<>(1, 1024, i -> {});
         this.paddings = new Int2IntHashMap(-1);
         this.event = new AvroModelEventContext(context);
         this.paddingMaxItems = config.paddingMaxItems();
     }
 
+    // avoids computeIfAbsent: a capturing lambda argument is allocated fresh on every call, hit or
+    // miss, so this checks the cache directly instead (see ProtobufModelHandler.supplySchema)
     protected final AvroSchema supplySchema(
         int schemaId)
     {
-        return schemas.computeIfAbsent(schemaId, this::resolveSchema);
+        int overlaySchemaId = overlayHandler != null
+            ? overlayHandler.resolve(overlaySubject, overlayVersion)
+            : NO_SCHEMA_ID;
+        long key = cacheKey(schemaId, overlaySchemaId);
+        AvroSchema schema = schemas.get(key);
+        if (schema == null)
+        {
+            schema = resolveSchema(schemaId, overlaySchemaId);
+            if (schema != null)
+            {
+                schemas.put(key, schema);
+            }
+        }
+        return schema;
+    }
+
+    private static long cacheKey(
+        int schemaId,
+        int overlaySchemaId)
+    {
+        return (long) schemaId << 32 | overlaySchemaId & 0xFFFFFFFFL;
     }
 
     protected final int supplyPadding(
@@ -90,15 +127,27 @@ public abstract class AvroModelHandler
     }
 
     private AvroSchema resolveSchema(
-        int schemaId)
+        int schemaId,
+        int overlaySchemaId)
     {
         AvroSchema schema = null;
         String schemaText = handler.resolve(schemaId);
-        if (schemaText != null)
+        String overlayText = overlayHandler != null ? overlayHandler.resolve(overlaySchemaId) : null;
+        if (schemaText != null && (overlayHandler == null || overlayText != null))
         {
-            schema = Avro.schema(schemaText);
+            String resolvedText = overlayText != null ? applyOverlay(schemaText, overlayText) : schemaText;
+            schema = Avro.schema(resolvedText);
         }
         return schema;
+    }
+
+    private static String applyOverlay(
+        String schemaText,
+        String overlayText)
+    {
+        JsonValue document = Json.createReader(new StringReader(schemaText)).readValue();
+        JsonValue overlay = Json.createReader(new StringReader(overlayText)).readValue();
+        return JsonOverlay.of(overlay).apply(document).toString();
     }
 
     private int calculatePadding(
