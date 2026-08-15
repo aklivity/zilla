@@ -110,7 +110,7 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
     int encodePadding(
         int length)
     {
-        return handler.encodePadding(length);
+        return handler.encodePadding(length) + supplyExtPadding(resolveSchemaId());
     }
 
     // the catalog framing the value carries on the wire, stripped once at the start of the first fragment
@@ -195,13 +195,10 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
             // a json view parses JSON input and re-encodes it as Avro binary; any other view validates
             // Avro binary input and reproduces it, so a malformed datum yields a binary "truncated datum"
             // diagnostic rather than a JSON parse failure
-            //
-            // model extensions are decode-only: encode is the write path into the broker, which must
-            // keep the source of truth intact, so extensions never fold into the encoder stream here
             AvroStream stream = VIEW_JSON.equals(view)
                 ? AvroJson.stream(schema, JsonEx.createParser(), true)
                 : Avro.stream(Avro.parser(schema));
-            pipeline = stream
+            pipeline = extend(stream, schema)
                 .transform(adapter)
                 .lenient(lenient)
                 .reporting(reporter)
@@ -210,9 +207,9 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
         return pipeline;
     }
 
-    // folds every installed avro model extension's own stage(s) into the decoder stream, in discovery
-    // order, ahead of this handler's own adapter stage; decode is the read path out of the broker, where
-    // a read-side concern like disclosure redaction belongs
+    // folds every installed avro model extension's own stage(s) into the stream, in discovery order,
+    // ahead of this handler's own adapter stage; used for both the decoder and encoder pipeline, so an
+    // extension that only transforms one direction is responsible for forwarding the other unchanged
     private AvroStream extend(
         AvroStream stream,
         AvroSchema schema)

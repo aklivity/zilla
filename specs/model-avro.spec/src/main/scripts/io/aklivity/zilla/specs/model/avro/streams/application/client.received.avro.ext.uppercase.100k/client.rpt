@@ -18,6 +18,6 @@ connect "zilla://streams/app0"
         option zilla:window 200000
 connected
 
-write [0x06] "id0" ${core:varint(100000)} ${model_avro:repeat("v", 100000)}
+write [0x06] "id0" [0x0e] "ORANGE1"
 
 read [0x06] "id0" ${core:varint(100000)} ${model_avro:repeat("v", 100000)}

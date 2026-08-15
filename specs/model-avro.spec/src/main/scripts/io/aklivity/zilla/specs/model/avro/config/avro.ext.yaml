@@ -29,7 +29,7 @@ catalogs:
               "type": "string"
             },
             {
-              "name": "secret",
+              "name": "text",
               "type": "string"
             }
           ],

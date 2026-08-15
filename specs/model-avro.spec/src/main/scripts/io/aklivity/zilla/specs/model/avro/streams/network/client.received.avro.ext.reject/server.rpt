@@ -20,6 +20,6 @@ accept "zilla://streams/net0"
 accepted
 connected
 
-read [0x06] "id0" [0x0e] "trigger"
+read [0x06] "id0" [0x0e] "primary"
 
 write abort

@@ -20,6 +20,6 @@ accept "zilla://streams/app0"
 accepted
 connected
 
-read [0x06] "id0" [0x0e] "hunter2"
+read [0x06] "id0" [0x0e] "ORANGE1"
 
-write [0x06] "id0" [0x0e] "hunter2"
+write [0x06] "id0" [0x0e] "yellow1"

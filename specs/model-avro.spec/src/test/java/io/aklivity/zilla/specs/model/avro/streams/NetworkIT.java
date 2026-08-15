@@ -105,4 +105,34 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/client.sent.avro.ext.uppercase/client",
+        "${net}/client.sent.avro.ext.uppercase/server"
+    })
+    public void shouldSendAvroExtUppercase() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/client.sent.avro.ext.uppercase.100k/client",
+        "${net}/client.sent.avro.ext.uppercase.100k/server"
+    })
+    public void shouldSendAvroExtUppercase100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/client.sent.avro.ext.reject/client",
+        "${net}/client.sent.avro.ext.reject/server"
+    })
+    public void shouldSendAvroExtReject() throws Exception
+    {
+        k3po.finish();
+    }
 }

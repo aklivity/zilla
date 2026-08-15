@@ -18,6 +18,6 @@ connect "zilla://streams/app0"
         option zilla:window 8192
 connected
 
-write [0x06] "id0" [0x0e] "hunter2"
+write [0x06] "id0" [0x0e] "ORANGE1"
 
-read [0x06] "id0" [0x0e] "hunter2"
+read [0x06] "id0" [0x0e] "yellow1"

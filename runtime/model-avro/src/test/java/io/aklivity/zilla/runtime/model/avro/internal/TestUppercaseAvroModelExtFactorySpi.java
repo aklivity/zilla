@@ -37,13 +37,13 @@ import io.aklivity.zilla.runtime.model.avro.ext.AvroModelExtHandler;
 
 // Test-only AvroModelExt, registered only under src/test/resources/META-INF/services so it never ships
 // in the production jar. Exercises the same AvroModelExt composition mechanism a real installed
-// extension relies on -- apply-on-decode, fragment accumulation across multiple STRING chunks, drain
-// across a SUSPENDED terminal generator, and reject via AvroPipeline.Status.REJECTED -- without
-// model-avro needing to know anything about what a real extension might do with it. Uppercases the
-// string value of any field literally named "secret"; a captured value of "REJECT" rejects the datum.
+// extension relies on -- apply on both decode and encode, fragment accumulation across multiple STRING
+// chunks, drain across a SUSPENDED terminal generator, and reject via AvroPipeline.Status.REJECTED --
+// without model-avro needing to know anything about what a real extension might do with it. Uppercases
+// the string value of any field literally named "text"; a captured value of "REJECT" rejects the datum.
 public final class TestUppercaseAvroModelExtFactorySpi implements AvroModelExtFactorySpi
 {
-    private static final String TARGET_FIELD = "secret";
+    private static final String TARGET_FIELD = "text";
     private static final String REJECT_VALUE = "REJECT";
 
     @Override

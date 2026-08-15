@@ -13,11 +13,11 @@
 # specific language governing permissions and limitations under the License.
 #
 
-connect "zilla://streams/net0"
-        option zilla:transmission "duplex"
-        option zilla:window 200000
+accept "zilla://streams/app0"
+       option zilla:transmission "duplex"
+       option zilla:window 8192
+
+accepted
 connected
 
-write [0x06] "id0" [0x0e] "orange1"
-
-read [0x06] "id0" ${core:varint(100000)} ${model_avro:repeat("V", 100000)}
+read aborted
