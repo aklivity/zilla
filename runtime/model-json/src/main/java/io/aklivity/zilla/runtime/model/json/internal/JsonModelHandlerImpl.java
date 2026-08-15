@@ -18,6 +18,7 @@ import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_
 import static java.util.Objects.requireNonNull;
 
 import java.util.List;
+import java.util.Map;
 
 import io.aklivity.zilla.config.model.json.JsonModelConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
@@ -26,6 +27,7 @@ import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
 import io.aklivity.zilla.runtime.common.json.JsonReporter;
 import io.aklivity.zilla.runtime.common.json.JsonSchema;
+import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.common.json.JsonStream;
 import io.aklivity.zilla.runtime.common.json.JsonTransform;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -45,6 +47,10 @@ public final class JsonModelHandlerImpl extends JsonModelHandler implements Mode
     // a no-op encoder so encode() emits only the catalog framing into the destination, never the body
     private static final CatalogHandler.Encoder NONE_ENCODER =
         (traceId, bindingId, schemaId, data, index, length, next) -> 0;
+
+    // forces canonical re-rendering on the decode pipeline once an extension is installed -- see
+    // newPipeline's own note on why byte-preserving delivery is unsafe once a value can be substituted
+    private static final Map<String, Object> STRUCTURED_DELIVERY = Map.of(JsonSink.DELIVERY, JsonSink.Delivery.STRUCTURED);
 
     private final JsonModelConfig options;
     private final List<JsonModelExtContext> exts;
@@ -80,6 +86,19 @@ public final class JsonModelHandlerImpl extends JsonModelHandler implements Mode
     {
         int schemaId = resolveSchemaId(data, index, length);
         return handler.decodePadding(data, index, length) + supplyExtPadding(schemaId);
+    }
+
+    // the catalog's own embedded-framing byte count (e.g. a magic-byte-plus-id header some catalogs embed
+    // ahead of the value) -- deliberately excludes any installed extension's padding contribution, unlike
+    // decodePadding above: that count sizes the destination for a value an extension may expand, this one
+    // sizes how many source bytes to skip before the value itself begins, and the two are never the same
+    // quantity once an extension contributes non-zero padding
+    int prefix(
+        DirectBufferEx data,
+        int index,
+        int length)
+    {
+        return handler.decodePadding(data, index, length);
     }
 
     @Override
@@ -140,7 +159,10 @@ public final class JsonModelHandlerImpl extends JsonModelHandler implements Mode
 
     // the decode path: extractor is null when the caller's ModelTransform is NONE (the observation-only
     // extraction stage is skipped), but this overload is always the decode path regardless, so installed
-    // extensions always fold in here
+    // extensions always fold in here. An installed extension may substitute a value (redacting a field,
+    // say), which has no original source bytes to splice, so decode forces structured (canonical) delivery
+    // whenever at least one extension is folded in -- byte-preserving delivery remains the default with
+    // none installed, matching the pre-extension behavior exactly
     JsonPipeline newPipeline(
         int schemaId,
         boolean lenient,
@@ -152,11 +174,15 @@ public final class JsonModelHandlerImpl extends JsonModelHandler implements Mode
         JsonStream stream = schema != null
             ? extend(JsonEx.stream(JsonEx.createParser()), schema).transform(schema.validator(lenient))
             : null;
-        return stream != null
+        JsonStream terminal = stream != null
             ? (extractor != null ? stream.transform(extractor) : stream)
                 .lenient(lenient)
                 .reporting(reporter)
-                .into(generator)
+            : null;
+        return terminal != null
+            ? exts.isEmpty()
+                ? terminal.into(generator)
+                : terminal.into(generator, STRUCTURED_DELIVERY)
             : null;
     }
 

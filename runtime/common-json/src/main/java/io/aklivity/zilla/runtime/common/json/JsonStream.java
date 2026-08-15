@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.common.json;
 
+import java.util.Map;
+
 /**
  * A description of a {@code common-json} pipeline — a driver bound by {@link JsonEx#stream(JsonParserEx)} plus
  * an ordered list of {@link JsonTransform} stages. Append stages with {@link #transform(JsonTransform)}
@@ -56,4 +58,17 @@ public interface JsonStream extends JsonTransformable
      */
     JsonPipeline into(
         JsonGeneratorEx generator);
+
+    /**
+     * Variant of {@link #into(JsonGeneratorEx)} taking sink config (e.g. {@link JsonSink#DELIVERY}) —
+     * the generator-owning, re-targeted terminal a repeatedly-invoked pipeline (a model's decode pipeline,
+     * called once per incoming record) needs, with the same {@link JsonSink.Delivery#STRUCTURED} opt-out
+     * {@link JsonEx#createSink(JsonGeneratorEx, Map)} already exposes on the single-shot
+     * {@link #into(JsonSink)} terminal. A stage that substitutes values (redacting a field, say) needs this:
+     * byte-preserving delivery splices a value's original source bytes, which a substituted value has none
+     * of.
+     */
+    JsonPipeline into(
+        JsonGeneratorEx generator,
+        Map<String, ?> config);
 }
