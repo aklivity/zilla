@@ -276,6 +276,12 @@ public final class TestUppercaseAvroModelExtFactorySpi implements AvroModelExtFa
             }
 
             @Override
+            public CharSequence getStringView()
+            {
+                return getString();
+            }
+
+            @Override
             public String getField()
             {
                 return null;
