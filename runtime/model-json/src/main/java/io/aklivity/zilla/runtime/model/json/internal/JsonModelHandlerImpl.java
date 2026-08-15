@@ -17,6 +17,8 @@ package io.aklivity.zilla.runtime.model.json.internal;
 import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_ID;
 import static java.util.Objects.requireNonNull;
 
+import java.util.List;
+
 import io.aklivity.zilla.config.model.json.JsonModelConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
@@ -24,6 +26,7 @@ import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
 import io.aklivity.zilla.runtime.common.json.JsonReporter;
 import io.aklivity.zilla.runtime.common.json.JsonSchema;
+import io.aklivity.zilla.runtime.common.json.JsonStream;
 import io.aklivity.zilla.runtime.common.json.JsonTransform;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
@@ -31,6 +34,7 @@ import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
+import io.aklivity.zilla.runtime.model.json.ext.JsonModelExtContext;
 
 // Per-worker factory for a JSON model. One handler serves both directions: supplyDecoder vends a
 // per-stream JsonModelDecoderPipeline (catalog framing stripped, value validated) and supplyEncoder vends a
@@ -42,11 +46,17 @@ public final class JsonModelHandlerImpl extends JsonModelHandler implements Mode
     private static final CatalogHandler.Encoder NONE_ENCODER =
         (traceId, bindingId, schemaId, data, index, length, next) -> 0;
 
+    private final JsonModelConfig options;
+    private final List<JsonModelExtContext> exts;
+
     public JsonModelHandlerImpl(
         JsonModelConfig config,
-        EngineContext context)
+        EngineContext context,
+        List<JsonModelExtContext> exts)
     {
         super(config, context);
+        this.options = config;
+        this.exts = exts;
     }
 
     @Override
@@ -68,7 +78,23 @@ public final class JsonModelHandlerImpl extends JsonModelHandler implements Mode
         int index,
         int length)
     {
-        return handler.decodePadding(data, index, length);
+        int schemaId = resolveSchemaId(data, index, length);
+        return handler.decodePadding(data, index, length) + supplyExtPadding(schemaId);
+    }
+
+    @Override
+    protected int extPadding(
+        JsonSchema schema)
+    {
+        int padding = 0;
+        if (schema != null)
+        {
+            for (JsonModelExtContext ext : exts)
+            {
+                padding += ext.supplyHandler(schema, options).padding(schema);
+            }
+        }
+        return padding;
     }
 
     int encodePadding(
@@ -112,6 +138,9 @@ public final class JsonModelHandlerImpl extends JsonModelHandler implements Mode
         return handler.encode(traceId, bindingId, schemaId, data, index, length, next, NONE_ENCODER);
     }
 
+    // the decode path: extractor is null when the caller's ModelTransform is NONE (the observation-only
+    // extraction stage is skipped), but this overload is always the decode path regardless, so installed
+    // extensions always fold in here
     JsonPipeline newPipeline(
         int schemaId,
         boolean lenient,
@@ -120,16 +149,19 @@ public final class JsonModelHandlerImpl extends JsonModelHandler implements Mode
         JsonReporter reporter)
     {
         JsonSchema schema = supplySchema(schemaId);
-        return schema != null
-            ? JsonEx.stream(JsonEx.createParser())
-                .transform(schema.validator(lenient))
-                .transform(extractor)
+        JsonStream stream = schema != null
+            ? extend(JsonEx.stream(JsonEx.createParser()), schema).transform(schema.validator(lenient))
+            : null;
+        return stream != null
+            ? (extractor != null ? stream.transform(extractor) : stream)
                 .lenient(lenient)
                 .reporting(reporter)
                 .into(generator)
             : null;
     }
 
+    // the encode path: the write path into the broker, which must preserve the full, undisclosed value, so
+    // installed extensions (decode-only) never fold in here
     JsonPipeline newPipeline(
         int schemaId,
         boolean lenient,
@@ -144,6 +176,22 @@ public final class JsonModelHandlerImpl extends JsonModelHandler implements Mode
                 .reporting(reporter)
                 .into(generator)
             : null;
+    }
+
+    // folds every installed json model extension's own stage(s) into the decoder stream, in discovery
+    // order, ahead of this handler's own validator/extractor stages; decode is the read path out of the
+    // broker, where a read-side concern like disclosure redaction belongs. encode never calls this: it is
+    // the write path into the broker and must preserve the full, undisclosed value.
+    private JsonStream extend(
+        JsonStream stream,
+        JsonSchema schema)
+    {
+        JsonStream extended = stream;
+        for (JsonModelExtContext ext : exts)
+        {
+            extended = (JsonStream) ext.supplyHandler(schema, options).transform(extended);
+        }
+        return extended;
     }
 
     void validationFailure(

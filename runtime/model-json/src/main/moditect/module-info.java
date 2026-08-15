@@ -20,6 +20,10 @@ module io.aklivity.zilla.runtime.model.json
 
     requires io.aklivity.zilla.config.model.json;
 
+    exports io.aklivity.zilla.runtime.model.json.ext;
+
+    uses io.aklivity.zilla.runtime.model.json.ext.JsonModelExtFactorySpi;
+
     provides io.aklivity.zilla.runtime.engine.model.ModelFactorySpi
         with io.aklivity.zilla.runtime.model.json.internal.JsonModelFactorySpi;
 

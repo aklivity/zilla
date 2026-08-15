@@ -22,6 +22,7 @@ import jakarta.json.Json;
 import jakarta.json.JsonArray;
 import jakarta.json.JsonObject;
 
+import org.agrona.collections.Int2IntHashMap;
 import org.agrona.collections.Long2ObjectCache;
 
 import io.aklivity.zilla.config.engine.CatalogedConfig;
@@ -47,6 +48,7 @@ public abstract class JsonModelHandler
     protected final boolean encodeLenient;
 
     private final Long2ObjectCache<JsonSchema> schemas;
+    private final Int2IntHashMap extPaddings;
 
     public JsonModelHandler(
         JsonModelConfig config,
@@ -65,6 +67,7 @@ public abstract class JsonModelHandler
         this.decodeLenient = config.validate.decode == ValidateMode.LENIENT;
         this.encodeLenient = config.validate.encode == ValidateMode.LENIENT;
         this.schemas = new Long2ObjectCache<>(1, 1024, i -> {});
+        this.extPaddings = new Int2IntHashMap(-1);
         this.event = new JsonModelEventContext(context);
     }
 
@@ -87,6 +90,19 @@ public abstract class JsonModelHandler
             }
         }
         return schema;
+    }
+
+    protected final int supplyExtPadding(
+        int schemaId)
+    {
+        return extPaddings.computeIfAbsent(schemaId, id -> extPadding(supplySchema(id)));
+    }
+
+    // overridden by JsonModelHandlerImpl to sum the padding contributed by each installed model extension
+    protected int extPadding(
+        JsonSchema schema)
+    {
+        return 0;
     }
 
     private static long cacheKey(

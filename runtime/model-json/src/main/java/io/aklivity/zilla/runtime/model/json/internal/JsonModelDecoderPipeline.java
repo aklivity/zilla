@@ -171,9 +171,8 @@ final class JsonModelDecoderPipeline implements ModelPipeline
     private JsonPipeline supplyPipeline(
         int schemaId)
     {
-        return pipelines.computeIfAbsent(schemaId, id -> extractor != null
-            ? handler.newPipeline(id, handler.decodeLenient, generator, extractor, this::onRejected)
-            : handler.newPipeline(id, handler.decodeLenient, generator, this::onRejected));
+        return pipelines.computeIfAbsent(schemaId,
+            id -> handler.newPipeline(id, handler.decodeLenient, generator, extractor, this::onRejected));
     }
 
     private void onRejected(

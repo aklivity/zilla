@@ -20,6 +20,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.time.Clock;
+import java.util.List;
 
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -154,7 +155,7 @@ public class JsonModelEncoderPipelineBM
         when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
         when(context.clock()).thenReturn(Clock.systemUTC());
         when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
-        return new JsonModelHandlerImpl(model, context);
+        return new JsonModelHandlerImpl(model, context, List.of());
     }
 
     public static void main(

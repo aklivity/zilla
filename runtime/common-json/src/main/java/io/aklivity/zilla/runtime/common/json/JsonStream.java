@@ -21,7 +21,7 @@ package io.aklivity.zilla.runtime.common.json;
  * {@link #reporting(JsonReporter)}; terminate with {@link #into(JsonSink)} to obtain the runnable,
  * resumable {@link JsonPipeline}. A {@code JsonStream} carries no state and is not itself runnable.
  */
-public interface JsonStream
+public interface JsonStream extends JsonTransformable
 {
     JsonStream transform(
         JsonTransform transform);
