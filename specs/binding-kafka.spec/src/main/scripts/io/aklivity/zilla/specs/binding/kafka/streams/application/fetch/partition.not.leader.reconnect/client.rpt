@@ -43,6 +43,17 @@ read zilla:data.ext ${kafka:dataEx()
 
 read notify ROUTED_BROKER_CLIENT
 
+read await ROUTED_BROKER_CLIENT_ERRORED
+
+read zilla:data.ext ${kafka:dataEx()
+                             .typeId(zilla:id("kafka"))
+                             .meta()
+                                 .partition(0, 178)
+                                 .build()
+                             .build()}
+
+read notify ROUTED_BROKER_CLIENT_2
+
 connect await ROUTED_BROKER_CLIENT
         "zilla://streams/app0"
     option zilla:window 8192
@@ -57,15 +68,38 @@ write zilla:begin.ext ${kafka:beginEx()
                                    .build()
                                .build()}
 
-connect aborted
+connected
+
+read zilla:begin.ext ${kafka:beginEx()
+                              .typeId(zilla:id("kafka"))
+                              .fetch()
+                                  .topic("test")
+                                  .partition(0, 10, 10)
+                                  .build()
+                              .build()}
+
+read zilla:data.ext ${kafka:matchDataEx()
+                             .typeId(zilla:id("kafka"))
+                             .fetch()
+                                 .partition(0, 10, 10)
+                                 .build()
+                             .build()}
+read "Hello, world"
+
+read zilla:reset.ext ${kafka:resetEx()
+                           .typeId(zilla:id("kafka"))
+                           .error(6)
+                           .build()}
+write aborted
+read abort
 
 read notify ROUTED_BROKER_CLIENT_ERRORED
 
-connect await ROUTED_BROKER_CLIENT_ERRORED
+connect await ROUTED_BROKER_CLIENT_2
         "zilla://streams/app0"
     option zilla:window 8192
     option zilla:transmission "half-duplex"
-    option zilla:affinity 177
+    option zilla:affinity 178
 
 write zilla:begin.ext ${kafka:beginEx()
                                .typeId(zilla:id("kafka"))
