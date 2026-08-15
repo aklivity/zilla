@@ -16,11 +16,15 @@ package io.aklivity.zilla.runtime.common.protobuf;
 
 /**
  * Something a {@link ProtobufTransform} stage can be appended to, in data-flow order. {@link ProtobufStream}
- * is the primary implementation; this narrower supertype lets a caller outside {@code common-protobuf} append
- * stages to an in-progress stream without depending on {@link ProtobufStream}'s fuller, terminal-bearing API.
+ * is the primary implementation; this narrower, self-bounded supertype lets a caller outside
+ * {@code common-protobuf} append stages to an in-progress stream and get back its own concrete stream type,
+ * without depending on {@link ProtobufStream}'s fuller, terminal-bearing API.
+ *
+ * @param <T>  the concrete stream type, so {@link #transform(ProtobufTransform)} returns it rather than this
+ *             narrower supertype
  */
-public interface ProtobufTransformable
+public interface ProtobufTransformable<T extends ProtobufTransformable<T>>
 {
-    ProtobufTransformable transform(
+    T transform(
         ProtobufTransform transform);
 }

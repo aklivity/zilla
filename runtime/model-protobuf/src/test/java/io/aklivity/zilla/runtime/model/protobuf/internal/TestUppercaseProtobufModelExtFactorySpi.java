@@ -25,6 +25,7 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufPipeline.Status;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSink;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSource;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufTransform;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufTransformable;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufType;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
 import io.aklivity.zilla.runtime.engine.Configuration;
@@ -32,6 +33,7 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.model.protobuf.ext.ProtobufModelExt;
 import io.aklivity.zilla.runtime.model.protobuf.ext.ProtobufModelExtContext;
 import io.aklivity.zilla.runtime.model.protobuf.ext.ProtobufModelExtFactorySpi;
+import io.aklivity.zilla.runtime.model.protobuf.ext.ProtobufModelExtHandler;
 
 /**
  * A generic, business-agnostic test-only extension registered solely under {@code src/test} so it never
@@ -65,7 +67,17 @@ public final class TestUppercaseProtobufModelExtFactorySpi implements ProtobufMo
             public ProtobufModelExtContext supply(
                 EngineContext context)
             {
-                return (schema, options) -> stream -> stream.transform(new Uppercase());
+                return (schema, options) -> new ProtobufModelExtHandler()
+                {
+                    private final Uppercase transform = new Uppercase();
+
+                    @Override
+                    public <T extends ProtobufTransformable<T>> T transform(
+                        T stream)
+                    {
+                        return stream.transform(transform);
+                    }
+                };
             }
         };
     }

@@ -28,8 +28,8 @@ public class ProtobufModelExtHandlerTest
         ProtobufModelExtHandler handler = new ProtobufModelExtHandler()
         {
             @Override
-            public ProtobufTransformable transform(
-                ProtobufTransformable stream)
+            public <T extends ProtobufTransformable<T>> T transform(
+                T stream)
             {
                 return stream;
             }

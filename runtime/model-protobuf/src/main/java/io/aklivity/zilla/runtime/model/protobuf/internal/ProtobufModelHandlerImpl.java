@@ -306,7 +306,7 @@ public final class ProtobufModelHandlerImpl extends ProtobufModelHandler impleme
         ProtobufStream extended = stream;
         for (ProtobufModelExtContext ext : exts)
         {
-            extended = (ProtobufStream) ext.supplyHandler(schema, options).transform(extended);
+            extended = ext.supplyHandler(schema, options).transform(extended);
         }
         return extended;
     }
