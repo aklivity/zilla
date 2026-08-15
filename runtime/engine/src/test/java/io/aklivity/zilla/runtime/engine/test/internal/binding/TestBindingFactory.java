@@ -78,7 +78,9 @@ final class TestBindingFactory implements BindingHandler
 {
     private static final int FLAGS_INIT = 0x02;
     private static final int FLAGS_FIN = 0x01;
-    private static final int TRANSFORM_REJECTED = -1;
+    // DataFW.FIELD_OFFSET_PAYLOAD -- a transform destination window must leave this much room in
+    // context.writeBuffer() for the frame header, or wrapping a full window as a DataFW payload overflows it
+    private static final int DATA_FRAME_HEADER_SIZE = 85;
     private static final List<String> EMPTY_ROLES = emptyList();
 
     private final BeginFW beginRO = new BeginFW();
@@ -337,12 +339,18 @@ final class TestBindingFactory implements BindingHandler
         private long pendingTraceId;
         private boolean storeAssertionsStarted;
         private final ModelPipeline pipeline;
-        // holds a value's transformed bytes across onInitialData calls when the value's source arrives
-        // split over more than one DATA frame (flags without FLAGS_FIN); modelBuffer alone cannot serve
-        // this purpose since it is shared, single-threaded-safe scratch space reused synchronously within
-        // one onInitialData call, not state that survives until a later, possibly interleaved, call
+        // fixed-size destination window for pipeline.transform(); drained into a downstream DATA frame
+        // every time it fills, rather than accumulating a whole value, so a value larger than this window
+        // (or split across several onInitialData calls) is transformed correctly regardless of size
         private final MutableDirectBufferEx initialBuffer;
-        private int initialPending;
+        private boolean initialStarted;
+        // accumulates source bytes not yet consumed by the pipeline across onInitialData calls -- on
+        // ModelStatus#UNDERFLOW the pipeline may consume only part of what it was given (e.g. it saw a
+        // JSON field open a string value but the closing quote had not yet arrived), so the unconsumed
+        // tail must be preserved and prepended to the next DATA frame's bytes, not discarded. Grows on
+        // demand since a fragment's source size is independent of the destination window above
+        private MutableDirectBufferEx initialDecodeSlot;
+        private int initialDecodeLength;
 
         private TestSource(
             MessageConsumer source,
@@ -359,7 +367,8 @@ final class TestBindingFactory implements BindingHandler
             this.replyId = replyId;
             this.target = resolvedId != 0L ? new TestTarget(routedId, resolvedId) : null;
             this.pipeline = valueModel != null ? valueModel.supplyEncoder() : null;
-            this.initialBuffer = pipeline != null ? new UnsafeBufferEx(new byte[modelBuffer.capacity()]) : null;
+            this.initialBuffer = pipeline != null ?
+                new UnsafeBufferEx(new byte[modelBuffer.capacity() - DATA_FRAME_HEADER_SIZE]) : null;
         }
 
         private void doAuthorize(
@@ -909,78 +918,91 @@ final class TestBindingFactory implements BindingHandler
             }
             else
             {
-                int total = transform(pipeline, initialBuffer, initialPending, traceId, authorization, flags,
-                    payload.buffer(), payload.offset(), payload.limit());
-                if (total == TRANSFORM_REJECTED)
+                int payloadLength = payload.sizeof();
+                if (initialDecodeSlot == null || initialDecodeSlot.capacity() < initialDecodeLength + payloadLength)
                 {
-                    target.doInitialAbort(traceId);
-                    initialPending = 0;
+                    int capacity = Math.max(initialDecodeLength + payloadLength,
+                        initialDecodeSlot != null ? initialDecodeSlot.capacity() * 2 : modelBuffer.capacity());
+                    MutableDirectBufferEx grown = new UnsafeBufferEx(new byte[capacity]);
+                    if (initialDecodeLength > 0)
+                    {
+                        grown.putBytes(0, initialDecodeSlot, 0, initialDecodeLength);
+                    }
+                    initialDecodeSlot = grown;
                 }
-                else if ((flags & FLAGS_FIN) != 0)
-                {
-                    OctetsFW transformed = octetsRO.wrap(initialBuffer, 0, total);
-                    target.doInitialData(traceId, flags, total, transformed);
-                    initialPending = 0;
-                }
-                else
-                {
-                    initialPending = total;
-                }
+                initialDecodeSlot.putBytes(initialDecodeLength, payload.buffer(), payload.offset(), payloadLength);
+                initialDecodeLength += payloadLength;
+
+                transformInitial(traceId, authorization, flags);
             }
         }
 
-        // drives pipeline.transform over one DATA frame's worth of source, starting from any bytes
-        // already produced by a prior fragment (pending); loops internally while the pipeline reports
-        // OK/OVERFLOW (more destination room needed, no new source required), and stops on COMPLETE,
-        // REJECTED, or UNDERFLOW (this frame's source is exhausted but the value is not yet complete).
-        // UNDERFLOW while this frame carried FLAGS_FIN means the value was truncated -- treated the same
-        // as REJECTED, since no further frame will ever arrive to complete it
-        private int transform(
-            ModelPipeline pipeline,
-            MutableDirectBufferEx buffer,
-            int pending,
+        // drives pipeline.transform over the accumulated, not-yet-consumed source bytes, draining the
+        // fixed-size initialBuffer window into a downstream DATA frame every time it produces output,
+        // rather than accumulating a whole value -- ModelStatus#OVERFLOW means the window filled before
+        // the value completed, so the caller drains it and calls transform() again with the same source
+        // position and a freshly emptied window, per the ModelPipeline#transform contract. Loops while the
+        // pipeline reports OK/OVERFLOW and stops on COMPLETE, REJECTED, or UNDERFLOW. On UNDERFLOW the
+        // pipeline may have consumed only part of what it was given (e.g. a JSON string value whose
+        // closing quote had not yet arrived) -- the unconsumed tail is compacted to the front of
+        // initialDecodeSlot and carried into the next onInitialData call, unless this frame carried
+        // FLAGS_FIN, in which case the value was truncated and is treated the same as REJECTED since no
+        // further frame will ever arrive to complete it
+        private void transformInitial(
             long traceId,
             long authorization,
-            int flags,
-            DirectBufferEx data,
-            int index,
-            int limit)
+            int flags)
         {
-            int total = pending;
-            int srcAt = index;
+            int srcAt = 0;
+            int limit = initialDecodeLength;
             int stepFlags = flags;
             ModelStatus status;
             do
             {
                 final ModelPipelineResult result = pipeline.transform(traceId, routedId, authorization, stepFlags,
-                        data, srcAt, limit, buffer, total, buffer.capacity());
+                        initialDecodeSlot, srcAt, limit, initialBuffer, 0, initialBuffer.capacity());
                 status = result.status();
 
                 if (status != ModelStatus.REJECTED)
                 {
-                    total += result.produced();
                     srcAt += result.consumed();
                     stepFlags &= ~FLAGS_INIT;
+
+                    int produced = result.produced();
+                    if (produced > 0)
+                    {
+                        int outFlags = (initialStarted ? 0x00 : FLAGS_INIT) |
+                            (status == ModelStatus.COMPLETE ? FLAGS_FIN : 0x00);
+                        OctetsFW transformed = octetsRO.wrap(initialBuffer, 0, produced);
+                        target.doInitialData(traceId, outFlags, produced, transformed);
+                        initialStarted = true;
+                    }
                 }
             } while (status == ModelStatus.OK || status == ModelStatus.OVERFLOW);
 
             boolean truncated = status == ModelStatus.UNDERFLOW && (flags & FLAGS_FIN) != 0;
-            int outcome;
             if (status == ModelStatus.REJECTED || truncated)
             {
                 pipeline.reset();
-                outcome = TRANSFORM_REJECTED;
+                target.doInitialAbort(traceId);
+                initialStarted = false;
+                initialDecodeLength = 0;
+            }
+            else if (status == ModelStatus.UNDERFLOW)
+            {
+                int remaining = limit - srcAt;
+                if (remaining > 0 && srcAt > 0)
+                {
+                    initialDecodeSlot.putBytes(0, initialDecodeSlot, srcAt, remaining);
+                }
+                initialDecodeLength = remaining;
             }
             else if (status == ModelStatus.COMPLETE)
             {
                 pipeline.reset();
-                outcome = total;
+                initialStarted = false;
+                initialDecodeLength = 0;
             }
-            else
-            {
-                outcome = total;
-            }
-            return outcome;
         }
 
         private void onInitialEnd(
@@ -1165,9 +1187,12 @@ final class TestBindingFactory implements BindingHandler
 
             private final TestSource source;
             private final ModelPipeline pipeline;
-            // see TestSource.initialBuffer for why reply-direction fragmentation needs its own buffer too
+            // see TestSource.initialBuffer -- same fixed-size drain-per-produce window, for the reply direction
             private final MutableDirectBufferEx replyBuffer;
-            private int replyPending;
+            private boolean replyStarted;
+            // see TestSource.initialDecodeSlot -- same not-yet-consumed source accumulation, for the reply direction
+            private MutableDirectBufferEx replyDecodeSlot;
+            private int replyDecodeLength;
 
             private TestTarget(
                 long originId,
@@ -1179,7 +1204,8 @@ final class TestBindingFactory implements BindingHandler
                 this.replyId = context.supplyReplyId(initialId);
                 this.source = TestSource.this;
                 this.pipeline = valueModel != null ? valueModel.supplyDecoder() : null;
-                this.replyBuffer = pipeline != null ? new UnsafeBufferEx(new byte[modelBuffer.capacity()]) : null;
+                this.replyBuffer = pipeline != null ?
+                    new UnsafeBufferEx(new byte[modelBuffer.capacity() - DATA_FRAME_HEADER_SIZE]) : null;
             }
 
             private void onMessage(
@@ -1281,23 +1307,80 @@ final class TestBindingFactory implements BindingHandler
                 }
                 else
                 {
-                    int total = source.transform(pipeline, replyBuffer, replyPending, traceId, authorization, flags,
-                        payload.buffer(), payload.offset(), payload.limit());
-                    if (total == TRANSFORM_REJECTED)
+                    int payloadLength = payload.sizeof();
+                    if (replyDecodeSlot == null || replyDecodeSlot.capacity() < replyDecodeLength + payloadLength)
                     {
-                        source.doReplyAbort(traceId);
-                        replyPending = 0;
+                        int capacity = Math.max(replyDecodeLength + payloadLength,
+                            replyDecodeSlot != null ? replyDecodeSlot.capacity() * 2 : modelBuffer.capacity());
+                        MutableDirectBufferEx grown = new UnsafeBufferEx(new byte[capacity]);
+                        if (replyDecodeLength > 0)
+                        {
+                            grown.putBytes(0, replyDecodeSlot, 0, replyDecodeLength);
+                        }
+                        replyDecodeSlot = grown;
                     }
-                    else if ((flags & FLAGS_FIN) != 0)
+                    replyDecodeSlot.putBytes(replyDecodeLength, payload.buffer(), payload.offset(), payloadLength);
+                    replyDecodeLength += payloadLength;
+
+                    transformReply(traceId, authorization, flags);
+                }
+            }
+
+            // see TestSource#transformInitial for the drain-and-continue loop this mirrors on the reply direction
+            private void transformReply(
+                long traceId,
+                long authorization,
+                int flags)
+            {
+                int srcAt = 0;
+                int limit = replyDecodeLength;
+                int stepFlags = flags;
+                ModelStatus status;
+                do
+                {
+                    final ModelPipelineResult result = pipeline.transform(traceId, routedId, authorization, stepFlags,
+                            replyDecodeSlot, srcAt, limit, replyBuffer, 0, replyBuffer.capacity());
+                    status = result.status();
+
+                    if (status != ModelStatus.REJECTED)
                     {
-                        OctetsFW transformed = octetsRO.wrap(replyBuffer, 0, total);
-                        source.doReplyData(traceId, flags, total, transformed);
-                        replyPending = 0;
+                        srcAt += result.consumed();
+                        stepFlags &= ~FLAGS_INIT;
+
+                        int produced = result.produced();
+                        if (produced > 0)
+                        {
+                            int outFlags = (replyStarted ? 0x00 : FLAGS_INIT) |
+                                (status == ModelStatus.COMPLETE ? FLAGS_FIN : 0x00);
+                            OctetsFW transformed = octetsRO.wrap(replyBuffer, 0, produced);
+                            source.doReplyData(traceId, outFlags, produced, transformed);
+                            replyStarted = true;
+                        }
                     }
-                    else
+                } while (status == ModelStatus.OK || status == ModelStatus.OVERFLOW);
+
+                boolean truncated = status == ModelStatus.UNDERFLOW && (flags & FLAGS_FIN) != 0;
+                if (status == ModelStatus.REJECTED || truncated)
+                {
+                    pipeline.reset();
+                    source.doReplyAbort(traceId);
+                    replyStarted = false;
+                    replyDecodeLength = 0;
+                }
+                else if (status == ModelStatus.UNDERFLOW)
+                {
+                    int remaining = limit - srcAt;
+                    if (remaining > 0 && srcAt > 0)
                     {
-                        replyPending = total;
+                        replyDecodeSlot.putBytes(0, replyDecodeSlot, srcAt, remaining);
                     }
+                    replyDecodeLength = remaining;
+                }
+                else if (status == ModelStatus.COMPLETE)
+                {
+                    pipeline.reset();
+                    replyStarted = false;
+                    replyDecodeLength = 0;
                 }
             }
 
