@@ -243,6 +243,12 @@ final class AvroPipelineImpl implements AvroPipeline
         }
 
         @Override
+        public CharSequence getStringView()
+        {
+            return parser.getStringView();
+        }
+
+        @Override
         public String getField()
         {
             return parser.getField();

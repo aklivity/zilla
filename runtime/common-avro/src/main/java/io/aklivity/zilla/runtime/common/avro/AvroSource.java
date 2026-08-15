@@ -47,6 +47,19 @@ public interface AvroSource
     String getString();
 
     /**
+     * The same text as {@link #getString()}, as a {@link CharSequence} a caller that only reads or
+     * re-encodes characters (never retains them past the current call) can use without forcing a
+     * {@code String} to be materialized. The returned instance is valid only for the duration of the
+     * current call and may be reused by the next one; a caller that needs to retain the text must copy
+     * it (e.g. {@code String.valueOf(...)}) or use {@link #getString()} instead. The default falls back
+     * to {@link #getString()}.
+     */
+    default CharSequence getStringView()
+    {
+        return getString();
+    }
+
+    /**
      * Valid only on a {@link AvroEvent#FIELD_NAME} event; the record field name from the schema
      * (a cached string, no per-message allocation).
      */

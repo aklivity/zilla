@@ -67,6 +67,12 @@ public class AvroGeneratorTest
         assertEquals(AvroPipeline.Status.COMPLETED, sink.transform(NO_CONTROL, bytes, AvroEvent.BYTES));
     }
 
+    @Test
+    public void shouldFallBackStringViewToGetString()
+    {
+        assertEquals(zero.getString(), zero.getStringView());
+    }
+
     private static final class ZeroSource implements AvroSource
     {
         private final UnsafeBufferEx empty;
