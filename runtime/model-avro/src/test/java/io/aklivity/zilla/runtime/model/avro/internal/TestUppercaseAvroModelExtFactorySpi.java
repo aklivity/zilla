@@ -73,8 +73,8 @@ public final class TestUppercaseAvroModelExtFactorySpi implements AvroModelExtFa
                     private final UppercaseTransform transform = new UppercaseTransform();
 
                     @Override
-                    public AvroTransformable transform(
-                        AvroTransformable stream)
+                    public <T extends AvroTransformable<T>> T transform(
+                        T stream)
                     {
                         return stream.transform(transform);
                     }

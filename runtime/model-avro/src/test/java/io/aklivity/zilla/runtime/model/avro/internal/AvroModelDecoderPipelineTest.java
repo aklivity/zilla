@@ -282,8 +282,8 @@ public class AvroModelDecoderPipelineTest
         return (schema, config) -> new AvroModelExtHandler()
         {
             @Override
-            public AvroTransformable transform(
-                AvroTransformable stream)
+            public <T extends AvroTransformable<T>> T transform(
+                T stream)
             {
                 return stream;
             }

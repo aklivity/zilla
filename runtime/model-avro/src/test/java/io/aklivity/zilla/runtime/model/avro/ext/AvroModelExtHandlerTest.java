@@ -28,8 +28,8 @@ public class AvroModelExtHandlerTest
         AvroModelExtHandler handler = new AvroModelExtHandler()
         {
             @Override
-            public AvroTransformable transform(
-                AvroTransformable stream)
+            public <T extends AvroTransformable<T>> T transform(
+                T stream)
             {
                 return stream;
             }

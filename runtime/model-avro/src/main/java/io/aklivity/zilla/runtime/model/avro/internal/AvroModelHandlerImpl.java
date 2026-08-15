@@ -217,7 +217,7 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
         AvroStream extended = stream;
         for (AvroModelExtContext ext : exts)
         {
-            extended = (AvroStream) ext.supplyHandler(schema, options).transform(extended);
+            extended = ext.supplyHandler(schema, options).transform(extended);
         }
         return extended;
     }

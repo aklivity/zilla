@@ -27,11 +27,12 @@ public interface AvroModelExtHandler
      * Appends this extension's own stage or stages to {@code stream}, in data-flow order, returning the
      * result for the caller to continue building.
      *
+     * @param <T>     the caller's own concrete stream type
      * @param stream  the in-progress stream to extend
-     * @return the extended stream
+     * @return the extended stream, as the same concrete type supplied
      */
-    AvroTransformable transform(
-        AvroTransformable stream);
+    <T extends AvroTransformable<T>> T transform(
+        T stream);
 
     /**
      * Returns the maximum number of additional bytes this extension's transform may add to a decoded
