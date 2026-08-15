@@ -75,4 +75,34 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/client.received.avro.ext.uppercase/client",
+        "${app}/client.received.avro.ext.uppercase/server"
+    })
+    public void shouldForwardAvroExtUppercase() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/client.received.avro.ext.uppercase.100k/client",
+        "${app}/client.received.avro.ext.uppercase.100k/server"
+    })
+    public void shouldForwardAvroExtUppercase100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/client.received.avro.ext.reject/client",
+        "${app}/client.received.avro.ext.reject/server"
+    })
+    public void shouldForwardAvroExtReject() throws Exception
+    {
+        k3po.finish();
+    }
 }
