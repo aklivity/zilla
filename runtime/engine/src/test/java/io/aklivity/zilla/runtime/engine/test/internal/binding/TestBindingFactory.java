@@ -78,6 +78,7 @@ final class TestBindingFactory implements BindingHandler
 {
     private static final int FLAGS_INIT = 0x02;
     private static final int FLAGS_FIN = 0x01;
+    private static final int TRANSFORM_REJECTED = -1;
     private static final List<String> EMPTY_ROLES = emptyList();
 
     private final BeginFW beginRO = new BeginFW();
@@ -336,6 +337,12 @@ final class TestBindingFactory implements BindingHandler
         private long pendingTraceId;
         private boolean storeAssertionsStarted;
         private final ModelPipeline pipeline;
+        // holds a value's transformed bytes across onInitialData calls when the value's source arrives
+        // split over more than one DATA frame (flags without FLAGS_FIN); modelBuffer alone cannot serve
+        // this purpose since it is shared, single-threaded-safe scratch space reused synchronously within
+        // one onInitialData call, not state that survives until a later, possibly interleaved, call
+        private final MutableDirectBufferEx initialBuffer;
+        private int initialPending;
 
         private TestSource(
             MessageConsumer source,
@@ -352,6 +359,7 @@ final class TestBindingFactory implements BindingHandler
             this.replyId = replyId;
             this.target = resolvedId != 0L ? new TestTarget(routedId, resolvedId) : null;
             this.pipeline = valueModel != null ? valueModel.supplyEncoder() : null;
+            this.initialBuffer = pipeline != null ? new UnsafeBufferEx(new byte[modelBuffer.capacity()]) : null;
         }
 
         private void doAuthorize(
@@ -901,61 +909,78 @@ final class TestBindingFactory implements BindingHandler
             }
             else
             {
-                int total = transform(pipeline, traceId, authorization,
+                int total = transform(pipeline, initialBuffer, initialPending, traceId, authorization, flags,
                     payload.buffer(), payload.offset(), payload.limit());
-                if (total < 0)
+                if (total == TRANSFORM_REJECTED)
                 {
                     target.doInitialAbort(traceId);
+                    initialPending = 0;
+                }
+                else if ((flags & FLAGS_FIN) != 0)
+                {
+                    OctetsFW transformed = octetsRO.wrap(initialBuffer, 0, total);
+                    target.doInitialData(traceId, flags, total, transformed);
+                    initialPending = 0;
                 }
                 else
                 {
-                    OctetsFW transformed = octetsRO.wrap(modelBuffer, 0, total);
-                    target.doInitialData(traceId, flags, total, transformed);
+                    initialPending = total;
                 }
             }
         }
 
+        // drives pipeline.transform over one DATA frame's worth of source, starting from any bytes
+        // already produced by a prior fragment (pending); loops internally while the pipeline reports
+        // OK/OVERFLOW (more destination room needed, no new source required), and stops on COMPLETE,
+        // REJECTED, or UNDERFLOW (this frame's source is exhausted but the value is not yet complete).
+        // UNDERFLOW while this frame carried FLAGS_FIN means the value was truncated -- treated the same
+        // as REJECTED, since no further frame will ever arrive to complete it
         private int transform(
             ModelPipeline pipeline,
+            MutableDirectBufferEx buffer,
+            int pending,
             long traceId,
             long authorization,
+            int flags,
             DirectBufferEx data,
             int index,
             int limit)
         {
-            int total = 0;
+            int total = pending;
             int srcAt = index;
-            int flags = FLAGS_INIT | FLAGS_FIN;
-            boolean done = false;
-            while (!done)
+            int stepFlags = flags;
+            ModelStatus status;
+            do
             {
-                final ModelPipelineResult result = pipeline.transform(traceId, routedId, authorization, flags,
-                        data, srcAt, limit, modelBuffer, total, modelBuffer.capacity());
-                final ModelStatus status = result.status();
+                final ModelPipelineResult result = pipeline.transform(traceId, routedId, authorization, stepFlags,
+                        data, srcAt, limit, buffer, total, buffer.capacity());
+                status = result.status();
 
-                if (status == ModelStatus.REJECTED)
-                {
-                    total = -1;
-                    done = true;
-                }
-                else
+                if (status != ModelStatus.REJECTED)
                 {
                     total += result.produced();
-
-                    if (status == ModelStatus.COMPLETE)
-                    {
-                        done = true;
-                    }
-                    else
-                    {
-                        srcAt += result.consumed();
-                        flags = FLAGS_FIN;
-                    }
+                    srcAt += result.consumed();
+                    stepFlags &= ~FLAGS_INIT;
                 }
-            }
+            } while (status == ModelStatus.OK || status == ModelStatus.OVERFLOW);
 
-            pipeline.reset();
-            return total;
+            boolean truncated = status == ModelStatus.UNDERFLOW && (flags & FLAGS_FIN) != 0;
+            int outcome;
+            if (status == ModelStatus.REJECTED || truncated)
+            {
+                pipeline.reset();
+                outcome = TRANSFORM_REJECTED;
+            }
+            else if (status == ModelStatus.COMPLETE)
+            {
+                pipeline.reset();
+                outcome = total;
+            }
+            else
+            {
+                outcome = total;
+            }
+            return outcome;
         }
 
         private void onInitialEnd(
@@ -1140,6 +1165,9 @@ final class TestBindingFactory implements BindingHandler
 
             private final TestSource source;
             private final ModelPipeline pipeline;
+            // see TestSource.initialBuffer for why reply-direction fragmentation needs its own buffer too
+            private final MutableDirectBufferEx replyBuffer;
+            private int replyPending;
 
             private TestTarget(
                 long originId,
@@ -1151,6 +1179,7 @@ final class TestBindingFactory implements BindingHandler
                 this.replyId = context.supplyReplyId(initialId);
                 this.source = TestSource.this;
                 this.pipeline = valueModel != null ? valueModel.supplyDecoder() : null;
+                this.replyBuffer = pipeline != null ? new UnsafeBufferEx(new byte[modelBuffer.capacity()]) : null;
             }
 
             private void onMessage(
@@ -1252,16 +1281,22 @@ final class TestBindingFactory implements BindingHandler
                 }
                 else
                 {
-                    int total = source.transform(pipeline, traceId, authorization,
+                    int total = source.transform(pipeline, replyBuffer, replyPending, traceId, authorization, flags,
                         payload.buffer(), payload.offset(), payload.limit());
-                    if (total < 0)
+                    if (total == TRANSFORM_REJECTED)
                     {
                         source.doReplyAbort(traceId);
+                        replyPending = 0;
+                    }
+                    else if ((flags & FLAGS_FIN) != 0)
+                    {
+                        OctetsFW transformed = octetsRO.wrap(replyBuffer, 0, total);
+                        source.doReplyData(traceId, flags, total, transformed);
+                        replyPending = 0;
                     }
                     else
                     {
-                        OctetsFW transformed = octetsRO.wrap(modelBuffer, 0, total);
-                        source.doReplyData(traceId, flags, total, transformed);
+                        replyPending = total;
                     }
                 }
             }
