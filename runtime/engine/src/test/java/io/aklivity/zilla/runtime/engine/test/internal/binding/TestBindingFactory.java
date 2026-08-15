@@ -80,6 +80,25 @@ final class TestBindingFactory implements BindingHandler
     private static final int FLAGS_FIN = 0x01;
     private static final List<String> EMPTY_ROLES = emptyList();
 
+    @FunctionalInterface
+    private interface ModelChunkFlusher
+    {
+        void flush(
+            int flags,
+            int length);
+    }
+
+    // Accumulated destination progress for one direction's model transform session, held across
+    // separate onXData invocations for the same logical value: total tracks bytes already produced into
+    // modelBuffer since the last drain, flushedAny tracks whether an OVERFLOW-driven drain has already
+    // happened this session (so later chunk flags never repeat INIT). Kept per direction (never shared
+    // between initial and reply) since both can be mid-value at once on a full-duplex stream.
+    private static final class ModelTransformState
+    {
+        private int total;
+        private boolean flushedAny;
+    }
+
     private final BeginFW beginRO = new BeginFW();
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
 
@@ -336,6 +355,7 @@ final class TestBindingFactory implements BindingHandler
         private long pendingTraceId;
         private boolean storeAssertionsStarted;
         private final ModelPipeline pipeline;
+        private final ModelTransformState initialTransform = new ModelTransformState();
 
         private TestSource(
             MessageConsumer source,
@@ -901,61 +921,100 @@ final class TestBindingFactory implements BindingHandler
             }
             else
             {
-                int total = transform(pipeline, traceId, authorization,
-                    payload.buffer(), payload.offset(), payload.limit());
-                if (total < 0)
+                boolean accepted = transform(pipeline, traceId, authorization, flags,
+                    payload.buffer(), payload.offset(), payload.limit(), initialTransform,
+                    (chunkFlags, chunkLength) -> target.doInitialData(traceId, chunkFlags, chunkLength,
+                        octetsRO.wrap(modelBuffer, 0, chunkLength)));
+                if (!accepted)
                 {
                     target.doInitialAbort(traceId);
-                }
-                else
-                {
-                    OctetsFW transformed = octetsRO.wrap(modelBuffer, 0, total);
-                    target.doInitialData(traceId, flags, total, transformed);
                 }
             }
         }
 
-        private int transform(
+        // Drives the pipeline with a loop modelled on SSLEngine, matching ModelPipeline's own contract:
+        // on OVERFLOW the destination buffer is drained via flusher (carrying only the INIT bit from
+        // dataFlags on the first chunk, no flags on any chunk in between) before transform is called
+        // again, so a value whose transformed size exceeds modelBuffer's fixed capacity is still
+        // delivered in full, as however many chunks it takes, instead of spinning forever against an
+        // already-full destination window. On UNDERFLOW this call's own input is exhausted, so the loop
+        // stops and waits for the next onXData invocation to supply the rest -- calling transform again
+        // with the same already-drained source would never make progress, and nothing is flushed yet:
+        // state.total keeps accumulating across calls (never reset here) so a value that only turns out
+        // rejected once its terminal (schema-validation) event fires still delivers nothing downstream,
+        // matching every other REJECTED path's all-or-nothing contract. Source-side flags start at
+        // dataFlags (the actual DATA frame's own flags) rather than an assumed INIT|FIN, and drop INIT
+        // after the first call to this pipeline -- a value split across multiple onXData invocations must
+        // be presented to the model exactly as the frame declared it (a continuation frame carries no
+        // INIT), or a stateful pipeline mid-value sees a spurious fresh start and rejects it as malformed.
+        // pipeline.reset() only runs once the value's own transform session has actually concluded
+        // (COMPLETE or REJECTED) -- resetting on UNDERFLOW would discard the in-flight state a resumed
+        // call across a later onXData invocation depends on.
+        private boolean transform(
             ModelPipeline pipeline,
             long traceId,
             long authorization,
+            int dataFlags,
             DirectBufferEx data,
             int index,
-            int limit)
+            int limit,
+            ModelTransformState state,
+            ModelChunkFlusher flusher)
         {
-            int total = 0;
             int srcAt = index;
-            int flags = FLAGS_INIT | FLAGS_FIN;
-            boolean done = false;
-            while (!done)
+            int flags = dataFlags;
+            boolean looping = true;
+            boolean rejected = false;
+            boolean finished = false;
+            while (looping)
             {
                 final ModelPipelineResult result = pipeline.transform(traceId, routedId, authorization, flags,
-                        data, srcAt, limit, modelBuffer, total, modelBuffer.capacity());
+                        data, srcAt, limit, modelBuffer, state.total, modelBuffer.capacity());
                 final ModelStatus status = result.status();
 
                 if (status == ModelStatus.REJECTED)
                 {
-                    total = -1;
-                    done = true;
+                    rejected = true;
+                    finished = true;
+                    looping = false;
                 }
                 else
                 {
-                    total += result.produced();
+                    state.total += result.produced();
+                    srcAt += result.consumed();
 
                     if (status == ModelStatus.COMPLETE)
                     {
-                        done = true;
+                        finished = true;
+                        looping = false;
+                    }
+                    else if (status == ModelStatus.OVERFLOW)
+                    {
+                        flusher.flush(state.flushedAny ? 0x00 : dataFlags & FLAGS_INIT, state.total);
+                        state.flushedAny = true;
+                        state.total = 0;
+                        flags = dataFlags & FLAGS_FIN;
                     }
                     else
                     {
-                        srcAt += result.consumed();
-                        flags = FLAGS_FIN;
+                        looping = false;
                     }
                 }
             }
 
-            pipeline.reset();
-            return total;
+            if (finished && !rejected)
+            {
+                flusher.flush(state.flushedAny ? dataFlags & FLAGS_FIN : dataFlags, state.total);
+            }
+
+            if (finished)
+            {
+                state.total = 0;
+                state.flushedAny = false;
+                pipeline.reset();
+            }
+
+            return !rejected;
         }
 
         private void onInitialEnd(
@@ -1140,6 +1199,7 @@ final class TestBindingFactory implements BindingHandler
 
             private final TestSource source;
             private final ModelPipeline pipeline;
+            private final ModelTransformState replyTransform = new ModelTransformState();
 
             private TestTarget(
                 long originId,
@@ -1252,16 +1312,13 @@ final class TestBindingFactory implements BindingHandler
                 }
                 else
                 {
-                    int total = source.transform(pipeline, traceId, authorization,
-                        payload.buffer(), payload.offset(), payload.limit());
-                    if (total < 0)
+                    boolean accepted = source.transform(pipeline, traceId, authorization, flags,
+                        payload.buffer(), payload.offset(), payload.limit(), replyTransform,
+                        (chunkFlags, chunkLength) -> source.doReplyData(traceId, chunkFlags, chunkLength,
+                            octetsRO.wrap(modelBuffer, 0, chunkLength)));
+                    if (!accepted)
                     {
                         source.doReplyAbort(traceId);
-                    }
-                    else
-                    {
-                        OctetsFW transformed = octetsRO.wrap(modelBuffer, 0, total);
-                        source.doReplyData(traceId, flags, total, transformed);
                     }
                 }
             }
