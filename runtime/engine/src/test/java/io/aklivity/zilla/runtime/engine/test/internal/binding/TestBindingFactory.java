@@ -349,8 +349,8 @@ final class TestBindingFactory implements BindingHandler
         // JSON field open a string value but the closing quote had not yet arrived), so the unconsumed
         // tail must be preserved and prepended to the next DATA frame's bytes, not discarded. Grows on
         // demand since a fragment's source size is independent of the destination window above
-        private MutableDirectBufferEx initialDecodeSlot;
-        private int initialDecodeLength;
+        private MutableDirectBufferEx decodeSlot;
+        private int decodeLength;
 
         private TestSource(
             MessageConsumer source,
@@ -919,19 +919,19 @@ final class TestBindingFactory implements BindingHandler
             else
             {
                 int payloadLength = payload.sizeof();
-                if (initialDecodeSlot == null || initialDecodeSlot.capacity() < initialDecodeLength + payloadLength)
+                if (decodeSlot == null || decodeSlot.capacity() < decodeLength + payloadLength)
                 {
-                    int capacity = Math.max(initialDecodeLength + payloadLength,
-                        initialDecodeSlot != null ? initialDecodeSlot.capacity() * 2 : modelBuffer.capacity());
+                    int capacity = Math.max(decodeLength + payloadLength,
+                        decodeSlot != null ? decodeSlot.capacity() * 2 : modelBuffer.capacity());
                     MutableDirectBufferEx grown = new UnsafeBufferEx(new byte[capacity]);
-                    if (initialDecodeLength > 0)
+                    if (decodeLength > 0)
                     {
-                        grown.putBytes(0, initialDecodeSlot, 0, initialDecodeLength);
+                        grown.putBytes(0, decodeSlot, 0, decodeLength);
                     }
-                    initialDecodeSlot = grown;
+                    decodeSlot = grown;
                 }
-                initialDecodeSlot.putBytes(initialDecodeLength, payload.buffer(), payload.offset(), payloadLength);
-                initialDecodeLength += payloadLength;
+                decodeSlot.putBytes(decodeLength, payload.buffer(), payload.offset(), payloadLength);
+                decodeLength += payloadLength;
 
                 transformInitial(traceId, authorization, flags);
             }
@@ -945,7 +945,7 @@ final class TestBindingFactory implements BindingHandler
         // pipeline reports OK/OVERFLOW and stops on COMPLETE, REJECTED, or UNDERFLOW. On UNDERFLOW the
         // pipeline may have consumed only part of what it was given (e.g. a JSON string value whose
         // closing quote had not yet arrived) -- the unconsumed tail is compacted to the front of
-        // initialDecodeSlot and carried into the next onInitialData call, unless this frame carried
+        // decodeSlot and carried into the next onInitialData call, unless this frame carried
         // FLAGS_FIN, in which case the value was truncated and is treated the same as REJECTED since no
         // further frame will ever arrive to complete it
         private void transformInitial(
@@ -954,13 +954,13 @@ final class TestBindingFactory implements BindingHandler
             int flags)
         {
             int srcAt = 0;
-            int limit = initialDecodeLength;
+            int limit = decodeLength;
             int stepFlags = flags;
             ModelStatus status;
             do
             {
                 final ModelPipelineResult result = pipeline.transform(traceId, routedId, authorization, stepFlags,
-                        initialDecodeSlot, srcAt, limit, initialBuffer, 0, initialBuffer.capacity());
+                        decodeSlot, srcAt, limit, initialBuffer, 0, initialBuffer.capacity());
                 status = result.status();
 
                 if (status != ModelStatus.REJECTED)
@@ -986,22 +986,22 @@ final class TestBindingFactory implements BindingHandler
                 pipeline.reset();
                 target.doInitialAbort(traceId);
                 initialStarted = false;
-                initialDecodeLength = 0;
+                decodeLength = 0;
             }
             else if (status == ModelStatus.UNDERFLOW)
             {
                 int remaining = limit - srcAt;
                 if (remaining > 0 && srcAt > 0)
                 {
-                    initialDecodeSlot.putBytes(0, initialDecodeSlot, srcAt, remaining);
+                    decodeSlot.putBytes(0, decodeSlot, srcAt, remaining);
                 }
-                initialDecodeLength = remaining;
+                decodeLength = remaining;
             }
             else if (status == ModelStatus.COMPLETE)
             {
                 pipeline.reset();
                 initialStarted = false;
-                initialDecodeLength = 0;
+                decodeLength = 0;
             }
         }
 
@@ -1190,9 +1190,9 @@ final class TestBindingFactory implements BindingHandler
             // see TestSource.initialBuffer -- same fixed-size drain-per-produce window, for the reply direction
             private final MutableDirectBufferEx replyBuffer;
             private boolean replyStarted;
-            // see TestSource.initialDecodeSlot -- same not-yet-consumed source accumulation, for the reply direction
-            private MutableDirectBufferEx replyDecodeSlot;
-            private int replyDecodeLength;
+            // see TestSource.decodeSlot -- same not-yet-consumed source accumulation, for the reply direction
+            private MutableDirectBufferEx decodeSlot;
+            private int decodeLength;
 
             private TestTarget(
                 long originId,
@@ -1308,19 +1308,19 @@ final class TestBindingFactory implements BindingHandler
                 else
                 {
                     int payloadLength = payload.sizeof();
-                    if (replyDecodeSlot == null || replyDecodeSlot.capacity() < replyDecodeLength + payloadLength)
+                    if (decodeSlot == null || decodeSlot.capacity() < decodeLength + payloadLength)
                     {
-                        int capacity = Math.max(replyDecodeLength + payloadLength,
-                            replyDecodeSlot != null ? replyDecodeSlot.capacity() * 2 : modelBuffer.capacity());
+                        int capacity = Math.max(decodeLength + payloadLength,
+                            decodeSlot != null ? decodeSlot.capacity() * 2 : modelBuffer.capacity());
                         MutableDirectBufferEx grown = new UnsafeBufferEx(new byte[capacity]);
-                        if (replyDecodeLength > 0)
+                        if (decodeLength > 0)
                         {
-                            grown.putBytes(0, replyDecodeSlot, 0, replyDecodeLength);
+                            grown.putBytes(0, decodeSlot, 0, decodeLength);
                         }
-                        replyDecodeSlot = grown;
+                        decodeSlot = grown;
                     }
-                    replyDecodeSlot.putBytes(replyDecodeLength, payload.buffer(), payload.offset(), payloadLength);
-                    replyDecodeLength += payloadLength;
+                    decodeSlot.putBytes(decodeLength, payload.buffer(), payload.offset(), payloadLength);
+                    decodeLength += payloadLength;
 
                     transformReply(traceId, authorization, flags);
                 }
@@ -1333,13 +1333,13 @@ final class TestBindingFactory implements BindingHandler
                 int flags)
             {
                 int srcAt = 0;
-                int limit = replyDecodeLength;
+                int limit = decodeLength;
                 int stepFlags = flags;
                 ModelStatus status;
                 do
                 {
                     final ModelPipelineResult result = pipeline.transform(traceId, routedId, authorization, stepFlags,
-                            replyDecodeSlot, srcAt, limit, replyBuffer, 0, replyBuffer.capacity());
+                            decodeSlot, srcAt, limit, replyBuffer, 0, replyBuffer.capacity());
                     status = result.status();
 
                     if (status != ModelStatus.REJECTED)
@@ -1365,22 +1365,22 @@ final class TestBindingFactory implements BindingHandler
                     pipeline.reset();
                     source.doReplyAbort(traceId);
                     replyStarted = false;
-                    replyDecodeLength = 0;
+                    decodeLength = 0;
                 }
                 else if (status == ModelStatus.UNDERFLOW)
                 {
                     int remaining = limit - srcAt;
                     if (remaining > 0 && srcAt > 0)
                     {
-                        replyDecodeSlot.putBytes(0, replyDecodeSlot, srcAt, remaining);
+                        decodeSlot.putBytes(0, decodeSlot, srcAt, remaining);
                     }
-                    replyDecodeLength = remaining;
+                    decodeLength = remaining;
                 }
                 else if (status == ModelStatus.COMPLETE)
                 {
                     pipeline.reset();
                     replyStarted = false;
-                    replyDecodeLength = 0;
+                    decodeLength = 0;
                 }
             }
 
