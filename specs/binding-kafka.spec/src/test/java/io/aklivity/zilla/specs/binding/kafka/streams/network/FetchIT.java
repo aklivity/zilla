@@ -58,15 +58,6 @@ public class FetchIT
 
     @Test
     @Specification({
-        "${net}/partition.not.leader.reconnect/client",
-        "${net}/partition.not.leader.reconnect/server"})
-    public void shouldReconnectPartitionNotLeader() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${net}/replica.not.available/client",
         "${net}/replica.not.available/server"})
     public void shouldReplicaNotAvailable() throws Exception

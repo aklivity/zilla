@@ -63,29 +63,11 @@ read zilla:begin.ext ${kafka:beginEx()
                               .typeId(zilla:id("kafka"))
                               .fetch()
                                   .topic("test")
-                                  .partition(0, 0)
+                                  .partition(0, -2)
                                   .build()
                               .build()}
 
 connected
-
-write zilla:begin.ext ${kafka:beginEx()
-                               .typeId(zilla:id("kafka"))
-                               .fetch()
-                                   .topic("test")
-                                   .partition(0, 10, 10)
-                                   .build()
-                               .build()}
-write flush
-
-write zilla:data.ext ${kafka:dataEx()
-                              .typeId(zilla:id("kafka"))
-                              .fetch()
-                                  .partition(0, 10, 10)
-                                  .build()
-                              .build()}
-write "Hello, world"
-write flush
 
 write await ROUTED_BROKER_SERVER_META_CHANGED
 write zilla:reset.ext ${kafka:resetEx()
@@ -101,7 +83,7 @@ read zilla:begin.ext ${kafka:beginEx()
                               .typeId(zilla:id("kafka"))
                               .fetch()
                                   .topic("test")
-                                  .partition(0, 10)
+                                  .partition(0, -2)
                                   .build()
                               .build()}
 

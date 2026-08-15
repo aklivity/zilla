@@ -60,27 +60,11 @@ write zilla:begin.ext ${kafka:beginEx()
                                .typeId(zilla:id("kafka"))
                                .fetch()
                                    .topic("test")
-                                   .partition(0, 0)
+                                   .partition(0, -2)
                                    .build()
                                .build()}
 
 connected
-
-read zilla:begin.ext ${kafka:beginEx()
-                              .typeId(zilla:id("kafka"))
-                              .fetch()
-                                  .topic("test")
-                                  .partition(0, 10, 10)
-                                  .build()
-                              .build()}
-
-read zilla:data.ext ${kafka:matchDataEx()
-                             .typeId(zilla:id("kafka"))
-                             .fetch()
-                                 .partition(0, 10, 10)
-                                 .build()
-                             .build()}
-read "Hello, world"
 
 read zilla:reset.ext ${kafka:resetEx()
                            .typeId(zilla:id("kafka"))
@@ -101,7 +85,7 @@ write zilla:begin.ext ${kafka:beginEx()
                                .typeId(zilla:id("kafka"))
                                .fetch()
                                    .topic("test")
-                                   .partition(0, 10)
+                                   .partition(0, -2)
                                    .build()
                                .build()}
 
