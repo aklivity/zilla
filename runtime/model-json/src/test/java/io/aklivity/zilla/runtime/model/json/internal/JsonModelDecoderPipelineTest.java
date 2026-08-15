@@ -316,7 +316,15 @@ public class JsonModelDecoderPipelineTest
     private static JsonModelExtContext dropping(
         String key)
     {
-        return (schema, config) -> stream -> stream.transform(new Skip(key));
+        return (schema, config) -> new JsonModelExtHandler()
+        {
+            @Override
+            public <T extends JsonTransformable<T>> T transform(
+                T stream)
+            {
+                return stream.transform(new Skip(key));
+            }
+        };
     }
 
     private static JsonModelExtContext expandingExt(
@@ -325,8 +333,8 @@ public class JsonModelDecoderPipelineTest
         return (schema, config) -> new JsonModelExtHandler()
         {
             @Override
-            public JsonTransformable transform(
-                JsonTransformable stream)
+            public <T extends JsonTransformable<T>> T transform(
+                T stream)
             {
                 return stream;
             }

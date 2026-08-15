@@ -23,7 +23,7 @@ import java.util.Map;
  * {@link #reporting(JsonReporter)}; terminate with {@link #into(JsonSink)} to obtain the runnable,
  * resumable {@link JsonPipeline}. A {@code JsonStream} carries no state and is not itself runnable.
  */
-public interface JsonStream extends JsonTransformable
+public interface JsonStream extends JsonTransformable<JsonStream>
 {
     JsonStream transform(
         JsonTransform transform);

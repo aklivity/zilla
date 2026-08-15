@@ -16,11 +16,15 @@ package io.aklivity.zilla.runtime.common.json;
 
 /**
  * Something a {@link JsonTransform} stage can be appended to, in data-flow order. {@link JsonStream} is
- * the primary implementation; this narrower supertype lets a caller outside {@code common-json} append
- * stages to an in-progress stream without depending on {@link JsonStream}'s fuller, terminal-bearing API.
+ * the primary implementation; this narrower, self-bounded supertype lets a caller outside {@code common-json}
+ * append stages to an in-progress stream and get back its own concrete stream type, without depending on
+ * {@link JsonStream}'s fuller, terminal-bearing API.
+ *
+ * @param <T>  the concrete stream type, so {@link #transform(JsonTransform)} returns it rather than this
+ *             narrower supertype
  */
-public interface JsonTransformable
+public interface JsonTransformable<T extends JsonTransformable<T>>
 {
-    JsonTransformable transform(
+    T transform(
         JsonTransform transform);
 }

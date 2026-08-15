@@ -215,7 +215,7 @@ public final class JsonModelHandlerImpl extends JsonModelHandler implements Mode
         JsonStream extended = stream;
         for (JsonModelExtContext ext : exts)
         {
-            extended = (JsonStream) ext.supplyHandler(schema, options).transform(extended);
+            extended = ext.supplyHandler(schema, options).transform(extended);
         }
         return extended;
     }

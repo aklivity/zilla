@@ -28,8 +28,8 @@ public class JsonModelExtHandlerTest
         JsonModelExtHandler handler = new JsonModelExtHandler()
         {
             @Override
-            public JsonTransformable transform(
-                JsonTransformable stream)
+            public <T extends JsonTransformable<T>> T transform(
+                T stream)
             {
                 return stream;
             }
