@@ -18,8 +18,6 @@ import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.common.avro.AvroTransformable;
-
 public class AvroModelExtHandlerTest
 {
     @Test
@@ -27,12 +25,6 @@ public class AvroModelExtHandlerTest
     {
         AvroModelExtHandler handler = new AvroModelExtHandler()
         {
-            @Override
-            public <T extends AvroTransformable<T>> T transform(
-                T stream)
-            {
-                return stream;
-            }
         };
 
         assertEquals(0, handler.padding(null));

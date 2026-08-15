@@ -173,7 +173,7 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
             AvroGenerator generator = VIEW_JSON.equals(view)
                 ? AvroJson.generator(schema, json, true)
                 : Avro.generator(schema, new UnsafeBufferEx(new byte[1]), 0);
-            pipeline = extend(Avro.stream(Avro.parser(schema)), schema)
+            pipeline = extendDecode(Avro.stream(Avro.parser(schema)), schema)
                 .transform(adapter)
                 .lenient(lenient)
                 .reporting(reporter)
@@ -198,7 +198,7 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
             AvroStream stream = VIEW_JSON.equals(view)
                 ? AvroJson.stream(schema, JsonEx.createParser(), true)
                 : Avro.stream(Avro.parser(schema));
-            pipeline = extend(stream, schema)
+            pipeline = extendEncode(stream, schema)
                 .transform(adapter)
                 .lenient(lenient)
                 .reporting(reporter)
@@ -207,17 +207,32 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
         return pipeline;
     }
 
-    // folds every installed avro model extension's own stage(s) into the stream, in discovery order,
-    // ahead of this handler's own adapter stage; used for both the decoder and encoder pipeline, so an
-    // extension that only transforms one direction is responsible for forwarding the other unchanged
-    private AvroStream extend(
+    // folds every installed avro model extension's own decode stage(s) into the stream, in discovery
+    // order, ahead of this handler's own adapter stage: the canonical value being decoded into the view
+    // delivered to a reader
+    private AvroStream extendDecode(
         AvroStream stream,
         AvroSchema schema)
     {
         AvroStream extended = stream;
         for (AvroModelExtContext ext : exts)
         {
-            extended = ext.supplyHandler(schema, options).transform(extended);
+            extended = ext.supplyHandler(schema, options).decode(extended);
+        }
+        return extended;
+    }
+
+    // folds every installed avro model extension's own encode stage(s) into the stream, in discovery
+    // order, ahead of this handler's own adapter stage: a caller's value being encoded into its canonical
+    // form
+    private AvroStream extendEncode(
+        AvroStream stream,
+        AvroSchema schema)
+    {
+        AvroStream extended = stream;
+        for (AvroModelExtContext ext : exts)
+        {
+            extended = ext.supplyHandler(schema, options).encode(extended);
         }
         return extended;
     }

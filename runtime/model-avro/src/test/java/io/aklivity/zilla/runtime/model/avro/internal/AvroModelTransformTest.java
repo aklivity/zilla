@@ -243,10 +243,10 @@ public class AvroModelTransformTest
             (schema, config) -> new AvroModelExtHandler()
             {
                 @Override
-                public <T extends AvroTransformable<T>> T transform(
-                    T stream)
+                public <T extends AvroTransformable<T>> T decode(
+                    T transformable)
                 {
-                    return stream.transform(AvroModelTransform.of(new Declining("$.status")));
+                    return transformable.transform(AvroModelTransform.of(new Declining("$.status")));
                 }
             });
         AvroModelHandlerImpl handler = newHandler(SCHEMA, "json", exts);

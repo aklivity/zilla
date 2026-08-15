@@ -37,7 +37,6 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.avro.AvroSchema;
-import io.aklivity.zilla.runtime.common.avro.AvroTransformable;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.ModelController;
@@ -281,13 +280,6 @@ public class AvroModelDecoderPipelineTest
     {
         return (schema, config) -> new AvroModelExtHandler()
         {
-            @Override
-            public <T extends AvroTransformable<T>> T transform(
-                T stream)
-            {
-                return stream;
-            }
-
             @Override
             public int padding(
                 AvroSchema schema)
