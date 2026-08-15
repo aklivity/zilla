@@ -205,4 +205,34 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/client.received.bytes.ext.uppercase/client",
+        "${app}/client.received.bytes.ext.uppercase/server"
+    })
+    public void shouldEchoBytesUnaffectedByExtension() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/client.received.bytes.ext.uppercase.100k/client",
+        "${app}/client.received.bytes.ext.uppercase.100k/server"
+    })
+    public void shouldEchoLargeBytesFieldUnaffectedByExtension() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/client.received.bytes.ext.omit/client",
+        "${app}/client.received.bytes.ext.omit/server"
+    })
+    public void shouldEchoOmittedBytesUnaffectedByExtension() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -26,8 +26,6 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
-import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
-import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 import io.aklivity.zilla.runtime.model.core.ext.BytesModelExtContext;
 import io.aklivity.zilla.runtime.model.core.ext.BytesModelExtHandler;
@@ -36,75 +34,11 @@ import io.aklivity.zilla.runtime.model.core.ext.BytesTransformable;
 
 public class CoreExtModelPipelineTest
 {
-    private static final int FLAGS_INIT = 0x02;
-    private static final int FLAGS_FIN = 0x01;
-    private static final int FLAGS_COMPLETE = 0x03;
-
-    @Test
-    public void shouldRejectWithoutDeliveryWhenExtensionSignalsOmit()
-    {
-        BytesModelExtContext ext = config -> stream -> stream.transform(omit());
-        ModelHandler handler = handler(ext);
-        ModelPipeline pipeline = handler.supplyDecoder(ModelTransform.NONE);
-
-        byte[] bytes = "secret".getBytes();
-        UnsafeBufferEx dst = new UnsafeBufferEx(new byte[32]);
-
-        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
-            new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
-
-        assertEquals(ModelStatus.REJECTED, result.status());
-        assertEquals(0, result.produced());
-    }
-
-    @Test
-    public void shouldAccumulateFragmentsBeforeApplyingExtension()
-    {
-        BytesModelExtContext ext = config -> stream -> stream.transform(uppercase());
-        ModelHandler handler = handler(ext);
-        ModelPipeline pipeline = handler.supplyDecoder(ModelTransform.NONE);
-
-        byte[] head = "va".getBytes();
-        byte[] tail = "lue".getBytes();
-        UnsafeBufferEx dst = new UnsafeBufferEx(new byte[32]);
-
-        ModelPipelineResult first = pipeline.transform(0L, 0L, 0L, FLAGS_INIT,
-            new UnsafeBufferEx(head), 0, head.length, dst, 0, dst.capacity());
-        assertEquals(ModelStatus.UNDERFLOW, first.status());
-        assertEquals(0, first.produced());
-
-        ModelPipelineResult second = pipeline.transform(0L, 0L, 0L, FLAGS_FIN,
-            new UnsafeBufferEx(tail), 0, tail.length, dst, 0, dst.capacity());
-        assertEquals(ModelStatus.COMPLETE, second.status());
-        assertEquals("VALUE", dst.getStringWithoutLengthUtf8(0, second.produced()));
-    }
-
-    @Test
-    public void shouldDrainOverflowAcrossMultipleCalls()
-    {
-        BytesModelExtContext ext = config -> stream -> stream.transform(uppercase());
-        ModelHandler handler = handler(ext);
-        ModelPipeline pipeline = handler.supplyDecoder(ModelTransform.NONE);
-
-        byte[] bytes = "abcdef".getBytes();
-        UnsafeBufferEx dst = new UnsafeBufferEx(new byte[bytes.length]);
-
-        // only 3 bytes of room -> OVERFLOW
-        ModelPipelineResult first = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
-            new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, 3);
-        assertEquals(ModelStatus.OVERFLOW, first.status());
-        assertEquals(bytes.length, first.consumed());
-        assertEquals(3, first.produced());
-
-        // drain the remainder
-        ModelPipelineResult second = pipeline.transform(0L, 0L, 0L, FLAGS_FIN,
-            new UnsafeBufferEx(bytes), bytes.length, bytes.length, dst, 3, bytes.length);
-        assertEquals(ModelStatus.COMPLETE, second.status());
-        assertEquals(0, second.consumed());
-        assertEquals(3, second.produced());
-        assertEquals("ABCDEF", dst.getStringWithoutLengthUtf8(0, 6));
-    }
-
+    // Reject-on-omit, fragment accumulation, and OVERFLOW/drain are covered end-to-end by CoreModelIT's
+    // client.received.bytes.ext.* scenarios, which drive a real engine with a test-only
+    // BytesModelExtFactorySpi installed. Summed padding across multiple simultaneously installed
+    // extensions has no realistic wire-level equivalent (no single real extension composes with itself
+    // twice), so it stays here as the one case this class still needs to cover.
     @Test
     public void shouldReportSummedExtensionPadding()
     {
@@ -116,31 +50,6 @@ public class CoreExtModelPipelineTest
         ModelPipeline pipeline = handler.supplyDecoder(ModelTransform.NONE);
 
         assertEquals(10, pipeline.padding(new UnsafeBufferEx(new byte[0]), 0, 0));
-    }
-
-    private static ModelHandler handler(
-        BytesModelExtContext ext)
-    {
-        BytesModelContext context = new BytesModelContext(mock(EngineContext.class), List.of(ext));
-        return context.supplyHandler(BytesModelConfig.builder().build());
-    }
-
-    private static BytesTransform omit()
-    {
-        return (value, index, length, dst, dstIndex) -> BytesTransform.OMIT;
-    }
-
-    private static BytesTransform uppercase()
-    {
-        return (value, index, length, dst, dstIndex) ->
-        {
-            for (int i = 0; i < length; i++)
-            {
-                byte b = value.getByte(index + i);
-                dst.putByte(dstIndex + i, (byte) Character.toUpperCase((char) b));
-            }
-            return length;
-        };
     }
 
     private static BytesModelExtHandler paddedHandler(

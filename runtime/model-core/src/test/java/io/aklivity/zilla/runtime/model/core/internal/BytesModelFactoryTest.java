@@ -59,18 +59,4 @@ public class BytesModelFactoryTest
         assertNotNull(spi.schema());
         assertThat(spi.create(new Configuration()), instanceOf(BytesModel.class));
     }
-
-    @Test
-    public void shouldDiscoverNoExtensionsByDefault()
-    {
-        ModelFactorySpi spi = new BytesModelFactorySpi();
-
-        Model model = spi.create(new Configuration());
-        ModelContext context = model.supply(mock(EngineContext.class));
-
-        // a deployment with zero installed extensions pays nothing for this type: the fold is a no-op
-        // and the model behaves exactly as if the ModelExtFactorySpi didn't exist
-        ModelConfig modelConfig = BytesModelConfig.builder().build();
-        assertThat(context.supplyHandler(modelConfig), instanceOf(CoreModelHandler.class));
-    }
 }
