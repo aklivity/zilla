@@ -18,8 +18,6 @@ import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.common.json.JsonTransformable;
-
 public class JsonModelExtHandlerTest
 {
     @Test
@@ -27,12 +25,6 @@ public class JsonModelExtHandlerTest
     {
         JsonModelExtHandler handler = new JsonModelExtHandler()
         {
-            @Override
-            public <T extends JsonTransformable<T>> T transform(
-                T stream)
-            {
-                return stream;
-            }
         };
 
         assertEquals(0, handler.padding(null));

@@ -319,7 +319,7 @@ public class JsonModelDecoderPipelineTest
         return (schema, config) -> new JsonModelExtHandler()
         {
             @Override
-            public <T extends JsonTransformable<T>> T transform(
+            public <T extends JsonTransformable<T>> T decode(
                 T stream)
             {
                 return stream.transform(new Skip(key));
@@ -332,13 +332,6 @@ public class JsonModelDecoderPipelineTest
     {
         return (schema, config) -> new JsonModelExtHandler()
         {
-            @Override
-            public <T extends JsonTransformable<T>> T transform(
-                T stream)
-            {
-                return stream;
-            }
-
             @Override
             public int padding(
                 JsonSchema schema)

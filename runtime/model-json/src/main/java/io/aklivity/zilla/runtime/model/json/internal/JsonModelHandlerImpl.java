@@ -119,7 +119,7 @@ public final class JsonModelHandlerImpl extends JsonModelHandler implements Mode
     int encodePadding(
         int length)
     {
-        return handler.encodePadding(length);
+        return handler.encodePadding(length) + supplyExtPadding(resolveSchemaId());
     }
 
     int resolveSchemaId(
@@ -172,7 +172,7 @@ public final class JsonModelHandlerImpl extends JsonModelHandler implements Mode
     {
         JsonSchema schema = supplySchema(schemaId);
         JsonStream stream = schema != null
-            ? extend(JsonEx.stream(JsonEx.createParser()), schema).transform(schema.validator(lenient))
+            ? extendDecode(JsonEx.stream(JsonEx.createParser()), schema).transform(schema.validator(lenient))
             : null;
         JsonStream terminal = stream != null
             ? (extractor != null ? stream.transform(extractor) : stream)
@@ -186,8 +186,10 @@ public final class JsonModelHandlerImpl extends JsonModelHandler implements Mode
             : null;
     }
 
-    // the encode path: the write path into the broker, which must preserve the full, undisclosed value, so
-    // installed extensions (decode-only) never fold in here
+    // the encode path: the write path into the broker. A caller's value being encoded into its canonical
+    // form is extended independently of the decode path above, so an extension that only redacts on read
+    // (the default encode()) leaves this path unchanged; one that also needs to apply on write overrides
+    // encode() to fold in here.
     JsonPipeline newPipeline(
         int schemaId,
         boolean lenient,
@@ -196,7 +198,7 @@ public final class JsonModelHandlerImpl extends JsonModelHandler implements Mode
     {
         JsonSchema schema = supplySchema(schemaId);
         return schema != null
-            ? JsonEx.stream(JsonEx.createParser())
+            ? extendEncode(JsonEx.stream(JsonEx.createParser()), schema)
                 .transform(schema.validator(lenient))
                 .lenient(lenient)
                 .reporting(reporter)
@@ -204,18 +206,32 @@ public final class JsonModelHandlerImpl extends JsonModelHandler implements Mode
             : null;
     }
 
-    // folds every installed json model extension's own stage(s) into the decoder stream, in discovery
-    // order, ahead of this handler's own validator/extractor stages; decode is the read path out of the
-    // broker, where a read-side concern like disclosure redaction belongs. encode never calls this: it is
-    // the write path into the broker and must preserve the full, undisclosed value.
-    private JsonStream extend(
+    // folds every installed json model extension's own decode stage(s) into the stream, in discovery
+    // order, ahead of this handler's own validator/extractor stages: the canonical value being decoded
+    // into the view delivered to a reader
+    private JsonStream extendDecode(
         JsonStream stream,
         JsonSchema schema)
     {
         JsonStream extended = stream;
         for (JsonModelExtContext ext : exts)
         {
-            extended = ext.supplyHandler(schema, options).transform(extended);
+            extended = ext.supplyHandler(schema, options).decode(extended);
+        }
+        return extended;
+    }
+
+    // folds every installed json model extension's own encode stage(s) into the stream, in discovery
+    // order, ahead of this handler's own validator stage: a caller's value being encoded into its
+    // canonical form
+    private JsonStream extendEncode(
+        JsonStream stream,
+        JsonSchema schema)
+    {
+        JsonStream extended = stream;
+        for (JsonModelExtContext ext : exts)
+        {
+            extended = ext.supplyHandler(schema, options).encode(extended);
         }
         return extended;
     }

@@ -19,20 +19,42 @@ import io.aklivity.zilla.runtime.common.json.JsonTransformable;
 
 /**
  * Appends whatever stages this extension contributes to an in-progress json pipeline, for one resolved
- * schema and configuration.
+ * schema and configuration. A pipeline decoding the canonical value into the view delivered to a reader
+ * and one encoding a caller's value into its canonical form are extended independently, so an extension
+ * that only applies to one direction overrides that method alone; the default leaves the other direction
+ * unchanged.
  */
 public interface JsonModelExtHandler
 {
     /**
-     * Appends this extension's own stage or stages to {@code stream}, in data-flow order, returning the
-     * result for the caller to continue building.
+     * Appends this extension's own stage or stages to {@code stream}, in data-flow order, for a pipeline
+     * decoding the canonical value into the view delivered to a reader. The default passes {@code stream}
+     * through unchanged.
      *
      * @param <T>     the caller's own concrete stream type
      * @param stream  the in-progress stream to extend
      * @return the extended stream, as the same concrete type supplied
      */
-    <T extends JsonTransformable<T>> T transform(
-        T stream);
+    default <T extends JsonTransformable<T>> T decode(
+        T stream)
+    {
+        return stream;
+    }
+
+    /**
+     * Appends this extension's own stage or stages to {@code stream}, in data-flow order, for a pipeline
+     * encoding a caller's value into its canonical form. The default passes {@code stream} through
+     * unchanged.
+     *
+     * @param <T>     the caller's own concrete stream type
+     * @param stream  the in-progress stream to extend
+     * @return the extended stream, as the same concrete type supplied
+     */
+    default <T extends JsonTransformable<T>> T encode(
+        T stream)
+    {
+        return stream;
+    }
 
     /**
      * Returns the maximum number of additional bytes this extension's transform may add to a decoded
