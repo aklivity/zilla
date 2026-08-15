@@ -72,10 +72,17 @@ public final class TestUppercaseProtobufModelExtFactorySpi implements ProtobufMo
                     private final Uppercase transform = new Uppercase();
 
                     @Override
-                    public <T extends ProtobufTransformable<T>> T transform(
-                        T stream)
+                    public <T extends ProtobufTransformable<T>> T decode(
+                        T transformable)
                     {
-                        return stream.transform(transform);
+                        return transformable.transform(transform);
+                    }
+
+                    @Override
+                    public <T extends ProtobufTransformable<T>> T encode(
+                        T transformable)
+                    {
+                        return transformable.transform(transform);
                     }
                 };
             }

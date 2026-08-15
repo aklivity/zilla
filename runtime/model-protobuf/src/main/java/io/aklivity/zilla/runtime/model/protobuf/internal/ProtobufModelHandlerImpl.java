@@ -122,7 +122,8 @@ public final class ProtobufModelHandlerImpl extends ProtobufModelHandler impleme
     int encodePadding(
         int length)
     {
-        return handler.encodePadding(length) + supplyIndexPadding(resolveSchemaId());
+        int schemaId = resolveSchemaId();
+        return handler.encodePadding(length) + supplyIndexPadding(schemaId) + supplyExtPadding(schemaId);
     }
 
     // the catalog framing the value carries on the wire, stripped once at the start of the first fragment
@@ -256,12 +257,12 @@ public final class ProtobufModelHandlerImpl extends ProtobufModelHandler impleme
                 ? ProtobufJson.generator(JsonEx.createGenerator(), schema, messageName, jsonConfig)
                 : Protobuf.generator();
             pipeline = extractor != null
-                ? extend(Protobuf.stream(Protobuf.parser(schema, messageName)), schema)
+                ? extendDecode(Protobuf.stream(Protobuf.parser(schema, messageName)), schema)
                     .transform(extractor)
                     .lenient(lenient)
                     .reporting(reporter)
                     .into(generator, schema, messageName)
-                : extend(Protobuf.stream(Protobuf.parser(schema, messageName)), schema)
+                : extendDecode(Protobuf.stream(Protobuf.parser(schema, messageName)), schema)
                     .lenient(lenient)
                     .reporting(reporter)
                     .into(generator, schema, messageName);
@@ -281,14 +282,11 @@ public final class ProtobufModelHandlerImpl extends ProtobufModelHandler impleme
         {
             // a json view parses JSON into the wire message; any other view re-encodes the incoming wire value,
             // validating it against the schema in both cases
-            //
-            // model extensions are decode-only: encode is the write path into the broker, which must
-            // keep the source of truth intact, so extensions never fold into the encoder stream here
             ProtobufParser parser = VIEW_JSON.equals(view)
                 ? ProtobufJson.parser(JsonEx.createParser(), schema, messageName,
                     Map.of(ProtobufJson.REJECT_UNKNOWN_FIELDS, Boolean.TRUE))
                 : Protobuf.parser(schema, messageName);
-            pipeline = Protobuf.stream(parser)
+            pipeline = extendEncode(Protobuf.stream(parser), schema)
                 .lenient(lenient)
                 .reporting(reporter)
                 .into(Protobuf.generator(), schema, messageName);
@@ -296,17 +294,32 @@ public final class ProtobufModelHandlerImpl extends ProtobufModelHandler impleme
         return pipeline;
     }
 
-    // folds every installed protobuf model extension's own stage(s) into the decoder stream, in discovery
-    // order, ahead of this handler's own extractor stage; decode is the read path out of the broker, where
-    // a read-side concern like disclosure redaction belongs
-    private ProtobufStream extend(
+    // folds every installed protobuf model extension's own decode stage(s) into the stream, in discovery
+    // order, ahead of this handler's own extractor stage: the canonical value being decoded into the view
+    // delivered to a reader
+    private ProtobufStream extendDecode(
         ProtobufStream stream,
         ProtobufSchema schema)
     {
         ProtobufStream extended = stream;
         for (ProtobufModelExtContext ext : exts)
         {
-            extended = ext.supplyHandler(schema, options).transform(extended);
+            extended = ext.supplyHandler(schema, options).decode(extended);
+        }
+        return extended;
+    }
+
+    // folds every installed protobuf model extension's own encode stage(s) into the stream, in discovery
+    // order, ahead of this handler's own extractor stage: a caller's value being encoded into its
+    // canonical form
+    private ProtobufStream extendEncode(
+        ProtobufStream stream,
+        ProtobufSchema schema)
+    {
+        ProtobufStream extended = stream;
+        for (ProtobufModelExtContext ext : exts)
+        {
+            extended = ext.supplyHandler(schema, options).encode(extended);
         }
         return extended;
     }

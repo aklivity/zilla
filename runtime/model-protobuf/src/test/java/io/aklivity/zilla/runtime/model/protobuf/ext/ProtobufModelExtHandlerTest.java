@@ -18,8 +18,6 @@ import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.common.protobuf.ProtobufTransformable;
-
 public class ProtobufModelExtHandlerTest
 {
     @Test
@@ -27,12 +25,6 @@ public class ProtobufModelExtHandlerTest
     {
         ProtobufModelExtHandler handler = new ProtobufModelExtHandler()
         {
-            @Override
-            public <T extends ProtobufTransformable<T>> T transform(
-                T stream)
-            {
-                return stream;
-            }
         };
 
         assertEquals(0, handler.padding(null));

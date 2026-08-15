@@ -38,7 +38,6 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSchema;
-import io.aklivity.zilla.runtime.common.protobuf.ProtobufTransformable;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.ModelController;
 import io.aklivity.zilla.runtime.engine.model.ModelEvent;
@@ -333,13 +332,6 @@ public class ProtobufModelDecoderPipelineTest
     {
         return (schema, config) -> new ProtobufModelExtHandler()
         {
-            @Override
-            public <T extends ProtobufTransformable<T>> T transform(
-                T stream)
-            {
-                return stream;
-            }
-
             @Override
             public int padding(
                 ProtobufSchema schema)
