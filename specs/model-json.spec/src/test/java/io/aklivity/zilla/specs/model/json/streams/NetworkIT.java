@@ -135,4 +135,64 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/client.received.json.ext.uppercase/client",
+        "${net}/client.received.json.ext.uppercase/server"
+    })
+    public void shouldForwardJsonExtUppercase() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/client.received.json.ext.uppercase.100k/client",
+        "${net}/client.received.json.ext.uppercase.100k/server"
+    })
+    public void shouldForwardJsonExtUppercase100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/client.received.json.ext.reject/client",
+        "${net}/client.received.json.ext.reject/server"
+    })
+    public void shouldForwardJsonExtReject() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/client.sent.json.ext.uppercase/client",
+        "${net}/client.sent.json.ext.uppercase/server"
+    })
+    public void shouldSendJsonExtUppercase() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/client.sent.json.ext.uppercase.100k/client",
+        "${net}/client.sent.json.ext.uppercase.100k/server"
+    })
+    public void shouldSendJsonExtUppercase100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/client.sent.json.ext.reject/client",
+        "${net}/client.sent.json.ext.reject/server"
+    })
+    public void shouldSendJsonExtReject() throws Exception
+    {
+        k3po.finish();
+    }
 }

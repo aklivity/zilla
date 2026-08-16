@@ -189,7 +189,9 @@ public final class JsonModelHandlerImpl extends JsonModelHandler implements Mode
     // the encode path: the write path into the broker. A caller's value being encoded into its canonical
     // form is extended independently of the decode path above, so an extension that only redacts on read
     // (the default encode()) leaves this path unchanged; one that also needs to apply on write overrides
-    // encode() to fold in here.
+    // encode() to fold in here. An installed extension may substitute a value here too, so encode forces
+    // structured (canonical) delivery whenever at least one extension is folded in, matching the decode
+    // path's own guard above -- byte-preserving delivery remains the default with none installed
     JsonPipeline newPipeline(
         int schemaId,
         boolean lenient,
@@ -197,12 +199,16 @@ public final class JsonModelHandlerImpl extends JsonModelHandler implements Mode
         JsonReporter reporter)
     {
         JsonSchema schema = supplySchema(schemaId);
-        return schema != null
+        JsonStream terminal = schema != null
             ? extendEncode(JsonEx.stream(JsonEx.createParser()), schema)
                 .transform(schema.validator(lenient))
                 .lenient(lenient)
                 .reporting(reporter)
-                .into(generator)
+            : null;
+        return terminal != null
+            ? exts.isEmpty()
+                ? terminal.into(generator)
+                : terminal.into(generator, STRUCTURED_DELIVERY)
             : null;
     }
 
