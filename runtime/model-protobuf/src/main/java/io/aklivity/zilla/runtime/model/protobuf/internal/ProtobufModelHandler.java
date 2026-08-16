@@ -67,6 +67,7 @@ public class ProtobufModelHandler
 
     private final Long2ObjectCache<ProtobufSchema> schemas;
     private final Int2IntHashMap paddings;
+    private final Int2IntHashMap extPaddings;
     // decodedPath()'s reused result buffer: resized only when the path depth actually changes, which is
     // fixed per message shape, so a decode stream settles into zero allocation after its first message
     private int[] pathScratch;
@@ -91,6 +92,7 @@ public class ProtobufModelHandler
         this.schemas = new Long2ObjectCache<>(1, 1024, i -> {});
         this.indexes = new IntArrayList();
         this.paddings = new Int2IntHashMap(-1);
+        this.extPaddings = new Int2IntHashMap(-1);
         this.event = new ProtobufModelEventContext(context);
         this.pathScratch = new int[0];
     }
@@ -123,6 +125,20 @@ public class ProtobufModelHandler
         int overlaySchemaId)
     {
         return (long) schemaId << 32 | overlaySchemaId & 0xFFFFFFFFL;
+    }
+
+    protected final int supplyExtPadding(
+        int schemaId)
+    {
+        return extPaddings.computeIfAbsent(schemaId, id -> extPadding(supplySchema(id)));
+    }
+
+    // overridden by ProtobufModelHandlerImpl to sum the padding contributed by each installed model
+    // extension; the base (encoder) handler never installs extensions, so this stays 0 there
+    protected int extPadding(
+        ProtobufSchema schema)
+    {
+        return 0;
     }
 
     protected byte[] encodeIndexes()

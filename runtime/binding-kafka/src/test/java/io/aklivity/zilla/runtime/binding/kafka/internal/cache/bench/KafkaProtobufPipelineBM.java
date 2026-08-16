@@ -200,7 +200,7 @@ public class KafkaProtobufPipelineBM
                 .build()
             .build();
         EngineContext context = new KafkaModelWorker(new TestCatalogHandler(catalog.options));
-        return new ProtobufModelHandlerImpl(model, context);
+        return new ProtobufModelHandlerImpl(model, context, List.of());
     }
 
     // protobuf LEN-type fields (wire type 2) tag as (fieldNumber << 3) | 2; every fixture value here is

@@ -13,31 +13,11 @@
 # specific language governing permissions and limitations under the License.
 #
 
----
-name: test
-catalogs:
-  test0:
-    type: test
-    options:
-      id: 1
-      subject: test
-      schema: |
-        syntax = "proto3";
-        message SimpleMessage
-        {
-          string content = 1;
-          optional string date_time = 2;
-        }
-bindings:
-  net0:
-    kind: server
-    type: test
-    options:
-      value:
-        model: protobuf
-        catalog:
-          test0:
-            - subject: test
-              version: latest
-              record: SimpleMessage
-    exit: app0
+connect "zilla://streams/app0"
+        option zilla:transmission "duplex"
+        option zilla:window 8192
+connected
+
+write [0x00 0x0a 0x02 0x4f 0x4b 0x12 0x08 0x30 0x31 0x30 0x31 0x32 0x30 0x32 0x34]
+
+read [0x00 0x0a 0x02 0x6f 0x6b 0x12 0x08 0x30 0x31 0x30 0x31 0x32 0x30 0x32 0x34]

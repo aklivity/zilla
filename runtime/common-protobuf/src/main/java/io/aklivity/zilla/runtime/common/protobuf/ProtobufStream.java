@@ -21,7 +21,7 @@ package io.aklivity.zilla.runtime.common.protobuf;
  * {@link #reporting(ProtobufReporter)}; terminate with {@link #into(ProtobufSink)} to obtain the runnable
  * {@link ProtobufPipeline}. A {@code ProtobufStream} carries no state and is not itself runnable.
  */
-public interface ProtobufStream
+public interface ProtobufStream extends ProtobufTransformable<ProtobufStream>
 {
     ProtobufStream transform(
         ProtobufTransform transform);

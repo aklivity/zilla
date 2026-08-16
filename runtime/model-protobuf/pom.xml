@@ -178,6 +178,20 @@
             <goals>
               <goal>test-jar</goal>
             </goals>
+            <configuration>
+              <!--
+                TestUppercaseProtobufModelExtFactorySpi proves the ProtobufModelExtFactorySpi composition
+                mechanism end-to-end but must never reach a consumer of this test-jar: ProtobufModelExt
+                implementations are discovered via ServiceLoader and applied unconditionally (unlike
+                catalogs/vaults/guards, which are type-gated), so shipping its META-INF/services
+                registration here would silently stack this fixture's transform onto any downstream
+                module's own protobuf model extension.
+              -->
+              <excludes>
+                <exclude>io/aklivity/zilla/runtime/model/protobuf/internal/TestUppercaseProtobufModelExtFactorySpi*.class</exclude>
+                <exclude>META-INF/services/io.aklivity.zilla.runtime.model.protobuf.ext.ProtobufModelExtFactorySpi</exclude>
+              </excludes>
+            </configuration>
           </execution>
         </executions>
       </plugin>
