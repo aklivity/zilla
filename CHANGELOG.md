@@ -23,6 +23,7 @@
 - fix\(model-avro\): fold installed extensions into the encoder pipeline too [\#2383](https://github.com/aklivity/zilla/pull/2383) ([jfallows](https://github.com/jfallows))
 - feat\(model-json\): add JsonModelExtFactorySpi for provider-supplied pipeline stages [\#2385](https://github.com/aklivity/zilla/pull/2385) ([jfallows](https://github.com/jfallows))
 - test\(model-avro\): drop unneeded ENGINE\_BUFFER\_SLOT\_CAPACITY override in AvroModelIT [\#2387](https://github.com/aklivity/zilla/pull/2387) ([jfallows](https://github.com/jfallows))
+- fix\(engine\): emit terminal frame for a completed test-binding transform with zero produced bytes [\#2388](https://github.com/aklivity/zilla/pull/2388) ([jfallows](https://github.com/jfallows))
 
 ## [2.3.0](https://github.com/aklivity/zilla/tree/2.3.0) (2026-08-14)
 
