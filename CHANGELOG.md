@@ -1,5 +1,29 @@
 # Changelog
 
+## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/2.3.0...HEAD)
+
+**Closed issues:**
+
+- Declare AvroModelExtFactorySpi and wire provider-supplied pipeline stages in avro model [\#1681](https://github.com/aklivity/zilla/issues/1681) ([jfallows](https://github.com/jfallows))
+- Declare JsonModelExtFactorySpi and wire provider-supplied pipeline stages in json model [\#1682](https://github.com/aklivity/zilla/issues/1682) ([jfallows](https://github.com/jfallows))
+- Declare ProtobufModelExtFactorySpi and wire provider-supplied pipeline stages in protobuf model [\#1683](https://github.com/aklivity/zilla/issues/1683) ([jfallows](https://github.com/jfallows))
+
+**Merged pull requests:**
+
+- feat\(common-json,model-json,model-protobuf,model-avro\): schema overlay support [\#2375](https://github.com/aklivity/zilla/pull/2375) ([jfallows](https://github.com/jfallows))
+- feat\(model-avro\): add AvroModelExt SPI for provider-supplied pipeline stages [\#2376](https://github.com/aklivity/zilla/pull/2376) ([jfallows](https://github.com/jfallows))
+- fix\(model-avro,binding-kafka\): reserve enough Kafka cache capacity for values that expand during decode [\#2377](https://github.com/aklivity/zilla/pull/2377) ([jfallows](https://github.com/jfallows))
+- docs: add rule for justifying changes to shared components [\#2378](https://github.com/aklivity/zilla/pull/2378) ([jfallows](https://github.com/jfallows))
+- docs\(engine\): drop in-tree-consumer example from SPI PR neutrality rule [\#2379](https://github.com/aklivity/zilla/pull/2379) ([jfallows](https://github.com/jfallows))
+- feat\(model-protobuf\): add ProtobufModelExt SPI for provider-supplied pipeline stages [\#2380](https://github.com/aklivity/zilla/pull/2380) ([jfallows](https://github.com/jfallows))
+- test\(engine\): apply the configured value model as decoder on reply direction too [\#2381](https://github.com/aklivity/zilla/pull/2381) ([jfallows](https://github.com/jfallows))
+- feat\(model-core\): add bytes/string models and ModelExtFactorySpi composition [\#2382](https://github.com/aklivity/zilla/pull/2382) ([jfallows](https://github.com/jfallows))
+- fix\(model-avro\): fold installed extensions into the encoder pipeline too [\#2383](https://github.com/aklivity/zilla/pull/2383) ([jfallows](https://github.com/jfallows))
+- feat\(model-json\): add JsonModelExtFactorySpi for provider-supplied pipeline stages [\#2385](https://github.com/aklivity/zilla/pull/2385) ([jfallows](https://github.com/jfallows))
+- test\(model-avro\): drop unneeded ENGINE\_BUFFER\_SLOT\_CAPACITY override in AvroModelIT [\#2387](https://github.com/aklivity/zilla/pull/2387) ([jfallows](https://github.com/jfallows))
+
 ## [2.3.0](https://github.com/aklivity/zilla/tree/2.3.0) (2026-08-14)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/2.2.3...2.3.0)
@@ -929,8 +953,8 @@
 
 **Merged pull requests:**
 
-- Support `encoded` schema ID for validator [\#1604](https://github.com/aklivity/zilla/pull/1604) ([ankitk-me](https://github.com/ankitk-me))
 - Support catalog handler validate [\#1606](https://github.com/aklivity/zilla/pull/1606) ([jfallows](https://github.com/jfallows))
+- Support `encoded` schema ID for validator [\#1604](https://github.com/aklivity/zilla/pull/1604) ([ankitk-me](https://github.com/ankitk-me))
 
 ## [0.9.171](https://github.com/aklivity/zilla/tree/0.9.171) (2025-10-28)
 
@@ -3130,28 +3154,28 @@
 - Convert zilla spec config .json files to .yaml extension and syntax [\#165](https://github.com/aklivity/zilla/pull/165) ([ankitk-me](https://github.com/ankitk-me))
 - Provide http\(s\) configuration server for zilla.yaml [\#166](https://github.com/aklivity/zilla/pull/166) ([bmaidics](https://github.com/bmaidics))
 - Ignore shouldReconfigureWhenModifiedUsingComplexSymlinkChain [\#169](https://github.com/aklivity/zilla/pull/169) ([bmaidics](https://github.com/bmaidics))
-- `grpc` binding spec and implementation [\#174](https://github.com/aklivity/zilla/pull/174) ([akrambek](https://github.com/akrambek))
 - Support verbose schema output on startup [\#175](https://github.com/aklivity/zilla/pull/175) ([jfallows](https://github.com/jfallows))
 - Enhance kafka binding to notify transition from historical to live messages [\#181](https://github.com/aklivity/zilla/pull/181) ([ankitk-me](https://github.com/ankitk-me))
-- `grpc-kafka` mapping implementation [\#187](https://github.com/aklivity/zilla/pull/187) ([akrambek](https://github.com/akrambek))
 - Fix incorrect Assertion in KafkaFunctionsTest [\#192](https://github.com/aklivity/zilla/pull/192) ([bmaidics](https://github.com/bmaidics))
 - Change DumpCommandTest [\#194](https://github.com/aklivity/zilla/pull/194) ([bmaidics](https://github.com/bmaidics))
-- Fix typo and add missing dependency [\#197](https://github.com/aklivity/zilla/pull/197) ([akrambek](https://github.com/akrambek))
-- `kafka-grpc` mapping [\#198](https://github.com/aklivity/zilla/pull/198) ([akrambek](https://github.com/akrambek))
-- Support `options` in grpc-kafka [\#199](https://github.com/aklivity/zilla/pull/199) ([akrambek](https://github.com/akrambek))
-- Grpc one way streaming [\#205](https://github.com/aklivity/zilla/pull/205) ([akrambek](https://github.com/akrambek))
 - Include license header check [\#206](https://github.com/aklivity/zilla/pull/206) ([jfallows](https://github.com/jfallows))
-- Fix imports and null filter if both key and headers are not specified [\#208](https://github.com/aklivity/zilla/pull/208) ([akrambek](https://github.com/akrambek))
-- Fix number of signals in Kafka Grpc [\#210](https://github.com/aklivity/zilla/pull/210) ([akrambek](https://github.com/akrambek))
 - Support eager evaluation of all Kafka filters [\#212](https://github.com/aklivity/zilla/pull/212) ([ankitk-me](https://github.com/ankitk-me))
-- Encode kafka progress as last message id [\#216](https://github.com/aklivity/zilla/pull/216) ([akrambek](https://github.com/akrambek))
-- Move kafka-grpc options for grpc to with section of config [\#219](https://github.com/aklivity/zilla/pull/219) ([akrambek](https://github.com/akrambek))
 - CacheMergedIT.shouldFetchMergedMessageValues failure on GitHub Actions fix [\#221](https://github.com/aklivity/zilla/pull/221) ([ankitk-me](https://github.com/ankitk-me))
 - `grpc-kafka` feature baseline [\#225](https://github.com/aklivity/zilla/pull/225) ([jfallows](https://github.com/jfallows))
 - Enhance config [\#228](https://github.com/aklivity/zilla/pull/228) ([akrambek](https://github.com/akrambek))
 - Consumer group kafka function support [\#232](https://github.com/aklivity/zilla/pull/232) ([akrambek](https://github.com/akrambek))
 - Fix typo in flow control, use `responseMax` instead of `requestMax` [\#237](https://github.com/aklivity/zilla/pull/237) ([akrambek](https://github.com/akrambek))
 - Fix NPE caused by overrides [\#238](https://github.com/aklivity/zilla/pull/238) ([akrambek](https://github.com/akrambek))
+- `grpc` binding spec and implementation [\#174](https://github.com/aklivity/zilla/pull/174) ([akrambek](https://github.com/akrambek))
+- `grpc-kafka` mapping implementation [\#187](https://github.com/aklivity/zilla/pull/187) ([akrambek](https://github.com/akrambek))
+- Fix typo and add missing dependency [\#197](https://github.com/aklivity/zilla/pull/197) ([akrambek](https://github.com/akrambek))
+- `kafka-grpc` mapping [\#198](https://github.com/aklivity/zilla/pull/198) ([akrambek](https://github.com/akrambek))
+- Support `options` in grpc-kafka [\#199](https://github.com/aklivity/zilla/pull/199) ([akrambek](https://github.com/akrambek))
+- Grpc one way streaming [\#205](https://github.com/aklivity/zilla/pull/205) ([akrambek](https://github.com/akrambek))
+- Fix imports and null filter if both key and headers are not specified [\#208](https://github.com/aklivity/zilla/pull/208) ([akrambek](https://github.com/akrambek))
+- Fix number of signals in Kafka Grpc [\#210](https://github.com/aklivity/zilla/pull/210) ([akrambek](https://github.com/akrambek))
+- Encode kafka progress as last message id [\#216](https://github.com/aklivity/zilla/pull/216) ([akrambek](https://github.com/akrambek))
+- Move kafka-grpc options for grpc to with section of config [\#219](https://github.com/aklivity/zilla/pull/219) ([akrambek](https://github.com/akrambek))
 
 ## [0.9.42](https://github.com/aklivity/zilla/tree/0.9.42) (2023-01-28)
 
