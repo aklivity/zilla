@@ -92,6 +92,7 @@ public final class AvroValues
         public final double doubleValue;
         public final byte[] bytes;
         public final String string;
+        public final String stringView;
 
         Entry(
             AvroEvent event,
@@ -109,6 +110,11 @@ public final class AvroValues
             this.bytes = event == AvroEvent.STRING || event == AvroEvent.BYTES ||
                 event == AvroEvent.FIXED || event == AvroEvent.MAP_KEY
                 ? copy(in)
+                : null;
+            // captured as a String immediately: getStringView()'s CharSequence is only valid for this call,
+            // and an Entry outlives it
+            this.stringView = event == AvroEvent.STRING || event == AvroEvent.ENUM
+                ? in.getStringView().toString()
                 : null;
         }
 

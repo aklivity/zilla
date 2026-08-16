@@ -12,18 +12,18 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.common.avro.internal.json;
+package io.aklivity.zilla.runtime.common.avro.internal;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 
 /**
  * A reusable {@link CharSequence} backed by a growable {@code char[]}, filled in place by decoding raw
- * UTF-8 bytes ({@link #utf8}) or base64-encoding raw bytes ({@link #base64}). Letting the
- * {@link io.aklivity.zilla.runtime.common.json.JsonGeneratorEx} write through this view avoids the per-value
- * {@code String} a {@code getString} / {@code Base64.encodeToString} would allocate; the backing array grows
- * only when a value exceeds the largest seen so far. Not thread-safe; one per worker thread.
+ * UTF-8 bytes ({@link #utf8}) or base64-encoding raw bytes ({@link #base64}). Letting a caller write
+ * through or read from this view avoids the per-value {@code String} a {@code getString} /
+ * {@code Base64.encodeToString} would allocate; the backing array grows only when a value exceeds the
+ * largest seen so far. Not thread-safe; one per worker thread.
  */
-final class CharText implements CharSequence
+public final class CharText implements CharSequence
 {
     private static final char[] BASE64 =
         "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/".toCharArray();
@@ -31,13 +31,13 @@ final class CharText implements CharSequence
     private char[] chars;
     private int length;
 
-    CharText(
+    public CharText(
         int initialCapacity)
     {
         this.chars = new char[initialCapacity];
     }
 
-    void utf8(
+    public void utf8(
         DirectBufferEx source,
         int offset,
         int length)
@@ -82,7 +82,7 @@ final class CharText implements CharSequence
         this.length = count;
     }
 
-    void number(
+    public void number(
         long value)
     {
         ensure(20);
@@ -118,7 +118,7 @@ final class CharText implements CharSequence
         this.length = count;
     }
 
-    void base64(
+    public void base64(
         DirectBufferEx source,
         int offset,
         int length)

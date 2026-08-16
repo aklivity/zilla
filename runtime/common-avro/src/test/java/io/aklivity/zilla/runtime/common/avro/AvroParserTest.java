@@ -130,6 +130,32 @@ public class AvroParserTest
     }
 
     @Test
+    public void shouldViewString()
+    {
+        Entry entry = parse("\"string\"", new byte[] { 0x06, 0x66, 0x6f, 0x6f }).entries.get(0);
+        assertEquals(STRING, entry.event);
+        assertEquals("foo", entry.stringView);
+    }
+
+    @Test
+    public void shouldViewMultiByteUtf8String()
+    {
+        // "café" = c, a, f, 0xC3 0xA9 (é) -- 5 UTF-8 bytes, zigzag(5) = 0x0a
+        Entry entry = parse("\"string\"",
+            new byte[] { 0x0a, 0x63, 0x61, 0x66, (byte) 0xc3, (byte) 0xa9 }).entries.get(0);
+        assertEquals("café", entry.stringView);
+    }
+
+    @Test
+    public void shouldViewSurrogatePairString()
+    {
+        // U+1F600 (😀) = 0xF0 0x9F 0x98 0x80 -- 4 UTF-8 bytes, zigzag(4) = 0x08
+        Entry entry = parse("\"string\"",
+            new byte[] { 0x08, (byte) 0xf0, (byte) 0x9f, (byte) 0x98, (byte) 0x80 }).entries.get(0);
+        assertEquals("😀", entry.stringView);
+    }
+
+    @Test
     public void shouldParseRecord()
     {
         List<AvroEvent> events = parse("""

@@ -18,4 +18,7 @@ connect "zilla://streams/app0"
         option zilla:window 8192
 connected
 
+write "{\"id\""
+write flush
+
 write abort

@@ -128,6 +128,12 @@ public class AvroGeneratorTest
         }
 
         @Override
+        public CharSequence getStringView()
+        {
+            return getString();
+        }
+
+        @Override
         public String getField()
         {
             return "";

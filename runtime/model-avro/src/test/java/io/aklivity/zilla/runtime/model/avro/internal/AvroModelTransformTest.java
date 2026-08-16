@@ -38,6 +38,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableDirectByteBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.common.avro.AvroTransformable;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -51,6 +52,7 @@ import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.TestCatalogHandler;
 import io.aklivity.zilla.runtime.model.avro.ext.AvroModelExtContext;
+import io.aklivity.zilla.runtime.model.avro.ext.AvroModelExtHandler;
 
 public class AvroModelTransformTest
 {
@@ -238,7 +240,15 @@ public class AvroModelTransformTest
     public void shouldApplyInstalledExtensionAheadOfCallerSuppliedTransform()
     {
         List<AvroModelExtContext> exts = List.of(
-            (schema, config) -> stream -> stream.transform(AvroModelTransform.of(new Declining("$.status"))));
+            (schema, config) -> new AvroModelExtHandler()
+            {
+                @Override
+                public <T extends AvroTransformable<T>> T decode(
+                    T transformable)
+                {
+                    return transformable.transform(AvroModelTransform.of(new Declining("$.status")));
+                }
+            });
         AvroModelHandlerImpl handler = newHandler(SCHEMA, "json", exts);
         ModelPipeline pipeline = handler.supplyDecoder(new Observing());
 

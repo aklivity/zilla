@@ -25,6 +25,7 @@ import org.junit.rules.Timeout;
 
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
+import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 
@@ -40,6 +41,7 @@ public class AvroModelIT
         .directory("target/zilla-itests")
         .countersBufferCapacity(4096)
         .configurationRoot("io/aklivity/zilla/specs/model/avro/config")
+        .configure(EngineConfiguration.ENGINE_BUFFER_SLOT_CAPACITY, 65_536)
         .external("app0")
         .clean();
 
@@ -86,6 +88,72 @@ public class AvroModelIT
         "${app}/client.sent.avro.binary.truncated/server"
     })
     public void shouldRejectAvroBinaryTruncated() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("avro.ext.yaml")
+    @Specification({
+        "${net}/client.received.avro.ext.uppercase/client",
+        "${app}/client.received.avro.ext.uppercase/server"
+    })
+    public void shouldApplyExtensionOnDecode() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("avro.ext.yaml")
+    @Specification({
+        "${net}/client.received.avro.ext.uppercase.100k/client",
+        "${app}/client.received.avro.ext.uppercase.100k/server"
+    })
+    public void shouldDrainExtensionOverflowOnDecodeAcrossMultipleFrames() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("avro.ext.yaml")
+    @Specification({
+        "${net}/client.received.avro.ext.reject/client",
+        "${app}/client.received.avro.ext.reject/server"
+    })
+    public void shouldAbortWhenExtensionSignalsRejectOnDecode() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("avro.ext.yaml")
+    @Specification({
+        "${net}/client.sent.avro.ext.uppercase/client",
+        "${app}/client.sent.avro.ext.uppercase/server"
+    })
+    public void shouldApplyExtensionOnEncode() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("avro.ext.yaml")
+    @Specification({
+        "${net}/client.sent.avro.ext.uppercase.100k/client",
+        "${app}/client.sent.avro.ext.uppercase.100k/server"
+    })
+    public void shouldDrainExtensionOverflowOnEncodeAcrossMultipleFrames() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("avro.ext.yaml")
+    @Specification({
+        "${net}/client.sent.avro.ext.reject/client",
+        "${app}/client.sent.avro.ext.reject/server"
+    })
+    public void shouldAbortWhenExtensionSignalsRejectOnEncode() throws Exception
     {
         k3po.finish();
     }
