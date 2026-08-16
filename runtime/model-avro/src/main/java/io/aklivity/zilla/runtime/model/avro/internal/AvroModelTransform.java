@@ -14,8 +14,8 @@
  */
 package io.aklivity.zilla.runtime.model.avro.internal;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.ArrayDeque;
+import java.util.Deque;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableDirectByteBufferEx;
@@ -39,24 +39,29 @@ import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 
 // The model-avro adapter for the engine's format-agnostic ModelTransform SPI: an AvroTransform stage that
-// presents each top-level record field to a single ModelTransform as a path plus its extraction rendering,
-// and turns the answer back into valid Avro events. A length-delimited value (string/bytes/fixed) split
-// across input windows arrives as a leading event with deferred bytes followed by SEGMENT continuations;
-// those are coalesced into the field buffer until no bytes remain deferred. Numeric and boolean values
-// render to their ASCII text, matching the extraction the model has always surfaced.
+// presents each scalar record field (at any nesting depth through records) to a single ModelTransform as a
+// path plus its extraction rendering, and turns the answer back into valid Avro events. A length-delimited
+// value (string/bytes/fixed) split across input windows arrives as a leading event with deferred bytes
+// followed by SEGMENT continuations; those are coalesced into the field buffer until no bytes remain
+// deferred. Numeric and boolean values render to their ASCII text, matching the extraction the model has
+// always surfaced.
 //
 // Two modes, selected by ModelTransform.identity():
 //  - observing (identity) — every event forwards downstream as it arrives, byte-for-byte, and each completed
 //    field is offered to the transform purely for its own accumulation. This is the extraction fast path and
 //    reproduces the input bytes exactly.
-//  - mediating (not identity) — the events of a top-level scalar field are withheld while its value is
-//    captured, then the transform's answer is emitted in their place: FIELD re-emits the captured bytes,
-//    REPLACED emits the substitute, DECLINED emits a structurally valid placeholder for the field's type.
-//    Composite fields (record/array/map) and Avro nulls are never withheld; they forward verbatim, as does
-//    a union branch index once the branch turns out not to select a withheld scalar.
+//  - mediating (not identity) — the events of a scalar field nested only through records are withheld while
+//    its value is captured, then the transform's answer is emitted in their place: FIELD re-emits the
+//    captured bytes, REPLACED emits the substitute, DECLINED emits a structurally valid placeholder for the
+//    field's type. Composite fields, Avro nulls, and anything nested through an array or map are never
+//    withheld; they forward verbatim, as does a union branch index once the branch turns out not to select a
+//    withheld scalar. Array/map traversal is opaque on purpose: an array repeats one element shape per entry,
+//    so a single field path can't address "the nth entry" the way it addresses a fixed record field — nothing
+//    below an array/map boundary is offered to the transform today.
 final class AvroModelTransform implements AvroTransform
 {
     private static final int NO_BRANCH = -1;
+    private static final String ROOT = "$";
 
     private static final int STEP_BRANCH = 0;
     private static final int STEP_VALUE = 1;
@@ -66,7 +71,7 @@ final class AvroModelTransform implements AvroTransform
 
     private final ModelTransform transform;
     private final boolean mediating;
-    private final Map<String, String> pathsByField;
+    private final Deque<String> prefixes;
     private final MutableDirectBufferEx captured;
     private final MutableDirectBufferEx substitute;
     private final Value value;
@@ -76,6 +81,9 @@ final class AvroModelTransform implements AvroTransform
     private final Emitter emitter;
 
     private int depth;
+    private int opaque;
+    private String prefix;
+    private String pendingField;
     private boolean capturing;
     private int capturedLength;
     private AvroType capturedType;
@@ -99,7 +107,8 @@ final class AvroModelTransform implements AvroTransform
     {
         this.transform = transform;
         this.mediating = !transform.identity();
-        this.pathsByField = new HashMap<>();
+        this.prefixes = new ArrayDeque<>();
+        this.prefix = ROOT;
         this.captured = new ExpandableDirectByteBufferEx();
         this.substitute = new ExpandableDirectByteBufferEx();
         this.value = new Value();
@@ -175,6 +184,10 @@ final class AvroModelTransform implements AvroTransform
     public void reset()
     {
         depth = 0;
+        opaque = 0;
+        prefix = ROOT;
+        prefixes.clear();
+        pendingField = null;
         capturing = false;
         capturedLength = 0;
         capturedType = null;
@@ -294,7 +307,7 @@ final class AvroModelTransform implements AvroTransform
     {
         pending = event;
         Status status =
-            map(transform.transform(control, value.wrap(supplyPath(field), captured, 0, capturedLength), event, sink));
+            map(transform.transform(control, value.wrap(field, captured, 0, capturedLength), event, sink));
         emitting = status == Status.SUSPENDED;
         replay = false;
         return status;
@@ -327,27 +340,53 @@ final class AvroModelTransform implements AvroTransform
         {
         case START_MESSAGE:
             depth = 0;
+            opaque = 0;
+            prefix = ROOT;
+            prefixes.clear();
+            pendingField = null;
             capturing = false;
             field = null;
             branch = NO_BRANCH;
             break;
         case START_RECORD:
+            // entering the value of the field named by pendingField, unless this is the root record itself
+            // (depth 0) or we're already inside an array/map, where field paths aren't tracked
+            if (opaque == 0 && depth > 0)
+            {
+                prefixes.push(prefix);
+                prefix = prefix + "." + pendingField;
+            }
+            depth++;
+            capturing = false;
+            field = null;
+            break;
         case START_ARRAY:
         case START_MAP:
+            opaque++;
             depth++;
             capturing = false;
             field = null;
             break;
         case END_RECORD:
+            depth--;
+            if (opaque == 0 && depth > 0)
+            {
+                prefix = prefixes.pop();
+            }
+            capturing = false;
+            field = null;
+            break;
         case END_ARRAY:
         case END_MAP:
+            opaque--;
             depth--;
             capturing = false;
             field = null;
             break;
         case FIELD_NAME:
-            capturing = depth == 1;
-            field = capturing ? source.getField() : null;
+            pendingField = source.getField();
+            capturing = opaque == 0;
+            field = capturing ? prefix + "." + pendingField : null;
             capturedLength = 0;
             capturedType = null;
             branch = NO_BRANCH;
@@ -431,12 +470,6 @@ final class AvroModelTransform implements AvroTransform
             break;
         }
         return complete;
-    }
-
-    private String supplyPath(
-        String name)
-    {
-        return pathsByField.computeIfAbsent(name, n -> "$." + n);
     }
 
     private Status map(
@@ -793,6 +826,12 @@ final class AvroModelTransform implements AvroTransform
         public String getString()
         {
             return buffer.getStringWithoutLengthUtf8(offset, length);
+        }
+
+        @Override
+        public CharSequence getStringView()
+        {
+            return getString();
         }
 
         @Override

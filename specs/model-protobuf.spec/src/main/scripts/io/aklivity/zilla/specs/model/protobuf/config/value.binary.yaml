@@ -19,6 +19,7 @@ catalogs:
   test0:
     type: test
     options:
+      id: 1
       subject: test
       schema: |
         syntax = "proto3";

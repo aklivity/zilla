@@ -14,9 +14,19 @@
  */
 package io.aklivity.zilla.runtime.model.json.internal;
 
-import org.agrona.collections.Int2ObjectCache;
+import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_ID;
+
+import java.io.StringReader;
+
+import jakarta.json.Json;
+import jakarta.json.JsonArray;
+import jakarta.json.JsonObject;
+
+import org.agrona.collections.Int2IntHashMap;
+import org.agrona.collections.Long2ObjectCache;
 
 import io.aklivity.zilla.config.engine.CatalogedConfig;
+import io.aklivity.zilla.config.engine.OverlayConfig;
 import io.aklivity.zilla.config.engine.SchemaConfig;
 import io.aklivity.zilla.config.engine.ValidateMode;
 import io.aklivity.zilla.config.model.json.JsonModelConfig;
@@ -29,12 +39,16 @@ public abstract class JsonModelHandler
     protected final SchemaConfig catalog;
     protected final CatalogHandler handler;
     protected final String subject;
+    protected final CatalogHandler overlayHandler;
+    protected final String overlaySubject;
+    protected final String overlayVersion;
     protected final JsonModelEventContext event;
     // LENIENT per direction: a schema-validation failure on a structurally valid document passes through
     protected final boolean decodeLenient;
     protected final boolean encodeLenient;
 
-    private final Int2ObjectCache<JsonSchema> schemas;
+    private final Long2ObjectCache<JsonSchema> schemas;
+    private final Int2IntHashMap extPaddings;
 
     public JsonModelHandler(
         JsonModelConfig config,
@@ -46,28 +60,80 @@ public abstract class JsonModelHandler
         this.subject = catalog != null && catalog.subject != null
                 ? catalog.subject
                 : config.subject;
+        OverlayConfig overlay = catalog != null ? catalog.overlay : null;
+        this.overlayHandler = overlay != null ? context.supplyCatalog(overlay.id) : null;
+        this.overlaySubject = overlay != null ? overlay.schema.subject : null;
+        this.overlayVersion = overlay != null ? overlay.schema.version : null;
         this.decodeLenient = config.validate.decode == ValidateMode.LENIENT;
         this.encodeLenient = config.validate.encode == ValidateMode.LENIENT;
-        this.schemas = new Int2ObjectCache<>(1, 1024, i -> {});
+        this.schemas = new Long2ObjectCache<>(1, 1024, i -> {});
+        this.extPaddings = new Int2IntHashMap(-1);
         this.event = new JsonModelEventContext(context);
     }
 
+    // avoids computeIfAbsent: a capturing lambda argument is allocated fresh on every call, hit or
+    // miss, so this checks the cache directly instead (see ProtobufModelHandler.supplySchema)
     protected JsonSchema supplySchema(
         int schemaId)
     {
-        return schemas.computeIfAbsent(schemaId, this::resolveSchema);
+        int overlaySchemaId = overlayHandler != null
+            ? overlayHandler.resolve(overlaySubject, overlayVersion)
+            : NO_SCHEMA_ID;
+        long key = cacheKey(schemaId, overlaySchemaId);
+        JsonSchema schema = schemas.get(key);
+        if (schema == null)
+        {
+            schema = resolveSchema(schemaId, overlaySchemaId);
+            if (schema != null)
+            {
+                schemas.put(key, schema);
+            }
+        }
+        return schema;
+    }
+
+    protected final int supplyExtPadding(
+        int schemaId)
+    {
+        return extPaddings.computeIfAbsent(schemaId, id -> extPadding(supplySchema(id)));
+    }
+
+    // overridden by JsonModelHandlerImpl to sum the padding contributed by each installed model extension
+    protected int extPadding(
+        JsonSchema schema)
+    {
+        return 0;
+    }
+
+    private static long cacheKey(
+        int schemaId,
+        int overlaySchemaId)
+    {
+        return (long) schemaId << 32 | overlaySchemaId & 0xFFFFFFFFL;
     }
 
     private JsonSchema resolveSchema(
-        int schemaId)
+        int schemaId,
+        int overlaySchemaId)
     {
         JsonSchema schema = null;
         String schemaText = handler.resolve(schemaId);
-        if (schemaText != null)
+        String overlayText = overlayHandler != null ? overlayHandler.resolve(overlaySchemaId) : null;
+        if (schemaText != null && (overlayHandler == null || overlayText != null))
         {
-            schema = JsonSchema.of(schemaText);
+            String resolvedText = overlayText != null ? applyOverlay(schemaText, overlayText) : schemaText;
+            schema = JsonSchema.of(resolvedText);
         }
 
         return schema;
+    }
+
+    private static String applyOverlay(
+        String schemaText,
+        String overlayText)
+    {
+        JsonObject document = Json.createReader(new StringReader(schemaText)).readObject();
+        JsonArray patch = Json.createReader(new StringReader(overlayText)).readArray();
+        return Json.createPatch(patch).apply(document).toString();
     }
 }

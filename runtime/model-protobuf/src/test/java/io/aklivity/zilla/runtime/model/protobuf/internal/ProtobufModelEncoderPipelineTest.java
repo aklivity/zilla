@@ -22,6 +22,7 @@ import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayOutputStream;
 import java.time.Clock;
+import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -183,7 +184,7 @@ public class ProtobufModelEncoderPipelineTest
                 .build()
             .build();
         when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
-        return new ProtobufModelHandlerImpl(model, context);
+        return new ProtobufModelHandlerImpl(model, context, List.of());
     }
 
     private static byte[] concat(

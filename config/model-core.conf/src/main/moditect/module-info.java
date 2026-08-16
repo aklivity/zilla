@@ -20,8 +20,11 @@ module io.aklivity.zilla.config.model.core
 
     exports io.aklivity.zilla.config.model.core;
 
+    uses io.aklivity.zilla.config.engine.ModelExtInfo;
+
     provides io.aklivity.zilla.config.engine.ModelInfo
         with io.aklivity.zilla.config.model.core.internal.BooleanModelInfo,
+            io.aklivity.zilla.config.model.core.internal.BytesModelInfo,
             io.aklivity.zilla.config.model.core.internal.DoubleModelInfo,
             io.aklivity.zilla.config.model.core.internal.FloatModelInfo,
             io.aklivity.zilla.config.model.core.internal.Int32ModelInfo,

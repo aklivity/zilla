@@ -23,6 +23,7 @@ import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayOutputStream;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.junit.Before;
@@ -35,6 +36,7 @@ import io.aklivity.zilla.config.model.avro.AvroModelConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.common.avro.AvroSchema;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.ModelController;
@@ -46,6 +48,8 @@ import io.aklivity.zilla.runtime.engine.model.ModelSource;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.TestCatalogHandler;
+import io.aklivity.zilla.runtime.model.avro.ext.AvroModelExtContext;
+import io.aklivity.zilla.runtime.model.avro.ext.AvroModelExtHandler;
 
 public class AvroModelDecoderPipelineTest
 {
@@ -189,6 +193,20 @@ public class AvroModelDecoderPipelineTest
     }
 
     @Test
+    public void shouldIncludeExtensionPaddingContribution()
+    {
+        AvroModelHandlerImpl baseline = newHandler(SCHEMA, "json", List.of());
+        AvroModelHandlerImpl extended = newHandler(SCHEMA, "json", List.of(expandingExt(64)));
+
+        int basePadding = baseline.supplyDecoder(ModelTransform.NONE)
+            .padding(new UnsafeBufferEx(AVRO), 0, AVRO.length);
+        int extPadding = extended.supplyDecoder(ModelTransform.NONE)
+            .padding(new UnsafeBufferEx(AVRO), 0, AVRO.length);
+
+        assertEquals(basePadding + 64, extPadding);
+    }
+
+    @Test
     public void shouldReportIdentityWhenNoView()
     {
         AvroModelHandlerImpl handler = newHandler(SCHEMA, null);
@@ -225,6 +243,14 @@ public class AvroModelDecoderPipelineTest
         String schema,
         String view)
     {
+        return newHandler(schema, view, List.of());
+    }
+
+    private AvroModelHandlerImpl newHandler(
+        String schema,
+        String view,
+        List<AvroModelExtContext> exts)
+    {
         TestCatalogConfig catalog = GenericCatalogConfig.builder(TestCatalogConfig::new)
             .namespace("test")
             .name("test0")
@@ -246,7 +272,21 @@ public class AvroModelDecoderPipelineTest
                 .build()
             .build();
         when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
-        return new AvroModelHandlerImpl(config, model, context);
+        return new AvroModelHandlerImpl(config, model, context, exts);
+    }
+
+    private static AvroModelExtContext expandingExt(
+        int padding)
+    {
+        return (schema, config) -> new AvroModelExtHandler()
+        {
+            @Override
+            public int padding(
+                AvroSchema schema)
+            {
+                return padding;
+            }
+        };
     }
 
     private static byte[] concat(

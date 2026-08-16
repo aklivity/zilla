@@ -2,7 +2,31 @@
 
 ## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/2.2.3...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/2.3.0...HEAD)
+
+**Closed issues:**
+
+- Declare AvroModelExtFactorySpi and wire provider-supplied pipeline stages in avro model [\#1681](https://github.com/aklivity/zilla/issues/1681) ([jfallows](https://github.com/jfallows))
+- Declare JsonModelExtFactorySpi and wire provider-supplied pipeline stages in json model [\#1682](https://github.com/aklivity/zilla/issues/1682) ([jfallows](https://github.com/jfallows))
+- Declare ProtobufModelExtFactorySpi and wire provider-supplied pipeline stages in protobuf model [\#1683](https://github.com/aklivity/zilla/issues/1683) ([jfallows](https://github.com/jfallows))
+
+**Merged pull requests:**
+
+- feat\(common-json,model-json,model-protobuf,model-avro\): schema overlay support [\#2375](https://github.com/aklivity/zilla/pull/2375) ([jfallows](https://github.com/jfallows))
+- feat\(model-avro\): add AvroModelExt SPI for provider-supplied pipeline stages [\#2376](https://github.com/aklivity/zilla/pull/2376) ([jfallows](https://github.com/jfallows))
+- fix\(model-avro,binding-kafka\): reserve enough Kafka cache capacity for values that expand during decode [\#2377](https://github.com/aklivity/zilla/pull/2377) ([jfallows](https://github.com/jfallows))
+- docs: add rule for justifying changes to shared components [\#2378](https://github.com/aklivity/zilla/pull/2378) ([jfallows](https://github.com/jfallows))
+- docs\(engine\): drop in-tree-consumer example from SPI PR neutrality rule [\#2379](https://github.com/aklivity/zilla/pull/2379) ([jfallows](https://github.com/jfallows))
+- feat\(model-protobuf\): add ProtobufModelExt SPI for provider-supplied pipeline stages [\#2380](https://github.com/aklivity/zilla/pull/2380) ([jfallows](https://github.com/jfallows))
+- test\(engine\): apply the configured value model as decoder on reply direction too [\#2381](https://github.com/aklivity/zilla/pull/2381) ([jfallows](https://github.com/jfallows))
+- feat\(model-core\): add bytes/string models and ModelExtFactorySpi composition [\#2382](https://github.com/aklivity/zilla/pull/2382) ([jfallows](https://github.com/jfallows))
+- fix\(model-avro\): fold installed extensions into the encoder pipeline too [\#2383](https://github.com/aklivity/zilla/pull/2383) ([jfallows](https://github.com/jfallows))
+- feat\(model-json\): add JsonModelExtFactorySpi for provider-supplied pipeline stages [\#2385](https://github.com/aklivity/zilla/pull/2385) ([jfallows](https://github.com/jfallows))
+- test\(model-avro\): drop unneeded ENGINE\_BUFFER\_SLOT\_CAPACITY override in AvroModelIT [\#2387](https://github.com/aklivity/zilla/pull/2387) ([jfallows](https://github.com/jfallows))
+
+## [2.3.0](https://github.com/aklivity/zilla/tree/2.3.0) (2026-08-14)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/2.2.3...2.3.0)
 
 **Closed issues:**
 

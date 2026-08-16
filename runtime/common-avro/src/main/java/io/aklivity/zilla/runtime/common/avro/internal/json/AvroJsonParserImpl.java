@@ -243,6 +243,12 @@ public final class AvroJsonParserImpl implements AvroParser
     }
 
     @Override
+    public CharSequence getStringView()
+    {
+        return valueChars;
+    }
+
+    @Override
     public String getField()
     {
         return fieldName;

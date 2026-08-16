@@ -92,7 +92,7 @@ final class JsonModelDecoderPipeline implements ModelPipeline
             // the catalog framing sits at the value start; strip it once on the first fragment and select
             // the schema-bound pipeline, then later fragments stream straight through
             int schemaId = handler.resolveSchemaId(src, srcIndex, srcLength);
-            prefix = handler.decodePadding(src, srcIndex, srcLength);
+            prefix = handler.prefix(src, srcIndex, srcLength);
             active = schemaId != NO_SCHEMA_ID ? supplyPipeline(schemaId) : null;
             if (active != null)
             {
@@ -171,9 +171,8 @@ final class JsonModelDecoderPipeline implements ModelPipeline
     private JsonPipeline supplyPipeline(
         int schemaId)
     {
-        return pipelines.computeIfAbsent(schemaId, id -> extractor != null
-            ? handler.newPipeline(id, handler.decodeLenient, generator, extractor, this::onRejected)
-            : handler.newPipeline(id, handler.decodeLenient, generator, this::onRejected));
+        return pipelines.computeIfAbsent(schemaId,
+            id -> handler.newPipeline(id, handler.decodeLenient, generator, extractor, this::onRejected));
     }
 
     private void onRejected(

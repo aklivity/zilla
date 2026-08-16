@@ -281,6 +281,30 @@ test) that are impossible to diagnose without the log output.
 For significant new bindings or behavior changes, open a GitHub Issue first
 to discuss the design before writing code.
 
+### Justifying changes to shared components
+
+Many modules in this repo exist to be depended on by other modules — both
+inside this repo (`common-avro`, `common-json`, `common-protobuf`, the engine
+SPI, any module under `runtime/*/ext`) and beyond it. When filing an issue or
+writing a commit/PR description for a change to one of these, justify it
+entirely in terms of that component's own contract or capability gap — never
+by naming or describing a consumer that depends on it: not a sibling module,
+not a downstream binding, not a commercial extension, not a specific product
+or feature.
+
+Test before writing: strip away everyone who currently depends on this
+component — present and future, in-tree and external. Does the description
+still stand on its own as "this component's contract had gap Y, now it has
+capability Z"? If it only makes sense once the reader knows who wanted it,
+the description is coupling this component to a consumer's specifics, and
+should be rewritten in terms of the gap itself.
+
+This applies in both directions across the dependency graph: a `common-avro`
+change should never cite `model-avro`'s use case as its motivation, an engine
+SPI change should never cite a specific binding's or model extension's use
+case, and this repo's own changes should never cite a downstream or
+commercial consumer's feature as their reason for existing.
+
 ---
 
 ## Useful references

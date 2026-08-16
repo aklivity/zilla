@@ -14,14 +14,21 @@
  */
 package io.aklivity.zilla.runtime.model.protobuf.internal;
 
+import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_ID;
+
+import java.io.StringReader;
 import java.util.Arrays;
+
+import jakarta.json.Json;
+import jakarta.json.JsonValue;
 
 import org.agrona.BitUtil;
 import org.agrona.collections.Int2IntHashMap;
-import org.agrona.collections.Int2ObjectCache;
 import org.agrona.collections.IntArrayList;
+import org.agrona.collections.Long2ObjectCache;
 
 import io.aklivity.zilla.config.engine.CatalogedConfig;
+import io.aklivity.zilla.config.engine.OverlayConfig;
 import io.aklivity.zilla.config.engine.SchemaConfig;
 import io.aklivity.zilla.config.engine.ValidateMode;
 import io.aklivity.zilla.config.model.protobuf.ProtobufModelConfig;
@@ -29,6 +36,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.protobuf.Protobuf;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufField;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufMessage;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufOverlay;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSchema;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
@@ -44,6 +52,9 @@ public class ProtobufModelHandler
     protected final SchemaConfig catalog;
     protected final CatalogHandler handler;
     protected final String subject;
+    protected final CatalogHandler overlayHandler;
+    protected final String overlaySubject;
+    protected final String overlayVersion;
     protected final String view;
     // a scratch path buffer, reused (not boxed) across every decode/encode call: IntArrayList backs its
     // elements with a primitive int[] (no per-add Node/Integer allocation, unlike List<Integer>)
@@ -54,8 +65,9 @@ public class ProtobufModelHandler
     protected final boolean decodeLenient;
     protected final boolean encodeLenient;
 
-    private final Int2ObjectCache<ProtobufSchema> schemas;
+    private final Long2ObjectCache<ProtobufSchema> schemas;
     private final Int2IntHashMap paddings;
+    private final Int2IntHashMap extPaddings;
     // decodedPath()'s reused result buffer: resized only when the path depth actually changes, which is
     // fixed per message shape, so a decode stream settles into zero allocation after its first message
     private int[] pathScratch;
@@ -70,33 +82,63 @@ public class ProtobufModelHandler
         this.subject = catalog != null && catalog.subject != null
                 ? catalog.subject
                 : config.subject;
+        OverlayConfig overlay = catalog != null ? catalog.overlay : null;
+        this.overlayHandler = overlay != null ? context.supplyCatalog(overlay.id) : null;
+        this.overlaySubject = overlay != null ? overlay.schema.subject : null;
+        this.overlayVersion = overlay != null ? overlay.schema.version : null;
         this.view = config.view;
         this.decodeLenient = config.validate.decode == ValidateMode.LENIENT;
         this.encodeLenient = config.validate.encode == ValidateMode.LENIENT;
-        this.schemas = new Int2ObjectCache<>(1, 1024, i -> {});
+        this.schemas = new Long2ObjectCache<>(1, 1024, i -> {});
         this.indexes = new IntArrayList();
         this.paddings = new Int2IntHashMap(-1);
+        this.extPaddings = new Int2IntHashMap(-1);
         this.event = new ProtobufModelEventContext(context);
         this.pathScratch = new int[0];
     }
 
     // called on every decode/encode call, so this checks the cache directly rather than through
-    // computeIfAbsent: a capturing method reference like "this::createSchema" is allocated fresh on every
-    // evaluation of that argument expression, regardless of whether the cache already has an entry, so
-    // computeIfAbsent would pay that cost on every call instead of once per distinct schemaId
+    // computeIfAbsent: a capturing lambda argument is allocated fresh on every evaluation of that
+    // argument expression, regardless of whether the cache already has an entry, so computeIfAbsent
+    // would pay that cost on every call instead of once per distinct (schemaId, overlaySchemaId) pair
     protected ProtobufSchema supplySchema(
         int schemaId)
     {
-        ProtobufSchema schema = schemas.get(schemaId);
+        int overlaySchemaId = overlayHandler != null
+            ? overlayHandler.resolve(overlaySubject, overlayVersion)
+            : NO_SCHEMA_ID;
+        long key = cacheKey(schemaId, overlaySchemaId);
+        ProtobufSchema schema = schemas.get(key);
         if (schema == null)
         {
-            schema = createSchema(schemaId);
+            schema = createSchema(schemaId, overlaySchemaId);
             if (schema != null)
             {
-                schemas.put(schemaId, schema);
+                schemas.put(key, schema);
             }
         }
         return schema;
+    }
+
+    private static long cacheKey(
+        int schemaId,
+        int overlaySchemaId)
+    {
+        return (long) schemaId << 32 | overlaySchemaId & 0xFFFFFFFFL;
+    }
+
+    protected final int supplyExtPadding(
+        int schemaId)
+    {
+        return extPaddings.computeIfAbsent(schemaId, id -> extPadding(supplySchema(id)));
+    }
+
+    // overridden by ProtobufModelHandlerImpl to sum the padding contributed by each installed model
+    // extension; the base (encoder) handler never installs extensions, so this stays 0 there
+    protected int extPadding(
+        ProtobufSchema schema)
+    {
+        return 0;
     }
 
     protected byte[] encodeIndexes()
@@ -249,14 +291,21 @@ public class ProtobufModelHandler
     }
 
     private ProtobufSchema createSchema(
-        int schemaId)
+        int schemaId,
+        int overlaySchemaId)
     {
         ProtobufSchema schema = null;
 
         String schemaText = handler.resolve(schemaId);
-        if (schemaText != null)
+        String overlayText = overlayHandler != null ? overlayHandler.resolve(overlaySchemaId) : null;
+        if (schemaText != null && (overlayHandler == null || overlayText != null))
         {
             schema = Protobuf.schema(schemaText);
+            if (overlayText != null)
+            {
+                JsonValue overlay = Json.createReader(new StringReader(overlayText)).readValue();
+                schema = ProtobufOverlay.of(overlay).apply(schema);
+            }
         }
         return schema;
     }

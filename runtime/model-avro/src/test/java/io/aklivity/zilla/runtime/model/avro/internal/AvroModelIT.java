@@ -89,4 +89,70 @@ public class AvroModelIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("avro.ext.yaml")
+    @Specification({
+        "${net}/client.received.avro.ext.uppercase/client",
+        "${app}/client.received.avro.ext.uppercase/server"
+    })
+    public void shouldApplyExtensionOnDecode() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("avro.ext.yaml")
+    @Specification({
+        "${net}/client.received.avro.ext.uppercase.100k/client",
+        "${app}/client.received.avro.ext.uppercase.100k/server"
+    })
+    public void shouldDrainExtensionOverflowOnDecodeAcrossMultipleFrames() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("avro.ext.yaml")
+    @Specification({
+        "${net}/client.received.avro.ext.reject/client",
+        "${app}/client.received.avro.ext.reject/server"
+    })
+    public void shouldAbortWhenExtensionSignalsRejectOnDecode() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("avro.ext.yaml")
+    @Specification({
+        "${net}/client.sent.avro.ext.uppercase/client",
+        "${app}/client.sent.avro.ext.uppercase/server"
+    })
+    public void shouldApplyExtensionOnEncode() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("avro.ext.yaml")
+    @Specification({
+        "${net}/client.sent.avro.ext.uppercase.100k/client",
+        "${app}/client.sent.avro.ext.uppercase.100k/server"
+    })
+    public void shouldDrainExtensionOverflowOnEncodeAcrossMultipleFrames() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("avro.ext.yaml")
+    @Specification({
+        "${net}/client.sent.avro.ext.reject/client",
+        "${app}/client.sent.avro.ext.reject/server"
+    })
+    public void shouldAbortWhenExtensionSignalsRejectOnEncode() throws Exception
+    {
+        k3po.finish();
+    }
 }

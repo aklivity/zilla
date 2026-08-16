@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.common.json.internal;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import io.aklivity.zilla.runtime.common.json.JsonController;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
@@ -88,6 +89,15 @@ public final class JsonStreamImpl implements JsonStream
         // the generator self-wraps an empty buffer on construction, so it is already in a sink-safe
         // state here; transform re-targets it at the caller's destination per call
         return new JsonPipelineImpl(parser, bind(new JsonSinkImpl(generator)), reporter, generator, lenient);
+    }
+
+    @Override
+    public JsonPipeline into(
+        JsonGeneratorEx generator,
+        Map<String, ?> config)
+    {
+        boolean canonical = config.get(JsonSink.DELIVERY) == JsonSink.Delivery.STRUCTURED;
+        return new JsonPipelineImpl(parser, bind(new JsonSinkImpl(generator, canonical)), reporter, generator, lenient);
     }
 
     private JsonSink bind(

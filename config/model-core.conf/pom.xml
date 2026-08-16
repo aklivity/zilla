@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>config</artifactId>
-    <version>2.3.0</version>
+    <version>2.4.0-rc1</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -111,6 +111,7 @@
                 </artifactItem>
               </artifactItems>
               <includes>io/aklivity/zilla/specs/model/core/schema/boolean.schema.patch.json,
+                io/aklivity/zilla/specs/model/core/schema/bytes.schema.patch.json,
                 io/aklivity/zilla/specs/model/core/schema/double.schema.patch.json,
                 io/aklivity/zilla/specs/model/core/schema/float.schema.patch.json,
                 io/aklivity/zilla/specs/model/core/schema/int32.schema.patch.json,

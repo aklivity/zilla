@@ -24,6 +24,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.Clock;
+import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -141,7 +142,7 @@ public class JsonModelLenientTest
             .validate(validate)
             .build();
         when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
-        return new JsonModelHandlerImpl(model, context);
+        return new JsonModelHandlerImpl(model, context, List.of());
     }
 
     private static String text(

@@ -125,4 +125,74 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/client.sent.json.overlay.required/client",
+        "${app}/client.sent.json.overlay.required/server"
+    })
+    public void shouldRejectJsonMissingOverlayRequiredProperty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/client.received.json.ext.uppercase/client",
+        "${app}/client.received.json.ext.uppercase/server"
+    })
+    public void shouldForwardJsonExtUppercase() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/client.received.json.ext.uppercase.100k/client",
+        "${app}/client.received.json.ext.uppercase.100k/server"
+    })
+    public void shouldForwardJsonExtUppercase100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/client.received.json.ext.reject/client",
+        "${app}/client.received.json.ext.reject/server"
+    })
+    public void shouldForwardJsonExtReject() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/client.sent.json.ext.uppercase/client",
+        "${app}/client.sent.json.ext.uppercase/server"
+    })
+    public void shouldSendJsonExtUppercase() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/client.sent.json.ext.uppercase.100k/client",
+        "${app}/client.sent.json.ext.uppercase.100k/server"
+    })
+    public void shouldSendJsonExtUppercase100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/client.sent.json.ext.reject/client",
+        "${app}/client.sent.json.ext.reject/server"
+    })
+    public void shouldSendJsonExtReject() throws Exception
+    {
+        k3po.finish();
+    }
 }

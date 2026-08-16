@@ -107,6 +107,37 @@
                                                 "record":
                                                 {
                                                     "type": "string"
+                                                },
+                                                "overlay":
+                                                {
+                                                    "title": "Overlay",
+                                                    "type": "object",
+                                                    "patternProperties":
+                                                    {
+                                                        "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                                                        {
+                                                            "type": "object",
+                                                            "properties":
+                                                            {
+                                                                "subject":
+                                                                {
+                                                                    "type": "string"
+                                                                },
+                                                                "version":
+                                                                {
+                                                                    "type": "string",
+                                                                    "default": "latest"
+                                                                }
+                                                            },
+                                                            "required":
+                                                            [
+                                                                "subject"
+                                                            ],
+                                                            "additionalProperties": false
+                                                        }
+                                                    },
+                                                    "additionalProperties": false,
+                                                    "maxProperties": 1
                                                 }
                                             },
                                             "required":
@@ -130,8 +161,7 @@
                 "required":
                 [
                     "catalog"
-                ],
-                "additionalProperties": false
+                ]
             }
         }
     }
