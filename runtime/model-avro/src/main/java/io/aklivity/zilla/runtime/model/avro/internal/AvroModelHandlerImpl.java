@@ -110,7 +110,7 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
     int encodePadding(
         int length)
     {
-        return handler.encodePadding(length);
+        return handler.encodePadding(length) + supplyExtPadding(resolveSchemaId());
     }
 
     // the catalog framing the value carries on the wire, stripped once at the start of the first fragment
@@ -173,7 +173,7 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
             AvroGenerator generator = VIEW_JSON.equals(view)
                 ? AvroJson.generator(schema, json, true)
                 : Avro.generator(schema, new UnsafeBufferEx(new byte[1]), 0);
-            pipeline = extend(Avro.stream(Avro.parser(schema)), schema)
+            pipeline = extendDecode(Avro.stream(Avro.parser(schema)), schema)
                 .transform(adapter)
                 .lenient(lenient)
                 .reporting(reporter)
@@ -195,13 +195,10 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
             // a json view parses JSON input and re-encodes it as Avro binary; any other view validates
             // Avro binary input and reproduces it, so a malformed datum yields a binary "truncated datum"
             // diagnostic rather than a JSON parse failure
-            //
-            // model extensions are decode-only: encode is the write path into the broker, which must
-            // keep the source of truth intact, so extensions never fold into the encoder stream here
             AvroStream stream = VIEW_JSON.equals(view)
                 ? AvroJson.stream(schema, JsonEx.createParser(), true)
                 : Avro.stream(Avro.parser(schema));
-            pipeline = stream
+            pipeline = extendEncode(stream, schema)
                 .transform(adapter)
                 .lenient(lenient)
                 .reporting(reporter)
@@ -210,17 +207,32 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
         return pipeline;
     }
 
-    // folds every installed avro model extension's own stage(s) into the decoder stream, in discovery
-    // order, ahead of this handler's own adapter stage; decode is the read path out of the broker, where
-    // a read-side concern like disclosure redaction belongs
-    private AvroStream extend(
+    // folds every installed avro model extension's own decode stage(s) into the stream, in discovery
+    // order, ahead of this handler's own adapter stage: the canonical value being decoded into the view
+    // delivered to a reader
+    private AvroStream extendDecode(
         AvroStream stream,
         AvroSchema schema)
     {
         AvroStream extended = stream;
         for (AvroModelExtContext ext : exts)
         {
-            extended = (AvroStream) ext.supplyHandler(schema, options).transform(extended);
+            extended = ext.supplyHandler(schema, options).decode(extended);
+        }
+        return extended;
+    }
+
+    // folds every installed avro model extension's own encode stage(s) into the stream, in discovery
+    // order, ahead of this handler's own adapter stage: a caller's value being encoded into its canonical
+    // form
+    private AvroStream extendEncode(
+        AvroStream stream,
+        AvroSchema schema)
+    {
+        AvroStream extended = stream;
+        for (AvroModelExtContext ext : exts)
+        {
+            extended = ext.supplyHandler(schema, options).encode(extended);
         }
         return extended;
     }
