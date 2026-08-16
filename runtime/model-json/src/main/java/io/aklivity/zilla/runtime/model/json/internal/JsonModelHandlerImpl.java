@@ -32,6 +32,7 @@ import io.aklivity.zilla.runtime.common.json.JsonStream;
 import io.aklivity.zilla.runtime.common.json.JsonTransform;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
+import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelTransform;
@@ -67,15 +68,21 @@ public final class JsonModelHandlerImpl extends JsonModelHandler implements Mode
 
     @Override
     public ModelPipeline supplyDecoder(
+        ModelEnvelope envelope,
         ModelTransform transform)
     {
+        assert envelope != null;
+
         return new JsonModelDecoderPipeline(this, requireNonNull(transform));
     }
 
     @Override
     public ModelPipeline supplyEncoder(
+        ModelEnvelope envelope,
         ModelTransform transform)
     {
+        assert envelope != null;
+
         return new JsonModelEncoderPipeline(this);
     }
 

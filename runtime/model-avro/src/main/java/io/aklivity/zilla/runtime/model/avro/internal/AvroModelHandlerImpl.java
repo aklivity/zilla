@@ -34,6 +34,7 @@ import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
+import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelTransform;
@@ -66,15 +67,21 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
 
     @Override
     public ModelPipeline supplyDecoder(
+        ModelEnvelope envelope,
         ModelTransform transform)
     {
+        assert envelope != null;
+
         return new AvroModelDecoderPipeline(this, requireNonNull(transform));
     }
 
     @Override
     public ModelPipeline supplyEncoder(
+        ModelEnvelope envelope,
         ModelTransform transform)
     {
+        assert envelope != null;
+
         return new AvroModelEncoderPipeline(this, requireNonNull(transform));
     }
 

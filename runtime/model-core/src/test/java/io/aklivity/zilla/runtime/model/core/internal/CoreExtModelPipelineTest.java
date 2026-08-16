@@ -24,6 +24,7 @@ import org.junit.Test;
 import io.aklivity.zilla.config.model.core.BytesModelConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelTransform;
@@ -47,7 +48,7 @@ public class CoreExtModelPipelineTest
 
         BytesModelContext context = new BytesModelContext(mock(EngineContext.class), List.of(ext1, ext2));
         ModelHandler handler = context.supplyHandler(BytesModelConfig.builder().build());
-        ModelPipeline pipeline = handler.supplyDecoder(ModelTransform.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
 
         assertEquals(10, pipeline.padding(new UnsafeBufferEx(new byte[0]), 0, 0));
     }

@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.kafka.internal.cache;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
@@ -48,7 +49,7 @@ public final class KafkaCacheModel
         MutableDirectBufferEx scratch)
     {
         return handler != null
-            ? new KafkaCacheModel(handler.supplyDecoder(transform), scratch)
+            ? new KafkaCacheModel(handler.supplyDecoder(ModelEnvelope.NONE, transform), scratch)
             : NONE;
     }
 
@@ -57,7 +58,7 @@ public final class KafkaCacheModel
         MutableDirectBufferEx scratch)
     {
         return handler != null
-            ? new KafkaCacheModel(handler.supplyEncoder(), scratch)
+            ? new KafkaCacheModel(handler.supplyEncoder(ModelEnvelope.NONE, ModelTransform.NONE), scratch)
             : NONE;
     }
 

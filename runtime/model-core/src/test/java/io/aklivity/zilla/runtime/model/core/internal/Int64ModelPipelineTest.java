@@ -28,6 +28,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
@@ -54,7 +55,7 @@ public class Int64ModelPipelineTest
     public void shouldTransformSignedSuffixedValue()
     {
         ModelHandler handler = handler(Int64ModelConfig.builder().format("text").build());
-        ModelPipeline pipeline = handler.supplyEncoder(ModelTransform.NONE);
+        ModelPipeline pipeline = handler.supplyEncoder(ModelEnvelope.NONE, ModelTransform.NONE);
 
         byte[] bytes = "+8449999L".getBytes();
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[32]);
@@ -69,7 +70,7 @@ public class Int64ModelPipelineTest
     public void shouldTransformNegativeValue()
     {
         ModelHandler handler = handler(Int64ModelConfig.builder().format("text").build());
-        ModelPipeline pipeline = handler.supplyDecoder(ModelTransform.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
 
         byte[] bytes = "-125".getBytes();
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[32]);
@@ -83,7 +84,7 @@ public class Int64ModelPipelineTest
     public void shouldRejectAboveMaxLimit()
     {
         ModelHandler handler = handler(Int64ModelConfig.builder().format("text").max(999L).build());
-        ModelPipeline pipeline = handler.supplyDecoder(ModelTransform.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
 
         byte[] bytes = "8449999".getBytes();
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[32]);
@@ -101,7 +102,7 @@ public class Int64ModelPipelineTest
             .max(999L)
             .exclusiveMax(true)
             .build());
-        ModelPipeline pipeline = handler.supplyDecoder(ModelTransform.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
 
         byte[] bytes = "999".getBytes();
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[32]);
@@ -119,7 +120,7 @@ public class Int64ModelPipelineTest
             .min(999L)
             .exclusiveMin(true)
             .build());
-        ModelPipeline pipeline = handler.supplyDecoder(ModelTransform.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
 
         byte[] bytes = "999".getBytes();
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[32]);
@@ -133,7 +134,7 @@ public class Int64ModelPipelineTest
     public void shouldTransformBinaryValue()
     {
         ModelHandler handler = handler(Int64ModelConfig.builder().format("binary").build());
-        ModelPipeline pipeline = handler.supplyEncoder(ModelTransform.NONE);
+        ModelPipeline pipeline = handler.supplyEncoder(ModelEnvelope.NONE, ModelTransform.NONE);
 
         byte[] bytes = {0, 0, 0, 0, 0, 0, 0, 42};
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[16]);
@@ -148,7 +149,7 @@ public class Int64ModelPipelineTest
     public void shouldTransformSignedBinaryValue()
     {
         ModelHandler handler = handler(Int64ModelConfig.builder().format("binary").build());
-        ModelPipeline pipeline = handler.supplyDecoder(ModelTransform.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
 
         byte[] bytes = {-1, -1, -1, -1, -1, -1, -1, -32};
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[16]);
@@ -162,7 +163,7 @@ public class Int64ModelPipelineTest
     public void shouldRejectBinaryTooLong()
     {
         ModelHandler handler = handler(Int64ModelConfig.builder().format("binary").build());
-        ModelPipeline pipeline = handler.supplyDecoder(ModelTransform.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
 
         byte[] bytes = "Test value!".getBytes();
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[64]);
@@ -176,7 +177,7 @@ public class Int64ModelPipelineTest
     public void shouldTransformBinaryFragmented()
     {
         ModelHandler handler = handler(Int64ModelConfig.builder().format("binary").build());
-        ModelPipeline pipeline = handler.supplyDecoder(ModelTransform.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
 
         byte[] head = {0, 0, 0, 0};
         byte[] tail = {0, 0, 1, 42};

@@ -38,6 +38,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
@@ -81,8 +82,8 @@ public class AvroModelEncoderPipelineTest
     {
         AvroModelHandlerImpl handler = newHandler();
         // two per-stream pipelines from the same per-worker handler
-        ModelPipeline a = handler.supplyEncoder(ModelTransform.NONE);
-        ModelPipeline b = handler.supplyEncoder(ModelTransform.NONE);
+        ModelPipeline a = handler.supplyEncoder(ModelEnvelope.NONE, ModelTransform.NONE);
+        ModelPipeline b = handler.supplyEncoder(ModelEnvelope.NONE, ModelTransform.NONE);
 
         byte[] a1 = "{\"id\":\"id0\",".getBytes(UTF_8);
         byte[] a2tail = "\"status\":\"positive\"}".getBytes(UTF_8);
@@ -120,7 +121,7 @@ public class AvroModelEncoderPipelineTest
         when(context.clock()).thenReturn(Clock.systemUTC());
         when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
         AvroModelHandlerImpl handler = newHandler();
-        ModelPipeline pipeline = handler.supplyEncoder(ModelTransform.NONE);
+        ModelPipeline pipeline = handler.supplyEncoder(ModelEnvelope.NONE, ModelTransform.NONE);
 
         // raw protobuf-style binary, not valid JSON, fed under view: json -> the underlying JSON parser would
         // throw a JsonParsingException; the parser boundary must translate it to a clean REJECTED, not crash
@@ -136,7 +137,7 @@ public class AvroModelEncoderPipelineTest
     public void shouldReportEncodePadding()
     {
         AvroModelHandlerImpl handler = newHandler();
-        ModelPipeline pipeline = handler.supplyEncoder(ModelTransform.NONE);
+        ModelPipeline pipeline = handler.supplyEncoder(ModelEnvelope.NONE, ModelTransform.NONE);
 
         byte[] in = JSON.getBytes(UTF_8);
         assertTrue(pipeline.padding(new UnsafeBufferEx(in), 0, in.length) >= 0);

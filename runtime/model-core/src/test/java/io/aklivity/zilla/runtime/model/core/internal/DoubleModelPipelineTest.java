@@ -28,6 +28,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
@@ -54,7 +55,7 @@ public class DoubleModelPipelineTest
     public void shouldTransformSignedDecimalValue()
     {
         ModelHandler handler = handler(DoubleModelConfig.builder().format("text").build());
-        ModelPipeline pipeline = handler.supplyEncoder(ModelTransform.NONE);
+        ModelPipeline pipeline = handler.supplyEncoder(ModelEnvelope.NONE, ModelTransform.NONE);
 
         byte[] bytes = "+10.1119998321".getBytes();
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[32]);
@@ -69,7 +70,7 @@ public class DoubleModelPipelineTest
     public void shouldTransformNegativeLeadingDotValue()
     {
         ModelHandler handler = handler(DoubleModelConfig.builder().format("text").build());
-        ModelPipeline pipeline = handler.supplyDecoder(ModelTransform.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
 
         byte[] bytes = "-.11190092111111112".getBytes();
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[32]);
@@ -83,7 +84,7 @@ public class DoubleModelPipelineTest
     public void shouldRejectMultipleDecimalPoints()
     {
         ModelHandler handler = handler(DoubleModelConfig.builder().format("text").build());
-        ModelPipeline pipeline = handler.supplyDecoder(ModelTransform.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
 
         byte[] bytes = "-.11.19987654321".getBytes();
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[32]);
@@ -97,7 +98,7 @@ public class DoubleModelPipelineTest
     public void shouldTransformWithinMaxLimit()
     {
         ModelHandler handler = handler(DoubleModelConfig.builder().format("text").max(99.9987654321).build());
-        ModelPipeline pipeline = handler.supplyDecoder(ModelTransform.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
 
         byte[] bytes = "99.9987654321".getBytes();
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[32]);
@@ -115,7 +116,7 @@ public class DoubleModelPipelineTest
             .max(99.9987654321)
             .exclusiveMax(true)
             .build());
-        ModelPipeline pipeline = handler.supplyDecoder(ModelTransform.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
 
         byte[] bytes = "99.9987654321".getBytes();
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[32]);
@@ -133,7 +134,7 @@ public class DoubleModelPipelineTest
             .min(10.0)
             .exclusiveMin(true)
             .build());
-        ModelPipeline pipeline = handler.supplyDecoder(ModelTransform.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
 
         byte[] bytes = "10.0".getBytes();
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[32]);
@@ -147,7 +148,7 @@ public class DoubleModelPipelineTest
     public void shouldRejectNotMultiple()
     {
         ModelHandler handler = handler(DoubleModelConfig.builder().format("text").multiple(10.0).build());
-        ModelPipeline pipeline = handler.supplyDecoder(ModelTransform.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
 
         byte[] bytes = "25".getBytes();
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[32]);
@@ -161,7 +162,7 @@ public class DoubleModelPipelineTest
     public void shouldTransformBinaryValue()
     {
         ModelHandler handler = handler(DoubleModelConfig.builder().format("binary").build());
-        ModelPipeline pipeline = handler.supplyEncoder(ModelTransform.NONE);
+        ModelPipeline pipeline = handler.supplyEncoder(ModelEnvelope.NONE, ModelTransform.NONE);
 
         byte[] bytes = {-64, 0, 0, 0, 0, 0, 0, 0};
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[16]);
@@ -176,7 +177,7 @@ public class DoubleModelPipelineTest
     public void shouldRejectBinaryTooLong()
     {
         ModelHandler handler = handler(DoubleModelConfig.builder().format("binary").build());
-        ModelPipeline pipeline = handler.supplyDecoder(ModelTransform.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
 
         byte[] bytes = "Invalid Double".getBytes();
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[64]);
@@ -190,7 +191,7 @@ public class DoubleModelPipelineTest
     public void shouldTransformBinaryFragmented()
     {
         ModelHandler handler = handler(DoubleModelConfig.builder().format("binary").build());
-        ModelPipeline pipeline = handler.supplyDecoder(ModelTransform.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
 
         byte[] head = {-1, -17, 94};
         byte[] mid = {-95};
@@ -214,7 +215,7 @@ public class DoubleModelPipelineTest
     public void shouldRejectBinaryFragmentedTooShort()
     {
         ModelHandler handler = handler(DoubleModelConfig.builder().format("binary").build());
-        ModelPipeline pipeline = handler.supplyDecoder(ModelTransform.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
 
         byte[] head = {0, 0, 0};
         byte[] mid = {0, 0};
@@ -238,7 +239,7 @@ public class DoubleModelPipelineTest
     public void shouldResetForNextValue()
     {
         ModelHandler handler = handler(DoubleModelConfig.builder().format("text").build());
-        ModelPipeline pipeline = handler.supplyDecoder(ModelTransform.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
 
         byte[] bytes = "4.2".getBytes();
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[16]);

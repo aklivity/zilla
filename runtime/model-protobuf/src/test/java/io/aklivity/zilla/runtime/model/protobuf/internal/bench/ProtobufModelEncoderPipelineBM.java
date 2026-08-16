@@ -44,6 +44,7 @@ import io.aklivity.zilla.config.model.protobuf.ProtobufModelConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelTransform;
@@ -84,7 +85,7 @@ public class ProtobufModelEncoderPipelineBM
     @Setup(Level.Trial)
     public void init()
     {
-        pipeline = newHandler().supplyEncoder(ModelTransform.NONE);
+        pipeline = newHandler().supplyEncoder(ModelEnvelope.NONE, ModelTransform.NONE);
     }
 
     @Benchmark

@@ -57,10 +57,12 @@ import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler.LongCompletionCallback;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
+import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
+import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
 import io.aklivity.zilla.runtime.engine.security.Trusted;
 import io.aklivity.zilla.runtime.engine.store.StoreHandler;
@@ -370,7 +372,7 @@ final class TestBindingFactory implements BindingHandler
             this.initialId = initialId;
             this.replyId = replyId;
             this.target = resolvedId != 0L ? new TestTarget(routedId, resolvedId) : null;
-            this.pipeline = valueModel != null ? valueModel.supplyEncoder() : null;
+            this.pipeline = valueModel != null ? valueModel.supplyEncoder(ModelEnvelope.NONE, ModelTransform.NONE) : null;
             this.initialBuffer = pipeline != null ? new UnsafeBufferEx(new byte[transformMax]) : null;
         }
 
@@ -1327,7 +1329,7 @@ final class TestBindingFactory implements BindingHandler
                 this.initialId = context.supplyInitialId(routedId);
                 this.replyId = context.supplyReplyId(initialId);
                 this.source = TestSource.this;
-                this.pipeline = valueModel != null ? valueModel.supplyDecoder() : null;
+                this.pipeline = valueModel != null ? valueModel.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE) : null;
                 this.replyBuffer = pipeline != null ? new UnsafeBufferEx(new byte[transformMax]) : null;
             }
 
