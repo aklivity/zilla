@@ -66,6 +66,7 @@ abstract class CoreExtModelPipeline implements ModelPipeline
     private Phase phase;
     private ValueEvent pending;
     private boolean initial;
+    private boolean finished;
     private int reported;
     private String diagnostic;
     private boolean withheld;
@@ -176,6 +177,7 @@ abstract class CoreExtModelPipeline implements ModelPipeline
         phase = Phase.START;
         pending = null;
         initial = true;
+        finished = false;
         reported = 0;
         diagnostic = null;
         withheld = false;
@@ -304,7 +306,9 @@ abstract class CoreExtModelPipeline implements ModelPipeline
     }
 
     // validates exactly the bytes the chain took this call, so a window consumed across several calls is
-    // decoded once end to end; FIN applies only once the whole window is consumed on the final fragment
+    // decoded once end to end. INIT and FIN each reach the validator once per value: a stage still draining
+    // its own output after the last input was consumed keeps returning OVERFLOW against an empty window,
+    // which would otherwise re-run the model's final checks on every one of those calls
     private Validity validate(
         DirectBufferEx src,
         int srcIndex,
@@ -312,11 +316,13 @@ abstract class CoreExtModelPipeline implements ModelPipeline
         boolean tail)
     {
         Validity validity = Validity.VALID;
-        if (consumed > 0 || tail)
+        boolean fin = tail && !finished;
+        if (consumed > 0 || fin)
         {
-            int fragmentFlags = (initial ? FLAGS_INIT : 0x00) | (tail ? FLAGS_FIN : 0x00);
+            int fragmentFlags = (initial ? FLAGS_INIT : 0x00) | (fin ? FLAGS_FIN : 0x00);
             validity = validator.validate(fragmentFlags, src, srcIndex, consumed);
             initial = false;
+            finished |= fin;
         }
         return validity;
     }

@@ -49,6 +49,11 @@ import io.aklivity.zilla.runtime.model.core.ext.BytesSink;
 import io.aklivity.zilla.runtime.model.core.ext.BytesSource;
 import io.aklivity.zilla.runtime.model.core.ext.BytesTransform;
 import io.aklivity.zilla.runtime.model.core.ext.BytesTransformable;
+import io.aklivity.zilla.runtime.model.core.ext.StringController;
+import io.aklivity.zilla.runtime.model.core.ext.StringEvent;
+import io.aklivity.zilla.runtime.model.core.ext.StringSink;
+import io.aklivity.zilla.runtime.model.core.ext.StringSource;
+import io.aklivity.zilla.runtime.model.core.ext.StringTransform;
 
 public class CoreExtModelPipelineTest
 {
@@ -129,6 +134,41 @@ public class CoreExtModelPipelineTest
         assertEquals(ModelStatus.COMPLETE, second.status());
         assertEquals("ab1cd1", dst.getStringWithoutLengthUtf8(0, produced + second.produced()));
         assertEquals(List.of("START_VALUE", "SEGMENT:ab1", "SEGMENT:cd1", "END_VALUE"), downstream.observed);
+    }
+
+    @Test
+    public void shouldDrainValueSubstitutedAtValueEndWithoutRerunningFinalChecks()
+    {
+        // a stage whose output is a function of the whole value emits it at value end; against a bounded
+        // destination it keeps draining after the last input byte was consumed, and the model's final
+        // checks must reach the validator once across that run, not once per draining call
+        Validations validations = new Validations();
+        StringExtModelPipeline pipeline = new StringExtModelPipeline(
+            new CoreModelHandler(mock(EngineContext.class), StringModel.NAME, () -> validations, false, false),
+            validations, false, List.of(new Substitute("0123456789")), ModelEnvelope.NONE, 10);
+
+        byte[] value = "abc".getBytes();
+        UnsafeBufferEx src = new UnsafeBufferEx(value);
+        UnsafeBufferEx dst = new UnsafeBufferEx(new byte[4]);
+
+        StringBuilder drained = new StringBuilder();
+        int srcAt = 0;
+        int flags = FLAGS_COMPLETE;
+        ModelStatus status;
+        do
+        {
+            ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, flags,
+                src, srcAt, value.length, dst, 0, dst.capacity());
+            status = result.status();
+            drained.append(dst.getStringWithoutLengthUtf8(0, result.produced()));
+            srcAt += result.consumed();
+            flags &= ~FLAGS_INIT;
+        } while (status == ModelStatus.OK || status == ModelStatus.OVERFLOW);
+
+        assertEquals(ModelStatus.COMPLETE, status);
+        assertEquals("0123456789", drained.toString());
+        assertEquals(1, validations.initial);
+        assertEquals(1, validations.finished);
     }
 
     @Test
@@ -477,6 +517,151 @@ public class CoreExtModelPipelineTest
                 status = sink.transform(control, source, event);
             }
             return status;
+        }
+    }
+
+    // drops the value's own bytes and emits its substitute once, at value end -- the shape of any stage
+    // whose output is a function of the whole value
+    private static final class Substitute implements StringTransform
+    {
+        private final UnsafeBufferEx value;
+        private final UnsafeBufferEx view;
+        private final StringSource injected;
+        private final Absorbing absorbing;
+
+        private int offset;
+
+        private Substitute(
+            String value)
+        {
+            this.value = new UnsafeBufferEx(value.getBytes());
+            this.view = new UnsafeBufferEx(new byte[0]);
+            this.injected = () -> view;
+            this.absorbing = new Absorbing();
+        }
+
+        @Override
+        public ModelStatus transform(
+            StringController control,
+            StringSource source,
+            StringEvent event,
+            StringSink sink)
+        {
+            ModelStatus status;
+            if (event == StringEvent.START_VALUE)
+            {
+                offset = 0;
+                status = sink.transform(control, source, event);
+            }
+            else if (event.segmented())
+            {
+                status = ModelStatus.OK;
+            }
+            else
+            {
+                status = emit(control, source, sink, false);
+            }
+            return status;
+        }
+
+        @Override
+        public ModelStatus resume(
+            StringController control,
+            StringSource source,
+            StringEvent event,
+            StringSink sink)
+        {
+            return event == StringEvent.END_VALUE
+                ? emit(control, source, sink, true)
+                : sink.resume(control, source, event);
+        }
+
+        private ModelStatus emit(
+            StringController control,
+            StringSource source,
+            StringSink sink,
+            boolean resuming)
+        {
+            ModelStatus status = ModelStatus.OK;
+            if (offset < value.capacity())
+            {
+                view.wrap(value, offset, value.capacity() - offset);
+                absorbing.wrap(control, this);
+                status = resuming
+                    ? sink.resume(absorbing, injected, StringEvent.SEGMENT)
+                    : sink.transform(absorbing, injected, StringEvent.SEGMENT);
+                if (status == ModelStatus.OK)
+                {
+                    offset = value.capacity();
+                }
+            }
+
+            if (status == ModelStatus.OK)
+            {
+                status = sink.transform(control, source, StringEvent.END_VALUE);
+            }
+            return status;
+        }
+    }
+
+    // the control handle a stage supplies downstream for bytes it injected: those bytes are its own, not
+    // the upstream's, so a report of them advances its output cursor rather than the upstream's
+    private static final class Absorbing implements StringController
+    {
+        private StringController delegate;
+        private Substitute owner;
+
+        private void wrap(
+            StringController delegate,
+            Substitute owner)
+        {
+            this.delegate = delegate;
+            this.owner = owner;
+        }
+
+        @Override
+        public ModelEnvelope envelope()
+        {
+            return delegate.envelope();
+        }
+
+        @Override
+        public void consumed(
+            int sourceBytes)
+        {
+            owner.offset += sourceBytes;
+        }
+
+        @Override
+        public void reject(
+            String diagnostic)
+        {
+            delegate.reject(diagnostic);
+        }
+
+        @Override
+        public void withhold()
+        {
+            delegate.withhold();
+        }
+    }
+
+    // counts the INIT and FIN fragments the model's own validation sees across a value
+    private static final class Validations implements CoreModelValidator
+    {
+        private int initial;
+        private int finished;
+
+        @Override
+        public Validity validate(
+            int flags,
+            DirectBufferEx data,
+            int index,
+            int length)
+        {
+            initial += (flags & CoreModelValidator.FLAGS_INIT) != 0 ? 1 : 0;
+            finished += (flags & CoreModelValidator.FLAGS_FIN) != 0 ? 1 : 0;
+            return Validity.VALID;
         }
     }
 
