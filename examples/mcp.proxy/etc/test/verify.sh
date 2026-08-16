@@ -161,8 +161,12 @@ set -x
 # Stop at the first failure so a failing run is diagnosable from its own logs
 # rather than needing a rerun. The workflow collects docker logs on failure, and
 # ~40 further assertions after the first one buries the relevant output under
-# traffic that is no longer about the failure. Override with FAIL_FAST=0 to see
-# the full assertion sweep instead.
+# traffic that is no longer about the failure. The same holds for the engine
+# directory it copies out alongside them: `zilla dump` over that capture is only
+# useful while the most recent frames are the failing ones. Override with
+# FAIL_FAST=0 to see the full assertion sweep instead -- note the override only
+# reaches this container because compose.yaml declares FAIL_FAST on the verify
+# service.
 FAIL_FAST=${FAIL_FAST:-1}
 
 . /test-lib.sh

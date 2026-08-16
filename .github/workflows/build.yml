@@ -261,6 +261,17 @@ jobs:
         uses: jwalton/gh-docker-logs@v2
         with:
           dest: "./logs"
+      # `zilla dump` reads a collected engine directory, so ship it with the logs.
+      # Copied out rather than bind-mounted: a host mount over /var/run/zilla can
+      # collide with the container user's ownership of it and break the example
+      # itself. Lands inside ./logs, which is already tarred and uploaded below.
+      - name: Collect zilla engine directory on failure
+        if: failure()
+        working-directory: examples/${{ matrix.dir }}
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/logs"
+          docker compose cp zilla:/var/run/zilla "$GITHUB_WORKSPACE/logs/engine" || true
+
       - name: Tar logs
         if: failure()
         run: tar cvzf ./logs.tgz ./logs
