@@ -19,7 +19,7 @@ import java.util.function.Function;
 import io.aklivity.zilla.config.engine.ConfigBuilder;
 import io.aklivity.zilla.config.engine.ValidateConfig;
 
-public class StringModelConfigBuilder<T> extends ConfigBuilder<T, StringModelConfigBuilder<T>>
+public class StringModelConfigBuilder<T> extends ConfigBuilder.Extensible<T, StringModelConfigBuilder<T>>
 {
     public static final String DEFAULT_ENCODING = "utf_8";
 
@@ -83,6 +83,6 @@ public class StringModelConfigBuilder<T> extends ConfigBuilder<T, StringModelCon
     public T build()
     {
         String encoding = this.encoding != null ? this.encoding : DEFAULT_ENCODING;
-        return mapper.apply(new StringModelConfig(encoding, pattern, maxLength, minLength, validate));
+        return mapper.apply(new StringModelConfig(encoding, pattern, maxLength, minLength, validate, extensions()));
     }
 }

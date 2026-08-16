@@ -195,4 +195,44 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/client.sent.bytes/client",
+        "${net}/client.sent.bytes/server"
+    })
+    public void shouldForwardBytes() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/client.received.bytes.ext.uppercase/client",
+        "${net}/client.received.bytes.ext.uppercase/server"
+    })
+    public void shouldReceiveUppercasedBytes() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/client.received.bytes.ext.uppercase.100k/client",
+        "${net}/client.received.bytes.ext.uppercase.100k/server"
+    })
+    public void shouldReceiveUppercasedLargeBytesField() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/client.received.bytes.ext.omit/client",
+        "${net}/client.received.bytes.ext.omit/server"
+    })
+    public void shouldReceiveAbortForOmittedBytes() throws Exception
+    {
+        k3po.finish();
+    }
 }

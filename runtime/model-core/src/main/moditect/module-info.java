@@ -17,8 +17,14 @@ module io.aklivity.zilla.runtime.model.core
     requires io.aklivity.zilla.runtime.engine;
     requires io.aklivity.zilla.config.model.core;
 
+    exports io.aklivity.zilla.runtime.model.core.ext;
+
+    uses io.aklivity.zilla.runtime.model.core.ext.BytesModelExtFactorySpi;
+    uses io.aklivity.zilla.runtime.model.core.ext.StringModelExtFactorySpi;
+
     provides io.aklivity.zilla.runtime.engine.model.ModelFactorySpi
         with io.aklivity.zilla.runtime.model.core.internal.BooleanModelFactorySpi,
+            io.aklivity.zilla.runtime.model.core.internal.BytesModelFactorySpi,
             io.aklivity.zilla.runtime.model.core.internal.DoubleModelFactorySpi,
             io.aklivity.zilla.runtime.model.core.internal.FloatModelFactorySpi,
             io.aklivity.zilla.runtime.model.core.internal.Int32ModelFactorySpi,
