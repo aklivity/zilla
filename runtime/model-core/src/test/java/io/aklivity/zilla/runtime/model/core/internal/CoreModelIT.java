@@ -227,10 +227,11 @@ public class CoreModelIT
         k3po.finish();
     }
 
-    // The scenarios below drive a live engine with a test-only BytesModelExtFactorySpi installed
+    // The scenarios below drive a live engine with two test-only BytesModelExtFactorySpi installed
     // (registered under src/test only, never shipped in the production jar) to prove the ModelExt
-    // composition mechanism -- apply, fragment accumulation, OVERFLOW/drain, and reject-on-omit -- works
-    // end-to-end through a real engine, independent of any specific installed extension's own tests.
+    // composition mechanism -- apply, fragment streaming, OVERFLOW/drain, withhold, reject, and either
+    // direction -- works end-to-end through a real engine, independent of any specific installed
+    // extension's own tests. One overrides decode only, the other encode only.
 
     @Test
     @Configuration("bytes.yaml")
@@ -257,10 +258,32 @@ public class CoreModelIT
     @Test
     @Configuration("bytes.yaml")
     @Specification({
-        "${net}/client.received.bytes.ext.omit/client",
-        "${app}/client.received.bytes.ext.omit/server"
+        "${net}/client.received.bytes.ext.withhold/client",
+        "${app}/client.received.bytes.ext.withhold/server"
     })
-    public void shouldAbortReplyWhenExtensionSignalsOmit() throws Exception
+    public void shouldAbortReplyWhenExtensionWithholdsValue() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("bytes.yaml")
+    @Specification({
+        "${net}/client.received.bytes.ext.reject/client",
+        "${app}/client.received.bytes.ext.reject/server"
+    })
+    public void shouldAbortReplyWhenExtensionRejectsValue() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("bytes.yaml")
+    @Specification({
+        "${net}/client.sent.bytes.ext.uppercase/client",
+        "${app}/client.sent.bytes.ext.uppercase/server"
+    })
+    public void shouldApplyExtensionOnEncodeDirection() throws Exception
     {
         k3po.finish();
     }

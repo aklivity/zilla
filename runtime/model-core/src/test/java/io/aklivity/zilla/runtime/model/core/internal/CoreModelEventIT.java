@@ -56,4 +56,17 @@ public class CoreModelEventIT
     {
         k3po.finish();
     }
+
+    // a stage rejecting a value supplies its own diagnostic, which the model reports in place of the bare
+    // model name; a stage withholding a value reports nothing at all, which is what makes the two distinct
+    @Test
+    @Configuration("event.bytes.yaml")
+    @Specification({
+        "${net}/client.received.bytes.ext.reject/client",
+        "${app}/client.received.bytes.ext.reject/server"
+    })
+    public void shouldLogExtensionRejectionDiagnostic() throws Exception
+    {
+        k3po.finish();
+    }
 }

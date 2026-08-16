@@ -23,28 +23,23 @@ import io.aklivity.zilla.runtime.model.core.ext.BytesModelExtHandler;
 import io.aklivity.zilla.runtime.model.core.ext.BytesTransformable;
 
 /**
- * A generic, business-agnostic test-only extension registered solely under {@code src/test} so it never
- * ships in the production jar. It exercises the same ModelExt composition mechanism a real installed
- * extension relies on, through a live engine, without model-core needing to know anything about what a
- * real extension might do with it.
+ * A second test-only extension registered solely under {@code src/test}, installed alongside
+ * {@link TestUppercaseBytesModelExtFactorySpi} so more than one extension composes at once.
  * <p>
- * It overrides {@code decode} only, leaving the encode direction exactly as it would be with no extension
- * installed. On decode it uppercases a value (proving apply, fragment streaming, and OVERFLOW/drain all
- * work end-to-end), withholds a single {@code 0x00} byte, and rejects a single {@code 0xFF} byte with a
- * diagnostic -- the two terminal outcomes being distinguishable by the event each does or does not raise.
+ * It overrides {@code encode} only, so it proves an extension reaches the encode direction end-to-end
+ * while the other proves an extension overriding only {@code decode} leaves encode untouched. Its stage
+ * applies only to a value opening with {@link #MARKER}, so every other scenario's values flow through the
+ * encode direction exactly as they would with no extension installed.
  * </p>
  */
-public final class TestUppercaseBytesModelExtFactorySpi implements BytesModelExtFactorySpi
+public final class TestMarkedBytesModelExtFactorySpi implements BytesModelExtFactorySpi
 {
-    // held as int, not byte: a byte 0xFF widens to -1, which is the transform's "no marker" sentinel
-    static final int WITHHOLD = 0x00;
-    static final int REJECT = 0xFF;
-    static final String DIAGNOSTIC = "test-uppercase rejected";
+    static final int MARKER = 0x01;
 
     @Override
     public String type()
     {
-        return "test";
+        return "test-marked";
     }
 
     @Override
@@ -56,7 +51,7 @@ public final class TestUppercaseBytesModelExtFactorySpi implements BytesModelExt
             @Override
             public String name()
             {
-                return "test-uppercase";
+                return "test-marked";
             }
 
             @Override
@@ -71,10 +66,11 @@ public final class TestUppercaseBytesModelExtFactorySpi implements BytesModelExt
     private static final class Handler implements BytesModelExtHandler
     {
         @Override
-        public <T extends BytesTransformable<T>> T decode(
+        public <T extends BytesTransformable<T>> T encode(
             T stream)
         {
-            return stream.transform(new UppercaseBytesTransform(WITHHOLD, REJECT, DIAGNOSTIC));
+            return stream.transform(new UppercaseBytesTransform(MARKER,
+                UppercaseBytesTransform.NO_MARKER, UppercaseBytesTransform.NO_MARKER, null));
         }
     }
 }

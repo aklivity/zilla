@@ -228,10 +228,30 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/client.received.bytes.ext.omit/client",
-        "${app}/client.received.bytes.ext.omit/server"
+        "${app}/client.received.bytes.ext.withhold/client",
+        "${app}/client.received.bytes.ext.withhold/server"
     })
-    public void shouldEchoOmittedBytesUnaffectedByExtension() throws Exception
+    public void shouldEchoWithheldBytesUnaffectedByExtension() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/client.received.bytes.ext.reject/client",
+        "${app}/client.received.bytes.ext.reject/server"
+    })
+    public void shouldEchoRejectedBytesUnaffectedByExtension() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/client.sent.bytes.ext.uppercase/client",
+        "${app}/client.sent.bytes.ext.uppercase/server"
+    })
+    public void shouldReceiveUppercasedMarkedBytes() throws Exception
     {
         k3po.finish();
     }

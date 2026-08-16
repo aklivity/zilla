@@ -15,12 +15,16 @@
 package io.aklivity.zilla.runtime.model.core.ext;
 
 /**
- * Something a {@link BytesTransform} stage can be appended to, in data-flow order. This narrower
- * supertype lets a caller outside {@code model-core} append stages to an in-progress whole-value
- * pipeline without depending on any fuller, terminal-bearing API.
+ * Something a {@link BytesTransform} stage can be appended to, in data-flow order. This narrower,
+ * self-bounded supertype lets a caller outside the {@code bytes} model append stages to an in-progress
+ * stream and get back its own concrete stream type, without depending on the model's fuller,
+ * terminal-bearing API.
+ *
+ * @param <T>  the concrete stream type, so {@link #transform(BytesTransform)} returns it rather than this
+ *             narrower supertype
  */
-public interface BytesTransformable
+public interface BytesTransformable<T extends BytesTransformable<T>>
 {
-    BytesTransformable transform(
+    T transform(
         BytesTransform transform);
 }
