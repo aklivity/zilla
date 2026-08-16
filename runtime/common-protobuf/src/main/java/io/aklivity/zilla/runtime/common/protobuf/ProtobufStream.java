@@ -46,6 +46,15 @@ public interface ProtobufStream extends ProtobufTransformable<ProtobufStream>
     ProtobufStream reporting(
         ProtobufReporter reporter);
 
+    /**
+     * Binds the pipeline to the {@link ProtobufEnvelope} its stages read and write named metadata through,
+     * reachable from any stage via {@link ProtobufController#envelope()}. The last bound envelope wins; the
+     * default is {@link ProtobufEnvelope#NONE}, which reads as empty and discards writes, so a pipeline
+     * assembled without one costs a stage that never asks for it nothing.
+     */
+    ProtobufStream envelope(
+        ProtobufEnvelope envelope);
+
     ProtobufPipeline into(
         ProtobufSink sink);
 

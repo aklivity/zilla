@@ -28,6 +28,19 @@ public interface AvroController
     void segmentable();
 
     /**
+     * Returns the metadata travelling alongside the datum being transformed, addressed by name rather than
+     * by position within the datum. The default is {@link AvroEnvelope#NONE}, in force when no envelope was
+     * supplied to the pipeline, so a stage reads an empty envelope rather than no envelope at all. A
+     * mediating stage may supply its own to its downstream.
+     *
+     * @return the envelope in force for this pipeline
+     */
+    default AvroEnvelope envelope()
+    {
+        return AvroEnvelope.NONE;
+    }
+
+    /**
      * Reports {@code sourceBytes} payload bytes consumed by a bounded value write, so the upstream advances
      * its segment cursor and re-exposes the value's unconsumed remainder on resume — the output-side
      * back-pressure pushback that lets a terminal sink stream a length-delimited value without keeping its

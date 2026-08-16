@@ -23,6 +23,7 @@ import io.aklivity.zilla.config.model.avro.AvroModelConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.avro.Avro;
+import io.aklivity.zilla.runtime.common.avro.AvroEnvelope;
 import io.aklivity.zilla.runtime.common.avro.AvroGenerator;
 import io.aklivity.zilla.runtime.common.avro.AvroPipeline;
 import io.aklivity.zilla.runtime.common.avro.AvroReporter;
@@ -70,9 +71,7 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
         ModelEnvelope envelope,
         ModelTransform transform)
     {
-        assert envelope != null;
-
-        return new AvroModelDecoderPipeline(this, requireNonNull(transform));
+        return new AvroModelDecoderPipeline(this, AvroModelEnvelope.of(requireNonNull(envelope)), requireNonNull(transform));
     }
 
     @Override
@@ -80,9 +79,7 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
         ModelEnvelope envelope,
         ModelTransform transform)
     {
-        assert envelope != null;
-
-        return new AvroModelEncoderPipeline(this, requireNonNull(transform));
+        return new AvroModelEncoderPipeline(this, AvroModelEnvelope.of(requireNonNull(envelope)), requireNonNull(transform));
     }
 
     int decodePadding(
@@ -169,7 +166,8 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
         boolean lenient,
         JsonGeneratorEx json,
         AvroTransform adapter,
-        AvroReporter reporter)
+        AvroReporter reporter,
+        AvroEnvelope envelope)
     {
         AvroSchema schema = supplySchema(schemaId);
         AvroPipeline pipeline = null;
@@ -184,6 +182,7 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
                 .transform(adapter)
                 .lenient(lenient)
                 .reporting(reporter)
+                .envelope(envelope)
                 .into(generator);
         }
         return pipeline;
@@ -193,7 +192,8 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
         int schemaId,
         boolean lenient,
         AvroTransform adapter,
-        AvroReporter reporter)
+        AvroReporter reporter,
+        AvroEnvelope envelope)
     {
         AvroSchema schema = supplySchema(schemaId);
         AvroPipeline pipeline = null;
@@ -209,6 +209,7 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
                 .transform(adapter)
                 .lenient(lenient)
                 .reporting(reporter)
+                .envelope(envelope)
                 .into(Avro.generator(schema, new UnsafeBufferEx(new byte[1]), 0));
         }
         return pipeline;
