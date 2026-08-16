@@ -986,7 +986,7 @@ final class TestBindingFactory implements BindingHandler
                     stepFlags &= ~FLAGS_INIT;
 
                     int produced = result.produced();
-                    if (produced > 0)
+                    if (produced > 0 || status == ModelStatus.COMPLETE)
                     {
                         boolean fin = status == ModelStatus.COMPLETE;
                         OctetsFW transformed = octetsRO.wrap(initialBuffer, 0, produced);
@@ -1189,10 +1189,10 @@ final class TestBindingFactory implements BindingHandler
         {
             int maxLength = limit - offset;
             int length = Math.max(Math.min(replyWindow() - replyPad, maxLength), 0);
+            boolean fin = length == maxLength && encodeSlotFin;
 
-            if (length > 0)
+            if (length > 0 || fin)
             {
-                boolean fin = length == maxLength && encodeSlotFin;
                 int reserved = length + replyPad;
                 int flags = (replyStarted ? 0x00 : FLAGS_INIT) | (fin ? FLAGS_FIN : 0x00);
 
@@ -1499,7 +1499,7 @@ final class TestBindingFactory implements BindingHandler
                         stepFlags &= ~FLAGS_INIT;
 
                         int produced = result.produced();
-                        if (produced > 0)
+                        if (produced > 0 || status == ModelStatus.COMPLETE)
                         {
                             boolean fin = status == ModelStatus.COMPLETE;
                             OctetsFW transformed = octetsRO.wrap(replyBuffer, 0, produced);
@@ -1600,10 +1600,10 @@ final class TestBindingFactory implements BindingHandler
             {
                 int maxLength = limit - offset;
                 int length = Math.max(Math.min(initialWindow() - initialPad, maxLength), 0);
+                boolean fin = length == maxLength && encodeSlotFin;
 
-                if (length > 0)
+                if (length > 0 || fin)
                 {
-                    boolean fin = length == maxLength && encodeSlotFin;
                     int reserved = length + initialPad;
                     int flags = (initialStarted ? 0x00 : FLAGS_INIT) | (fin ? FLAGS_FIN : 0x00);
 
