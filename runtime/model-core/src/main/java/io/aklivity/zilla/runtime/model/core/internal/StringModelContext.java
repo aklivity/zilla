@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.runtime.model.core.internal;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import io.aklivity.zilla.config.engine.ModelConfig;
@@ -25,8 +24,6 @@ import io.aklivity.zilla.runtime.engine.model.ModelContext;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.model.core.ext.StringModelExtContext;
 import io.aklivity.zilla.runtime.model.core.ext.StringModelExtHandler;
-import io.aklivity.zilla.runtime.model.core.ext.StringTransform;
-import io.aklivity.zilla.runtime.model.core.ext.StringTransformable;
 
 public class StringModelContext implements ModelContext
 {
@@ -49,51 +46,14 @@ public class StringModelContext implements ModelContext
         boolean decodeLenient = config.validate.decode == ValidateMode.LENIENT;
         boolean encodeLenient = config.validate.encode == ValidateMode.LENIENT;
 
-        // resolved once per model config, at handler construction — there is no schema to resolve per,
-        // so the composed chain is reused for every message this handler processes
+        // resolved once per model config, at handler construction -- there is no schema to resolve per,
+        // so the same extension handlers extend every stream this handler serves
         List<StringModelExtHandler> handlers = exts.stream().map(ext -> ext.supplyHandler(options)).toList();
-        int padding = handlers.stream().mapToInt(StringModelExtHandler::padding).sum();
 
-        StringTransformable stream = StringTransformStream.NONE;
-        for (StringModelExtHandler handler : handlers)
-        {
-            stream = handler.transform(stream);
-        }
-        List<ValueTransform> transforms = ((StringTransformStream) stream).transforms();
-
-        return transforms.isEmpty()
+        return handlers.isEmpty()
             ? new CoreModelHandler(context, StringModel.NAME, StringModelValidator.supplier(options),
                 decodeLenient, encodeLenient)
-            : new CoreExtModelHandler(context, StringModel.NAME, StringModelValidator.supplier(options),
-                decodeLenient, encodeLenient, transforms, padding);
-    }
-
-    // Minimal StringTransformable used only to collect the composed chain of installed extensions, in
-    // discovery order, into a plain List<ValueTransform> for CoreExtModelPipeline to execute.
-    private static final class StringTransformStream implements StringTransformable
-    {
-        static final StringTransformStream NONE = new StringTransformStream(List.of());
-
-        private final List<ValueTransform> transforms;
-
-        private StringTransformStream(
-            List<ValueTransform> transforms)
-        {
-            this.transforms = transforms;
-        }
-
-        @Override
-        public StringTransformable transform(
-            StringTransform transform)
-        {
-            List<ValueTransform> next = new ArrayList<>(transforms);
-            next.add(transform::transform);
-            return new StringTransformStream(next);
-        }
-
-        List<ValueTransform> transforms()
-        {
-            return transforms;
-        }
+            : new StringExtModelHandler(context, StringModelValidator.supplier(options),
+                decodeLenient, encodeLenient, handlers);
     }
 }

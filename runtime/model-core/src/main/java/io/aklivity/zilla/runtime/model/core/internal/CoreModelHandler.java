@@ -74,4 +74,14 @@ final class CoreModelHandler implements ModelHandler
     {
         event.validationFailure(traceId, bindingId, model);
     }
+
+    // a stage rejecting a value supplies its own reason, which stands in for the bare model name a
+    // validation failure would otherwise carry
+    void validationFailure(
+        long traceId,
+        long bindingId,
+        String diagnostic)
+    {
+        event.validationFailure(traceId, bindingId, diagnostic);
+    }
 }

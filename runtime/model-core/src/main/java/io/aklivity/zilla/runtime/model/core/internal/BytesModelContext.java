@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.runtime.model.core.internal;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import io.aklivity.zilla.config.engine.ModelConfig;
@@ -25,8 +24,6 @@ import io.aklivity.zilla.runtime.engine.model.ModelContext;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.model.core.ext.BytesModelExtContext;
 import io.aklivity.zilla.runtime.model.core.ext.BytesModelExtHandler;
-import io.aklivity.zilla.runtime.model.core.ext.BytesTransform;
-import io.aklivity.zilla.runtime.model.core.ext.BytesTransformable;
 
 public class BytesModelContext implements ModelContext
 {
@@ -49,50 +46,12 @@ public class BytesModelContext implements ModelContext
         boolean decodeLenient = config.validate.decode == ValidateMode.LENIENT;
         boolean encodeLenient = config.validate.encode == ValidateMode.LENIENT;
 
-        // resolved once per model config, at handler construction — there is no schema to resolve per,
-        // so the composed chain is reused for every message this handler processes
+        // resolved once per model config, at handler construction -- there is no schema to resolve per,
+        // so the same extension handlers extend every stream this handler serves
         List<BytesModelExtHandler> handlers = exts.stream().map(ext -> ext.supplyHandler(options)).toList();
-        int padding = handlers.stream().mapToInt(BytesModelExtHandler::padding).sum();
 
-        BytesTransformable stream = BytesTransformStream.NONE;
-        for (BytesModelExtHandler handler : handlers)
-        {
-            stream = handler.transform(stream);
-        }
-        List<ValueTransform> transforms = ((BytesTransformStream) stream).transforms();
-
-        return transforms.isEmpty()
+        return handlers.isEmpty()
             ? new CoreModelHandler(context, BytesModel.NAME, BytesModelValidator.supplier(), decodeLenient, encodeLenient)
-            : new CoreExtModelHandler(context, BytesModel.NAME, BytesModelValidator.supplier(),
-                decodeLenient, encodeLenient, transforms, padding);
-    }
-
-    // Minimal BytesTransformable used only to collect the composed chain of installed extensions, in
-    // discovery order, into a plain List<ValueTransform> for CoreExtModelPipeline to execute.
-    private static final class BytesTransformStream implements BytesTransformable
-    {
-        static final BytesTransformStream NONE = new BytesTransformStream(List.of());
-
-        private final List<ValueTransform> transforms;
-
-        private BytesTransformStream(
-            List<ValueTransform> transforms)
-        {
-            this.transforms = transforms;
-        }
-
-        @Override
-        public BytesTransformable transform(
-            BytesTransform transform)
-        {
-            List<ValueTransform> next = new ArrayList<>(transforms);
-            next.add(transform::transform);
-            return new BytesTransformStream(next);
-        }
-
-        List<ValueTransform> transforms()
-        {
-            return transforms;
-        }
+            : new BytesExtModelHandler(context, BytesModelValidator.supplier(), decodeLenient, encodeLenient, handlers);
     }
 }

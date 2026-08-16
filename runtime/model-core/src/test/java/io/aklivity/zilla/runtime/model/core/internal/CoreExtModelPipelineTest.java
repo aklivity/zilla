@@ -15,61 +15,493 @@
 package io.aklivity.zilla.runtime.model.core.internal;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
+import java.time.Clock;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.Test;
 
 import io.aklivity.zilla.config.model.core.BytesModelConfig;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableArrayBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
+import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
+import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 import io.aklivity.zilla.runtime.engine.model.ModelTransform;
+import io.aklivity.zilla.runtime.model.core.ext.BytesController;
+import io.aklivity.zilla.runtime.model.core.ext.BytesEvent;
 import io.aklivity.zilla.runtime.model.core.ext.BytesModelExtContext;
 import io.aklivity.zilla.runtime.model.core.ext.BytesModelExtHandler;
+import io.aklivity.zilla.runtime.model.core.ext.BytesSink;
+import io.aklivity.zilla.runtime.model.core.ext.BytesSource;
 import io.aklivity.zilla.runtime.model.core.ext.BytesTransform;
 import io.aklivity.zilla.runtime.model.core.ext.BytesTransformable;
 
 public class CoreExtModelPipelineTest
 {
-    // Reject-on-omit, fragment accumulation, and OVERFLOW/drain are covered end-to-end by CoreModelIT's
-    // client.received.bytes.ext.* scenarios, which drive a real engine with a test-only
-    // BytesModelExtFactorySpi installed. Summed padding across multiple simultaneously installed
-    // extensions has no realistic wire-level equivalent (no single real extension composes with itself
-    // twice), so it stays here as the one case this class still needs to cover.
+    private static final int FLAGS_INIT = 0x02;
+    private static final int FLAGS_FIN = 0x01;
+    private static final int FLAGS_COMPLETE = 0x03;
+
     @Test
-    public void shouldReportSummedExtensionPadding()
+    public void shouldObserveValueDeliveredAcrossFragmentsRatherThanWhole()
     {
-        BytesModelExtContext ext1 = config -> paddedHandler(4);
-        BytesModelExtContext ext2 = config -> paddedHandler(6);
+        Recorder recorder = new Recorder();
+        ModelPipeline pipeline = decoder(stage(recorder));
+        UnsafeBufferEx dst = new UnsafeBufferEx(new byte[16]);
 
-        BytesModelContext context = new BytesModelContext(mock(EngineContext.class), List.of(ext1, ext2));
-        ModelHandler handler = context.supplyHandler(BytesModelConfig.builder().build());
-        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
+        // ModelPipelineResult is reused across calls, so read each outcome before driving the next
+        ModelPipelineResult first = pipeline.transform(0L, 0L, 0L, FLAGS_INIT,
+            buffer("abc"), 0, 3, dst, 0, dst.capacity());
 
-        assertEquals(10, pipeline.padding(new UnsafeBufferEx(new byte[0]), 0, 0));
+        assertEquals(ModelStatus.UNDERFLOW, first.status());
+        assertEquals(3, first.consumed());
+        int produced = first.produced();
+
+        ModelPipelineResult second = pipeline.transform(0L, 0L, 0L, FLAGS_FIN,
+            buffer("de"), 0, 2, dst, produced, dst.capacity());
+
+        assertEquals(ModelStatus.COMPLETE, second.status());
+        assertEquals(2, second.consumed());
+        assertEquals("abcde", dst.getStringWithoutLengthUtf8(0, produced + second.produced()));
+
+        // the value was seen a fragment at a time, never accumulated into one whole-value event
+        assertEquals(List.of("START_VALUE", "SEGMENT:abc", "SEGMENT:de", "END_VALUE"), recorder.observed);
     }
 
-    private static BytesModelExtHandler paddedHandler(
-        int amount)
+    @Test
+    public void shouldSuspendAndResumeUntilBoundedDestinationDrained()
+    {
+        ModelPipeline pipeline = decoder(stage(new Recorder()));
+        byte[] value = "0123456789".getBytes();
+        UnsafeBufferEx src = new UnsafeBufferEx(value);
+        UnsafeBufferEx dst = new UnsafeBufferEx(new byte[4]);
+
+        StringBuilder drained = new StringBuilder();
+        int srcAt = 0;
+        int flags = FLAGS_COMPLETE;
+        int overflows = 0;
+        ModelStatus status;
+        do
+        {
+            ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, flags,
+                src, srcAt, value.length, dst, 0, dst.capacity());
+            status = result.status();
+            drained.append(dst.getStringWithoutLengthUtf8(0, result.produced()));
+            srcAt += result.consumed();
+            flags &= ~FLAGS_INIT;
+            overflows += status == ModelStatus.OVERFLOW ? 1 : 0;
+        } while (status == ModelStatus.OK || status == ModelStatus.OVERFLOW);
+
+        assertEquals(ModelStatus.COMPLETE, status);
+        assertEquals("0123456789", drained.toString());
+        assertEquals(value.length, srcAt);
+        assertTrue(overflows > 0);
+    }
+
+    @Test
+    public void shouldApplyChainInOnePassWithoutIntermediateMaterialization()
+    {
+        // the upstream stage appends '1' to each segment; the downstream stage must see that rewritten
+        // segment as each fragment flows, not one whole-value handoff after the last fragment arrives
+        Recorder downstream = new Recorder();
+        ModelPipeline pipeline = decoder(stage(new Appender('1')), stage(downstream));
+        UnsafeBufferEx dst = new UnsafeBufferEx(new byte[32]);
+
+        int produced = pipeline.transform(0L, 0L, 0L, FLAGS_INIT,
+            buffer("ab"), 0, 2, dst, 0, dst.capacity()).produced();
+        ModelPipelineResult second = pipeline.transform(0L, 0L, 0L, FLAGS_FIN,
+            buffer("cd"), 0, 2, dst, produced, dst.capacity());
+
+        assertEquals(ModelStatus.COMPLETE, second.status());
+        assertEquals("ab1cd1", dst.getStringWithoutLengthUtf8(0, produced + second.produced()));
+        assertEquals(List.of("START_VALUE", "SEGMENT:ab1", "SEGMENT:cd1", "END_VALUE"), downstream.observed);
+    }
+
+    @Test
+    public void shouldWithholdValueWithoutReportingFailure()
+    {
+        List<String> reported = new ArrayList<>();
+        ModelPipeline pipeline = decoder(engine(reported), stage(new Terminator(true, null)));
+        UnsafeBufferEx dst = new UnsafeBufferEx(new byte[16]);
+
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+            buffer("secret"), 0, 6, dst, 0, dst.capacity());
+
+        assertEquals(ModelStatus.REJECTED, result.status());
+        assertEquals(0, result.produced());
+        assertEquals(List.of(), reported);
+    }
+
+    @Test
+    public void shouldRejectValueWithDiagnostic()
+    {
+        List<String> reported = new ArrayList<>();
+        ModelPipeline pipeline = decoder(engine(reported), stage(new Terminator(false, "unacceptable")));
+        UnsafeBufferEx dst = new UnsafeBufferEx(new byte[16]);
+
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+            buffer("secret"), 0, 6, dst, 0, dst.capacity());
+
+        assertEquals(ModelStatus.REJECTED, result.status());
+        assertEquals(0, result.produced());
+        assertEquals(List.of("A message payload failed validation. A field was not the expected type (unacceptable)."),
+            reported);
+    }
+
+    @Test
+    public void shouldApplyExtensionOnEncodeDirection()
+    {
+        BytesModelExtHandler ext = new BytesModelExtHandler()
+        {
+            @Override
+            public <T extends BytesTransformable<T>> T encode(
+                T stream)
+            {
+                return stream.transform(new Appender('!'));
+            }
+        };
+
+        ModelHandler handler = handler(mock(EngineContext.class), ext);
+        ModelPipeline pipeline = handler.supplyEncoder(ModelEnvelope.NONE, ModelTransform.NONE);
+        UnsafeBufferEx dst = new UnsafeBufferEx(new byte[16]);
+
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+            buffer("abc"), 0, 3, dst, 0, dst.capacity());
+
+        assertEquals(ModelStatus.COMPLETE, result.status());
+        assertEquals("abc!", dst.getStringWithoutLengthUtf8(0, result.produced()));
+        assertFalse(pipeline.identity());
+    }
+
+    @Test
+    public void shouldLeaveEncodeUnchangedWhenExtensionOverridesDecodeOnly()
+    {
+        BytesModelExtHandler ext = new BytesModelExtHandler()
+        {
+            @Override
+            public <T extends BytesTransformable<T>> T decode(
+                T stream)
+            {
+                return stream.transform(new Appender('!'));
+            }
+        };
+
+        ModelHandler handler = handler(mock(EngineContext.class), ext);
+        ModelPipeline pipeline = handler.supplyEncoder(ModelEnvelope.NONE, ModelTransform.NONE);
+        UnsafeBufferEx dst = new UnsafeBufferEx(new byte[16]);
+
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+            buffer("abc"), 0, 3, dst, 0, dst.capacity());
+
+        assertEquals(ModelStatus.COMPLETE, result.status());
+        assertEquals("abc", dst.getStringWithoutLengthUtf8(0, result.produced()));
+        // the encode direction is exactly what it would be with no extension installed at all
+        assertTrue(pipeline.identity());
+    }
+
+    @Test
+    public void shouldPreserveIdentityFastPathWhenNoStageInstalled()
+    {
+        // an installed extension that inserts nothing leaves both directions the plain identity pipeline
+        BytesModelExtHandler ext = new BytesModelExtHandler()
+        {
+            @Override
+            public <T extends BytesTransformable<T>> T decode(
+                T stream)
+            {
+                return stream.transform(BytesTransform.NONE);
+            }
+        };
+
+        ModelHandler handler = handler(mock(EngineContext.class), ext);
+
+        assertTrue(handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE).identity());
+        assertTrue(handler.supplyEncoder(ModelEnvelope.NONE, ModelTransform.NONE).identity());
+    }
+
+    @Test
+    public void shouldReportSummedExtensionPaddingPerDirection()
+    {
+        ModelHandler handler = handler(mock(EngineContext.class), padded(4, 1), padded(6, 2));
+        DirectBufferEx empty = new UnsafeBufferEx(new byte[0]);
+
+        assertEquals(10, handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE).padding(empty, 0, 0));
+        assertEquals(3, handler.supplyEncoder(ModelEnvelope.NONE, ModelTransform.NONE).padding(empty, 0, 0));
+    }
+
+    @Test
+    public void shouldReachMetadataEnvelopeFromStage()
+    {
+        Envelopes envelopes = new Envelopes();
+        ModelEnvelope envelope = new TestEnvelope();
+        ModelHandler handler = handler(mock(EngineContext.class), stage(envelopes));
+        ModelPipeline pipeline = handler.supplyDecoder(envelope, ModelTransform.NONE);
+        UnsafeBufferEx dst = new UnsafeBufferEx(new byte[16]);
+
+        pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE, buffer("abc"), 0, 3, dst, 0, dst.capacity());
+
+        assertSame(envelope, envelopes.observed);
+    }
+
+    private static ModelPipeline decoder(
+        BytesModelExtHandler... exts)
+    {
+        return decoder(mock(EngineContext.class), exts);
+    }
+
+    private static ModelPipeline decoder(
+        EngineContext context,
+        BytesModelExtHandler... exts)
+    {
+        return handler(context, exts).supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
+    }
+
+    private static ModelHandler handler(
+        EngineContext context,
+        BytesModelExtHandler... exts)
+    {
+        List<BytesModelExtContext> contexts = new ArrayList<>();
+        for (BytesModelExtHandler ext : exts)
+        {
+            contexts.add(config -> ext);
+        }
+
+        BytesModelContext model = new BytesModelContext(context, contexts);
+        return model.supplyHandler(BytesModelConfig.builder().build());
+    }
+
+    private static BytesModelExtHandler stage(
+        BytesTransform transform)
     {
         return new BytesModelExtHandler()
         {
             @Override
-            public BytesTransformable transform(
-                BytesTransformable stream)
+            public <T extends BytesTransformable<T>> T decode(
+                T stream)
             {
-                return stream.transform(BytesTransform.NONE);
+                return stream.transform(transform);
+            }
+        };
+    }
+
+    private static BytesModelExtHandler padded(
+        int decodePadding,
+        int encodePadding)
+    {
+        return new BytesModelExtHandler()
+        {
+            @Override
+            public <T extends BytesTransformable<T>> T decode(
+                T stream)
+            {
+                return stream.transform(new Appender('.'));
             }
 
             @Override
-            public int padding()
+            public <T extends BytesTransformable<T>> T encode(
+                T stream)
             {
-                return amount;
+                return stream.transform(new Appender('.'));
+            }
+
+            @Override
+            public int decodePadding()
+            {
+                return decodePadding;
+            }
+
+            @Override
+            public int encodePadding()
+            {
+                return encodePadding;
             }
         };
+    }
+
+    private static EngineContext engine(
+        List<String> reported)
+    {
+        EngineContext context = mock(EngineContext.class);
+        when(context.clock()).thenReturn(Clock.systemUTC());
+
+        CoreModelEventFormatter formatter = new CoreModelEventFormatterFactory().create(new Configuration());
+        MessageConsumer writer = (msgTypeId, buffer, index, length) ->
+        {
+            MutableDirectBufferEx copy = new UnsafeBufferEx(new byte[length]);
+            copy.putBytes(0, buffer, index, length);
+            reported.add(formatter.format(copy, 0, length));
+        };
+        when(context.supplyEventWriter()).thenReturn(writer);
+
+        return context;
+    }
+
+    private static DirectBufferEx buffer(
+        String value)
+    {
+        return new UnsafeBufferEx(value.getBytes());
+    }
+
+    // records every event as it flows, so a test can assert the value was seen streaming rather than whole
+    private static final class Recorder implements BytesTransform
+    {
+        private final List<String> observed = new ArrayList<>();
+
+        @Override
+        public ModelStatus transform(
+            BytesController control,
+            BytesSource source,
+            BytesEvent event,
+            BytesSink sink)
+        {
+            if (event.segmented())
+            {
+                DirectBufferEx segment = source.getSegment();
+                observed.add("SEGMENT:" + segment.getStringWithoutLengthUtf8(0, segment.capacity()));
+            }
+            else
+            {
+                observed.add(event.name());
+            }
+            return sink.transform(control, source, event);
+        }
+    }
+
+    // reads the envelope in force and remembers it, so a test can assert a stage reaches the metadata
+    // channel through its control handle
+    private static final class Envelopes implements BytesTransform
+    {
+        private ModelEnvelope observed;
+
+        @Override
+        public ModelStatus transform(
+            BytesController control,
+            BytesSource source,
+            BytesEvent event,
+            BytesSink sink)
+        {
+            observed = control.envelope();
+            return sink.transform(control, source, event);
+        }
+    }
+
+    // appends one byte to every segment as it flows, rewriting the segment in place rather than handing
+    // the downstream a separate event, so a chain of these proves stage order and value expansion
+    private static final class Appender implements BytesTransform
+    {
+        private final byte value;
+        private final ExpandableArrayBufferEx scratch;
+        private final UnsafeBufferEx view;
+        private final BytesSource injected;
+
+        private Appender(
+            char value)
+        {
+            this.value = (byte) value;
+            this.scratch = new ExpandableArrayBufferEx();
+            this.view = new UnsafeBufferEx(new byte[0]);
+            this.injected = () -> view;
+        }
+
+        @Override
+        public ModelStatus transform(
+            BytesController control,
+            BytesSource source,
+            BytesEvent event,
+            BytesSink sink)
+        {
+            BytesSource downstream = source;
+            if (event.segmented())
+            {
+                DirectBufferEx segment = source.getSegment();
+                int length = segment.capacity();
+                scratch.putBytes(0, segment, 0, length);
+                scratch.putByte(length, value);
+                view.wrap(scratch, 0, length + 1);
+                downstream = injected;
+            }
+            return sink.transform(control, downstream, event);
+        }
+    }
+
+    // terminates the value at its first segment, either withholding it or rejecting it with a diagnostic
+    private static final class Terminator implements BytesTransform
+    {
+        private final boolean withhold;
+        private final String diagnostic;
+
+        private Terminator(
+            boolean withhold,
+            String diagnostic)
+        {
+            this.withhold = withhold;
+            this.diagnostic = diagnostic;
+        }
+
+        @Override
+        public ModelStatus transform(
+            BytesController control,
+            BytesSource source,
+            BytesEvent event,
+            BytesSink sink)
+        {
+            ModelStatus status = ModelStatus.OK;
+            if (event.segmented())
+            {
+                if (withhold)
+                {
+                    control.withhold();
+                }
+                else
+                {
+                    control.reject(diagnostic);
+                }
+                status = ModelStatus.REJECTED;
+            }
+            else if (event == BytesEvent.START_VALUE)
+            {
+                status = sink.transform(control, source, event);
+            }
+            return status;
+        }
+    }
+
+    private static final class TestEnvelope implements ModelEnvelope
+    {
+        @Override
+        public int count(
+            String name)
+        {
+            return 0;
+        }
+
+        @Override
+        public DirectBufferEx get(
+            String name,
+            int index)
+        {
+            return null;
+        }
+
+        @Override
+        public void set(
+            String name,
+            DirectBufferEx value)
+        {
+        }
     }
 }

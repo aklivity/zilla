@@ -15,29 +15,58 @@
 package io.aklivity.zilla.runtime.model.core.ext;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
+import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 
 public class StringModelExtHandlerTest
 {
     @Test
-    public void shouldReportNoPaddingByDefault()
+    public void shouldReportNoPaddingInEitherDirectionByDefault()
     {
-        StringModelExtHandler handler = stream -> stream;
+        StringModelExtHandler handler = new StringModelExtHandler()
+        {
+        };
 
-        assertEquals(0, handler.padding());
+        assertEquals(0, handler.decodePadding());
+        assertEquals(0, handler.encodePadding());
     }
 
     @Test
-    public void shouldForwardStreamUnchangedByDefault()
+    public void shouldForwardBothDirectionsUnchangedByDefault()
     {
-        StringModelExtHandler handler = stream -> stream;
-        StringTransformable stream = transform -> null;
+        StringModelExtHandler handler = new StringModelExtHandler()
+        {
+        };
+        Stream stream = new Stream();
 
-        assertEquals(stream, handler.transform(stream));
+        assertSame(stream, handler.decode(stream));
+        assertSame(stream, handler.encode(stream));
+    }
+
+    @Test
+    public void shouldExtendOneDirectionOnly()
+    {
+        StringModelExtHandler handler = new StringModelExtHandler()
+        {
+            @Override
+            public <T extends StringTransformable<T>> T decode(
+                T stream)
+            {
+                return stream.transform(StringTransform.NONE);
+            }
+        };
+        Stream stream = new Stream();
+
+        handler.decode(stream);
+        handler.encode(stream);
+
+        assertEquals(1, stream.count);
     }
 
     @Test
@@ -47,15 +76,98 @@ public class StringModelExtHandlerTest
     }
 
     @Test
-    public void shouldCopyValueUnchangedForNoneTransform()
+    public void shouldForwardEveryEventForNoneTransform()
     {
-        byte[] bytes = "hello".getBytes();
-        UnsafeBufferEx src = new UnsafeBufferEx(bytes);
-        UnsafeBufferEx dst = new UnsafeBufferEx(new byte[bytes.length]);
+        Sink sink = new Sink();
+        StringSource source = () -> null;
 
-        int produced = StringTransform.NONE.transform(src, 0, bytes.length, dst, 0);
+        assertEquals(ModelStatus.OK, StringTransform.NONE.transform(new Control(), source, StringEvent.START_VALUE, sink));
+        assertEquals(ModelStatus.OK, StringTransform.NONE.transform(new Control(), source, StringEvent.SEGMENT, sink));
+        assertEquals(ModelStatus.OK, StringTransform.NONE.transform(new Control(), source, StringEvent.END_VALUE, sink));
+        assertEquals(3, sink.count);
+    }
 
-        assertEquals(bytes.length, produced);
-        assertEquals("hello", dst.getStringWithoutLengthUtf8(0, produced));
+    @Test
+    public void shouldResumeThroughToSinkByDefault()
+    {
+        StringTransform transform = (control, source, event, sink) -> sink.transform(control, source, event);
+        Sink sink = new Sink();
+
+        assertEquals(ModelStatus.OK, transform.resume(new Control(), () -> null, StringEvent.SEGMENT, sink));
+        assertFalse(transform.identity());
+    }
+
+    @Test
+    public void shouldDistinguishSegmentFromFraming()
+    {
+        assertTrue(StringEvent.SEGMENT.segmented());
+        assertFalse(StringEvent.START_VALUE.segmented());
+        assertFalse(StringEvent.END_VALUE.segmented());
+    }
+
+    @Test
+    public void shouldReadEmptyEnvelopeByDefault()
+    {
+        Control control = new Control();
+
+        assertSame(ModelEnvelope.NONE, control.envelope());
+        control.consumed(4);
+    }
+
+    private static final class Stream implements StringTransformable<Stream>
+    {
+        private int count;
+
+        @Override
+        public Stream transform(
+            StringTransform transform)
+        {
+            count++;
+            return this;
+        }
+    }
+
+    private static final class Sink implements StringSink
+    {
+        private int count;
+
+        @Override
+        public ModelStatus transform(
+            StringController control,
+            StringSource source,
+            StringEvent event)
+        {
+            count++;
+            return ModelStatus.OK;
+        }
+
+        @Override
+        public ModelStatus resume(
+            StringController control,
+            StringSource source,
+            StringEvent event)
+        {
+            return ModelStatus.OK;
+        }
+
+        @Override
+        public boolean identity()
+        {
+            return true;
+        }
+    }
+
+    private static final class Control implements StringController
+    {
+        @Override
+        public void reject(
+            String diagnostic)
+        {
+        }
+
+        @Override
+        public void withhold()
+        {
+        }
     }
 }
