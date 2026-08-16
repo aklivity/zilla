@@ -39,24 +39,6 @@ public interface ModelController
     long authorization();
 
     /**
-     * Returns the metadata travelling alongside the message currently being transformed, addressed by
-     * name rather than by position in the value.
-     * <p>
-     * A mediating stage may override this to supply its own envelope to a nested composition; a
-     * non-mediating stage passes {@code control} through, so this reflects the envelope the caller
-     * driving the chain supplied for the current message unless some stage along the way has replaced it.
-     * The default is {@link ModelEnvelope#NONE}, so a caller that offers no metadata channel leaves a
-     * stage reading an empty envelope rather than no envelope at all.
-     * </p>
-     *
-     * @return the envelope in effect for the current message
-     */
-    default ModelEnvelope envelope()
-    {
-        return ModelEnvelope.NONE;
-    }
-
-    /**
      * Signals that the current value must be rejected, supplying the diagnostic the adapter reports.
      * <p>
      * A stage raising this also returns {@link ModelStatus#REJECTED}; the diagnostic is what distinguishes

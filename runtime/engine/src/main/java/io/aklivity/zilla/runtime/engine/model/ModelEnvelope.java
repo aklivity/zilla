@@ -18,22 +18,27 @@ package io.aklivity.zilla.runtime.engine.model;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 
 /**
- * The metadata travelling alongside the message currently being transformed, addressed by name rather
- * than by position in the value.
+ * The metadata travelling alongside a value, addressed by name rather than by position within the value.
  * <p>
  * A {@code ModelEnvelope} is a named, ordered, repeatable list of byte values and nothing more: it never
- * interprets what any name means, and whether a name occurs zero, one, or many times per message is
- * entirely up to whatever populates and consumes it. The caller supplying the envelope decides where its
- * contents come from on the way in and where they end up on the way out — typically the out-of-band
- * channel the caller's own transport offers — so a {@link ModelTransform} written against this interface
- * works unmodified wherever an envelope is supplied.
+ * interprets what any name means, and whether a name occurs zero, one, or many times is entirely up to
+ * whatever populates and consumes it. The caller supplying the envelope decides where its contents come
+ * from on the way in and where they end up on the way out — typically the out-of-band channel the
+ * caller's own transport offers.
  * </p>
  * <p>
- * An envelope is scoped to one message and confined to the same single I/O thread as the pipeline
- * reading it.
+ * An envelope is supplied once, at {@link ModelHandler#supplyDecoder} or
+ * {@link ModelHandler#supplyEncoder} time, so the pipeline binds to it as it is built rather than
+ * receiving it again per value. The supplier owns its lifecycle and decides the scope its contents
+ * describe, clearing or repointing them through its own type as that scope turns over — per message
+ * where the transport carries per-message metadata, per stream where the metadata describes the stream.
+ * A pipeline reads and writes whatever the envelope holds while it runs and never resets it.
+ * </p>
+ * <p>
+ * An envelope is confined to the same single I/O thread as the pipeline it is supplied to.
  * </p>
  *
- * @see ModelController#envelope()
+ * @see ModelHandler#supplyDecoder(ModelEnvelope, ModelTransform)
  */
 public interface ModelEnvelope
 {

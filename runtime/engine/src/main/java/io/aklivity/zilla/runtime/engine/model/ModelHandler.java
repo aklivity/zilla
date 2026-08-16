@@ -28,9 +28,12 @@ package io.aklivity.zilla.runtime.engine.model;
  * {@code null} handler forwards its bytes unchanged rather than driving a pipeline.
  * </p>
  * <p>
- * The transform supplied to {@link #supplyDecoder(ModelTransform)} and {@link #supplyEncoder(ModelTransform)}
- * is never {@code null}; a caller with no per-field policy passes {@link ModelTransform#NONE}, which an
- * implementation is free to recognize and wire away entirely.
+ * Neither the {@link ModelEnvelope} nor the {@link ModelTransform} supplied to
+ * {@link #supplyDecoder(ModelEnvelope, ModelTransform)} and
+ * {@link #supplyEncoder(ModelEnvelope, ModelTransform)} is ever {@code null}: a caller with no metadata
+ * channel passes {@link ModelEnvelope#NONE} and a caller with no per-field policy passes
+ * {@link ModelTransform#NONE}, both of which an implementation is free to recognize and wire away
+ * entirely.
  * </p>
  *
  * @see ModelContext
@@ -39,44 +42,39 @@ package io.aklivity.zilla.runtime.engine.model;
 public interface ModelHandler
 {
     /**
-     * Supplies a new read-direction {@link ModelPipeline} for a single stream, wiring the given
-     * {@link ModelTransform} into the pipeline so it observes, substitutes, or declines each field of
-     * every value the pipeline transforms.
+     * Supplies a new read-direction {@link ModelPipeline} for a single stream, binding it to the given
+     * {@link ModelEnvelope} so the pipeline reads the metadata travelling alongside each value it
+     * transforms, and wiring the given {@link ModelTransform} into it so the transform observes,
+     * substitutes, or declines each field of that value.
+     * <p>
+     * The envelope is bound as the pipeline is built rather than supplied again per value, so an
+     * implementation adapts it into its own internals once. The supplier owns its lifecycle from there.
+     * </p>
      *
+     * @param envelope   the metadata channel to bind the pipeline to
      * @param transform  the per-field transform to wire into the pipeline
      * @return a new per-stream decode pipeline
      */
     ModelPipeline supplyDecoder(
+        ModelEnvelope envelope,
         ModelTransform transform);
 
     /**
-     * Supplies a new read-direction {@link ModelPipeline} for a single stream with no per-field transform.
+     * Supplies a new write-direction {@link ModelPipeline} for a single stream, binding it to the given
+     * {@link ModelEnvelope} so the pipeline writes the metadata travelling alongside each value it
+     * transforms, and wiring the given {@link ModelTransform} into it so the transform observes,
+     * substitutes, or declines each field of that value.
+     * <p>
+     * The envelope is bound as the pipeline is built rather than supplied again per value, so an
+     * implementation adapts it into its own internals once. The supplier owns its lifecycle from there,
+     * draining whatever accumulated into it as the scope it describes turns over.
+     * </p>
      *
-     * @return a new per-stream decode pipeline
-     */
-    default ModelPipeline supplyDecoder()
-    {
-        return supplyDecoder(ModelTransform.NONE);
-    }
-
-    /**
-     * Supplies a new write-direction {@link ModelPipeline} for a single stream, wiring the given
-     * {@link ModelTransform} into the pipeline so it observes, substitutes, or declines each field of
-     * every value the pipeline transforms.
-     *
+     * @param envelope   the metadata channel to bind the pipeline to
      * @param transform  the per-field transform to wire into the pipeline
      * @return a new per-stream encode pipeline
      */
     ModelPipeline supplyEncoder(
+        ModelEnvelope envelope,
         ModelTransform transform);
-
-    /**
-     * Supplies a new write-direction {@link ModelPipeline} for a single stream with no per-field transform.
-     *
-     * @return a new per-stream encode pipeline
-     */
-    default ModelPipeline supplyEncoder()
-    {
-        return supplyEncoder(ModelTransform.NONE);
-    }
 }

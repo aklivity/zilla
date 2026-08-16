@@ -37,6 +37,7 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufStream;
 import io.aklivity.zilla.runtime.common.protobuf.json.ProtobufJson;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
+import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelTransform;
@@ -78,15 +79,21 @@ public final class ProtobufModelHandlerImpl extends ProtobufModelHandler impleme
 
     @Override
     public ModelPipeline supplyDecoder(
+        ModelEnvelope envelope,
         ModelTransform transform)
     {
+        assert envelope != null;
+
         return new ProtobufModelDecoderPipeline(this, requireNonNull(transform));
     }
 
     @Override
     public ModelPipeline supplyEncoder(
+        ModelEnvelope envelope,
         ModelTransform transform)
     {
+        assert envelope != null;
+
         return new ProtobufModelEncoderPipeline(this);
     }
 

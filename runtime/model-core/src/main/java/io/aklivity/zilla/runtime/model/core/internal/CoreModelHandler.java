@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.model.core.internal;
 import java.util.function.Supplier;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelTransform;
@@ -49,15 +50,21 @@ final class CoreModelHandler implements ModelHandler
 
     @Override
     public ModelPipeline supplyDecoder(
+        ModelEnvelope envelope,
         ModelTransform transform)
     {
+        assert envelope != null;
+
         return new CoreModelPipeline(this, supplier.get(), decodeLenient);
     }
 
     @Override
     public ModelPipeline supplyEncoder(
+        ModelEnvelope envelope,
         ModelTransform transform)
     {
+        assert envelope != null;
+
         return new CoreModelPipeline(this, supplier.get(), encodeLenient);
     }
 

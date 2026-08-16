@@ -28,6 +28,7 @@ import io.aklivity.zilla.config.engine.test.internal.model.config.TestModelConfi
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelFieldBridge;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
@@ -138,7 +139,8 @@ public class KafkaCacheModelTest
     @Test
     public void shouldRejectValueRejectedByModel()
     {
-        KafkaCacheModel model = new KafkaCacheModel(rejectingHandler("$.id").supplyDecoder(),
+        KafkaCacheModel model = new KafkaCacheModel(
+            rejectingHandler("$.id").supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE),
             new UnsafeBufferEx(new byte[256]));
 
         int produced = model.transform(0L, 0L, 0L, value("hello"), 0, 5, sink);
@@ -191,6 +193,7 @@ public class KafkaCacheModelTest
         {
             @Override
             public ModelPipeline supplyDecoder(
+                ModelEnvelope envelope,
                 ModelTransform transform)
             {
                 return new RejectingPipeline(transform, path);
@@ -198,9 +201,10 @@ public class KafkaCacheModelTest
 
             @Override
             public ModelPipeline supplyEncoder(
+                ModelEnvelope envelope,
                 ModelTransform transform)
             {
-                return supplyDecoder(transform);
+                return supplyDecoder(envelope, transform);
             }
         };
     }

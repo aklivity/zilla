@@ -21,6 +21,7 @@ import java.util.List;
 
 import io.aklivity.zilla.config.engine.ValidateMode;
 import io.aklivity.zilla.config.engine.test.internal.model.config.TestModelConfig;
+import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelTransform;
@@ -45,15 +46,17 @@ public class TestModelHandler implements ModelHandler
 
     @Override
     public ModelPipeline supplyDecoder(
+        ModelEnvelope envelope,
         ModelTransform transform)
     {
-        return new TestModelPipeline(length, transformLength, fields, decodeLenient, transform);
+        return new TestModelPipeline(length, transformLength, fields, decodeLenient, envelope, transform);
     }
 
     @Override
     public ModelPipeline supplyEncoder(
+        ModelEnvelope envelope,
         ModelTransform transform)
     {
-        return new TestModelPipeline(length, transformLength, fields, encodeLenient, transform);
+        return new TestModelPipeline(length, transformLength, fields, encodeLenient, envelope, transform);
     }
 }

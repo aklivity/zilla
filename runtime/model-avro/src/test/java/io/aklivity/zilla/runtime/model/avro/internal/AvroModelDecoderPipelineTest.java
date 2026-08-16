@@ -40,6 +40,7 @@ import io.aklivity.zilla.runtime.common.avro.AvroSchema;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.ModelController;
+import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelEvent;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
@@ -104,8 +105,8 @@ public class AvroModelDecoderPipelineTest
     {
         AvroModelHandlerImpl handler = newHandler();
         // two per-stream pipelines from the same per-worker handler
-        ModelPipeline a = handler.supplyDecoder(ModelTransform.NONE);
-        ModelPipeline b = handler.supplyDecoder(ModelTransform.NONE);
+        ModelPipeline a = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
+        ModelPipeline b = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
 
         // stream A split at the field boundary: the id field first, the status field on the final fragment
         byte[] a1 = {0x06, 0x69, 0x64, 0x30};
@@ -141,7 +142,7 @@ public class AvroModelDecoderPipelineTest
         AvroModelHandlerImpl handler = newHandler();
 
         Map<String, String> extracted = new HashMap<>();
-        ModelPipeline pipeline = handler.supplyDecoder(observer(extracted));
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, observer(extracted));
 
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
         ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
@@ -158,7 +159,7 @@ public class AvroModelDecoderPipelineTest
         AvroModelHandlerImpl handler = newHandler(SCALARS_SCHEMA, "json");
 
         Map<String, String> extracted = new HashMap<>();
-        ModelPipeline pipeline = handler.supplyDecoder(observer(extracted));
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, observer(extracted));
 
         // i=5, l=7, f=1.5, d=2.5, b=true, e=index 1
         byte[] scalars =
@@ -187,7 +188,7 @@ public class AvroModelDecoderPipelineTest
     public void shouldReportDecodePadding()
     {
         AvroModelHandlerImpl handler = newHandler();
-        ModelPipeline pipeline = handler.supplyDecoder(ModelTransform.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
 
         assertTrue(pipeline.padding(new UnsafeBufferEx(AVRO), 0, AVRO.length) >= 0);
     }
@@ -198,9 +199,9 @@ public class AvroModelDecoderPipelineTest
         AvroModelHandlerImpl baseline = newHandler(SCHEMA, "json", List.of());
         AvroModelHandlerImpl extended = newHandler(SCHEMA, "json", List.of(expandingExt(64)));
 
-        int basePadding = baseline.supplyDecoder(ModelTransform.NONE)
+        int basePadding = baseline.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE)
             .padding(new UnsafeBufferEx(AVRO), 0, AVRO.length);
-        int extPadding = extended.supplyDecoder(ModelTransform.NONE)
+        int extPadding = extended.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE)
             .padding(new UnsafeBufferEx(AVRO), 0, AVRO.length);
 
         assertEquals(basePadding + 64, extPadding);
@@ -210,7 +211,7 @@ public class AvroModelDecoderPipelineTest
     public void shouldReportIdentityWhenNoView()
     {
         AvroModelHandlerImpl handler = newHandler(SCHEMA, null);
-        ModelPipeline pipeline = handler.supplyDecoder(ModelTransform.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
 
         assertFalse(pipeline.identity());
 
@@ -225,7 +226,7 @@ public class AvroModelDecoderPipelineTest
     public void shouldNotReportIdentityWhenJsonView()
     {
         AvroModelHandlerImpl handler = newHandler(SCHEMA, "json");
-        ModelPipeline pipeline = handler.supplyDecoder(ModelTransform.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
 
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
         pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,

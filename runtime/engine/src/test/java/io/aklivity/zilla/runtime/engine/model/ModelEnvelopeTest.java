@@ -18,7 +18,6 @@ package io.aklivity.zilla.runtime.engine.model;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -32,26 +31,20 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public class ModelEnvelopeTest
 {
-    @Test
-    public void shouldSupplyEmptyEnvelopeByDefault()
+    private static final ModelController NO_CONTROL = new ModelController()
     {
-        ModelController control = new ModelController()
+        @Override
+        public long authorization()
         {
-            @Override
-            public long authorization()
-            {
-                return 0L;
-            }
+            return 0L;
+        }
 
-            @Override
-            public void reject(
-                String diagnostic)
-            {
-            }
-        };
-
-        assertSame(ModelEnvelope.NONE, control.envelope());
-    }
+        @Override
+        public void reject(
+            String diagnostic)
+        {
+        }
+    };
 
     @Test
     public void shouldReadEmptyAndDiscardWritesWhenNone()
@@ -101,43 +94,30 @@ public class ModelEnvelopeTest
     }
 
     @Test
-    public void shouldReadNamedMetadataFromEnvelope()
+    public void shouldReadAndWriteNamedMetadataFromTransform()
     {
         Metadata envelope = new Metadata();
         envelope.set("trace", buffer("one"));
         envelope.set("trace", buffer("two"));
 
-        Carrying transform = new Carrying("trace");
+        Carrying transform = new Carrying(envelope, "trace");
 
-        transform.transform(new Control(envelope), new Field("$.id", "x"), ModelEvent.FIELD, new Recorder());
+        transform.transform(NO_CONTROL, new Field("$.id", "x"), ModelEvent.FIELD, new Recorder());
+        transform.flush(NO_CONTROL, new Field(null, ""), new Recorder());
 
         assertEquals(List.of("one", "two"), transform.read);
-    }
-
-    @Test
-    public void shouldWriteNamedMetadataToEnvelope()
-    {
-        Metadata envelope = new Metadata();
-        Control control = new Control(envelope);
-        Recorder recorder = new Recorder();
-        Carrying transform = new Carrying("trace");
-
-        transform.transform(control, new Field("$.id", "x"), ModelEvent.FIELD, recorder);
-        transform.flush(control, new Field(null, ""), recorder);
-
-        assertEquals(1, envelope.count("trace"));
-        assertEquals("$.id=x", text(envelope.get("trace", 0)));
+        assertEquals(3, envelope.count("trace"));
+        assertEquals("$.id=x", text(envelope.get("trace", 2)));
     }
 
     @Test
     public void shouldLeaveEnvelopeUntouchedWhenTransformIgnoresIt()
     {
         Metadata envelope = new Metadata();
-        Control control = new Control(envelope);
         Recorder recorder = new Recorder();
 
-        ModelTransform.NONE.transform(control, new Field("$.id", "x"), ModelEvent.FIELD, recorder);
-        ModelTransform.NONE.flush(control, new Field(null, ""), recorder);
+        ModelTransform.NONE.transform(NO_CONTROL, new Field("$.id", "x"), ModelEvent.FIELD, recorder);
+        ModelTransform.NONE.flush(NO_CONTROL, new Field(null, ""), recorder);
 
         assertEquals(0, envelope.reads);
         assertEquals(0, envelope.writes);
@@ -156,7 +136,7 @@ public class ModelEnvelopeTest
         return value.getStringWithoutLengthUtf8(0, value.capacity());
     }
 
-    // the envelope a caller supplies for one message, backed by a copy of each value it is given
+    // the envelope a caller supplies to the pipeline, backed by a copy of each value it is given
     private static final class Metadata implements ModelEnvelope
     {
         private final Map<String, List<DirectBufferEx>> values = new LinkedHashMap<>();
@@ -195,47 +175,22 @@ public class ModelEnvelopeTest
         }
     }
 
-    private static final class Control implements ModelController
-    {
-        private final ModelEnvelope envelope;
-
-        private Control(
-            ModelEnvelope envelope)
-        {
-            this.envelope = envelope;
-        }
-
-        @Override
-        public long authorization()
-        {
-            return 0L;
-        }
-
-        @Override
-        public ModelEnvelope envelope()
-        {
-            return envelope;
-        }
-
-        @Override
-        public void reject(
-            String diagnostic)
-        {
-        }
-    }
-
-    // reads every value the envelope carries under one name as fields arrive, and writes what it saw back
-    // under the same name when the value completes
+    // a stage supplied with the same envelope the pipeline was supplied with: it reads every value the
+    // envelope carries under one name as fields arrive, and writes what it saw back under the same name
+    // when the value completes
     private static final class Carrying implements ModelTransform
     {
+        private final ModelEnvelope envelope;
         private final String name;
         private final List<String> read = new ArrayList<>();
 
         private String field;
 
         private Carrying(
+            ModelEnvelope envelope,
             String name)
         {
+            this.envelope = envelope;
             this.name = name;
         }
 
@@ -248,14 +203,12 @@ public class ModelEnvelopeTest
         {
             if (event == ModelEvent.FIELD)
             {
-                ModelEnvelope envelope = control.envelope();
                 int count = envelope.count(name);
                 for (int index = 0; index < count; index++)
                 {
                     read.add(text(envelope.get(name, index)));
                 }
-                DirectBufferEx value = source.getValue();
-                field = source.getPath() + "=" + value.getStringWithoutLengthUtf8(0, value.capacity());
+                field = source.getPath() + "=" + text(source.getValue());
             }
             return sink.transform(control, source, event);
         }
@@ -268,7 +221,7 @@ public class ModelEnvelopeTest
         {
             if (field != null)
             {
-                control.envelope().set(name, buffer(field));
+                envelope.set(name, buffer(field));
             }
             return sink.flush(control, source);
         }

@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.function.Supplier;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelTransform;
@@ -53,15 +54,19 @@ final class CoreExtModelHandler implements ModelHandler
 
     @Override
     public ModelPipeline supplyDecoder(
+        ModelEnvelope envelope,
         ModelTransform transform)
     {
+        assert envelope != null;
+
         return new CoreExtModelPipeline(plain, supplier.get(), decodeLenient, transforms, padding);
     }
 
     @Override
     public ModelPipeline supplyEncoder(
+        ModelEnvelope envelope,
         ModelTransform transform)
     {
-        return plain.supplyEncoder(transform);
+        return plain.supplyEncoder(envelope, transform);
     }
 }
