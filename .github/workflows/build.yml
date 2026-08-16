@@ -252,6 +252,14 @@ jobs:
 
       - name: Execute Test
         working-directory: examples/${{ matrix.dir }}
+        # Without a cap this step inherits GitHub's 6h job ceiling, and a test that
+        # stalls holds a runner that whole time while serving no logs -- in-progress
+        # jobs have none, so the failure is invisible until it is hours old. The cap
+        # also converts a stall into failure(), which is what runs the docker log and
+        # engine directory collection below; a hang collects nothing. Every example
+        # except mcp.proxy finishes inside two minutes, and mcp.proxy's own bounded
+        # worst case sits well under this, so 30m only ever fires on a genuine stall.
+        timeout-minutes: 30
         run: |
           set -o pipefail
           ./.github/test.sh | tee $GITHUB_STEP_SUMMARY
