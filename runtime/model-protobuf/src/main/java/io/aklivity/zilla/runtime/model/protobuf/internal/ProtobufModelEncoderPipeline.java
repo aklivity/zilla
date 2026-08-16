@@ -20,6 +20,7 @@ import java.util.Map;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufDiagnostic;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufEnvelope;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufMessage;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufPipeline;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufPipeline.Status;
@@ -39,6 +40,7 @@ final class ProtobufModelEncoderPipeline implements ModelPipeline
 
     private final ProtobufModelHandlerImpl handler;
     private final Map<String, ProtobufPipeline> pipelines;
+    private final ProtobufEnvelope envelope;
     private final ModelPipelineResult result;
 
     private ProtobufPipeline active;
@@ -47,8 +49,10 @@ final class ProtobufModelEncoderPipeline implements ModelPipeline
     private int prefixAt;
 
     ProtobufModelEncoderPipeline(
-        ProtobufModelHandlerImpl handler)
+        ProtobufModelHandlerImpl handler,
+        ProtobufEnvelope envelope)
     {
+        this.envelope = envelope;
         this.handler = handler;
         this.pipelines = new HashMap<>();
         this.result = new ModelPipelineResult();
@@ -178,7 +182,7 @@ final class ProtobufModelEncoderPipeline implements ModelPipeline
         ProtobufPipeline pipeline = pipelines.get(messageName);
         if (pipeline == null)
         {
-            pipeline = handler.newPipeline(schemaId, handler.encodeLenient, messageName, this::onRejected);
+            pipeline = handler.newPipeline(schemaId, handler.encodeLenient, messageName, this::onRejected, envelope);
             pipelines.put(messageName, pipeline);
         }
         return pipeline;

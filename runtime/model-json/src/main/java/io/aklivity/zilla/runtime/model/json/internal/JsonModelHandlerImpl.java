@@ -22,6 +22,7 @@ import java.util.Map;
 
 import io.aklivity.zilla.config.model.json.JsonModelConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
@@ -32,6 +33,7 @@ import io.aklivity.zilla.runtime.common.json.JsonStream;
 import io.aklivity.zilla.runtime.common.json.JsonTransform;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
+import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelTransform;
@@ -67,16 +69,18 @@ public final class JsonModelHandlerImpl extends JsonModelHandler implements Mode
 
     @Override
     public ModelPipeline supplyDecoder(
+        ModelEnvelope envelope,
         ModelTransform transform)
     {
-        return new JsonModelDecoderPipeline(this, requireNonNull(transform));
+        return new JsonModelDecoderPipeline(this, JsonModelEnvelope.of(requireNonNull(envelope)), requireNonNull(transform));
     }
 
     @Override
     public ModelPipeline supplyEncoder(
+        ModelEnvelope envelope,
         ModelTransform transform)
     {
-        return new JsonModelEncoderPipeline(this);
+        return new JsonModelEncoderPipeline(this, JsonModelEnvelope.of(requireNonNull(envelope)));
     }
 
     int decodePadding(
@@ -168,7 +172,8 @@ public final class JsonModelHandlerImpl extends JsonModelHandler implements Mode
         boolean lenient,
         JsonGeneratorEx generator,
         JsonTransform extractor,
-        JsonReporter reporter)
+        JsonReporter reporter,
+        JsonEnvelope envelope)
     {
         JsonSchema schema = supplySchema(schemaId);
         JsonStream stream = schema != null
@@ -178,6 +183,7 @@ public final class JsonModelHandlerImpl extends JsonModelHandler implements Mode
             ? (extractor != null ? stream.transform(extractor) : stream)
                 .lenient(lenient)
                 .reporting(reporter)
+                .envelope(envelope)
             : null;
         return terminal != null
             ? exts.isEmpty()
@@ -196,7 +202,8 @@ public final class JsonModelHandlerImpl extends JsonModelHandler implements Mode
         int schemaId,
         boolean lenient,
         JsonGeneratorEx generator,
-        JsonReporter reporter)
+        JsonReporter reporter,
+        JsonEnvelope envelope)
     {
         JsonSchema schema = supplySchema(schemaId);
         JsonStream terminal = schema != null
@@ -204,6 +211,7 @@ public final class JsonModelHandlerImpl extends JsonModelHandler implements Mode
                 .transform(schema.validator(lenient))
                 .lenient(lenient)
                 .reporting(reporter)
+                .envelope(envelope)
             : null;
         return terminal != null
             ? exts.isEmpty()

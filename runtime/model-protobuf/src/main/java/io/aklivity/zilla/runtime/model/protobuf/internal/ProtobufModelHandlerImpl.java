@@ -27,6 +27,7 @@ import io.aklivity.zilla.config.model.protobuf.ProtobufModelConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.protobuf.Protobuf;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufEnvelope;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufGenerator;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufMessage;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufParser;
@@ -37,6 +38,7 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufStream;
 import io.aklivity.zilla.runtime.common.protobuf.json.ProtobufJson;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
+import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelTransform;
@@ -78,16 +80,19 @@ public final class ProtobufModelHandlerImpl extends ProtobufModelHandler impleme
 
     @Override
     public ModelPipeline supplyDecoder(
+        ModelEnvelope envelope,
         ModelTransform transform)
     {
-        return new ProtobufModelDecoderPipeline(this, requireNonNull(transform));
+        return new ProtobufModelDecoderPipeline(this, ProtobufModelEnvelope.of(requireNonNull(envelope)),
+            requireNonNull(transform));
     }
 
     @Override
     public ModelPipeline supplyEncoder(
+        ModelEnvelope envelope,
         ModelTransform transform)
     {
-        return new ProtobufModelEncoderPipeline(this);
+        return new ProtobufModelEncoderPipeline(this, ProtobufModelEnvelope.of(requireNonNull(envelope)));
     }
 
     int decodePadding(
@@ -245,7 +250,8 @@ public final class ProtobufModelHandlerImpl extends ProtobufModelHandler impleme
         boolean lenient,
         String messageName,
         ProtobufExtractor extractor,
-        ProtobufReporter reporter)
+        ProtobufReporter reporter,
+        ProtobufEnvelope envelope)
     {
         ProtobufSchema schema = supplySchema(schemaId);
         ProtobufPipeline pipeline = null;
@@ -261,10 +267,12 @@ public final class ProtobufModelHandlerImpl extends ProtobufModelHandler impleme
                     .transform(extractor)
                     .lenient(lenient)
                     .reporting(reporter)
+                    .envelope(envelope)
                     .into(generator, schema, messageName)
                 : extendDecode(Protobuf.stream(Protobuf.parser(schema, messageName)), schema)
                     .lenient(lenient)
                     .reporting(reporter)
+                    .envelope(envelope)
                     .into(generator, schema, messageName);
         }
         return pipeline;
@@ -274,7 +282,8 @@ public final class ProtobufModelHandlerImpl extends ProtobufModelHandler impleme
         int schemaId,
         boolean lenient,
         String messageName,
-        ProtobufReporter reporter)
+        ProtobufReporter reporter,
+        ProtobufEnvelope envelope)
     {
         ProtobufSchema schema = supplySchema(schemaId);
         ProtobufPipeline pipeline = null;
@@ -289,6 +298,7 @@ public final class ProtobufModelHandlerImpl extends ProtobufModelHandler impleme
             pipeline = extendEncode(Protobuf.stream(parser), schema)
                 .lenient(lenient)
                 .reporting(reporter)
+                .envelope(envelope)
                 .into(Protobuf.generator(), schema, messageName);
         }
         return pipeline;

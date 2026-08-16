@@ -14,39 +14,47 @@
  */
 package io.aklivity.zilla.runtime.model.core.ext;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
-import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 
 /**
- * A whole-value stage in a {@code bytes} pipeline: {@code bytes} has no internal field structure, so a
- * stage sees the complete decoded value in one call, rather than a stream of per-field events. Stages
+ * An intermediate stage in a {@code bytes} pipeline that transforms the event stream — forwarding,
+ * dropping, or substituting events — before they reach the next stage.
+ * <p>
+ * Each {@link #transform(BytesController, BytesSource, BytesEvent, BytesSink)} consumes one event and
+ * forwards what it keeps to {@code sink} (the downstream, bound once at assembly), optionally substituting
+ * bytes by feeding {@code sink} a {@link BytesSource} of its own. A mediating stage supplies its own
+ * {@link BytesController} to {@code sink}; a non-mediating stage passes {@code control} through. Stages
  * compose left-to-right via {@link BytesTransformable#transform(BytesTransform)}.
+ * </p>
+ * <p>
+ * A stage sees the value as it flows, one {@link BytesEvent#SEGMENT} per fragment, so it never waits for
+ * the whole value; it suspends against a bounded destination by returning {@link ModelStatus#OVERFLOW};
+ * and it terminates a value through {@link BytesController#reject(String)} or
+ * {@link BytesController#withhold()}.
+ * </p>
+ * <p>
+ * A stage holds the in-flight state of exactly one value, so a fresh instance is bound per stream rather
+ * than shared across the streams one handler serves.
+ * </p>
  */
 public interface BytesTransform
 {
     /**
-     * A value too small to be delivered downstream at all, returned by {@link #transform} to signal that
-     * this value should not be forwarded (for example, an installed extension's own decision to withhold
-     * it entirely).
-     */
-    int OMIT = -1;
-
-    /**
-     * Identity stage that forwards the value unchanged. {@link BytesTransformable#transform(BytesTransform)}
-     * drops it rather than binding it, so a caller with nothing to insert passes this instead of branching.
+     * Identity stage that forwards every event unchanged.
+     * {@link BytesTransformable#transform(BytesTransform)} drops it rather than binding it, so a caller
+     * with nothing to insert passes this instead of branching, and the assembled pipeline carries no stage
+     * at all.
      */
     BytesTransform NONE = new BytesTransform()
     {
         @Override
-        public int transform(
-            DirectBufferEx value,
-            int index,
-            int length,
-            MutableDirectBufferEx dst,
-            int dstIndex)
+        public ModelStatus transform(
+            BytesController control,
+            BytesSource source,
+            BytesEvent event,
+            BytesSink sink)
         {
-            dst.putBytes(dstIndex, value, index, length);
-            return length;
+            return sink.transform(control, source, event);
         }
 
         @Override
@@ -57,25 +65,53 @@ public interface BytesTransform
     };
 
     /**
-     * Applies this stage to one complete decoded value, writing the result to {@code dst}.
+     * Consumes one event and forwards what it keeps to {@code sink}.
      *
-     * @param value     the buffer holding the complete input value
-     * @param index     the offset of the input value within {@code value}
-     * @param length    the length of the input value
-     * @param dst       the destination buffer for the output value
-     * @param dstIndex  the offset within {@code dst} to write the output value
-     * @return the length written to {@code dst}, or {@link #OMIT} if this value should not be delivered
+     * @param control  the control handle for the immediate upstream
+     * @param source   the read-only view of the value bytes the event carries
+     * @param event    the event
+     * @param sink     the downstream stage
+     * @return the outcome of consuming the event
      */
-    int transform(
-        DirectBufferEx value,
-        int index,
-        int length,
-        MutableDirectBufferEx dst,
-        int dstIndex);
+    ModelStatus transform(
+        BytesController control,
+        BytesSource source,
+        BytesEvent event,
+        BytesSink sink);
 
     /**
-     * Whether this stage forwards every value verbatim, leaving the bytes unchanged. A validating or
-     * observing stage is identity; a stage that substitutes, drops, or rewrites values is not.
+     * Resumes after a {@link ModelStatus#OVERFLOW} return, once the caller has drained the bounded
+     * destination. The default forwards to {@code sink}, so a stage that merely forwards events never
+     * re-sees them on resume; a stage that buffers or substitutes overrides this to continue its own
+     * emission before forwarding.
+     *
+     * @param control  the control handle for the immediate upstream
+     * @param source   the read-only view of the value bytes still to be consumed
+     * @param event    the event that suspended
+     * @param sink     the downstream stage
+     * @return the outcome of resuming the event
+     */
+    default ModelStatus resume(
+        BytesController control,
+        BytesSource source,
+        BytesEvent event,
+        BytesSink sink)
+    {
+        return sink.resume(control, source, event);
+    }
+
+    /**
+     * Discards any in-flight state so the stage is ready for the next value.
+     */
+    default void reset()
+    {
+    }
+
+    /**
+     * Whether this stage forwards every event verbatim, leaving the bytes unchanged. A validating or
+     * observing stage is identity; a stage that substitutes, drops, or rewrites bytes is not.
+     *
+     * @return {@code true} if every value passes through unchanged; {@code false} otherwise
      */
     default boolean identity()
     {

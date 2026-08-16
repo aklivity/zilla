@@ -46,6 +46,15 @@ public interface JsonStream extends JsonTransformable<JsonStream>
     JsonStream reporting(
         JsonReporter reporter);
 
+    /**
+     * Binds the pipeline to the {@link JsonEnvelope} its stages read and write named metadata through,
+     * reachable from any stage via {@link JsonController#envelope()}. The last bound envelope wins; the
+     * default is {@link JsonEnvelope#NONE}, which reads as empty and discards writes, so a pipeline
+     * assembled without one costs a stage that never asks for it nothing.
+     */
+    JsonStream envelope(
+        JsonEnvelope envelope);
+
     JsonPipeline into(
         JsonSink sink);
 

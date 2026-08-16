@@ -28,13 +28,18 @@ import io.aklivity.zilla.config.model.core.BytesModelConfig;
 import io.aklivity.zilla.config.model.core.StringModelConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 import io.aklivity.zilla.runtime.engine.model.ModelTransform;
+import io.aklivity.zilla.runtime.model.core.ext.StringController;
+import io.aklivity.zilla.runtime.model.core.ext.StringEvent;
 import io.aklivity.zilla.runtime.model.core.ext.StringModelExtContext;
 import io.aklivity.zilla.runtime.model.core.ext.StringModelExtHandler;
+import io.aklivity.zilla.runtime.model.core.ext.StringSink;
+import io.aklivity.zilla.runtime.model.core.ext.StringSource;
 import io.aklivity.zilla.runtime.model.core.ext.StringTransform;
 import io.aklivity.zilla.runtime.model.core.ext.StringTransformable;
 
@@ -50,7 +55,7 @@ public class StringModelContextTest
 
         assertThat(handler, instanceOf(CoreModelHandler.class));
 
-        ModelPipeline pipeline = handler.supplyDecoder(ModelTransform.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
         byte[] bytes = "hello".getBytes();
         UnsafeBufferEx dst = new UnsafeBufferEx(new byte[16]);
 
@@ -73,9 +78,9 @@ public class StringModelContextTest
         StringModelContext context = new StringModelContext(mock(EngineContext.class), List.of(ext1, ext2));
         ModelHandler handler = context.supplyHandler(StringModelConfig.builder().build());
 
-        assertThat(handler, instanceOf(CoreExtModelHandler.class));
+        assertThat(handler, instanceOf(StringExtModelHandler.class));
 
-        ModelPipeline pipeline = handler.supplyDecoder(ModelTransform.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
         byte[] bytes = "ignored".getBytes();
         UnsafeBufferEx dst = new UnsafeBufferEx(new byte[16]);
 
@@ -104,7 +109,7 @@ public class StringModelContextTest
         byte[] bytes = "abc".getBytes();
         for (int i = 0; i < 3; i++)
         {
-            ModelPipeline pipeline = handler.supplyDecoder(ModelTransform.NONE);
+            ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
             UnsafeBufferEx dst = new UnsafeBufferEx(new byte[16]);
             pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
                 new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
@@ -127,10 +132,10 @@ public class StringModelContextTest
         ModelHandler stringHandler = stringContext.supplyHandler(StringModelConfig.builder().build());
         ModelHandler bytesHandler = bytesContext.supplyHandler(BytesModelConfig.builder().build());
 
-        assertThat(stringHandler, instanceOf(CoreExtModelHandler.class));
+        assertThat(stringHandler, instanceOf(StringExtModelHandler.class));
         assertThat(bytesHandler, instanceOf(CoreModelHandler.class));
 
-        ModelPipeline bytesPipeline = bytesHandler.supplyDecoder(ModelTransform.NONE);
+        ModelPipeline bytesPipeline = bytesHandler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
         byte[] bytes = { 1, 2, 3, 4 };
         UnsafeBufferEx dst = new UnsafeBufferEx(new byte[16]);
 
@@ -144,45 +149,116 @@ public class StringModelContextTest
     private static StringModelExtHandler stream(
         StringTransform transform)
     {
-        return stream -> stream.transform(transform);
+        return new StringModelExtHandler()
+        {
+            @Override
+            public <T extends StringTransformable<T>> T decode(
+                T stream)
+            {
+                return stream.transform(transform);
+            }
+        };
     }
 
     private static StringTransform replaceWith(
         String value)
     {
-        byte[] replacement = value.getBytes();
-        return (src, index, length, dst, dstIndex) ->
-        {
-            dst.putBytes(dstIndex, new UnsafeBufferEx(replacement), 0, replacement.length);
-            return replacement.length;
-        };
+        return new Substitute(value);
     }
 
     private static StringModelExtHandler handlerAppending(
         String suffix,
         int padding)
     {
-        byte[] suffixBytes = suffix.getBytes();
-        StringTransform append = (value, index, length, dst, dstIndex) ->
-        {
-            dst.putBytes(dstIndex, value, index, length);
-            dst.putBytes(dstIndex + length, new UnsafeBufferEx(suffixBytes), 0, suffixBytes.length);
-            return length + suffixBytes.length;
-        };
+        StringTransform append = new Suffix(suffix);
         return new StringModelExtHandler()
         {
             @Override
-            public StringTransformable transform(
-                StringTransformable stream)
+            public <T extends StringTransformable<T>> T decode(
+                T stream)
             {
                 return stream.transform(append);
             }
 
             @Override
-            public int padding()
+            public int decodePadding()
             {
                 return padding;
             }
         };
+    }
+
+    // drops the value's own bytes and emits its replacement once, at value end
+    private static final class Substitute implements StringTransform
+    {
+        private final UnsafeBufferEx value;
+        private final StringSource source;
+
+        private Substitute(
+            String value)
+        {
+            this.value = new UnsafeBufferEx(value.getBytes());
+            this.source = () -> this.value;
+        }
+
+        @Override
+        public ModelStatus transform(
+            StringController control,
+            StringSource source,
+            StringEvent event,
+            StringSink sink)
+        {
+            ModelStatus status = ModelStatus.OK;
+            if (event == StringEvent.END_VALUE)
+            {
+                status = sink.transform(control, this.source, StringEvent.SEGMENT);
+                if (status == ModelStatus.OK)
+                {
+                    status = sink.transform(control, source, event);
+                }
+            }
+            else if (event == StringEvent.START_VALUE)
+            {
+                status = sink.transform(control, source, event);
+            }
+            return status;
+        }
+    }
+
+    // forwards every segment, then emits its own suffix once, at value end
+    private static final class Suffix implements StringTransform
+    {
+        private final UnsafeBufferEx suffix;
+        private final StringSource source;
+
+        private Suffix(
+            String suffix)
+        {
+            this.suffix = new UnsafeBufferEx(suffix.getBytes());
+            this.source = () -> this.suffix;
+        }
+
+        @Override
+        public ModelStatus transform(
+            StringController control,
+            StringSource source,
+            StringEvent event,
+            StringSink sink)
+        {
+            ModelStatus status = ModelStatus.OK;
+            if (event == StringEvent.END_VALUE)
+            {
+                status = sink.transform(control, this.source, StringEvent.SEGMENT);
+                if (status == ModelStatus.OK)
+                {
+                    status = sink.transform(control, source, event);
+                }
+            }
+            else
+            {
+                status = sink.transform(control, source, event);
+            }
+            return status;
+        }
     }
 }

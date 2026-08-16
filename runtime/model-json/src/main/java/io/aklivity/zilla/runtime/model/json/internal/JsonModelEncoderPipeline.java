@@ -19,6 +19,7 @@ import org.agrona.collections.Int2ObjectCache;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonDiagnostic;
+import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
@@ -39,6 +40,7 @@ final class JsonModelEncoderPipeline implements ModelPipeline
     private final JsonModelHandlerImpl handler;
     private final JsonGeneratorEx generator;
     private final Int2ObjectCache<JsonPipeline> pipelines;
+    private final JsonEnvelope envelope;
     private final ModelPipelineResult result;
 
     private JsonPipeline active;
@@ -51,8 +53,10 @@ final class JsonModelEncoderPipeline implements ModelPipeline
     private long bindingId;
 
     JsonModelEncoderPipeline(
-        JsonModelHandlerImpl handler)
+        JsonModelHandlerImpl handler,
+        JsonEnvelope envelope)
     {
+        this.envelope = envelope;
         this.handler = handler;
         this.generator = JsonEx.createGenerator();
         this.pipelines = new Int2ObjectCache<>(1, 16, p -> {});
@@ -171,7 +175,7 @@ final class JsonModelEncoderPipeline implements ModelPipeline
         int schemaId)
     {
         return pipelines.computeIfAbsent(schemaId,
-            id -> handler.newPipeline(id, handler.encodeLenient, generator, this::onRejected));
+            id -> handler.newPipeline(id, handler.encodeLenient, generator, this::onRejected, envelope));
     }
 
     private void onRejected(

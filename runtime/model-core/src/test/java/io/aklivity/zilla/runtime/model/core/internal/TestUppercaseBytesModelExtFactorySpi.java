@@ -14,25 +14,33 @@
  */
 package io.aklivity.zilla.runtime.model.core.internal;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
-import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.model.core.ext.BytesModelExt;
 import io.aklivity.zilla.runtime.model.core.ext.BytesModelExtContext;
 import io.aklivity.zilla.runtime.model.core.ext.BytesModelExtFactorySpi;
-import io.aklivity.zilla.runtime.model.core.ext.BytesTransform;
+import io.aklivity.zilla.runtime.model.core.ext.BytesModelExtHandler;
+import io.aklivity.zilla.runtime.model.core.ext.BytesTransformable;
 
 /**
  * A generic, business-agnostic test-only extension registered solely under {@code src/test} so it never
- * ships in the production jar. It uppercases a value (proving apply, fragment accumulation, and
- * OVERFLOW/drain all work through a live engine), and signals {@link BytesTransform#OMIT} for a single
- * {@code 0x00} byte (proving the reject-on-omit path works through a live engine too) -- exercising the
- * same ModelExt composition mechanism a real installed extension (e.g. zilla-plus's disclosure) relies on,
- * without model-core needing to know anything about what a real extension might do with it.
+ * ships in the production jar. It exercises the same ModelExt composition mechanism a real installed
+ * extension relies on, through a live engine, without model-core needing to know anything about what a
+ * real extension might do with it.
+ * <p>
+ * It overrides {@code decode} only, leaving the encode direction exactly as it would be with no extension
+ * installed. On decode it uppercases a value (proving apply, fragment streaming, and OVERFLOW/drain all
+ * work end-to-end), withholds a single {@code 0x00} byte, and rejects a single {@code 0xFF} byte with a
+ * diagnostic -- the two terminal outcomes being distinguishable by the event each does or does not raise.
+ * </p>
  */
 public final class TestUppercaseBytesModelExtFactorySpi implements BytesModelExtFactorySpi
 {
+    // held as int, not byte: a byte 0xFF widens to -1, which is the transform's "no marker" sentinel
+    static final int WITHHOLD = 0x00;
+    static final int REJECT = 0xFF;
+    static final String DIAGNOSTIC = "test-uppercase rejected";
+
     @Override
     public String type()
     {
@@ -55,32 +63,18 @@ public final class TestUppercaseBytesModelExtFactorySpi implements BytesModelExt
             public BytesModelExtContext supply(
                 EngineContext context)
             {
-                return options -> stream -> stream.transform(TestUppercaseBytesModelExtFactorySpi::uppercase);
+                return options -> new Handler();
             }
         };
     }
 
-    private static int uppercase(
-        DirectBufferEx value,
-        int index,
-        int length,
-        MutableDirectBufferEx dst,
-        int dstIndex)
+    private static final class Handler implements BytesModelExtHandler
     {
-        int produced;
-        if (length == 1 && value.getByte(index) == 0)
+        @Override
+        public <T extends BytesTransformable<T>> T decode(
+            T stream)
         {
-            produced = BytesTransform.OMIT;
+            return stream.transform(new UppercaseBytesTransform(WITHHOLD, REJECT, DIAGNOSTIC));
         }
-        else
-        {
-            for (int i = 0; i < length; i++)
-            {
-                byte value0 = value.getByte(index + i);
-                dst.putByte(dstIndex + i, (byte) Character.toUpperCase((char) value0));
-            }
-            produced = length;
-        }
-        return produced;
     }
 }

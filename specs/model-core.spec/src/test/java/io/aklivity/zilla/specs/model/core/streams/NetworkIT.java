@@ -228,10 +228,30 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/client.received.bytes.ext.omit/client",
-        "${net}/client.received.bytes.ext.omit/server"
+        "${net}/client.received.bytes.ext.withhold/client",
+        "${net}/client.received.bytes.ext.withhold/server"
     })
-    public void shouldReceiveAbortForOmittedBytes() throws Exception
+    public void shouldReceiveAbortForWithheldBytes() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/client.received.bytes.ext.reject/client",
+        "${net}/client.received.bytes.ext.reject/server"
+    })
+    public void shouldReceiveAbortForRejectedBytes() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/client.sent.bytes.ext.uppercase/client",
+        "${net}/client.sent.bytes.ext.uppercase/server"
+    })
+    public void shouldSendMarkedBytes() throws Exception
     {
         k3po.finish();
     }

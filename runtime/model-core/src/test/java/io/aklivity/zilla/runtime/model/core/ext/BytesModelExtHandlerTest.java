@@ -15,29 +15,58 @@
 package io.aklivity.zilla.runtime.model.core.ext;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
+import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 
 public class BytesModelExtHandlerTest
 {
     @Test
-    public void shouldReportNoPaddingByDefault()
+    public void shouldReportNoPaddingInEitherDirectionByDefault()
     {
-        BytesModelExtHandler handler = stream -> stream;
+        BytesModelExtHandler handler = new BytesModelExtHandler()
+        {
+        };
 
-        assertEquals(0, handler.padding());
+        assertEquals(0, handler.decodePadding());
+        assertEquals(0, handler.encodePadding());
     }
 
     @Test
-    public void shouldForwardStreamUnchangedByDefault()
+    public void shouldForwardBothDirectionsUnchangedByDefault()
     {
-        BytesModelExtHandler handler = stream -> stream;
-        BytesTransformable stream = transform -> null;
+        BytesModelExtHandler handler = new BytesModelExtHandler()
+        {
+        };
+        Stream stream = new Stream();
 
-        assertEquals(stream, handler.transform(stream));
+        assertSame(stream, handler.decode(stream));
+        assertSame(stream, handler.encode(stream));
+    }
+
+    @Test
+    public void shouldExtendOneDirectionOnly()
+    {
+        BytesModelExtHandler handler = new BytesModelExtHandler()
+        {
+            @Override
+            public <T extends BytesTransformable<T>> T decode(
+                T stream)
+            {
+                return stream.transform(BytesTransform.NONE);
+            }
+        };
+        Stream stream = new Stream();
+
+        handler.decode(stream);
+        handler.encode(stream);
+
+        assertEquals(1, stream.count);
     }
 
     @Test
@@ -47,15 +76,98 @@ public class BytesModelExtHandlerTest
     }
 
     @Test
-    public void shouldCopyValueUnchangedForNoneTransform()
+    public void shouldForwardEveryEventForNoneTransform()
     {
-        byte[] bytes = "hello".getBytes();
-        UnsafeBufferEx src = new UnsafeBufferEx(bytes);
-        UnsafeBufferEx dst = new UnsafeBufferEx(new byte[bytes.length]);
+        Sink sink = new Sink();
+        BytesSource source = () -> null;
 
-        int produced = BytesTransform.NONE.transform(src, 0, bytes.length, dst, 0);
+        assertEquals(ModelStatus.OK, BytesTransform.NONE.transform(new Control(), source, BytesEvent.START_VALUE, sink));
+        assertEquals(ModelStatus.OK, BytesTransform.NONE.transform(new Control(), source, BytesEvent.SEGMENT, sink));
+        assertEquals(ModelStatus.OK, BytesTransform.NONE.transform(new Control(), source, BytesEvent.END_VALUE, sink));
+        assertEquals(3, sink.count);
+    }
 
-        assertEquals(bytes.length, produced);
-        assertEquals("hello", dst.getStringWithoutLengthUtf8(0, produced));
+    @Test
+    public void shouldResumeThroughToSinkByDefault()
+    {
+        BytesTransform transform = (control, source, event, sink) -> sink.transform(control, source, event);
+        Sink sink = new Sink();
+
+        assertEquals(ModelStatus.OK, transform.resume(new Control(), () -> null, BytesEvent.SEGMENT, sink));
+        assertFalse(transform.identity());
+    }
+
+    @Test
+    public void shouldDistinguishSegmentFromFraming()
+    {
+        assertTrue(BytesEvent.SEGMENT.segmented());
+        assertFalse(BytesEvent.START_VALUE.segmented());
+        assertFalse(BytesEvent.END_VALUE.segmented());
+    }
+
+    @Test
+    public void shouldReadEmptyEnvelopeByDefault()
+    {
+        Control control = new Control();
+
+        assertSame(ModelEnvelope.NONE, control.envelope());
+        control.consumed(4);
+    }
+
+    private static final class Stream implements BytesTransformable<Stream>
+    {
+        private int count;
+
+        @Override
+        public Stream transform(
+            BytesTransform transform)
+        {
+            count++;
+            return this;
+        }
+    }
+
+    private static final class Sink implements BytesSink
+    {
+        private int count;
+
+        @Override
+        public ModelStatus transform(
+            BytesController control,
+            BytesSource source,
+            BytesEvent event)
+        {
+            count++;
+            return ModelStatus.OK;
+        }
+
+        @Override
+        public ModelStatus resume(
+            BytesController control,
+            BytesSource source,
+            BytesEvent event)
+        {
+            return ModelStatus.OK;
+        }
+
+        @Override
+        public boolean identity()
+        {
+            return true;
+        }
+    }
+
+    private static final class Control implements BytesController
+    {
+        @Override
+        public void reject(
+            String diagnostic)
+        {
+        }
+
+        @Override
+        public void withhold()
+        {
+        }
     }
 }

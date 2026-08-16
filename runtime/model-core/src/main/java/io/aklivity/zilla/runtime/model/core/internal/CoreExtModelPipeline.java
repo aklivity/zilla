@@ -14,64 +14,83 @@
  */
 package io.aklivity.zilla.runtime.model.core.internal;
 
-import java.util.List;
-
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
-import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableArrayBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 
-// Per-stream decode pipeline for a bytes/string model with at least one installed extension. Unlike
-// CoreModelPipeline's fragment-at-a-time identity copy, an installed extension's transform needs the
-// complete decoded value (there is no schema to partially validate against), so this pipeline accumulates
-// every fragment up to FLAGS_FIN, validates the whole value in one pass, then folds it through every
-// installed extension's transform in discovery order before copying the result to the caller's destination.
-// A transformed value that does not fit dst in one call is drained across subsequent calls from outputBuffer.
-final class CoreExtModelPipeline implements ModelPipeline
+// Per-stream pipeline for a bytes/string model with at least one installed stage. The value streams
+// through the composed chain as it arrives -- value-start, one segment per fragment, value-end -- rather
+// than being materialized whole first, and the chain is bound sink-to-sink at assembly, so a composition
+// of N stages is one pass with no intermediate buffer per stage.
+//
+// Everything here is model-agnostic: the fragment and flag bookkeeping, the incremental validation, and
+// the bounded-destination suspend/resume accounting. A subclass owns only its model's own stage
+// vocabulary and the adapters bridging it to this state.
+//
+// Two axes of back-pressure meet in one call. The destination bounds the output: a chain that cannot
+// place everything reports the source bytes its bounded write took and returns OVERFLOW, so the caller
+// drains, advances the input by exactly that, and calls again to resume the event that suspended. The
+// input bounds the value: a fragment that does not close the value returns UNDERFLOW, and the next
+// fragment arrives as a further segment of the same value.
+abstract class CoreExtModelPipeline implements ModelPipeline
 {
     private static final int FLAGS_INIT = 0x02;
     private static final int FLAGS_FIN = 0x01;
 
+    private enum Phase
+    {
+        START,
+        SEGMENTS,
+        END,
+        DONE
+    }
+
     private final CoreModelHandler handler;
     private final CoreModelValidator validator;
+    // LENIENT: a structurally-valid value that violates a semantic constraint (INVALID) is reported then
+    // streamed through unchanged rather than rejected; a parse failure (MALFORMED) always rejects
     private final boolean lenient;
-    private final List<ValueTransform> transforms;
-    private final int extPadding;
-
-    private final ExpandableArrayBufferEx valueBuffer;
-    private final ExpandableArrayBufferEx scratchA;
-    private final ExpandableArrayBufferEx scratchB;
-    private final ExpandableArrayBufferEx outputBuffer;
-
+    private final ModelEnvelope envelope;
+    private final int padding;
     private final ModelPipelineResult result;
+    private final UnsafeBufferEx segment;
 
-    private int valueLength;
-    private int pendingOffset;
-    private int pendingLength;
+    private MutableDirectBufferEx target;
+    private int targetAt;
+    private int targetLimit;
+
+    private Phase phase;
+    private ValueEvent pending;
+    private boolean initial;
+    private boolean finished;
+    private int reported;
+    private String diagnostic;
+    private boolean withheld;
 
     CoreExtModelPipeline(
         CoreModelHandler handler,
         CoreModelValidator validator,
         boolean lenient,
-        List<ValueTransform> transforms,
-        int extPadding)
+        ModelEnvelope envelope,
+        int padding)
     {
         this.handler = handler;
         this.validator = validator;
         this.lenient = lenient;
-        this.transforms = transforms;
-        this.extPadding = extPadding;
-        this.valueBuffer = new ExpandableArrayBufferEx();
-        this.scratchA = new ExpandableArrayBufferEx();
-        this.scratchB = new ExpandableArrayBufferEx();
-        this.outputBuffer = new ExpandableArrayBufferEx();
+        this.envelope = envelope;
+        this.padding = padding;
         this.result = new ModelPipelineResult();
+        this.segment = new UnsafeBufferEx(new byte[0]);
+        this.phase = Phase.START;
+        this.initial = true;
     }
 
     @Override
-    public ModelPipelineResult transform(
+    public final ModelPipelineResult transform(
         long traceId,
         long bindingId,
         long authorization,
@@ -83,69 +102,43 @@ final class CoreExtModelPipeline implements ModelPipeline
         int dstIndex,
         int dstLimit)
     {
-        ModelPipelineResult outcome;
-        if (pendingLength > 0)
-        {
-            outcome = drain(dst, dstIndex, dstLimit);
-        }
-        else
-        {
-            outcome = accumulate(traceId, bindingId, flags, src, srcIndex, srcLimit, dst, dstIndex, dstLimit);
-        }
-        return outcome;
-    }
-
-    @Override
-    public boolean identity()
-    {
-        return false;
-    }
-
-    @Override
-    public int padding(
-        DirectBufferEx data,
-        int index,
-        int length)
-    {
-        return extPadding;
-    }
-
-    @Override
-    public void reset()
-    {
-        valueLength = 0;
-        pendingOffset = 0;
-        pendingLength = 0;
-    }
-
-    private ModelPipelineResult accumulate(
-        long traceId,
-        long bindingId,
-        int flags,
-        DirectBufferEx src,
-        int srcIndex,
-        int srcLimit,
-        MutableDirectBufferEx dst,
-        int dstIndex,
-        int dstLimit)
-    {
         if ((flags & FLAGS_INIT) != 0x00)
         {
-            valueLength = 0;
+            reset();
         }
 
-        int srcLength = srcLimit - srcIndex;
-        valueBuffer.putBytes(valueLength, src, srcIndex, srcLength);
-        valueLength += srcLength;
+        target = dst;
+        targetAt = dstIndex;
+        targetLimit = dstLimit;
+        reported = 0;
 
-        ModelPipelineResult outcome;
-        if ((flags & FLAGS_FIN) == 0x00)
+        int srcLength = srcLimit - srcIndex;
+        boolean last = (flags & FLAGS_FIN) != 0x00;
+        segment.wrap(src, srcIndex, srcLength);
+
+        ModelStatus pumped = pump(srcLength, last);
+
+        ModelStatus status;
+        int consumed;
+        int produced;
+        if (pumped == ModelStatus.REJECTED)
         {
-            outcome = result.set(ModelStatus.UNDERFLOW, srcLength, 0);
+            // withholding is a stage's own decision about a value it found nothing wrong with, so it
+            // raises no event; rejecting is a failure, reported with whatever diagnostic the stage gave
+            if (!withheld)
+            {
+                report(traceId, bindingId);
+            }
+
+            status = ModelStatus.REJECTED;
+            consumed = 0;
+            produced = 0;
         }
         else
         {
-            Validity validity = validator.validate(CoreModelValidator.FLAGS_COMPLETE, valueBuffer, 0, valueLength);
+            consumed = consumption(srcLength);
+            boolean tail = last && consumed == srcLength;
+            Validity validity = validate(src, srcIndex, consumed, tail);
             boolean reject = validity == Validity.MALFORMED || validity == Validity.INVALID && !lenient;
             if (validity != Validity.VALID)
             {
@@ -154,80 +147,197 @@ final class CoreExtModelPipeline implements ModelPipeline
 
             if (reject)
             {
-                outcome = result.set(ModelStatus.REJECTED, srcLength, 0);
+                status = ModelStatus.REJECTED;
+                consumed = 0;
+                produced = 0;
             }
             else
             {
-                outcome = extend(srcLength, dst, dstIndex, dstLimit);
+                status = pending != null
+                    ? ModelStatus.OVERFLOW
+                    : phase == Phase.DONE ? ModelStatus.COMPLETE : ModelStatus.UNDERFLOW;
+                produced = targetAt - dstIndex;
             }
         }
-        return outcome;
+        return result.set(status, consumed, produced);
     }
 
-    // folds the accumulated whole value through every installed extension's transform, in discovery
-    // order; an extension signalling ValueTransform.OMIT withholds the value from delivery entirely
-    private ModelPipelineResult extend(
-        int consumed,
-        MutableDirectBufferEx dst,
-        int dstIndex,
-        int dstLimit)
+    @Override
+    public final int padding(
+        DirectBufferEx data,
+        int index,
+        int length)
     {
-        DirectBufferEx buf = valueBuffer;
-        int off = 0;
-        int len = valueLength;
-        boolean omitted = false;
+        return padding;
+    }
 
-        int count = transforms.size();
-        for (int i = 0; i < count; i++)
+    @Override
+    public final void reset()
+    {
+        phase = Phase.START;
+        pending = null;
+        initial = true;
+        finished = false;
+        reported = 0;
+        diagnostic = null;
+        withheld = false;
+        resetChain();
+    }
+
+    // feeds one event to the head of the composed chain
+    protected abstract ModelStatus feed(
+        ValueEvent event);
+
+    // continues the event a prior OVERFLOW left in flight, once the caller has drained the destination
+    protected abstract ModelStatus resume(
+        ValueEvent event);
+
+    protected abstract void resetChain();
+
+    // the terminal write, bounded by the caller's destination; the caller reports what it took so the
+    // segment's remainder is re-exposed when the event resumes
+    protected final int write(
+        DirectBufferEx buffer,
+        int index,
+        int length)
+    {
+        int written = Math.min(targetLimit - targetAt, length);
+        target.putBytes(targetAt, buffer, index, written);
+        targetAt += written;
+        return written;
+    }
+
+    protected final DirectBufferEx segment()
+    {
+        return segment;
+    }
+
+    protected final ModelEnvelope envelope()
+    {
+        return envelope;
+    }
+
+    protected final void consumed(
+        int sourceBytes)
+    {
+        reported += sourceBytes;
+    }
+
+    protected final void reject(
+        String diagnostic)
+    {
+        this.diagnostic = diagnostic;
+    }
+
+    protected final void withhold()
+    {
+        withheld = true;
+    }
+
+    // one call delivers at most value-start, one segment, and value-end, in that order; whichever of them
+    // a bounded destination stopped becomes the event the next call resumes
+    private ModelStatus pump(
+        int srcLength,
+        boolean last)
+    {
+        ModelStatus status = ModelStatus.OK;
+
+        if (phase == Phase.START)
         {
-            ValueTransform transform = transforms.get(i);
-            ExpandableArrayBufferEx target = i == count - 1 ? outputBuffer : i % 2 == 0 ? scratchA : scratchB;
-            int produced = transform.transform(buf, off, len, target, 0);
-            if (produced == ValueTransform.OMIT)
+            status = advance(ValueEvent.START_VALUE);
+            if (status == ModelStatus.OK)
             {
-                omitted = true;
-                break;
+                phase = Phase.SEGMENTS;
             }
-            buf = target;
-            off = 0;
-            len = produced;
         }
 
-        ModelPipelineResult outcome;
-        if (omitted)
+        if (status == ModelStatus.OK && phase == Phase.SEGMENTS)
         {
-            outcome = result.set(ModelStatus.REJECTED, consumed, 0);
+            if (srcLength > 0 || pending == ValueEvent.SEGMENT)
+            {
+                status = advance(ValueEvent.SEGMENT);
+            }
+
+            if (status == ModelStatus.OK && last)
+            {
+                phase = Phase.END;
+            }
+        }
+
+        if (status == ModelStatus.OK && phase == Phase.END)
+        {
+            status = advance(ValueEvent.END_VALUE);
+            if (status == ModelStatus.OK)
+            {
+                phase = Phase.DONE;
+            }
+        }
+
+        return status;
+    }
+
+    private ModelStatus advance(
+        ValueEvent event)
+    {
+        ModelStatus status = pending == event ? resume(event) : feed(event);
+        pending = status == ModelStatus.OVERFLOW ? event : null;
+        return status;
+    }
+
+    // accepting the segment event accepts the whole window; a bounded write that suspended mid-segment
+    // consumed only what it reported, and nothing before the segment consumes input at all
+    private int consumption(
+        int srcLength)
+    {
+        int consumed;
+        if (pending == ValueEvent.START_VALUE)
+        {
+            consumed = 0;
+        }
+        else if (pending == ValueEvent.SEGMENT)
+        {
+            consumed = reported;
         }
         else
         {
-            pendingOffset = 0;
-            pendingLength = len;
-            outcome = drainInto(dst, dstIndex, dstLimit, consumed);
+            consumed = srcLength;
         }
-        return outcome;
+        return consumed;
     }
 
-    private ModelPipelineResult drain(
-        MutableDirectBufferEx dst,
-        int dstIndex,
-        int dstLimit)
+    // validates exactly the bytes the chain took this call, so a window consumed across several calls is
+    // decoded once end to end. INIT and FIN each reach the validator once per value: a stage still draining
+    // its own output after the last input was consumed keeps returning OVERFLOW against an empty window,
+    // which would otherwise re-run the model's final checks on every one of those calls
+    private Validity validate(
+        DirectBufferEx src,
+        int srcIndex,
+        int consumed,
+        boolean tail)
     {
-        return drainInto(dst, dstIndex, dstLimit, 0);
+        Validity validity = Validity.VALID;
+        boolean fin = tail && !finished;
+        if (consumed > 0 || fin)
+        {
+            int fragmentFlags = (initial ? FLAGS_INIT : 0x00) | (fin ? FLAGS_FIN : 0x00);
+            validity = validator.validate(fragmentFlags, src, srcIndex, consumed);
+            initial = false;
+            finished |= fin;
+        }
+        return validity;
     }
 
-    private ModelPipelineResult drainInto(
-        MutableDirectBufferEx dst,
-        int dstIndex,
-        int dstLimit,
-        int consumed)
+    private void report(
+        long traceId,
+        long bindingId)
     {
-        int dstAvailable = dstLimit - dstIndex;
-        int produced = Math.min(pendingLength, dstAvailable);
-        dst.putBytes(dstIndex, outputBuffer, pendingOffset, produced);
-        pendingOffset += produced;
-        pendingLength -= produced;
-
-        ModelStatus status = pendingLength > 0 ? ModelStatus.OVERFLOW : ModelStatus.COMPLETE;
-        return result.set(status, consumed, produced);
+        if (diagnostic != null)
+        {
+            handler.validationFailure(traceId, bindingId, diagnostic);
+        }
+        else
+        {
+            handler.validationFailure(traceId, bindingId);
+        }
     }
 }

@@ -28,6 +28,19 @@ public interface JsonController
     void segmentable();
 
     /**
+     * Returns the metadata travelling alongside the value being transformed, addressed by name rather than
+     * by position within the value. The default is {@link JsonEnvelope#NONE}, in force when no envelope
+     * was supplied to the pipeline, so a stage reads an empty envelope rather than no envelope at all. A
+     * mediating stage may supply its own to its downstream.
+     *
+     * @return the envelope in force for this pipeline
+     */
+    default JsonEnvelope envelope()
+    {
+        return JsonEnvelope.NONE;
+    }
+
+    /**
      * Opts in to receiving {@link JsonEvent#isVerbatim()} events: the caller is willing to read the current
      * value (and the run it coalesces into) as original source bytes via {@link JsonSource#getVerbatim(int)}
      * <em>alongside</em> the structured event stream, rather than re-serializing it canonically. Peer of

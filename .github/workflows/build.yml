@@ -252,6 +252,14 @@ jobs:
 
       - name: Execute Test
         working-directory: examples/${{ matrix.dir }}
+        # Without a cap this step inherits GitHub's 6h job ceiling, and a test that
+        # stalls holds a runner that whole time while serving no logs -- in-progress
+        # jobs have none, so the failure is invisible until it is hours old. The cap
+        # also converts a stall into failure(), which is what runs the docker log and
+        # engine directory collection below; a hang collects nothing. Every example
+        # except mcp.proxy finishes inside two minutes, and mcp.proxy's own bounded
+        # worst case sits well under this, so 30m only ever fires on a genuine stall.
+        timeout-minutes: 30
         run: |
           set -o pipefail
           ./.github/test.sh | tee $GITHUB_STEP_SUMMARY
@@ -261,6 +269,17 @@ jobs:
         uses: jwalton/gh-docker-logs@v2
         with:
           dest: "./logs"
+      # `zilla dump` reads a collected engine directory, so ship it with the logs.
+      # Copied out rather than bind-mounted: a host mount over /var/run/zilla can
+      # collide with the container user's ownership of it and break the example
+      # itself. Lands inside ./logs, which is already tarred and uploaded below.
+      - name: Collect zilla engine directory on failure
+        if: failure()
+        working-directory: examples/${{ matrix.dir }}
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/logs"
+          docker compose cp zilla:/var/run/zilla "$GITHUB_WORKSPACE/logs/engine" || true
+
       - name: Tar logs
         if: failure()
         run: tar cvzf ./logs.tgz ./logs

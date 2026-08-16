@@ -35,6 +35,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaTopicTransfo
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelFieldBridge;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
@@ -245,6 +246,7 @@ public class KafkaPipelineTest
         {
             @Override
             public ModelPipeline supplyDecoder(
+                ModelEnvelope envelope,
                 ModelTransform transform)
             {
                 return new FieldsPipeline(transform, pathsAndValues, false);
@@ -252,9 +254,10 @@ public class KafkaPipelineTest
 
             @Override
             public ModelPipeline supplyEncoder(
+                ModelEnvelope envelope,
                 ModelTransform transform)
             {
-                return supplyDecoder(transform);
+                return supplyDecoder(envelope, transform);
             }
         };
     }
@@ -268,6 +271,7 @@ public class KafkaPipelineTest
         {
             @Override
             public ModelPipeline supplyDecoder(
+                ModelEnvelope envelope,
                 ModelTransform transform)
             {
                 return new FieldsPipeline(transform, new String[] { path, "east" }, true);
@@ -275,9 +279,10 @@ public class KafkaPipelineTest
 
             @Override
             public ModelPipeline supplyEncoder(
+                ModelEnvelope envelope,
                 ModelTransform transform)
             {
-                return supplyDecoder(transform);
+                return supplyDecoder(envelope, transform);
             }
         };
     }

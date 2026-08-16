@@ -28,13 +28,18 @@ import io.aklivity.zilla.config.model.core.BytesModelConfig;
 import io.aklivity.zilla.config.model.core.StringModelConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 import io.aklivity.zilla.runtime.engine.model.ModelTransform;
+import io.aklivity.zilla.runtime.model.core.ext.BytesController;
+import io.aklivity.zilla.runtime.model.core.ext.BytesEvent;
 import io.aklivity.zilla.runtime.model.core.ext.BytesModelExtContext;
 import io.aklivity.zilla.runtime.model.core.ext.BytesModelExtHandler;
+import io.aklivity.zilla.runtime.model.core.ext.BytesSink;
+import io.aklivity.zilla.runtime.model.core.ext.BytesSource;
 import io.aklivity.zilla.runtime.model.core.ext.BytesTransform;
 import io.aklivity.zilla.runtime.model.core.ext.BytesTransformable;
 
@@ -50,7 +55,7 @@ public class BytesModelContextTest
 
         assertThat(handler, instanceOf(CoreModelHandler.class));
 
-        ModelPipeline pipeline = handler.supplyDecoder(ModelTransform.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
         byte[] bytes = { (byte) 0xDE, (byte) 0xAD, (byte) 0xBE, (byte) 0xEF };
         UnsafeBufferEx dst = new UnsafeBufferEx(new byte[16]);
 
@@ -73,9 +78,9 @@ public class BytesModelContextTest
         BytesModelContext context = new BytesModelContext(mock(EngineContext.class), List.of(ext1, ext2));
         ModelHandler handler = context.supplyHandler(BytesModelConfig.builder().build());
 
-        assertThat(handler, instanceOf(CoreExtModelHandler.class));
+        assertThat(handler, instanceOf(BytesExtModelHandler.class));
 
-        ModelPipeline pipeline = handler.supplyDecoder(ModelTransform.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
         byte[] bytes = "ignored".getBytes();
         UnsafeBufferEx dst = new UnsafeBufferEx(new byte[16]);
 
@@ -104,7 +109,7 @@ public class BytesModelContextTest
         byte[] bytes = "abc".getBytes();
         for (int i = 0; i < 3; i++)
         {
-            ModelPipeline pipeline = handler.supplyDecoder(ModelTransform.NONE);
+            ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
             UnsafeBufferEx dst = new UnsafeBufferEx(new byte[16]);
             pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
                 new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
@@ -127,10 +132,10 @@ public class BytesModelContextTest
         ModelHandler bytesHandler = bytesContext.supplyHandler(BytesModelConfig.builder().build());
         ModelHandler stringHandler = stringContext.supplyHandler(StringModelConfig.builder().build());
 
-        assertThat(bytesHandler, instanceOf(CoreExtModelHandler.class));
+        assertThat(bytesHandler, instanceOf(BytesExtModelHandler.class));
         assertThat(stringHandler, instanceOf(CoreModelHandler.class));
 
-        ModelPipeline stringPipeline = stringHandler.supplyDecoder(ModelTransform.NONE);
+        ModelPipeline stringPipeline = stringHandler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
         byte[] bytes = "unaffected".getBytes();
         UnsafeBufferEx dst = new UnsafeBufferEx(new byte[32]);
 
@@ -144,45 +149,116 @@ public class BytesModelContextTest
     private static BytesModelExtHandler stream(
         BytesTransform transform)
     {
-        return stream -> stream.transform(transform);
+        return new BytesModelExtHandler()
+        {
+            @Override
+            public <T extends BytesTransformable<T>> T decode(
+                T stream)
+            {
+                return stream.transform(transform);
+            }
+        };
     }
 
     private static BytesTransform replaceWith(
         String value)
     {
-        byte[] replacement = value.getBytes();
-        return (src, index, length, dst, dstIndex) ->
-        {
-            dst.putBytes(dstIndex, new UnsafeBufferEx(replacement), 0, replacement.length);
-            return replacement.length;
-        };
+        return new Substitute(value);
     }
 
     private static BytesModelExtHandler handlerAppending(
         String suffix,
         int padding)
     {
-        byte[] suffixBytes = suffix.getBytes();
-        BytesTransform append = (value, index, length, dst, dstIndex) ->
-        {
-            dst.putBytes(dstIndex, value, index, length);
-            dst.putBytes(dstIndex + length, new UnsafeBufferEx(suffixBytes), 0, suffixBytes.length);
-            return length + suffixBytes.length;
-        };
+        BytesTransform append = new Suffix(suffix);
         return new BytesModelExtHandler()
         {
             @Override
-            public BytesTransformable transform(
-                BytesTransformable stream)
+            public <T extends BytesTransformable<T>> T decode(
+                T stream)
             {
                 return stream.transform(append);
             }
 
             @Override
-            public int padding()
+            public int decodePadding()
             {
                 return padding;
             }
         };
+    }
+
+    // drops the value's own bytes and emits its replacement once, at value end
+    private static final class Substitute implements BytesTransform
+    {
+        private final UnsafeBufferEx value;
+        private final BytesSource source;
+
+        private Substitute(
+            String value)
+        {
+            this.value = new UnsafeBufferEx(value.getBytes());
+            this.source = () -> this.value;
+        }
+
+        @Override
+        public ModelStatus transform(
+            BytesController control,
+            BytesSource source,
+            BytesEvent event,
+            BytesSink sink)
+        {
+            ModelStatus status = ModelStatus.OK;
+            if (event == BytesEvent.END_VALUE)
+            {
+                status = sink.transform(control, this.source, BytesEvent.SEGMENT);
+                if (status == ModelStatus.OK)
+                {
+                    status = sink.transform(control, source, event);
+                }
+            }
+            else if (event == BytesEvent.START_VALUE)
+            {
+                status = sink.transform(control, source, event);
+            }
+            return status;
+        }
+    }
+
+    // forwards every segment, then emits its own suffix once, at value end
+    private static final class Suffix implements BytesTransform
+    {
+        private final UnsafeBufferEx suffix;
+        private final BytesSource source;
+
+        private Suffix(
+            String suffix)
+        {
+            this.suffix = new UnsafeBufferEx(suffix.getBytes());
+            this.source = () -> this.suffix;
+        }
+
+        @Override
+        public ModelStatus transform(
+            BytesController control,
+            BytesSource source,
+            BytesEvent event,
+            BytesSink sink)
+        {
+            ModelStatus status = ModelStatus.OK;
+            if (event == BytesEvent.END_VALUE)
+            {
+                status = sink.transform(control, this.source, BytesEvent.SEGMENT);
+                if (status == ModelStatus.OK)
+                {
+                    status = sink.transform(control, source, event);
+                }
+            }
+            else
+            {
+                status = sink.transform(control, source, event);
+            }
+            return status;
+        }
     }
 }
