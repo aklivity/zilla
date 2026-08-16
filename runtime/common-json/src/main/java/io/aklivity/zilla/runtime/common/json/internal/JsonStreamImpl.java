@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 
 import io.aklivity.zilla.runtime.common.json.JsonController;
+import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
@@ -42,6 +43,7 @@ public final class JsonStreamImpl implements JsonStream
     private final List<JsonTransform> transforms;
 
     private JsonReporter reporter = JsonReporter.NONE;
+    private JsonEnvelope envelope = JsonEnvelope.NONE;
     private boolean lenient;
 
     public JsonStreamImpl(
@@ -76,10 +78,18 @@ public final class JsonStreamImpl implements JsonStream
     }
 
     @Override
+    public JsonStream envelope(
+        JsonEnvelope envelope)
+    {
+        this.envelope = envelope != null ? envelope : JsonEnvelope.NONE;
+        return this;
+    }
+
+    @Override
     public JsonPipeline into(
         JsonSink sink)
     {
-        return new JsonPipelineImpl(parser, bind(sink), reporter, null, lenient);
+        return new JsonPipelineImpl(parser, bind(sink), reporter, null, lenient, envelope);
     }
 
     @Override
@@ -88,7 +98,7 @@ public final class JsonStreamImpl implements JsonStream
     {
         // the generator self-wraps an empty buffer on construction, so it is already in a sink-safe
         // state here; transform re-targets it at the caller's destination per call
-        return new JsonPipelineImpl(parser, bind(new JsonSinkImpl(generator)), reporter, generator, lenient);
+        return new JsonPipelineImpl(parser, bind(new JsonSinkImpl(generator)), reporter, generator, lenient, envelope);
     }
 
     @Override
@@ -97,7 +107,7 @@ public final class JsonStreamImpl implements JsonStream
         Map<String, ?> config)
     {
         boolean canonical = config.get(JsonSink.DELIVERY) == JsonSink.Delivery.STRUCTURED;
-        return new JsonPipelineImpl(parser, bind(new JsonSinkImpl(generator, canonical)), reporter, generator, lenient);
+        return new JsonPipelineImpl(parser, bind(new JsonSinkImpl(generator, canonical)), reporter, generator, lenient, envelope);
     }
 
     private JsonSink bind(

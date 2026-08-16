@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.common.protobuf.internal;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufEnvelope;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufGenerator;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufParser;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufPipeline;
@@ -36,6 +37,7 @@ public final class ProtobufStreamImpl implements ProtobufStream
     private final List<ProtobufTransform> transforms;
 
     private ProtobufReporter reporter = ProtobufReporter.NONE;
+    private ProtobufEnvelope envelope = ProtobufEnvelope.NONE;
     private boolean lenient;
 
     public ProtobufStreamImpl(
@@ -70,10 +72,18 @@ public final class ProtobufStreamImpl implements ProtobufStream
     }
 
     @Override
+    public ProtobufStream envelope(
+        ProtobufEnvelope envelope)
+    {
+        this.envelope = envelope != null ? envelope : ProtobufEnvelope.NONE;
+        return this;
+    }
+
+    @Override
     public ProtobufPipeline into(
         ProtobufSink sink)
     {
-        return new ProtobufPipelineImpl(parser, transforms, sink, reporter, null, lenient);
+        return new ProtobufPipelineImpl(parser, transforms, sink, reporter, null, lenient, envelope);
     }
 
     @Override
@@ -81,7 +91,7 @@ public final class ProtobufStreamImpl implements ProtobufStream
         ProtobufGenerator generator)
     {
         // the pipeline owns the generator and re-targets it at the caller's destination per transform call
-        return new ProtobufPipelineImpl(parser, transforms, ProtobufSink.of(generator), reporter, generator, lenient);
+        return new ProtobufPipelineImpl(parser, transforms, ProtobufSink.of(generator), reporter, generator, lenient, envelope);
     }
 
     @Override
@@ -92,6 +102,6 @@ public final class ProtobufStreamImpl implements ProtobufStream
     {
         // the pipeline owns the generator and re-targets it at the caller's destination per transform call
         return new ProtobufPipelineImpl(parser, transforms, ProtobufSink.of(generator, schema, messageName), reporter,
-            generator, lenient);
+            generator, lenient, envelope);
     }
 }

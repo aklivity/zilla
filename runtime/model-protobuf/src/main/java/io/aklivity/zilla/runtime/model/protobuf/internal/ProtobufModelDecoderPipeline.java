@@ -22,6 +22,7 @@ import java.util.Map;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufDiagnostic;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufEnvelope;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufMessage;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufPipeline;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufPipeline.Status;
@@ -47,6 +48,7 @@ final class ProtobufModelDecoderPipeline implements ModelPipeline
     private final ModelFieldBridge bridge;
     private final ProtobufExtractor extractor;
     private final Map<String, ProtobufPipeline> pipelines;
+    private final ProtobufEnvelope envelope;
     private final ModelPipelineResult result;
 
     private ProtobufPipeline active;
@@ -54,8 +56,10 @@ final class ProtobufModelDecoderPipeline implements ModelPipeline
 
     ProtobufModelDecoderPipeline(
         ProtobufModelHandlerImpl handler,
+        ProtobufEnvelope envelope,
         ModelTransform transform)
     {
+        this.envelope = envelope;
         this.handler = handler;
         this.bridge = transform != ModelTransform.NONE ? new ModelFieldBridge(transform) : null;
         // a NONE transform keeps the verbatim/SEGMENTED fast path: no extractor stage, no structured field events
@@ -175,7 +179,7 @@ final class ProtobufModelDecoderPipeline implements ModelPipeline
         ProtobufPipeline pipeline = pipelines.get(messageName);
         if (pipeline == null)
         {
-            pipeline = handler.newPipeline(schemaId, handler.decodeLenient, messageName, extractor, this::onRejected);
+            pipeline = handler.newPipeline(schemaId, handler.decodeLenient, messageName, extractor, this::onRejected, envelope);
             pipelines.put(messageName, pipeline);
         }
         return pipeline;
