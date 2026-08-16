@@ -37,7 +37,6 @@ import static io.aklivity.zilla.runtime.common.avro.AvroEvent.START_RECORD;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.STRING;
 import static io.aklivity.zilla.runtime.common.avro.AvroEvent.UNION_BRANCH;
 import static java.nio.ByteOrder.LITTLE_ENDIAN;
-import static java.nio.charset.StandardCharsets.UTF_8;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
@@ -82,6 +81,7 @@ public final class AvroParserImpl implements AvroParser
     private final AvroNode root;
     private final UnsafeBufferEx segmentView;
     private final AvroLocationImpl location;
+    private final CharText chars;
 
     private DirectBufferEx buffer;
     private int offset;
@@ -125,6 +125,7 @@ public final class AvroParserImpl implements AvroParser
         this.root = (AvroNode) schema.type();
         this.segmentView = new UnsafeBufferEx(0, 0);
         this.location = new AvroLocationImpl();
+        this.chars = new CharText(64);
         this.nodeStack = new AvroNode[16];
         this.stateStack = new int[16];
         this.countStack = new long[16];
@@ -954,7 +955,20 @@ public final class AvroParserImpl implements AvroParser
         String value = string;
         if (value == null && valueLength > 0)
         {
-            value = decode();
+            chars.utf8(buffer, valueOffset, valueLength);
+            value = chars.toString();
+        }
+        return value;
+    }
+
+    @Override
+    public CharSequence getStringView()
+    {
+        CharSequence value = string;
+        if (value == null && valueLength > 0)
+        {
+            chars.utf8(buffer, valueOffset, valueLength);
+            value = chars;
         }
         return value;
     }
@@ -968,7 +982,11 @@ public final class AvroParserImpl implements AvroParser
     @Override
     public String getKey()
     {
-        return valueLength > 0 ? decode() : null;
+        if (valueLength > 0)
+        {
+            chars.utf8(buffer, valueOffset, valueLength);
+        }
+        return valueLength > 0 ? chars.toString() : null;
     }
 
     @Override
@@ -995,13 +1013,6 @@ public final class AvroParserImpl implements AvroParser
     public AvroLocation getLocation()
     {
         return location;
-    }
-
-    private String decode()
-    {
-        byte[] dst = new byte[valueLength];
-        buffer.getBytes(valueOffset, dst);
-        return new String(dst, UTF_8);
     }
 
     private int readVarint(

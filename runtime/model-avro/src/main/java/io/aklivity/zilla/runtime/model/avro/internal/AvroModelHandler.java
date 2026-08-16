@@ -135,7 +135,7 @@ public abstract class AvroModelHandler
     }
 
     // overridden by AvroModelHandlerImpl to sum the padding contributed by each installed model extension;
-    // the base (encoder) handler never installs extensions, so this stays 0 there
+    // this default (no extensions installed) stays 0
     protected int extPadding(
         AvroSchema schema)
     {

@@ -20,4 +20,5 @@ accept "zilla://streams/app0"
 accepted
 connected
 
+read "{\"id\":42,\"status\":\"OK\","
 read aborted
