@@ -499,6 +499,30 @@ public class NamespaceConfigAdapterTest
     }
 
     @Test
+    public void shouldWriteNamespaceWithCatalogVaultAndGuard()
+    {
+        NamespaceConfig config = NamespaceConfig.builder()
+                .inject(identity())
+                .name("test")
+                .catalog()
+                    .name("default")
+                    .type("test")
+                    .vault("vault0")
+                    .guard("guard0")
+                    .options(TestCatalogOptionsConfig::builder)
+                        .schema("test")
+                        .build()
+                    .build()
+                .build();
+
+        String text = jsonb.toJson(config);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, equalTo("{\"name\":\"test\",\"catalogs\":{\"default\":{\"type\":\"test\"," +
+                "\"vault\":\"vault0\",\"guard\":\"guard0\",\"options\":{\"schema\":\"test\"}}}}"));
+    }
+
+    @Test
     public void shouldReadNamespaceWithTelemetry()
     {
         String text =

@@ -49,6 +49,16 @@ public class CatalogConfigAdapter
 
         object.add(TYPE_NAME, catalog.type);
 
+        if (catalog.vault != null)
+        {
+            object.add(VAULT_NAME, catalog.vault);
+        }
+
+        if (catalog.guard != null)
+        {
+            object.add(GUARD_NAME, catalog.guard);
+        }
+
         if (catalog.options != null)
         {
             object.add(OPTIONS_NAME, options.adaptToJson(catalog.options));
