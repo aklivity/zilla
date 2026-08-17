@@ -53,7 +53,7 @@ public class InlineIT
                 "{\"name\":\"status\",\"type\":\"string\"}]," +
                 "\"name\":\"Event\",\"namespace\":\"io.aklivity.example\",\"type\":\"record\"}";
 
-        InlineCatalogHandler catalog = new InlineCatalogHandler(config);
+        InlineCatalogHandler catalog = new InlineCatalogHandler(config, null);
 
         int schemaId = catalog.resolve("subject1", "latest");
         String schema = catalog.resolve(schemaId);
@@ -65,7 +65,7 @@ public class InlineIT
     @Test
     public void shouldResolveSchemaIdAndProcessData()
     {
-        InlineCatalogHandler catalog = new InlineCatalogHandler(config);
+        InlineCatalogHandler catalog = new InlineCatalogHandler(config, null);
 
         DirectBufferEx data = new UnsafeBufferEx();
 
@@ -85,7 +85,7 @@ public class InlineIT
     @Test
     public void shouldVerifyEncodedData()
     {
-        InlineCatalogHandler catalog = new InlineCatalogHandler(config);
+        InlineCatalogHandler catalog = new InlineCatalogHandler(config, null);
 
         DirectBufferEx data = new UnsafeBufferEx();
 

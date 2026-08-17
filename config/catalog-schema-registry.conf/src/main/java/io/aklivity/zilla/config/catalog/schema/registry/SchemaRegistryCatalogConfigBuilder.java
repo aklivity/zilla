@@ -49,8 +49,9 @@ public final class SchemaRegistryCatalogConfigBuilder<T>
         String name,
         String type,
         String vault,
+        String guard,
         OptionsConfig options)
     {
-        return new SchemaRegistryCatalogConfig(namespace, name, type, vault, options);
+        return new SchemaRegistryCatalogConfig(namespace, name, type, vault, guard, options);
     }
 }

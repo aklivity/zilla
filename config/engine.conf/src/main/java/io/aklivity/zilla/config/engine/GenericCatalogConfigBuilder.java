@@ -51,8 +51,9 @@ public final class GenericCatalogConfigBuilder<T> extends CatalogConfigBuilder<T
         String name,
         String type,
         String vault,
+        String guard,
         OptionsConfig options)
     {
-        return new GenericCatalogConfig(namespace, name, type, vault, options);
+        return new GenericCatalogConfig(namespace, name, type, vault, guard, options);
     }
 }

@@ -37,8 +37,9 @@ public final class FilesystemCatalogConfig extends CatalogConfig
         String name,
         String type,
         String vault,
+        String guard,
         OptionsConfig options)
     {
-        super(namespace, name, type, vault, options);
+        super(namespace, name, type, vault, guard, options);
     }
 }
