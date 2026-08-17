@@ -141,6 +141,11 @@
                     "validate":
                     {
                         "$ref": "#/$defs/validate"
+                    },
+                    "vault":
+                    {
+                        "title": "Vault",
+                        "type": "string"
                     }
                 },
                 "required":

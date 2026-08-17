@@ -22,13 +22,16 @@ public abstract class ModelConfig extends Config.Extensible
     public final String model;
     public final List<CatalogedConfig> cataloged;
     public final ValidateConfig validate;
+    public final String vault;
+
+    public transient long vaultId;
 
     protected ModelConfig(
         String model,
         List<CatalogedConfig> cataloged,
         ValidateConfig validate)
     {
-        this(model, cataloged, validate, null);
+        this(model, cataloged, validate, null, null);
     }
 
     protected ModelConfig(
@@ -37,9 +40,20 @@ public abstract class ModelConfig extends Config.Extensible
         ValidateConfig validate,
         Map<String, Config> extensions)
     {
+        this(model, cataloged, validate, null, extensions);
+    }
+
+    protected ModelConfig(
+        String model,
+        List<CatalogedConfig> cataloged,
+        ValidateConfig validate,
+        String vault,
+        Map<String, Config> extensions)
+    {
         super(extensions);
         this.model = model;
         this.cataloged = cataloged;
         this.validate = validate != null ? validate : ValidateConfig.STRICT;
+        this.vault = vault;
     }
 }

@@ -31,6 +31,7 @@ public class AvroModelConfigBuilder<T> extends ConfigBuilder.Extensible<T, AvroM
     private String subject;
     private String view;
     private ValidateConfig validate;
+    private String vault;
 
     AvroModelConfigBuilder(
         Function<AvroModelConfig, T> mapper)
@@ -66,6 +67,13 @@ public class AvroModelConfigBuilder<T> extends ConfigBuilder.Extensible<T, AvroM
         return this;
     }
 
+    public AvroModelConfigBuilder<T> vault(
+        String vault)
+    {
+        this.vault = vault;
+        return this;
+    }
+
     public CatalogedConfigBuilder<AvroModelConfigBuilder<T>> catalog()
     {
         return CatalogedConfig.builder(this::catalog);
@@ -85,6 +93,6 @@ public class AvroModelConfigBuilder<T> extends ConfigBuilder.Extensible<T, AvroM
     @Override
     public T build()
     {
-        return mapper.apply(new AvroModelConfig(catalogs, subject, view, validate, extensions()));
+        return mapper.apply(new AvroModelConfig(catalogs, subject, view, validate, vault, extensions()));
     }
 }

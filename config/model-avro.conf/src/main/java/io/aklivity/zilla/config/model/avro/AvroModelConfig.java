@@ -33,9 +33,10 @@ public final class AvroModelConfig extends ModelConfig
         String subject,
         String view,
         ValidateConfig validate,
+        String vault,
         Map<String, Config> extensions)
     {
-        super("avro", cataloged, validate, extensions);
+        super("avro", cataloged, validate, vault, extensions);
         this.subject = subject;
         this.view = view;
     }

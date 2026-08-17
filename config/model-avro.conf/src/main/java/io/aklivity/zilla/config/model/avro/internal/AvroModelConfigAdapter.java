@@ -43,6 +43,7 @@ public final class AvroModelConfigAdapter extends ConfigAdapter.Extensible<Model
     private static final String SUBJECT_NAME = "subject";
     private static final String VIEW = "view";
     private static final String VALIDATE_NAME = "validate";
+    private static final String VAULT_NAME = "vault";
 
     private final SchemaConfigAdapter schema = new SchemaConfigAdapter();
     private final ValidateConfigAdapter validate = new ValidateConfigAdapter();
@@ -87,6 +88,11 @@ public final class AvroModelConfigAdapter extends ConfigAdapter.Extensible<Model
             builder.add(VALIDATE_NAME, validateJson);
         }
 
+        if (model.vault != null)
+        {
+            builder.add(VAULT_NAME, model.vault);
+        }
+
         injectExtensions(model, builder);
 
         return builder.build();
@@ -125,10 +131,15 @@ public final class AvroModelConfigAdapter extends ConfigAdapter.Extensible<Model
 
         ValidateConfig validateConfig = validate.adaptFromJsonObject(object);
 
+        String vault = object.containsKey(VAULT_NAME)
+                ? object.getString(VAULT_NAME)
+                : null;
+
         AvroModelConfigBuilder<AvroModelConfig> builder = AvroModelConfig.builder()
             .subject(subject)
             .view(view)
-            .validate(validateConfig);
+            .validate(validateConfig)
+            .vault(vault);
         catalogs.forEach(builder::catalog);
 
         injectExtensions(object, builder);

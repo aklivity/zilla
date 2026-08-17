@@ -440,6 +440,11 @@ public class EngineManager
             {
                 for (ModelConfig model : binding.options.models)
                 {
+                    if (model.vault != null)
+                    {
+                        model.vaultId = resolver.resolve(model.vault);
+                    }
+
                     if (model.cataloged != null)
                     {
                         for (CatalogedConfig cataloged : model.cataloged)
