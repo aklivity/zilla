@@ -79,7 +79,7 @@ final class JsonModelEncoderPipeline implements ModelPipeline
         int prefix = 0;
         if ((flags & FLAGS_INIT) != 0)
         {
-            int schemaId = handler.resolveSchemaId();
+            int schemaId = handler.resolveSchemaId(authorization);
             active = supplyPipeline(schemaId);
             diagnostic = null;
             if (active != null)

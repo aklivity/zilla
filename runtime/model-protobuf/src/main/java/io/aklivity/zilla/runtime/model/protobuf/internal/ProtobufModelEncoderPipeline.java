@@ -72,7 +72,7 @@ final class ProtobufModelEncoderPipeline implements ModelPipeline
         int prefix = 0;
         if ((flags & FLAGS_INIT) != 0)
         {
-            int schemaId = handler.resolveSchemaId();
+            int schemaId = handler.resolveSchemaId(authorization);
             int[] path = handler.messagePath(schemaId);
             ProtobufMessage message = handler.message(schemaId, path);
             diagnostic = null;

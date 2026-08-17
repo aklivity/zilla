@@ -85,7 +85,7 @@ final class ProtobufModelDecoderPipeline implements ModelPipeline
             // the catalog framing then the message-index prefix sit at the value start; strip both once on the
             // first fragment and select the schema-bound pipeline, then later fragments stream straight through
             int catalogPrefix = handler.prefix(src, srcIndex, srcLength);
-            int schemaId = handler.resolveSchemaId(src, srcIndex, srcLength);
+            int schemaId = handler.resolveSchemaId(src, srcIndex, srcLength, authorization);
             int indexProgress = handler.messageProgress(src, srcIndex + catalogPrefix, srcLength - catalogPrefix);
             ProtobufMessage message = handler.message(schemaId);
             prefix = catalogPrefix + indexProgress;
