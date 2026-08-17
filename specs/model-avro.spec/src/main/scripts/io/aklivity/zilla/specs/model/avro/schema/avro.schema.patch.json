@@ -141,19 +141,6 @@
                     "validate":
                     {
                         "$ref": "#/$defs/validate"
-                    },
-                    "vault":
-                    {
-                        "title": "Vault",
-                        "type": "object",
-                        "patternProperties":
-                        {
-                            "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
-                            {
-                                "type": "object"
-                            }
-                        },
-                        "maxProperties": 1
                     }
                 },
                 "required":
