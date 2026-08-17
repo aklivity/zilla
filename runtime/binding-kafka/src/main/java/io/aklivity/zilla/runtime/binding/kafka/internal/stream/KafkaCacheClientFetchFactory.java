@@ -844,7 +844,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
         private void doClientFanoutReplyResetIfNecessary(
             long traceId)
         {
-            if (!KafkaState.replyClosed(state))
+            if (KafkaState.initialOpening(state) && !KafkaState.replyClosed(state))
             {
                 doClientFanoutReplyReset(traceId);
             }
@@ -998,14 +998,15 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             final long traceId = begin.traceId();
             final long affinity = begin.affinity();
 
+            state = KafkaState.openingInitial(state);
+
             if (affinity != leaderId && leaderId != LEADER_UNKNOWN)
             {
+                doClientInitialWindow(traceId, 0L, 0, 0, 0);
                 cleanupClient(traceId, ERROR_NOT_LEADER_FOR_PARTITION);
             }
             else
             {
-                state = KafkaState.openingInitial(state);
-
                 group.onClientFanoutMemberOpening(traceId, this);
             }
 
@@ -1627,7 +1628,14 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
         private void doClientReplyAbortIfNecessary(
             long traceId)
         {
-            if (KafkaState.replyOpening(state) && !KafkaState.replyClosed(state))
+            if (!KafkaState.replyOpening(state))
+            {
+                state = KafkaState.openingReply(state);
+                doBegin(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                        traceId, authorization, leaderId, EMPTY_EXTENSION);
+            }
+
+            if (!KafkaState.replyClosed(state))
             {
                 doClientReplyAbort(traceId);
             }
