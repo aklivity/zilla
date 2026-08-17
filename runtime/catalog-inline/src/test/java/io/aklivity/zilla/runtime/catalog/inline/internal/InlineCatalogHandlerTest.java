@@ -196,6 +196,63 @@ public class InlineCatalogHandlerTest
         assertThat(handler.resolve("weather", "latest"), equalTo(schemaId));
     }
 
+    @Test
+    public void shouldResolveLiteralSubjectAgainstWildcardRegisteredSubject()
+    {
+        InlineCatalogHandler handler = newHandler();
+
+        int schemaId = handler.register("orders.*-value", SCHEMA_A);
+
+        assertThat(handler.resolve("orders.acme-value", "latest"), equalTo(schemaId));
+        assertThat(handler.resolve("orders.globex-value", "latest"), equalTo(schemaId));
+    }
+
+    @Test
+    public void shouldResolveGuardedExpressionAgainstWildcardRegisteredSubject()
+    {
+        InlineOptionsConfig options = InlineOptionsConfig.builder().build();
+        InlineCatalogHandler handler = new InlineCatalogHandler(options, new TestGuard("acme", null));
+
+        int schemaId = handler.register("orders.*-value", SCHEMA_A);
+
+        int resolved = handler.resolve("orders.${guarded['product:api_keys'].identity}-value", "latest", 7L);
+
+        assertThat(resolved, equalTo(schemaId));
+    }
+
+    @Test
+    public void shouldNotMatchWildcardRegisteredSubjectWithDifferentPrefix()
+    {
+        InlineCatalogHandler handler = newHandler();
+
+        handler.register("orders.*-value", SCHEMA_A);
+
+        assertThat(handler.resolve("shipments.acme-value", "latest"), equalTo(NO_SCHEMA_ID));
+    }
+
+    @Test
+    public void shouldPreferExactMatchOverWildcardRegisteredSubject()
+    {
+        InlineCatalogHandler handler = newHandler();
+
+        handler.register("orders.*-value", SCHEMA_A);
+        int exact = handler.register("orders.acme-value", SCHEMA_B);
+
+        assertThat(handler.resolve("orders.acme-value", "latest"), equalTo(exact));
+        assertThat(handler.resolve(exact), equalTo(SCHEMA_B));
+    }
+
+    @Test
+    public void shouldStopMatchingWildcardRegisteredSubjectAfterUnregister()
+    {
+        InlineCatalogHandler handler = newHandler();
+
+        handler.register("orders.*-value", SCHEMA_A);
+        handler.unregister("orders.*-value");
+
+        assertThat(handler.resolve("orders.acme-value", "latest"), equalTo(NO_SCHEMA_ID));
+    }
+
     private static final class TestGuard implements GuardHandler
     {
         private final String identity;

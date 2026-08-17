@@ -14,7 +14,9 @@
  */
 package io.aklivity.zilla.runtime.catalog.inline.internal;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 import java.util.regex.MatchResult;
 import java.util.regex.Matcher;
@@ -48,8 +50,11 @@ public class InlineCatalogHandler implements CatalogHandler
         Pattern.compile("\\$\\{guarded(?:\\['([a-zA-Z]+[a-zA-Z0-9\\._\\:\\-]*)'\\]).attributes" +
             ".([a-zA-Z]+[a-zA-Z0-9\\._\\:\\-]*)\\}");
 
+    private static final char WILDCARD = '*';
+
     private final Int2ObjectHashMap<String> schemas;
     private final Object2IntHashMap<String> schemaIds;
+    private final Map<String, Pattern> schemaIdPatterns;
     private final Int2IntHashMap references;
     private final CRC32C crc32c;
     private final GuardHandler guard;
@@ -62,6 +67,7 @@ public class InlineCatalogHandler implements CatalogHandler
     {
         this.schemas = new Int2ObjectHashMap<>();
         this.schemaIds = new Object2IntHashMap<>(NO_SCHEMA_ID);
+        this.schemaIdPatterns = new LinkedHashMap<>();
         this.references = new Int2IntHashMap(NO_REFERENCES);
         this.crc32c = new CRC32C();
         this.guard = guard;
@@ -85,7 +91,9 @@ public class InlineCatalogHandler implements CatalogHandler
     public int[] unregister(
         String subject)
     {
-        int schemaId = schemaIds.removeKey(subject + VERSION_LATEST);
+        String key = subject + VERSION_LATEST;
+        int schemaId = schemaIds.removeKey(key);
+        schemaIdPatterns.remove(key);
         int[] removed = NO_SCHEMA_IDS;
         if (schemaId != NO_SCHEMA_ID)
         {
@@ -107,7 +115,7 @@ public class InlineCatalogHandler implements CatalogHandler
         String subject,
         String version)
     {
-        return schemaIds.getValue(subject + version);
+        return lookup(subject + version);
     }
 
     @Override
@@ -117,7 +125,25 @@ public class InlineCatalogHandler implements CatalogHandler
         long authorization)
     {
         String resolved = guard != null ? resolveExpression(subject, authorization) : subject;
-        return schemaIds.getValue(resolved + version);
+        return lookup(resolved + version);
+    }
+
+    private int lookup(
+        String key)
+    {
+        int schemaId = schemaIds.getValue(key);
+        if (schemaId == NO_SCHEMA_ID && !schemaIdPatterns.isEmpty())
+        {
+            for (Map.Entry<String, Pattern> entry : schemaIdPatterns.entrySet())
+            {
+                if (entry.getValue().matcher(key).matches())
+                {
+                    schemaId = schemaIds.getValue(entry.getKey());
+                    break;
+                }
+            }
+        }
+        return schemaId;
     }
 
     private String resolveExpression(
@@ -166,8 +192,25 @@ public class InlineCatalogHandler implements CatalogHandler
             schemaIds.put(key, schemaId);
             schemas.putIfAbsent(schemaId, schema);
             references.put(schemaId, references.get(schemaId) + 1);
+            if (subject.indexOf(WILDCARD) != -1)
+            {
+                schemaIdPatterns.put(key, toPattern(key));
+            }
         }
         return schemaId;
+    }
+
+    private static Pattern toPattern(
+        String key)
+    {
+        StringBuilder pattern = new StringBuilder("^");
+        for (String literal : key.split("\\" + WILDCARD, -1))
+        {
+            pattern.append(Pattern.quote(literal)).append(".*");
+        }
+        pattern.setLength(pattern.length() - 2);
+        pattern.append('$');
+        return Pattern.compile(pattern.toString());
     }
 
     private void release(

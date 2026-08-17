@@ -39,4 +39,12 @@ public class SchemaTest
 
         assertThat(config, not(nullValue()));
     }
+
+    @Test
+    public void shouldValidateCatalogWithGuardAndWildcardSubject()
+    {
+        JsonObject config = schema.validate("catalog.guard.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
 }
