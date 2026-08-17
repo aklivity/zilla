@@ -28,6 +28,10 @@
                         "const": "inline"
                     },
                     "vault": false,
+                    "guard":
+                    {
+                        "type": "string"
+                    },
                     "options":
                     {
                         "properties":
