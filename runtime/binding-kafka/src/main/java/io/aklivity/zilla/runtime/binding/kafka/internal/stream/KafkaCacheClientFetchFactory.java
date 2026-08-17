@@ -1628,12 +1628,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
         private void doClientReplyAbortIfNecessary(
             long traceId)
         {
-            if (!KafkaState.replyOpening(state))
-            {
-                state = KafkaState.openingReply(state);
-            }
-
-            if (!KafkaState.replyClosed(state))
+            if (KafkaState.replyOpening(state) && !KafkaState.replyClosed(state))
             {
                 doClientReplyAbort(traceId);
             }
