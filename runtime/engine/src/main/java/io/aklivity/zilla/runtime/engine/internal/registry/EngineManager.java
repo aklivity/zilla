@@ -60,6 +60,7 @@ import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.config.engine.MetricConfig;
 import io.aklivity.zilla.config.engine.MetricRefConfig;
 import io.aklivity.zilla.config.engine.ModelConfig;
+import io.aklivity.zilla.config.engine.NamedConfig;
 import io.aklivity.zilla.config.engine.NamespaceConfig;
 import io.aklivity.zilla.config.engine.NamespaceConfigReader;
 import io.aklivity.zilla.config.engine.RouteConfig;
@@ -67,7 +68,6 @@ import io.aklivity.zilla.config.engine.SchemaConfig;
 import io.aklivity.zilla.config.engine.StoreConfig;
 import io.aklivity.zilla.config.engine.TelemetryRefConfig;
 import io.aklivity.zilla.config.engine.VaultConfig;
-import io.aklivity.zilla.config.engine.VaultedConfig;
 import io.aklivity.zilla.runtime.common.lang.util.function.LongObjectBiFunction;
 import io.aklivity.zilla.runtime.common.lang.util.function.LongObjectPredicate;
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
@@ -441,16 +441,15 @@ public class EngineManager
             {
                 for (ModelConfig model : binding.options.models)
                 {
-                    for (VaultedConfig vaulted : model.vaulted)
+                    for (NamedConfig ref : model.refs())
                     {
-                        vaulted.id = resolver.resolve(vaulted.name);
+                        ref.id = resolver.resolve(ref.name);
                     }
 
                     if (model.cataloged != null)
                     {
                         for (CatalogedConfig cataloged : model.cataloged)
                         {
-                            cataloged.id = resolver.resolve(cataloged.name);
                             for (SchemaConfig schema : cataloged.schemas)
                             {
                                 if (schema.overlay != null)

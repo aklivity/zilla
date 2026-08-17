@@ -93,6 +93,7 @@ final class AvroModelTransform implements AvroTransform
     private boolean replay;
     private ModelEvent pending;
     private AvroSink downstream;
+    private AvroController upstream;
 
     // a NONE transform needs no adapter at all: AvroStream drops AvroTransform.NONE rather than binding it,
     // so the assembled pipeline carries no stage and the caller never branches on whether one is wired
@@ -127,6 +128,7 @@ final class AvroModelTransform implements AvroTransform
         AvroSink sink)
     {
         this.downstream = sink;
+        this.upstream = control;
 
         ModelSink generic = mediating ? terminal : discard;
         Status status = mediating
@@ -151,6 +153,7 @@ final class AvroModelTransform implements AvroTransform
         AvroSink sink)
     {
         this.downstream = sink;
+        this.upstream = control;
 
         Status status;
         if (!emitting)
@@ -703,6 +706,12 @@ final class AvroModelTransform implements AvroTransform
         {
             this.view = new UnsafeBufferEx(EMPTY);
             this.step = STEP_DONE;
+        }
+
+        @Override
+        public long authorization()
+        {
+            return upstream.authorization();
         }
 
         private void wrapValue(

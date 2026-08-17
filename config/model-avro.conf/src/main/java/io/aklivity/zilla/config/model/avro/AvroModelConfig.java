@@ -21,8 +21,8 @@ import java.util.function.Function;
 import io.aklivity.zilla.config.engine.CatalogedConfig;
 import io.aklivity.zilla.config.engine.Config;
 import io.aklivity.zilla.config.engine.ModelConfig;
+import io.aklivity.zilla.config.engine.NamedConfig;
 import io.aklivity.zilla.config.engine.ValidateConfig;
-import io.aklivity.zilla.config.engine.VaultedConfig;
 
 public final class AvroModelConfig extends ModelConfig
 {
@@ -34,10 +34,10 @@ public final class AvroModelConfig extends ModelConfig
         String subject,
         String view,
         ValidateConfig validate,
-        List<VaultedConfig> vaulted,
-        Map<String, Config> extensions)
+        Map<String, Config> extensions,
+        List<NamedConfig> refs)
     {
-        super("avro", cataloged, validate, vaulted, extensions);
+        super("avro", cataloged, validate, extensions, refs);
         this.subject = subject;
         this.view = view;
     }

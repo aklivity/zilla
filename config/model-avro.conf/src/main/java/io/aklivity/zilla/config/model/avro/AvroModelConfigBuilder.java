@@ -22,8 +22,6 @@ import io.aklivity.zilla.config.engine.CatalogedConfig;
 import io.aklivity.zilla.config.engine.CatalogedConfigBuilder;
 import io.aklivity.zilla.config.engine.ConfigBuilder;
 import io.aklivity.zilla.config.engine.ValidateConfig;
-import io.aklivity.zilla.config.engine.VaultedConfig;
-import io.aklivity.zilla.config.engine.VaultedConfigBuilder;
 
 public class AvroModelConfigBuilder<T> extends ConfigBuilder.Extensible<T, AvroModelConfigBuilder<T>>
 {
@@ -33,7 +31,6 @@ public class AvroModelConfigBuilder<T> extends ConfigBuilder.Extensible<T, AvroM
     private String subject;
     private String view;
     private ValidateConfig validate;
-    private List<VaultedConfig> vaulted;
 
     AvroModelConfigBuilder(
         Function<AvroModelConfig, T> mapper)
@@ -69,22 +66,6 @@ public class AvroModelConfigBuilder<T> extends ConfigBuilder.Extensible<T, AvroM
         return this;
     }
 
-    public VaultedConfigBuilder<AvroModelConfigBuilder<T>> vault()
-    {
-        return VaultedConfig.builder(this::vault);
-    }
-
-    public AvroModelConfigBuilder<T> vault(
-        VaultedConfig vault)
-    {
-        if (vaulted == null)
-        {
-            vaulted = new LinkedList<>();
-        }
-        vaulted.add(vault);
-        return this;
-    }
-
     public CatalogedConfigBuilder<AvroModelConfigBuilder<T>> catalog()
     {
         return CatalogedConfig.builder(this::catalog);
@@ -104,6 +85,6 @@ public class AvroModelConfigBuilder<T> extends ConfigBuilder.Extensible<T, AvroM
     @Override
     public T build()
     {
-        return mapper.apply(new AvroModelConfig(catalogs, subject, view, validate, vaulted, extensions()));
+        return mapper.apply(new AvroModelConfig(catalogs, subject, view, validate, extensions(), refs()));
     }
 }

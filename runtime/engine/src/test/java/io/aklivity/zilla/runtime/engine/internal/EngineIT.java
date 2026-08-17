@@ -45,6 +45,7 @@ public class EngineIT
         .countersBufferCapacity(4096)
         .configurationRoot("io/aklivity/zilla/specs/engine/config")
         .external("app0")
+        .external("app1")
         .clean();
 
     @Rule
@@ -87,6 +88,16 @@ public class EngineIT
         "${net}/client.sent.data/client",
         "${app}/client.sent.data/server"})
     public void shouldReceiveClientSentData() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.value.envelope.yaml")
+    @Specification({
+        "${net}/value.envelope/client",
+        "${app}/value.envelope/server"})
+    public void shouldExchangeValueEnvelope() throws Exception
     {
         k3po.finish();
     }

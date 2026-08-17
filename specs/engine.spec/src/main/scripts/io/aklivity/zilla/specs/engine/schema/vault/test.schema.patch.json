@@ -147,6 +147,54 @@
                                         }
                                     }
                                 ]
+                            },
+                            "wrap":
+                            {
+                                "oneOf":
+                                [
+                                    {
+                                        "type": "object",
+                                        "properties":
+                                        {
+                                            "alias":
+                                            {
+                                                "type": "string"
+                                            },
+                                            "secret":
+                                            {
+                                                "type": "string"
+                                            }
+                                        },
+                                        "required":
+                                        [
+                                            "alias",
+                                            "secret"
+                                        ]
+                                    },
+                                    {
+                                        "type": "array",
+                                        "items":
+                                        {
+                                            "type": "object",
+                                            "properties":
+                                            {
+                                                "alias":
+                                                {
+                                                    "type": "string"
+                                                },
+                                                "secret":
+                                                {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required":
+                                            [
+                                                "alias",
+                                                "secret"
+                                            ]
+                                        }
+                                    }
+                                ]
                             }
                         }
                     }

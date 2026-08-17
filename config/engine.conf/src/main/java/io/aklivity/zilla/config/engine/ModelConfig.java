@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.config.engine;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -22,7 +23,6 @@ public abstract class ModelConfig extends Config.Extensible
     public final String model;
     public final List<CatalogedConfig> cataloged;
     public final ValidateConfig validate;
-    public final List<VaultedConfig> vaulted;
 
     protected ModelConfig(
         String model,
@@ -38,20 +38,38 @@ public abstract class ModelConfig extends Config.Extensible
         ValidateConfig validate,
         Map<String, Config> extensions)
     {
-        this(model, cataloged, validate, null, extensions);
+        this(model, cataloged, validate, extensions, null);
     }
 
     protected ModelConfig(
         String model,
         List<CatalogedConfig> cataloged,
         ValidateConfig validate,
-        List<VaultedConfig> vaulted,
-        Map<String, Config> extensions)
+        Map<String, Config> extensions,
+        List<NamedConfig> refs)
     {
-        super(extensions);
+        super(extensions, withCataloged(cataloged, refs));
         this.model = model;
         this.cataloged = cataloged;
         this.validate = validate != null ? validate : ValidateConfig.STRICT;
-        this.vaulted = vaulted != null ? vaulted : List.of();
+    }
+
+    // cataloged is itself a NamedConfig, so folding it into refs lets the engine resolve every name this
+    // model carries -- cataloged, and whatever an installed extension contributed -- with one generic walk,
+    // rather than a schema-specific walk plus a separate generic one
+    private static List<NamedConfig> withCataloged(
+        List<CatalogedConfig> cataloged,
+        List<NamedConfig> refs)
+    {
+        List<NamedConfig> all = new ArrayList<>();
+        if (cataloged != null)
+        {
+            all.addAll(cataloged);
+        }
+        if (refs != null)
+        {
+            all.addAll(refs);
+        }
+        return all;
     }
 }

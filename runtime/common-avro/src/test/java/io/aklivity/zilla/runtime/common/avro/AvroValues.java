@@ -31,8 +31,18 @@ import io.aklivity.zilla.runtime.common.avro.AvroSink.Delivery;
  */
 public final class AvroValues
 {
-    public static final AvroController NO_CONTROL = () ->
+    public static final AvroController NO_CONTROL = new AvroController()
     {
+        @Override
+        public void segmentable()
+        {
+        }
+
+        @Override
+        public long authorization()
+        {
+            return 0L;
+        }
     };
 
     private AvroValues()

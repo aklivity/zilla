@@ -180,16 +180,30 @@
         <artifactId>flyweight-maven-plugin</artifactId>
         <version>${project.version}</version>
         <configuration>
-          <scopeNames>core</scopeNames>
           <packageName>io.aklivity.zilla.runtime.engine.internal.types</packageName>
           <testPackageName>io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types</testPackageName>
         </configuration>
         <executions>
           <execution>
+            <id>generate</id>
             <goals>
               <goal>generate</goal>
+            </goals>
+            <configuration>
+              <scopeNames>core</scopeNames>
+            </configuration>
+          </execution>
+          <execution>
+            <id>test-generate</id>
+            <goals>
               <goal>test-generate</goal>
             </goals>
+            <configuration>
+              <!-- "test" scope carries the TestBinding-only envelope wire extension (TestDataEx) used by
+                   TestBindingFactory; it must never leak into the main (generate) output above, since it
+                   is test-sources-only infrastructure. -->
+              <scopeNames>core test</scopeNames>
+            </configuration>
           </execution>
         </executions>
       </plugin>

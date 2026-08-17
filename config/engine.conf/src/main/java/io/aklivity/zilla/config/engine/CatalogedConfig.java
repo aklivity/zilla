@@ -17,18 +17,15 @@ package io.aklivity.zilla.config.engine;
 import java.util.List;
 import java.util.function.Function;
 
-public class CatalogedConfig extends Config
+public class CatalogedConfig extends NamedConfig
 {
-    public transient long id;
-
-    public final String name;
     public final List<SchemaConfig> schemas;
 
     CatalogedConfig(
         String name,
         List<SchemaConfig> schemas)
     {
-        this.name = name;
+        super(name, null);
         this.schemas = schemas;
     }
 

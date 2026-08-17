@@ -39,6 +39,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/value.envelope/client",
+        "${app}/value.envelope/server" })
+    public void shouldExchangeValueEnvelope() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/reconfigure.modify.via.file/client",
         "${app}/reconfigure.modify.via.file/server" })
     public void shouldReconfigureWhenModified() throws Exception

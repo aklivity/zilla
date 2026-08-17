@@ -14,21 +14,18 @@
  */
 package io.aklivity.zilla.config.engine.test.internal.vault.config;
 
-import java.util.List;
 import java.util.function.Function;
 
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
-public final class TestVaultOptionsConfig extends OptionsConfig
+public final class TestVaultWrapConfig extends OptionsConfig
 {
-    public final List<TestVaultEntryConfig> keys;
-    public final TestVaultEntryConfig signer;
-    public final List<TestVaultEntryConfig> trust;
-    public final List<TestVaultWrapConfig> wrap;
+    public final String alias;
+    public final String secret;
 
-    public static TestVaultOptionsConfigBuilder<TestVaultOptionsConfig> builder()
+    public static TestVaultOptionsConfigBuilder<TestVaultWrapConfig> builder()
     {
-        return new TestVaultOptionsConfigBuilder<>(TestVaultOptionsConfig.class::cast);
+        return new TestVaultOptionsConfigBuilder<>(TestVaultWrapConfig.class::cast);
     }
 
     public static <T> TestVaultOptionsConfigBuilder<T> builder(
@@ -37,15 +34,11 @@ public final class TestVaultOptionsConfig extends OptionsConfig
         return new TestVaultOptionsConfigBuilder<>(mapper);
     }
 
-    TestVaultOptionsConfig(
-        List<TestVaultEntryConfig> keys,
-        TestVaultEntryConfig signer,
-        List<TestVaultEntryConfig> trust,
-        List<TestVaultWrapConfig> wrap)
+    TestVaultWrapConfig(
+        String alias,
+        String secret)
     {
-        this.keys = keys;
-        this.signer = signer;
-        this.trust = trust;
-        this.wrap = wrap;
+        this.alias = alias;
+        this.secret = secret;
     }
 }

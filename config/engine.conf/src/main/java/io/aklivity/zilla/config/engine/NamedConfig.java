@@ -14,26 +14,28 @@
  */
 package io.aklivity.zilla.config.engine;
 
-import java.util.Map;
-import java.util.function.Function;
+import static java.util.Objects.requireNonNull;
 
-public final class VaultedConfig extends NamedConfig
+import java.util.Map;
+
+/**
+ * A config entry that names something resolved elsewhere in the same namespace (a vault, a guard, ...),
+ * carrying only the name at config-load time. The engine resolves {@code name} to {@code id} once, by
+ * the same generic walk regardless of which concrete kind of named config this is.
+ *
+ * @see Config.Extensible#refs()
+ */
+public abstract class NamedConfig extends Config.Extensible
 {
-    VaultedConfig(
+    public transient long id;
+
+    public final String name;
+
+    protected NamedConfig(
         String name,
         Map<String, Config> extensions)
     {
-        super(name, extensions);
-    }
-
-    public static <T> VaultedConfigBuilder<T> builder(
-        Function<VaultedConfig, T> mapper)
-    {
-        return new VaultedConfigBuilder<>(mapper);
-    }
-
-    public static VaultedConfigBuilder<VaultedConfig> builder()
-    {
-        return new VaultedConfigBuilder<>(VaultedConfig.class::cast);
+        super(extensions);
+        this.name = requireNonNull(name);
     }
 }

@@ -67,6 +67,13 @@ public final class ConfigExtAdapter<T extends Config.Extensible>
                 {
                     Config extension = entry.getValue().adaptFromJson(object.getJsonObject(name));
                     builder = builder.ext(name, extension);
+                    if (extension instanceof Config.Extensible extensible)
+                    {
+                        for (NamedConfig ref : extensible.refs())
+                        {
+                            builder = builder.ref(ref);
+                        }
+                    }
                 }
                 catch (Exception ex)
                 {
