@@ -15,6 +15,7 @@
 package io.aklivity.zilla.config.engine.test.internal.binding.config;
 
 import java.time.Duration;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -74,6 +75,9 @@ public final class TestBindingOptionsConfigAdapter extends ConfigAdapter<Options
     private static final String STORE_VALUE_NAME = "value";
     private static final String STORE_TTL_NAME = "ttl";
     private static final String STORE_EXPECT_NAME = "expect";
+    private static final String ENVELOPE_NAME = "envelope";
+    private static final String ENVELOPE_VALUE_NAME = "value";
+    private static final String ENVELOPE_BYTES_NAME = "bytes";
 
     private final ModelConfigAdapter model = new ModelConfigAdapter();
 
@@ -112,89 +116,17 @@ public final class TestBindingOptionsConfigAdapter extends ConfigAdapter<Options
             object.add(CATALOG_NAME, catalogs);
         }
 
+        if (testOptions.envelope != null && !testOptions.envelope.isEmpty())
+        {
+            object.add(ENVELOPE_NAME, writeEnvelope(testOptions.envelope));
+        }
+
         if (testOptions.catalogAssertions != null ||
             testOptions.vaultAssertion != null ||
-            testOptions.storeAssertions != null)
+            testOptions.storeAssertions != null ||
+            testOptions.envelopeAssertions != null)
         {
-            JsonObjectBuilder assertions = Json.createObjectBuilder();
-
-            if (testOptions.catalogAssertions != null)
-            {
-                JsonObjectBuilder catalogAssertions = Json.createObjectBuilder();
-                for (TestBindingOptionsConfig.CatalogAssertions c : testOptions.catalogAssertions)
-                {
-                    JsonArrayBuilder array = Json.createArrayBuilder();
-                    for (TestBindingOptionsConfig.CatalogAssertion a: c.assertions)
-                    {
-                        JsonObjectBuilder assertion = Json.createObjectBuilder();
-                        assertion.add(ID_NAME, a.id);
-                        assertion.add(SCHEMA_NAME, a.schema);
-                        assertion.add(DELAY_NAME, a.delay);
-                        array.add(assertion);
-                    }
-                    catalogAssertions.add(c.name, array);
-                }
-                assertions.add(CATALOG_NAME, catalogAssertions);
-            }
-
-            if (testOptions.vaultAssertion != null)
-            {
-                VaultAssertion v = testOptions.vaultAssertion;
-                JsonObjectBuilder assertion = Json.createObjectBuilder()
-                    .add(VAULT_KEY_NAME, v.key)
-                    .add(VAULT_SIGNER_NAME, v.signer)
-                    .add(VAULT_TRUST_NAME, v.trust);
-
-                if (v.trustcacerts ^ v.trust != null)
-                {
-                    assertion.add(VAULT_TRUSTCACERTS_NAME, v.trustcacerts);
-                }
-
-                assertions.add(VAULT_NAME, assertion);
-            }
-
-            if (testOptions.storeAssertions != null)
-            {
-                JsonObjectBuilder storeAssertions = Json.createObjectBuilder();
-                for (TestBindingOptionsConfig.StoreAssertions s : testOptions.storeAssertions)
-                {
-                    JsonArrayBuilder array = Json.createArrayBuilder();
-                    for (TestBindingOptionsConfig.StoreAssertion a : s.assertions)
-                    {
-                        JsonObjectBuilder assertion = Json.createObjectBuilder();
-                        assertion.add(STORE_OP_NAME, a.op);
-                        assertion.add(STORE_KEY_NAME, a.key);
-                        if (a.value != null)
-                        {
-                            assertion.add(STORE_VALUE_NAME, a.value);
-                        }
-                        if (a.ttl != null)
-                        {
-                            assertion.add(STORE_TTL_NAME, a.ttl.toString());
-                        }
-                        if (a.hasExpect)
-                        {
-                            if (a.expect == null)
-                            {
-                                assertion.addNull(STORE_EXPECT_NAME);
-                            }
-                            else
-                            {
-                                assertion.add(STORE_EXPECT_NAME, a.expect);
-                            }
-                        }
-                        if (a.delay != 0L)
-                        {
-                            assertion.add(DELAY_NAME, a.delay);
-                        }
-                        array.add(assertion);
-                    }
-                    storeAssertions.add(s.name, array);
-                }
-                assertions.add(STORE_NAME, storeAssertions);
-            }
-
-            object.add(ASSERTIONS_NAME, assertions);
+            object.add(ASSERTIONS_NAME, writeAssertions(testOptions));
         }
 
         if (testOptions.authorization != null)
@@ -261,6 +193,127 @@ public final class TestBindingOptionsConfigAdapter extends ConfigAdapter<Options
         return object.build();
     }
 
+    private JsonArrayBuilder writeEnvelope(
+        List<TestBindingOptionsConfig.EnvelopeValue> envelope)
+    {
+        JsonArrayBuilder array = Json.createArrayBuilder();
+        for (TestBindingOptionsConfig.EnvelopeValue v : envelope)
+        {
+            JsonObjectBuilder value = Json.createObjectBuilder();
+            value.add(NAME_NAME, v.name);
+            if (v.value != null)
+            {
+                value.add(ENVELOPE_VALUE_NAME, v.value);
+            }
+            if (v.bytes != null)
+            {
+                value.add(ENVELOPE_BYTES_NAME, Base64.getEncoder().encodeToString(v.bytes));
+            }
+            array.add(value);
+        }
+        return array;
+    }
+
+    private JsonObjectBuilder writeAssertions(
+        TestBindingOptionsConfig testOptions)
+    {
+        JsonObjectBuilder assertions = Json.createObjectBuilder();
+
+        if (testOptions.catalogAssertions != null)
+        {
+            JsonObjectBuilder catalogAssertions = Json.createObjectBuilder();
+            for (TestBindingOptionsConfig.CatalogAssertions c : testOptions.catalogAssertions)
+            {
+                JsonArrayBuilder array = Json.createArrayBuilder();
+                for (TestBindingOptionsConfig.CatalogAssertion a: c.assertions)
+                {
+                    JsonObjectBuilder assertion = Json.createObjectBuilder();
+                    assertion.add(ID_NAME, a.id);
+                    assertion.add(SCHEMA_NAME, a.schema);
+                    assertion.add(DELAY_NAME, a.delay);
+                    array.add(assertion);
+                }
+                catalogAssertions.add(c.name, array);
+            }
+            assertions.add(CATALOG_NAME, catalogAssertions);
+        }
+
+        if (testOptions.vaultAssertion != null)
+        {
+            VaultAssertion v = testOptions.vaultAssertion;
+            JsonObjectBuilder assertion = Json.createObjectBuilder()
+                .add(VAULT_KEY_NAME, v.key)
+                .add(VAULT_SIGNER_NAME, v.signer)
+                .add(VAULT_TRUST_NAME, v.trust);
+
+            if (v.trustcacerts ^ v.trust != null)
+            {
+                assertion.add(VAULT_TRUSTCACERTS_NAME, v.trustcacerts);
+            }
+
+            assertions.add(VAULT_NAME, assertion);
+        }
+
+        if (testOptions.storeAssertions != null)
+        {
+            JsonObjectBuilder storeAssertions = Json.createObjectBuilder();
+            for (TestBindingOptionsConfig.StoreAssertions s : testOptions.storeAssertions)
+            {
+                JsonArrayBuilder array = Json.createArrayBuilder();
+                for (TestBindingOptionsConfig.StoreAssertion a : s.assertions)
+                {
+                    JsonObjectBuilder assertion = Json.createObjectBuilder();
+                    assertion.add(STORE_OP_NAME, a.op);
+                    assertion.add(STORE_KEY_NAME, a.key);
+                    if (a.value != null)
+                    {
+                        assertion.add(STORE_VALUE_NAME, a.value);
+                    }
+                    if (a.ttl != null)
+                    {
+                        assertion.add(STORE_TTL_NAME, a.ttl.toString());
+                    }
+                    if (a.hasExpect)
+                    {
+                        if (a.expect == null)
+                        {
+                            assertion.addNull(STORE_EXPECT_NAME);
+                        }
+                        else
+                        {
+                            assertion.add(STORE_EXPECT_NAME, a.expect);
+                        }
+                    }
+                    if (a.delay != 0L)
+                    {
+                        assertion.add(DELAY_NAME, a.delay);
+                    }
+                    array.add(assertion);
+                }
+                storeAssertions.add(s.name, array);
+            }
+            assertions.add(STORE_NAME, storeAssertions);
+        }
+
+        if (testOptions.envelopeAssertions != null)
+        {
+            JsonArrayBuilder envelopeAssertions = Json.createArrayBuilder();
+            for (TestBindingOptionsConfig.EnvelopeAssertion a : testOptions.envelopeAssertions)
+            {
+                JsonObjectBuilder assertion = Json.createObjectBuilder();
+                assertion.add(NAME_NAME, a.name);
+                if (a.hasValue)
+                {
+                    assertion.add(ENVELOPE_VALUE_NAME, a.value);
+                }
+                envelopeAssertions.add(assertion);
+            }
+            assertions.add(ENVELOPE_NAME, envelopeAssertions);
+        }
+
+        return assertions;
+    }
+
     @Override
     public OptionsConfig adaptFromJson(
         JsonObject object)
@@ -303,69 +356,14 @@ public final class TestBindingOptionsConfigAdapter extends ConfigAdapter<Options
                 testOptions.catalog(catalogs);
             }
 
+            if (object.containsKey(ENVELOPE_NAME))
+            {
+                readEnvelope(testOptions, object.getJsonArray(ENVELOPE_NAME));
+            }
+
             if (object.containsKey(ASSERTIONS_NAME))
             {
-                JsonObject assertionsJson = object.getJsonObject(ASSERTIONS_NAME);
-
-                if (assertionsJson.containsKey(CATALOG_NAME))
-                {
-                    JsonObject catalogsJson = assertionsJson.getJsonObject(CATALOG_NAME);
-                    for (String catalogName: catalogsJson.keySet())
-                    {
-                        JsonArray catalogAssertionsJson = catalogsJson.getJsonArray(catalogName);
-                        List<TestBindingOptionsConfig.CatalogAssertion> catalogAssertions = new LinkedList<>();
-                        for (JsonValue assertion : catalogAssertionsJson)
-                        {
-                            JsonObject c = assertion.asJsonObject();
-                            catalogAssertions.add(new TestBindingOptionsConfig.CatalogAssertion(
-                                c.containsKey(ID_NAME) ? c.getInt(ID_NAME) : 0,
-                                c.containsKey(SCHEMA_NAME) ? !c.isNull(SCHEMA_NAME) ? c.getString(SCHEMA_NAME)
-                                    : null : DEFAULT_ASSERTION_SCHEMA,
-                                c.containsKey(DELAY_NAME) ? c.getJsonNumber(DELAY_NAME).longValue() : 0L));
-                        }
-                        testOptions.catalogAssertions(catalogName, catalogAssertions);
-                    }
-                }
-
-                if (assertionsJson.containsKey(VAULT_NAME))
-                {
-                    JsonObject vaultJson = assertionsJson.getJsonObject(VAULT_NAME);
-
-                    testOptions.vaultAssertion(new TestBindingOptionsConfig.VaultAssertion(
-                        vaultJson.getString(VAULT_KEY_NAME, null),
-                        vaultJson.getString(VAULT_SIGNER_NAME, null),
-                        vaultJson.getString(VAULT_TRUST_NAME, null),
-                        vaultJson.getBoolean(VAULT_TRUSTCACERTS_NAME, false)));
-                }
-
-                if (assertionsJson.containsKey(STORE_NAME))
-                {
-                    JsonObject storesJson = assertionsJson.getJsonObject(STORE_NAME);
-                    for (String storeName : storesJson.keySet())
-                    {
-                        JsonArray storeAssertionsJson = storesJson.getJsonArray(storeName);
-                        List<TestBindingOptionsConfig.StoreAssertion> storeAssertions = new LinkedList<>();
-                        for (JsonValue assertion : storeAssertionsJson)
-                        {
-                            JsonObject s = assertion.asJsonObject();
-                            String expect = null;
-                            boolean hasExpect = s.containsKey(STORE_EXPECT_NAME);
-                            if (hasExpect && !s.isNull(STORE_EXPECT_NAME))
-                            {
-                                expect = s.getString(STORE_EXPECT_NAME);
-                            }
-                            storeAssertions.add(new TestBindingOptionsConfig.StoreAssertion(
-                                s.getString(STORE_OP_NAME),
-                                s.getString(STORE_KEY_NAME),
-                                s.getString(STORE_VALUE_NAME, null),
-                                s.containsKey(STORE_TTL_NAME) ? Duration.parse(s.getString(STORE_TTL_NAME)) : null,
-                                expect,
-                                hasExpect,
-                                s.containsKey(DELAY_NAME) ? s.getJsonNumber(DELAY_NAME).longValue() : 0L));
-                        }
-                        testOptions.storeAssertions(storeName, storeAssertions);
-                    }
-                }
+                readAssertions(testOptions, object.getJsonObject(ASSERTIONS_NAME));
             }
 
             if (object.containsKey(AUTHORIZATION_NAME))
@@ -442,5 +440,107 @@ public final class TestBindingOptionsConfigAdapter extends ConfigAdapter<Options
         }
 
         return testOptions.build();
+    }
+
+    private void readEnvelope(
+        TestBindingOptionsConfigBuilder<TestBindingOptionsConfig> testOptions,
+        JsonArray envelopeJson)
+    {
+        for (JsonValue item : envelopeJson)
+        {
+            JsonObject v = item.asJsonObject();
+            String name = v.getString(NAME_NAME);
+            if (v.containsKey(ENVELOPE_BYTES_NAME))
+            {
+                testOptions.envelopeBytes(name, Base64.getDecoder().decode(v.getString(ENVELOPE_BYTES_NAME)));
+            }
+            else
+            {
+                testOptions.envelope(name, v.getString(ENVELOPE_VALUE_NAME, null));
+            }
+        }
+    }
+
+    private void readAssertions(
+        TestBindingOptionsConfigBuilder<TestBindingOptionsConfig> testOptions,
+        JsonObject assertionsJson)
+    {
+        if (assertionsJson.containsKey(CATALOG_NAME))
+        {
+            JsonObject catalogsJson = assertionsJson.getJsonObject(CATALOG_NAME);
+            for (String catalogName: catalogsJson.keySet())
+            {
+                JsonArray catalogAssertionsJson = catalogsJson.getJsonArray(catalogName);
+                List<TestBindingOptionsConfig.CatalogAssertion> catalogAssertions = new LinkedList<>();
+                for (JsonValue assertion : catalogAssertionsJson)
+                {
+                    JsonObject c = assertion.asJsonObject();
+                    catalogAssertions.add(new TestBindingOptionsConfig.CatalogAssertion(
+                        c.containsKey(ID_NAME) ? c.getInt(ID_NAME) : 0,
+                        c.containsKey(SCHEMA_NAME) ? !c.isNull(SCHEMA_NAME) ? c.getString(SCHEMA_NAME)
+                            : null : DEFAULT_ASSERTION_SCHEMA,
+                        c.containsKey(DELAY_NAME) ? c.getJsonNumber(DELAY_NAME).longValue() : 0L));
+                }
+                testOptions.catalogAssertions(catalogName, catalogAssertions);
+            }
+        }
+
+        if (assertionsJson.containsKey(VAULT_NAME))
+        {
+            JsonObject vaultJson = assertionsJson.getJsonObject(VAULT_NAME);
+
+            testOptions.vaultAssertion(new TestBindingOptionsConfig.VaultAssertion(
+                vaultJson.getString(VAULT_KEY_NAME, null),
+                vaultJson.getString(VAULT_SIGNER_NAME, null),
+                vaultJson.getString(VAULT_TRUST_NAME, null),
+                vaultJson.getBoolean(VAULT_TRUSTCACERTS_NAME, false)));
+        }
+
+        if (assertionsJson.containsKey(STORE_NAME))
+        {
+            JsonObject storesJson = assertionsJson.getJsonObject(STORE_NAME);
+            for (String storeName : storesJson.keySet())
+            {
+                JsonArray storeAssertionsJson = storesJson.getJsonArray(storeName);
+                List<TestBindingOptionsConfig.StoreAssertion> storeAssertions = new LinkedList<>();
+                for (JsonValue assertion : storeAssertionsJson)
+                {
+                    JsonObject s = assertion.asJsonObject();
+                    String expect = null;
+                    boolean hasExpect = s.containsKey(STORE_EXPECT_NAME);
+                    if (hasExpect && !s.isNull(STORE_EXPECT_NAME))
+                    {
+                        expect = s.getString(STORE_EXPECT_NAME);
+                    }
+                    storeAssertions.add(new TestBindingOptionsConfig.StoreAssertion(
+                        s.getString(STORE_OP_NAME),
+                        s.getString(STORE_KEY_NAME),
+                        s.getString(STORE_VALUE_NAME, null),
+                        s.containsKey(STORE_TTL_NAME) ? Duration.parse(s.getString(STORE_TTL_NAME)) : null,
+                        expect,
+                        hasExpect,
+                        s.containsKey(DELAY_NAME) ? s.getJsonNumber(DELAY_NAME).longValue() : 0L));
+                }
+                testOptions.storeAssertions(storeName, storeAssertions);
+            }
+        }
+
+        if (assertionsJson.containsKey(ENVELOPE_NAME))
+        {
+            JsonArray envelopeAssertionsJson = assertionsJson.getJsonArray(ENVELOPE_NAME);
+            for (JsonValue assertion : envelopeAssertionsJson)
+            {
+                JsonObject a = assertion.asJsonObject();
+                String name = a.getString(NAME_NAME);
+                if (a.containsKey(ENVELOPE_VALUE_NAME))
+                {
+                    testOptions.envelopeAssertion(name, a.getString(ENVELOPE_VALUE_NAME));
+                }
+                else
+                {
+                    testOptions.envelopeAssertion(name);
+                }
+            }
+        }
     }
 }

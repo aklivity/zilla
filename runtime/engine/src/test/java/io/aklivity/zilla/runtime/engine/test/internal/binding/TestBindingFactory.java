@@ -149,6 +149,8 @@ final class TestBindingFactory implements BindingHandler
     private VaultAssertion vaultAssertion;
     private StoreHandler store;
     private List<StoreAssertion> storeAssertions;
+    private List<TestBindingOptionsConfig.EnvelopeValue> envelopeBootstrap;
+    private List<TestBindingOptionsConfig.EnvelopeAssertion> envelopeAssertions;
     private final Map<String, String> heldLockTokens = new HashMap<>();
     private long authorization;
 
@@ -212,6 +214,9 @@ final class TestBindingFactory implements BindingHandler
             }
 
             this.events = options.events;
+
+            this.envelopeBootstrap = options.envelope;
+            this.envelopeAssertions = options.envelopeAssertions;
 
             if (binding.vault != null)
             {
@@ -369,6 +374,50 @@ final class TestBindingFactory implements BindingHandler
         return new UnsafeBufferEx(copy);
     }
 
+    // Pre-populates a value model's envelope from configured bootstrap values, ahead of any wire-carried
+    // or transform-set value, so a decode-direction transform can be exercised against known out-of-value
+    // metadata without first driving an encode-direction transform to produce it.
+    private void seedEnvelope(
+        TestModelEnvelope envelope)
+    {
+        if (envelopeBootstrap != null)
+        {
+            for (TestBindingOptionsConfig.EnvelopeValue seed : envelopeBootstrap)
+            {
+                byte[] bytes = seed.bytes != null ? seed.bytes : seed.value.getBytes(StandardCharsets.UTF_8);
+                envelope.set(seed.name, new UnsafeBufferEx(bytes));
+            }
+        }
+    }
+
+    // Verifies a value model's envelope against configured expectations once its transform completes,
+    // returning false on the first mismatch. Checking presence/value by name (rather than literal wire
+    // bytes) is what makes this usable against non-deterministic transform output (e.g. a randomly-IV'd
+    // ciphertext), unlike a k3po script's own read assertions.
+    private boolean assertEnvelope(
+        TestModelEnvelope envelope)
+    {
+        boolean asserted = true;
+        if (envelopeAssertions != null)
+        {
+            for (int i = 0; asserted && i < envelopeAssertions.size(); i++)
+            {
+                TestBindingOptionsConfig.EnvelopeAssertion assertion = envelopeAssertions.get(i);
+                if (envelope.count(assertion.name) == 0)
+                {
+                    asserted = false;
+                }
+                else if (assertion.hasValue)
+                {
+                    DirectBufferEx actual = envelope.get(assertion.name, 0);
+                    String actualValue = actual.getStringWithoutLengthUtf8(0, actual.capacity());
+                    asserted = assertion.value.equals(actualValue);
+                }
+            }
+        }
+        return asserted;
+    }
+
     // Backs the ModelEnvelope supplied to the value model's encoder/decoder pipeline for one direction of
     // one stream. Values arriving on a DATA frame's TestDataEx extension are received into it before the
     // model transform runs (readable via get()/count()); values the model transform adds via set() during
@@ -466,6 +515,10 @@ final class TestBindingFactory implements BindingHandler
             this.replyId = replyId;
             this.target = resolvedId != 0L ? new TestTarget(routedId, resolvedId) : null;
             this.envelope = valueModel != null ? new TestModelEnvelope() : null;
+            if (envelope != null)
+            {
+                seedEnvelope(envelope);
+            }
             this.pipeline = valueModel != null ? valueModel.supplyEncoder(envelope, ModelTransform.NONE) : null;
             this.initialBuffer = pipeline != null ? new UnsafeBufferEx(new byte[transformMax]) : null;
         }
@@ -1121,6 +1174,10 @@ final class TestBindingFactory implements BindingHandler
             }
             else if (status == ModelStatus.COMPLETE)
             {
+                if (envelope != null && !assertEnvelope(envelope))
+                {
+                    doInitialReset(traceId);
+                }
                 pipeline.reset();
                 cleanupDecodeSlot();
             }
@@ -1458,6 +1515,10 @@ final class TestBindingFactory implements BindingHandler
                 this.replyId = context.supplyReplyId(initialId);
                 this.source = TestSource.this;
                 this.envelope = valueModel != null ? new TestModelEnvelope() : null;
+                if (envelope != null)
+                {
+                    seedEnvelope(envelope);
+                }
                 this.pipeline = valueModel != null ? valueModel.supplyDecoder(envelope, ModelTransform.NONE) : null;
                 this.replyBuffer = pipeline != null ? new UnsafeBufferEx(new byte[transformMax]) : null;
             }
@@ -1669,6 +1730,10 @@ final class TestBindingFactory implements BindingHandler
                 }
                 else if (status == ModelStatus.COMPLETE)
                 {
+                    if (envelope != null && !assertEnvelope(envelope))
+                    {
+                        doReplyReset(traceId);
+                    }
                     pipeline.reset();
                     cleanupDecodeSlot();
                 }

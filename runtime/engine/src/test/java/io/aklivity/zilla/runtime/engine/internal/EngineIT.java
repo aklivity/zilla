@@ -103,6 +103,16 @@ public class EngineIT
     }
 
     @Test
+    @Configuration("server.value.envelope.bootstrap.yaml")
+    @Specification({
+        "${net}/value.envelope.bootstrap/client",
+        "${app}/value.envelope.bootstrap/server"})
+    public void shouldExchangeValueEnvelopeBootstrap() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("server.yaml")
     @Specification({
         "${net}/client.sent.read.advise.challenge/client",
