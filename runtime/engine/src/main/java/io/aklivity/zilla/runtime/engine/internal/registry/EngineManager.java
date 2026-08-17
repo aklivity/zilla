@@ -67,6 +67,7 @@ import io.aklivity.zilla.config.engine.SchemaConfig;
 import io.aklivity.zilla.config.engine.StoreConfig;
 import io.aklivity.zilla.config.engine.TelemetryRefConfig;
 import io.aklivity.zilla.config.engine.VaultConfig;
+import io.aklivity.zilla.config.engine.VaultedConfig;
 import io.aklivity.zilla.runtime.common.lang.util.function.LongObjectBiFunction;
 import io.aklivity.zilla.runtime.common.lang.util.function.LongObjectPredicate;
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
@@ -440,9 +441,9 @@ public class EngineManager
             {
                 for (ModelConfig model : binding.options.models)
                 {
-                    if (model.vault != null)
+                    for (VaultedConfig vaulted : model.vaulted)
                     {
-                        model.vaultId = resolver.resolve(model.vault);
+                        vaulted.id = resolver.resolve(vaulted.name);
                     }
 
                     if (model.cataloged != null)

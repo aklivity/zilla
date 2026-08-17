@@ -30,9 +30,11 @@ public final class ConfigExtAdapter<T extends Config.Extensible>
         this.adaptersByName = adaptersByName;
     }
 
+    // config need only be Extensible, not specifically T: adaptFromJson below is already generic over any
+    // Extensible builder, since the extensions here are name-keyed rather than tied to one enclosing type
     @SuppressWarnings("unchecked")
     public void adaptToJson(
-        T config,
+        Config.Extensible config,
         JsonObjectBuilder object)
     {
         adaptersByName.forEach((name, adapter) ->

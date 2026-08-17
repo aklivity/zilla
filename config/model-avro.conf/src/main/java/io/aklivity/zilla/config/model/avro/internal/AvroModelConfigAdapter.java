@@ -32,6 +32,8 @@ import io.aklivity.zilla.config.engine.SchemaConfig;
 import io.aklivity.zilla.config.engine.SchemaConfigAdapter;
 import io.aklivity.zilla.config.engine.ValidateConfig;
 import io.aklivity.zilla.config.engine.ValidateConfigAdapter;
+import io.aklivity.zilla.config.engine.VaultedConfig;
+import io.aklivity.zilla.config.engine.VaultedConfigBuilder;
 import io.aklivity.zilla.config.model.avro.AvroModelConfig;
 import io.aklivity.zilla.config.model.avro.AvroModelConfigBuilder;
 
@@ -88,9 +90,16 @@ public final class AvroModelConfigAdapter extends ConfigAdapter.Extensible<Model
             builder.add(VALIDATE_NAME, validateJson);
         }
 
-        if (model.vault != null)
+        if (!model.vaulted.isEmpty())
         {
-            builder.add(VAULT_NAME, model.vault);
+            JsonObjectBuilder vaults = Json.createObjectBuilder();
+            for (VaultedConfig vaulted : model.vaulted)
+            {
+                JsonObjectBuilder vaultedJson = Json.createObjectBuilder();
+                injectExtensions(vaulted, vaultedJson);
+                vaults.add(vaulted.name, vaultedJson);
+            }
+            builder.add(VAULT_NAME, vaults);
         }
 
         injectExtensions(model, builder);
@@ -131,16 +140,22 @@ public final class AvroModelConfigAdapter extends ConfigAdapter.Extensible<Model
 
         ValidateConfig validateConfig = validate.adaptFromJsonObject(object);
 
-        String vault = object.containsKey(VAULT_NAME)
-                ? object.getString(VAULT_NAME)
-                : null;
-
         AvroModelConfigBuilder<AvroModelConfig> builder = AvroModelConfig.builder()
             .subject(subject)
             .view(view)
-            .validate(validateConfig)
-            .vault(vault);
+            .validate(validateConfig);
         catalogs.forEach(builder::catalog);
+
+        if (object.containsKey(VAULT_NAME))
+        {
+            JsonObject vaultsJson = object.getJsonObject(VAULT_NAME);
+            for (String vaultName : vaultsJson.keySet())
+            {
+                VaultedConfigBuilder<AvroModelConfigBuilder<AvroModelConfig>> vaulted =
+                    builder.vault().name(vaultName);
+                builder = injectExtensions(vaultsJson.getJsonObject(vaultName), vaulted).build();
+            }
+        }
 
         injectExtensions(object, builder);
 
