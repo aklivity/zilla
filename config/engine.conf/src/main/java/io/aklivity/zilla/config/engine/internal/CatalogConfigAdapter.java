@@ -29,6 +29,7 @@ public class CatalogConfigAdapter
 {
     private static final String TYPE_NAME = "type";
     private static final String VAULT_NAME = "vault";
+    private static final String GUARD_NAME = "guard";
     private static final String OPTIONS_NAME = "options";
 
     private final String type;
@@ -69,6 +70,11 @@ public class CatalogConfigAdapter
         if (object.containsKey(VAULT_NAME))
         {
             builder.vault(object.getString(VAULT_NAME));
+        }
+
+        if (object.containsKey(GUARD_NAME))
+        {
+            builder.guard(object.getString(GUARD_NAME));
         }
 
         if (object.containsKey(OPTIONS_NAME))

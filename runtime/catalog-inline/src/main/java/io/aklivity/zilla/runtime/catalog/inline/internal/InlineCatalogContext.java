@@ -16,15 +16,26 @@ package io.aklivity.zilla.runtime.catalog.inline.internal;
 
 import io.aklivity.zilla.config.catalog.inline.InlineOptionsConfig;
 import io.aklivity.zilla.config.engine.CatalogConfig;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
+import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 
 public class InlineCatalogContext implements CatalogContext
 {
+    private final EngineContext context;
+
+    public InlineCatalogContext(
+        EngineContext context)
+    {
+        this.context = context;
+    }
+
     @Override
     public CatalogHandler attach(
         CatalogConfig catalog)
     {
-        return new InlineCatalogHandler(InlineOptionsConfig.class.cast(catalog.options));
+        GuardHandler guard = catalog.guard != null ? context.supplyGuard(catalog.guardId) : null;
+        return new InlineCatalogHandler(InlineOptionsConfig.class.cast(catalog.options), guard);
     }
 }

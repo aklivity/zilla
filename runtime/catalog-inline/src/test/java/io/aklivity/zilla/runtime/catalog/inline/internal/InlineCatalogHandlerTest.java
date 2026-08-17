@@ -20,9 +20,13 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
+import java.util.List;
+import java.util.Map;
+
 import org.junit.Test;
 
 import io.aklivity.zilla.config.catalog.inline.InlineOptionsConfig;
+import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 
 public class InlineCatalogHandlerTest
 {
@@ -32,7 +36,7 @@ public class InlineCatalogHandlerTest
     private InlineCatalogHandler newHandler()
     {
         InlineOptionsConfig options = InlineOptionsConfig.builder().build();
-        return new InlineCatalogHandler(options);
+        return new InlineCatalogHandler(options, null);
     }
 
     @Test
@@ -50,7 +54,7 @@ public class InlineCatalogHandlerTest
     @Test
     public void shouldConstructWithoutOptionsAndAcceptRuntimeRegistration()
     {
-        InlineCatalogHandler handler = new InlineCatalogHandler(null);
+        InlineCatalogHandler handler = new InlineCatalogHandler(null, null);
 
         int schemaId = handler.register("weather", SCHEMA_A);
 
@@ -139,5 +143,149 @@ public class InlineCatalogHandlerTest
         InlineCatalogHandler handler = newHandler();
 
         assertThat(handler.resolve("missing", "latest"), equalTo(NO_SCHEMA_ID));
+    }
+
+    @Test
+    public void shouldResolveGuardedIdentityExpressionInSubjectBeforeLookup()
+    {
+        InlineOptionsConfig options = InlineOptionsConfig.builder().build();
+        InlineCatalogHandler handler = new InlineCatalogHandler(options, new TestGuard("alice", null));
+
+        int schemaId = handler.register("orders.alice-value", SCHEMA_A);
+
+        int resolved = handler.resolve("orders.${guarded['product:api_keys'].identity}-value", "latest", 7L);
+
+        assertThat(resolved, equalTo(schemaId));
+    }
+
+    @Test
+    public void shouldResolveGuardedAttributeExpressionInSubjectBeforeLookup()
+    {
+        InlineOptionsConfig options = InlineOptionsConfig.builder().build();
+        InlineCatalogHandler handler =
+            new InlineCatalogHandler(options, new TestGuard(null, Map.of("tenant", "acme")));
+
+        int schemaId = handler.register("orders.acme-value", SCHEMA_A);
+
+        int resolved =
+            handler.resolve("orders.${guarded['product:api_keys'].attributes.tenant}-value", "latest", 7L);
+
+        assertThat(resolved, equalTo(schemaId));
+    }
+
+    @Test
+    public void shouldFailToResolveGuardedExpressionWhenNoGuardConfigured()
+    {
+        InlineCatalogHandler handler = newHandler();
+
+        handler.register("orders.alice-value", SCHEMA_A);
+
+        int resolved = handler.resolve("orders.${guarded['product:api_keys'].identity}-value", "latest", 7L);
+
+        assertThat(resolved, equalTo(NO_SCHEMA_ID));
+    }
+
+    @Test
+    public void shouldIgnoreGuardedExpressionSyntaxWhenAuthorizationOverloadIsNotUsed()
+    {
+        InlineOptionsConfig options = InlineOptionsConfig.builder().build();
+        InlineCatalogHandler handler = new InlineCatalogHandler(options, new TestGuard("alice", null));
+
+        int schemaId = handler.register("weather", SCHEMA_A);
+
+        assertThat(handler.resolve("weather", "latest"), equalTo(schemaId));
+    }
+
+    private static final class TestGuard implements GuardHandler
+    {
+        private final String identity;
+        private final Map<String, String> attributes;
+
+        private TestGuard(
+            String identity,
+            Map<String, String> attributes)
+        {
+            this.identity = identity;
+            this.attributes = attributes;
+        }
+
+        @Override
+        public long reauthorize(
+            long traceId,
+            long bindingId,
+            long contextId,
+            String credentials)
+        {
+            return NOT_AUTHORIZED;
+        }
+
+        @Override
+        public void reauthorize(
+            long traceId,
+            long bindingId,
+            long contextId,
+            String credentials,
+            LongCompletionCallback completion)
+        {
+            completion.completed(contextId, NOT_AUTHORIZED);
+        }
+
+        @Override
+        public void deauthorize(
+            long sessionId)
+        {
+        }
+
+        @Override
+        public String identity(
+            long sessionId)
+        {
+            return identity;
+        }
+
+        @Override
+        public String attribute(
+            long sessionId,
+            String name)
+        {
+            return attributes != null ? attributes.get(name) : null;
+        }
+
+        @Override
+        public String credentials(
+            long sessionId)
+        {
+            return null;
+        }
+
+        @Override
+        public boolean verify(
+            long sessionId,
+            List<String> roles)
+        {
+            return false;
+        }
+
+        @Override
+        public long expiresAt(
+            long sessionId)
+        {
+            return EXPIRES_NEVER;
+        }
+
+        @Override
+        public long expiringAt(
+            long sessionId)
+        {
+            return EXPIRES_NEVER;
+        }
+
+        @Override
+        public boolean challenge(
+            long sessionId,
+            long now)
+        {
+            return false;
+        }
     }
 }

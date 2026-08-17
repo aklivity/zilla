@@ -26,6 +26,7 @@ public abstract class CatalogConfigBuilder<T, B extends CatalogConfigBuilder<T, 
     private String name;
     private String type;
     private String vault;
+    private String guard;
     private OptionsConfig options;
 
     protected CatalogConfigBuilder(
@@ -62,6 +63,13 @@ public abstract class CatalogConfigBuilder<T, B extends CatalogConfigBuilder<T, 
         return thisType().cast(this);
     }
 
+    public B guard(
+        String guard)
+    {
+        this.guard = guard;
+        return thisType().cast(this);
+    }
+
     protected <C extends ConfigBuilder<B, C>> C options(
         Function<Function<OptionsConfig, B>, C> options)
     {
@@ -78,7 +86,7 @@ public abstract class CatalogConfigBuilder<T, B extends CatalogConfigBuilder<T, 
     @Override
     public T build()
     {
-        return mapper.apply(newCatalog(namespace, name, type, vault, options));
+        return mapper.apply(newCatalog(namespace, name, type, vault, guard, options));
     }
 
     protected abstract CatalogConfig newCatalog(
@@ -86,5 +94,6 @@ public abstract class CatalogConfigBuilder<T, B extends CatalogConfigBuilder<T, 
         String name,
         String type,
         String vault,
+        String guard,
         OptionsConfig options);
 }

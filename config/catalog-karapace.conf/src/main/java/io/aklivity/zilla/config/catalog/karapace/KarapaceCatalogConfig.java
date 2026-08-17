@@ -37,8 +37,9 @@ public final class KarapaceCatalogConfig extends CatalogConfig
         String name,
         String type,
         String vault,
+        String guard,
         OptionsConfig options)
     {
-        super(namespace, name, type, vault, options);
+        super(namespace, name, type, vault, guard, options);
     }
 }
