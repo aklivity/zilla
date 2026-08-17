@@ -1631,8 +1631,6 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             if (!KafkaState.replyOpening(state))
             {
                 state = KafkaState.openingReply(state);
-                doBegin(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                        traceId, authorization, leaderId, EMPTY_EXTENSION);
             }
 
             if (!KafkaState.replyClosed(state))

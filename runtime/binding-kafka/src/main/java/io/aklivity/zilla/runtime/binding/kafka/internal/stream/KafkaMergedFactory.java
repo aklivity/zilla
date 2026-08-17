@@ -3647,6 +3647,10 @@ public final class KafkaMergedFactory implements BindingHandler
             final KafkaResetExFW kafkaResetEx = extension.get(kafkaResetExRO::tryWrap);
             final int error = kafkaResetEx != null ? kafkaResetEx.error() : -1;
 
+            if (error == ERROR_NOT_LEADER_FOR_PARTITION)
+            {
+                merged.doMergedReplyAbortIfNecessary(traceId);
+            }
             doFetchReplyResetIfNecessary(traceId);
 
             assert KafkaState.closed(state);
