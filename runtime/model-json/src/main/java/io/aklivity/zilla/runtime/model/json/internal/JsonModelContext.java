@@ -14,25 +14,33 @@
  */
 package io.aklivity.zilla.runtime.model.json.internal;
 
+import java.util.List;
+
 import io.aklivity.zilla.config.engine.ModelConfig;
 import io.aklivity.zilla.config.model.json.JsonModelConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.ModelContext;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
+import io.aklivity.zilla.runtime.model.json.ext.JsonModelExt;
+import io.aklivity.zilla.runtime.model.json.ext.JsonModelExtContext;
 
 public class JsonModelContext implements ModelContext
 {
     private final EngineContext context;
+    private final List<JsonModelExtContext> exts;
 
-    public JsonModelContext(EngineContext context)
+    public JsonModelContext(
+        EngineContext context,
+        List<JsonModelExt> exts)
     {
         this.context = context;
+        this.exts = exts.stream().map(ext -> ext.supply(context)).toList();
     }
 
     @Override
     public ModelHandler supplyHandler(
         ModelConfig config)
     {
-        return new JsonModelHandlerImpl(JsonModelConfig.class.cast(config), context);
+        return new JsonModelHandlerImpl(JsonModelConfig.class.cast(config), context, exts);
     }
 }

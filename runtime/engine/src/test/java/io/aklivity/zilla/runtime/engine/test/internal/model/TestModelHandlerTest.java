@@ -21,17 +21,21 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.Test;
 
 import io.aklivity.zilla.config.engine.ValidateConfig;
 import io.aklivity.zilla.config.engine.ValidateMode;
 import io.aklivity.zilla.config.engine.test.internal.model.config.TestModelConfig;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.ModelController;
+import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelEvent;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
@@ -103,13 +107,13 @@ public class TestModelHandlerTest
 
         byte[] bytes = {1, 2, 3};
 
-        ModelPipeline decoder = handler.supplyDecoder(ModelTransform.NONE);
+        ModelPipeline decoder = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
         MutableDirectBufferEx decodeDst = new UnsafeBufferEx(new byte[16]);
         ModelPipelineResult decoded = decoder.transform(0L, 0L, 0L, FLAGS_COMPLETE,
             new UnsafeBufferEx(bytes), 0, bytes.length, decodeDst, 0, decodeDst.capacity());
         assertEquals(ModelStatus.COMPLETE, decoded.status());
 
-        ModelPipeline encoder = handler.supplyEncoder(ModelTransform.NONE);
+        ModelPipeline encoder = handler.supplyEncoder(ModelEnvelope.NONE, ModelTransform.NONE);
         MutableDirectBufferEx encodeDst = new UnsafeBufferEx(new byte[16]);
         ModelPipelineResult encoded = encoder.transform(0L, 0L, 0L, FLAGS_COMPLETE,
             new UnsafeBufferEx(bytes), 0, bytes.length, encodeDst, 0, encodeDst.capacity());
@@ -219,7 +223,7 @@ public class TestModelHandlerTest
                 return true;
             }
         };
-        ModelPipeline pipeline = handler.supplyDecoder(transform);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, transform);
 
         byte[] bytes = {1, 2, 3, 4};
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[16]);
@@ -234,6 +238,54 @@ public class TestModelHandlerTest
         assertFalse(observed.isEmpty());
         assertTrue(observed.subList(0, firstValueEvents).stream().allMatch(a -> a == 0x0102L));
         assertTrue(observed.subList(firstValueEvents, observed.size()).stream().allMatch(a -> a == 0x0304L));
+    }
+
+    @Test
+    public void shouldWriteExtractedFieldsToSuppliedEnvelope()
+    {
+        TestModelConfig config = TestModelConfig.builder()
+            .length(4)
+            .field("a")
+            .field("b")
+            .build();
+        ModelHandler handler = new TestModelContext(context).supplyHandler(config);
+
+        Metadata envelope = new Metadata();
+        ModelPipeline pipeline = handler.supplyDecoder(envelope, ModelTransform.NONE);
+
+        byte[] bytes = {1, 2, 3, 4};
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[16]);
+        pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+            new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
+
+        assertEquals(1, envelope.count("$.a"));
+        assertEquals(1, envelope.count("$.b"));
+        assertEquals(0, envelope.count("$.c"));
+    }
+
+    @Test
+    public void shouldKeepSuppliedEnvelopeAcrossValues()
+    {
+        TestModelConfig config = TestModelConfig.builder()
+            .length(4)
+            .field("a")
+            .build();
+        ModelHandler handler = new TestModelContext(context).supplyHandler(config);
+
+        Metadata envelope = new Metadata();
+        ModelPipeline pipeline = handler.supplyDecoder(envelope, ModelTransform.NONE);
+
+        byte[] bytes = {1, 2, 3, 4};
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[16]);
+        pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+            new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
+        pipeline.reset();
+        pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+            new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
+
+        // the pipeline binds to the envelope it was supplied with and never resets it; the supplier owns
+        // when its contents turn over, so a second value accumulates alongside the first
+        assertEquals(2, envelope.count("$.a"));
     }
 
     @Test
@@ -252,7 +304,7 @@ public class TestModelHandlerTest
             .transformLength(8)
             .build();
         ModelHandler handler = new TestModelContext(context).supplyHandler(config);
-        ModelPipeline pipeline = handler.supplyDecoder(ModelTransform.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
 
         assertFalse(pipeline.identity());
     }
@@ -261,14 +313,14 @@ public class TestModelHandlerTest
         int length)
     {
         ModelHandler handler = new TestModelContext(context).supplyHandler(config(length));
-        return handler.supplyDecoder(ModelTransform.NONE);
+        return handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
     }
 
     private ModelPipeline writePipeline(
         int length)
     {
         ModelHandler handler = new TestModelContext(context).supplyHandler(config(length));
-        return handler.supplyEncoder();
+        return handler.supplyEncoder(ModelEnvelope.NONE, ModelTransform.NONE);
     }
 
     private ModelPipeline lenientReadPipeline(
@@ -279,12 +331,45 @@ public class TestModelHandlerTest
             .validate(ValidateConfig.builder().decode(ValidateMode.LENIENT).encode(ValidateMode.LENIENT).build())
             .build();
         ModelHandler handler = new TestModelContext(context).supplyHandler(config);
-        return handler.supplyDecoder(ModelTransform.NONE);
+        return handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
     }
 
     private static TestModelConfig config(
         int length)
     {
         return TestModelConfig.builder().length(length).build();
+    }
+
+    // an envelope a caller supplies to the pipeline, recording what the model writes into it
+    private static final class Metadata implements ModelEnvelope
+    {
+        private final Map<String, List<DirectBufferEx>> values = new LinkedHashMap<>();
+
+        @Override
+        public int count(
+            String name)
+        {
+            List<DirectBufferEx> named = values.get(name);
+            return named != null ? named.size() : 0;
+        }
+
+        @Override
+        public DirectBufferEx get(
+            String name,
+            int index)
+        {
+            List<DirectBufferEx> named = values.get(name);
+            return named != null && index < named.size() ? named.get(index) : null;
+        }
+
+        @Override
+        public void set(
+            String name,
+            DirectBufferEx value)
+        {
+            byte[] copy = new byte[value.capacity()];
+            value.getBytes(0, copy);
+            values.computeIfAbsent(name, n -> new ArrayList<>()).add(new UnsafeBufferEx(copy));
+        }
     }
 }

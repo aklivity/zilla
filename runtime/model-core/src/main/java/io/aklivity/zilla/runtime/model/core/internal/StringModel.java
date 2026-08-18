@@ -14,13 +14,24 @@
  */
 package io.aklivity.zilla.runtime.model.core.internal;
 
+import java.util.List;
+
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.Model;
 import io.aklivity.zilla.runtime.engine.model.ModelContext;
+import io.aklivity.zilla.runtime.model.core.ext.StringModelExt;
 
 public class StringModel implements Model
 {
     public static final String NAME = "string";
+
+    private final List<StringModelExt> exts;
+
+    public StringModel(
+        List<StringModelExt> exts)
+    {
+        this.exts = exts;
+    }
 
     @Override
     public String name()
@@ -32,6 +43,6 @@ public class StringModel implements Model
     public ModelContext supply(
         EngineContext context)
     {
-        return new StringModelContext(context);
+        return new StringModelContext(context, exts.stream().map(ext -> ext.supply(context)).toList());
     }
 }

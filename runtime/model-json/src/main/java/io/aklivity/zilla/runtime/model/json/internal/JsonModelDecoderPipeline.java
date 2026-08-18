@@ -21,6 +21,7 @@ import org.agrona.collections.Int2ObjectCache;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonDiagnostic;
+import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
@@ -47,6 +48,7 @@ final class JsonModelDecoderPipeline implements ModelPipeline
     private final JsonGeneratorEx generator;
     private final JsonExtractor extractor;
     private final Int2ObjectCache<JsonPipeline> pipelines;
+    private final JsonEnvelope envelope;
     private final ModelPipelineResult result;
 
     private JsonPipeline active;
@@ -58,8 +60,10 @@ final class JsonModelDecoderPipeline implements ModelPipeline
 
     JsonModelDecoderPipeline(
         JsonModelHandlerImpl handler,
+        JsonEnvelope envelope,
         ModelTransform transform)
     {
+        this.envelope = envelope;
         this.handler = handler;
         this.bridge = transform != ModelTransform.NONE ? new ModelFieldBridge(transform) : null;
         this.generator = JsonEx.createGenerator();
@@ -92,7 +96,7 @@ final class JsonModelDecoderPipeline implements ModelPipeline
             // the catalog framing sits at the value start; strip it once on the first fragment and select
             // the schema-bound pipeline, then later fragments stream straight through
             int schemaId = handler.resolveSchemaId(src, srcIndex, srcLength, authorization);
-            prefix = handler.decodePadding(src, srcIndex, srcLength);
+            prefix = handler.prefix(src, srcIndex, srcLength);
             active = schemaId != NO_SCHEMA_ID ? supplyPipeline(schemaId) : null;
             if (active != null)
             {
@@ -171,9 +175,8 @@ final class JsonModelDecoderPipeline implements ModelPipeline
     private JsonPipeline supplyPipeline(
         int schemaId)
     {
-        return pipelines.computeIfAbsent(schemaId, id -> extractor != null
-            ? handler.newPipeline(id, handler.decodeLenient, generator, extractor, this::onRejected)
-            : handler.newPipeline(id, handler.decodeLenient, generator, this::onRejected));
+        return pipelines.computeIfAbsent(schemaId,
+            id -> handler.newPipeline(id, handler.decodeLenient, generator, extractor, this::onRejected, envelope));
     }
 
     private void onRejected(

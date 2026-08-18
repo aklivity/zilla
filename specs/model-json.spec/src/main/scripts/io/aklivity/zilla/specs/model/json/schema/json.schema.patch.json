@@ -141,8 +141,7 @@
                 "required":
                 [
                     "catalog"
-                ],
-                "additionalProperties": false
+                ]
             }
         }
     }

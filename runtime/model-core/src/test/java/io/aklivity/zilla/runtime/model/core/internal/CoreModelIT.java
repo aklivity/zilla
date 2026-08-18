@@ -25,6 +25,7 @@ import org.junit.rules.Timeout;
 
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
+import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 
@@ -36,9 +37,13 @@ public class CoreModelIT
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
+    // 64KB, raised from the 32KB default -- still well under client.received.bytes.ext.uppercase.100k's
+    // ~100KB value, so that scenario genuinely forces the ModelExt pipeline's OVERFLOW/drain-across-calls
+    // path rather than sidestepping it with an oversized buffer.
     private final EngineRule engine = new EngineRule()
         .directory("target/zilla-itests")
         .countersBufferCapacity(4096)
+        .configure(EngineConfiguration.ENGINE_BUFFER_SLOT_CAPACITY, 65_536)
         .configurationRoot("io/aklivity/zilla/specs/model/core/config")
         .external("app0")
         .clean();
@@ -207,6 +212,78 @@ public class CoreModelIT
         "${app}/client.sent.boolean.invalid/server"
     })
     public void shouldRejectBooleanInvalid() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("bytes.yaml")
+    @Specification({
+        "${net}/client.sent.bytes/client",
+        "${app}/client.sent.bytes/server"
+    })
+    public void shouldForwardBytes() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // The scenarios below drive a live engine with two test-only BytesModelExtFactorySpi installed
+    // (registered under src/test only, never shipped in the production jar) to prove the ModelExt
+    // composition mechanism -- apply, fragment streaming, OVERFLOW/drain, withhold, reject, and either
+    // direction -- works end-to-end through a real engine, independent of any specific installed
+    // extension's own tests. One overrides decode only, the other encode only.
+
+    @Test
+    @Configuration("bytes.yaml")
+    @Specification({
+        "${net}/client.received.bytes.ext.uppercase/client",
+        "${app}/client.received.bytes.ext.uppercase/server"
+    })
+    public void shouldApplyExtensionOnReply() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("bytes.yaml")
+    @Specification({
+        "${net}/client.received.bytes.ext.uppercase.100k/client",
+        "${app}/client.received.bytes.ext.uppercase.100k/server"
+    })
+    public void shouldDrainExtensionOverflowAcrossMultipleFrames() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("bytes.yaml")
+    @Specification({
+        "${net}/client.received.bytes.ext.withhold/client",
+        "${app}/client.received.bytes.ext.withhold/server"
+    })
+    public void shouldAbortReplyWhenExtensionWithholdsValue() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("bytes.yaml")
+    @Specification({
+        "${net}/client.received.bytes.ext.reject/client",
+        "${app}/client.received.bytes.ext.reject/server"
+    })
+    public void shouldAbortReplyWhenExtensionRejectsValue() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("bytes.yaml")
+    @Specification({
+        "${net}/client.sent.bytes.ext.uppercase/client",
+        "${app}/client.sent.bytes.ext.uppercase/server"
+    })
+    public void shouldApplyExtensionOnEncodeDirection() throws Exception
     {
         k3po.finish();
     }

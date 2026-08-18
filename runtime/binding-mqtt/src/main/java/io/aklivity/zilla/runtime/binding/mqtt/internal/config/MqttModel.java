@@ -17,10 +17,12 @@ package io.aklivity.zilla.runtime.binding.mqtt.internal.config;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
+import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 
 /**
  * Per-stream driver around a decode {@link ModelPipeline} for the mqtt binding.
@@ -46,7 +48,7 @@ public final class MqttModel
         MutableDirectBufferEx scratch)
     {
         return handler != null
-            ? new MqttModel(handler.supplyDecoder(), scratch)
+            ? new MqttModel(handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE), scratch)
             : NONE;
     }
 

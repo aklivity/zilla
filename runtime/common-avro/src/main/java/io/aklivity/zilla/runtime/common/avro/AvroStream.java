@@ -22,7 +22,7 @@ package io.aklivity.zilla.runtime.common.avro;
  * obtain the runnable, resumable {@link AvroPipeline}. An {@code AvroStream} carries no state and is not
  * itself runnable.
  */
-public interface AvroStream extends AvroTransformable
+public interface AvroStream extends AvroTransformable<AvroStream>
 {
     /**
      * Appends a stage, in data-flow order. {@link AvroTransform#NONE} is dropped rather than appended, so a
@@ -50,6 +50,15 @@ public interface AvroStream extends AvroTransformable
      */
     AvroStream reporting(
         AvroReporter reporter);
+
+    /**
+     * Binds the pipeline to the {@link AvroEnvelope} its stages read and write named metadata through,
+     * reachable from any stage via {@link AvroController#envelope()}. The last bound envelope wins; the
+     * default is {@link AvroEnvelope#NONE}, which reads as empty and discards writes, so a pipeline
+     * assembled without one costs a stage that never asks for it nothing.
+     */
+    AvroStream envelope(
+        AvroEnvelope envelope);
 
     AvroPipeline into(
         AvroSink sink);

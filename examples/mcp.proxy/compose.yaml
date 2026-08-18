@@ -51,7 +51,12 @@ services:
     image: node:20-alpine
     hostname: everything
     restart: unless-stopped
-    command: ["npx", "-y", "@modelcontextprotocol/server-everything", "streamableHttp"]
+    # Pinned: unpinned "latest" silently changed behavior (e.g. added a new
+    # "tasks" initialize capability) and reintroduced this container's own
+    # npm-registry fetch time into the cache-hydration budget on every test
+    # run, both of which showed up as an intermittent "cache never finished
+    # hydrating" failure for this toolkit specifically.
+    command: ["npx", "-y", "@modelcontextprotocol/server-everything@2026.7.4", "streamableHttp"]
     environment:
       PORT: "3001"
     healthcheck:
@@ -361,6 +366,14 @@ services:
       - ./resource-subscribe-client:/work/resource-subscribe-client
       - ./url-elicit:/work/url-elicit
       - /var/run/docker.sock:/var/run/docker.sock
+    # verify.sh defaults this to 1 and documents FAIL_FAST=0 as the override, but
+    # `docker compose run` passes no host environment through on its own, so
+    # without declaring it here the override never reaches the container. Fail-fast
+    # stays the default because the workflow copies out zilla's engine directory on
+    # failure: `zilla dump` over it is only useful while the most recent frames are
+    # the failing ones, and ~40 further assertions would bury them.
+    environment:
+      FAIL_FAST: "${FAIL_FAST:-1}"
     entrypoint: ["/bin/sh", "-c"]
     command:
       - |

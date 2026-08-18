@@ -205,7 +205,7 @@ public class KafkaJsonPipelineBM
                 .build()
             .build();
         EngineContext context = new KafkaModelWorker(new TestCatalogHandler(catalog.options));
-        return new JsonModelHandlerImpl(model, context);
+        return new JsonModelHandlerImpl(model, context, List.of());
     }
 
     public static void main(

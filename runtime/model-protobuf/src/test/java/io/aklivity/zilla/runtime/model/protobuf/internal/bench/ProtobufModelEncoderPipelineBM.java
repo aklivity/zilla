@@ -19,6 +19,8 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.util.List;
+
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -42,6 +44,7 @@ import io.aklivity.zilla.config.model.protobuf.ProtobufModelConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelTransform;
@@ -82,7 +85,7 @@ public class ProtobufModelEncoderPipelineBM
     @Setup(Level.Trial)
     public void init()
     {
-        pipeline = newHandler().supplyEncoder(ModelTransform.NONE);
+        pipeline = newHandler().supplyEncoder(ModelEnvelope.NONE, ModelTransform.NONE);
     }
 
     @Benchmark
@@ -119,7 +122,7 @@ public class ProtobufModelEncoderPipelineBM
             .build();
         EngineContext context = mock(EngineContext.class);
         when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
-        return new ProtobufModelHandlerImpl(model, context);
+        return new ProtobufModelHandlerImpl(model, context, List.of());
     }
 
     public static void main(

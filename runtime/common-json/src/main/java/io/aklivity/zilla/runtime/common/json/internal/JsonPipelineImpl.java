@@ -24,6 +24,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonController;
 import io.aklivity.zilla.runtime.common.json.JsonDiagnostic;
+import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
@@ -64,12 +65,13 @@ public final class JsonPipelineImpl implements JsonPipeline
         JsonSink root,
         JsonReporter reporter,
         JsonGeneratorEx generator,
-        boolean lenient)
+        boolean lenient,
+        JsonEnvelope envelope)
     {
         this.parser = parser;
         // the source view and the upstream controller a stage steers are adapters over the parser surface
         this.source = new Source(parser);
-        this.control = new Control(parser);
+        this.control = new Control(parser, envelope);
         this.root = root;
         this.reporter = reporter;
         this.diagnostic = new Diagnostic();
@@ -324,13 +326,22 @@ public final class JsonPipelineImpl implements JsonPipeline
     private static final class Control implements JsonController
     {
         private final JsonParserEx parser;
+        private final JsonEnvelope envelope;
 
         private boolean segmented;
 
         private Control(
-            JsonParserEx parser)
+            JsonParserEx parser,
+            JsonEnvelope envelope)
         {
             this.parser = parser;
+            this.envelope = envelope;
+        }
+
+        @Override
+        public JsonEnvelope envelope()
+        {
+            return envelope;
         }
 
         @Override

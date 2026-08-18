@@ -23,6 +23,7 @@ import io.aklivity.zilla.config.model.avro.AvroModelConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.avro.Avro;
+import io.aklivity.zilla.runtime.common.avro.AvroEnvelope;
 import io.aklivity.zilla.runtime.common.avro.AvroGenerator;
 import io.aklivity.zilla.runtime.common.avro.AvroPipeline;
 import io.aklivity.zilla.runtime.common.avro.AvroReporter;
@@ -34,6 +35,7 @@ import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
+import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelTransform;
@@ -66,16 +68,18 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
 
     @Override
     public ModelPipeline supplyDecoder(
+        ModelEnvelope envelope,
         ModelTransform transform)
     {
-        return new AvroModelDecoderPipeline(this, requireNonNull(transform));
+        return new AvroModelDecoderPipeline(this, AvroModelEnvelope.of(requireNonNull(envelope)), requireNonNull(transform));
     }
 
     @Override
     public ModelPipeline supplyEncoder(
+        ModelEnvelope envelope,
         ModelTransform transform)
     {
-        return new AvroModelEncoderPipeline(this, requireNonNull(transform));
+        return new AvroModelEncoderPipeline(this, AvroModelEnvelope.of(requireNonNull(envelope)), requireNonNull(transform));
     }
 
     int decodePadding(
@@ -110,7 +114,7 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
     int encodePadding(
         int length)
     {
-        return handler.encodePadding(length);
+        return handler.encodePadding(length) + supplyExtPadding(resolveSchemaId());
     }
 
     // the catalog framing the value carries on the wire, stripped once at the start of the first fragment
@@ -177,7 +181,8 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
         boolean lenient,
         JsonGeneratorEx json,
         AvroTransform adapter,
-        AvroReporter reporter)
+        AvroReporter reporter,
+        AvroEnvelope envelope)
     {
         AvroSchema schema = supplySchema(schemaId);
         AvroPipeline pipeline = null;
@@ -188,10 +193,11 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
             AvroGenerator generator = VIEW_JSON.equals(view)
                 ? AvroJson.generator(schema, json, true)
                 : Avro.generator(schema, new UnsafeBufferEx(new byte[1]), 0);
-            pipeline = extend(Avro.stream(Avro.parser(schema)), schema)
+            pipeline = extendDecode(Avro.stream(Avro.parser(schema)), schema)
                 .transform(adapter)
                 .lenient(lenient)
                 .reporting(reporter)
+                .envelope(envelope)
                 .into(generator);
         }
         return pipeline;
@@ -201,7 +207,8 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
         int schemaId,
         boolean lenient,
         AvroTransform adapter,
-        AvroReporter reporter)
+        AvroReporter reporter,
+        AvroEnvelope envelope)
     {
         AvroSchema schema = supplySchema(schemaId);
         AvroPipeline pipeline = null;
@@ -210,32 +217,45 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
             // a json view parses JSON input and re-encodes it as Avro binary; any other view validates
             // Avro binary input and reproduces it, so a malformed datum yields a binary "truncated datum"
             // diagnostic rather than a JSON parse failure
-            //
-            // model extensions are decode-only: encode is the write path into the broker, which must
-            // keep the source of truth intact, so extensions never fold into the encoder stream here
             AvroStream stream = VIEW_JSON.equals(view)
                 ? AvroJson.stream(schema, JsonEx.createParser(), true)
                 : Avro.stream(Avro.parser(schema));
-            pipeline = stream
+            pipeline = extendEncode(stream, schema)
                 .transform(adapter)
                 .lenient(lenient)
                 .reporting(reporter)
+                .envelope(envelope)
                 .into(Avro.generator(schema, new UnsafeBufferEx(new byte[1]), 0));
         }
         return pipeline;
     }
 
-    // folds every installed avro model extension's own stage(s) into the decoder stream, in discovery
-    // order, ahead of this handler's own adapter stage; decode is the read path out of the broker, where
-    // a read-side concern like disclosure redaction belongs
-    private AvroStream extend(
+    // folds every installed avro model extension's own decode stage(s) into the stream, in discovery
+    // order, ahead of this handler's own adapter stage: the canonical value being decoded into the view
+    // delivered to a reader
+    private AvroStream extendDecode(
         AvroStream stream,
         AvroSchema schema)
     {
         AvroStream extended = stream;
         for (AvroModelExtContext ext : exts)
         {
-            extended = (AvroStream) ext.supplyHandler(schema, options).transform(extended);
+            extended = ext.supplyHandler(schema, options).decode(extended);
+        }
+        return extended;
+    }
+
+    // folds every installed avro model extension's own encode stage(s) into the stream, in discovery
+    // order, ahead of this handler's own adapter stage: a caller's value being encoded into its canonical
+    // form
+    private AvroStream extendEncode(
+        AvroStream stream,
+        AvroSchema schema)
+    {
+        AvroStream extended = stream;
+        for (AvroModelExtContext ext : exts)
+        {
+            extended = ext.supplyHandler(schema, options).encode(extended);
         }
         return extended;
     }

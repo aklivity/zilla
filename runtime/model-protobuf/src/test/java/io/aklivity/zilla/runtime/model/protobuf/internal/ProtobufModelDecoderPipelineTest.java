@@ -24,6 +24,7 @@ import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayOutputStream;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.junit.Before;
@@ -36,8 +37,10 @@ import io.aklivity.zilla.config.model.protobuf.ProtobufModelConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufSchema;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.ModelController;
+import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelEvent;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
@@ -46,6 +49,8 @@ import io.aklivity.zilla.runtime.engine.model.ModelSource;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.TestCatalogHandler;
+import io.aklivity.zilla.runtime.model.protobuf.ext.ProtobufModelExtContext;
+import io.aklivity.zilla.runtime.model.protobuf.ext.ProtobufModelExtHandler;
 
 public class ProtobufModelDecoderPipelineTest
 {
@@ -104,8 +109,8 @@ public class ProtobufModelDecoderPipelineTest
     {
         ProtobufModelHandlerImpl handler = newHandler(null);
         // two per-stream pipelines from the same per-worker handler
-        ModelPipeline a = handler.supplyDecoder(ModelTransform.NONE);
-        ModelPipeline b = handler.supplyDecoder(ModelTransform.NONE);
+        ModelPipeline a = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
+        ModelPipeline b = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
 
         // stream A split at the field boundary: index byte + content field first, date_time on the final fragment
         byte[] a1 = {0x00, 0x0a, 0x02, 0x4f, 0x4b};
@@ -143,7 +148,7 @@ public class ProtobufModelDecoderPipelineTest
         ProtobufModelHandlerImpl handler = newHandler(null);
 
         Map<String, String> extracted = new HashMap<>();
-        ModelPipeline pipeline = handler.supplyDecoder(observer(extracted));
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, observer(extracted));
 
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
         ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
@@ -177,10 +182,10 @@ public class ProtobufModelDecoderPipelineTest
                     .build()
                 .build()
             .build();
-        ProtobufModelHandlerImpl handler = new ProtobufModelHandlerImpl(model, context);
+        ProtobufModelHandlerImpl handler = new ProtobufModelHandlerImpl(model, context, List.of());
 
         Map<String, String> extracted = new HashMap<>();
-        ModelPipeline pipeline = handler.supplyDecoder(observer(extracted));
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, observer(extracted));
 
         // leading message index 0, then the complex message's scalar fields (matches the legacy extract case)
         byte[] wire = {0, 9, 119, -66, -97, 26, 47, -35, 94, 64, 21, 102, -26, -11, 66, 24, -107, -102, -17, 58,
@@ -203,7 +208,7 @@ public class ProtobufModelDecoderPipelineTest
     public void shouldDrainJsonOnOverflow()
     {
         ProtobufModelHandlerImpl handler = newHandler("json");
-        ModelPipeline pipeline = handler.supplyDecoder(ModelTransform.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
 
         // a 2000-byte content field forces the JSON output past a small destination window, exercising the
         // bounded-chunk OVERFLOW drain across re-transforms (INIT cleared on every re-call after the first)
@@ -247,7 +252,7 @@ public class ProtobufModelDecoderPipelineTest
     public void shouldReportIdentityWhenNoView()
     {
         ProtobufModelHandlerImpl handler = newHandler(null);
-        ModelPipeline pipeline = handler.supplyDecoder(ModelTransform.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
 
         assertFalse(pipeline.identity());
 
@@ -262,7 +267,7 @@ public class ProtobufModelDecoderPipelineTest
     public void shouldNotReportIdentityWhenJsonView()
     {
         ProtobufModelHandlerImpl handler = newHandler("json");
-        ModelPipeline pipeline = handler.supplyDecoder(ModelTransform.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
 
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
         pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
@@ -271,8 +276,29 @@ public class ProtobufModelDecoderPipelineTest
         assertFalse(pipeline.identity());
     }
 
+    @Test
+    public void shouldIncludeExtensionPaddingContribution()
+    {
+        ProtobufModelHandlerImpl baseline = newHandler("json", List.of());
+        ProtobufModelHandlerImpl extended = newHandler("json", List.of(expandingExt(64)));
+
+        int basePadding = baseline.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE)
+            .padding(new UnsafeBufferEx(WIRE), 0, WIRE.length);
+        int extPadding = extended.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE)
+            .padding(new UnsafeBufferEx(WIRE), 0, WIRE.length);
+
+        assertEquals(basePadding + 64, extPadding);
+    }
+
     private ProtobufModelHandlerImpl newHandler(
         String view)
+    {
+        return newHandler(view, List.of());
+    }
+
+    private ProtobufModelHandlerImpl newHandler(
+        String view,
+        List<ProtobufModelExtContext> exts)
     {
         TestCatalogConfig catalog = GenericCatalogConfig.builder(TestCatalogConfig::new)
             .namespace("test")
@@ -299,7 +325,21 @@ public class ProtobufModelDecoderPipelineTest
                 .build()
             .build();
         when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
-        return new ProtobufModelHandlerImpl(model, context);
+        return new ProtobufModelHandlerImpl(model, context, exts);
+    }
+
+    private static ProtobufModelExtContext expandingExt(
+        int padding)
+    {
+        return (schema, config) -> new ProtobufModelExtHandler()
+        {
+            @Override
+            public int padding(
+                ProtobufSchema schema)
+            {
+                return padding;
+            }
+        };
     }
 
     private static byte[] concat(

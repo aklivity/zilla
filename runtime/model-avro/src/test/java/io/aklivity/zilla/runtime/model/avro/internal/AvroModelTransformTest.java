@@ -38,10 +38,12 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableDirectByteBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.common.avro.AvroTransformable;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.model.ModelController;
+import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelEvent;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
@@ -51,6 +53,7 @@ import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.TestCatalogHandler;
 import io.aklivity.zilla.runtime.model.avro.ext.AvroModelExtContext;
+import io.aklivity.zilla.runtime.model.avro.ext.AvroModelExtHandler;
 
 public class AvroModelTransformTest
 {
@@ -165,7 +168,7 @@ public class AvroModelTransformTest
     public void shouldReplaceStringField()
     {
         AvroModelHandlerImpl handler = newHandler(SCHEMA, "json");
-        ModelPipeline pipeline = handler.supplyDecoder(new Rewriting("$.id", "replaced"));
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, new Rewriting("$.id", "replaced"));
 
         assertEquals("{\"id\":\"replaced\",\"status\":\"positive\"}", decode(pipeline, AVRO));
     }
@@ -175,7 +178,7 @@ public class AvroModelTransformTest
     {
         String longer = "a-much-longer-replacement-value-than-the-original";
         AvroModelHandlerImpl handler = newHandler(SCHEMA, "json");
-        ModelPipeline pipeline = handler.supplyDecoder(new Rewriting("$.status", longer));
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, new Rewriting("$.status", longer));
 
         assertEquals("{\"id\":\"id0\",\"status\":\"" + longer + "\"}", decode(pipeline, AVRO));
     }
@@ -184,7 +187,7 @@ public class AvroModelTransformTest
     public void shouldDeclineStringField()
     {
         AvroModelHandlerImpl handler = newHandler(SCHEMA, "json");
-        ModelPipeline pipeline = handler.supplyDecoder(new Declining("$.status"));
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, new Declining("$.status"));
 
         assertEquals("{\"id\":\"id0\",\"status\":\"\"}", decode(pipeline, AVRO));
     }
@@ -193,7 +196,7 @@ public class AvroModelTransformTest
     public void shouldReplaceScalarField()
     {
         AvroModelHandlerImpl handler = newHandler(SCALARS_SCHEMA, "json");
-        ModelPipeline pipeline = handler.supplyDecoder(new Rewriting("$.l", "99"));
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, new Rewriting("$.l", "99"));
 
         assertEquals("{\"i\":5,\"l\":99,\"f\":1.5,\"d\":2.5,\"b\":true,\"e\":\"HIGH\"}", decode(pipeline, SCALARS));
     }
@@ -202,7 +205,7 @@ public class AvroModelTransformTest
     public void shouldDeclineScalarFields()
     {
         AvroModelHandlerImpl handler = newHandler(SCALARS_SCHEMA, "json");
-        ModelPipeline pipeline = handler.supplyDecoder(new Declining("$.i", "$.b", "$.e"));
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, new Declining("$.i", "$.b", "$.e"));
 
         assertEquals("{\"i\":0,\"l\":7,\"f\":1.5,\"d\":2.5,\"b\":false,\"e\":\"LOW\"}", decode(pipeline, SCALARS));
     }
@@ -211,7 +214,7 @@ public class AvroModelTransformTest
     public void shouldReplaceNestedScalarField()
     {
         AvroModelHandlerImpl handler = newHandler(NESTED_SCHEMA, "json");
-        ModelPipeline pipeline = handler.supplyDecoder(new Rewriting("$.user.ssn", "replaced"));
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, new Rewriting("$.user.ssn", "replaced"));
 
         assertEquals("{\"id\":\"a\",\"user\":{\"ssn\":\"replaced\"}}", decode(pipeline, NESTED));
     }
@@ -220,7 +223,7 @@ public class AvroModelTransformTest
     public void shouldDeclineNestedScalarField()
     {
         AvroModelHandlerImpl handler = newHandler(NESTED_SCHEMA, "json");
-        ModelPipeline pipeline = handler.supplyDecoder(new Declining("$.user.ssn"));
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, new Declining("$.user.ssn"));
 
         assertEquals("{\"id\":\"a\",\"user\":{\"ssn\":\"\"}}", decode(pipeline, NESTED));
     }
@@ -229,7 +232,7 @@ public class AvroModelTransformTest
     public void shouldNotDescendMatchingByLeafNameAloneAcrossDepths()
     {
         AvroModelHandlerImpl handler = newHandler(NESTED_SCHEMA, "json");
-        ModelPipeline pipeline = handler.supplyDecoder(new Declining("$.ssn"));
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, new Declining("$.ssn"));
 
         assertEquals("{\"id\":\"a\",\"user\":{\"ssn\":\"ssn0\"}}", decode(pipeline, NESTED));
     }
@@ -238,9 +241,17 @@ public class AvroModelTransformTest
     public void shouldApplyInstalledExtensionAheadOfCallerSuppliedTransform()
     {
         List<AvroModelExtContext> exts = List.of(
-            (schema, config) -> stream -> stream.transform(AvroModelTransform.of(new Declining("$.status"))));
+            (schema, config) -> new AvroModelExtHandler()
+            {
+                @Override
+                public <T extends AvroTransformable<T>> T decode(
+                    T transformable)
+                {
+                    return transformable.transform(AvroModelTransform.of(new Declining("$.status")));
+                }
+            });
         AvroModelHandlerImpl handler = newHandler(SCHEMA, "json", exts);
-        ModelPipeline pipeline = handler.supplyDecoder(new Observing());
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, new Observing());
 
         assertEquals("{\"id\":\"id0\",\"status\":\"\"}", decode(pipeline, AVRO));
     }
@@ -249,7 +260,7 @@ public class AvroModelTransformTest
     public void shouldForwardEveryFieldUntouchedWhenNoPathMatches()
     {
         AvroModelHandlerImpl handler = newHandler(SCHEMA, "json");
-        ModelPipeline pipeline = handler.supplyDecoder(new Rewriting("$.absent", "replaced"));
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, new Rewriting("$.absent", "replaced"));
 
         assertEquals("{\"id\":\"id0\",\"status\":\"positive\"}", decode(pipeline, AVRO));
     }
@@ -258,7 +269,7 @@ public class AvroModelTransformTest
     public void shouldReproduceEveryFieldWhenSubstitutingIdenticalValues()
     {
         AvroModelHandlerImpl handler = newHandler(MIXED_SCHEMA, null);
-        ModelPipeline pipeline = handler.supplyDecoder(new Echoing());
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, new Echoing());
 
         assertArrayEquals(MIXED, decodeChunked(pipeline, MIXED, 256));
     }
@@ -267,7 +278,8 @@ public class AvroModelTransformTest
     public void shouldWritePlaceholderForEveryDeclinedField()
     {
         AvroModelHandlerImpl handler = newHandler(MIXED_SCHEMA, null);
-        ModelPipeline pipeline = handler.supplyDecoder(new Declining("$.u", "$.y", "$.x", "$.b", "$.f", "$.d"));
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE,
+            new Declining("$.u", "$.y", "$.x", "$.b", "$.f", "$.d"));
 
         byte[] expected =
         {
@@ -287,7 +299,7 @@ public class AvroModelTransformTest
     public void shouldResumeAcrossBoundedOutput()
     {
         AvroModelHandlerImpl handler = newHandler(MIXED_SCHEMA, null);
-        ModelPipeline pipeline = handler.supplyDecoder(new Echoing());
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, new Echoing());
 
         assertArrayEquals(MIXED, decodeChunked(pipeline, MIXED, 24));
     }
@@ -297,7 +309,7 @@ public class AvroModelTransformTest
     {
         String longer = "a-much-longer-replacement-value-than-the-original";
         AvroModelHandlerImpl handler = newHandler(SCHEMA, null);
-        ModelPipeline pipeline = handler.supplyDecoder(new Rewriting("$.status", longer));
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, new Rewriting("$.status", longer));
 
         byte[] status = longer.getBytes(UTF_8);
         byte[] expected = new byte[5 + status.length];
@@ -318,7 +330,7 @@ public class AvroModelTransformTest
         Recording recording = new Recording(true);
         AvroModelHandlerImpl handler = newHandler(SCHEMA, "json");
 
-        decode(handler.supplyDecoder(recording), AVRO);
+        decode(handler.supplyDecoder(ModelEnvelope.NONE, recording), AVRO);
 
         assertEquals(FRAMED, recording.events);
     }
@@ -329,7 +341,7 @@ public class AvroModelTransformTest
         Recording recording = new Recording(false);
         AvroModelHandlerImpl handler = newHandler(SCHEMA, "json");
 
-        decode(handler.supplyDecoder(recording), AVRO);
+        decode(handler.supplyDecoder(ModelEnvelope.NONE, recording), AVRO);
 
         // the pump stops the moment the terminal sink closes the top-level record, so END_MESSAGE never
         // reaches the adapter; the run must still close off the datum completing
@@ -342,7 +354,7 @@ public class AvroModelTransformTest
         when(context.clock()).thenReturn(Clock.systemUTC());
         when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
         AvroModelHandlerImpl handler = newHandler(SCHEMA, "json");
-        ModelPipeline pipeline = handler.supplyDecoder(new Rejecting("$.status"));
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, new Rejecting("$.status"));
 
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
         ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
@@ -355,7 +367,7 @@ public class AvroModelTransformTest
     public void shouldNotReportIdentityWhenMediating()
     {
         AvroModelHandlerImpl handler = newHandler(SCHEMA, null);
-        ModelPipeline pipeline = handler.supplyDecoder(new Rewriting("$.id", "replaced"));
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, new Rewriting("$.id", "replaced"));
 
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
         pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
@@ -368,7 +380,7 @@ public class AvroModelTransformTest
     public void shouldReportIdentityWhenObserving()
     {
         AvroModelHandlerImpl handler = newHandler(SCHEMA, null);
-        ModelPipeline pipeline = handler.supplyDecoder(new Observing());
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, new Observing());
 
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
         pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
@@ -381,7 +393,7 @@ public class AvroModelTransformTest
     public void shouldReplaceFieldOnEncode()
     {
         AvroModelHandlerImpl handler = newHandler(SCHEMA, "json");
-        ModelPipeline pipeline = handler.supplyEncoder(new Rewriting("$.id", "replaced"));
+        ModelPipeline pipeline = handler.supplyEncoder(ModelEnvelope.NONE, new Rewriting("$.id", "replaced"));
 
         byte[] json = "{\"id\":\"id0\",\"status\":\"positive\"}".getBytes(UTF_8);
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);

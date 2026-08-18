@@ -75,4 +75,24 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/client.received.protobuf.json.ext.uppercase/client",
+        "${app}/client.received.protobuf.json.ext.uppercase/server"
+    })
+    public void shouldApplyExtensionToProtobufJson() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/client.received.protobuf.binary.ext.uppercase/client",
+        "${app}/client.received.protobuf.binary.ext.uppercase/server"
+    })
+    public void shouldApplyExtensionToProtobufBinary() throws Exception
+    {
+        k3po.finish();
+    }
 }

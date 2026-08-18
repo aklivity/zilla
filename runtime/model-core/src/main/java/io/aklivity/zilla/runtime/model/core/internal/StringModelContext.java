@@ -14,36 +14,46 @@
  */
 package io.aklivity.zilla.runtime.model.core.internal;
 
+import java.util.List;
+
 import io.aklivity.zilla.config.engine.ModelConfig;
 import io.aklivity.zilla.config.engine.ValidateMode;
 import io.aklivity.zilla.config.model.core.StringModelConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.ModelContext;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
+import io.aklivity.zilla.runtime.model.core.ext.StringModelExtContext;
+import io.aklivity.zilla.runtime.model.core.ext.StringModelExtHandler;
 
 public class StringModelContext implements ModelContext
 {
     private final EngineContext context;
+    private final List<StringModelExtContext> exts;
 
     public StringModelContext(
-        EngineContext context)
+        EngineContext context,
+        List<StringModelExtContext> exts)
     {
         this.context = context;
+        this.exts = exts;
     }
 
     @Override
     public ModelHandler supplyHandler(
         ModelConfig config)
     {
-        return supplyCoreHandler(config);
-    }
+        StringModelConfig options = StringModelConfig.class.cast(config);
+        boolean decodeLenient = config.validate.decode == ValidateMode.LENIENT;
+        boolean encodeLenient = config.validate.encode == ValidateMode.LENIENT;
 
-    private CoreModelHandler supplyCoreHandler(
-        ModelConfig config)
-    {
-        return new CoreModelHandler(context, StringModel.NAME,
-            StringModelValidator.supplier(StringModelConfig.class.cast(config)),
-            config.validate.decode == ValidateMode.LENIENT,
-            config.validate.encode == ValidateMode.LENIENT);
+        // resolved once per model config, at handler construction -- there is no schema to resolve per,
+        // so the same extension handlers extend every stream this handler serves
+        List<StringModelExtHandler> handlers = exts.stream().map(ext -> ext.supplyHandler(options)).toList();
+
+        return handlers.isEmpty()
+            ? new CoreModelHandler(context, StringModel.NAME, StringModelValidator.supplier(options),
+                decodeLenient, encodeLenient)
+            : new StringExtModelHandler(context, StringModelValidator.supplier(options),
+                decodeLenient, encodeLenient, handlers);
     }
 }

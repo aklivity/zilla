@@ -22,6 +22,7 @@ import java.util.List;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelFieldBridge;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
@@ -35,7 +36,9 @@ import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 // is copied through into dst unchanged (identity); when a transformed length is configured, the accepted
 // value is padded or truncated to that length so a non-identity, length-changing transform can be exercised.
 // When a real transform is wired, every configured top-level field surfaces a fixed token to it as its
-// value when an accepted value completes. State lives on the pipeline so interleaved streams stay isolated.
+// value when an accepted value completes; the same fields are written to the supplied envelope under their
+// own paths, so a caller supplying a real envelope observes what the model surfaced without wiring a
+// transform at all. State lives on the pipeline so interleaved streams stay isolated.
 final class TestModelPipeline implements ModelPipeline
 {
     private static final int FLAGS_INIT = 0x02;
@@ -47,6 +50,7 @@ final class TestModelPipeline implements ModelPipeline
     private final int transformLength;
     private final List<String> fields;
     private final boolean lenient;
+    private final ModelEnvelope envelope;
     private final ModelFieldBridge bridge;
     private final ModelPipelineResult result;
 
@@ -57,12 +61,14 @@ final class TestModelPipeline implements ModelPipeline
         int transformLength,
         List<String> fields,
         boolean lenient,
+        ModelEnvelope envelope,
         ModelTransform transform)
     {
         this.length = length;
         this.transformLength = transformLength;
         this.fields = fields;
         this.lenient = lenient;
+        this.envelope = envelope;
         this.bridge = transform != ModelTransform.NONE ? new ModelFieldBridge(transform) : null;
         this.result = new ModelPipelineResult();
     }
@@ -163,10 +169,22 @@ final class TestModelPipeline implements ModelPipeline
         if (bridge != null)
         {
             bridge.start(authorization);
-            for (int i = 0; i < fields.size(); i++)
+        }
+
+        for (int i = 0; i < fields.size(); i++)
+        {
+            final String path = "$." + fields.get(i);
+
+            if (bridge != null)
             {
-                bridge.field("$." + fields.get(i), extractedValue, 0, extractedValue.capacity());
+                bridge.field(path, extractedValue, 0, extractedValue.capacity());
             }
+
+            envelope.set(path, extractedValue);
+        }
+
+        if (bridge != null)
+        {
             bridge.end();
         }
     }

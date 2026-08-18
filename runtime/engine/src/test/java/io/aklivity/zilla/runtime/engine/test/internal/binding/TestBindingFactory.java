@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.engine.test.internal.binding;
 
 import static io.aklivity.zilla.config.engine.test.internal.binding.config.TestBindingOptionsConfigAdapter.DEFAULT_ASSERTION_SCHEMA;
+import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static io.aklivity.zilla.runtime.engine.guard.GuardHandler.MASK_AUTHORIZED;
 import static io.aklivity.zilla.runtime.engine.guard.GuardHandler.NEEDS_PREAUTHORIZE;
 import static io.aklivity.zilla.runtime.engine.guard.GuardHandler.NOT_AUTHORIZED;
@@ -51,14 +52,17 @@ import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler.LongCompletionCallback;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
+import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
+import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
 import io.aklivity.zilla.runtime.engine.security.Trusted;
 import io.aklivity.zilla.runtime.engine.store.StoreHandler;
@@ -78,6 +82,7 @@ final class TestBindingFactory implements BindingHandler
 {
     private static final int FLAGS_INIT = 0x02;
     private static final int FLAGS_FIN = 0x01;
+    private static final int DATA_FRAME_HEADER_SIZE = 85;
     private static final List<String> EMPTY_ROLES = emptyList();
 
     private final BeginFW beginRO = new BeginFW();
@@ -110,7 +115,10 @@ final class TestBindingFactory implements BindingHandler
     private final EngineContext context;
     private final TestEventContext event;
     private final Long2ObjectHashMap<TestBindingConfig> bindings;
-    private final MutableDirectBufferEx modelBuffer;
+    private final BufferPool decodePool;
+    private final BufferPool encodePool;
+    private final int decodeMax;
+    private final int transformMax;
 
     private ModelHandler valueModel;
     private String schema;
@@ -142,7 +150,10 @@ final class TestBindingFactory implements BindingHandler
         this.context = context;
         this.event = new TestEventContext(context);
         this.bindings = new Long2ObjectHashMap<>();
-        this.modelBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
+        this.decodePool = context.bufferPool();
+        this.encodePool = decodePool.duplicate();
+        this.decodeMax = decodePool.slotCapacity();
+        this.transformMax = Math.min(context.writeBuffer().capacity() - DATA_FRAME_HEADER_SIZE, decodeMax);
     }
 
     public void attach(
@@ -336,6 +347,16 @@ final class TestBindingFactory implements BindingHandler
         private long pendingTraceId;
         private boolean storeAssertionsStarted;
         private final ModelPipeline pipeline;
+        private final MutableDirectBufferEx initialBuffer;
+
+        private int decodeSlot = NO_SLOT;
+        private int decodeSlotOffset;
+
+        private int encodeSlot = NO_SLOT;
+        private int encodeSlotOffset;
+        private long encodeSlotTraceId;
+        private boolean encodeSlotFin;
+        private boolean replyStarted;
 
         private TestSource(
             MessageConsumer source,
@@ -351,7 +372,8 @@ final class TestBindingFactory implements BindingHandler
             this.initialId = initialId;
             this.replyId = replyId;
             this.target = resolvedId != 0L ? new TestTarget(routedId, resolvedId) : null;
-            this.pipeline = valueModel != null ? valueModel.supplyEncoder() : null;
+            this.pipeline = valueModel != null ? valueModel.supplyEncoder(ModelEnvelope.NONE, ModelTransform.NONE) : null;
+            this.initialBuffer = pipeline != null ? new UnsafeBufferEx(new byte[transformMax]) : null;
         }
 
         private void doAuthorize(
@@ -897,65 +919,105 @@ final class TestBindingFactory implements BindingHandler
 
             if (pipeline == null)
             {
-                target.doInitialData(traceId, flags, reserved, payload);
+                boolean fin = (flags & FLAGS_FIN) != 0;
+                target.doInitialData(traceId, fin, payload);
+            }
+            else if (decodeSlotOffset + payload.sizeof() > decodeMax)
+            {
+                pipeline.reset();
+                target.doInitialAbort(traceId);
+                doInitialReset(traceId);
+                cleanupDecodeSlot();
             }
             else
             {
-                int total = transform(pipeline, traceId, authorization,
-                    payload.buffer(), payload.offset(), payload.limit());
-                if (total < 0)
+                if (decodeSlot == NO_SLOT)
                 {
+                    decodeSlot = decodePool.acquire(initialId);
+                }
+
+                if (decodeSlot == NO_SLOT)
+                {
+                    pipeline.reset();
                     target.doInitialAbort(traceId);
+                    doInitialReset(traceId);
                 }
                 else
                 {
-                    OctetsFW transformed = octetsRO.wrap(modelBuffer, 0, total);
-                    target.doInitialData(traceId, flags, total, transformed);
+                    MutableDirectBufferEx decodeBuffer = decodePool.buffer(decodeSlot);
+                    decodeBuffer.putBytes(decodeSlotOffset, payload.buffer(), payload.offset(), payload.sizeof());
+                    decodeSlotOffset += payload.sizeof();
+
+                    transformInitial(traceId, authorization, flags, decodeBuffer, decodeSlotOffset);
+                    flushInitialWindow(traceId);
                 }
             }
         }
 
-        private int transform(
-            ModelPipeline pipeline,
+        private void flushInitialWindow(
+            long traceId)
+        {
+            long newInitialAck = initialSeq - decodeSlotOffset;
+            if (newInitialAck > initialAck)
+            {
+                initialAck = newInitialAck;
+                doWindow(source, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId,
+                        initialBud, initialPad, initialCap);
+            }
+        }
+
+        private void transformInitial(
             long traceId,
             long authorization,
-            DirectBufferEx data,
-            int index,
+            int flags,
+            MutableDirectBufferEx buffer,
             int limit)
         {
-            int total = 0;
-            int srcAt = index;
-            int flags = FLAGS_INIT | FLAGS_FIN;
-            boolean done = false;
-            while (!done)
+            int srcAt = 0;
+            int stepFlags = flags;
+            ModelStatus status;
+            do
             {
-                final ModelPipelineResult result = pipeline.transform(traceId, routedId, authorization, flags,
-                        data, srcAt, limit, modelBuffer, total, modelBuffer.capacity());
-                final ModelStatus status = result.status();
+                final ModelPipelineResult result = pipeline.transform(traceId, routedId, authorization, stepFlags,
+                        buffer, srcAt, limit, initialBuffer, 0, initialBuffer.capacity());
+                status = result.status();
 
-                if (status == ModelStatus.REJECTED)
+                if (status != ModelStatus.REJECTED)
                 {
-                    total = -1;
-                    done = true;
-                }
-                else
-                {
-                    total += result.produced();
+                    srcAt += result.consumed();
+                    stepFlags &= ~FLAGS_INIT;
 
-                    if (status == ModelStatus.COMPLETE)
+                    int produced = result.produced();
+                    if (produced > 0 || status == ModelStatus.COMPLETE)
                     {
-                        done = true;
-                    }
-                    else
-                    {
-                        srcAt += result.consumed();
-                        flags = FLAGS_FIN;
+                        boolean fin = status == ModelStatus.COMPLETE;
+                        OctetsFW transformed = octetsRO.wrap(initialBuffer, 0, produced);
+                        target.doInitialData(traceId, fin, transformed);
                     }
                 }
+            } while (status == ModelStatus.OK || status == ModelStatus.OVERFLOW);
+
+            boolean truncated = status == ModelStatus.UNDERFLOW && (flags & FLAGS_FIN) != 0;
+            if (status == ModelStatus.REJECTED || truncated)
+            {
+                pipeline.reset();
+                target.doInitialAbort(traceId);
+                cleanupDecodeSlot();
             }
-
-            pipeline.reset();
-            return total;
+            else if (status == ModelStatus.UNDERFLOW)
+            {
+                int remaining = limit - srcAt;
+                if (remaining > 0 && srcAt > 0)
+                {
+                    decodePool.buffer(decodeSlot).putBytes(0, buffer, srcAt, remaining);
+                }
+                decodeSlotOffset = remaining;
+            }
+            else if (status == ModelStatus.COMPLETE)
+            {
+                pipeline.reset();
+                cleanupDecodeSlot();
+            }
         }
 
         private void onInitialEnd(
@@ -969,6 +1031,8 @@ final class TestBindingFactory implements BindingHandler
             {
                 target.doInitialEnd(traceId);
             }
+
+            cleanupDecodeSlot();
         }
 
         private void onInitialAbort(
@@ -982,6 +1046,8 @@ final class TestBindingFactory implements BindingHandler
             {
                 target.doInitialAbort(traceId);
             }
+
+            cleanupDecodeSlot();
         }
 
         private void releaseSession()
@@ -1034,7 +1100,13 @@ final class TestBindingFactory implements BindingHandler
             replyBud = window.budgetId();
             replyCap = window.capabilities();
 
-            target.doReplyWindow(traceId, replyAck, replyMax, replyBud, replyPad, replyCap);
+            if (encodeSlot != NO_SLOT)
+            {
+                encodeReply(encodeSlotTraceId, encodePool.buffer(encodeSlot), 0, encodeSlotOffset);
+            }
+
+            int maximum = target.pipeline != null ? Math.min(replyMax, decodeMax) : replyMax;
+            target.doReplyWindow(traceId, replyAck, maximum, replyBud, replyPad, replyCap);
 
             // defer store assertions until the reply stream is established and credited, so any
             // notification (e.g. watch) can emit an observable reply frame the script gates on
@@ -1063,7 +1135,7 @@ final class TestBindingFactory implements BindingHandler
             int padding,
             int capabilities)
         {
-            initialAck = acknowledge;
+            initialAck = pipeline != null ? Math.max(initialSeq - decodeSlotOffset, initialAck) : acknowledge;
             initialMax = maximum;
             initialBud = budgetId;
             initialPad = padding;
@@ -1087,26 +1159,101 @@ final class TestBindingFactory implements BindingHandler
 
         private void doReplyData(
             long traceId,
-            int flags,
-            int reserved,
+            boolean fin,
             OctetsFW payload)
         {
-            doData(source, originId, routedId, replyId, replySeq, replyAck, replyMax, replyBud,
-                    traceId, flags, reserved, payload);
+            DirectBufferEx buffer = payload.buffer();
+            int offset = payload.offset();
+            int limit = payload.limit();
 
-            replySeq += reserved;
+            if (encodeSlot != NO_SLOT)
+            {
+                MutableDirectBufferEx encodeBuffer = encodePool.buffer(encodeSlot);
+                encodeBuffer.putBytes(encodeSlotOffset, buffer, offset, limit - offset);
+                encodeSlotOffset += limit - offset;
+
+                buffer = encodeBuffer;
+                offset = 0;
+                limit = encodeSlotOffset;
+            }
+
+            encodeSlotTraceId = traceId;
+            encodeSlotFin = encodeSlotFin || fin;
+
+            encodeReply(traceId, buffer, offset, limit);
+        }
+
+        private void encodeReply(
+            long traceId,
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            int maxLength = limit - offset;
+            int length = Math.max(Math.min(replyWindow() - replyPad, maxLength), 0);
+            boolean fin = length == maxLength && encodeSlotFin;
+
+            if (length > 0 || fin)
+            {
+                int reserved = length + replyPad;
+                int flags = (replyStarted ? 0x00 : FLAGS_INIT) | (fin ? FLAGS_FIN : 0x00);
+
+                OctetsFW out = octetsRO.wrap(buffer, offset, offset + length);
+                doData(source, originId, routedId, replyId, replySeq, replyAck, replyMax, replyBud,
+                        traceId, flags, reserved, out);
+
+                replySeq += reserved;
+                replyStarted = !fin;
+                if (fin)
+                {
+                    encodeSlotFin = false;
+                }
+            }
+
+            int remaining = maxLength - length;
+            if (remaining > 0)
+            {
+                if (encodeSlot == NO_SLOT)
+                {
+                    encodeSlot = encodePool.acquire(replyId);
+                }
+
+                if (encodeSlot == NO_SLOT)
+                {
+                    doReplyAbort(traceId);
+                }
+                else
+                {
+                    MutableDirectBufferEx encodeBuffer = encodePool.buffer(encodeSlot);
+                    encodeBuffer.putBytes(0, buffer, offset + length, remaining);
+                    encodeSlotOffset = remaining;
+                }
+            }
+            else
+            {
+                cleanupEncodeSlot();
+            }
+        }
+
+        private int replyWindow()
+        {
+            return replyMax - (int) (replySeq - replyAck) - encodeSlotOffset;
         }
 
         private void doReplyEnd(
             long traceId)
         {
             doEnd(source, originId, routedId, replyId, replySeq, replyAck, replyPad, traceId);
+
+            cleanupEncodeSlot();
         }
 
         private void doReplyAbort(
             long traceId)
         {
             doAbort(source, originId, routedId, replyId, replySeq, replyAck, replyPad, traceId);
+
+            cleanupEncodeSlot();
         }
 
         private void doReplyFlush(
@@ -1114,6 +1261,28 @@ final class TestBindingFactory implements BindingHandler
             int reserved)
         {
             doFlush(source, originId, routedId, replyId, replySeq, replyAck, replyPad, traceId, replyBud, reserved);
+        }
+
+        private void cleanupDecodeSlot()
+        {
+            if (decodeSlot != NO_SLOT)
+            {
+                decodePool.release(decodeSlot);
+                decodeSlot = NO_SLOT;
+                decodeSlotOffset = 0;
+            }
+        }
+
+        private void cleanupEncodeSlot()
+        {
+            if (encodeSlot != NO_SLOT)
+            {
+                encodePool.release(encodeSlot);
+                encodeSlot = NO_SLOT;
+                encodeSlotOffset = 0;
+                encodeSlotTraceId = 0;
+                encodeSlotFin = false;
+            }
         }
 
         private final class TestTarget
@@ -1140,6 +1309,16 @@ final class TestBindingFactory implements BindingHandler
 
             private final TestSource source;
             private final ModelPipeline pipeline;
+            private final MutableDirectBufferEx replyBuffer;
+
+            private int decodeSlot = NO_SLOT;
+            private int decodeSlotOffset;
+
+            private int encodeSlot = NO_SLOT;
+            private int encodeSlotOffset;
+            private long encodeSlotTraceId;
+            private boolean encodeSlotFin;
+            private boolean initialStarted;
 
             private TestTarget(
                 long originId,
@@ -1150,7 +1329,8 @@ final class TestBindingFactory implements BindingHandler
                 this.initialId = context.supplyInitialId(routedId);
                 this.replyId = context.supplyReplyId(initialId);
                 this.source = TestSource.this;
-                this.pipeline = valueModel != null ? valueModel.supplyDecoder() : null;
+                this.pipeline = valueModel != null ? valueModel.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE) : null;
+                this.replyBuffer = pipeline != null ? new UnsafeBufferEx(new byte[transformMax]) : null;
             }
 
             private void onMessage(
@@ -1215,7 +1395,13 @@ final class TestBindingFactory implements BindingHandler
                 initialBud = window.budgetId();
                 initialCap = window.capabilities();
 
-                source.doInitialWindow(traceId, initialAck, initialMax, initialBud, initialPad, initialCap);
+                if (encodeSlot != NO_SLOT)
+                {
+                    encodeInitial(encodeSlotTraceId, encodePool.buffer(encodeSlot), 0, encodeSlotOffset);
+                }
+
+                int maximum = source.pipeline != null ? Math.min(initialMax, decodeMax) : initialMax;
+                source.doInitialWindow(traceId, initialAck, maximum, initialBud, initialPad, initialCap);
             }
 
             private void onInitialChallenge(
@@ -1248,21 +1434,102 @@ final class TestBindingFactory implements BindingHandler
 
                 if (pipeline == null)
                 {
-                    source.doReplyData(traceId, flags, reserved, payload);
+                    boolean fin = (flags & FLAGS_FIN) != 0;
+                    source.doReplyData(traceId, fin, payload);
+                }
+                else if (decodeSlotOffset + payload.sizeof() > decodeMax)
+                {
+                    pipeline.reset();
+                    source.doReplyAbort(traceId);
+                    cleanupDecodeSlot();
                 }
                 else
                 {
-                    int total = source.transform(pipeline, traceId, authorization,
-                        payload.buffer(), payload.offset(), payload.limit());
-                    if (total < 0)
+                    if (decodeSlot == NO_SLOT)
                     {
+                        decodeSlot = decodePool.acquire(replyId);
+                    }
+
+                    if (decodeSlot == NO_SLOT)
+                    {
+                        pipeline.reset();
                         source.doReplyAbort(traceId);
                     }
                     else
                     {
-                        OctetsFW transformed = octetsRO.wrap(modelBuffer, 0, total);
-                        source.doReplyData(traceId, flags, total, transformed);
+                        MutableDirectBufferEx decodeBuffer = decodePool.buffer(decodeSlot);
+                        decodeBuffer.putBytes(decodeSlotOffset, payload.buffer(), payload.offset(), payload.sizeof());
+                        decodeSlotOffset += payload.sizeof();
+
+                        transformReply(traceId, authorization, flags, decodeBuffer, decodeSlotOffset);
+                        flushReplyWindow(traceId);
                     }
+                }
+            }
+
+            private void flushReplyWindow(
+                long traceId)
+            {
+                long newReplyAck = replySeq - decodeSlotOffset;
+                if (newReplyAck > replyAck)
+                {
+                    replyAck = newReplyAck;
+                    doWindow(target, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                            traceId, replyBud, replyPad, replyCap);
+                }
+            }
+
+            private void transformReply(
+                long traceId,
+                long authorization,
+                int flags,
+                MutableDirectBufferEx buffer,
+                int limit)
+            {
+                int srcAt = 0;
+                int stepFlags = flags;
+                ModelStatus status;
+                do
+                {
+                    final ModelPipelineResult result = pipeline.transform(traceId, routedId, authorization, stepFlags,
+                            buffer, srcAt, limit, replyBuffer, 0, replyBuffer.capacity());
+                    status = result.status();
+
+                    if (status != ModelStatus.REJECTED)
+                    {
+                        srcAt += result.consumed();
+                        stepFlags &= ~FLAGS_INIT;
+
+                        int produced = result.produced();
+                        if (produced > 0 || status == ModelStatus.COMPLETE)
+                        {
+                            boolean fin = status == ModelStatus.COMPLETE;
+                            OctetsFW transformed = octetsRO.wrap(replyBuffer, 0, produced);
+                            source.doReplyData(traceId, fin, transformed);
+                        }
+                    }
+                } while (status == ModelStatus.OK || status == ModelStatus.OVERFLOW);
+
+                boolean truncated = status == ModelStatus.UNDERFLOW && (flags & FLAGS_FIN) != 0;
+                if (status == ModelStatus.REJECTED || truncated)
+                {
+                    pipeline.reset();
+                    source.doReplyAbort(traceId);
+                    cleanupDecodeSlot();
+                }
+                else if (status == ModelStatus.UNDERFLOW)
+                {
+                    int remaining = limit - srcAt;
+                    if (remaining > 0 && srcAt > 0)
+                    {
+                        decodePool.buffer(decodeSlot).putBytes(0, buffer, srcAt, remaining);
+                    }
+                    decodeSlotOffset = remaining;
+                }
+                else if (status == ModelStatus.COMPLETE)
+                {
+                    pipeline.reset();
+                    cleanupDecodeSlot();
                 }
             }
 
@@ -1272,6 +1539,8 @@ final class TestBindingFactory implements BindingHandler
                 long traceId = end.traceId();
 
                 source.doReplyEnd(traceId);
+
+                cleanupDecodeSlot();
             }
 
             private void onReplyAbort(
@@ -1280,6 +1549,8 @@ final class TestBindingFactory implements BindingHandler
                 long traceId = abort.traceId();
 
                 source.doReplyAbort(traceId);
+
+                cleanupDecodeSlot();
             }
 
             private void onReplyFlush(
@@ -1299,26 +1570,101 @@ final class TestBindingFactory implements BindingHandler
 
             private void doInitialData(
                 long traceId,
-                int flags,
-                int reserved,
+                boolean fin,
                 OctetsFW payload)
             {
-                doData(target, originId, routedId, initialId, initialSeq, initialAck, initialMax, initialBud,
-                        traceId, flags, reserved, payload);
+                DirectBufferEx buffer = payload.buffer();
+                int offset = payload.offset();
+                int limit = payload.limit();
 
-                initialSeq += reserved;
+                if (encodeSlot != NO_SLOT)
+                {
+                    MutableDirectBufferEx encodeBuffer = encodePool.buffer(encodeSlot);
+                    encodeBuffer.putBytes(encodeSlotOffset, buffer, offset, limit - offset);
+                    encodeSlotOffset += limit - offset;
+
+                    buffer = encodeBuffer;
+                    offset = 0;
+                    limit = encodeSlotOffset;
+                }
+
+                encodeSlotTraceId = traceId;
+                encodeSlotFin = encodeSlotFin || fin;
+
+                encodeInitial(traceId, buffer, offset, limit);
+            }
+
+            private void encodeInitial(
+                long traceId,
+                DirectBufferEx buffer,
+                int offset,
+                int limit)
+            {
+                int maxLength = limit - offset;
+                int length = Math.max(Math.min(initialWindow() - initialPad, maxLength), 0);
+                boolean fin = length == maxLength && encodeSlotFin;
+
+                if (length > 0 || fin)
+                {
+                    int reserved = length + initialPad;
+                    int flags = (initialStarted ? 0x00 : FLAGS_INIT) | (fin ? FLAGS_FIN : 0x00);
+
+                    OctetsFW out = octetsRO.wrap(buffer, offset, offset + length);
+                    doData(target, originId, routedId, initialId, initialSeq, initialAck, initialMax, initialBud,
+                            traceId, flags, reserved, out);
+
+                    initialSeq += reserved;
+                    initialStarted = !fin;
+                    if (fin)
+                    {
+                        encodeSlotFin = false;
+                    }
+                }
+
+                int remaining = maxLength - length;
+                if (remaining > 0)
+                {
+                    if (encodeSlot == NO_SLOT)
+                    {
+                        encodeSlot = encodePool.acquire(initialId);
+                    }
+
+                    if (encodeSlot == NO_SLOT)
+                    {
+                        doInitialAbort(traceId);
+                    }
+                    else
+                    {
+                        MutableDirectBufferEx encodeBuffer = encodePool.buffer(encodeSlot);
+                        encodeBuffer.putBytes(0, buffer, offset + length, remaining);
+                        encodeSlotOffset = remaining;
+                    }
+                }
+                else
+                {
+                    cleanupEncodeSlot();
+                }
+            }
+
+            private int initialWindow()
+            {
+                return initialMax - (int) (initialSeq - initialAck) - encodeSlotOffset;
             }
 
             private void doInitialEnd(
                 long traceId)
             {
                 doEnd(target, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId);
+
+                cleanupEncodeSlot();
             }
 
             private void doInitialAbort(
                 long traceId)
             {
                 doAbort(target, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId);
+
+                cleanupEncodeSlot();
             }
 
             private void doInitialFlush(
@@ -1342,7 +1688,7 @@ final class TestBindingFactory implements BindingHandler
                 int padding,
                 int capabilities)
             {
-                replyAck = acknowledge;
+                replyAck = pipeline != null ? Math.max(replySeq - decodeSlotOffset, replyAck) : acknowledge;
                 replyMax = maximum;
                 replyBud = budgetId;
                 replyPad = padding;
@@ -1356,6 +1702,28 @@ final class TestBindingFactory implements BindingHandler
                 long traceId)
             {
                 doChallenge(target, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId);
+            }
+
+            private void cleanupDecodeSlot()
+            {
+                if (decodeSlot != NO_SLOT)
+                {
+                    decodePool.release(decodeSlot);
+                    decodeSlot = NO_SLOT;
+                    decodeSlotOffset = 0;
+                }
+            }
+
+            private void cleanupEncodeSlot()
+            {
+                if (encodeSlot != NO_SLOT)
+                {
+                    encodePool.release(encodeSlot);
+                    encodeSlot = NO_SLOT;
+                    encodeSlotOffset = 0;
+                    encodeSlotTraceId = 0;
+                    encodeSlotFin = false;
+                }
             }
         }
     }

@@ -195,4 +195,64 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/client.sent.bytes/client",
+        "${app}/client.sent.bytes/server"
+    })
+    public void shouldForwardBytes() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/client.received.bytes.ext.uppercase/client",
+        "${app}/client.received.bytes.ext.uppercase/server"
+    })
+    public void shouldEchoBytesUnaffectedByExtension() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/client.received.bytes.ext.uppercase.100k/client",
+        "${app}/client.received.bytes.ext.uppercase.100k/server"
+    })
+    public void shouldEchoLargeBytesFieldUnaffectedByExtension() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/client.received.bytes.ext.withhold/client",
+        "${app}/client.received.bytes.ext.withhold/server"
+    })
+    public void shouldEchoWithheldBytesUnaffectedByExtension() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/client.received.bytes.ext.reject/client",
+        "${app}/client.received.bytes.ext.reject/server"
+    })
+    public void shouldEchoRejectedBytesUnaffectedByExtension() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/client.sent.bytes.ext.uppercase/client",
+        "${app}/client.sent.bytes.ext.uppercase/server"
+    })
+    public void shouldReceiveUppercasedMarkedBytes() throws Exception
+    {
+        k3po.finish();
+    }
 }

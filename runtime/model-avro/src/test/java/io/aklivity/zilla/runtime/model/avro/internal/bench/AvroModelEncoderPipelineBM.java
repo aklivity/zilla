@@ -46,6 +46,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelTransform;
@@ -95,8 +96,8 @@ public class AvroModelEncoderPipelineBM
     @Setup(Level.Trial)
     public void init()
     {
-        fromJson = newHandler("json").supplyEncoder(ModelTransform.NONE);
-        identity = newHandler(null).supplyEncoder(ModelTransform.NONE);
+        fromJson = newHandler("json").supplyEncoder(ModelEnvelope.NONE, ModelTransform.NONE);
+        identity = newHandler(null).supplyEncoder(ModelEnvelope.NONE, ModelTransform.NONE);
         jsonSrc = new UnsafeBufferEx(JSON);
         avroSrc = new UnsafeBufferEx(AVRO);
         dst = new UnsafeBufferEx(new byte[256]);

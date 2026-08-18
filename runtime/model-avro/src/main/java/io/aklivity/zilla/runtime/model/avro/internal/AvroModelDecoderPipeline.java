@@ -21,6 +21,7 @@ import org.agrona.collections.Int2ObjectCache;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.avro.AvroDiagnostic;
+import io.aklivity.zilla.runtime.common.avro.AvroEnvelope;
 import io.aklivity.zilla.runtime.common.avro.AvroPipeline;
 import io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status;
 import io.aklivity.zilla.runtime.common.avro.AvroPipelineResult;
@@ -45,6 +46,7 @@ final class AvroModelDecoderPipeline implements ModelPipeline
     private final AvroModelHandlerImpl handler;
     private final JsonGeneratorEx generator;
     private final AvroTransform adapter;
+    private final AvroEnvelope envelope;
     private final Int2ObjectCache<AvroPipeline> pipelines;
     private final ModelPipelineResult result;
 
@@ -53,9 +55,11 @@ final class AvroModelDecoderPipeline implements ModelPipeline
 
     AvroModelDecoderPipeline(
         AvroModelHandlerImpl handler,
+        AvroEnvelope envelope,
         ModelTransform transform)
     {
         this.handler = handler;
+        this.envelope = envelope;
         this.generator = JsonEx.createGenerator();
         this.adapter = AvroModelTransform.of(transform);
         this.pipelines = new Int2ObjectCache<>(1, 16, p -> {});
@@ -153,7 +157,7 @@ final class AvroModelDecoderPipeline implements ModelPipeline
         int schemaId)
     {
         return pipelines.computeIfAbsent(schemaId,
-            id -> handler.newPipeline(id, handler.decodeLenient, generator, adapter, this::onRejected));
+            id -> handler.newPipeline(id, handler.decodeLenient, generator, adapter, this::onRejected, envelope));
     }
 
     private void onRejected(

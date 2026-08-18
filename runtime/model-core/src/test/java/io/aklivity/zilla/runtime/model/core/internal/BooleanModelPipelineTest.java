@@ -28,6 +28,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
@@ -52,7 +53,7 @@ public class BooleanModelPipelineTest
     public void shouldTransformFalseValue()
     {
         ModelHandler handler = handler();
-        ModelPipeline pipeline = handler.supplyEncoder(ModelTransform.NONE);
+        ModelPipeline pipeline = handler.supplyEncoder(ModelEnvelope.NONE, ModelTransform.NONE);
 
         byte[] bytes = {0x00};
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[8]);
@@ -67,7 +68,7 @@ public class BooleanModelPipelineTest
     public void shouldRejectTooLong()
     {
         ModelHandler handler = handler();
-        ModelPipeline pipeline = handler.supplyDecoder(ModelTransform.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
 
         byte[] bytes = {0x01, 0x00};
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[8]);

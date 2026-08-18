@@ -50,8 +50,7 @@
                     {
                         "$ref": "#/$defs/validate"
                     }
-                },
-                "additionalProperties": false
+                }
             }
         }
     }

@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import io.aklivity.zilla.runtime.common.avro.AvroController;
+import io.aklivity.zilla.runtime.common.avro.AvroEnvelope;
 import io.aklivity.zilla.runtime.common.avro.AvroEvent;
 import io.aklivity.zilla.runtime.common.avro.AvroGenerator;
 import io.aklivity.zilla.runtime.common.avro.AvroParser;
@@ -35,6 +36,7 @@ public final class AvroStreamImpl implements AvroStream
     private final List<AvroTransform> transforms;
 
     private AvroReporter reporter = AvroReporter.NONE;
+    private AvroEnvelope envelope = AvroEnvelope.NONE;
     private boolean lenient;
 
     public AvroStreamImpl(
@@ -72,10 +74,18 @@ public final class AvroStreamImpl implements AvroStream
     }
 
     @Override
+    public AvroStream envelope(
+        AvroEnvelope envelope)
+    {
+        this.envelope = envelope != null ? envelope : AvroEnvelope.NONE;
+        return this;
+    }
+
+    @Override
     public AvroPipeline into(
         AvroSink sink)
     {
-        return new AvroPipelineImpl(driver, bind(sink), reporter, null, lenient);
+        return new AvroPipelineImpl(driver, bind(sink), reporter, null, lenient, envelope);
     }
 
     @Override
@@ -83,7 +93,7 @@ public final class AvroStreamImpl implements AvroStream
         AvroGenerator generator)
     {
         // the pipeline owns the generator and re-targets it at the caller's destination per transform call
-        return new AvroPipelineImpl(driver, bind(new AvroSinkImpl(generator)), reporter, generator, lenient);
+        return new AvroPipelineImpl(driver, bind(new AvroSinkImpl(generator)), reporter, generator, lenient, envelope);
     }
 
     private AvroSink bind(

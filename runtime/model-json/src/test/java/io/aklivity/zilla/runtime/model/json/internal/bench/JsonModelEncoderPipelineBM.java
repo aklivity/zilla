@@ -20,6 +20,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.time.Clock;
+import java.util.List;
 
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -45,6 +46,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelTransform;
@@ -97,7 +99,7 @@ public class JsonModelEncoderPipelineBM
     public void init()
     {
         JsonModelHandlerImpl handler = newHandler();
-        pipeline = handler.supplyEncoder(ModelTransform.NONE);
+        pipeline = handler.supplyEncoder(ModelEnvelope.NONE, ModelTransform.NONE);
 
         byte[] smallBytes = SMALL_DOCUMENT.getBytes(UTF_8);
         byte[] largeBytes = LARGE_DOCUMENT.getBytes(UTF_8);
@@ -154,7 +156,7 @@ public class JsonModelEncoderPipelineBM
         when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
         when(context.clock()).thenReturn(Clock.systemUTC());
         when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
-        return new JsonModelHandlerImpl(model, context);
+        return new JsonModelHandlerImpl(model, context, List.of());
     }
 
     public static void main(

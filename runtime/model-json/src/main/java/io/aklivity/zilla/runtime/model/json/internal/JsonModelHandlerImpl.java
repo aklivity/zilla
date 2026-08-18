@@ -17,20 +17,28 @@ package io.aklivity.zilla.runtime.model.json.internal;
 import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_ID;
 import static java.util.Objects.requireNonNull;
 
+import java.util.List;
+import java.util.Map;
+
 import io.aklivity.zilla.config.model.json.JsonModelConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
 import io.aklivity.zilla.runtime.common.json.JsonReporter;
 import io.aklivity.zilla.runtime.common.json.JsonSchema;
+import io.aklivity.zilla.runtime.common.json.JsonSink;
+import io.aklivity.zilla.runtime.common.json.JsonStream;
 import io.aklivity.zilla.runtime.common.json.JsonTransform;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
+import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
+import io.aklivity.zilla.runtime.model.json.ext.JsonModelExtContext;
 
 // Per-worker factory for a JSON model. One handler serves both directions: supplyDecoder vends a
 // per-stream JsonModelDecoderPipeline (catalog framing stripped, value validated) and supplyEncoder vends a
@@ -42,25 +50,37 @@ public final class JsonModelHandlerImpl extends JsonModelHandler implements Mode
     private static final CatalogHandler.Encoder NONE_ENCODER =
         (traceId, bindingId, schemaId, data, index, length, next) -> 0;
 
+    // forces canonical re-rendering on the decode pipeline once an extension is installed -- see
+    // newPipeline's own note on why byte-preserving delivery is unsafe once a value can be substituted
+    private static final Map<String, Object> STRUCTURED_DELIVERY = Map.of(JsonSink.DELIVERY, JsonSink.Delivery.STRUCTURED);
+
+    private final JsonModelConfig options;
+    private final List<JsonModelExtContext> exts;
+
     public JsonModelHandlerImpl(
         JsonModelConfig config,
-        EngineContext context)
+        EngineContext context,
+        List<JsonModelExtContext> exts)
     {
         super(config, context);
+        this.options = config;
+        this.exts = exts;
     }
 
     @Override
     public ModelPipeline supplyDecoder(
+        ModelEnvelope envelope,
         ModelTransform transform)
     {
-        return new JsonModelDecoderPipeline(this, requireNonNull(transform));
+        return new JsonModelDecoderPipeline(this, JsonModelEnvelope.of(requireNonNull(envelope)), requireNonNull(transform));
     }
 
     @Override
     public ModelPipeline supplyEncoder(
+        ModelEnvelope envelope,
         ModelTransform transform)
     {
-        return new JsonModelEncoderPipeline(this);
+        return new JsonModelEncoderPipeline(this, JsonModelEnvelope.of(requireNonNull(envelope)));
     }
 
     int decodePadding(
@@ -68,13 +88,42 @@ public final class JsonModelHandlerImpl extends JsonModelHandler implements Mode
         int index,
         int length)
     {
+        int schemaId = resolveSchemaId(data, index, length);
+        return handler.decodePadding(data, index, length) + supplyExtPadding(schemaId);
+    }
+
+    // the catalog's own embedded-framing byte count (e.g. a magic-byte-plus-id header some catalogs embed
+    // ahead of the value) -- deliberately excludes any installed extension's padding contribution, unlike
+    // decodePadding above: that count sizes the destination for a value an extension may expand, this one
+    // sizes how many source bytes to skip before the value itself begins, and the two are never the same
+    // quantity once an extension contributes non-zero padding
+    int prefix(
+        DirectBufferEx data,
+        int index,
+        int length)
+    {
         return handler.decodePadding(data, index, length);
+    }
+
+    @Override
+    protected int extPadding(
+        JsonSchema schema)
+    {
+        int padding = 0;
+        if (schema != null)
+        {
+            for (JsonModelExtContext ext : exts)
+            {
+                padding += ext.supplyHandler(schema, options).padding(schema);
+            }
+        }
+        return padding;
     }
 
     int encodePadding(
         int length)
     {
-        return handler.encodePadding(length);
+        return handler.encodePadding(length) + supplyExtPadding(resolveSchemaId());
     }
 
     int resolveSchemaId(
@@ -127,38 +176,93 @@ public final class JsonModelHandlerImpl extends JsonModelHandler implements Mode
         return handler.encode(traceId, bindingId, schemaId, data, index, length, next, NONE_ENCODER);
     }
 
+    // the decode path: extractor is null when the caller's ModelTransform is NONE (the observation-only
+    // extraction stage is skipped), but this overload is always the decode path regardless, so installed
+    // extensions always fold in here. An installed extension may substitute a value (redacting a field,
+    // say), which has no original source bytes to splice, so decode forces structured (canonical) delivery
+    // whenever at least one extension is folded in -- byte-preserving delivery remains the default with
+    // none installed, matching the pre-extension behavior exactly
     JsonPipeline newPipeline(
         int schemaId,
         boolean lenient,
         JsonGeneratorEx generator,
         JsonTransform extractor,
-        JsonReporter reporter)
+        JsonReporter reporter,
+        JsonEnvelope envelope)
     {
         JsonSchema schema = supplySchema(schemaId);
-        return schema != null
-            ? JsonEx.stream(JsonEx.createParser())
-                .transform(schema.validator(lenient))
-                .transform(extractor)
+        JsonStream stream = schema != null
+            ? extendDecode(JsonEx.stream(JsonEx.createParser()), schema).transform(schema.validator(lenient))
+            : null;
+        JsonStream terminal = stream != null
+            ? (extractor != null ? stream.transform(extractor) : stream)
                 .lenient(lenient)
                 .reporting(reporter)
-                .into(generator)
+                .envelope(envelope)
+            : null;
+        return terminal != null
+            ? exts.isEmpty()
+                ? terminal.into(generator)
+                : terminal.into(generator, STRUCTURED_DELIVERY)
             : null;
     }
 
+    // the encode path: the write path into the broker. A caller's value being encoded into its canonical
+    // form is extended independently of the decode path above, so an extension that only redacts on read
+    // (the default encode()) leaves this path unchanged; one that also needs to apply on write overrides
+    // encode() to fold in here. An installed extension may substitute a value here too, so encode forces
+    // structured (canonical) delivery whenever at least one extension is folded in, matching the decode
+    // path's own guard above -- byte-preserving delivery remains the default with none installed
     JsonPipeline newPipeline(
         int schemaId,
         boolean lenient,
         JsonGeneratorEx generator,
-        JsonReporter reporter)
+        JsonReporter reporter,
+        JsonEnvelope envelope)
     {
         JsonSchema schema = supplySchema(schemaId);
-        return schema != null
-            ? JsonEx.stream(JsonEx.createParser())
+        JsonStream terminal = schema != null
+            ? extendEncode(JsonEx.stream(JsonEx.createParser()), schema)
                 .transform(schema.validator(lenient))
                 .lenient(lenient)
                 .reporting(reporter)
-                .into(generator)
+                .envelope(envelope)
             : null;
+        return terminal != null
+            ? exts.isEmpty()
+                ? terminal.into(generator)
+                : terminal.into(generator, STRUCTURED_DELIVERY)
+            : null;
+    }
+
+    // folds every installed json model extension's own decode stage(s) into the stream, in discovery
+    // order, ahead of this handler's own validator/extractor stages: the canonical value being decoded
+    // into the view delivered to a reader
+    private JsonStream extendDecode(
+        JsonStream stream,
+        JsonSchema schema)
+    {
+        JsonStream extended = stream;
+        for (JsonModelExtContext ext : exts)
+        {
+            extended = ext.supplyHandler(schema, options).decode(extended);
+        }
+        return extended;
+    }
+
+    // folds every installed json model extension's own encode stage(s) into the stream, in discovery
+    // order, ahead of this handler's own validator stage: a caller's value being encoded into its
+    // canonical form
+    private JsonStream extendEncode(
+        JsonStream stream,
+        JsonSchema schema)
+    {
+        JsonStream extended = stream;
+        for (JsonModelExtContext ext : exts)
+        {
+            extended = ext.supplyHandler(schema, options).encode(extended);
+        }
+        return extended;
     }
 
     void validationFailure(
