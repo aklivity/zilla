@@ -48,6 +48,8 @@ write zilla:data.ext ${kafka:dataEx()
                               .build()}
 write flush
 
+write await LEADER_CHANGED
+
 write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .meta()
@@ -60,29 +62,13 @@ accepted
 
 read zilla:begin.ext ${kafka:beginEx()
                               .typeId(zilla:id("kafka"))
-                              .produce()
+                              .fetch()
                                   .topic("test")
-                                  .partition(0)
+                                  .partition(0, -2)
                                   .build()
                               .build()}
 
 connected
-
-write zilla:begin.ext ${kafka:beginEx()
-                               .typeId(zilla:id("kafka"))
-                               .produce()
-                                   .topic("test")
-                                   .partition(0)
-                                   .build()
-                               .build()}
-write flush
-
-read zilla:data.ext ${kafka:matchDataEx()
-                             .typeId(zilla:id("kafka"))
-                             .produce()
-                                 .build()
-                             .build()}
-read "Hello, world"
 
 write zilla:reset.ext ${kafka:resetEx()
                            .typeId(zilla:id("kafka"))
@@ -91,13 +77,15 @@ write zilla:reset.ext ${kafka:resetEx()
 read abort
 write aborted
 
+write notify LEADER_CHANGED
+
 accepted
 
 read zilla:begin.ext ${kafka:beginEx()
                               .typeId(zilla:id("kafka"))
-                              .produce()
+                              .fetch()
                                   .topic("test")
-                                  .partition(0)
+                                  .partition(0, -2)
                                   .build()
                               .build()}
 
@@ -105,17 +93,18 @@ connected
 
 write zilla:begin.ext ${kafka:beginEx()
                                .typeId(zilla:id("kafka"))
-                               .produce()
+                               .fetch()
                                    .topic("test")
-                                   .partition(0)
+                                   .partition(0, 10, 10)
                                    .build()
                                .build()}
 write flush
 
-read zilla:data.ext ${kafka:matchDataEx()
-                             .typeId(zilla:id("kafka"))
-                             .produce()
-                                 .build()
-                             .build()}
-read "Hello, world"
-read option zilla:ack 12
+write zilla:data.ext ${kafka:dataEx()
+                              .typeId(zilla:id("kafka"))
+                              .fetch()
+                                  .partition(0, 10, 10)
+                                  .build()
+                              .build()}
+write "Hello, world"
+write flush
