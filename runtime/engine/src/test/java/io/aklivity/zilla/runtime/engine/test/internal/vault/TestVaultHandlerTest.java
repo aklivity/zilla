@@ -22,16 +22,27 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
+import java.util.List;
+
 import org.junit.Test;
 
 import io.aklivity.zilla.config.engine.GenericVaultConfig;
 import io.aklivity.zilla.config.engine.VaultConfig;
 import io.aklivity.zilla.config.engine.test.internal.vault.config.TestVaultOptionsConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.engine.vault.SecretKeyManager;
+import io.aklivity.zilla.runtime.engine.vault.SecretKeyManagerFactory;
 
 public class TestVaultHandlerTest
 {
+    // an arbitrary 32-byte AES-256 key, PEM-encoded exactly like a declarative TLS key/trust entry
+    private static final String SECRET_KEY_PEM =
+        "-----BEGIN SECRET KEY-----\n" +
+        "jOl3tg1ZDuqTrzB7WOVaUOEoezst8sz/ywPPbsGE8bA=\n" +
+        "-----END SECRET KEY-----";
+
     @Test
     public void shouldRoundTripWrapAndUnwrap()
     {
@@ -53,6 +64,41 @@ public class TestVaultHandlerTest
 
         assertNotNull(unwrapped.buffer);
         assertArrayEquals(plaintext, copyOf(unwrapped));
+    }
+
+    @Test
+    public void shouldRoundTripWrapAndUnwrapViaSecretKeyManager()
+    {
+        TestVaultHandler handler = newHandler();
+        SecretKeyManagerFactory factory = handler.initSecretKeys(List.of("kek"));
+        assertNotNull(factory);
+
+        SecretKeyManager manager = factory.getSecretKeyManager();
+        byte[] plaintext = "super secret payload".getBytes(UTF_8);
+        DirectBufferEx source = new UnsafeBufferEx(plaintext);
+        MutableDirectBufferEx wrapped = new UnsafeBufferEx(new byte[128]);
+
+        int wrappedLength = manager.wrap("kek", source, 0, source.capacity(), wrapped, 0);
+
+        assertNotEquals(-1, wrappedLength);
+        assertNotEquals(plaintext.length, wrappedLength);
+
+        MutableDirectBufferEx unwrapped = new UnsafeBufferEx(new byte[128]);
+        int unwrappedLength = manager.unwrap("kek", wrapped, 0, wrappedLength, unwrapped, 0);
+
+        assertEquals(plaintext.length, unwrappedLength);
+        byte[] roundTripped = new byte[unwrappedLength];
+        unwrapped.getBytes(0, roundTripped);
+        assertArrayEquals(plaintext, roundTripped);
+    }
+
+    @Test
+    public void shouldNotInitSecretKeysForUnknownAlias()
+    {
+        TestVaultHandler handler = newHandler();
+        SecretKeyManagerFactory factory = handler.initSecretKeys(List.of("unknown"));
+
+        assertNull(factory);
     }
 
     @Test
@@ -133,7 +179,7 @@ public class TestVaultHandlerTest
             .name("vault0")
             .type("test")
             .options(TestVaultOptionsConfig.builder()
-                .wrap("kek", "shared test secret")
+                .wrap("kek", SECRET_KEY_PEM)
                 .build())
             .build();
         return new TestVaultHandler(vault);

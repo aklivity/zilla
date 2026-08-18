@@ -160,7 +160,7 @@
                                             {
                                                 "type": "string"
                                             },
-                                            "secret":
+                                            "entry":
                                             {
                                                 "type": "string"
                                             }
@@ -168,7 +168,7 @@
                                         "required":
                                         [
                                             "alias",
-                                            "secret"
+                                            "entry"
                                         ]
                                     },
                                     {
@@ -182,7 +182,7 @@
                                                 {
                                                     "type": "string"
                                                 },
-                                                "secret":
+                                                "entry":
                                                 {
                                                     "type": "string"
                                                 }
@@ -190,7 +190,7 @@
                                             "required":
                                             [
                                                 "alias",
-                                                "secret"
+                                                "entry"
                                             ]
                                         }
                                     }

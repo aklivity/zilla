@@ -34,11 +34,13 @@ import java.security.cert.X509CertSelector;
 import java.security.cert.X509Certificate;
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -58,8 +60,11 @@ import io.aklivity.zilla.config.vault.filesystem.FileSystemSecretEntryConfig;
 import io.aklivity.zilla.config.vault.filesystem.FileSystemSecretsConfig;
 import io.aklivity.zilla.config.vault.filesystem.FileSystemStoreConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.security.RevocationStrategy;
+import io.aklivity.zilla.runtime.engine.vault.SecretKeyManager;
+import io.aklivity.zilla.runtime.engine.vault.SecretKeyManagerFactory;
 import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
 
 public class FileSystemVaultHandler implements VaultHandler
@@ -177,8 +182,79 @@ public class FileSystemVaultHandler implements VaultHandler
         int length,
         BytesConsumer next)
     {
+        int producedLength = wrapCore(key, bytes, index, length);
         DirectBufferEx wrapped = null;
-        int wrappedLength = 0;
+
+        if (producedLength >= 0)
+        {
+            scratchBuffer.wrap(output, 0, producedLength);
+            wrapped = scratchBuffer;
+        }
+
+        next.accept(wrapped, 0, Math.max(producedLength, 0));
+    }
+
+    @Override
+    public void unwrap(
+        long traceId,
+        String key,
+        DirectBufferEx bytes,
+        int index,
+        int length,
+        BytesConsumer next)
+    {
+        int producedLength = unwrapCore(key, bytes, index, length);
+        DirectBufferEx unwrapped = null;
+
+        if (producedLength >= 0)
+        {
+            scratchBuffer.wrap(output, 0, producedLength);
+            unwrapped = scratchBuffer;
+        }
+
+        next.accept(unwrapped, 0, Math.max(producedLength, 0));
+    }
+
+    @Override
+    public SecretKeyManagerFactory initSecretKeys(
+        List<String> aliases)
+    {
+        List<String> matched = matchedSecrets(aliases);
+        SecretKeyManagerFactory factory = null;
+
+        if (!matched.isEmpty())
+        {
+            SecretKeyManager manager = new FileSystemSecretKeyManager(new HashSet<>(matched));
+            factory = () -> manager;
+        }
+
+        return factory;
+    }
+
+    private List<String> matchedSecrets(
+        List<String> aliases)
+    {
+        List<String> matched = List.of();
+
+        if (aliases != null && secrets != null)
+        {
+            matched = aliases.stream()
+                .filter(name -> secrets.entry(name) != null)
+                .toList();
+        }
+
+        return matched;
+    }
+
+    // returns the length of the wrapped bytes written to `output` (see #output), or -1 on failure;
+    // shared by both the async #wrap and the synchronous FileSystemSecretKeyManager#wrap
+    private int wrapCore(
+        String key,
+        DirectBufferEx bytes,
+        int index,
+        int length)
+    {
+        int producedLength = -1;
 
         FileSystemSecretEntryInfo entry = secrets != null ? secrets.entry(key) : null;
         String alias = entry != null ? entry.activeAlias() : null;
@@ -197,33 +273,26 @@ public class FileSystemVaultHandler implements VaultHandler
                 System.arraycopy(iv, 0, wire, Integer.BYTES, GCM_IV_LENGTH);
 
                 int position = update(bytes, index, length, wire, PREFIX_LENGTH);
-                position += cipher.doFinal(wire, position);
-
-                scratchBuffer.wrap(wire, 0, position);
-                wrapped = scratchBuffer;
-                wrappedLength = position;
+                producedLength = position + cipher.doFinal(wire, position);
             }
             catch (GeneralSecurityException ex)
             {
-                wrapped = null;
-                wrappedLength = 0;
+                producedLength = -1;
             }
         }
 
-        next.accept(wrapped, 0, wrappedLength);
+        return producedLength;
     }
 
-    @Override
-    public void unwrap(
-        long traceId,
+    // returns the length of the unwrapped bytes written to `output` (see #output), or -1 on failure;
+    // shared by both the async #unwrap and the synchronous FileSystemSecretKeyManager#unwrap
+    private int unwrapCore(
         String key,
         DirectBufferEx bytes,
         int index,
-        int length,
-        BytesConsumer next)
+        int length)
     {
-        DirectBufferEx unwrapped = null;
-        int unwrappedLength = 0;
+        int producedLength = -1;
 
         FileSystemSecretEntryInfo entry = secrets != null ? secrets.entry(key) : null;
 
@@ -247,21 +316,16 @@ public class FileSystemVaultHandler implements VaultHandler
 
                     byte[] plaintext = output(cipher.getOutputSize(cipherLength));
                     int position = update(bytes, cipherIndex, cipherLength, plaintext, 0);
-                    position += cipher.doFinal(plaintext, position);
-
-                    scratchBuffer.wrap(plaintext, 0, position);
-                    unwrapped = scratchBuffer;
-                    unwrappedLength = position;
+                    producedLength = position + cipher.doFinal(plaintext, position);
                 }
                 catch (GeneralSecurityException ex)
                 {
-                    unwrapped = null;
-                    unwrappedLength = 0;
+                    producedLength = -1;
                 }
             }
         }
 
-        next.accept(unwrapped, 0, unwrappedLength);
+        return producedLength;
     }
 
     private static Cipher newCipher()
@@ -752,6 +816,55 @@ public class FileSystemVaultHandler implements VaultHandler
         private String activeAlias()
         {
             return aliases.get(active);
+        }
+    }
+
+    private final class FileSystemSecretKeyManager implements SecretKeyManager
+    {
+        private final Set<String> permitted;
+
+        private FileSystemSecretKeyManager(
+            Set<String> permitted)
+        {
+            this.permitted = permitted;
+        }
+
+        @Override
+        public int wrap(
+            String keyName,
+            DirectBufferEx bytes,
+            int index,
+            int length,
+            MutableDirectBufferEx dst,
+            int dstIndex)
+        {
+            int producedLength = permitted.contains(keyName) ? wrapCore(keyName, bytes, index, length) : -1;
+
+            if (producedLength >= 0)
+            {
+                dst.putBytes(dstIndex, output, 0, producedLength);
+            }
+
+            return producedLength;
+        }
+
+        @Override
+        public int unwrap(
+            String keyName,
+            DirectBufferEx bytes,
+            int index,
+            int length,
+            MutableDirectBufferEx dst,
+            int dstIndex)
+        {
+            int producedLength = permitted.contains(keyName) ? unwrapCore(keyName, bytes, index, length) : -1;
+
+            if (producedLength >= 0)
+            {
+                dst.putBytes(dstIndex, output, 0, producedLength);
+            }
+
+            return producedLength;
         }
     }
 }

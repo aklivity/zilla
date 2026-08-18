@@ -30,7 +30,9 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
  * Obtained from {@link VaultContext#attach(VaultConfig)}, a {@code VaultHandler} resolves
  * named key and certificate references from the vault's backing store (e.g., a PKCS#12 file
  * or PEM directory) into {@link javax.net.ssl.KeyManagerFactory} and
- * {@link javax.net.ssl.TrustManagerFactory} instances ready for use in TLS contexts.
+ * {@link javax.net.ssl.TrustManagerFactory} instances ready for use in TLS contexts, or into
+ * a {@link SecretKeyManagerFactory} for wrapping and unwrapping arbitrary byte buffers under
+ * a named key.
  * </p>
  *
  * @see VaultContext
@@ -122,6 +124,25 @@ public interface VaultHandler
      */
     TrustManagerFactory initTrust(
         KeyStore cacerts);
+
+    /**
+     * Initializes a {@link SecretKeyManagerFactory} from the named secret key entries in
+     * the vault, for wrapping and unwrapping arbitrary byte buffers under those keys.
+     * <p>
+     * Like {@link #initKeys(List)}, any retrieval this vault implementation needs (e.g., a
+     * call to a remote secret store) happens here, once; the {@link SecretKeyManager}
+     * obtained from the returned factory then wraps and unwraps synchronously.
+     * </p>
+     *
+     * @param secretKeyRefs  list of vault entry names identifying the secret keys to include
+     * @return an initialized {@link SecretKeyManagerFactory}, or {@code null} if none of
+     *         the referenced keys could be resolved
+     */
+    default SecretKeyManagerFactory initSecretKeys(
+        List<String> secretKeyRefs)
+    {
+        return null;
+    }
 
     /**
      * Wraps a buffer of bytes under the named key held by this vault, without the key's

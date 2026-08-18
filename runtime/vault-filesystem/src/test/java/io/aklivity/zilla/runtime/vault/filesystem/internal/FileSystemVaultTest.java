@@ -41,7 +41,10 @@ import org.junit.Test;
 
 import io.aklivity.zilla.config.vault.filesystem.FileSystemOptionsConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.engine.vault.SecretKeyManager;
+import io.aklivity.zilla.runtime.engine.vault.SecretKeyManagerFactory;
 
 public class FileSystemVaultTest
 {
@@ -560,6 +563,106 @@ public class FileSystemVaultTest
         Captured wrapped = wrap(vault, "app-key", "secret".getBytes(StandardCharsets.UTF_8));
 
         assertThat(wrapped.buffer, nullValue());
+    }
+
+    @Test
+    public void shouldRoundTripWrapAndUnwrapViaSecretKeyManager() throws Exception
+    {
+        FileSystemOptionsConfig options = FileSystemOptionsConfig.builder()
+            .secrets()
+                .store("stores/secrets/secrets")
+                .password("generated")
+                .entry("app-key")
+                    .alias("alias128")
+                    .build()
+                .build()
+            .build();
+
+        FileSystemVaultHandler vault = new FileSystemVaultHandler(options, FileSystemVaultTest::resourcePath);
+
+        SecretKeyManagerFactory factory = vault.initSecretKeys(List.of("app-key"));
+        assertThat(factory, not(nullValue()));
+
+        SecretKeyManager manager = factory.getSecretKeyManager();
+        byte[] plaintext = "top secret payload".getBytes(StandardCharsets.UTF_8);
+        DirectBufferEx source = new UnsafeBufferEx(plaintext);
+        MutableDirectBufferEx wrapped = new UnsafeBufferEx(new byte[128]);
+
+        int wrappedLength = manager.wrap("app-key", source, 0, source.capacity(), wrapped, 0);
+
+        assertThat(wrappedLength, not(equalTo(-1)));
+        assertThat(wrappedLength, not(equalTo(plaintext.length)));
+
+        MutableDirectBufferEx unwrapped = new UnsafeBufferEx(new byte[128]);
+        int unwrappedLength = manager.unwrap("app-key", wrapped, 0, wrappedLength, unwrapped, 0);
+
+        assertThat(unwrappedLength, equalTo(plaintext.length));
+        byte[] roundTripped = new byte[unwrappedLength];
+        unwrapped.getBytes(0, roundTripped);
+        assertArrayEquals(plaintext, roundTripped);
+    }
+
+    @Test
+    public void shouldFailSecretKeyManagerOperationsForUnpermittedKey() throws Exception
+    {
+        FileSystemOptionsConfig options = FileSystemOptionsConfig.builder()
+            .secrets()
+                .store("stores/secrets/secrets")
+                .password("generated")
+                .entry("app-key")
+                    .alias("alias128")
+                    .build()
+                .entry("session-key")
+                    .active("1")
+                    .version("1", "v1")
+                    .build()
+                .build()
+            .build();
+
+        FileSystemVaultHandler vault = new FileSystemVaultHandler(options, FileSystemVaultTest::resourcePath);
+
+        SecretKeyManagerFactory factory = vault.initSecretKeys(List.of("app-key"));
+        assertThat(factory, not(nullValue()));
+
+        SecretKeyManager manager = factory.getSecretKeyManager();
+        DirectBufferEx source = new UnsafeBufferEx("payload".getBytes(StandardCharsets.UTF_8));
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[128]);
+
+        assertThat(manager.wrap("session-key", source, 0, source.capacity(), dst, 0), equalTo(-1));
+        assertThat(manager.unwrap("session-key", source, 0, source.capacity(), dst, 0), equalTo(-1));
+    }
+
+    @Test
+    public void shouldNotInitSecretKeysForUnknownAlias() throws Exception
+    {
+        FileSystemOptionsConfig options = FileSystemOptionsConfig.builder()
+            .secrets()
+                .store("stores/secrets/secrets")
+                .password("generated")
+                .entry("app-key")
+                    .alias("alias128")
+                    .build()
+                .build()
+            .build();
+
+        FileSystemVaultHandler vault = new FileSystemVaultHandler(options, FileSystemVaultTest::resourcePath);
+
+        SecretKeyManagerFactory factory = vault.initSecretKeys(List.of("unknown-key"));
+
+        assertThat(factory, nullValue());
+    }
+
+    @Test
+    public void shouldNotInitSecretKeysWhenSecretsNotConfigured() throws Exception
+    {
+        FileSystemOptionsConfig options = FileSystemOptionsConfig.builder()
+            .build();
+
+        FileSystemVaultHandler vault = new FileSystemVaultHandler(options, FileSystemVaultTest::resourcePath);
+
+        SecretKeyManagerFactory factory = vault.initSecretKeys(List.of("app-key"));
+
+        assertThat(factory, nullValue());
     }
 
     private static Captured wrap(

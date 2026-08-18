@@ -16,14 +16,12 @@
 package io.aklivity.zilla.runtime.engine.test.internal.vault;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
-import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.security.KeyFactory;
 import java.security.KeyStore;
 import java.security.KeyStore.TrustedCertificateEntry;
-import java.security.MessageDigest;
 import java.security.PrivateKey;
 import java.security.SecureRandom;
 import java.security.cert.Certificate;
@@ -51,9 +49,11 @@ import org.agrona.LangUtil;
 import io.aklivity.zilla.config.engine.VaultConfig;
 import io.aklivity.zilla.config.engine.test.internal.vault.config.TestVaultEntryConfig;
 import io.aklivity.zilla.config.engine.test.internal.vault.config.TestVaultOptionsConfig;
-import io.aklivity.zilla.config.engine.test.internal.vault.config.TestVaultWrapConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.engine.vault.SecretKeyManager;
+import io.aklivity.zilla.runtime.engine.vault.SecretKeyManagerFactory;
 import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
 
 public final class TestVaultHandler implements VaultHandler
@@ -63,10 +63,9 @@ public final class TestVaultHandler implements VaultHandler
             "(?<key>-----BEGIN PRIVATE KEY-----[^-]+-----END PRIVATE KEY-----[^-]*)" +
             "(?<chain>(?:-----BEGIN CERTIFICATE-----[^-]+-----END CERTIFICATE-----[^-]*)+)");
 
-    // Wrap/unwrap key derivation: the configured secret is an arbitrary UTF-8 string, hashed with
-    // SHA-256 to a deterministic 32-byte AES-256 key. This lets test authors write a plain literal
-    // in zilla.yaml (no base64 alignment/padding to get right) while still exercising a real AES key.
-    private static final String KEY_DERIVATION_ALGORITHM = "SHA-256";
+    private static final Pattern PATTERN_SECRET_KEY_ENTRY =
+        Pattern.compile("-----BEGIN SECRET KEY-----(?<body>[^-]+)-----END SECRET KEY-----");
+
     private static final String KEY_ALGORITHM = "AES";
     private static final String CIPHER_TRANSFORM = "AES/GCM/NoPadding";
     private static final int GCM_IV_LENGTH = 12;
@@ -90,16 +89,16 @@ public final class TestVaultHandler implements VaultHandler
     }
 
     private static Map<String, SecretKey> newWraps(
-        List<TestVaultWrapConfig> wrap)
+        List<TestVaultEntryConfig> wrap)
     {
         Map<String, SecretKey> wraps = null;
 
         if (wrap != null)
         {
             wraps = new HashMap<>();
-            for (TestVaultWrapConfig config : wrap)
+            for (TestVaultEntryConfig config : wrap)
             {
-                wraps.put(config.alias, newSecretKey(config.secret));
+                wraps.put(config.alias, newSecretKey(config.entry));
             }
         }
 
@@ -107,20 +106,18 @@ public final class TestVaultHandler implements VaultHandler
     }
 
     private static SecretKey newSecretKey(
-        String secret)
+        String pem)
     {
-        SecretKey key;
-        try
+        SecretKey key = null;
+
+        Matcher matcher = PATTERN_SECRET_KEY_ENTRY.matcher(pem);
+        if (matcher.find())
         {
-            MessageDigest digest = MessageDigest.getInstance(KEY_DERIVATION_ALGORITHM);
-            byte[] encoded = digest.digest(secret.getBytes(UTF_8));
+            String base64 = matcher.group("body").replaceAll("[^a-zA-Z0-9+/=]", "");
+            byte[] encoded = Base64.getMimeDecoder().decode(base64);
             key = new SecretKeySpec(encoded, KEY_ALGORITHM);
         }
-        catch (Exception ex)
-        {
-            key = null;
-            LangUtil.rethrowUnchecked(ex);
-        }
+
         return key;
     }
 
@@ -400,5 +397,121 @@ public final class TestVaultHandler implements VaultHandler
             }
         }
         return matched;
+    }
+
+    @Override
+    public SecretKeyManagerFactory initSecretKeys(
+        List<String> aliases)
+    {
+        Map<String, SecretKey> matched = matchedWraps(aliases);
+        SecretKeyManager manager = !matched.isEmpty() ? new TestSecretKeyManager(matched) : null;
+        return manager != null ? () -> manager : null;
+    }
+
+    private Map<String, SecretKey> matchedWraps(
+        List<String> aliases)
+    {
+        Map<String, SecretKey> matched = new HashMap<>();
+        if (aliases != null && wraps != null)
+        {
+            for (String alias : aliases)
+            {
+                SecretKey key = wraps.get(alias);
+                if (key != null)
+                {
+                    matched.put(alias, key);
+                }
+            }
+        }
+        return matched;
+    }
+
+    private static final class TestSecretKeyManager implements SecretKeyManager
+    {
+        private final Map<String, SecretKey> keys;
+
+        private TestSecretKeyManager(
+            Map<String, SecretKey> keys)
+        {
+            this.keys = keys;
+        }
+
+        @Override
+        public int wrap(
+            String keyName,
+            DirectBufferEx bytes,
+            int index,
+            int length,
+            MutableDirectBufferEx dst,
+            int dstIndex)
+        {
+            SecretKey secretKey = keys.get(keyName);
+            int written = -1;
+
+            if (secretKey != null)
+            {
+                try
+                {
+                    byte[] iv = new byte[GCM_IV_LENGTH];
+                    RANDOM.nextBytes(iv);
+
+                    byte[] plaintext = new byte[length];
+                    bytes.getBytes(index, plaintext);
+
+                    Cipher cipher = Cipher.getInstance(CIPHER_TRANSFORM);
+                    cipher.init(Cipher.ENCRYPT_MODE, secretKey, new GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv));
+                    byte[] ciphertext = cipher.doFinal(plaintext);
+
+                    dst.putBytes(dstIndex, iv);
+                    dst.putBytes(dstIndex + iv.length, ciphertext);
+                    written = iv.length + ciphertext.length;
+                }
+                catch (Exception ex)
+                {
+                    written = -1;
+                }
+            }
+
+            return written;
+        }
+
+        @Override
+        public int unwrap(
+            String keyName,
+            DirectBufferEx bytes,
+            int index,
+            int length,
+            MutableDirectBufferEx dst,
+            int dstIndex)
+        {
+            SecretKey secretKey = keys.get(keyName);
+            int written = -1;
+
+            if (secretKey != null && length >= GCM_IV_LENGTH)
+            {
+                try
+                {
+                    byte[] iv = new byte[GCM_IV_LENGTH];
+                    bytes.getBytes(index, iv);
+
+                    int ciphertextLength = length - GCM_IV_LENGTH;
+                    byte[] ciphertext = new byte[ciphertextLength];
+                    bytes.getBytes(index + GCM_IV_LENGTH, ciphertext);
+
+                    Cipher cipher = Cipher.getInstance(CIPHER_TRANSFORM);
+                    cipher.init(Cipher.DECRYPT_MODE, secretKey, new GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv));
+                    byte[] plaintext = cipher.doFinal(ciphertext);
+
+                    dst.putBytes(dstIndex, plaintext);
+                    written = plaintext.length;
+                }
+                catch (Exception ex)
+                {
+                    written = -1;
+                }
+            }
+
+            return written;
+        }
     }
 }

@@ -32,7 +32,6 @@ public final class TestVaultOptionsConfigAdapter extends ConfigAdapter<OptionsCo
     private static final String WRAP_NAME = "wrap";
 
     private final TestVaultEntryConfigAdapter entry = new TestVaultEntryConfigAdapter();
-    private final TestVaultWrapConfigAdapter wrap = new TestVaultWrapConfigAdapter();
 
     @Override
     public JsonObject adaptToJson(
@@ -79,12 +78,12 @@ public final class TestVaultOptionsConfigAdapter extends ConfigAdapter<OptionsCo
         {
             if (options.wrap.size() == 1)
             {
-                object.add(WRAP_NAME, wrap.adaptToJson(options.wrap.get(0)));
+                object.add(WRAP_NAME, entry.adaptToJson(options.wrap.get(0)));
             }
             else
             {
                 JsonArrayBuilder wrapArray = Json.createArrayBuilder();
-                options.wrap.forEach(w -> wrapArray.add(wrap.adaptToJson(w)));
+                options.wrap.forEach(w -> wrapArray.add(entry.adaptToJson(w)));
                 object.add(WRAP_NAME, wrapArray);
             }
         }
@@ -153,14 +152,14 @@ public final class TestVaultOptionsConfigAdapter extends ConfigAdapter<OptionsCo
                     JsonArray wrapArray = wrapValue.asJsonArray();
                     for (JsonValue value : wrapArray)
                     {
-                        TestVaultWrapConfig config = wrap.adaptFromJson(value.asJsonObject());
-                        options.wrap(config.alias, config.secret);
+                        TestVaultEntryConfig config = entry.adaptFromJson(value.asJsonObject());
+                        options.wrap(config.alias, config.entry);
                     }
                 }
                 else
                 {
-                    TestVaultWrapConfig config = wrap.adaptFromJson(wrapValue.asJsonObject());
-                    options.wrap(config.alias, config.secret);
+                    TestVaultEntryConfig config = entry.adaptFromJson(wrapValue.asJsonObject());
+                    options.wrap(config.alias, config.entry);
                 }
             }
         }
