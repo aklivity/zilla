@@ -19,7 +19,7 @@ property newTimestamp ${kafka:timestamp() + deltaMillis}
 
 connect "zilla://streams/app0"
     option zilla:window 8192
-    option zilla:transmission "duplex"
+    option zilla:transmission "half-duplex"
 
 write zilla:begin.ext ${kafka:beginEx()
                                .typeId(zilla:id("kafka"))
@@ -45,6 +45,17 @@ read zilla:data.ext ${kafka:dataEx()
                              .build()}
 
 read notify ROUTED_BROKER_CLIENT
+
+read await ROUTED_BROKER_CLIENT_ERRORED
+
+read zilla:data.ext ${kafka:dataEx()
+                             .typeId(zilla:id("kafka"))
+                             .meta()
+                                 .partition(0, 178)
+                                 .build()
+                             .build()}
+
+read notify ROUTED_BROKER_CLIENT_2
 
 connect await ROUTED_BROKER_CLIENT
         "zilla://streams/app0"
@@ -90,11 +101,11 @@ read abort
 
 read notify ROUTED_BROKER_CLIENT_ERRORED
 
-connect await ROUTED_BROKER_CLIENT_ERRORED
+connect await ROUTED_BROKER_CLIENT_2
         "zilla://streams/app0"
     option zilla:window 8192
     option zilla:transmission "half-duplex"
-    option zilla:affinity 177
+    option zilla:affinity 178
 
 write zilla:begin.ext ${kafka:beginEx()
                                .typeId(zilla:id("kafka"))

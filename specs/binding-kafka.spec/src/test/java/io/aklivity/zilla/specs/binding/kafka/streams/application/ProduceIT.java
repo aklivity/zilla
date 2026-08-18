@@ -85,6 +85,24 @@ public class ProduceIT
 
     @Test
     @Specification({
+        "${app}/partition.not.leader.reconnect/client",
+        "${app}/partition.not.leader.reconnect/server"})
+    public void shouldReconnectPartitionNotLeader() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/partition.not.leader.reconnect.after.meta/client",
+        "${app}/partition.not.leader.reconnect.after.meta/server"})
+    public void shouldReconnectPartitionNotLeaderAfterMeta() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/partition.not.leader.reconnect.parallel/client",
         "${app}/partition.not.leader.reconnect.parallel/server"})
     public void shouldReconnectPartitionNotLeaderParallel() throws Exception
