@@ -149,7 +149,7 @@ public class InlineCatalogHandlerTest
     public void shouldResolveGuardedIdentityExpressionInSubjectBeforeLookup()
     {
         InlineOptionsConfig options = InlineOptionsConfig.builder().build();
-        InlineCatalogHandler handler = new InlineCatalogHandler(options, new TestGuard("alice", null));
+        InlineCatalogHandler handler = new InlineCatalogHandler(options, name -> new TestGuard("alice", null));
 
         int schemaId = handler.register("orders.alice-value", SCHEMA_A);
 
@@ -163,7 +163,7 @@ public class InlineCatalogHandlerTest
     {
         InlineOptionsConfig options = InlineOptionsConfig.builder().build();
         InlineCatalogHandler handler =
-            new InlineCatalogHandler(options, new TestGuard(null, Map.of("tenant", "acme")));
+            new InlineCatalogHandler(options, name -> new TestGuard(null, Map.of("tenant", "acme")));
 
         int schemaId = handler.register("orders.acme-value", SCHEMA_A);
 
@@ -174,9 +174,42 @@ public class InlineCatalogHandlerTest
     }
 
     @Test
-    public void shouldFailToResolveGuardedExpressionWhenNoGuardConfigured()
+    public void shouldResolveDistinctGuardsByNameInExpressions()
+    {
+        InlineOptionsConfig options = InlineOptionsConfig.builder().build();
+        Map<String, GuardHandler> guardsByName = Map.of(
+            "product:api_keys", new TestGuard("alice", null),
+            "jwt0", new TestGuard("bob", null));
+        InlineCatalogHandler handler = new InlineCatalogHandler(options, guardsByName::get);
+
+        int schemaIdA = handler.register("orders.alice-value", SCHEMA_A);
+        int schemaIdB = handler.register("orders.bob-value", SCHEMA_B);
+
+        assertThat(
+            handler.resolve("orders.${guarded['product:api_keys'].identity}-value", "latest", 7L),
+            equalTo(schemaIdA));
+        assertThat(
+            handler.resolve("orders.${guarded['jwt0'].identity}-value", "latest", 7L),
+            equalTo(schemaIdB));
+    }
+
+    @Test
+    public void shouldFailToResolveGuardedExpressionWhenNoGuardCapabilityAvailable()
     {
         InlineCatalogHandler handler = newHandler();
+
+        handler.register("orders.alice-value", SCHEMA_A);
+
+        int resolved = handler.resolve("orders.${guarded['product:api_keys'].identity}-value", "latest", 7L);
+
+        assertThat(resolved, equalTo(NO_SCHEMA_ID));
+    }
+
+    @Test
+    public void shouldFailToResolveGuardedExpressionWhenGuardNameUnresolvable()
+    {
+        InlineOptionsConfig options = InlineOptionsConfig.builder().build();
+        InlineCatalogHandler handler = new InlineCatalogHandler(options, name -> null);
 
         handler.register("orders.alice-value", SCHEMA_A);
 
@@ -189,7 +222,7 @@ public class InlineCatalogHandlerTest
     public void shouldIgnoreGuardedExpressionSyntaxWhenAuthorizationOverloadIsNotUsed()
     {
         InlineOptionsConfig options = InlineOptionsConfig.builder().build();
-        InlineCatalogHandler handler = new InlineCatalogHandler(options, new TestGuard("alice", null));
+        InlineCatalogHandler handler = new InlineCatalogHandler(options, name -> new TestGuard("alice", null));
 
         int schemaId = handler.register("weather", SCHEMA_A);
 
@@ -211,7 +244,20 @@ public class InlineCatalogHandlerTest
     public void shouldResolveGuardedExpressionAgainstWildcardRegisteredSubject()
     {
         InlineOptionsConfig options = InlineOptionsConfig.builder().build();
-        InlineCatalogHandler handler = new InlineCatalogHandler(options, new TestGuard("acme", null));
+        InlineCatalogHandler handler = new InlineCatalogHandler(options, name -> new TestGuard("acme", null));
+
+        int schemaId = handler.register("orders.*-value", SCHEMA_A);
+
+        int resolved = handler.resolve("orders.${guarded['product:api_keys'].identity}-value", "latest", 7L);
+
+        assertThat(resolved, equalTo(schemaId));
+    }
+
+    @Test
+    public void shouldMatchWildcardRegisteredSubjectWhenGuardedIdentityIsBlank()
+    {
+        InlineOptionsConfig options = InlineOptionsConfig.builder().build();
+        InlineCatalogHandler handler = new InlineCatalogHandler(options, name -> new TestGuard(null, null));
 
         int schemaId = handler.register("orders.*-value", SCHEMA_A);
 
@@ -228,6 +274,26 @@ public class InlineCatalogHandlerTest
         handler.register("orders.*-value", SCHEMA_A);
 
         assertThat(handler.resolve("shipments.acme-value", "latest"), equalTo(NO_SCHEMA_ID));
+    }
+
+    @Test
+    public void shouldNotMatchWildcardRegisteredSubjectWithDifferentSuffix()
+    {
+        InlineCatalogHandler handler = newHandler();
+
+        handler.register("orders.*-value", SCHEMA_A);
+
+        assertThat(handler.resolve("orders.acme-key", "latest"), equalTo(NO_SCHEMA_ID));
+    }
+
+    @Test
+    public void shouldNotMatchWildcardRegisteredSubjectWithDifferentVersion()
+    {
+        InlineCatalogHandler handler = newHandler();
+
+        handler.register("orders.*-value", SCHEMA_A);
+
+        assertThat(handler.resolve("orders.acme-value", "v2"), equalTo(NO_SCHEMA_ID));
     }
 
     @Test

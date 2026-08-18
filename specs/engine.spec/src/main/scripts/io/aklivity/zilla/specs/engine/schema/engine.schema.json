@@ -267,11 +267,6 @@
                     "title": "Vault",
                     "type": "string"
                 },
-                "guard":
-                {
-                    "title": "Guard",
-                    "type": "string"
-                },
                 "options":
                 {
                     "title": "Options",

@@ -48,9 +48,8 @@ public final class FilesystemCatalogConfigBuilder<T> extends CatalogConfigBuilde
         String name,
         String type,
         String vault,
-        String guard,
         OptionsConfig options)
     {
-        return new FilesystemCatalogConfig(namespace, name, type, vault, guard, options);
+        return new FilesystemCatalogConfig(namespace, name, type, vault, options);
     }
 }

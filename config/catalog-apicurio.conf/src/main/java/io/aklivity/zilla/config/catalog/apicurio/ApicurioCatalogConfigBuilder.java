@@ -48,9 +48,8 @@ public final class ApicurioCatalogConfigBuilder<T> extends CatalogConfigBuilder<
         String name,
         String type,
         String vault,
-        String guard,
         OptionsConfig options)
     {
-        return new ApicurioCatalogConfig(namespace, name, type, vault, guard, options);
+        return new ApicurioCatalogConfig(namespace, name, type, vault, options);
     }
 }

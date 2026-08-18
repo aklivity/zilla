@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.catalog.inline.internal;
 
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -41,9 +42,9 @@ public class InlineCatalogHandler implements CatalogHandler
     // matches the same ${guarded['name'].identity} / ${guarded['name'].attributes.x} syntax
     // kafka-proxy's topics[].alias already resolves per-connection, so a subject configured
     // on the consuming model (e.g. catalog.subject) can reference the caller's identity the
-    // same way a topic alias does. The guard name inside the brackets is not re-resolved
-    // here — an inline catalog carries at most one guard (catalog.guard), applied regardless
-    // of which name is written in the expression.
+    // same way a topic alias does. The guard name inside the brackets is resolved dynamically
+    // per expression, the same way TlsWithResolver / HttpKafkaWithResolver do it, rather than
+    // via a single statically-configured guard on the catalog.
     private static final Pattern IDENTITY_PATTERN =
         Pattern.compile("\\$\\{guarded(?:\\['([a-zA-Z]+[a-zA-Z0-9\\._\\:\\-]*)'\\]).identity\\}");
     private static final Pattern ATTRIBUTE_PATTERN =
@@ -57,20 +58,22 @@ public class InlineCatalogHandler implements CatalogHandler
     private final Map<String, Pattern> schemaIdPatterns;
     private final Int2IntHashMap references;
     private final CRC32C crc32c;
-    private final GuardHandler guard;
+    private final Function<String, GuardHandler> guards;
+    private final Map<String, GuardHandler> guardsByName;
     private final Matcher identityMatcher;
     private final Matcher attributeMatcher;
 
     public InlineCatalogHandler(
         InlineOptionsConfig config,
-        GuardHandler guard)
+        Function<String, GuardHandler> guards)
     {
         this.schemas = new Int2ObjectHashMap<>();
         this.schemaIds = new Object2IntHashMap<>(NO_SCHEMA_ID);
         this.schemaIdPatterns = new LinkedHashMap<>();
         this.references = new Int2IntHashMap(NO_REFERENCES);
         this.crc32c = new CRC32C();
-        this.guard = guard;
+        this.guards = guards;
+        this.guardsByName = new HashMap<>();
         this.identityMatcher = IDENTITY_PATTERN.matcher("");
         this.attributeMatcher = ATTRIBUTE_PATTERN.matcher("");
         if (config != null)
@@ -124,7 +127,7 @@ public class InlineCatalogHandler implements CatalogHandler
         String version,
         long authorization)
     {
-        String resolved = guard != null ? resolveExpression(subject, authorization) : subject;
+        String resolved = resolveExpression(subject, authorization);
         return lookup(resolved + version);
     }
 
@@ -150,9 +153,34 @@ public class InlineCatalogHandler implements CatalogHandler
         String subject,
         long authorization)
     {
-        String resolved = findAndReplace(subject, identityMatcher, r -> orEmpty(guard.identity(authorization)));
-        resolved = findAndReplace(resolved, attributeMatcher, r -> orEmpty(guard.attribute(authorization, r.group(2))));
+        String resolved = findAndReplace(subject, identityMatcher,
+            r -> orEmpty(identity(r.group(1), authorization)));
+        resolved = findAndReplace(resolved, attributeMatcher,
+            r -> orEmpty(attribute(r.group(1), authorization, r.group(2))));
         return resolved;
+    }
+
+    private String identity(
+        String guardName,
+        long authorization)
+    {
+        GuardHandler guard = supplyGuard(guardName);
+        return guard != null ? guard.identity(authorization) : null;
+    }
+
+    private String attribute(
+        String guardName,
+        long authorization,
+        String name)
+    {
+        GuardHandler guard = supplyGuard(guardName);
+        return guard != null ? guard.attribute(authorization, name) : null;
+    }
+
+    private GuardHandler supplyGuard(
+        String guardName)
+    {
+        return guards != null ? guardsByName.computeIfAbsent(guardName, guards) : null;
     }
 
     private static String orEmpty(

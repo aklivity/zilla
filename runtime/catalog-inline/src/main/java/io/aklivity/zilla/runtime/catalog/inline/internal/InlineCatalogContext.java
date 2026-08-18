@@ -19,7 +19,6 @@ import io.aklivity.zilla.config.engine.CatalogConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
-import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 
 public class InlineCatalogContext implements CatalogContext
 {
@@ -35,7 +34,8 @@ public class InlineCatalogContext implements CatalogContext
     public CatalogHandler attach(
         CatalogConfig catalog)
     {
-        GuardHandler guard = catalog.guard != null ? context.supplyGuard(catalog.guardId) : null;
-        return new InlineCatalogHandler(InlineOptionsConfig.class.cast(catalog.options), guard);
+        return new InlineCatalogHandler(
+            InlineOptionsConfig.class.cast(catalog.options),
+            name -> context.supplyGuard(catalog.resolveId.applyAsLong(name)));
     }
 }

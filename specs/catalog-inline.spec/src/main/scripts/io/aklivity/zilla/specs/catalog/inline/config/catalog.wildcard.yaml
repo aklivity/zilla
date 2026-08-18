@@ -18,7 +18,6 @@ name: test
 catalogs:
   catalog0:
     type: inline
-    guard: guard0
     options:
       subjects:
         orders.*-value:

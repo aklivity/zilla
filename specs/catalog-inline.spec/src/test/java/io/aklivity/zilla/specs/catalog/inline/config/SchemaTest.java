@@ -41,9 +41,9 @@ public class SchemaTest
     }
 
     @Test
-    public void shouldValidateCatalogWithGuardAndWildcardSubject()
+    public void shouldValidateCatalogWithWildcardSubject()
     {
-        JsonObject config = schema.validate("catalog.guard.yaml");
+        JsonObject config = schema.validate("catalog.wildcard.yaml");
 
         assertThat(config, not(nullValue()));
     }

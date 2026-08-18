@@ -16,18 +16,19 @@ package io.aklivity.zilla.config.engine;
 
 import static java.util.Objects.requireNonNull;
 
+import java.util.function.ToLongFunction;
+
 public abstract class CatalogConfig extends Config
 {
     public transient long id;
     public transient long vaultId;
-    public transient long guardId;
+    public transient ToLongFunction<String> resolveId;
 
     public final String namespace;
     public final String name;
     public final String qname;
     public final String type;
     public final String vault;
-    public final String guard;
     public final OptionsConfig options;
 
     protected CatalogConfig(
@@ -35,7 +36,6 @@ public abstract class CatalogConfig extends Config
         String name,
         String type,
         String vault,
-        String guard,
         OptionsConfig options)
     {
         this.namespace = requireNonNull(namespace);
@@ -43,7 +43,6 @@ public abstract class CatalogConfig extends Config
         this.qname = String.format("%s:%s", namespace, name);
         this.type = requireNonNull(type);
         this.vault = vault;
-        this.guard = guard;
         this.options = options;
     }
 }

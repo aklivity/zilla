@@ -387,13 +387,10 @@ public class EngineManager
         for (CatalogConfig catalog : namespace.catalogs)
         {
             catalog.id = resolver.resolve(catalog.name);
+            catalog.resolveId = resolver::resolve;
             if (catalog.vault != null)
             {
                 catalog.vaultId = resolver.resolve(catalog.vault);
-            }
-            if (catalog.guard != null)
-            {
-                catalog.guardId = resolver.resolve(catalog.guard);
             }
         }
 
