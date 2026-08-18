@@ -152,7 +152,6 @@ final class TestBindingFactory implements BindingHandler
     private List<TestBindingOptionsConfig.EnvelopeValue> envelopeBootstrap;
     private List<TestBindingOptionsConfig.EnvelopeAssertion> envelopeAssertions;
     private final Map<String, String> heldLockTokens = new HashMap<>();
-    private long authorization;
 
     TestBindingFactory(
         Configuration config,
@@ -292,16 +291,16 @@ final class TestBindingFactory implements BindingHandler
 
         if (guard == null)
         {
-            authorization = begin.authorization();
+            long authorization = begin.authorization();
             TestRouteConfig route = binding != null ? binding.resolve(authorization) : null;
             if (route != null)
             {
-                newStream = new TestSource(source, originId, routedId, initialId, replyId, route.id)::onMessage;
+                newStream = new TestSource(source, originId, routedId, initialId, replyId, route.id, authorization)::onMessage;
             }
         }
         else
         {
-            TestSource deferred = new TestSource(source, originId, routedId, initialId, replyId, 0L);
+            TestSource deferred = new TestSource(source, originId, routedId, initialId, replyId, 0L, NOT_AUTHORIZED);
             newStream = deferred::onMessage;
         }
 
@@ -468,6 +467,8 @@ final class TestBindingFactory implements BindingHandler
         private final long initialId;
         private final long replyId;
 
+        private long authorization;
+
         private long initialSeq;
         private long initialAck;
         private int initialMax;
@@ -506,14 +507,16 @@ final class TestBindingFactory implements BindingHandler
             long routedId,
             long initialId,
             long replyId,
-            long resolvedId)
+            long resolvedId,
+            long authorization)
         {
             this.source = source;
             this.originId = originId;
             this.routedId = routedId;
             this.initialId = initialId;
             this.replyId = replyId;
-            this.target = resolvedId != 0L ? new TestTarget(routedId, resolvedId) : null;
+            this.authorization = authorization;
+            this.target = resolvedId != 0L ? new TestTarget(routedId, resolvedId, authorization) : null;
             this.envelope = valueModel != null ? new TestModelEnvelope() : null;
             if (envelope != null)
             {
@@ -614,7 +617,7 @@ final class TestBindingFactory implements BindingHandler
             long traceId,
             long resolvedId)
         {
-            this.target = new TestTarget(routedId, resolvedId);
+            this.target = new TestTarget(routedId, resolvedId, authorization);
             if (pendingBegin)
             {
                 pendingBegin = false;
@@ -1057,7 +1060,6 @@ final class TestBindingFactory implements BindingHandler
         {
             long sequence = data.sequence();
             long traceId = data.traceId();
-            long authorization = data.authorization();
             int reserved = data.reserved();
             int flags = data.flags();
             OctetsFW payload = data.payload();
@@ -1476,6 +1478,8 @@ final class TestBindingFactory implements BindingHandler
             private final long initialId;
             private final long replyId;
 
+            private final long authorization;
+
             private long initialSeq;
             private long initialAck;
             private int initialMax;
@@ -1507,12 +1511,14 @@ final class TestBindingFactory implements BindingHandler
 
             private TestTarget(
                 long originId,
-                long routedId)
+                long routedId,
+                long authorization)
             {
                 this.originId = originId;
                 this.routedId = routedId;
                 this.initialId = context.supplyInitialId(routedId);
                 this.replyId = context.supplyReplyId(initialId);
+                this.authorization = authorization;
                 this.source = TestSource.this;
                 this.envelope = valueModel != null ? new TestModelEnvelope() : null;
                 if (envelope != null)
@@ -1615,7 +1621,6 @@ final class TestBindingFactory implements BindingHandler
             {
                 long sequence = data.sequence();
                 long traceId = data.traceId();
-                long authorization = data.authorization();
                 int reserved = data.reserved();
                 int flags = data.flags();
                 OctetsFW payload = data.payload();
@@ -1640,6 +1645,7 @@ final class TestBindingFactory implements BindingHandler
                 {
                     pipeline.reset();
                     source.doReplyAbort(traceId);
+                    doInitialAbort(traceId);
                     cleanupDecodeSlot();
                 }
                 else
@@ -1653,6 +1659,7 @@ final class TestBindingFactory implements BindingHandler
                     {
                         pipeline.reset();
                         source.doReplyAbort(traceId);
+                        doInitialAbort(traceId);
                     }
                     else
                     {
@@ -1717,6 +1724,7 @@ final class TestBindingFactory implements BindingHandler
                 {
                     pipeline.reset();
                     source.doReplyAbort(traceId);
+                    doInitialAbort(traceId);
                     cleanupDecodeSlot();
                 }
                 else if (status == ModelStatus.UNDERFLOW)
