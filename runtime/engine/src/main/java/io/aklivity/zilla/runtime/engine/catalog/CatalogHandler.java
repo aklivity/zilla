@@ -238,32 +238,6 @@ public interface CatalogHandler
         String version);
 
     /**
-     * Resolves the schema id for a given subject name and version string, where the
-     * subject may itself contain a guarded expression (e.g. {@code ${guarded['name']
-     * .identity}}) that must be evaluated against the connection's authorization before
-     * the resolved subject is looked up.
-     * <p>
-     * Catalogs that do not support guarded expressions in subjects (the majority — e.g.
-     * remote schema registries, where subjects are looked up by literal name) can
-     * ignore {@code authorization} entirely; the default implementation does exactly
-     * that, delegating to {@link #resolve(String, String)} unchanged.
-     * </p>
-     *
-     * @param subject        the subject name, potentially containing a guarded expression
-     * @param version        the version string (e.g., {@code "latest"} or a numeric version)
-     * @param authorization  the connection's authorization, used to evaluate any guarded
-     *                       expression in {@code subject}
-     * @return the resolved schema id, or {@link #NO_SCHEMA_ID} if not found
-     */
-    default int resolve(
-        String subject,
-        String version,
-        long authorization)
-    {
-        return resolve(subject, version);
-    }
-
-    /**
      * Attempts to extract a schema id embedded in the payload bytes themselves
      * (e.g., a Confluent-framed message with a magic byte + 4-byte schema id prefix).
      * <p>

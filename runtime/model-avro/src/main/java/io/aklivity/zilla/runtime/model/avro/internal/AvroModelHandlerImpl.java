@@ -131,36 +131,21 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
         int index,
         int length)
     {
-        return resolveSchemaId(data, index, length, 0L);
-    }
-
-    int resolveSchemaId(
-        DirectBufferEx data,
-        int index,
-        int length,
-        long authorization)
-    {
         int schemaId = handler.resolve(data, index, length);
         if (schemaId == NO_SCHEMA_ID)
         {
             schemaId = catalog.id != NO_SCHEMA_ID
                 ? catalog.id
-                : handler.resolve(subject, catalog.version, authorization);
+                : handler.resolve(subject, catalog.version);
         }
         return schemaId;
     }
 
     int resolveSchemaId()
     {
-        return resolveSchemaId(0L);
-    }
-
-    int resolveSchemaId(
-        long authorization)
-    {
         return catalog != null && catalog.id != NO_SCHEMA_ID
             ? catalog.id
-            : handler.resolve(subject, catalog.version, authorization);
+            : handler.resolve(subject, catalog.version);
     }
 
     // writes the schema framing prefix for the resolved schema id into next, returning the bytes written

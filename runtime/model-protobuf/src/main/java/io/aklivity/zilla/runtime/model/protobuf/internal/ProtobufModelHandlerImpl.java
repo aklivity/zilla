@@ -145,36 +145,21 @@ public final class ProtobufModelHandlerImpl extends ProtobufModelHandler impleme
         int index,
         int length)
     {
-        return resolveSchemaId(data, index, length, 0L);
-    }
-
-    int resolveSchemaId(
-        DirectBufferEx data,
-        int index,
-        int length,
-        long authorization)
-    {
         int schemaId = handler.resolve(data, index, length);
         if (schemaId == NO_SCHEMA_ID)
         {
             schemaId = catalog.id != NO_SCHEMA_ID
                 ? catalog.id
-                : handler.resolve(subject, catalog.version, authorization);
+                : handler.resolve(subject, catalog.version);
         }
         return schemaId;
     }
 
     int resolveSchemaId()
     {
-        return resolveSchemaId(0L);
-    }
-
-    int resolveSchemaId(
-        long authorization)
-    {
         return catalog != null && catalog.id > 0
             ? catalog.id
-            : handler.resolve(subject, catalog.version, authorization);
+            : handler.resolve(subject, catalog.version);
     }
 
     // consumes the message-index varints at the value start (after the catalog framing), returning the number

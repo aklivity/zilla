@@ -95,7 +95,7 @@ final class JsonModelDecoderPipeline implements ModelPipeline
         {
             // the catalog framing sits at the value start; strip it once on the first fragment and select
             // the schema-bound pipeline, then later fragments stream straight through
-            int schemaId = handler.resolveSchemaId(src, srcIndex, srcLength, authorization);
+            int schemaId = handler.resolveSchemaId(src, srcIndex, srcLength);
             prefix = handler.prefix(src, srcIndex, srcLength);
             active = schemaId != NO_SCHEMA_ID ? supplyPipeline(schemaId) : null;
             if (active != null)
