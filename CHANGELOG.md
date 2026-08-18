@@ -1,5 +1,21 @@
 # Changelog
 
+## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/1.3.0...HEAD)
+
+**Closed issues:**
+
+- fix\(helm-chart\): port the helm version pin to support/1.x so builds stop resolving it via the GitHub API [\#2316](https://github.com/aklivity/zilla/issues/2316) ([jfallows](https://github.com/jfallows))
+
+**Merged pull requests:**
+
+- fix\(binding-http\): prevent ReDoS in Basic auth format regex [\#2185](https://github.com/aklivity/zilla/pull/2185) ([jfallows](https://github.com/jfallows))
+- feat\(release\): create GitHub Release with version-specific changelog section [\#2305](https://github.com/aklivity/zilla/pull/2305) ([jfallows](https://github.com/jfallows))
+- ci: cache and authenticate Docker Hub image pulls to survive rate limits [\#2317](https://github.com/aklivity/zilla/pull/2317) ([jfallows](https://github.com/jfallows))
+- fix\(binding-http\): guard flushNext against re-entrant drain [\#2328](https://github.com/aklivity/zilla/pull/2328) ([jfallows](https://github.com/jfallows))
+- fix\(binding-kafka\): reconnect fetch/produce cache fanouts to the upda… [\#2366](https://github.com/aklivity/zilla/pull/2366) ([ankitk-me](https://github.com/ankitk-me))
+
 ## [1.3.0](https://github.com/aklivity/zilla/tree/1.3.0) (2026-07-18)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/1.2.6...1.3.0)
@@ -8,6 +24,7 @@
 
 - build\(deps\): Bump alpine from 3.23.4 to 3.24.1 in /cloud/docker-image/src/main/docker [\#2085](https://github.com/aklivity/zilla/pull/2085) ([dependabot[bot]](https://github.com/apps/dependabot))
 - build\(deps\): Bump ubuntu from jammy-20260410 to jammy-20260627 in /cloud/docker-image/src/main/docker [\#2086](https://github.com/aklivity/zilla/pull/2086) ([dependabot[bot]](https://github.com/apps/dependabot))
+- build\(deps\): Bump org.hamcrest:hamcrest-library from 2.2 to 3.0 [\#2087](https://github.com/aklivity/zilla/pull/2087) ([dependabot[bot]](https://github.com/apps/dependabot))
 - build\(deps\): Bump lycheeverse/lychee-action from 2.8.0 to 2.9.0 [\#2089](https://github.com/aklivity/zilla/pull/2089) ([dependabot[bot]](https://github.com/apps/dependabot))
 - build\(deps\): Bump docker/build-push-action from 6 to 7 [\#2090](https://github.com/aklivity/zilla/pull/2090) ([dependabot[bot]](https://github.com/apps/dependabot))
 - build\(deps\): Bump antlr4.version from 4.13.0 to 4.13.2 [\#2091](https://github.com/aklivity/zilla/pull/2091) ([dependabot[bot]](https://github.com/apps/dependabot))
@@ -15,6 +32,8 @@
 - build\(deps\): Bump azure/setup-helm from 4 to 5 [\#2093](https://github.com/aklivity/zilla/pull/2093) ([dependabot[bot]](https://github.com/apps/dependabot))
 - build\(deps-dev\): Bump commons-io:commons-io from 2.16.1 to 2.22.0 [\#2094](https://github.com/aklivity/zilla/pull/2094) ([dependabot[bot]](https://github.com/apps/dependabot))
 - build\(deps\): Bump actions/checkout from 6 to 7 [\#2095](https://github.com/aklivity/zilla/pull/2095) ([dependabot[bot]](https://github.com/apps/dependabot))
+- build\(deps\): Bump io.fabric8:docker-maven-plugin from 0.45.0 to 0.48.1 [\#2108](https://github.com/aklivity/zilla/pull/2108) ([dependabot[bot]](https://github.com/apps/dependabot))
+- build\(deps-dev\): Bump org.apache.commons:commons-lang3 from 3.18.0 to 3.20.0 [\#2109](https://github.com/aklivity/zilla/pull/2109) ([dependabot[bot]](https://github.com/apps/dependabot))
 - fix\(engine\): stop readonly Engine attach from zeroing live event ring buffers \(backport\) [\#2138](https://github.com/aklivity/zilla/pull/2138) ([jfallows](https://github.com/jfallows))
 - fix\(engine\): stop readonly Engine close from writing engine.stopped event \(backport\) [\#2141](https://github.com/aklivity/zilla/pull/2141) ([jfallows](https://github.com/jfallows))
 - fix\(engine\): stop readonly Engine attach from resetting the live tuning file \(backport\) [\#2144](https://github.com/aklivity/zilla/pull/2144) ([jfallows](https://github.com/jfallows))
