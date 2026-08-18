@@ -55,7 +55,7 @@ public class EngineIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/handshake/client",
-        "${app}/handshake/server"})
+        "${app}/handshake.authorized/server"})
     public void shouldHandshake() throws Exception
     {
         k3po.finish();
@@ -65,7 +65,7 @@ public class EngineIT
     @Configure(name = ENGINE_LOCAL_CONFIG_URI_NAME, value = "src/main/resources/config/local.server.yaml")
     @Specification({
         "${net}/handshake/client",
-        "${app}/handshake/server"})
+        "${app}/handshake.authorized/server"})
     public void shouldHandshakeWithEngineLocalConfig() throws Exception
     {
         k3po.finish();
@@ -76,7 +76,7 @@ public class EngineIT
     @Configure(name = ENGINE_ROUTER_NAME, value = "test")
     @Specification({
         "${net}/handshake/client",
-        "${app}/handshake/server"})
+        "${app}/handshake.authorized/server"})
     public void shouldHandshakeWithRouter() throws Exception
     {
         k3po.finish();
@@ -86,7 +86,7 @@ public class EngineIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/client.sent.data/client",
-        "${app}/client.sent.data/server"})
+        "${app}/client.sent.data.authorized/server"})
     public void shouldReceiveClientSentData() throws Exception
     {
         k3po.finish();
@@ -116,7 +116,7 @@ public class EngineIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/client.sent.read.advise.challenge/client",
-        "${app}/client.sent.read.advise.challenge/server"})
+        "${app}/client.sent.read.advise.challenge.authorized/server"})
     public void shouldReceiveClientSentReadAdviseChallenge() throws Exception
     {
         k3po.finish();
@@ -126,7 +126,7 @@ public class EngineIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/client.sent.write.advise.flush/client",
-        "${app}/client.sent.write.advise.flush/server"})
+        "${app}/client.sent.write.advise.flush.authorized/server"})
     public void shouldReceiveClientSentWriteAdviseFlush() throws Exception
     {
         k3po.finish();
@@ -136,7 +136,7 @@ public class EngineIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/client.sent.read.abort/client",
-        "${app}/client.sent.read.abort/server"})
+        "${app}/client.sent.read.abort.authorized/server"})
     public void shouldReceiveClientSentReadAbort() throws Exception
     {
         k3po.finish();
@@ -146,7 +146,7 @@ public class EngineIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/client.sent.write.abort/client",
-        "${app}/client.sent.write.abort/server"})
+        "${app}/client.sent.write.abort.authorized/server"})
     public void shouldReceiveClientSentWriteAbort() throws Exception
     {
         k3po.finish();
@@ -156,7 +156,7 @@ public class EngineIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/client.write.close/client",
-        "${app}/client.write.close/server"})
+        "${app}/client.write.close.authorized/server"})
     public void shouldReceiveClientSentWriteClose() throws Exception
     {
         k3po.finish();
@@ -166,7 +166,7 @@ public class EngineIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/server.sent.data/client",
-        "${app}/server.sent.data/server"})
+        "${app}/server.sent.data.authorized/server"})
     public void shouldReceiveServerSentData() throws Exception
     {
         k3po.finish();
@@ -176,7 +176,7 @@ public class EngineIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/server.sent.read.advise.challenge/client",
-        "${app}/server.sent.read.advise.challenge/server"})
+        "${app}/server.sent.read.advise.challenge.authorized/server"})
     public void shouldReceiveServerSentReadAdviseChallenge() throws Exception
     {
         k3po.finish();
@@ -186,7 +186,7 @@ public class EngineIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/server.sent.write.advise.flush/client",
-        "${app}/server.sent.write.advise.flush/server"})
+        "${app}/server.sent.write.advise.flush.authorized/server"})
     public void shouldReceiveServerSentWriteAdviseFlush() throws Exception
     {
         k3po.finish();
@@ -196,7 +196,7 @@ public class EngineIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/server.sent.read.abort/client",
-        "${app}/server.sent.read.abort/server"})
+        "${app}/server.sent.read.abort.authorized/server"})
     public void shouldReceiveServerSentReadAbort() throws Exception
     {
         k3po.finish();
@@ -206,7 +206,7 @@ public class EngineIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/server.sent.write.abort/client",
-        "${app}/server.sent.write.abort/server"})
+        "${app}/server.sent.write.abort.authorized/server"})
     public void shouldReceiveServerSentWriteAbort() throws Exception
     {
         k3po.finish();
@@ -216,7 +216,7 @@ public class EngineIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/server.write.close/client",
-        "${app}/server.write.close/server"})
+        "${app}/server.write.close.authorized/server"})
     public void shouldReceiveServerSentWriteClose() throws Exception
     {
         k3po.finish();
@@ -226,7 +226,7 @@ public class EngineIT
     @Configuration("server.release.on.end.yaml")
     @Specification({
         "${net}/client.write.close/client",
-        "${app}/client.write.close/server"})
+        "${app}/client.write.close.authorized/server"})
     public void shouldReleaseGuardSessionOnClientSentWriteClose() throws Exception
     {
         k3po.finish();

@@ -1317,7 +1317,7 @@ final class TestBindingFactory implements BindingHandler
         private void doReplyBegin(
             long traceId)
         {
-            doBegin(source, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId);
+            doBegin(source, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization);
         }
 
         private void doReplyData(
@@ -1379,7 +1379,7 @@ final class TestBindingFactory implements BindingHandler
                         ? envelopeExtRO.wrap(replyEnvelopeExt, 0, replyEnvelopeExt.capacity())
                         : null;
                 doData(source, originId, routedId, replyId, replySeq, replyAck, replyMax, replyBud,
-                        traceId, flags, reserved, out, ext);
+                        traceId, flags, reserved, out, ext, authorization);
                 if (ext != null)
                 {
                     replyEnvelopeExt = null;
@@ -1771,7 +1771,8 @@ final class TestBindingFactory implements BindingHandler
             private void doInitialBegin(
                 long traceId)
             {
-                target = newStream(this::onMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId);
+                target = newStream(this::onMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                        traceId, authorization);
             }
 
             private void doInitialData(
@@ -1833,7 +1834,7 @@ final class TestBindingFactory implements BindingHandler
                             ? envelopeExtRO.wrap(initialEnvelopeExt, 0, initialEnvelopeExt.capacity())
                             : null;
                     doData(target, originId, routedId, initialId, initialSeq, initialAck, initialMax, initialBud,
-                            traceId, flags, reserved, out, ext);
+                            traceId, flags, reserved, out, ext, authorization);
                     if (ext != null)
                     {
                         initialEnvelopeExt = null;
@@ -1962,7 +1963,8 @@ final class TestBindingFactory implements BindingHandler
         long sequence,
         long acknowledge,
         int maximum,
-        long traceId)
+        long traceId,
+        long authorization)
     {
         MutableDirectBufferEx writeBuffer = context.writeBuffer();
         BindingHandler streamFactory = context.streamFactory();
@@ -1975,6 +1977,7 @@ final class TestBindingFactory implements BindingHandler
                 .acknowledge(acknowledge)
                 .maximum(maximum)
                 .traceId(traceId)
+                .authorization(authorization)
                 .affinity(0L)
                 .build();
 
@@ -1994,7 +1997,8 @@ final class TestBindingFactory implements BindingHandler
         long sequence,
         long acknowledge,
         int maximum,
-        long traceId)
+        long traceId,
+        long authorization)
     {
         MutableDirectBufferEx writeBuffer = context.writeBuffer();
 
@@ -2006,6 +2010,7 @@ final class TestBindingFactory implements BindingHandler
                 .acknowledge(acknowledge)
                 .maximum(maximum)
                 .traceId(traceId)
+                .authorization(authorization)
                 .affinity(0L)
                 .build();
 
@@ -2025,7 +2030,8 @@ final class TestBindingFactory implements BindingHandler
         int flags,
         int reserved,
         OctetsFW payload,
-        OctetsFW extension)
+        OctetsFW extension,
+        long authorization)
     {
         MutableDirectBufferEx writeBuffer = context.writeBuffer();
 
@@ -2037,6 +2043,7 @@ final class TestBindingFactory implements BindingHandler
                 .acknowledge(acknowledge)
                 .maximum(maximum)
                 .traceId(traceId)
+                .authorization(authorization)
                 .flags(flags)
                 .budgetId(budgetId)
                 .reserved(reserved)
