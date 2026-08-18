@@ -16,13 +16,10 @@ package io.aklivity.zilla.config.engine;
 
 import static java.util.Objects.requireNonNull;
 
-import java.util.function.ToLongFunction;
-
 public abstract class CatalogConfig extends Config
 {
     public transient long id;
     public transient long vaultId;
-    public transient ToLongFunction<String> resolveId;
 
     public final String namespace;
     public final String name;

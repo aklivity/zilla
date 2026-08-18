@@ -38,6 +38,6 @@ public class InlineCatalog implements Catalog
     public CatalogContext supply(
         EngineContext context)
     {
-        return new InlineCatalogContext(context);
+        return new InlineCatalogContext();
     }
 }
