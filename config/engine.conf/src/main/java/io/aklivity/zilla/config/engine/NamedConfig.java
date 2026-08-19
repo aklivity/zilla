@@ -32,6 +32,12 @@ public abstract class NamedConfig extends Config.Extensible
     public final String name;
 
     protected NamedConfig(
+        String name)
+    {
+        this(name, null);
+    }
+
+    protected NamedConfig(
         String name,
         Map<String, Config> extensions)
     {

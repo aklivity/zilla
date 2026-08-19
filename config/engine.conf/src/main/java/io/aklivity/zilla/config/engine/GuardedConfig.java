@@ -46,7 +46,7 @@ public class GuardedConfig extends NamedConfig
         String name,
         List<String> roles)
     {
-        super(name, null);
+        super(name);
         this.roles = requireNonNull(roles);
     }
 }

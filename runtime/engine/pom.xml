@@ -199,9 +199,6 @@
               <goal>test-generate</goal>
             </goals>
             <configuration>
-              <!-- "test" scope carries the TestBinding-only envelope wire extension (TestDataEx) used by
-                   TestBindingFactory; it must never leak into the main (generate) output above, since it
-                   is test-sources-only infrastructure. -->
               <scopeNames>core test</scopeNames>
             </configuration>
           </execution>

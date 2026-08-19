@@ -25,7 +25,7 @@ public class CatalogedConfig extends NamedConfig
         String name,
         List<SchemaConfig> schemas)
     {
-        super(name, null);
+        super(name);
         this.schemas = schemas;
     }
 

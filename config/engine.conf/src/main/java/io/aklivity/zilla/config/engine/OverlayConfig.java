@@ -16,18 +16,15 @@ package io.aklivity.zilla.config.engine;
 
 import java.util.function.Function;
 
-public class OverlayConfig extends Config
+public class OverlayConfig extends NamedConfig
 {
-    public transient long id;
-
-    public final String name;
     public final SchemaConfig schema;
 
     OverlayConfig(
         String name,
         SchemaConfig schema)
     {
-        this.name = name;
+        super(name);
         this.schema = schema;
     }
 
