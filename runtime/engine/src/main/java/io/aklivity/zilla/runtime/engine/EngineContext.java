@@ -84,6 +84,20 @@ public interface EngineContext
     int index();
 
     /**
+     * Returns a stable identity for this worker, unique across every worker in every node
+     * of a cluster. With no cluster router installed, this reduces to {@link #index()}.
+     * <p>
+     * Unlike {@link #supplyAffinityId()}, this value is fixed for the life of the process —
+     * callers that mint a value once and need to compare against it later (e.g. pinning a
+     * session to its owning worker across many separate requests) use this accessor, not
+     * {@link #supplyAffinityId()}.
+     * </p>
+     *
+     * @return this worker's stable affinity identity
+     */
+    long affinity();
+
+    /**
      * Returns the {@link Signaler} for scheduling time-based and task-based signals on
      * this I/O thread.
      *
@@ -112,35 +126,19 @@ public interface EngineContext
 
     /**
      * Allocates a new initial (inbound) stream id for the given binding, selecting
-     * a deterministic worker by {@code Math.floorMod(hash, mask.cardinality())}
+     * a deterministic worker by {@code Math.floorMod(affinityId, mask.cardinality())}
      * over the binding's affinity mask. Used to pin per-key application streams to
      * a specific worker so per-worker session state remains valid across requests
      * for the same logical key.
      *
-     * @param bindingId  the binding id to associate with the new stream
-     * @param hash       opaque integer hash of the affinity key; same hash yields
-     *                   the same worker for a given binding affinity mask
-     * @return a new unique initial stream id pinned to the worker selected by hash
+     * @param bindingId   the binding id to associate with the new stream
+     * @param affinityId  the affinity value to pin the stream to; same value yields
+     *                     the same worker for a given binding affinity mask
+     * @return a new unique initial stream id pinned to the worker selected by affinityId
      */
     long supplyInitialId(
         long bindingId,
-        int hash);
-
-    /**
-     * Returns {@code true} if hash-based affinity for the given binding and {@code hash}
-     * selects this thread, {@code false} otherwise. Equivalent to checking whether
-     * {@link #supplyInitialId(long, int)} with the same arguments would pin a stream to
-     * this thread, but without allocating a stream id. The selection is deterministic:
-     * {@code Math.floorMod(hash, mask.cardinality())} over the binding's affinity mask.
-     *
-     * @param bindingId  the binding id whose affinity mask to consult
-     * @param hash       opaque integer hash; same hash yields the same result for a
-     *                   given binding affinity mask
-     * @return {@code true} if hash maps to this thread; otherwise {@code false}
-     */
-    boolean isLocalIndex(
-        long bindingId,
-        int hash);
+        long affinityId);
 
     /**
      * Returns the reply (outbound) stream id paired with the given initial stream id.
@@ -167,6 +165,22 @@ public interface EngineContext
      * @return a new authorized context id
      */
     long supplyAuthorizedId();
+
+    /**
+     * Returns a fresh affinity value, distinct on every call, for pinning purposes that need
+     * a new value each time rather than a stable identity (e.g. picking among several pooled
+     * connections for parallel requests). Always resolves to this worker: unlike a value
+     * carried forward from elsewhere, a value obtained here was just generated on this thread,
+     * so it always decodes as local.
+     * <p>
+     * Contrast with {@link #affinity()}, which returns the same value on every call — use that
+     * instead when the value must be compared against later (e.g. minting a session id that
+     * must keep resolving to the same worker across many separate requests).
+     * </p>
+     *
+     * @return a new affinity value, distinct from any previous call
+     */
+    long supplyAffinityId();
 
     /**
      * Allocates a new unique budget id for flow control.

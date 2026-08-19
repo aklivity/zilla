@@ -95,7 +95,6 @@ import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler.LongCompletionCallback;
-import io.aklivity.zilla.runtime.engine.util.function.LongIntPredicate;
 
 public final class McpClientFactory implements McpStreamFactory
 {
@@ -224,8 +223,7 @@ public final class McpClientFactory implements McpStreamFactory
     private final Supplier<String> supplySessionId;
     private final Supplier<String> supplyElicitationId;
     private final Supplier<String> supplyElicitCorrelationId;
-    private final LongIntPredicate isLocalIndex;
-    private final int sessionIdAttempts;
+    private final long affinity;
     private final int httpTypeId;
     private final int mcpTypeId;
     private final int decodeMax;
@@ -268,8 +266,7 @@ public final class McpClientFactory implements McpStreamFactory
         this.supplySessionId = config.sessionIdSupplier();
         this.supplyElicitationId = config.elicitationIdSupplier();
         this.supplyElicitCorrelationId = config.elicitCorrelationIdSupplier();
-        this.isLocalIndex = context::isLocalIndex;
-        this.sessionIdAttempts = config.sessionIdAttempts();
+        this.affinity = context.affinity();
         this.bindings = new Long2ObjectHashMap<>();
         this.httpTypeId = context.supplyTypeId(HTTP_TYPE_NAME);
         this.mcpTypeId = context.supplyTypeId(MCP_TYPE_NAME);
@@ -314,12 +311,11 @@ public final class McpClientFactory implements McpStreamFactory
         return session instanceof McpLifecycleStream ? (McpLifecycleStream) session : null;
     }
 
-    // mint a per-route session id (Xc) aligned to this worker, so that subsequent request streams
-    // hash-routed by Xc.hashCode() land back here where its session state lives
-    private String newSessionId(
-        long routedId)
+    // mint a per-route session id (Xc) with this worker's affinity embedded, so that subsequent
+    // request streams land back here where its session state lives
+    private String newSessionId()
     {
-        return McpSessionId.newSessionId(routedId, sessionIdAttempts, supplySessionId, isLocalIndex);
+        return McpSessionId.newSessionId(supplySessionId, affinity);
     }
 
     @FunctionalInterface
@@ -1601,13 +1597,10 @@ public final class McpClientFactory implements McpStreamFactory
                 {
                     final String requestSessionId = mcpBeginEx.lifecycle().sessionId().asString();
                     assert requestSessionId == null;
-                    final String sessionId = newSessionId(routedId);
-                    if (sessionId != null)
-                    {
-                        newStream = new McpLifecycleStream(
-                            binding, sender, originId, routedId, initialId, route.id, affinity,
-                            sessionId)::onAppMessage;
-                    }
+                    final String sessionId = newSessionId();
+                    newStream = new McpLifecycleStream(
+                        binding, sender, originId, routedId, initialId, route.id, affinity,
+                        sessionId)::onAppMessage;
                 }
                 else
                 {

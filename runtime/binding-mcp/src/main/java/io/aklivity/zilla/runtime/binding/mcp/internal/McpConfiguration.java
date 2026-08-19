@@ -18,7 +18,6 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeg
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_LIST;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_TEMPLATES_LIST;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_LIST;
-import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKERS;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
@@ -49,7 +48,6 @@ public class McpConfiguration extends Configuration
     public static final PropertyDef<String> MCP_CLIENT_NAME;
     public static final PropertyDef<String> MCP_CLIENT_VERSION;
     public static final PropertyDef<Duration> MCP_INACTIVITY_TIMEOUT;
-    public static final IntPropertyDef MCP_SESSION_ID_ATTEMPTS;
     public static final IntPropertyDef MCP_KEEPALIVE_TOLERANCE;
     public static final PropertyDef<Duration> MCP_SSE_KEEPALIVE_INTERVAL;
     public static final BooleanPropertyDef MCP_ALT_SVC_ENABLED;
@@ -77,8 +75,6 @@ public class McpConfiguration extends Configuration
             McpConfiguration::defaultServerVersion);
         MCP_INACTIVITY_TIMEOUT = config.property(Duration.class, "inactivity.timeout",
             (c, v) -> Duration.parse(v), "PT60S");
-        MCP_SESSION_ID_ATTEMPTS = config.property("session.id.attempts",
-            McpConfiguration::defaultSessionIdAttempts);
         MCP_KEEPALIVE_TOLERANCE = config.property("keepalive.tolerance", 2);
         MCP_SSE_KEEPALIVE_INTERVAL = config.property(Duration.class, "sse.keepalive.interval",
             (c, v) -> Duration.parse(v), "PT15S");
@@ -148,11 +144,6 @@ public class McpConfiguration extends Configuration
     public int keepaliveTolerance()
     {
         return MCP_KEEPALIVE_TOLERANCE.getAsInt(this);
-    }
-
-    public int sessionIdAttempts()
-    {
-        return MCP_SESSION_ID_ATTEMPTS.getAsInt(this);
     }
 
     public Duration sseKeepaliveInterval()
@@ -247,13 +238,6 @@ public class McpConfiguration extends Configuration
     private static String defaultSessionIdSupplier()
     {
         return UUID.randomUUID().toString();
-    }
-
-    private static int defaultSessionIdAttempts(
-        Configuration config)
-    {
-        // 64x the expected reject-sampling tries (~workers), leaving ~e^-64 exhaustion
-        return Math.max(1, ENGINE_WORKERS.getAsInt(config) * 64);
     }
 
     private static boolean defaultAltSvcEnabled(

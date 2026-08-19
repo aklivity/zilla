@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.http.internal;
 
-import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKERS;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
@@ -31,7 +30,6 @@ public class McpHttpConfiguration extends Configuration
     private static final ConfigurationDef MCP_HTTP_CONFIG;
 
     public static final PropertyDef<SessionIdSupplier> MCP_HTTP_SESSION_ID;
-    public static final IntPropertyDef MCP_HTTP_SESSION_ID_ATTEMPTS;
     public static final PropertyDef<String> MCP_HTTP_CLIENT_EXIT;
 
     static
@@ -39,8 +37,6 @@ public class McpHttpConfiguration extends Configuration
         final ConfigurationDef config = new ConfigurationDef("zilla.binding.mcp.http");
         MCP_HTTP_SESSION_ID = config.property(SessionIdSupplier.class, "session.id",
             McpHttpConfiguration::decodeSessionIdSupplier, McpHttpConfiguration::defaultSessionIdSupplier);
-        MCP_HTTP_SESSION_ID_ATTEMPTS = config.property("session.id.attempts",
-            McpHttpConfiguration::defaultSessionIdAttempts);
         MCP_HTTP_CLIENT_EXIT = config.property("client.exit", "sys:http_client");
         MCP_HTTP_CONFIG = config;
     }
@@ -59,11 +55,6 @@ public class McpHttpConfiguration extends Configuration
     public Supplier<String> sessionIdSupplier()
     {
         return MCP_HTTP_SESSION_ID.get(this)::get;
-    }
-
-    public int sessionIdAttempts()
-    {
-        return MCP_HTTP_SESSION_ID_ATTEMPTS.getAsInt(this);
     }
 
     public String clientExit()
@@ -117,9 +108,4 @@ public class McpHttpConfiguration extends Configuration
         return UUID.randomUUID().toString();
     }
 
-    private static int defaultSessionIdAttempts(
-        Configuration config)
-    {
-        return Math.max(1, ENGINE_WORKERS.getAsInt(config) * 64);
-    }
 }

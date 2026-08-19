@@ -14,92 +14,95 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
 
+import static io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpSessionId.extractAffinity;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpSessionId.hasEmbeddedAffinity;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpSessionId.newSessionId;
-import static java.lang.Math.floorMod;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
-import java.util.Random;
 import java.util.UUID;
 import java.util.function.Supplier;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.engine.util.function.LongIntPredicate;
-
 public class McpSessionIdTest
 {
-    private static final long ROUTED_ID = 0x0000_0001_0000_0009L;
-
-    // mirror EngineWorker.isLocalIndex for an uncapped binding (mask == all workers)
-    private static LongIntPredicate alignsTo(
-        int workers,
-        int localIndex)
+    private static Supplier<String> randomUuids()
     {
-        return (routedId, hash) -> floorMod(hash, workers) == localIndex;
-    }
-
-    private static Supplier<String> randomSessionIds(
-        long seed)
-    {
-        final Random random = new Random(seed);
-        return () -> new UUID(random.nextLong(), random.nextLong()).toString();
+        return () -> UUID.randomUUID().toString();
     }
 
     @Test
-    public void shouldAlignToLocalWorkerForSingleWorker()
+    public void shouldExtractEmbeddedAffinityVerbatim()
     {
-        final Supplier<String> supply = randomSessionIds(11);
-        for (int session = 0; session < 1000; session++)
-        {
-            final String sessionId = newSessionId(ROUTED_ID, 2, supply, alignsTo(1, 0));
-            assertNotNull(sessionId);
-            assertEquals(0, floorMod(sessionId.hashCode(), 1));
-        }
+        final String sessionId = newSessionId(randomUuids(), 0x1234_5678L);
+
+        assertEquals(0x1234_5678L, extractAffinity(sessionId));
     }
 
     @Test
-    public void shouldReturnNullWhenAttemptsExhausted()
+    public void shouldExtractZeroAffinity()
     {
-        // the legacy workers * 2 cap exhausts ~((N-1)/N)^(2N) ~= 13.5% of generations
-        final int workers = 8;
-        final int attempts = workers * 2;
-        final Supplier<String> supply = randomSessionIds(7);
+        final String sessionId = newSessionId(randomUuids(), 0L);
 
-        boolean nulled = false;
-        for (int session = 0; session < 5000 && !nulled; session++)
-        {
-            nulled = newSessionId(ROUTED_ID, attempts, supply, alignsTo(workers, 3)) == null;
-        }
-
-        assertTrue("expected reject-sampling to exhaust its attempts at the legacy cap", nulled);
+        assertEquals(0L, extractAffinity(sessionId));
     }
 
     @Test
-    public void shouldAlignToLocalWorkerAcrossWorkers()
+    public void shouldMaskAffinityToThirtyTwoBits()
     {
-        for (int workers = 1; workers <= 64; workers <<= 1)
-        {
-            final int attempts = workers * 64;
-            for (int localIndex = 0; localIndex < workers; localIndex++)
-            {
-                final Supplier<String> supply = randomSessionIds(localIndex * 131L + workers);
-                final LongIntPredicate isLocalIndex = alignsTo(workers, localIndex);
-                for (int session = 0; session < 500; session++)
-                {
-                    final String sessionId = newSessionId(ROUTED_ID, attempts, supply, isLocalIndex);
-                    assertNotNull("null session id for workers=" + workers + " localIndex=" + localIndex, sessionId);
-                    assertEquals(localIndex, floorMod(sessionId.hashCode(), workers));
-                }
-            }
-        }
+        final String sessionId = newSessionId(randomUuids(), 0xffff_ffff_0000_0001L);
+
+        assertEquals(0x0000_0000_0000_0001L, extractAffinity(sessionId));
     }
 
     @Test
-    public void shouldReturnNullWhenNeverAligned()
+    public void shouldLeaveRestOfSessionIdUnaffected()
     {
-        assertNull(newSessionId(ROUTED_ID, 64, randomSessionIds(3), (routedId, hash) -> false));
+        final Supplier<String> supply = randomUuids();
+        final String candidate = supply.get();
+        final String sessionId = newSessionId(() -> candidate, 0x42L);
+
+        assertEquals(candidate.substring(0, 28), sessionId.substring(0, 28));
+        assertEquals(candidate.length(), sessionId.length());
+    }
+
+    @Test
+    public void shouldMintDistinctSessionIdsForTheSameAffinity()
+    {
+        final String first = newSessionId(randomUuids(), 7L);
+        final String second = newSessionId(randomUuids(), 7L);
+
+        assertNotEquals(first, second);
+        assertEquals(7L, extractAffinity(first));
+        assertEquals(7L, extractAffinity(second));
+    }
+
+    @Test
+    public void shouldReturnShortCandidateVerbatim()
+    {
+        final String sessionId = newSessionId(() -> "session-1", 7L);
+
+        assertEquals("session-1", sessionId);
+    }
+
+    @Test
+    public void shouldReportNoEmbeddedAffinityForShortCandidate()
+    {
+        assertFalse(hasEmbeddedAffinity("session-1"));
+    }
+
+    @Test
+    public void shouldReportEmbeddedAffinityForFullLengthCandidate()
+    {
+        assertTrue(hasEmbeddedAffinity(newSessionId(randomUuids(), 0L)));
+    }
+
+    @Test
+    public void shouldExtractConsistentFallbackAffinityForShortCandidate()
+    {
+        assertEquals(extractAffinity("session-1"), extractAffinity("session-1"));
     }
 }

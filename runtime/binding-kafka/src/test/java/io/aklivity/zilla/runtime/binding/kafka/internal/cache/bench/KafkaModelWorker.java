@@ -72,6 +72,12 @@ final class KafkaModelWorker implements EngineContext
     }
 
     @Override
+    public long affinity()
+    {
+        return 0L;
+    }
+
+    @Override
     public Signaler signaler()
     {
         return null;
@@ -94,17 +100,15 @@ final class KafkaModelWorker implements EngineContext
     @Override
     public long supplyInitialId(
         long bindingId,
-        int hash)
+        long affinityId)
     {
         return 0;
     }
 
     @Override
-    public boolean isLocalIndex(
-        long bindingId,
-        int hash)
+    public long supplyAffinityId()
     {
-        return true;
+        return 0;
     }
 
     @Override

@@ -278,6 +278,7 @@ public class EngineWorker implements EngineContext, Agent
     private long traceId;
     private long budgetId;
     private long authorizedId;
+    private long affinityId;
 
     private long lastReadStreamId;
     private int idleCount;
@@ -414,6 +415,7 @@ public class EngineWorker implements EngineContext, Agent
         this.traceId = initial;
         this.budgetId = initial;
         this.authorizedId = initial;
+        this.affinityId = initial;
 
         final BudgetsLayout budgetsLayout = new BudgetsLayout.Builder()
                 .path(config.directory().resolve(String.format("budgets%d", index)))
@@ -469,6 +471,12 @@ public class EngineWorker implements EngineContext, Agent
     public int index()
     {
         return localIndex;
+    }
+
+    @Override
+    public long affinity()
+    {
+        return (((long) config.nodeId() & 0xffL) << 24) | (localIndex & 0x00ff_ffffL);
     }
 
     @Override
@@ -536,23 +544,15 @@ public class EngineWorker implements EngineContext, Agent
     @Override
     public long supplyInitialId(
         long bindingId,
-        int hash)
+        long affinityId)
     {
-        final int remoteIndex = resolveRemoteIndex(bindingId, hash);
+        final int remoteIndex = resolveRemoteIndex(bindingId, affinityId);
 
         initialId += 2L;
         initialId &= mask;
 
         return (((long)remoteIndex << 48) & 0x00ff_0000_0000_0000L) |
                (initialId & 0xff00_0000_7fff_ffffL) | 0x0000_0000_0000_0001L;
-    }
-
-    @Override
-    public boolean isLocalIndex(
-        long bindingId,
-        int hash)
-    {
-        return localIndex == resolveRemoteIndex(bindingId, hash);
     }
 
     @Override
@@ -580,6 +580,14 @@ public class EngineWorker implements EngineContext, Agent
         authorizedId++;
         authorizedId &= mask;
         return authorizedId;
+    }
+
+    @Override
+    public long supplyAffinityId()
+    {
+        affinityId++;
+        affinityId &= mask;
+        return affinityId;
     }
 
     @Override
@@ -2176,7 +2184,7 @@ public class EngineWorker implements EngineContext, Agent
 
     private int resolveRemoteIndex(
         long bindingId,
-        int hash)
+        long affinityId)
     {
         final Affinity affinity = supplyAffinity(bindingId);
         final BitSet mask = affinity.mask;
@@ -2184,8 +2192,8 @@ public class EngineWorker implements EngineContext, Agent
 
         assert cardinality != 0;
 
-        // pick the n-th set bit of the mask, where n = floorMod(hash, cardinality)
-        int slot = Math.floorMod(hash, cardinality);
+        // pick the n-th set bit of the mask, where n = floorMod(affinityId, cardinality)
+        int slot = Math.floorMod(affinityId, cardinality);
         int remoteIndex = mask.nextSetBit(0);
         while (slot-- > 0)
         {

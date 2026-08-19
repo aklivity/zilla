@@ -92,7 +92,6 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
-import io.aklivity.zilla.runtime.engine.util.function.LongIntPredicate;
 
 public final class McpHttpProxyFactory implements BindingHandler
 {
@@ -111,6 +110,15 @@ public final class McpHttpProxyFactory implements BindingHandler
     private static final int WINDOW_MAX = 65536;
     private static final int JSON_RPC_INVALID_PARAMS = -32602;
     private static final int JSON_RPC_INTERNAL_ERROR = -32603;
+    // RFC 4122 "node" field occupies the trailing 12 hex chars of a UUID string;
+    // affinity is embedded verbatim in its low 32 bits (8 hex chars), leaving the rest
+    // of the id, node field included, exactly as generated (CSPRNG-random). The
+    // configured session id supplier is a pluggable SPI hook and may return a
+    // shorter, deterministic value (e.g. a fixed test fixture) that is too short
+    // to embed into; such candidates are returned verbatim instead.
+    private static final int AFFINITY_OFFSET = 28;
+    private static final int AFFINITY_LENGTH = 8;
+    private static final int MIN_EMBEDDABLE_LENGTH = AFFINITY_OFFSET + AFFINITY_LENGTH;
 
     private static final byte[] REPLY_SUFFIX = "\"}]}".getBytes(UTF_8);
     private static final byte[] TOOL_ERROR_PREFIX = "{\"content\":[{\"type\":\"text\",\"text\":\"".getBytes(UTF_8);
@@ -167,8 +175,7 @@ public final class McpHttpProxyFactory implements BindingHandler
 
     private final Map<String, McpSession> sessions;
     private final Supplier<String> supplySessionId;
-    private final int sessionIdAttempts;
-    private final LongIntPredicate isLocalIndex;
+    private final long affinity;
     private final String clientExit;
 
     public McpHttpProxyFactory(
@@ -191,8 +198,7 @@ public final class McpHttpProxyFactory implements BindingHandler
         this.toolResultReferences = new IdentityHashMap<>();
         this.sessions = new Object2ObjectHashMap<>();
         this.supplySessionId = config.sessionIdSupplier();
-        this.sessionIdAttempts = config.sessionIdAttempts();
-        this.isLocalIndex = context::isLocalIndex;
+        this.affinity = context.affinity();
         this.clientExit = config.clientExit();
     }
 
@@ -236,12 +242,9 @@ public final class McpHttpProxyFactory implements BindingHandler
             if (kind == KIND_LIFECYCLE)
             {
                 final int capabilities = beginEx.lifecycle().capabilities();
-                final String sessionId = newSessionId(routedId);
-                if (sessionId != null)
-                {
-                    newStream = new McpSession(sessionId, capabilities,
-                        sender, originId, routedId, initialId, authorization, affinity)::onMcpMessage;
-                }
+                final String sessionId = newSessionId();
+                newStream = new McpSession(sessionId, capabilities,
+                    sender, originId, routedId, initialId, authorization, affinity)::onMcpMessage;
             }
             else
             {
@@ -2355,18 +2358,18 @@ public final class McpHttpProxyFactory implements BindingHandler
         return sessionId;
     }
 
-    private String newSessionId(
-        long routedId)
+    private String newSessionId()
     {
-        String sessionId = null;
-        for (int attempt = 0; attempt < sessionIdAttempts; attempt++)
+        final String candidate = supplySessionId.get();
+        final String sessionId;
+        if (candidate.length() >= MIN_EMBEDDABLE_LENGTH)
         {
-            final String candidate = supplySessionId.get();
-            if (isLocalIndex.test(routedId, candidate.hashCode()))
-            {
-                sessionId = candidate;
-                break;
-            }
+            final String affinityHex = String.format("%08x", affinity & 0xffff_ffffL);
+            sessionId = candidate.substring(0, AFFINITY_OFFSET) + affinityHex;
+        }
+        else
+        {
+            sessionId = candidate;
         }
         return sessionId;
     }

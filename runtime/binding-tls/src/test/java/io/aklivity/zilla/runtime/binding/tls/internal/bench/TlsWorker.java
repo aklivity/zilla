@@ -131,6 +131,12 @@ public class TlsWorker implements EngineContext
     }
 
     @Override
+    public long affinity()
+    {
+        return 0L;
+    }
+
+    @Override
     public Signaler signaler()
     {
         return signaler;
@@ -153,17 +159,15 @@ public class TlsWorker implements EngineContext
     @Override
     public long supplyInitialId(
         long bindingId,
-        int hash)
+        long affinityId)
     {
         return supplyInitialId(bindingId);
     }
 
     @Override
-    public boolean isLocalIndex(
-        long bindingId,
-        int hash)
+    public long supplyAffinityId()
     {
-        return true;
+        return nextInitialId += 2;
     }
 
     @Override
