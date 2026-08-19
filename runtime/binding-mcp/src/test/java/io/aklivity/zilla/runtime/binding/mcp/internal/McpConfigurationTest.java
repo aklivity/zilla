@@ -32,13 +32,20 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration.MC
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DETACH_ON_CLOSE;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_SYNTHETIC_ABORT;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+
+import java.util.Properties;
+import java.util.UUID;
 
 import org.junit.Test;
+
+import io.aklivity.zilla.runtime.engine.Configuration;
 
 public class McpConfigurationTest
 {
     public static final String ENGINE_DETACH_ON_CLOSE_NAME = "zilla.engine.detach.on.close";
     public static final String ENGINE_SYNTHETIC_ABORT_NAME = "zilla.engine.synthetic.abort";
+    public static final String ENGINE_NODE_ID_NAME = "zilla.engine.node.id";
     public static final String MCP_SESSION_ID_NAME = "zilla.binding.mcp.session.id";
     public static final String MCP_ELICITATION_ID_NAME = "zilla.binding.mcp.elicitation.id";
     public static final String MCP_ELICIT_CORRELATION_ID_NAME = "zilla.binding.mcp.elicit.correlation.id";
@@ -75,5 +82,37 @@ public class McpConfigurationTest
         assertEquals(MCP_HYDRATE_FILTER.name(), MCP_HYDRATE_FILTER_NAME);
         assertEquals(MCP_LEASE_TTL.name(), MCP_LEASE_TTL_NAME);
         assertEquals(MCP_LEASE_RETRY.name(), MCP_LEASE_RETRY_NAME);
+    }
+
+    @Test
+    public void shouldSupplyDefaultSessionId()
+    {
+        McpConfiguration config = new McpConfiguration();
+
+        String sessionId = config.sessionIdSupplier().get();
+
+        assertNotNull(UUID.fromString(sessionId));
+    }
+
+    @Test
+    public void shouldEmbedDefaultNodeIdInDefaultSessionId()
+    {
+        McpConfiguration config = new McpConfiguration();
+
+        String sessionId = config.sessionIdSupplier().get();
+
+        assertEquals("00", sessionId.substring(28, 30));
+    }
+
+    @Test
+    public void shouldEmbedConfiguredNodeIdInDefaultSessionId()
+    {
+        Properties properties = new Properties();
+        properties.setProperty(ENGINE_NODE_ID_NAME, "7");
+        McpConfiguration config = new McpConfiguration(new Configuration(properties));
+
+        String sessionId = config.sessionIdSupplier().get();
+
+        assertEquals("07", sessionId.substring(28, 30));
     }
 }

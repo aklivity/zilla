@@ -28,6 +28,7 @@ import java.util.HashSet;
 import java.util.HexFormat;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.function.IntPredicate;
 import java.util.function.Supplier;
 
@@ -59,8 +60,9 @@ public class McpConfiguration extends Configuration
     static
     {
         final ConfigurationDef config = new ConfigurationDef("zilla.binding.mcp");
+        final Function<Configuration, SessionIdSupplier> defaultSessionId = McpConfiguration::defaultSessionIdSupplier;
         MCP_SESSION_ID = config.property(SessionIdSupplier.class, "session.id",
-            McpConfiguration::decodeSessionIdSupplier, McpConfiguration::defaultSessionIdSupplier);
+            McpConfiguration::decodeSessionIdSupplier, defaultSessionId);
         MCP_ELICITATION_ID = config.property(ElicitationIdSupplier.class, "elicitation.id",
             McpConfiguration::decodeElicitationIdSupplier, McpConfiguration::defaultElicitationIdSupplier);
         MCP_ELICIT_CORRELATION_ID = config.property(ElicitationIdSupplier.class, "elicit.correlation.id",
@@ -235,9 +237,23 @@ public class McpConfiguration extends Configuration
         return supplier;
     }
 
-    private static String defaultSessionIdSupplier()
+    private static SessionIdSupplier defaultSessionIdSupplier(
+        Configuration config)
     {
-        return UUID.randomUUID().toString();
+        final byte nodeId = EngineConfiguration.ENGINE_NODE_ID.getAsByte(config);
+        return () -> newSessionId(nodeId);
+    }
+
+    private static String newSessionId(
+        byte nodeId)
+    {
+        // top byte node id, low 3 bytes worker index, matching EngineWorker.affinity()'s packing;
+        // the worker index is unknown here and left random, since the per-worker mint overwrites
+        // this entire slot with the real affinity value before the session id is ever issued
+        final long affinityBits = ((nodeId & 0xffL) << 24) | (SESSION_ID_RANDOM.nextLong() & 0x00ff_ffffL);
+        final long leastSigBits = (SESSION_ID_RANDOM.nextLong() & 0xffffffff_00000000L) | affinityBits;
+        final long mostSigBits = SESSION_ID_RANDOM.nextLong();
+        return new UUID(mostSigBits, leastSigBits).toString();
     }
 
     private static boolean defaultAltSvcEnabled(
@@ -329,4 +345,5 @@ public class McpConfiguration extends Configuration
 
     private static final SecureRandom ELICITATION_ID_RANDOM = new SecureRandom();
     private static final HexFormat ELICITATION_ID_HEX = HexFormat.of();
+    private static final SecureRandom SESSION_ID_RANDOM = new SecureRandom();
 }

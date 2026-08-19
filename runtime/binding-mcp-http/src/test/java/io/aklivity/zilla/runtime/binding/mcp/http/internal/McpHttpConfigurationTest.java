@@ -31,6 +31,7 @@ public class McpHttpConfigurationTest
 {
     public static final String MCP_HTTP_SESSION_ID_NAME = "zilla.binding.mcp.http.session.id";
     public static final String MCP_HTTP_CLIENT_EXIT_NAME = "zilla.binding.mcp.http.client.exit";
+    public static final String ENGINE_NODE_ID_NAME = "zilla.engine.node.id";
 
     @Test
     public void shouldVerifyConstants() throws Exception
@@ -66,6 +67,28 @@ public class McpHttpConfigurationTest
 
         assertNotNull(sessionId);
         assertNotNull(UUID.fromString(sessionId));
+    }
+
+    @Test
+    public void shouldEmbedDefaultNodeIdInDefaultSessionId()
+    {
+        McpHttpConfiguration config = new McpHttpConfiguration();
+
+        String sessionId = config.sessionIdSupplier().get();
+
+        assertEquals("00", sessionId.substring(28, 30));
+    }
+
+    @Test
+    public void shouldEmbedConfiguredNodeIdInDefaultSessionId()
+    {
+        Properties properties = new Properties();
+        properties.setProperty(ENGINE_NODE_ID_NAME, "7");
+        McpHttpConfiguration config = new McpHttpConfiguration(new Configuration(properties));
+
+        String sessionId = config.sessionIdSupplier().get();
+
+        assertEquals("07", sessionId.substring(28, 30));
     }
 
     @Test

@@ -1041,7 +1041,7 @@ public class McpServerIT
 
     public static String sessionId()
     {
-        return "transport-1";
+        return "5ca1ab1e-c0de-4a11-b0a7-000100000000";
     }
 
     public static String elicitationId()

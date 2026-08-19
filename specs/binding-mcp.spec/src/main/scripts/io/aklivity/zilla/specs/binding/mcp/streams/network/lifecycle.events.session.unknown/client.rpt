@@ -25,7 +25,7 @@ write zilla:begin.ext ${http:beginEx()
                             .header(":path", "/mcp")
                             .header("accept", "text/event-stream")
                             .header("mcp-protocol-version", "2025-11-25")
-                            .header("mcp-session-id", "session-unknown")
+                            .header("mcp-session-id", "5ca1ab1e-c0de-4a11-1057-000000000000")
                             .build()}
 
 # TODO: enable once k3po supports `connect aborted` followed by `read zilla:reset.ext`

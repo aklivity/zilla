@@ -109,7 +109,7 @@ public class EngineConfiguration extends Configuration
     public static final PropertyDef<Path> ENGINE_DIAGNOSTICS_DIRECTORY;
     public static final PropertyDef<String> ENGINE_ROUTER;
     public static final PropertyDef<String> ENGINE_SERVICE_HOSTNAME;
-    public static final IntPropertyDef ENGINE_NODE_ID;
+    public static final BytePropertyDef ENGINE_NODE_ID;
 
     private static final ConfigurationDef ENGINE_CONFIG;
 
@@ -180,7 +180,7 @@ public class EngineConfiguration extends Configuration
             EngineConfiguration::decodeDiagnosticsDirectory, (String) null);
         ENGINE_ROUTER = config.property("router", "engine");
         ENGINE_SERVICE_HOSTNAME = config.property("service.hostname");
-        ENGINE_NODE_ID = config.property("node.id", 0);
+        ENGINE_NODE_ID = config.property("node.id", (byte) 0);
         ENGINE_CONFIG = config;
     }
 
@@ -440,9 +440,9 @@ public class EngineConfiguration extends Configuration
         return ENGINE_SERVICE_HOSTNAME.get(this);
     }
 
-    public int nodeId()
+    public byte nodeId()
     {
-        return ENGINE_NODE_ID.getAsInt(this);
+        return ENGINE_NODE_ID.getAsByte(this);
     }
 
     private static int defaultTaskParallelism(

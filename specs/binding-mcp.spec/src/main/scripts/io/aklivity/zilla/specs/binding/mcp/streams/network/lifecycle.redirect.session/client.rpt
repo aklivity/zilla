@@ -25,7 +25,7 @@ write zilla:begin.ext ${http:beginEx()
                             .header(":path", "/mcp")
                             .header("accept", "text/event-stream")
                             .header("mcp-protocol-version", "2025-11-25")
-                            .header("mcp-session-id", "aaaaaaaa-aaaa-4aaa-8aaa-aaaa00000001")
+                            .header("mcp-session-id", "5ca1ab1e-c0de-4a11-5e55-000200000001")
                             .build()}
 
 write advised zilla:redirect 0x0000000000000001L

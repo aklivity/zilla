@@ -34,7 +34,7 @@ connected
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .lifecycle()
-                               .sessionId("session-1")
+                               .sessionId("5ca1ab1e-c0de-4a11-5e55-000100000000")
                                .capabilities("SERVER_RESOURCES_SUBSCRIBE")
                                .build()
                            .build()}
@@ -45,7 +45,7 @@ accepted
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .resourcesUnsubscribe()
-                              .sessionId("session-1")
+                              .sessionId("5ca1ab1e-c0de-4a11-5e55-000100000000")
                               .uri("file:///data/readme.txt")
                               .contentLength(33)
                               .build()

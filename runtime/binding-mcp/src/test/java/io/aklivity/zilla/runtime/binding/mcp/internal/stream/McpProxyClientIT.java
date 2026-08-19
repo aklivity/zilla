@@ -108,12 +108,12 @@ public class McpProxyClientIT
 
     public static String sessionId()
     {
-        return "session-1";
+        return "5ca1ab1e-c0de-4a11-5e55-000100000000";
     }
 
     public static String agentSessionId()
     {
-        return "agent-1";
+        return "5ca1ab1e-c0de-4a11-b007-000100000000";
     }
 
     public static String elicitationId()

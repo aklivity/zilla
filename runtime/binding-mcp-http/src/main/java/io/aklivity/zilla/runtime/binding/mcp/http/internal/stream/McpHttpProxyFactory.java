@@ -110,15 +110,14 @@ public final class McpHttpProxyFactory implements BindingHandler
     private static final int WINDOW_MAX = 65536;
     private static final int JSON_RPC_INVALID_PARAMS = -32602;
     private static final int JSON_RPC_INTERNAL_ERROR = -32603;
-    // RFC 4122 "node" field occupies the trailing 12 hex chars of a UUID string;
-    // affinity is embedded verbatim in its low 32 bits (8 hex chars), leaving the rest
-    // of the id, node field included, exactly as generated (CSPRNG-random). The
-    // configured session id supplier is a pluggable SPI hook and may return a
-    // shorter, deterministic value (e.g. a fixed test fixture) that is too short
-    // to embed into; such candidates are returned verbatim instead.
+    // A UUID string is 36 characters (8-4-4-4-12 hex groups with hyphens). The RFC 4122
+    // "node" field occupies its trailing 12 hex chars; affinity is embedded verbatim in
+    // the low 32 bits of that field (the last 8 hex chars, at offset 28), leaving the
+    // rest of the id, node field included, exactly as generated (CSPRNG-random). The
+    // configured session id supplier must produce a UUID-length value for this to have
+    // a well-defined slot to embed into.
+    private static final int UUID_LENGTH = 36;
     private static final int AFFINITY_OFFSET = 28;
-    private static final int AFFINITY_LENGTH = 8;
-    private static final int MIN_EMBEDDABLE_LENGTH = AFFINITY_OFFSET + AFFINITY_LENGTH;
 
     private static final byte[] REPLY_SUFFIX = "\"}]}".getBytes(UTF_8);
     private static final byte[] TOOL_ERROR_PREFIX = "{\"content\":[{\"type\":\"text\",\"text\":\"".getBytes(UTF_8);
@@ -2361,17 +2360,9 @@ public final class McpHttpProxyFactory implements BindingHandler
     private String newSessionId()
     {
         final String candidate = supplySessionId.get();
-        final String sessionId;
-        if (candidate.length() >= MIN_EMBEDDABLE_LENGTH)
-        {
-            final String affinityHex = String.format("%08x", affinity & 0xffff_ffffL);
-            sessionId = candidate.substring(0, AFFINITY_OFFSET) + affinityHex;
-        }
-        else
-        {
-            sessionId = candidate;
-        }
-        return sessionId;
+        assert candidate.length() == UUID_LENGTH : "session id supplier must generate a UUID-length value";
+        final String affinityHex = String.format("%08x", affinity & 0xffff_ffffL);
+        return candidate.substring(0, AFFINITY_OFFSET) + affinityHex;
     }
 
     // Memoizes argReferences(route.with.headers.get(HEADER_PATH)) per route: the result depends only on

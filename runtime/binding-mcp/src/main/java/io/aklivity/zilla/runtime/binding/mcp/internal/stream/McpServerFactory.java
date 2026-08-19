@@ -6340,7 +6340,7 @@ public final class McpServerFactory implements McpStreamFactory
     private boolean isSessionIdAligned(
         String sessionId)
     {
-        return !McpSessionId.hasEmbeddedAffinity(sessionId) || McpSessionId.extractAffinity(sessionId) == affinity;
+        return McpSessionId.extractAffinity(sessionId) == affinity;
     }
 
     private String extractSessionIdFromState(

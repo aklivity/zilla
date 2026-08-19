@@ -15,12 +15,10 @@
 package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpSessionId.extractAffinity;
-import static io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpSessionId.hasEmbeddedAffinity;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpSessionId.newSessionId;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertThrows;
 
 import java.util.UUID;
 import java.util.function.Supplier;
@@ -81,28 +79,14 @@ public class McpSessionIdTest
     }
 
     @Test
-    public void shouldReturnShortCandidateVerbatim()
+    public void shouldAssertWhenCandidateIsNotUuidLength()
     {
-        final String sessionId = newSessionId(() -> "session-1", 7L);
-
-        assertEquals("session-1", sessionId);
+        assertThrows(AssertionError.class, () -> newSessionId(() -> "session-1", 7L));
     }
 
     @Test
-    public void shouldReportNoEmbeddedAffinityForShortCandidate()
+    public void shouldAssertWhenSessionIdIsNotUuidLength()
     {
-        assertFalse(hasEmbeddedAffinity("session-1"));
-    }
-
-    @Test
-    public void shouldReportEmbeddedAffinityForFullLengthCandidate()
-    {
-        assertTrue(hasEmbeddedAffinity(newSessionId(randomUuids(), 0L)));
-    }
-
-    @Test
-    public void shouldExtractConsistentFallbackAffinityForShortCandidate()
-    {
-        assertEquals(extractAffinity("session-1"), extractAffinity("session-1"));
+        assertThrows(AssertionError.class, () -> extractAffinity("session-1"));
     }
 }

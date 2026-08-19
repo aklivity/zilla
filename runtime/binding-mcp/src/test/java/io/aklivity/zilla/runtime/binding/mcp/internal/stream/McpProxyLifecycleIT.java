@@ -127,6 +127,6 @@ public class McpProxyLifecycleIT
 
     public static String sessionId()
     {
-        return "agent-1";
+        return "5ca1ab1e-c0de-4a11-b007-000100000000";
     }
 }

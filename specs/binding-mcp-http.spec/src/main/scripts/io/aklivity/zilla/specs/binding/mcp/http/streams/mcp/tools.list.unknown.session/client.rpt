@@ -21,7 +21,7 @@ connect "zilla://streams/app0"
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .toolsList()
-                               .sessionId("session-unknown")
+                               .sessionId("5ca1ab1e-c0de-4a11-1057-000000000000")
                                .build()
                            .build()}
 

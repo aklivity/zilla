@@ -644,7 +644,9 @@ public class McpProxyCacheIT
         k3po.finish();
     }
 
-    private static final List<String> SESSION_IDS = List.of("hydrate-1", "agent-1");
+    private static final List<String> SESSION_IDS = List.of(
+        "5ca1ab1e-c0de-4a11-feed-000100000000",
+        "5ca1ab1e-c0de-4a11-b007-000100000000");
     private static Iterator<String> sessionIds = SESSION_IDS.iterator();
 
     public static String sessionId()
@@ -658,7 +660,11 @@ public class McpProxyCacheIT
         sessionIds = SESSION_IDS.iterator();
     }
 
-    private static final String[] CONTENDED_SESSION_IDS = { "hydrate-A", "hydrate-B" };
+    private static final String[] CONTENDED_SESSION_IDS =
+    {
+        "5ca1ab1e-c0de-4a11-feed-000a00000000",
+        "5ca1ab1e-c0de-4a11-feed-000b00000000"
+    };
     private static final AtomicInteger CONTENDED_SESSION_INDEX = new AtomicInteger();
 
     public static String contendedSessionId()

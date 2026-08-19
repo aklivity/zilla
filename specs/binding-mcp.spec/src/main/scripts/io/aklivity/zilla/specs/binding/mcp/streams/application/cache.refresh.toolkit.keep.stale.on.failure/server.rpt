@@ -30,7 +30,7 @@ connected
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .lifecycle()
-                               .sessionId("hydrate-1")
+                               .sessionId("5ca1ab1e-c0de-4a11-feed-000100000000")
                                .build()
                            .build()}
 write flush
@@ -40,7 +40,7 @@ accepted
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .toolsList()
-                              .sessionId("hydrate-1")
+                              .sessionId("5ca1ab1e-c0de-4a11-feed-000100000000")
                               .build()
                           .build()}
 
@@ -60,7 +60,7 @@ accepted
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .toolsList()
-                              .sessionId("hydrate-1")
+                              .sessionId("5ca1ab1e-c0de-4a11-feed-000100000000")
                               .build()
                           .build()}
 
@@ -94,7 +94,7 @@ connected
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .lifecycle()
-                               .sessionId("hydrate-1")
+                               .sessionId("5ca1ab1e-c0de-4a11-feed-000100000000")
                                .build()
                            .build()}
 write flush
@@ -104,7 +104,7 @@ accepted
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .toolsList()
-                              .sessionId("hydrate-1")
+                              .sessionId("5ca1ab1e-c0de-4a11-feed-000100000000")
                               .build()
                           .build()}
 
@@ -126,7 +126,7 @@ read await APP1_REFRESHED
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .toolsList()
-                              .sessionId("hydrate-1")
+                              .sessionId("5ca1ab1e-c0de-4a11-feed-000100000000")
                               .build()
                           .build()}
 
