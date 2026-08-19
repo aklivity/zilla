@@ -182,6 +182,7 @@ public final class TestVaultHandler implements VaultHandler
         {
             try
             {
+                // codeql[java/static-initialization-vector]
                 byte[] iv = new byte[GCM_IV_LENGTH];
                 bytes.getBytes(index, iv);
 
@@ -191,7 +192,6 @@ public final class TestVaultHandler implements VaultHandler
 
                 Cipher cipher = Cipher.getInstance(CIPHER_TRANSFORM);
                 GCMParameterSpec spec = new GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv);
-                // codeql[java/static-initialization-vector]
                 cipher.init(Cipher.DECRYPT_MODE, secretKey, spec);
                 byte[] plaintext = cipher.doFinal(ciphertext);
 
@@ -493,6 +493,7 @@ public final class TestVaultHandler implements VaultHandler
             {
                 try
                 {
+                    // codeql[java/static-initialization-vector]
                     byte[] iv = new byte[GCM_IV_LENGTH];
                     bytes.getBytes(index, iv);
 
@@ -502,7 +503,6 @@ public final class TestVaultHandler implements VaultHandler
 
                     Cipher cipher = Cipher.getInstance(CIPHER_TRANSFORM);
                     GCMParameterSpec spec = new GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv);
-                    // codeql[java/static-initialization-vector]
                     cipher.init(Cipher.DECRYPT_MODE, secretKey, spec);
                     byte[] plaintext = cipher.doFinal(ciphertext);
 
