@@ -44,6 +44,7 @@ import org.agrona.collections.Object2ObjectHashMap;
 
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
+import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration.SessionIdVerifier;
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpEventContext;
 import io.aklivity.zilla.runtime.binding.mcp.internal.codec.McpInitializeParams;
 import io.aklivity.zilla.runtime.binding.mcp.internal.codec.McpNotifyCanceledParams;
@@ -217,6 +218,7 @@ public final class McpServerFactory implements McpStreamFactory
     private final McpFlushExFW.Builder mcpFlushExRW = new McpFlushExFW.Builder();
 
     private final LongFunction<String> supplySessionId;
+    private final SessionIdVerifier verifySessionId;
     private final String serverName;
     private final String serverVersion;
     private final boolean altSvcEnabled;
@@ -275,6 +277,7 @@ public final class McpServerFactory implements McpStreamFactory
     {
         this.config = config;
         this.supplySessionId = config.sessionIdSupplier();
+        this.verifySessionId = config.sessionIdVerifier();
         this.serverName = config.serverName();
         this.serverVersion = config.serverVersion();
         this.altSvcEnabled = config.altSvcEnabled();
@@ -6340,7 +6343,7 @@ public final class McpServerFactory implements McpStreamFactory
     private boolean isSessionIdAligned(
         String sessionId)
     {
-        return McpSessionId.extractAffinity(sessionId) == affinity;
+        return verifySessionId.test(sessionId, affinity);
     }
 
     private String extractSessionIdFromState(

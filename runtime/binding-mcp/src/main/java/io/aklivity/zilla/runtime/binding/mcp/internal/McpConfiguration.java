@@ -42,6 +42,7 @@ public class McpConfiguration extends Configuration
     private static final ConfigurationDef MCP_CONFIG;
 
     public static final PropertyDef<LongFunction<String>> MCP_SESSION_ID;
+    public static final PropertyDef<SessionIdVerifier> MCP_SESSION_ID_VERIFIER;
     public static final PropertyDef<ElicitationIdSupplier> MCP_ELICITATION_ID;
     public static final PropertyDef<ElicitationIdSupplier> MCP_ELICIT_CORRELATION_ID;
     public static final PropertyDef<String> MCP_SERVER_NAME;
@@ -64,6 +65,8 @@ public class McpConfiguration extends Configuration
         final Class<LongFunction<String>> sessionIdKind = (Class<LongFunction<String>>) (Class<?>) LongFunction.class;
         MCP_SESSION_ID = config.property(sessionIdKind, "session.id",
             McpConfiguration::decodeSessionIdSupplier, McpConfiguration::newSessionId);
+        MCP_SESSION_ID_VERIFIER = config.property(SessionIdVerifier.class, "session.id.verifier",
+            McpConfiguration::decodeSessionIdVerifier, McpConfiguration::verifySessionId);
         MCP_ELICITATION_ID = config.property(ElicitationIdSupplier.class, "elicitation.id",
             McpConfiguration::decodeElicitationIdSupplier, McpConfiguration::defaultElicitationIdSupplier);
         MCP_ELICIT_CORRELATION_ID = config.property(ElicitationIdSupplier.class, "elicit.correlation.id",
@@ -107,6 +110,11 @@ public class McpConfiguration extends Configuration
     public LongFunction<String> sessionIdSupplier()
     {
         return MCP_SESSION_ID.get(this);
+    }
+
+    public SessionIdVerifier sessionIdVerifier()
+    {
+        return MCP_SESSION_ID_VERIFIER.get(this);
     }
 
     public Supplier<String> elicitationIdSupplier()
@@ -180,6 +188,12 @@ public class McpConfiguration extends Configuration
     }
 
     @FunctionalInterface
+    public interface SessionIdVerifier
+    {
+        boolean test(String sessionId, long affinity);
+    }
+
+    @FunctionalInterface
     public interface ElicitationIdSupplier
     {
         String get();
@@ -240,6 +254,57 @@ public class McpConfiguration extends Configuration
         final long leastSigBits = (SESSION_ID_RANDOM.nextLong() & 0xffffffff_00000000L) | (affinity & 0xffff_ffffL);
         final long mostSigBits = SESSION_ID_RANDOM.nextLong();
         return new UUID(mostSigBits, leastSigBits).toString();
+    }
+
+    private static SessionIdVerifier decodeSessionIdVerifier(
+        String value)
+    {
+        SessionIdVerifier verifier = null;
+
+        try
+        {
+            MethodType signature = MethodType.methodType(boolean.class, String.class, long.class);
+            String[] parts = value.split("::");
+            Class<?> ownerClass = Class.forName(parts[0]);
+            String methodName = parts[1];
+            MethodHandle method = MethodHandles.publicLookup().findStatic(ownerClass, methodName, signature);
+            verifier = (sessionId, affinity) ->
+            {
+                boolean aligned = false;
+                try
+                {
+                    aligned = (boolean) method.invoke(sessionId, affinity);
+                }
+                catch (Throwable ex)
+                {
+                    LangUtil.rethrowUnchecked(ex);
+                }
+
+                return aligned;
+            };
+        }
+        catch (Throwable ex)
+        {
+            LangUtil.rethrowUnchecked(ex);
+        }
+
+        return verifier;
+    }
+
+    private static boolean verifySessionId(
+        String sessionId,
+        long affinity)
+    {
+        // no-allocation check that the last 8 hex chars of sessionId (the embedded affinity slot
+        // newSessionId writes into, see UUID_LENGTH / AFFINITY_OFFSET) equal affinity verbatim
+        boolean aligned = sessionId.length() == UUID_LENGTH;
+        for (int i = 0; aligned && i < AFFINITY_LENGTH; i++)
+        {
+            int shift = (AFFINITY_LENGTH - 1 - i) << 2;
+            char expected = Character.forDigit((int) ((affinity >>> shift) & 0xf), 16);
+            aligned = sessionId.charAt(AFFINITY_OFFSET + i) == expected;
+        }
+        return aligned;
     }
 
     private static boolean defaultAltSvcEnabled(
@@ -332,4 +397,7 @@ public class McpConfiguration extends Configuration
     private static final SecureRandom ELICITATION_ID_RANDOM = new SecureRandom();
     private static final HexFormat ELICITATION_ID_HEX = HexFormat.of();
     private static final SecureRandom SESSION_ID_RANDOM = new SecureRandom();
+    private static final int UUID_LENGTH = 36;
+    private static final int AFFINITY_OFFSET = 28;
+    private static final int AFFINITY_LENGTH = 8;
 }
