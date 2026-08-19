@@ -103,6 +103,30 @@ public class CacheFetchIT
     @Test
     @Configuration("cache.yaml")
     @Specification({
+        "${app}/partition.not.leader.reconnect/client",
+        "${app}/partition.not.leader.reconnect/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @Configure(name = KafkaConfigurationTest.KAFKA_CACHE_SERVER_RECONNECT_DELAY_NAME, value = "1")
+    public void shouldReconnectPartitionNotLeader() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.yaml")
+    @Specification({
+        "${app}/partition.not.leader.reconnect.after.meta/client",
+        "${app}/partition.not.leader.reconnect.after.meta/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @Configure(name = KafkaConfigurationTest.KAFKA_CACHE_SERVER_RECONNECT_DELAY_NAME, value = "1")
+    public void shouldReconnectPartitionNotLeaderAfterMeta() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.yaml")
+    @Specification({
         "${app}/compacted.message.with.message/client",
         "${app}/compact.message.with.message/server"})
     public void shouldCompactMessageWithMessage() throws Exception

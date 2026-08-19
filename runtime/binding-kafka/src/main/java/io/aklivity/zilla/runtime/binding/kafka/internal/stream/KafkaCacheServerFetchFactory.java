@@ -1175,6 +1175,11 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                     System.out.format("[0x%016x] %s FETCH disconnect, error %d\n", initialId, partition, error);
                 }
 
+                if (error == ERROR_NOT_LEADER_FOR_PARTITION)
+                {
+                    leaderId = LEADER_UNKNOWN;
+                }
+
                 members.forEach(s -> s.doServerInitialResetIfNecessary(traceId, extension));
             }
         }

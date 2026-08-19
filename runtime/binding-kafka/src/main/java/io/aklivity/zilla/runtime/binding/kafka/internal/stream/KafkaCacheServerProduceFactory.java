@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCachePartition.CACHE_ENTRY_FLAGS_DIRTY;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.stream.KafkaCacheRoute.LEADER_UNKNOWN;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetFW.Builder.DEFAULT_LATEST_OFFSET;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static java.lang.System.currentTimeMillis;
@@ -212,18 +213,19 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
             final long resolvedId = resolved.id;
             final KafkaCacheRoute cacheRoute = supplyCacheRoute.apply(resolvedId);
             final long partitionKey = cacheRoute.topicPartitionKey(topicName, partitionId);
+            final Int2IntHashMap leadersByPartitionId = cacheRoute.supplyLeadersByPartitionId(topicName);
+            final int leaderId = leadersByPartitionId.get(partitionId);
             KafkaCacheServerProduceFan fan = cacheRoute.serverProduceFansByTopicPartition.get(partitionKey);
             if (fan == null)
             {
                 final KafkaCacheServerProduceFan newFan =
-                    new KafkaCacheServerProduceFan(routedId, resolvedId, authorization, affinity, partitionId, topicName);
+                    new KafkaCacheServerProduceFan(routedId, resolvedId, authorization, affinity, partitionId, topicName,
+                        leadersByPartitionId);
 
                 cacheRoute.serverProduceFansByTopicPartition.put(partitionKey, newFan);
                 fan = newFan;
             }
 
-            final Int2IntHashMap leadersByPartitionId = cacheRoute.supplyLeadersByPartitionId(topicName);
-            final int leaderId = leadersByPartitionId.get(partitionId);
             final String cacheName = String.format("%s.%s", supplyNamespace.apply(routedId), supplyLocalName.apply(routedId));
             final KafkaCache cache = supplyCache.apply(cacheName);
             final KafkaCacheTopic topic = cache.supplyTopic(topicName);
@@ -490,6 +492,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
         private final long creditorId;
         private final int partitionId;
         private final String partionTopic;
+        private final Int2IntHashMap leadersByPartitionId;
         private final List<KafkaCacheServerProduceStream> members;
 
         private long leaderId;
@@ -524,13 +527,15 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
             long authorization,
             long leaderId,
             int partitionId,
-            String partionTopic)
+            String partionTopic,
+            Int2IntHashMap leadersByPartitionId)
         {
             this.originId = originId;
             this.routedId = routedId;
             this.authorization = authorization;
             this.partitionId = partitionId;
             this.partionTopic = partionTopic;
+            this.leadersByPartitionId = leadersByPartitionId;
             this.members = new ArrayList<>();
             this.leaderId = leaderId;
             this.creditorId = supplyBudgetId.getAsLong();
@@ -599,12 +604,47 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
 
             if (!KafkaState.initialOpening(state))
             {
-                if (KafkaConfiguration.DEBUG)
+                if (leaderId == LEADER_UNKNOWN)
                 {
-                    System.out.format("%d %s PRODUCE connect, affinity %d\n", partitionId, partionTopic, leaderId);
+                    leaderId = leadersByPartitionId.get(partitionId);
                 }
 
-                doServerFanInitialBegin(traceId);
+                if (leaderId != LEADER_UNKNOWN)
+                {
+                    if (KafkaConfiguration.DEBUG)
+                    {
+                        System.out.format("%d %s PRODUCE connect, affinity %d\n", partitionId, partionTopic, leaderId);
+                    }
+
+                    doServerFanInitialBegin(traceId);
+                }
+                else
+                {
+                    doServerFanDiscoverLeaderIfNecessary(traceId);
+                }
+            }
+        }
+
+        private void doServerFanDiscoverLeaderIfNecessary(
+            long traceId)
+        {
+            if (reconnectDelay != 0 && !members.isEmpty())
+            {
+                if (KafkaConfiguration.DEBUG)
+                {
+                    System.out.format("%d %s PRODUCE leader unknown, retry in %ds\n",
+                        partitionId, partionTopic, reconnectDelay);
+                }
+
+                if (reconnectAt != NO_CANCEL_ID)
+                {
+                    signaler.cancel(reconnectAt);
+                }
+
+                this.reconnectAt = signaler.signalAt(
+                        currentTimeMillis() + Math.min(50 << reconnectAttempt++, SECONDS.toMillis(reconnectDelay)),
+                        SIGNAL_RECONNECT,
+                        this::onServerFanoutSignal);
             }
         }
 
@@ -753,6 +793,11 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
 
             if (error == ERROR_NOT_LEADER_FOR_PARTITION || error == UNKNOWN_ERROR)
             {
+                if (error == ERROR_NOT_LEADER_FOR_PARTITION)
+                {
+                    leaderId = LEADER_UNKNOWN;
+                }
+
                 members.forEach(s -> s.doServerInitialResetIfNecessary(traceId, extension));
             }
             else
