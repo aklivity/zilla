@@ -191,7 +191,8 @@ public final class TestVaultHandler implements VaultHandler
 
                 Cipher cipher = Cipher.getInstance(CIPHER_TRANSFORM);
                 GCMParameterSpec spec = new GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv);
-                cipher.init(Cipher.DECRYPT_MODE, secretKey, spec); // codeql[java/static-initialization-vector]
+                // codeql[java/static-initialization-vector]
+                cipher.init(Cipher.DECRYPT_MODE, secretKey, spec);
                 byte[] plaintext = cipher.doFinal(ciphertext);
 
                 next.accept(new UnsafeBufferEx(plaintext), 0, plaintext.length);
@@ -501,7 +502,8 @@ public final class TestVaultHandler implements VaultHandler
 
                     Cipher cipher = Cipher.getInstance(CIPHER_TRANSFORM);
                     GCMParameterSpec spec = new GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv);
-                    cipher.init(Cipher.DECRYPT_MODE, secretKey, spec); // codeql[java/static-initialization-vector]
+                    // codeql[java/static-initialization-vector]
+                    cipher.init(Cipher.DECRYPT_MODE, secretKey, spec);
                     byte[] plaintext = cipher.doFinal(ciphertext);
 
                     dst.putBytes(dstIndex, plaintext);
