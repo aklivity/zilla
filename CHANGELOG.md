@@ -33,6 +33,7 @@
 - feat\(model-core\): realign bytes/string extension stages with the streaming stage design, and make them bidirectional [\#2395](https://github.com/aklivity/zilla/pull/2395) ([jfallows](https://github.com/jfallows))
 - Support wildcard-registered subjects in inline catalog [\#2397](https://github.com/aklivity/zilla/pull/2397) ([akrambek](https://github.com/akrambek))
 - fix\(binding-kafka\): reconnect fetch/produce cache fanouts to the updated leader after NOT\_LEADER\_FOR\_PARTITION [\#2399](https://github.com/aklivity/zilla/pull/2399) ([jfallows](https://github.com/jfallows))
+- Revert "Support wildcard-registered subjects in inline catalog" [\#2402](https://github.com/aklivity/zilla/pull/2402) ([jfallows](https://github.com/jfallows))
 
 ## [2.3.0](https://github.com/aklivity/zilla/tree/2.3.0) (2026-08-14)
 
