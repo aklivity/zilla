@@ -28,15 +28,14 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration.MC
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration.MCP_SERVER_NAME;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration.MCP_SERVER_VERSION;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration.MCP_SESSION_ID;
-import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration.MCP_SESSION_ID_VERIFIER;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration.MCP_SESSION_ID_AFFINITY;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration.MCP_SSE_KEEPALIVE_INTERVAL;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DETACH_ON_CLOSE;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_SYNTHETIC_ABORT;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertThrows;
 
 import java.util.UUID;
 import java.util.function.LongFunction;
@@ -48,7 +47,7 @@ public class McpConfigurationTest
     public static final String ENGINE_DETACH_ON_CLOSE_NAME = "zilla.engine.detach.on.close";
     public static final String ENGINE_SYNTHETIC_ABORT_NAME = "zilla.engine.synthetic.abort";
     public static final String MCP_SESSION_ID_NAME = "zilla.binding.mcp.session.id";
-    public static final String MCP_SESSION_ID_VERIFIER_NAME = "zilla.binding.mcp.session.id.verifier";
+    public static final String MCP_SESSION_ID_AFFINITY_NAME = "zilla.binding.mcp.session.id.affinity";
     public static final String MCP_ELICITATION_ID_NAME = "zilla.binding.mcp.elicitation.id";
     public static final String MCP_ELICIT_CORRELATION_ID_NAME = "zilla.binding.mcp.elicit.correlation.id";
     public static final String MCP_SERVER_NAME_NAME = "zilla.binding.mcp.server.name";
@@ -70,7 +69,7 @@ public class McpConfigurationTest
         assertEquals(ENGINE_DETACH_ON_CLOSE.name(), ENGINE_DETACH_ON_CLOSE_NAME);
         assertEquals(ENGINE_SYNTHETIC_ABORT.name(), ENGINE_SYNTHETIC_ABORT_NAME);
         assertEquals(MCP_SESSION_ID.name(), MCP_SESSION_ID_NAME);
-        assertEquals(MCP_SESSION_ID_VERIFIER.name(), MCP_SESSION_ID_VERIFIER_NAME);
+        assertEquals(MCP_SESSION_ID_AFFINITY.name(), MCP_SESSION_ID_AFFINITY_NAME);
         assertEquals(MCP_ELICITATION_ID.name(), MCP_ELICITATION_ID_NAME);
         assertEquals(MCP_ELICIT_CORRELATION_ID.name(), MCP_ELICIT_CORRELATION_ID_NAME);
         assertEquals(MCP_SERVER_NAME.name(), MCP_SERVER_NAME_NAME);
@@ -132,30 +131,30 @@ public class McpConfigurationTest
     }
 
     @Test
-    public void shouldVerifyMintedSessionIdAgainstItsOwnAffinity()
+    public void shouldExtractEmbeddedAffinityFromMintedSessionId()
     {
         McpConfiguration config = new McpConfiguration();
 
         String sessionId = config.sessionIdSupplier().apply(0x07000001L);
 
-        assertTrue(config.sessionIdVerifier().test(sessionId, 0x07000001L));
+        assertEquals(0x07000001L, config.sessionIdAffinity().applyAsLong(sessionId));
     }
 
     @Test
-    public void shouldNotVerifySessionIdWithMismatchedAffinity()
+    public void shouldMaskAffinityToThirtyTwoBitsWhenExtracting()
     {
         McpConfiguration config = new McpConfiguration();
 
-        String sessionId = config.sessionIdSupplier().apply(0x07000001L);
+        String sessionId = config.sessionIdSupplier().apply(0xffff_ffff_0000_0001L);
 
-        assertFalse(config.sessionIdVerifier().test(sessionId, 0x07000002L));
+        assertEquals(0x0000_0001L, config.sessionIdAffinity().applyAsLong(sessionId));
     }
 
     @Test
-    public void shouldNotVerifySessionIdThatIsNotUuidLength()
+    public void shouldAssertWhenExtractingFromSessionIdThatIsNotUuidLength()
     {
         McpConfiguration config = new McpConfiguration();
 
-        assertFalse(config.sessionIdVerifier().test("session-1", 7L));
+        assertThrows(AssertionError.class, () -> config.sessionIdAffinity().applyAsLong("session-1"));
     }
 }

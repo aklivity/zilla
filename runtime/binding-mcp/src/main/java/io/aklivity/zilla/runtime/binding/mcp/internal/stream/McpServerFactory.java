@@ -30,6 +30,7 @@ import java.util.Set;
 import java.util.function.LongBinaryOperator;
 import java.util.function.LongFunction;
 import java.util.function.LongUnaryOperator;
+import java.util.function.ToLongFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -44,7 +45,6 @@ import org.agrona.collections.Object2ObjectHashMap;
 
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
-import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration.SessionIdVerifier;
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpEventContext;
 import io.aklivity.zilla.runtime.binding.mcp.internal.codec.McpInitializeParams;
 import io.aklivity.zilla.runtime.binding.mcp.internal.codec.McpNotifyCanceledParams;
@@ -218,7 +218,7 @@ public final class McpServerFactory implements McpStreamFactory
     private final McpFlushExFW.Builder mcpFlushExRW = new McpFlushExFW.Builder();
 
     private final LongFunction<String> supplySessionId;
-    private final SessionIdVerifier verifySessionId;
+    private final ToLongFunction<String> sessionIdAffinity;
     private final String serverName;
     private final String serverVersion;
     private final boolean altSvcEnabled;
@@ -277,7 +277,7 @@ public final class McpServerFactory implements McpStreamFactory
     {
         this.config = config;
         this.supplySessionId = config.sessionIdSupplier();
-        this.verifySessionId = config.sessionIdVerifier();
+        this.sessionIdAffinity = config.sessionIdAffinity();
         this.serverName = config.serverName();
         this.serverVersion = config.serverVersion();
         this.altSvcEnabled = config.altSvcEnabled();
@@ -4956,7 +4956,7 @@ public final class McpServerFactory implements McpStreamFactory
             this.routedId = server.resolvedId;
             assert session.unifiedId != null;
             this.initialId = supplyInitialIdAffinity.applyAsLong(
-                server.resolvedId, McpSessionId.extractAffinity(session.unifiedId));
+                server.resolvedId, sessionIdAffinity.applyAsLong(session.unifiedId));
             this.replyId = supplyReplyId.applyAsLong(initialId);
         }
 
@@ -6343,7 +6343,7 @@ public final class McpServerFactory implements McpStreamFactory
     private boolean isSessionIdAligned(
         String sessionId)
     {
-        return verifySessionId.test(sessionId, affinity);
+        return sessionIdAffinity.applyAsLong(sessionId) == affinity;
     }
 
     private String extractSessionIdFromState(
@@ -6432,7 +6432,7 @@ public final class McpServerFactory implements McpStreamFactory
         {
             final long authorization = begin.authorization();
             doRedirect(sender, originId, routedId, streamId, sequence, acknowledge, traceId, authorization,
-                McpSessionId.extractAffinity(sessionId), extension);
+                sessionIdAffinity.applyAsLong(sessionId), extension);
         }
     }
 }

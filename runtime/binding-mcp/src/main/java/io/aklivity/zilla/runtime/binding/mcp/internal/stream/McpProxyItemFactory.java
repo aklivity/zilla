@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.function.LongBinaryOperator;
 import java.util.function.LongFunction;
 import java.util.function.LongUnaryOperator;
+import java.util.function.ToLongFunction;
 
 import io.aklivity.zilla.config.binding.mcp.McpCacheToolsSearchConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
@@ -144,6 +145,7 @@ abstract class McpProxyItemFactory implements BindingHandler
     private final LongUnaryOperator supplyReplyId;
     private final int mcpTypeId;
     private final LongFunction<McpBindingConfig> supplyBinding;
+    private final ToLongFunction<String> sessionIdAffinity;
     private final int kind;
 
     // reusable, growable per-worker scratch arrays shared by both search-family tools' response
@@ -170,6 +172,7 @@ abstract class McpProxyItemFactory implements BindingHandler
         this.supplyReplyId = context::supplyReplyId;
         this.mcpTypeId = context.supplyTypeId(MCP_TYPE_NAME);
         this.supplyBinding = supplyBinding;
+        this.sessionIdAffinity = config.sessionIdAffinity();
         this.kind = kind;
     }
 
@@ -2339,7 +2342,7 @@ abstract class McpProxyItemFactory implements BindingHandler
             final String sid = lifecycle.sessionId;
             if (sid != null)
             {
-                initialId = supplyInitialIdAffinity.applyAsLong(routedId, McpSessionId.extractAffinity(sid));
+                initialId = supplyInitialIdAffinity.applyAsLong(routedId, sessionIdAffinity.applyAsLong(sid));
                 replyId = supplyReplyId.applyAsLong(initialId);
 
                 final McpBeginExFW beginEx = mcpBeginExRW

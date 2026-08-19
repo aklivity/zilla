@@ -28,6 +28,7 @@ import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
 import java.util.function.Predicate;
+import java.util.function.ToLongFunction;
 
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParserFactory;
@@ -103,6 +104,7 @@ abstract class McpProxyListFactory implements BindingHandler
     private final LongSupplier supplyTraceId;
     private final int mcpTypeId;
     private final LongFunction<McpBindingConfig> supplyBinding;
+    private final ToLongFunction<String> sessionIdAffinity;
     private final int kind;
     private final JsonParserFactory listItemParserFactory;
 
@@ -162,6 +164,7 @@ abstract class McpProxyListFactory implements BindingHandler
         this.supplyTraceId = context::supplyTraceId;
         this.mcpTypeId = context.supplyTypeId(MCP_TYPE_NAME);
         this.supplyBinding = supplyBinding;
+        this.sessionIdAffinity = config.sessionIdAffinity();
         this.kind = kind;
         this.listItemParserFactory = JsonEx.createParserFactory(Map.of());
     }
@@ -378,7 +381,7 @@ abstract class McpProxyListFactory implements BindingHandler
             final String sid = lifecycle.sessionId;
             if (sid != null)
             {
-                initialId = supplyInitialIdAffinity.applyAsLong(routedId, McpSessionId.extractAffinity(sid));
+                initialId = supplyInitialIdAffinity.applyAsLong(routedId, sessionIdAffinity.applyAsLong(sid));
                 replyId = supplyReplyId.applyAsLong(initialId);
 
                 final McpBeginExFW beginEx = mcpBeginExRW
