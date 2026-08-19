@@ -48,8 +48,10 @@ public class McpKafkaConnectClientIT
         .external("http0")
         .clean();
 
-    public static String sessionId()
+    public static String sessionId(
+        long affinity)
     {
+        assert affinity == 0L;
         return "5ca1ab1e-c0de-4a11-5e55-000100000000";
     }
 
