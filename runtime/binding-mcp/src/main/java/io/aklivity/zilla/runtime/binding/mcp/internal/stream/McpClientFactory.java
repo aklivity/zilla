@@ -39,6 +39,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.function.LongFunction;
 import java.util.function.LongUnaryOperator;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
@@ -220,7 +221,7 @@ public final class McpClientFactory implements McpStreamFactory
     private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
-    private final Supplier<String> supplySessionId;
+    private final LongFunction<String> supplySessionId;
     private final Supplier<String> supplyElicitationId;
     private final Supplier<String> supplyElicitCorrelationId;
     private final long affinity;
@@ -315,7 +316,7 @@ public final class McpClientFactory implements McpStreamFactory
     // request streams land back here where its session state lives
     private String newSessionId()
     {
-        return McpSessionId.newSessionId(supplySessionId, affinity);
+        return supplySessionId.apply(affinity);
     }
 
     @FunctionalInterface

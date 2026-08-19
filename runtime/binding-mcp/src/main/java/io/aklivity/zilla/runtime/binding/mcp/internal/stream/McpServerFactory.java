@@ -28,8 +28,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.LongBinaryOperator;
+import java.util.function.LongFunction;
 import java.util.function.LongUnaryOperator;
-import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -216,7 +216,7 @@ public final class McpServerFactory implements McpStreamFactory
     private final McpChallengeExFW.Builder mcpChallengeExRW = new McpChallengeExFW.Builder();
     private final McpFlushExFW.Builder mcpFlushExRW = new McpFlushExFW.Builder();
 
-    private final Supplier<String> supplySessionId;
+    private final LongFunction<String> supplySessionId;
     private final String serverName;
     private final String serverVersion;
     private final boolean altSvcEnabled;
@@ -6334,7 +6334,7 @@ public final class McpServerFactory implements McpStreamFactory
 
     private String newSessionId()
     {
-        return McpSessionId.newSessionId(supplySessionId, affinity);
+        return supplySessionId.apply(affinity);
     }
 
     private boolean isSessionIdAligned(

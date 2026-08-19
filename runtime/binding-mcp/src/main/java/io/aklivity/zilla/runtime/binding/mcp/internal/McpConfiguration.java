@@ -28,8 +28,8 @@ import java.util.HashSet;
 import java.util.HexFormat;
 import java.util.Set;
 import java.util.UUID;
-import java.util.function.Function;
 import java.util.function.IntPredicate;
+import java.util.function.LongFunction;
 import java.util.function.Supplier;
 
 import org.agrona.LangUtil;
@@ -41,7 +41,7 @@ public class McpConfiguration extends Configuration
 {
     private static final ConfigurationDef MCP_CONFIG;
 
-    public static final PropertyDef<SessionIdSupplier> MCP_SESSION_ID;
+    public static final PropertyDef<LongFunction<String>> MCP_SESSION_ID;
     public static final PropertyDef<ElicitationIdSupplier> MCP_ELICITATION_ID;
     public static final PropertyDef<ElicitationIdSupplier> MCP_ELICIT_CORRELATION_ID;
     public static final PropertyDef<String> MCP_SERVER_NAME;
@@ -60,9 +60,10 @@ public class McpConfiguration extends Configuration
     static
     {
         final ConfigurationDef config = new ConfigurationDef("zilla.binding.mcp");
-        final Function<Configuration, SessionIdSupplier> defaultSessionId = McpConfiguration::defaultSessionIdSupplier;
-        MCP_SESSION_ID = config.property(SessionIdSupplier.class, "session.id",
-            McpConfiguration::decodeSessionIdSupplier, defaultSessionId);
+        @SuppressWarnings("unchecked")
+        final Class<LongFunction<String>> sessionIdKind = (Class<LongFunction<String>>) (Class<?>) LongFunction.class;
+        MCP_SESSION_ID = config.property(sessionIdKind, "session.id",
+            McpConfiguration::decodeSessionIdSupplier, McpConfiguration::newSessionId);
         MCP_ELICITATION_ID = config.property(ElicitationIdSupplier.class, "elicitation.id",
             McpConfiguration::decodeElicitationIdSupplier, McpConfiguration::defaultElicitationIdSupplier);
         MCP_ELICIT_CORRELATION_ID = config.property(ElicitationIdSupplier.class, "elicit.correlation.id",
@@ -103,9 +104,9 @@ public class McpConfiguration extends Configuration
         super(MCP_CONFIG, config);
     }
 
-    public Supplier<String> sessionIdSupplier()
+    public LongFunction<String> sessionIdSupplier()
     {
-        return MCP_SESSION_ID.get(this)::get;
+        return MCP_SESSION_ID.get(this);
     }
 
     public Supplier<String> elicitationIdSupplier()
@@ -179,12 +180,6 @@ public class McpConfiguration extends Configuration
     }
 
     @FunctionalInterface
-    public interface SessionIdSupplier
-    {
-        String get();
-    }
-
-    @FunctionalInterface
     public interface ElicitationIdSupplier
     {
         String get();
@@ -202,24 +197,24 @@ public class McpConfiguration extends Configuration
         return EngineConfiguration.ENGINE_VERSION.get(config);
     }
 
-    private static SessionIdSupplier decodeSessionIdSupplier(
+    private static LongFunction<String> decodeSessionIdSupplier(
         String value)
     {
-        SessionIdSupplier supplier = null;
+        LongFunction<String> supplier = null;
 
         try
         {
-            MethodType signature = MethodType.methodType(String.class);
+            MethodType signature = MethodType.methodType(String.class, long.class);
             String[] parts = value.split("::");
             Class<?> ownerClass = Class.forName(parts[0]);
             String methodName = parts[1];
             MethodHandle method = MethodHandles.publicLookup().findStatic(ownerClass, methodName, signature);
-            supplier = () ->
+            supplier = affinity ->
             {
                 String sessionId = null;
                 try
                 {
-                    sessionId = (String) method.invoke();
+                    sessionId = (String) method.invoke(affinity);
                 }
                 catch (Throwable ex)
                 {
@@ -237,21 +232,12 @@ public class McpConfiguration extends Configuration
         return supplier;
     }
 
-    private static SessionIdSupplier defaultSessionIdSupplier(
-        Configuration config)
-    {
-        final byte nodeId = EngineConfiguration.ENGINE_NODE_ID.getAsByte(config);
-        return () -> newSessionId(nodeId);
-    }
-
     private static String newSessionId(
-        byte nodeId)
+        long affinity)
     {
-        // top byte node id, low 3 bytes worker index, matching EngineWorker.affinity()'s packing;
-        // the worker index is unknown here and left random, since the per-worker mint overwrites
-        // this entire slot with the real affinity value before the session id is ever issued
-        final long affinityBits = ((nodeId & 0xffL) << 24) | (SESSION_ID_RANDOM.nextLong() & 0x00ff_ffffL);
-        final long leastSigBits = (SESSION_ID_RANDOM.nextLong() & 0xffffffff_00000000L) | affinityBits;
+        // affinity (top byte node id, low 3 bytes worker index, matching EngineWorker.affinity()'s
+        // packing) is embedded verbatim into the low 32 bits of the UUID's least-significant bits
+        final long leastSigBits = (SESSION_ID_RANDOM.nextLong() & 0xffffffff_00000000L) | (affinity & 0xffff_ffffL);
         final long mostSigBits = SESSION_ID_RANDOM.nextLong();
         return new UUID(mostSigBits, leastSigBits).toString();
     }

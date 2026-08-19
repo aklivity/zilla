@@ -52,8 +52,10 @@ public class McpHttpClientIT
     @Rule
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
-    public static String sessionId()
+    public static String sessionId(
+        long affinity)
     {
+        assert affinity == 0L;
         return "5ca1ab1e-c0de-4a11-5e55-000100000000";
     }
 

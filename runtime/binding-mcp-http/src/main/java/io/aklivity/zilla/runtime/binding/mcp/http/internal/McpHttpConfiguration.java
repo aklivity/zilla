@@ -20,27 +20,26 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.security.SecureRandom;
 import java.util.UUID;
-import java.util.function.Function;
-import java.util.function.Supplier;
+import java.util.function.LongFunction;
 
 import org.agrona.LangUtil;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
-import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 
 public class McpHttpConfiguration extends Configuration
 {
     private static final ConfigurationDef MCP_HTTP_CONFIG;
 
-    public static final PropertyDef<SessionIdSupplier> MCP_HTTP_SESSION_ID;
+    public static final PropertyDef<LongFunction<String>> MCP_HTTP_SESSION_ID;
     public static final PropertyDef<String> MCP_HTTP_CLIENT_EXIT;
 
     static
     {
         final ConfigurationDef config = new ConfigurationDef("zilla.binding.mcp.http");
-        final Function<Configuration, SessionIdSupplier> defaultSessionId = McpHttpConfiguration::defaultSessionIdSupplier;
-        MCP_HTTP_SESSION_ID = config.property(SessionIdSupplier.class, "session.id",
-            McpHttpConfiguration::decodeSessionIdSupplier, defaultSessionId);
+        @SuppressWarnings("unchecked")
+        final Class<LongFunction<String>> sessionIdKind = (Class<LongFunction<String>>) (Class<?>) LongFunction.class;
+        MCP_HTTP_SESSION_ID = config.property(sessionIdKind, "session.id",
+            McpHttpConfiguration::decodeSessionIdSupplier, McpHttpConfiguration::newSessionId);
         MCP_HTTP_CLIENT_EXIT = config.property("client.exit", "sys:http_client");
         MCP_HTTP_CONFIG = config;
     }
@@ -56,9 +55,9 @@ public class McpHttpConfiguration extends Configuration
         super(MCP_HTTP_CONFIG, new Configuration());
     }
 
-    public Supplier<String> sessionIdSupplier()
+    public LongFunction<String> sessionIdSupplier()
     {
-        return MCP_HTTP_SESSION_ID.get(this)::get;
+        return MCP_HTTP_SESSION_ID.get(this);
     }
 
     public String clientExit()
@@ -66,30 +65,24 @@ public class McpHttpConfiguration extends Configuration
         return MCP_HTTP_CLIENT_EXIT.get(this);
     }
 
-    @FunctionalInterface
-    public interface SessionIdSupplier
-    {
-        String get();
-    }
-
-    private static SessionIdSupplier decodeSessionIdSupplier(
+    private static LongFunction<String> decodeSessionIdSupplier(
         String value)
     {
-        SessionIdSupplier supplier = null;
+        LongFunction<String> supplier = null;
 
         try
         {
-            MethodType signature = MethodType.methodType(String.class);
+            MethodType signature = MethodType.methodType(String.class, long.class);
             String[] parts = value.split("::");
             Class<?> ownerClass = Class.forName(parts[0]);
             String methodName = parts[1];
             MethodHandle method = MethodHandles.publicLookup().findStatic(ownerClass, methodName, signature);
-            supplier = () ->
+            supplier = affinity ->
             {
                 String sessionId = null;
                 try
                 {
-                    sessionId = (String) method.invoke();
+                    sessionId = (String) method.invoke(affinity);
                 }
                 catch (Throwable ex)
                 {
@@ -107,21 +100,12 @@ public class McpHttpConfiguration extends Configuration
         return supplier;
     }
 
-    private static SessionIdSupplier defaultSessionIdSupplier(
-        Configuration config)
-    {
-        final byte nodeId = EngineConfiguration.ENGINE_NODE_ID.getAsByte(config);
-        return () -> newSessionId(nodeId);
-    }
-
     private static String newSessionId(
-        byte nodeId)
+        long affinity)
     {
-        // top byte node id, low 3 bytes worker index, matching EngineWorker.affinity()'s packing;
-        // the worker index is unknown here and left random, since the per-worker mint overwrites
-        // this entire slot with the real affinity value before the session id is ever issued
-        final long affinityBits = ((nodeId & 0xffL) << 24) | (SESSION_ID_RANDOM.nextLong() & 0x00ff_ffffL);
-        final long leastSigBits = (SESSION_ID_RANDOM.nextLong() & 0xffffffff_00000000L) | affinityBits;
+        // affinity (top byte node id, low 3 bytes worker index, matching EngineWorker.affinity()'s
+        // packing) is embedded verbatim into the low 32 bits of the UUID's least-significant bits
+        final long leastSigBits = (SESSION_ID_RANDOM.nextLong() & 0xffffffff_00000000L) | (affinity & 0xffff_ffffL);
         final long mostSigBits = SESSION_ID_RANDOM.nextLong();
         return new UUID(mostSigBits, leastSigBits).toString();
     }

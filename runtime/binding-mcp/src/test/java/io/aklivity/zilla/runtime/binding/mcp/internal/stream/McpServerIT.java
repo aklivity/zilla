@@ -1039,8 +1039,10 @@ public class McpServerIT
         k3po.finish();
     }
 
-    public static String sessionId()
+    public static String sessionId(
+        long affinity)
     {
+        assert affinity == 0L;
         return "5ca1ab1e-c0de-4a11-b0a7-000100000000";
     }
 

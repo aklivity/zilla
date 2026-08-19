@@ -24,7 +24,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.LongFunction;
 import java.util.function.LongUnaryOperator;
-import java.util.function.Supplier;
 
 import org.agrona.collections.Long2ObjectHashMap;
 
@@ -114,7 +113,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
     private final LongUnaryOperator supplyReplyId;
     private final int mcpTypeId;
     private final LongFunction<McpBindingConfig> supplyBinding;
-    private final Supplier<String> supplySessionId;
+    private final LongFunction<String> supplySessionId;
     private final long affinity;
 
     McpProxyLifecycleFactory(
@@ -189,7 +188,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
 
     private String newSessionId()
     {
-        return McpSessionId.newSessionId(supplySessionId, affinity);
+        return supplySessionId.apply(affinity);
     }
 
     McpLifecycleServer newHydrationLifecycle(

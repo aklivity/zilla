@@ -32,20 +32,18 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration.MC
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DETACH_ON_CLOSE;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_SYNTHETIC_ABORT;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 
-import java.util.Properties;
 import java.util.UUID;
+import java.util.function.LongFunction;
 
 import org.junit.Test;
-
-import io.aklivity.zilla.runtime.engine.Configuration;
 
 public class McpConfigurationTest
 {
     public static final String ENGINE_DETACH_ON_CLOSE_NAME = "zilla.engine.detach.on.close";
     public static final String ENGINE_SYNTHETIC_ABORT_NAME = "zilla.engine.synthetic.abort";
-    public static final String ENGINE_NODE_ID_NAME = "zilla.engine.node.id";
     public static final String MCP_SESSION_ID_NAME = "zilla.binding.mcp.session.id";
     public static final String MCP_ELICITATION_ID_NAME = "zilla.binding.mcp.elicitation.id";
     public static final String MCP_ELICIT_CORRELATION_ID_NAME = "zilla.binding.mcp.elicit.correlation.id";
@@ -89,30 +87,42 @@ public class McpConfigurationTest
     {
         McpConfiguration config = new McpConfiguration();
 
-        String sessionId = config.sessionIdSupplier().get();
+        String sessionId = config.sessionIdSupplier().apply(0L);
 
         assertNotNull(UUID.fromString(sessionId));
     }
 
     @Test
-    public void shouldEmbedDefaultNodeIdInDefaultSessionId()
+    public void shouldEmbedGivenAffinityInDefaultSessionId()
     {
         McpConfiguration config = new McpConfiguration();
 
-        String sessionId = config.sessionIdSupplier().get();
+        String sessionId = config.sessionIdSupplier().apply(0x07000001L);
 
-        assertEquals("00", sessionId.substring(28, 30));
+        assertEquals("07000001", sessionId.substring(28, 36));
     }
 
     @Test
-    public void shouldEmbedConfiguredNodeIdInDefaultSessionId()
+    public void shouldMaskAffinityToThirtyTwoBitsInDefaultSessionId()
     {
-        Properties properties = new Properties();
-        properties.setProperty(ENGINE_NODE_ID_NAME, "7");
-        McpConfiguration config = new McpConfiguration(new Configuration(properties));
+        McpConfiguration config = new McpConfiguration();
 
-        String sessionId = config.sessionIdSupplier().get();
+        String sessionId = config.sessionIdSupplier().apply(0xffff_ffff_0000_0001L);
 
-        assertEquals("07", sessionId.substring(28, 30));
+        assertEquals("00000001", sessionId.substring(28, 36));
+    }
+
+    @Test
+    public void shouldMintDistinctSessionIdsForTheSameAffinity()
+    {
+        McpConfiguration config = new McpConfiguration();
+        LongFunction<String> supplySessionId = config.sessionIdSupplier();
+
+        String first = supplySessionId.apply(7L);
+        String second = supplySessionId.apply(7L);
+
+        assertNotEquals(first, second);
+        assertEquals("00000007", first.substring(28, 36));
+        assertEquals("00000007", second.substring(28, 36));
     }
 }

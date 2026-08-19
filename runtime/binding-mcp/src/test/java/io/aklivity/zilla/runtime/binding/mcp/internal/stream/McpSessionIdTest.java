@@ -15,73 +15,23 @@
 package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpSessionId.extractAffinity;
-import static io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpSessionId.newSessionId;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertThrows;
-
-import java.util.UUID;
-import java.util.function.Supplier;
 
 import org.junit.Test;
 
 public class McpSessionIdTest
 {
-    private static Supplier<String> randomUuids()
-    {
-        return () -> UUID.randomUUID().toString();
-    }
-
     @Test
     public void shouldExtractEmbeddedAffinityVerbatim()
     {
-        final String sessionId = newSessionId(randomUuids(), 0x1234_5678L);
-
-        assertEquals(0x1234_5678L, extractAffinity(sessionId));
+        assertEquals(0x1234_5678L, extractAffinity("5ca1ab1e-c0de-4a11-5e55-000012345678"));
     }
 
     @Test
     public void shouldExtractZeroAffinity()
     {
-        final String sessionId = newSessionId(randomUuids(), 0L);
-
-        assertEquals(0L, extractAffinity(sessionId));
-    }
-
-    @Test
-    public void shouldMaskAffinityToThirtyTwoBits()
-    {
-        final String sessionId = newSessionId(randomUuids(), 0xffff_ffff_0000_0001L);
-
-        assertEquals(0x0000_0000_0000_0001L, extractAffinity(sessionId));
-    }
-
-    @Test
-    public void shouldLeaveRestOfSessionIdUnaffected()
-    {
-        final Supplier<String> supply = randomUuids();
-        final String candidate = supply.get();
-        final String sessionId = newSessionId(() -> candidate, 0x42L);
-
-        assertEquals(candidate.substring(0, 28), sessionId.substring(0, 28));
-        assertEquals(candidate.length(), sessionId.length());
-    }
-
-    @Test
-    public void shouldMintDistinctSessionIdsForTheSameAffinity()
-    {
-        final String first = newSessionId(randomUuids(), 7L);
-        final String second = newSessionId(randomUuids(), 7L);
-
-        assertNotEquals(first, second);
-        assertEquals(7L, extractAffinity(first));
-        assertEquals(7L, extractAffinity(second));
-    }
-
-    @Test
-    public void shouldAssertWhenCandidateIsNotUuidLength()
-    {
-        assertThrows(AssertionError.class, () -> newSessionId(() -> "session-1", 7L));
+        assertEquals(0L, extractAffinity("5ca1ab1e-c0de-4a11-5e55-000100000000"));
     }
 
     @Test
