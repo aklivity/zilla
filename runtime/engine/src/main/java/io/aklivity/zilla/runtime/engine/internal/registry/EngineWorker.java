@@ -199,6 +199,7 @@ public class EngineWorker implements EngineContext, Agent
     private final WindowFW.Builder windowRW = new WindowFW.Builder();
 
     private final int localIndex;
+    private final long affinity;
     private final EngineConfiguration config;
     private final LabelManager labels;
     private final String agentName;
@@ -315,6 +316,7 @@ public class EngineWorker implements EngineContext, Agent
         EngineBoss boss)
     {
         this.localIndex = index;
+        this.affinity = (((long) config.nodeId() & 0xffL) << 24) | (index & 0x00ff_ffffL);
         this.config = config;
         this.configPath = Path.of(config.configURI());
         this.localConfigPath = Optional.ofNullable(config.localConfigURI()).map(Path::of);
@@ -476,7 +478,7 @@ public class EngineWorker implements EngineContext, Agent
     @Override
     public long affinity()
     {
-        return (((long) config.nodeId() & 0xffL) << 24) | (localIndex & 0x00ff_ffffL);
+        return affinity;
     }
 
     @Override
