@@ -47,23 +47,11 @@ public final class TestUppercaseAvroModelExtFactorySpi implements AvroModelExtFa
     private static final String REJECT_VALUE = "REJECT";
 
     @Override
-    public String type()
-    {
-        return "test";
-    }
-
-    @Override
     public AvroModelExt create(
         Configuration config)
     {
         return new AvroModelExt()
         {
-            @Override
-            public String name()
-            {
-                return "test";
-            }
-
             @Override
             public AvroModelExtContext supply(
                 EngineContext context)
