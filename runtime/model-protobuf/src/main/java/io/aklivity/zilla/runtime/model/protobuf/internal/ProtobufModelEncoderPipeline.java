@@ -102,6 +102,7 @@ final class ProtobufModelEncoderPipeline implements ModelPipeline
         }
         else
         {
+            active.authorization(authorization);
             boolean last = (flags & FLAGS_FIN) != 0;
             ProtobufPipelineResult proto =
                 active.transform(src, srcIndex, srcIndex + srcLength, last, dst, dstIndex + prefix, dstIndex + dstLength);
