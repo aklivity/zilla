@@ -99,6 +99,7 @@ public final class TestUppercaseProtobufModelExtFactorySpi implements ProtobufMo
         private final Substitute substitute;
         private final ExpandableDirectByteBufferEx captured;
 
+        private ProtobufController upstream;
         private ProtobufField pending;
         private boolean emitting;
         private int capturedLength;
@@ -116,6 +117,7 @@ public final class TestUppercaseProtobufModelExtFactorySpi implements ProtobufMo
             ProtobufEvent event,
             ProtobufSink sink)
         {
+            this.upstream = control;
             Status status;
             switch (event)
             {
@@ -140,6 +142,7 @@ public final class TestUppercaseProtobufModelExtFactorySpi implements ProtobufMo
             ProtobufEvent event,
             ProtobufSink sink)
         {
+            this.upstream = control;
             Status status;
             if (emitting)
             {
@@ -226,7 +229,7 @@ public final class TestUppercaseProtobufModelExtFactorySpi implements ProtobufMo
         }
 
         // the synthesized view fed to the downstream sink in place of an uppercased value
-        private static final class Substitute implements ProtobufSource, ProtobufController
+        private final class Substitute implements ProtobufSource, ProtobufController
         {
             private final UnsafeBufferEx content;
             private final UnsafeBufferEx view;
@@ -256,6 +259,12 @@ public final class TestUppercaseProtobufModelExtFactorySpi implements ProtobufMo
             @Override
             public void segmentable()
             {
+            }
+
+            @Override
+            public long authorization()
+            {
+                return upstream.authorization();
             }
 
             @Override

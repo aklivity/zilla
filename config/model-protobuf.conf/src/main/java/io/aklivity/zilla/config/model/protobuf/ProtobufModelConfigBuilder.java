@@ -85,6 +85,6 @@ public class ProtobufModelConfigBuilder<T> extends ConfigBuilder.Extensible<T, P
     @Override
     public T build()
     {
-        return mapper.apply(new ProtobufModelConfig(catalogs, subject, view, validate, extensions()));
+        return mapper.apply(new ProtobufModelConfig(catalogs, subject, view, validate, extensions(), refs()));
     }
 }

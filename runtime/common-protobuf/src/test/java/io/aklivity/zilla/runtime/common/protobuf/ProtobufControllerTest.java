@@ -22,7 +22,19 @@ public class ProtobufControllerTest
     public void shouldIgnoreConsumedByDefault()
     {
         // a controller that opts out of segment delivery inherits the no-op consumed() pushback
-        ProtobufController control = () -> {};
+        ProtobufController control = new ProtobufController()
+        {
+            @Override
+            public void segmentable()
+            {
+            }
+
+            @Override
+            public long authorization()
+            {
+                return 0L;
+            }
+        };
         control.consumed(5);
     }
 }

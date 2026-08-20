@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.engine.router;
 
+import io.aklivity.zilla.runtime.common.lang.util.function.ObjectIntBiConsumer;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 
 /**
@@ -56,4 +57,32 @@ public interface Router
      */
     RouterContext supply(
         RouteableContext context);
+
+    /**
+     * Resolves a label to its integer label id, registering the label if it has not
+     * been seen before.
+     *
+     * @param label  the label
+     * @return the corresponding integer label id
+     */
+    int supplyLabelId(
+        String label);
+
+    /**
+     * Resolves an integer label id back to its label.
+     *
+     * @param labelId  the label id
+     * @return the corresponding label
+     */
+    String supplyLabel(
+        int labelId);
+
+    /**
+     * Registers a listener invoked whenever a new label is registered via
+     * {@link #supplyLabelId(String)}, anywhere this router is active.
+     *
+     * @param listener  invoked with the newly registered label and its assigned id
+     */
+    void watchLabels(
+        ObjectIntBiConsumer<String> listener);
 }

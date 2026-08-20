@@ -36,6 +36,8 @@
 - fix\(binding-kafka\): reconnect fetch/produce cache fanouts to the updated leader after NOT\_LEADER\_FOR\_PARTITION [\#2399](https://github.com/aklivity/zilla/pull/2399) ([jfallows](https://github.com/jfallows))
 - Revert "Support wildcard-registered subjects in inline catalog" [\#2402](https://github.com/aklivity/zilla/pull/2402) ([jfallows](https://github.com/jfallows))
 - feat\(engine\): worker/node affinity identity and deterministic mcp-session-id embedding [\#2403](https://github.com/aklivity/zilla/pull/2403) ([jfallows](https://github.com/jfallows))
+- feat\(engine\): encapsulate label management in the Router SPI [\#2404](https://github.com/aklivity/zilla/pull/2404) ([jfallows](https://github.com/jfallows))
+- feat\(model-protobuf\): resolve extension refs and thread authorization through the pipeline [\#2405](https://github.com/aklivity/zilla/pull/2405) ([jfallows](https://github.com/jfallows))
 
 ## [2.3.0](https://github.com/aklivity/zilla/tree/2.3.0) (2026-08-14)
 

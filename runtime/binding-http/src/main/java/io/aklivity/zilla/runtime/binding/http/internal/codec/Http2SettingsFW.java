@@ -27,9 +27,9 @@ import static io.aklivity.zilla.runtime.binding.http.internal.stream.Http2Flags.
 import java.util.function.Consumer;
 
 import io.aklivity.zilla.runtime.binding.http.internal.stream.Http2Flags;
-import io.aklivity.zilla.runtime.binding.http.internal.util.function.ObjectIntBiConsumer;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.lang.util.function.ObjectIntBiConsumer;
 
 /*
     Flyweight for HTTP2 SETTINGS frame

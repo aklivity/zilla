@@ -45,6 +45,8 @@ public class ProtobufModelContext implements ModelContext
     public ModelHandler supplyHandler(
         ModelConfig config)
     {
-        return new ProtobufModelHandlerImpl(ProtobufModelConfig.class.cast(config), context, exts);
+        ProtobufModelConfig protobufConfig = ProtobufModelConfig.class.cast(config);
+        exts.forEach(ext -> ext.attach(protobufConfig));
+        return new ProtobufModelHandlerImpl(protobufConfig, context, exts);
     }
 }

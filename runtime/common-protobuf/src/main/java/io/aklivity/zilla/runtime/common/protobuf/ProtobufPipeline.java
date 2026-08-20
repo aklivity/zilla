@@ -83,6 +83,17 @@ public interface ProtobufPipeline
     boolean identity();
 
     /**
+     * Sets the authorization in effect for the next message {@link #transform fed} to this pipeline, reached
+     * by any stage via {@link ProtobufController#authorization()}. The default does nothing, for a pipeline
+     * assembled with no stage that reads it. Call before each {@code transform}, since a reused pipeline
+     * instance carries this value forward otherwise.
+     */
+    default void authorization(
+        long authorization)
+    {
+    }
+
+    /**
      * The number of bytes at the tail of the most recently fed window not yet consumed — exactly what the
      * caller retains (typically in its own reassembly slot) and re-presents, contiguous, at the front of the
      * next {@link #transform}. A caller buffering across windows keeps this many bytes without tracking the

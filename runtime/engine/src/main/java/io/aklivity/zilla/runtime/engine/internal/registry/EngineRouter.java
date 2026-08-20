@@ -15,6 +15,13 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.registry;
 
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import io.aklivity.zilla.runtime.common.lang.util.function.ObjectIntBiConsumer;
 import io.aklivity.zilla.runtime.engine.router.RouteableContext;
 import io.aklivity.zilla.runtime.engine.router.Router;
 import io.aklivity.zilla.runtime.engine.router.RouterContext;
@@ -22,6 +29,19 @@ import io.aklivity.zilla.runtime.engine.router.RouterContext;
 public final class EngineRouter implements Router
 {
     public static final String NAME = "engine";
+
+    private final Map<String, Integer> labelIds;
+    private final Map<Integer, String> labels;
+    private final AtomicInteger nextLabelId;
+    private final List<ObjectIntBiConsumer<String>> listeners;
+
+    public EngineRouter()
+    {
+        this.labelIds = new ConcurrentHashMap<>();
+        this.labels = new ConcurrentHashMap<>();
+        this.nextLabelId = new AtomicInteger();
+        this.listeners = new CopyOnWriteArrayList<>();
+    }
 
     @Override
     public String name()
@@ -33,6 +53,38 @@ public final class EngineRouter implements Router
     public RouterContext supply(
         RouteableContext context)
     {
-        return new EngineRouterContext(context.streamFactory());
+        return new EngineRouterContext(this, context.streamFactory());
+    }
+
+    @Override
+    public int supplyLabelId(
+        String label)
+    {
+        return labelIds.computeIfAbsent(label, this::registerLabel);
+    }
+
+    @Override
+    public String supplyLabel(
+        int labelId)
+    {
+        return labels.get(labelId);
+    }
+
+    @Override
+    public void watchLabels(
+        ObjectIntBiConsumer<String> listener)
+    {
+        listeners.add(listener);
+    }
+
+    private int registerLabel(
+        String label)
+    {
+        int labelId = nextLabelId.incrementAndGet();
+        labels.put(labelId, label);
+
+        listeners.forEach(listener -> listener.accept(label, labelId));
+
+        return labelId;
     }
 }

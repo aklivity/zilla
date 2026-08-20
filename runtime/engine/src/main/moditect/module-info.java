@@ -51,6 +51,7 @@ module io.aklivity.zilla.runtime.engine
     requires java.management;
     requires java.net.http;
     requires transitive io.aklivity.zilla.runtime.common.agrona;
+    requires transitive io.aklivity.zilla.runtime.common.lang;
     requires io.aklivity.zilla.runtime.common.feature;
     requires io.aklivity.zilla.runtime.common.json;
     requires io.aklivity.zilla.runtime.common.yaml;
