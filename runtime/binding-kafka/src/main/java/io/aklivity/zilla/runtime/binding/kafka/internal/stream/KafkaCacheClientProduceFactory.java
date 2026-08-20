@@ -779,10 +779,8 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 onClientFanMemberClosed(traceId, stream);
             }
 
-            if (partitionIndex != NO_CREDITOR_INDEX)
-            {
-                creditor.credit(traceId, partitionIndex, reserved);
-            }
+            assert partitionIndex != NO_CREDITOR_INDEX;
+            creditor.credit(traceId, partitionIndex, reserved);
         }
 
         private void onClientInitialFlush(
@@ -827,10 +825,8 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 onClientFanMemberClosed(traceId, stream);
             }
 
-            if (partitionIndex != NO_CREDITOR_INDEX)
-            {
-                creditor.credit(traceId, partitionIndex, reserved);
-            }
+            assert partitionIndex != NO_CREDITOR_INDEX;
+            creditor.credit(traceId, partitionIndex, reserved);
         }
 
         private void flushClientFanInitialIfNecessary(
@@ -1176,6 +1172,11 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
 
             doClientFanInitialAbortIfNecessary(traceId);
 
+            final KafkaResetExFW kafkaResetEx = kafkaResetExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                                                               .typeId(kafkaTypeId)
+                                                               .error(UNKNOWN_ERROR)
+                                                               .build();
+            members.forEach((s, m) -> m.doClientInitialResetIfNecessary(traceId, kafkaResetEx));
             members.forEach((s, m) -> m.doClientReplyEndIfNecessary(traceId));
 
             state = KafkaState.closedReply(state);
@@ -1188,6 +1189,11 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
 
             doClientFanInitialAbortIfNecessary(traceId);
 
+            final KafkaResetExFW kafkaResetEx = kafkaResetExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                                                               .typeId(kafkaTypeId)
+                                                               .error(UNKNOWN_ERROR)
+                                                               .build();
+            members.forEach((s, m) -> m.doClientInitialResetIfNecessary(traceId, kafkaResetEx));
             members.forEach((s, m) -> m.doClientReplyAbortIfNecessary(traceId));
 
             state = KafkaState.closedReply(state);
