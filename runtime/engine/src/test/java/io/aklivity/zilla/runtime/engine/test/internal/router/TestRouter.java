@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
@@ -29,15 +30,17 @@ public final class TestRouter implements Router
 {
     public static final String NAME = "test";
 
-    private final List<String> labels;
     private final Map<String, Integer> labelIds;
+    private final Map<Integer, String> labels;
+    private final AtomicInteger nextLabelId;
     private final List<BiConsumer<String, Integer>> listeners;
 
     public TestRouter(
         Configuration config)
     {
-        this.labels = new CopyOnWriteArrayList<>();
         this.labelIds = new ConcurrentHashMap<>();
+        this.labels = new ConcurrentHashMap<>();
+        this.nextLabelId = new AtomicInteger();
         this.listeners = new CopyOnWriteArrayList<>();
     }
 
@@ -58,24 +61,14 @@ public final class TestRouter implements Router
     public int supplyLabelId(
         String label)
     {
-        Integer labelId = labelIds.get(label);
-
-        if (labelId == null)
-        {
-            synchronized (labels)
-            {
-                labelId = labelIds.computeIfAbsent(label, this::registerLabel);
-            }
-        }
-
-        return labelId;
+        return labelIds.computeIfAbsent(label, this::registerLabel);
     }
 
     @Override
     public String supplyLabel(
         int labelId)
     {
-        return labels.get(labelId - 1);
+        return labels.get(labelId);
     }
 
     @Override
@@ -88,8 +81,8 @@ public final class TestRouter implements Router
     private int registerLabel(
         String label)
     {
-        labels.add(label);
-        int labelId = labels.size();
+        int labelId = nextLabelId.incrementAndGet();
+        labels.put(labelId, label);
 
         listeners.forEach(listener -> listener.accept(label, labelId));
 

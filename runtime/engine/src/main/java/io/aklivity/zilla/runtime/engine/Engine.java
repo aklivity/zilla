@@ -165,6 +165,7 @@ public final class Engine implements Collector, AutoCloseable
         }
 
         final Router router = RouterFactory.instantiate().create(config.router(), config);
+        bootstrapLabels(router);
         router.watchLabels(this::flushLabel);
 
         Int2ObjectHashMap<ToIntFunction<KindConfig>> maxWorkersByBindingType = new Int2ObjectHashMap<>();
@@ -301,6 +302,27 @@ public final class Engine implements Collector, AutoCloseable
         NamespaceConfig config)
     {
         manager.process(config);
+    }
+
+    private void bootstrapLabels(
+        Router router)
+    {
+        Path labelsPath = config.directory().resolve("labels");
+
+        try
+        {
+            if (Files.exists(labelsPath))
+            {
+                for (String label : Files.readAllLines(labelsPath))
+                {
+                    router.supplyLabelId(label);
+                }
+            }
+        }
+        catch (IOException ex)
+        {
+            rethrowUnchecked(ex);
+        }
     }
 
     private void flushLabel(
