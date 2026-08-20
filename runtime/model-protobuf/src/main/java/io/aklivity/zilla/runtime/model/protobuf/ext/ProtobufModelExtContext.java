@@ -24,6 +24,20 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufSchema;
 public interface ProtobufModelExtContext
 {
     /**
+     * Called once when a binding attaches this configuration, before any schema is resolved or any
+     * stream begins. An extension whose behavior depends on a resource that resolves asynchronously
+     * (e.g. a vault-wrapped key) can use this to kick off that resolution eagerly, from whatever the
+     * configuration alone already determines, so the resource is more likely to already be resolved by
+     * the time a real stream needs it. The default does nothing.
+     *
+     * @param config  the protobuf model configuration
+     */
+    default void attach(
+        ProtobufModelConfig config)
+    {
+    }
+
+    /**
      * Supplies the handler for one resolved schema, bound to a specific {@link ProtobufModelConfig}.
      *
      * @param schema  the resolved schema

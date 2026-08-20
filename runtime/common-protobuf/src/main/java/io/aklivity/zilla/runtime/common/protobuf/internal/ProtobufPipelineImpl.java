@@ -109,6 +109,13 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
     }
 
     @Override
+    public void authorization(
+        long authorization)
+    {
+        control.authorization = authorization;
+    }
+
+    @Override
     public int remaining()
     {
         return parser.remaining();
@@ -334,6 +341,13 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
     private final class Control implements ProtobufController
     {
         private boolean segmented;
+        private long authorization;
+
+        @Override
+        public long authorization()
+        {
+            return authorization;
+        }
 
         @Override
         public ProtobufEnvelope envelope()
