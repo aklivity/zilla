@@ -14,7 +14,9 @@
  */
 package io.aklivity.zilla.runtime.model.json.ext;
 
+import io.aklivity.zilla.config.engine.factory.FactorySpi;
 import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.model.json.internal.JsonModel;
 
 /**
  * Service provider interface for an installed module that contributes its own {@link JsonModelExt} to the
@@ -22,15 +24,19 @@ import io.aklivity.zilla.runtime.engine.Configuration;
  * <p>
  * Implementations must be registered in
  * {@code META-INF/services/io.aklivity.zilla.runtime.model.json.ext.JsonModelExtFactorySpi}. Any number of
- * implementations may be installed at once; every one discovered contributes independently -- unlike a
- * top-level {@code FactorySpi} (e.g. {@code ModelFactorySpi}), there is no {@code type()} to select among
- * installed implementations, so this interface does not extend {@code FactorySpi}.
+ * implementations may be installed at once; every one discovered contributes independently.
  * </p>
  *
  * @see JsonModelExt
  */
-public interface JsonModelExtFactorySpi
+public interface JsonModelExtFactorySpi extends FactorySpi
 {
+    @Override
+    default String type()
+    {
+        return JsonModel.NAME;
+    }
+
     /**
      * Creates a new {@link JsonModelExt} instance for the given engine configuration.
      *

@@ -14,7 +14,9 @@
  */
 package io.aklivity.zilla.runtime.model.core.ext;
 
+import io.aklivity.zilla.config.engine.factory.FactorySpi;
 import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.model.core.internal.BytesModel;
 
 /**
  * Service provider interface for an installed module that contributes its own {@link BytesModelExt} to the
@@ -22,15 +24,19 @@ import io.aklivity.zilla.runtime.engine.Configuration;
  * <p>
  * Implementations must be registered in
  * {@code META-INF/services/io.aklivity.zilla.runtime.model.core.ext.BytesModelExtFactorySpi}. Any number of
- * implementations may be installed at once; every one discovered contributes independently -- unlike a
- * top-level {@code FactorySpi} (e.g. {@code ModelFactorySpi}), there is no {@code type()} to select among
- * installed implementations, so this interface does not extend {@code FactorySpi}.
+ * implementations may be installed at once; every one discovered contributes independently.
  * </p>
  *
  * @see BytesModelExt
  */
-public interface BytesModelExtFactorySpi
+public interface BytesModelExtFactorySpi extends FactorySpi
 {
+    @Override
+    default String type()
+    {
+        return BytesModel.NAME;
+    }
+
     /**
      * Creates a new {@link BytesModelExt} instance for the given engine configuration.
      *
