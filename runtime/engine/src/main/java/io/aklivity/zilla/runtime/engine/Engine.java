@@ -18,15 +18,23 @@ package io.aklivity.zilla.runtime.engine;
 import static io.aklivity.zilla.runtime.engine.internal.layouts.metrics.HistogramsLayout.BUCKETS;
 import static io.aklivity.zilla.runtime.engine.namespace.NamespacedId.NO_LOCAL_ID;
 import static io.aklivity.zilla.runtime.engine.namespace.NamespacedId.NO_NAMESPACE_ID;
+import static java.nio.channels.Channels.newWriter;
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.nio.file.StandardOpenOption.APPEND;
+import static java.nio.file.StandardOpenOption.CREATE;
 import static java.util.concurrent.Executors.newFixedThreadPool;
 import static java.util.stream.Collectors.toList;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
+import java.io.BufferedWriter;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URL;
+import java.nio.channels.FileChannel;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -68,7 +76,6 @@ import io.aklivity.zilla.runtime.engine.ext.EngineExtContext;
 import io.aklivity.zilla.runtime.engine.ext.EngineExtSpi;
 import io.aklivity.zilla.runtime.engine.guard.Guard;
 import io.aklivity.zilla.runtime.engine.internal.Info;
-import io.aklivity.zilla.runtime.engine.internal.LabelManager;
 import io.aklivity.zilla.runtime.engine.internal.Ready;
 import io.aklivity.zilla.runtime.engine.internal.Tuning;
 import io.aklivity.zilla.runtime.engine.internal.event.EngineEventContext;
@@ -157,14 +164,16 @@ public final class Engine implements Collector, AutoCloseable
             throw new EngineNotInitializedException(String.format("Engine not yet initialized: %s", config.directory()));
         }
 
-        LabelManager labels = new LabelManager(config.directory());
+        final Router router = RouterFactory.instantiate().create(config.router(), config);
+        router.watchLabels(this::flushLabel);
+
         Int2ObjectHashMap<ToIntFunction<KindConfig>> maxWorkersByBindingType = new Int2ObjectHashMap<>();
 
         // ensure parity with external labelIds
         for (EngineAffinity affinity : affinities)
         {
-            labels.supplyLabelId(affinity.namespace);
-            labels.supplyLabelId(affinity.binding);
+            router.supplyLabelId(affinity.namespace);
+            router.supplyLabelId(affinity.binding);
         }
 
         for (Binding binding : bindings)
@@ -181,8 +190,8 @@ public final class Engine implements Collector, AutoCloseable
         }
         for (EngineAffinity affinity : affinities)
         {
-            int namespaceId = labels.supplyLabelId(affinity.namespace);
-            int localId = labels.supplyLabelId(affinity.binding);
+            int namespaceId = router.supplyLabelId(affinity.namespace);
+            int localId = router.supplyLabelId(affinity.binding);
             long bindingId = NamespacedId.id(namespaceId, localId);
             tuning.affinity(bindingId, affinity.mask);
         }
@@ -206,7 +215,6 @@ public final class Engine implements Collector, AutoCloseable
             }
         }
 
-        final Router router = RouterFactory.instantiate().create(config.router(), config);
         final RouterConfig routerConfig = RouterConfig.builder()
             .id(0L)
             .name(router.name())
@@ -217,7 +225,7 @@ public final class Engine implements Collector, AutoCloseable
         for (int workerIndex = 0; workerIndex < workerCount; workerIndex++)
         {
             EngineWorker worker =
-                new EngineWorker(config, tasks, labels, diagnoseOnError, tuning::affinity, bindings, exporters,
+                new EngineWorker(config, tasks, diagnoseOnError, tuning::affinity, bindings, exporters,
                     guards, vaults, catalogs, models, metricGroups, stores, router, routerConfig, this,
                     this::supplyEventReader, eventFormatterFactory, workerIndex, readonly, this::process, boss);
             workers.add(worker);
@@ -230,7 +238,7 @@ public final class Engine implements Collector, AutoCloseable
                 .map(Provider::get)
                 .collect(toList());
 
-        final ContextImpl context = new ContextImpl(config, diagnoseOnError, labels::supplyLabelId);
+        final ContextImpl context = new ContextImpl(config, diagnoseOnError, router::supplyLabelId);
 
         final EngineInfo engineInfo = new EngineInfo();
 
@@ -256,8 +264,8 @@ public final class Engine implements Collector, AutoCloseable
             engineInfo,
             bindingsByType::get,
             guardsByType::get,
-            labels::supplyLabelId,
-            labels::lookupLabel,
+            router::supplyLabelId,
+            router::supplyLabel,
             maxWorkers,
             tuning,
             boss,
@@ -293,6 +301,31 @@ public final class Engine implements Collector, AutoCloseable
         NamespaceConfig config)
     {
         manager.process(config);
+    }
+
+    private void flushLabel(
+        String label,
+        int labelId)
+    {
+        Path labelsPath = config.directory().resolve("labels");
+
+        try
+        {
+            Files.createDirectories(labelsPath.getParent());
+
+            try (FileChannel channel = FileChannel.open(labelsPath, CREATE, APPEND))
+            {
+                try (BufferedWriter out = new BufferedWriter(newWriter(channel, UTF_8.name())))
+                {
+                    out.write(label);
+                    out.write('\n');
+                }
+            }
+        }
+        catch (IOException ex)
+        {
+            rethrowUnchecked(ex);
+        }
     }
 
     public void init()

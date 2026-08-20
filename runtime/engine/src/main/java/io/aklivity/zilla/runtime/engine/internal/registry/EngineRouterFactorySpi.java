@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.engine.internal.registry;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.router.RouterFactorySpi;
 
 public final class EngineRouterFactorySpi implements RouterFactorySpi
@@ -30,6 +31,7 @@ public final class EngineRouterFactorySpi implements RouterFactorySpi
     public EngineRouter create(
         Configuration config)
     {
-        return new EngineRouter();
+        EngineConfiguration engineConfig = (EngineConfiguration) config;
+        return new EngineRouter(engineConfig.directory());
     }
 }

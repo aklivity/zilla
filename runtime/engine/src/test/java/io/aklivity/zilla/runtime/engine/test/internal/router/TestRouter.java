@@ -15,6 +15,12 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.router;
 
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.BiConsumer;
+
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.router.RouteableContext;
 import io.aklivity.zilla.runtime.engine.router.Router;
@@ -23,9 +29,16 @@ public final class TestRouter implements Router
 {
     public static final String NAME = "test";
 
+    private final List<String> labels;
+    private final Map<String, Integer> labelIds;
+    private final List<BiConsumer<String, Integer>> listeners;
+
     public TestRouter(
         Configuration config)
     {
+        this.labels = new CopyOnWriteArrayList<>();
+        this.labelIds = new ConcurrentHashMap<>();
+        this.listeners = new CopyOnWriteArrayList<>();
     }
 
     @Override
@@ -38,6 +51,48 @@ public final class TestRouter implements Router
     public TestRouterContext supply(
         RouteableContext context)
     {
-        return new TestRouterContext(context);
+        return new TestRouterContext(this, context);
+    }
+
+    @Override
+    public int supplyLabelId(
+        String label)
+    {
+        Integer labelId = labelIds.get(label);
+
+        if (labelId == null)
+        {
+            synchronized (labels)
+            {
+                labelId = labelIds.computeIfAbsent(label, this::registerLabel);
+            }
+        }
+
+        return labelId;
+    }
+
+    @Override
+    public String supplyLabel(
+        int labelId)
+    {
+        return labels.get(labelId - 1);
+    }
+
+    @Override
+    public void watchLabels(
+        BiConsumer<String, Integer> listener)
+    {
+        listeners.add(listener);
+    }
+
+    private int registerLabel(
+        String label)
+    {
+        labels.add(label);
+        int labelId = labels.size();
+
+        listeners.forEach(listener -> listener.accept(label, labelId));
+
+        return labelId;
     }
 }
