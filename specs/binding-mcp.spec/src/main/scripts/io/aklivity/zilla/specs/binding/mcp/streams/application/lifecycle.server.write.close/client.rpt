@@ -28,7 +28,7 @@ connected
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .lifecycle()
-                              .sessionId("agent-1")
+                              .sessionId("5ca1ab1e-c0de-4a11-b007-000100000000")
                               .build()
                           .build()}
 
@@ -46,7 +46,7 @@ connect await LIFECYCLE_OPEN
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .toolsList()
-                               .sessionId("agent-1")
+                               .sessionId("5ca1ab1e-c0de-4a11-b007-000100000000")
                                .build()
                            .build()}
 

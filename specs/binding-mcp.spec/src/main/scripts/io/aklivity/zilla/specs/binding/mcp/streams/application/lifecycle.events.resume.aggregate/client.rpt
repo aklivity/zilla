@@ -28,7 +28,7 @@ connected
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .lifecycle()
-                              .sessionId("session-1a")
+                              .sessionId("5ca1ab1e-c0de-4a11-5e55-000a00000000")
                               .build()
                           .build()}
 
@@ -62,7 +62,7 @@ connected
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .lifecycle()
-                              .sessionId("session-1b")
+                              .sessionId("5ca1ab1e-c0de-4a11-5e55-000b00000000")
                               .build()
                           .build()}
 

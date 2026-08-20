@@ -85,7 +85,7 @@ public final class HttpRouteConfig
         long affinity)
     {
         return new HttpRouteAffinity(
-            context.supplyInitialId(id, Long.hashCode(affinity)),
+            context.supplyInitialId(id, affinity),
             affinity);
     }
 

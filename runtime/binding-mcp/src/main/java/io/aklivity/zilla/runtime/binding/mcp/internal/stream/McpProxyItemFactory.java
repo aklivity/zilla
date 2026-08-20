@@ -20,8 +20,10 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.function.LongBinaryOperator;
 import java.util.function.LongFunction;
 import java.util.function.LongUnaryOperator;
+import java.util.function.ToLongFunction;
 
 import io.aklivity.zilla.config.binding.mcp.McpCacheToolsSearchConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
@@ -58,7 +60,6 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
-import io.aklivity.zilla.runtime.engine.util.function.LongIntToLongFunction;
 
 abstract class McpProxyItemFactory implements BindingHandler
 {
@@ -140,10 +141,11 @@ abstract class McpProxyItemFactory implements BindingHandler
     private final MutableDirectBufferEx codecBuffer;
     private final MutableDirectBufferEx extBuffer;
     private final BindingHandler streamFactory;
-    private final LongIntToLongFunction supplyInitialIdHash;
+    private final LongBinaryOperator supplyInitialIdAffinity;
     private final LongUnaryOperator supplyReplyId;
     private final int mcpTypeId;
     private final LongFunction<McpBindingConfig> supplyBinding;
+    private final ToLongFunction<String> sessionIdAffinity;
     private final int kind;
 
     // reusable, growable per-worker scratch arrays shared by both search-family tools' response
@@ -166,10 +168,11 @@ abstract class McpProxyItemFactory implements BindingHandler
         this.codecBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
         this.extBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
         this.streamFactory = context.streamFactory();
-        this.supplyInitialIdHash = context::supplyInitialId;
+        this.supplyInitialIdAffinity = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.mcpTypeId = context.supplyTypeId(MCP_TYPE_NAME);
         this.supplyBinding = supplyBinding;
+        this.sessionIdAffinity = config.sessionIdAffinity();
         this.kind = kind;
     }
 
@@ -2339,7 +2342,7 @@ abstract class McpProxyItemFactory implements BindingHandler
             final String sid = lifecycle.sessionId;
             if (sid != null)
             {
-                initialId = supplyInitialIdHash.apply(routedId, sid.hashCode());
+                initialId = supplyInitialIdAffinity.applyAsLong(routedId, sessionIdAffinity.applyAsLong(sid));
                 replyId = supplyReplyId.applyAsLong(initialId);
 
                 final McpBeginExFW beginEx = mcpBeginExRW
