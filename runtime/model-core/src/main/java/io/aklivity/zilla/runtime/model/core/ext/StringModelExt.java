@@ -24,13 +24,6 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 public interface StringModelExt
 {
     /**
-     * Returns a name identifying this extension, for diagnostics.
-     *
-     * @return the extension name
-     */
-    String name();
-
-    /**
      * Supplies the per-worker context for this extension.
      *
      * @param context  the engine context for the current worker

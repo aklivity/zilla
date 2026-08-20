@@ -42,23 +42,11 @@ public final class TestUppercaseBytesModelExtFactorySpi implements BytesModelExt
     static final String DIAGNOSTIC = "test-uppercase rejected";
 
     @Override
-    public String type()
-    {
-        return "test";
-    }
-
-    @Override
     public BytesModelExt create(
         Configuration config)
     {
         return new BytesModelExt()
         {
-            @Override
-            public String name()
-            {
-                return "test-uppercase";
-            }
-
             @Override
             public BytesModelExtContext supply(
                 EngineContext context)

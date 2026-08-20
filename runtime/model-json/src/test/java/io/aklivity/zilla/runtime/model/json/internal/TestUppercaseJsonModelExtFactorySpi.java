@@ -48,23 +48,11 @@ public final class TestUppercaseJsonModelExtFactorySpi implements JsonModelExtFa
     private static final String REJECT_VALUE = "REJECT";
 
     @Override
-    public String type()
-    {
-        return "test";
-    }
-
-    @Override
     public JsonModelExt create(
         Configuration config)
     {
         return new JsonModelExt()
         {
-            @Override
-            public String name()
-            {
-                return "test";
-            }
-
             @Override
             public JsonModelExtContext supply(
                 EngineContext context)
