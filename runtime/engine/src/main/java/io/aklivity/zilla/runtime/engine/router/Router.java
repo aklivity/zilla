@@ -15,9 +15,8 @@
  */
 package io.aklivity.zilla.runtime.engine.router;
 
-import java.util.function.BiConsumer;
-
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.util.function.ObjectIntBiConsumer;
 
 /**
  * Entry point for a stream factory composition plugin.
@@ -85,5 +84,5 @@ public interface Router
      * @param listener  invoked with the newly registered label and its assigned id
      */
     void watchLabels(
-        BiConsumer<String, Integer> listener);
+        ObjectIntBiConsumer<String> listener);
 }

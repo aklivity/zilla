@@ -20,11 +20,11 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.BiConsumer;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.router.RouteableContext;
 import io.aklivity.zilla.runtime.engine.router.Router;
+import io.aklivity.zilla.runtime.engine.util.function.ObjectIntBiConsumer;
 
 public final class TestRouter implements Router
 {
@@ -33,7 +33,7 @@ public final class TestRouter implements Router
     private final Map<String, Integer> labelIds;
     private final Map<Integer, String> labels;
     private final AtomicInteger nextLabelId;
-    private final List<BiConsumer<String, Integer>> listeners;
+    private final List<ObjectIntBiConsumer<String>> listeners;
 
     public TestRouter(
         Configuration config)
@@ -73,7 +73,7 @@ public final class TestRouter implements Router
 
     @Override
     public void watchLabels(
-        BiConsumer<String, Integer> listener)
+        ObjectIntBiConsumer<String> listener)
     {
         listeners.add(listener);
     }
