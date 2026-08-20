@@ -37,23 +37,11 @@ public final class TestMarkedBytesModelExtFactorySpi implements BytesModelExtFac
     static final int MARKER = 0x01;
 
     @Override
-    public String type()
-    {
-        return "test-marked";
-    }
-
-    @Override
     public BytesModelExt create(
         Configuration config)
     {
         return new BytesModelExt()
         {
-            @Override
-            public String name()
-            {
-                return "test-marked";
-            }
-
             @Override
             public BytesModelExtContext supply(
                 EngineContext context)

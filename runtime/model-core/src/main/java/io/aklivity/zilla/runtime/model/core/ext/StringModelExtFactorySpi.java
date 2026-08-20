@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.model.core.ext;
 
 import io.aklivity.zilla.config.engine.factory.FactorySpi;
 import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.model.core.internal.StringModel;
 
 /**
  * Service provider interface for an installed module that contributes its own {@link StringModelExt} to
@@ -30,6 +31,12 @@ import io.aklivity.zilla.runtime.engine.Configuration;
  */
 public interface StringModelExtFactorySpi extends FactorySpi
 {
+    @Override
+    default String type()
+    {
+        return StringModel.NAME;
+    }
+
     /**
      * Creates a new {@link StringModelExt} instance for the given engine configuration.
      *
