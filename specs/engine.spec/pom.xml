@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>specs</artifactId>
-    <version>2.4.0-rc5</version>
+    <version>2.4.0-rc6</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -95,7 +95,7 @@
         <artifactId>flyweight-maven-plugin</artifactId>
         <version>${project.version}</version>
         <configuration>
-          <scopeNames>core</scopeNames>
+          <scopeNames>core test</scopeNames>
           <packageName>io.aklivity.zilla.specs.engine.internal.types</packageName>
         </configuration>
         <executions>

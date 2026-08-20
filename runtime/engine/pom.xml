@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>runtime</artifactId>
-    <version>2.4.0-rc5</version>
+    <version>2.4.0-rc6</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -180,16 +180,27 @@
         <artifactId>flyweight-maven-plugin</artifactId>
         <version>${project.version}</version>
         <configuration>
-          <scopeNames>core</scopeNames>
           <packageName>io.aklivity.zilla.runtime.engine.internal.types</packageName>
           <testPackageName>io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types</testPackageName>
         </configuration>
         <executions>
           <execution>
+            <id>generate</id>
             <goals>
               <goal>generate</goal>
+            </goals>
+            <configuration>
+              <scopeNames>core</scopeNames>
+            </configuration>
+          </execution>
+          <execution>
+            <id>test-generate</id>
+            <goals>
               <goal>test-generate</goal>
             </goals>
+            <configuration>
+              <scopeNames>core test</scopeNames>
+            </configuration>
           </execution>
         </executions>
       </plugin>

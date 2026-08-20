@@ -23,6 +23,7 @@ import java.security.KeyFactory;
 import java.security.KeyStore;
 import java.security.KeyStore.TrustedCertificateEntry;
 import java.security.PrivateKey;
+import java.security.SecureRandom;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateFactory;
 import java.security.spec.KeySpec;
@@ -30,10 +31,16 @@ import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.crypto.Cipher;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.GCMParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.TrustManagerFactory;
 
@@ -42,6 +49,11 @@ import org.agrona.LangUtil;
 import io.aklivity.zilla.config.engine.VaultConfig;
 import io.aklivity.zilla.config.engine.test.internal.vault.config.TestVaultEntryConfig;
 import io.aklivity.zilla.config.engine.test.internal.vault.config.TestVaultOptionsConfig;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.engine.vault.SecretKeyManager;
+import io.aklivity.zilla.runtime.engine.vault.SecretKeyManagerFactory;
 import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
 
 public final class TestVaultHandler implements VaultHandler
@@ -51,9 +63,20 @@ public final class TestVaultHandler implements VaultHandler
             "(?<key>-----BEGIN PRIVATE KEY-----[^-]+-----END PRIVATE KEY-----[^-]*)" +
             "(?<chain>(?:-----BEGIN CERTIFICATE-----[^-]+-----END CERTIFICATE-----[^-]*)+)");
 
+    private static final Pattern PATTERN_SECRET_KEY_ENTRY =
+        Pattern.compile("-----BEGIN SECRET KEY-----(?<body>[^-]+)-----END SECRET KEY-----");
+
+    private static final String KEY_ALGORITHM = "AES";
+    private static final String CIPHER_TRANSFORM = "AES/GCM/NoPadding";
+    private static final int GCM_IV_LENGTH = 12;
+    private static final int GCM_TAG_LENGTH_BITS = 128;
+
+    private static final SecureRandom RANDOM = new SecureRandom();
+
     private final List<TestVaultEntryConfig> keys;
     private final TestVaultEntryConfig signer;
     private final List<TestVaultEntryConfig> trust;
+    private final Map<String, SecretKey> wraps;
 
     public TestVaultHandler(
         VaultConfig vault)
@@ -62,6 +85,123 @@ public final class TestVaultHandler implements VaultHandler
         this.keys = options != null ? options.keys : null;
         this.signer = options != null ? options.signer : null;
         this.trust = options != null ? options.trust : null;
+        this.wraps = options != null ? newWraps(options.wrap) : null;
+    }
+
+    private static Map<String, SecretKey> newWraps(
+        List<TestVaultEntryConfig> wrap)
+    {
+        Map<String, SecretKey> wraps = null;
+
+        if (wrap != null)
+        {
+            wraps = new HashMap<>();
+            for (TestVaultEntryConfig config : wrap)
+            {
+                wraps.put(config.alias, newSecretKey(config.entry));
+            }
+        }
+
+        return wraps;
+    }
+
+    private static SecretKey newSecretKey(
+        String pem)
+    {
+        SecretKey key = null;
+
+        Matcher matcher = PATTERN_SECRET_KEY_ENTRY.matcher(pem);
+        if (matcher.find())
+        {
+            String base64 = matcher.group("body").replaceAll("[^a-zA-Z0-9+/=]", "");
+            byte[] encoded = Base64.getMimeDecoder().decode(base64);
+            key = new SecretKeySpec(encoded, KEY_ALGORITHM);
+        }
+
+        return key;
+    }
+
+    @Override
+    public void wrap(
+        long traceId,
+        String key,
+        DirectBufferEx bytes,
+        int index,
+        int length,
+        BytesConsumer next)
+    {
+        SecretKey secretKey = wraps != null ? wraps.get(key) : null;
+
+        if (secretKey == null)
+        {
+            next.accept(null, 0, 0);
+        }
+        else
+        {
+            try
+            {
+                byte[] iv = new byte[GCM_IV_LENGTH];
+                RANDOM.nextBytes(iv);
+
+                byte[] plaintext = new byte[length];
+                bytes.getBytes(index, plaintext);
+
+                Cipher cipher = Cipher.getInstance(CIPHER_TRANSFORM);
+                cipher.init(Cipher.ENCRYPT_MODE, secretKey, new GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv));
+                byte[] ciphertext = cipher.doFinal(plaintext);
+
+                byte[] wrapped = new byte[iv.length + ciphertext.length];
+                System.arraycopy(iv, 0, wrapped, 0, iv.length);
+                System.arraycopy(ciphertext, 0, wrapped, iv.length, ciphertext.length);
+
+                next.accept(new UnsafeBufferEx(wrapped), 0, wrapped.length);
+            }
+            catch (Exception ex)
+            {
+                next.accept(null, 0, 0);
+            }
+        }
+    }
+
+    @Override
+    public void unwrap(
+        long traceId,
+        String key,
+        DirectBufferEx bytes,
+        int index,
+        int length,
+        BytesConsumer next)
+    {
+        SecretKey secretKey = wraps != null ? wraps.get(key) : null;
+
+        if (secretKey == null || length < GCM_IV_LENGTH)
+        {
+            next.accept(null, 0, 0);
+        }
+        else
+        {
+            try
+            {
+                // codeql[java/static-initialization-vector]
+                byte[] iv = new byte[GCM_IV_LENGTH];
+                bytes.getBytes(index, iv);
+
+                int ciphertextLength = length - GCM_IV_LENGTH;
+                byte[] ciphertext = new byte[ciphertextLength];
+                bytes.getBytes(index + GCM_IV_LENGTH, ciphertext);
+
+                Cipher cipher = Cipher.getInstance(CIPHER_TRANSFORM);
+                GCMParameterSpec spec = new GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv);
+                cipher.init(Cipher.DECRYPT_MODE, secretKey, spec);
+                byte[] plaintext = cipher.doFinal(ciphertext);
+
+                next.accept(new UnsafeBufferEx(plaintext), 0, plaintext.length);
+            }
+            catch (Exception ex)
+            {
+                next.accept(null, 0, 0);
+            }
+        }
     }
 
     @Override
@@ -259,5 +399,123 @@ public final class TestVaultHandler implements VaultHandler
             }
         }
         return matched;
+    }
+
+    @Override
+    public SecretKeyManagerFactory initSecretKeys(
+        List<String> aliases)
+    {
+        Map<String, SecretKey> matched = matchedWraps(aliases);
+        SecretKeyManager manager = !matched.isEmpty() ? new TestSecretKeyManager(matched) : null;
+        return manager != null ? () -> manager : null;
+    }
+
+    private Map<String, SecretKey> matchedWraps(
+        List<String> aliases)
+    {
+        Map<String, SecretKey> matched = new HashMap<>();
+        if (aliases != null && wraps != null)
+        {
+            for (String alias : aliases)
+            {
+                SecretKey key = wraps.get(alias);
+                if (key != null)
+                {
+                    matched.put(alias, key);
+                }
+            }
+        }
+        return matched;
+    }
+
+    private static final class TestSecretKeyManager implements SecretKeyManager
+    {
+        private final Map<String, SecretKey> keys;
+
+        private TestSecretKeyManager(
+            Map<String, SecretKey> keys)
+        {
+            this.keys = keys;
+        }
+
+        @Override
+        public int wrap(
+            String keyName,
+            DirectBufferEx bytes,
+            int index,
+            int length,
+            MutableDirectBufferEx dst,
+            int dstIndex)
+        {
+            SecretKey secretKey = keys.get(keyName);
+            int written = -1;
+
+            if (secretKey != null)
+            {
+                try
+                {
+                    byte[] iv = new byte[GCM_IV_LENGTH];
+                    RANDOM.nextBytes(iv);
+
+                    byte[] plaintext = new byte[length];
+                    bytes.getBytes(index, plaintext);
+
+                    Cipher cipher = Cipher.getInstance(CIPHER_TRANSFORM);
+                    cipher.init(Cipher.ENCRYPT_MODE, secretKey, new GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv));
+                    byte[] ciphertext = cipher.doFinal(plaintext);
+
+                    dst.putBytes(dstIndex, iv);
+                    dst.putBytes(dstIndex + iv.length, ciphertext);
+                    written = iv.length + ciphertext.length;
+                }
+                catch (Exception ex)
+                {
+                    written = -1;
+                }
+            }
+
+            return written;
+        }
+
+        @Override
+        public int unwrap(
+            String keyName,
+            DirectBufferEx bytes,
+            int index,
+            int length,
+            MutableDirectBufferEx dst,
+            int dstIndex)
+        {
+            SecretKey secretKey = keys.get(keyName);
+            int written = -1;
+
+            if (secretKey != null && length >= GCM_IV_LENGTH)
+            {
+                try
+                {
+                    // codeql[java/static-initialization-vector]
+                    byte[] iv = new byte[GCM_IV_LENGTH];
+                    bytes.getBytes(index, iv);
+
+                    int ciphertextLength = length - GCM_IV_LENGTH;
+                    byte[] ciphertext = new byte[ciphertextLength];
+                    bytes.getBytes(index + GCM_IV_LENGTH, ciphertext);
+
+                    Cipher cipher = Cipher.getInstance(CIPHER_TRANSFORM);
+                    GCMParameterSpec spec = new GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv);
+                    cipher.init(Cipher.DECRYPT_MODE, secretKey, spec);
+                    byte[] plaintext = cipher.doFinal(ciphertext);
+
+                    dst.putBytes(dstIndex, plaintext);
+                    written = plaintext.length;
+                }
+                catch (Exception ex)
+                {
+                    written = -1;
+                }
+            }
+
+            return written;
+        }
     }
 }

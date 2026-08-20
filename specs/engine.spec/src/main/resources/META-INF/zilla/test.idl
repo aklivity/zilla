@@ -13,21 +13,20 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.util.function;
-
-/**
- * A predicate that accepts one {@code long} and one {@code int} argument,
- * avoiding the boxing overhead of {@link java.util.function.BiPredicate BiPredicate&lt;Long, Integer&gt;}.
- */
-@FunctionalInterface
-public interface LongIntPredicate
+scope test
 {
-    /**
-     * Evaluates this predicate on the given arguments.
-     *
-     * @param value1  the {@code long} argument
-     * @param value2  the {@code int} argument
-     * @return {@code true} if the input arguments match the predicate, otherwise {@code false}
-     */
-    boolean test(long value1, int value2);
+    scope stream
+    {
+        struct TestEnvelopeValue
+        {
+            string8 name;
+            varint32 length;
+            octets[length] value = null;
+        }
+
+        struct TestDataEx extends core::stream::Extension
+        {
+            TestEnvelopeValue[] values;
+        }
+    }
 }

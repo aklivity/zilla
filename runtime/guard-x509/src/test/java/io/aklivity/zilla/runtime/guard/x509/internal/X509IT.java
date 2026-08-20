@@ -47,12 +47,15 @@ public class X509IT
     public final TestRule chain = outerRule(k3po).around(engine).around(timeout);
 
     // the guarded route authorizes against the roles the guard resolved from the chain,
-    // and the test binding asserts the identity and attributes the guard exposes
+    // and the test binding asserts the identity and attributes the guard exposes -- net0's
+    // authorization config resolves a real (non-zero) session via the x509 guard, so the
+    // exit-side app0 accept must declare the matching authorization the engine now actually
+    // propagates (see TestBindingFactory) -- the plain handshake scripts assume none at all
     @Test
     @Configuration("zilla.yaml")
     @Specification({
         "${net}/handshake/client",
-        "${app}/handshake/server" })
+        "${app}/handshake.authorized/server" })
     public void shouldAuthorizeGuardedRoute() throws Exception
     {
         k3po.finish();

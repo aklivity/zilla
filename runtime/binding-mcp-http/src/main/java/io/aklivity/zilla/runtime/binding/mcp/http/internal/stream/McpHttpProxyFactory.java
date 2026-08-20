@@ -32,8 +32,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.function.LongFunction;
 import java.util.function.LongUnaryOperator;
-import java.util.function.Supplier;
 
 import jakarta.json.Json;
 import jakarta.json.JsonArrayBuilder;
@@ -92,7 +92,6 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
-import io.aklivity.zilla.runtime.engine.util.function.LongIntPredicate;
 
 public final class McpHttpProxyFactory implements BindingHandler
 {
@@ -166,9 +165,8 @@ public final class McpHttpProxyFactory implements BindingHandler
     private final Function<McpHttpToolConfig, List<String>> newToolResultReferencesFn = this::newToolResultReferences;
 
     private final Map<String, McpSession> sessions;
-    private final Supplier<String> supplySessionId;
-    private final int sessionIdAttempts;
-    private final LongIntPredicate isLocalIndex;
+    private final LongFunction<String> supplySessionId;
+    private final long affinity;
     private final String clientExit;
 
     public McpHttpProxyFactory(
@@ -191,8 +189,7 @@ public final class McpHttpProxyFactory implements BindingHandler
         this.toolResultReferences = new IdentityHashMap<>();
         this.sessions = new Object2ObjectHashMap<>();
         this.supplySessionId = config.sessionIdSupplier();
-        this.sessionIdAttempts = config.sessionIdAttempts();
-        this.isLocalIndex = context::isLocalIndex;
+        this.affinity = context.affinity();
         this.clientExit = config.clientExit();
     }
 
@@ -236,12 +233,9 @@ public final class McpHttpProxyFactory implements BindingHandler
             if (kind == KIND_LIFECYCLE)
             {
                 final int capabilities = beginEx.lifecycle().capabilities();
-                final String sessionId = newSessionId(routedId);
-                if (sessionId != null)
-                {
-                    newStream = new McpSession(sessionId, capabilities,
-                        sender, originId, routedId, initialId, authorization, affinity)::onMcpMessage;
-                }
+                final String sessionId = newSessionId();
+                newStream = new McpSession(sessionId, capabilities,
+                    sender, originId, routedId, initialId, authorization, affinity)::onMcpMessage;
             }
             else
             {
@@ -2355,20 +2349,9 @@ public final class McpHttpProxyFactory implements BindingHandler
         return sessionId;
     }
 
-    private String newSessionId(
-        long routedId)
+    private String newSessionId()
     {
-        String sessionId = null;
-        for (int attempt = 0; attempt < sessionIdAttempts; attempt++)
-        {
-            final String candidate = supplySessionId.get();
-            if (isLocalIndex.test(routedId, candidate.hashCode()))
-            {
-                sessionId = candidate;
-                break;
-            }
-        }
-        return sessionId;
+        return supplySessionId.apply(affinity);
     }
 
     // Memoizes argReferences(route.with.headers.get(HEADER_PATH)) per route: the result depends only on

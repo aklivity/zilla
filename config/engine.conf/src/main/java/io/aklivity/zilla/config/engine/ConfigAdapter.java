@@ -41,7 +41,7 @@ public abstract class ConfigAdapter<T extends Config, A> implements JsonbAdapter
         }
 
         protected final void injectExtensions(
-            T config,
+            Config.Extensible config,
             JsonObjectBuilder builder)
         {
             extensions.forEach(extension -> extension.adaptToJson(config, builder));

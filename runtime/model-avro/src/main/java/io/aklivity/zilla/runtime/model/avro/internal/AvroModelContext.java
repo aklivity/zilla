@@ -45,6 +45,8 @@ public class AvroModelContext implements ModelContext
     public ModelHandler supplyHandler(
         ModelConfig options)
     {
-        return new AvroModelHandlerImpl(config, AvroModelConfig.class.cast(options), context, exts);
+        AvroModelConfig avroOptions = AvroModelConfig.class.cast(options);
+        exts.forEach(ext -> ext.attach(avroOptions));
+        return new AvroModelHandlerImpl(config, avroOptions, context, exts);
     }
 }

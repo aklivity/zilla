@@ -101,6 +101,13 @@ final class AvroPipelineImpl implements AvroPipeline
     }
 
     @Override
+    public void authorization(
+        long authorization)
+    {
+        control.authorization = authorization;
+    }
+
+    @Override
     public int remaining()
     {
         return parser.remaining();
@@ -296,6 +303,7 @@ final class AvroPipelineImpl implements AvroPipeline
         private final AvroEnvelope envelope;
 
         private boolean segmented;
+        private long authorization;
 
         private Control(
             AvroParser parser,
@@ -303,6 +311,12 @@ final class AvroPipelineImpl implements AvroPipeline
         {
             this.parser = parser;
             this.envelope = envelope;
+        }
+
+        @Override
+        public long authorization()
+        {
+            return authorization;
         }
 
         @Override

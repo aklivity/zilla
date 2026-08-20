@@ -860,9 +860,11 @@ public class McpClientIT
         k3po.finish();
     }
 
-    public static String sessionId()
+    public static String sessionId(
+        long affinity)
     {
-        return "session-1";
+        assert affinity == 0L;
+        return "5ca1ab1e-c0de-4a11-5e55-000100000000";
     }
 
     public static String elicitationId()

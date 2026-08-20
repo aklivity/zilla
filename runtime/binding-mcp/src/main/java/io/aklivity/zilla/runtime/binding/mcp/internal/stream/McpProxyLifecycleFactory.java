@@ -24,7 +24,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.LongFunction;
 import java.util.function.LongUnaryOperator;
-import java.util.function.Supplier;
 
 import org.agrona.collections.Long2ObjectHashMap;
 
@@ -67,7 +66,6 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
-import io.aklivity.zilla.runtime.engine.util.function.LongIntPredicate;
 
 final class McpProxyLifecycleFactory implements BindingHandler
 {
@@ -115,9 +113,8 @@ final class McpProxyLifecycleFactory implements BindingHandler
     private final LongUnaryOperator supplyReplyId;
     private final int mcpTypeId;
     private final LongFunction<McpBindingConfig> supplyBinding;
-    private final Supplier<String> supplySessionId;
-    private final LongIntPredicate isLocalIndex;
-    private final int sessionIdAttempts;
+    private final LongFunction<String> supplySessionId;
+    private final long affinity;
 
     McpProxyLifecycleFactory(
         McpConfiguration config,
@@ -136,8 +133,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
         this.mcpTypeId = context.supplyTypeId(MCP_TYPE_NAME);
         this.supplyBinding = supplyBinding;
         this.supplySessionId = config.sessionIdSupplier();
-        this.isLocalIndex = context::isLocalIndex;
-        this.sessionIdAttempts = config.sessionIdAttempts();
+        this.affinity = context.affinity();
     }
 
     @FunctionalInterface
@@ -174,7 +170,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
             assert requestSessionId == null;
 
             final McpRouteConfig route = binding.resolve(beginEx, authorization);
-            final String sessionId = route != null ? newSessionId(routedId) : null;
+            final String sessionId = route != null ? newSessionId() : null;
             if (sessionId != null)
             {
                 final int clientCapabilities = beginEx.lifecycle().capabilities();
@@ -190,10 +186,9 @@ final class McpProxyLifecycleFactory implements BindingHandler
         return newStream;
     }
 
-    private String newSessionId(
-        long bindingId)
+    private String newSessionId()
     {
-        return McpSessionId.newSessionId(bindingId, sessionIdAttempts, supplySessionId, isLocalIndex);
+        return supplySessionId.apply(affinity);
     }
 
     McpLifecycleServer newHydrationLifecycle(
@@ -202,7 +197,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
         long bindingId,
         long authorization)
     {
-        final String sessionId = newSessionId(bindingId);
+        final String sessionId = newSessionId();
         return new McpLifecycleServer(
             binding, sink, bindingId, bindingId, supplyInitialId.applyAsLong(bindingId),
             0L, authorization, 0, sessionId, null, true);

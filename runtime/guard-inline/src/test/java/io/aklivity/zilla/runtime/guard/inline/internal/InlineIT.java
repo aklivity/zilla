@@ -51,11 +51,14 @@ public class InlineIT
     @Rule
     public final TestRule chain = outerRule(k3po).around(engine).around(timeout);
 
+    // net0's authorization config resolves a real (non-zero) session via the inline guard, so the
+    // exit-side app0 accept must declare the matching authorization the engine now actually propagates
+    // (see TestBindingFactory) -- the plain handshake scripts assume no authorization at all
     @Test
     @Configuration("zilla.yaml")
     @Specification({
         "${net}/handshake/client",
-        "${app}/handshake/server" })
+        "${app}/handshake.authorized/server" })
     public void shouldReauthorize() throws Exception
     {
         k3po.finish();

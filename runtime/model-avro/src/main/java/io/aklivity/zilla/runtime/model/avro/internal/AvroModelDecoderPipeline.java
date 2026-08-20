@@ -113,6 +113,7 @@ final class AvroModelDecoderPipeline implements ModelPipeline
         }
         else
         {
+            active.authorization(authorization);
             boolean last = (flags & FLAGS_FIN) != 0;
             AvroPipelineResult avro =
                 active.transform(src, srcIndex + prefix, srcIndex + srcLength, last, dst, dstIndex, dstIndex + dstLength);

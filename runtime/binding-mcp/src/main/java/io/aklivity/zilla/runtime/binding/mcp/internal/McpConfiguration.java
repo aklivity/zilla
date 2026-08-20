@@ -18,7 +18,6 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeg
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_LIST;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_TEMPLATES_LIST;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_LIST;
-import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKERS;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
@@ -30,7 +29,9 @@ import java.util.HexFormat;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.IntPredicate;
+import java.util.function.LongFunction;
 import java.util.function.Supplier;
+import java.util.function.ToLongFunction;
 
 import org.agrona.LangUtil;
 
@@ -41,7 +42,8 @@ public class McpConfiguration extends Configuration
 {
     private static final ConfigurationDef MCP_CONFIG;
 
-    public static final PropertyDef<SessionIdSupplier> MCP_SESSION_ID;
+    public static final PropertyDef<LongFunction<String>> MCP_SESSION_ID;
+    public static final PropertyDef<ToLongFunction<String>> MCP_SESSION_ID_AFFINITY;
     public static final PropertyDef<ElicitationIdSupplier> MCP_ELICITATION_ID;
     public static final PropertyDef<ElicitationIdSupplier> MCP_ELICIT_CORRELATION_ID;
     public static final PropertyDef<String> MCP_SERVER_NAME;
@@ -49,7 +51,6 @@ public class McpConfiguration extends Configuration
     public static final PropertyDef<String> MCP_CLIENT_NAME;
     public static final PropertyDef<String> MCP_CLIENT_VERSION;
     public static final PropertyDef<Duration> MCP_INACTIVITY_TIMEOUT;
-    public static final IntPropertyDef MCP_SESSION_ID_ATTEMPTS;
     public static final IntPropertyDef MCP_KEEPALIVE_TOLERANCE;
     public static final PropertyDef<Duration> MCP_SSE_KEEPALIVE_INTERVAL;
     public static final BooleanPropertyDef MCP_ALT_SVC_ENABLED;
@@ -61,8 +62,15 @@ public class McpConfiguration extends Configuration
     static
     {
         final ConfigurationDef config = new ConfigurationDef("zilla.binding.mcp");
-        MCP_SESSION_ID = config.property(SessionIdSupplier.class, "session.id",
-            McpConfiguration::decodeSessionIdSupplier, McpConfiguration::defaultSessionIdSupplier);
+        @SuppressWarnings("unchecked")
+        final Class<LongFunction<String>> sessionIdKind = (Class<LongFunction<String>>) (Class<?>) LongFunction.class;
+        MCP_SESSION_ID = config.property(sessionIdKind, "session.id",
+            McpConfiguration::decodeSessionIdSupplier, McpConfiguration::newSessionId);
+        @SuppressWarnings("unchecked")
+        final Class<ToLongFunction<String>> sessionIdAffinityKind =
+            (Class<ToLongFunction<String>>) (Class<?>) ToLongFunction.class;
+        MCP_SESSION_ID_AFFINITY = config.property(sessionIdAffinityKind, "session.id.affinity",
+            McpConfiguration::decodeSessionIdAffinity, McpConfiguration::defaultSessionIdAffinity);
         MCP_ELICITATION_ID = config.property(ElicitationIdSupplier.class, "elicitation.id",
             McpConfiguration::decodeElicitationIdSupplier, McpConfiguration::defaultElicitationIdSupplier);
         MCP_ELICIT_CORRELATION_ID = config.property(ElicitationIdSupplier.class, "elicit.correlation.id",
@@ -77,8 +85,6 @@ public class McpConfiguration extends Configuration
             McpConfiguration::defaultServerVersion);
         MCP_INACTIVITY_TIMEOUT = config.property(Duration.class, "inactivity.timeout",
             (c, v) -> Duration.parse(v), "PT60S");
-        MCP_SESSION_ID_ATTEMPTS = config.property("session.id.attempts",
-            McpConfiguration::defaultSessionIdAttempts);
         MCP_KEEPALIVE_TOLERANCE = config.property("keepalive.tolerance", 2);
         MCP_SSE_KEEPALIVE_INTERVAL = config.property(Duration.class, "sse.keepalive.interval",
             (c, v) -> Duration.parse(v), "PT15S");
@@ -105,9 +111,14 @@ public class McpConfiguration extends Configuration
         super(MCP_CONFIG, config);
     }
 
-    public Supplier<String> sessionIdSupplier()
+    public LongFunction<String> sessionIdSupplier()
     {
-        return MCP_SESSION_ID.get(this)::get;
+        return MCP_SESSION_ID.get(this);
+    }
+
+    public ToLongFunction<String> sessionIdAffinity()
+    {
+        return MCP_SESSION_ID_AFFINITY.get(this);
     }
 
     public Supplier<String> elicitationIdSupplier()
@@ -150,11 +161,6 @@ public class McpConfiguration extends Configuration
         return MCP_KEEPALIVE_TOLERANCE.getAsInt(this);
     }
 
-    public int sessionIdAttempts()
-    {
-        return MCP_SESSION_ID_ATTEMPTS.getAsInt(this);
-    }
-
     public Duration sseKeepaliveInterval()
     {
         return MCP_SSE_KEEPALIVE_INTERVAL.get(this);
@@ -186,12 +192,6 @@ public class McpConfiguration extends Configuration
     }
 
     @FunctionalInterface
-    public interface SessionIdSupplier
-    {
-        String get();
-    }
-
-    @FunctionalInterface
     public interface ElicitationIdSupplier
     {
         String get();
@@ -209,24 +209,24 @@ public class McpConfiguration extends Configuration
         return EngineConfiguration.ENGINE_VERSION.get(config);
     }
 
-    private static SessionIdSupplier decodeSessionIdSupplier(
+    private static LongFunction<String> decodeSessionIdSupplier(
         String value)
     {
-        SessionIdSupplier supplier = null;
+        LongFunction<String> supplier = null;
 
         try
         {
-            MethodType signature = MethodType.methodType(String.class);
+            MethodType signature = MethodType.methodType(String.class, long.class);
             String[] parts = value.split("::");
             Class<?> ownerClass = Class.forName(parts[0]);
             String methodName = parts[1];
             MethodHandle method = MethodHandles.publicLookup().findStatic(ownerClass, methodName, signature);
-            supplier = () ->
+            supplier = affinity ->
             {
                 String sessionId = null;
                 try
                 {
-                    sessionId = (String) method.invoke();
+                    sessionId = (String) method.invoke(affinity);
                 }
                 catch (Throwable ex)
                 {
@@ -244,16 +244,63 @@ public class McpConfiguration extends Configuration
         return supplier;
     }
 
-    private static String defaultSessionIdSupplier()
+    private static String newSessionId(
+        long affinity)
     {
-        return UUID.randomUUID().toString();
+        // affinity (top byte node id, low 3 bytes worker index, matching EngineWorker.affinity()'s
+        // packing) is embedded verbatim into the low 32 bits of the UUID's least-significant bits
+        final long leastSigBits = (SESSION_ID_RANDOM.nextLong() & 0xffffffff_00000000L) | (affinity & 0xffff_ffffL);
+        final long mostSigBits = SESSION_ID_RANDOM.nextLong();
+        return new UUID(mostSigBits, leastSigBits).toString();
     }
 
-    private static int defaultSessionIdAttempts(
-        Configuration config)
+    private static ToLongFunction<String> decodeSessionIdAffinity(
+        String value)
     {
-        // 64x the expected reject-sampling tries (~workers), leaving ~e^-64 exhaustion
-        return Math.max(1, ENGINE_WORKERS.getAsInt(config) * 64);
+        ToLongFunction<String> extractor = null;
+
+        try
+        {
+            MethodType signature = MethodType.methodType(long.class, String.class);
+            String[] parts = value.split("::");
+            Class<?> ownerClass = Class.forName(parts[0]);
+            String methodName = parts[1];
+            MethodHandle method = MethodHandles.publicLookup().findStatic(ownerClass, methodName, signature);
+            extractor = sessionId ->
+            {
+                long affinity = 0L;
+                try
+                {
+                    affinity = (long) method.invoke(sessionId);
+                }
+                catch (Throwable ex)
+                {
+                    LangUtil.rethrowUnchecked(ex);
+                }
+
+                return affinity;
+            };
+        }
+        catch (Throwable ex)
+        {
+            LangUtil.rethrowUnchecked(ex);
+        }
+
+        return extractor;
+    }
+
+    private static long defaultSessionIdAffinity(
+        String sessionId)
+    {
+        // newSessionId embeds affinity into the last 8 hex chars (offset 28) of the 36-char UUID
+        // string it mints; parsed digit-by-digit here to avoid the allocation of a substring
+        assert sessionId.length() == 36 : "session id must be a UUID-length value";
+        long affinity = 0L;
+        for (int i = 28; i < 36; i++)
+        {
+            affinity = (affinity << 4) | Character.digit(sessionId.charAt(i), 16);
+        }
+        return affinity;
     }
 
     private static boolean defaultAltSvcEnabled(
@@ -345,4 +392,5 @@ public class McpConfiguration extends Configuration
 
     private static final SecureRandom ELICITATION_ID_RANDOM = new SecureRandom();
     private static final HexFormat ELICITATION_ID_HEX = HexFormat.of();
+    private static final SecureRandom SESSION_ID_RANDOM = new SecureRandom();
 }

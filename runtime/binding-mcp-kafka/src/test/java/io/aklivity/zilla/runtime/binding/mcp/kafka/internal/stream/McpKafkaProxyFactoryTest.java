@@ -189,7 +189,7 @@ public class McpKafkaProxyFactoryTest
         final McpBeginExFW beginEx = mcpBeginExRW.wrap(extScratch, 0, extScratch.capacity())
             .typeId(MCP_TYPE_ID)
             .toolsCall(t -> t
-                .sessionId("session-1")
+                .sessionId("5ca1ab1e-c0de-4a11-5e55-000100000000")
                 .name(tool)
                 .contentLength(contentLength)
                 .timeout(timeout))

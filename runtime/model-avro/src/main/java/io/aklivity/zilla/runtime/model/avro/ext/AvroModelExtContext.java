@@ -24,6 +24,20 @@ import io.aklivity.zilla.runtime.common.avro.AvroSchema;
 public interface AvroModelExtContext
 {
     /**
+     * Called once when a binding attaches this configuration, before any schema is resolved or any
+     * stream begins. An extension whose behavior depends on a resource that resolves asynchronously
+     * (e.g. a vault-wrapped key) can use this to kick off that resolution eagerly, from whatever the
+     * configuration alone already determines, so the resource is more likely to already be resolved by
+     * the time a real stream needs it. The default does nothing.
+     *
+     * @param config  the avro model configuration
+     */
+    default void attach(
+        AvroModelConfig config)
+    {
+    }
+
+    /**
      * Supplies the handler for one resolved schema, bound to a specific {@link AvroModelConfig}.
      *
      * @param schema  the resolved schema

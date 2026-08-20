@@ -28,7 +28,7 @@ connected
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .lifecycle()
-                              .sessionId("hydrate-1")
+                              .sessionId("5ca1ab1e-c0de-4a11-feed-000100000000")
                               .build()
                           .build()}
 
@@ -48,7 +48,7 @@ connect await LIFECYCLE_OPEN
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .promptsList()
-                               .sessionId("hydrate-1")
+                               .sessionId("5ca1ab1e-c0de-4a11-feed-000100000000")
                                .build()
                            .build()}
 
@@ -69,7 +69,7 @@ connect await PROMPTS_HYDRATED
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .toolsList()
-                               .sessionId("hydrate-1")
+                               .sessionId("5ca1ab1e-c0de-4a11-feed-000100000000")
                                .build()
                            .build()}
 
@@ -90,7 +90,7 @@ connect await TOOLS_HYDRATED
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .resourcesTemplatesList()
-                               .sessionId("hydrate-1")
+                               .sessionId("5ca1ab1e-c0de-4a11-feed-000100000000")
                                .build()
                            .build()}
 
@@ -111,7 +111,7 @@ connect await RESOURCES_TEMPLATES_HYDRATED
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .resourcesList()
-                               .sessionId("hydrate-1")
+                               .sessionId("5ca1ab1e-c0de-4a11-feed-000100000000")
                                .build()
                            .build()}
 
@@ -140,7 +140,7 @@ connected
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .lifecycle()
-                              .sessionId("hydrate-1")
+                              .sessionId("5ca1ab1e-c0de-4a11-feed-000100000000")
                               .build()
                           .build()}
 
@@ -154,7 +154,7 @@ connect await LIFECYCLE2_OPEN
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .promptsList()
-                               .sessionId("hydrate-1")
+                               .sessionId("5ca1ab1e-c0de-4a11-feed-000100000000")
                                .build()
                            .build()}
 
@@ -175,7 +175,7 @@ connect await PROMPTS2_HYDRATED
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .toolsList()
-                               .sessionId("hydrate-1")
+                               .sessionId("5ca1ab1e-c0de-4a11-feed-000100000000")
                                .build()
                            .build()}
 
@@ -196,7 +196,7 @@ connect await TOOLS2_HYDRATED
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .resourcesTemplatesList()
-                               .sessionId("hydrate-1")
+                               .sessionId("5ca1ab1e-c0de-4a11-feed-000100000000")
                                .build()
                            .build()}
 
@@ -217,7 +217,7 @@ connect await RESOURCES_TEMPLATES2_HYDRATED
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .resourcesList()
-                               .sessionId("hydrate-1")
+                               .sessionId("5ca1ab1e-c0de-4a11-feed-000100000000")
                                .build()
                            .build()}
 

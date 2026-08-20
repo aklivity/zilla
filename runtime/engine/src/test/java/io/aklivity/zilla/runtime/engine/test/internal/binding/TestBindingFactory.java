@@ -25,7 +25,9 @@ import static java.util.Collections.emptyList;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyStore;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -75,6 +77,8 @@ import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.stream.Data
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.stream.EndFW;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.stream.ResetFW;
+import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.stream.TestDataExFW;
+import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.stream.TestEnvelopeValueFW;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
 
@@ -110,6 +114,11 @@ final class TestBindingFactory implements BindingHandler
     private final ChallengeFW.Builder challengeRW = new ChallengeFW.Builder();
 
     private final OctetsFW octetsRO = new OctetsFW();
+    private final OctetsFW envelopeExtRO = new OctetsFW();
+
+    private final TestDataExFW testDataExRO = new TestDataExFW();
+    private final TestDataExFW.Builder testDataExRW = new TestDataExFW.Builder();
+    private final MutableDirectBufferEx testDataExBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
 
     private final Configuration config;
     private final EngineContext context;
@@ -119,6 +128,7 @@ final class TestBindingFactory implements BindingHandler
     private final BufferPool encodePool;
     private final int decodeMax;
     private final int transformMax;
+    private final int testTypeId;
 
     private ModelHandler valueModel;
     private String schema;
@@ -139,8 +149,9 @@ final class TestBindingFactory implements BindingHandler
     private VaultAssertion vaultAssertion;
     private StoreHandler store;
     private List<StoreAssertion> storeAssertions;
+    private List<TestBindingOptionsConfig.EnvelopeValue> envelopeBootstrap;
+    private List<TestBindingOptionsConfig.EnvelopeAssertion> envelopeAssertions;
     private final Map<String, String> heldLockTokens = new HashMap<>();
-    private long authorization;
 
     TestBindingFactory(
         Configuration config,
@@ -154,6 +165,7 @@ final class TestBindingFactory implements BindingHandler
         this.encodePool = decodePool.duplicate();
         this.decodeMax = decodePool.slotCapacity();
         this.transformMax = Math.min(context.writeBuffer().capacity() - DATA_FRAME_HEADER_SIZE, decodeMax);
+        this.testTypeId = context.supplyTypeId(TestBinding.NAME);
     }
 
     public void attach(
@@ -201,6 +213,9 @@ final class TestBindingFactory implements BindingHandler
             }
 
             this.events = options.events;
+
+            this.envelopeBootstrap = options.envelope;
+            this.envelopeAssertions = options.envelopeAssertions;
 
             if (binding.vault != null)
             {
@@ -276,16 +291,16 @@ final class TestBindingFactory implements BindingHandler
 
         if (guard == null)
         {
-            authorization = begin.authorization();
+            long authorization = begin.authorization();
             TestRouteConfig route = binding != null ? binding.resolve(authorization) : null;
             if (route != null)
             {
-                newStream = new TestSource(source, originId, routedId, initialId, replyId, route.id)::onMessage;
+                newStream = new TestSource(source, originId, routedId, initialId, replyId, route.id, authorization)::onMessage;
             }
         }
         else
         {
-            TestSource deferred = new TestSource(source, originId, routedId, initialId, replyId, 0L);
+            TestSource deferred = new TestSource(source, originId, routedId, initialId, replyId, 0L, NOT_AUTHORIZED);
             newStream = deferred::onMessage;
         }
 
@@ -320,6 +335,130 @@ final class TestBindingFactory implements BindingHandler
         return builder.toString();
     }
 
+    private void receiveEnvelope(
+        TestModelEnvelope envelope,
+        OctetsFW extension)
+    {
+        final TestDataExFW dataEx = testDataExRO.tryWrap(extension.buffer(), extension.offset(), extension.limit());
+        if (dataEx != null)
+        {
+            dataEx.values().forEach(value -> receiveEnvelopeValue(envelope, value));
+        }
+    }
+
+    private void receiveEnvelopeValue(
+        TestModelEnvelope envelope,
+        TestEnvelopeValueFW value)
+    {
+        OctetsFW bytes = value.value();
+        if (bytes != null)
+        {
+            envelope.set(value.name().asString(), new UnsafeBufferEx(bytes.buffer(), bytes.offset(), bytes.sizeof()));
+        }
+    }
+
+    private DirectBufferEx buildEnvelopeExtension(
+        TestModelEnvelope envelope)
+    {
+        testDataExRW.wrap(testDataExBuffer, 0, testDataExBuffer.capacity());
+        testDataExRW.typeId(testTypeId);
+        envelope.values.forEach((name, values) -> values.forEach(value ->
+            testDataExRW.valuesItem(v -> v.name(name)
+                                          .length(value.length)
+                                          .value(new UnsafeBufferEx(value), 0, value.length))));
+
+        TestDataExFW dataEx = testDataExRW.build();
+        byte[] copy = new byte[dataEx.sizeof()];
+        dataEx.buffer().getBytes(dataEx.offset(), copy);
+        return new UnsafeBufferEx(copy);
+    }
+
+    // Pre-populates a value model's envelope from configured bootstrap values, ahead of any wire-carried
+    // or transform-set value, so a decode-direction transform can be exercised against known out-of-value
+    // metadata without first driving an encode-direction transform to produce it.
+    private void seedEnvelope(
+        TestModelEnvelope envelope)
+    {
+        if (envelopeBootstrap != null)
+        {
+            for (TestBindingOptionsConfig.EnvelopeValue seed : envelopeBootstrap)
+            {
+                byte[] bytes = seed.bytes != null ? seed.bytes : seed.value.getBytes(StandardCharsets.UTF_8);
+                envelope.set(seed.name, new UnsafeBufferEx(bytes));
+            }
+        }
+    }
+
+    // Verifies a value model's envelope against configured expectations once its transform completes,
+    // returning false on the first mismatch. Checking presence/value by name (rather than literal wire
+    // bytes) is what makes this usable against non-deterministic transform output (e.g. a randomly-IV'd
+    // ciphertext), unlike a k3po script's own read assertions.
+    private boolean assertEnvelope(
+        TestModelEnvelope envelope)
+    {
+        boolean asserted = true;
+        if (envelopeAssertions != null)
+        {
+            for (int i = 0; asserted && i < envelopeAssertions.size(); i++)
+            {
+                TestBindingOptionsConfig.EnvelopeAssertion assertion = envelopeAssertions.get(i);
+                if (envelope.count(assertion.name) == 0)
+                {
+                    asserted = false;
+                }
+                else if (assertion.hasValue)
+                {
+                    DirectBufferEx actual = envelope.get(assertion.name, 0);
+                    String actualValue = actual.getStringWithoutLengthUtf8(0, actual.capacity());
+                    asserted = assertion.value.equals(actualValue);
+                }
+            }
+        }
+        return asserted;
+    }
+
+    // Backs the ModelEnvelope supplied to the value model's encoder/decoder pipeline for one direction of
+    // one stream. Values arriving on a DATA frame's TestDataEx extension are received into it before the
+    // model transform runs (readable via get()/count()); values the model transform adds via set() during
+    // that same call become visible on the outgoing DATA frame's extension once the call completes. Absent
+    // any wire extension and any model set() call, it stays empty and behaves exactly like ModelEnvelope.NONE.
+    private static final class TestModelEnvelope implements ModelEnvelope
+    {
+        private final Map<String, List<byte[]>> values = new LinkedHashMap<>();
+
+        @Override
+        public int count(
+            String name)
+        {
+            List<byte[]> named = values.get(name);
+            return named != null ? named.size() : 0;
+        }
+
+        @Override
+        public DirectBufferEx get(
+            String name,
+            int index)
+        {
+            List<byte[]> named = values.get(name);
+            return named != null && index < named.size() ? new UnsafeBufferEx(named.get(index)) : null;
+        }
+
+        @Override
+        public void set(
+            String name,
+            DirectBufferEx value)
+        {
+            byte[] copy = new byte[value.capacity()];
+            value.getBytes(0, copy);
+            values.computeIfAbsent(name, n -> new ArrayList<>()).add(copy);
+        }
+
+        private boolean isEmpty()
+        {
+            return values.isEmpty();
+        }
+    }
+
     private final class TestSource
     {
         private final MessageConsumer source;
@@ -327,6 +466,8 @@ final class TestBindingFactory implements BindingHandler
         private final long routedId;
         private final long initialId;
         private final long replyId;
+
+        private long authorization;
 
         private long initialSeq;
         private long initialAck;
@@ -357,6 +498,8 @@ final class TestBindingFactory implements BindingHandler
         private long encodeSlotTraceId;
         private boolean encodeSlotFin;
         private boolean replyStarted;
+        private final TestModelEnvelope envelope;
+        private DirectBufferEx replyEnvelopeExt;
 
         private TestSource(
             MessageConsumer source,
@@ -364,15 +507,22 @@ final class TestBindingFactory implements BindingHandler
             long routedId,
             long initialId,
             long replyId,
-            long resolvedId)
+            long resolvedId,
+            long authorization)
         {
             this.source = source;
             this.originId = originId;
             this.routedId = routedId;
             this.initialId = initialId;
             this.replyId = replyId;
-            this.target = resolvedId != 0L ? new TestTarget(routedId, resolvedId) : null;
-            this.pipeline = valueModel != null ? valueModel.supplyEncoder(ModelEnvelope.NONE, ModelTransform.NONE) : null;
+            this.authorization = authorization;
+            this.target = resolvedId != 0L ? new TestTarget(routedId, resolvedId, authorization) : null;
+            this.envelope = valueModel != null ? new TestModelEnvelope() : null;
+            if (envelope != null)
+            {
+                seedEnvelope(envelope);
+            }
+            this.pipeline = valueModel != null ? valueModel.supplyEncoder(envelope, ModelTransform.NONE) : null;
             this.initialBuffer = pipeline != null ? new UnsafeBufferEx(new byte[transformMax]) : null;
         }
 
@@ -467,7 +617,7 @@ final class TestBindingFactory implements BindingHandler
             long traceId,
             long resolvedId)
         {
-            this.target = new TestTarget(routedId, resolvedId);
+            this.target = new TestTarget(routedId, resolvedId, authorization);
             if (pendingBegin)
             {
                 pendingBegin = false;
@@ -910,12 +1060,20 @@ final class TestBindingFactory implements BindingHandler
         {
             long sequence = data.sequence();
             long traceId = data.traceId();
-            long authorization = data.authorization();
             int reserved = data.reserved();
             int flags = data.flags();
             OctetsFW payload = data.payload();
 
             initialSeq = sequence + reserved;
+
+            if (envelope != null)
+            {
+                OctetsFW extension = data.extension();
+                if (extension.sizeof() > 0)
+                {
+                    receiveEnvelope(envelope, extension);
+                }
+            }
 
             if (pipeline == null)
             {
@@ -992,7 +1150,10 @@ final class TestBindingFactory implements BindingHandler
                     {
                         boolean fin = status == ModelStatus.COMPLETE;
                         OctetsFW transformed = octetsRO.wrap(initialBuffer, 0, produced);
-                        target.doInitialData(traceId, fin, transformed);
+                        DirectBufferEx envelopeExt = envelope != null && !envelope.isEmpty()
+                                ? buildEnvelopeExtension(envelope)
+                                : null;
+                        target.doInitialData(traceId, fin, transformed, envelopeExt);
                     }
                 }
             } while (status == ModelStatus.OK || status == ModelStatus.OVERFLOW);
@@ -1015,6 +1176,10 @@ final class TestBindingFactory implements BindingHandler
             }
             else if (status == ModelStatus.COMPLETE)
             {
+                if (envelope != null && !assertEnvelope(envelope))
+                {
+                    doInitialReset(traceId);
+                }
                 pipeline.reset();
                 cleanupDecodeSlot();
             }
@@ -1154,13 +1319,22 @@ final class TestBindingFactory implements BindingHandler
         private void doReplyBegin(
             long traceId)
         {
-            doBegin(source, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId);
+            doBegin(source, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization);
         }
 
         private void doReplyData(
             long traceId,
             boolean fin,
             OctetsFW payload)
+        {
+            doReplyData(traceId, fin, payload, null);
+        }
+
+        private void doReplyData(
+            long traceId,
+            boolean fin,
+            OctetsFW payload,
+            DirectBufferEx envelopeExt)
         {
             DirectBufferEx buffer = payload.buffer();
             int offset = payload.offset();
@@ -1179,6 +1353,10 @@ final class TestBindingFactory implements BindingHandler
 
             encodeSlotTraceId = traceId;
             encodeSlotFin = encodeSlotFin || fin;
+            if (envelopeExt != null)
+            {
+                replyEnvelopeExt = envelopeExt;
+            }
 
             encodeReply(traceId, buffer, offset, limit);
         }
@@ -1199,8 +1377,15 @@ final class TestBindingFactory implements BindingHandler
                 int flags = (replyStarted ? 0x00 : FLAGS_INIT) | (fin ? FLAGS_FIN : 0x00);
 
                 OctetsFW out = octetsRO.wrap(buffer, offset, offset + length);
+                OctetsFW ext = (flags & FLAGS_INIT) != 0 && replyEnvelopeExt != null
+                        ? envelopeExtRO.wrap(replyEnvelopeExt, 0, replyEnvelopeExt.capacity())
+                        : null;
                 doData(source, originId, routedId, replyId, replySeq, replyAck, replyMax, replyBud,
-                        traceId, flags, reserved, out);
+                        traceId, flags, reserved, out, ext, authorization);
+                if (ext != null)
+                {
+                    replyEnvelopeExt = null;
+                }
 
                 replySeq += reserved;
                 replyStarted = !fin;
@@ -1293,6 +1478,8 @@ final class TestBindingFactory implements BindingHandler
             private final long initialId;
             private final long replyId;
 
+            private final long authorization;
+
             private long initialSeq;
             private long initialAck;
             private int initialMax;
@@ -1319,17 +1506,26 @@ final class TestBindingFactory implements BindingHandler
             private long encodeSlotTraceId;
             private boolean encodeSlotFin;
             private boolean initialStarted;
+            private final TestModelEnvelope envelope;
+            private DirectBufferEx initialEnvelopeExt;
 
             private TestTarget(
                 long originId,
-                long routedId)
+                long routedId,
+                long authorization)
             {
                 this.originId = originId;
                 this.routedId = routedId;
                 this.initialId = context.supplyInitialId(routedId);
                 this.replyId = context.supplyReplyId(initialId);
+                this.authorization = authorization;
                 this.source = TestSource.this;
-                this.pipeline = valueModel != null ? valueModel.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE) : null;
+                this.envelope = valueModel != null ? new TestModelEnvelope() : null;
+                if (envelope != null)
+                {
+                    seedEnvelope(envelope);
+                }
+                this.pipeline = valueModel != null ? valueModel.supplyDecoder(envelope, ModelTransform.NONE) : null;
                 this.replyBuffer = pipeline != null ? new UnsafeBufferEx(new byte[transformMax]) : null;
             }
 
@@ -1425,12 +1621,20 @@ final class TestBindingFactory implements BindingHandler
             {
                 long sequence = data.sequence();
                 long traceId = data.traceId();
-                long authorization = data.authorization();
                 int reserved = data.reserved();
                 int flags = data.flags();
                 OctetsFW payload = data.payload();
 
                 replySeq = sequence + reserved;
+
+                if (envelope != null)
+                {
+                    OctetsFW extension = data.extension();
+                    if (extension.sizeof() > 0)
+                    {
+                        receiveEnvelope(envelope, extension);
+                    }
+                }
 
                 if (pipeline == null)
                 {
@@ -1441,6 +1645,7 @@ final class TestBindingFactory implements BindingHandler
                 {
                     pipeline.reset();
                     source.doReplyAbort(traceId);
+                    doInitialAbort(traceId);
                     cleanupDecodeSlot();
                 }
                 else
@@ -1454,6 +1659,7 @@ final class TestBindingFactory implements BindingHandler
                     {
                         pipeline.reset();
                         source.doReplyAbort(traceId);
+                        doInitialAbort(traceId);
                     }
                     else
                     {
@@ -1505,7 +1711,10 @@ final class TestBindingFactory implements BindingHandler
                         {
                             boolean fin = status == ModelStatus.COMPLETE;
                             OctetsFW transformed = octetsRO.wrap(replyBuffer, 0, produced);
-                            source.doReplyData(traceId, fin, transformed);
+                            DirectBufferEx envelopeExt = envelope != null && !envelope.isEmpty()
+                                    ? buildEnvelopeExtension(envelope)
+                                    : null;
+                            source.doReplyData(traceId, fin, transformed, envelopeExt);
                         }
                     }
                 } while (status == ModelStatus.OK || status == ModelStatus.OVERFLOW);
@@ -1515,6 +1724,7 @@ final class TestBindingFactory implements BindingHandler
                 {
                     pipeline.reset();
                     source.doReplyAbort(traceId);
+                    doInitialAbort(traceId);
                     cleanupDecodeSlot();
                 }
                 else if (status == ModelStatus.UNDERFLOW)
@@ -1528,6 +1738,10 @@ final class TestBindingFactory implements BindingHandler
                 }
                 else if (status == ModelStatus.COMPLETE)
                 {
+                    if (envelope != null && !assertEnvelope(envelope))
+                    {
+                        doReplyReset(traceId);
+                    }
                     pipeline.reset();
                     cleanupDecodeSlot();
                 }
@@ -1565,13 +1779,23 @@ final class TestBindingFactory implements BindingHandler
             private void doInitialBegin(
                 long traceId)
             {
-                target = newStream(this::onMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId);
+                target = newStream(this::onMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                        traceId, authorization);
             }
 
             private void doInitialData(
                 long traceId,
                 boolean fin,
                 OctetsFW payload)
+            {
+                doInitialData(traceId, fin, payload, null);
+            }
+
+            private void doInitialData(
+                long traceId,
+                boolean fin,
+                OctetsFW payload,
+                DirectBufferEx envelopeExt)
             {
                 DirectBufferEx buffer = payload.buffer();
                 int offset = payload.offset();
@@ -1590,6 +1814,10 @@ final class TestBindingFactory implements BindingHandler
 
                 encodeSlotTraceId = traceId;
                 encodeSlotFin = encodeSlotFin || fin;
+                if (envelopeExt != null)
+                {
+                    initialEnvelopeExt = envelopeExt;
+                }
 
                 encodeInitial(traceId, buffer, offset, limit);
             }
@@ -1610,8 +1838,15 @@ final class TestBindingFactory implements BindingHandler
                     int flags = (initialStarted ? 0x00 : FLAGS_INIT) | (fin ? FLAGS_FIN : 0x00);
 
                     OctetsFW out = octetsRO.wrap(buffer, offset, offset + length);
+                    OctetsFW ext = (flags & FLAGS_INIT) != 0 && initialEnvelopeExt != null
+                            ? envelopeExtRO.wrap(initialEnvelopeExt, 0, initialEnvelopeExt.capacity())
+                            : null;
                     doData(target, originId, routedId, initialId, initialSeq, initialAck, initialMax, initialBud,
-                            traceId, flags, reserved, out);
+                            traceId, flags, reserved, out, ext, authorization);
+                    if (ext != null)
+                    {
+                        initialEnvelopeExt = null;
+                    }
 
                     initialSeq += reserved;
                     initialStarted = !fin;
@@ -1736,7 +1971,8 @@ final class TestBindingFactory implements BindingHandler
         long sequence,
         long acknowledge,
         int maximum,
-        long traceId)
+        long traceId,
+        long authorization)
     {
         MutableDirectBufferEx writeBuffer = context.writeBuffer();
         BindingHandler streamFactory = context.streamFactory();
@@ -1749,6 +1985,7 @@ final class TestBindingFactory implements BindingHandler
                 .acknowledge(acknowledge)
                 .maximum(maximum)
                 .traceId(traceId)
+                .authorization(authorization)
                 .affinity(0L)
                 .build();
 
@@ -1768,7 +2005,8 @@ final class TestBindingFactory implements BindingHandler
         long sequence,
         long acknowledge,
         int maximum,
-        long traceId)
+        long traceId,
+        long authorization)
     {
         MutableDirectBufferEx writeBuffer = context.writeBuffer();
 
@@ -1780,6 +2018,7 @@ final class TestBindingFactory implements BindingHandler
                 .acknowledge(acknowledge)
                 .maximum(maximum)
                 .traceId(traceId)
+                .authorization(authorization)
                 .affinity(0L)
                 .build();
 
@@ -1798,11 +2037,13 @@ final class TestBindingFactory implements BindingHandler
         long traceId,
         int flags,
         int reserved,
-        OctetsFW payload)
+        OctetsFW payload,
+        OctetsFW extension,
+        long authorization)
     {
         MutableDirectBufferEx writeBuffer = context.writeBuffer();
 
-        DataFW data = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+        DataFW.Builder builder = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
                 .routedId(routedId)
                 .streamId(streamId)
@@ -1810,11 +2051,18 @@ final class TestBindingFactory implements BindingHandler
                 .acknowledge(acknowledge)
                 .maximum(maximum)
                 .traceId(traceId)
+                .authorization(authorization)
                 .flags(flags)
                 .budgetId(budgetId)
                 .reserved(reserved)
-                .payload(payload)
-                .build();
+                .payload(payload);
+
+        if (extension != null)
+        {
+            builder.extension(extension);
+        }
+
+        DataFW data = builder.build();
 
         stream.accept(data.typeId(), data.buffer(), data.offset(), data.sizeof());
     }

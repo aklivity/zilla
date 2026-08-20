@@ -99,6 +99,7 @@ public final class TestUppercaseAvroModelExtFactorySpi implements AvroModelExtFa
 
         private boolean targeting;
         private boolean emitting;
+        private AvroController upstream;
 
         private UppercaseTransform()
         {
@@ -113,6 +114,8 @@ public final class TestUppercaseAvroModelExtFactorySpi implements AvroModelExtFa
             AvroEvent event,
             AvroSink sink)
         {
+            this.upstream = control;
+
             Status status;
             switch (event)
             {
@@ -144,6 +147,8 @@ public final class TestUppercaseAvroModelExtFactorySpi implements AvroModelExtFa
             AvroEvent event,
             AvroSink sink)
         {
+            this.upstream = control;
+
             Status status;
             if (emitting)
             {
@@ -207,7 +212,7 @@ public final class TestUppercaseAvroModelExtFactorySpi implements AvroModelExtFa
         }
 
         // the synthesized view fed to the downstream sink in place of the original string value
-        private static final class Substitute implements AvroSource, AvroController
+        private final class Substitute implements AvroSource, AvroController
         {
             private final UnsafeBufferEx content;
             private final UnsafeBufferEx view;
@@ -232,6 +237,12 @@ public final class TestUppercaseAvroModelExtFactorySpi implements AvroModelExtFa
                 this.progress = 0;
                 this.length = bytes.length;
                 content.wrap(bytes, 0, bytes.length);
+            }
+
+            @Override
+            public long authorization()
+            {
+                return upstream.authorization();
             }
 
             @Override

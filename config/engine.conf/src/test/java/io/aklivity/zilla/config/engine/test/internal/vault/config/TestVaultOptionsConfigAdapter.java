@@ -29,6 +29,7 @@ public final class TestVaultOptionsConfigAdapter extends ConfigAdapter<OptionsCo
     private static final String KEY_NAME = "key";
     private static final String SIGNER_NAME = "signer";
     private static final String TRUST_NAME = "trust";
+    private static final String WRAP_NAME = "wrap";
 
     private final TestVaultEntryConfigAdapter entry = new TestVaultEntryConfigAdapter();
 
@@ -70,6 +71,20 @@ public final class TestVaultOptionsConfigAdapter extends ConfigAdapter<OptionsCo
                 JsonArrayBuilder trustArray = Json.createArrayBuilder();
                 options.trust.forEach(t -> trustArray.add(entry.adaptToJson(t)));
                 object.add(TRUST_NAME, trustArray);
+            }
+        }
+
+        if (options.wrap != null)
+        {
+            if (options.wrap.size() == 1)
+            {
+                object.add(WRAP_NAME, entry.adaptToJson(options.wrap.get(0)));
+            }
+            else
+            {
+                JsonArrayBuilder wrapArray = Json.createArrayBuilder();
+                options.wrap.forEach(w -> wrapArray.add(entry.adaptToJson(w)));
+                object.add(WRAP_NAME, wrapArray);
             }
         }
 
@@ -126,6 +141,25 @@ public final class TestVaultOptionsConfigAdapter extends ConfigAdapter<OptionsCo
                 {
                     TestVaultEntryConfig config = entry.adaptFromJson(trustValue.asJsonObject());
                     options.trust(config.alias, config.entry);
+                }
+            }
+
+            if (object.containsKey(WRAP_NAME))
+            {
+                JsonValue wrapValue = object.get(WRAP_NAME);
+                if (wrapValue.getValueType() == JsonValue.ValueType.ARRAY)
+                {
+                    JsonArray wrapArray = wrapValue.asJsonArray();
+                    for (JsonValue value : wrapArray)
+                    {
+                        TestVaultEntryConfig config = entry.adaptFromJson(value.asJsonObject());
+                        options.wrap(config.alias, config.entry);
+                    }
+                }
+                else
+                {
+                    TestVaultEntryConfig config = entry.adaptFromJson(wrapValue.asJsonObject());
+                    options.wrap(config.alias, config.entry);
                 }
             }
         }

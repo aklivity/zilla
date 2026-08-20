@@ -35,6 +35,8 @@ public final class TestBindingOptionsConfig extends OptionsConfig
     public final VaultAssertion vaultAssertion;
     public final String store;
     public final List<StoreAssertions> storeAssertions;
+    public final List<EnvelopeValue> envelope;
+    public final List<EnvelopeAssertion> envelopeAssertions;
 
     public static TestBindingOptionsConfigBuilder<TestBindingOptionsConfig> builder()
     {
@@ -58,7 +60,9 @@ public final class TestBindingOptionsConfig extends OptionsConfig
         List<CatalogAssertions> catalogAssertions,
         VaultAssertion vaultAssertion,
         String store,
-        List<StoreAssertions> storeAssertions)
+        List<StoreAssertions> storeAssertions,
+        List<EnvelopeValue> envelope,
+        List<EnvelopeAssertion> envelopeAssertions)
     {
         super(value != null ? List.of(value) : List.of(), List.of());
         this.value = value;
@@ -72,6 +76,8 @@ public final class TestBindingOptionsConfig extends OptionsConfig
         this.vaultAssertion = vaultAssertion;
         this.store = store;
         this.storeAssertions = storeAssertions;
+        this.envelope = envelope;
+        this.envelopeAssertions = envelopeAssertions;
     }
 
     public static final class Event
@@ -197,6 +203,46 @@ public final class TestBindingOptionsConfig extends OptionsConfig
             this.expect = expect;
             this.hasExpect = hasExpect;
             this.delay = delay;
+        }
+    }
+
+    // Seeds a value model's ModelEnvelope before its transform runs, so a decode-direction
+    // transform (e.g. decrypting a field) can be exercised against known out-of-value metadata
+    // without first driving an encode-direction transform to produce it.
+    public static final class EnvelopeValue
+    {
+        public final String name;
+        public final String value;
+        public final byte[] bytes;
+
+        public EnvelopeValue(
+            String name,
+            String value,
+            byte[] bytes)
+        {
+            this.name = name;
+            this.value = value;
+            this.bytes = bytes;
+        }
+    }
+
+    // Asserts a value model's ModelEnvelope contents once its transform completes, so an
+    // encode-direction transform (e.g. encrypting a field) can be verified without depending on
+    // literal (and non-deterministic, e.g. randomly-IV'd) wire bytes.
+    public static final class EnvelopeAssertion
+    {
+        public final String name;
+        public final String value;
+        public final boolean hasValue;
+
+        public EnvelopeAssertion(
+            String name,
+            String value,
+            boolean hasValue)
+        {
+            this.name = name;
+            this.value = value;
+            this.hasValue = hasValue;
         }
     }
 }

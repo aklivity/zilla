@@ -3119,7 +3119,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
                 clear();
 
-                requestId = context.supplyInitialId(routedId, Long.hashCode(newAffinity));
+                requestId = context.supplyInitialId(routedId, newAffinity);
                 responseId = supplyReplyId.applyAsLong(requestId);
                 affinity = newAffinity;
 
@@ -6298,7 +6298,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
                 clear();
 
-                requestId = context.supplyInitialId(routedId, Long.hashCode(newAffinity));
+                requestId = context.supplyInitialId(routedId, newAffinity);
                 responseId = supplyReplyId.applyAsLong(requestId);
                 affinity = newAffinity;
                 state = HttpState.openingInitial(state);

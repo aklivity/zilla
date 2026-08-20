@@ -23,10 +23,12 @@ import java.util.Deque;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiPredicate;
+import java.util.function.LongBinaryOperator;
 import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
 import java.util.function.Predicate;
+import java.util.function.ToLongFunction;
 
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParserFactory;
@@ -65,7 +67,6 @@ import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
-import io.aklivity.zilla.runtime.engine.util.function.LongIntToLongFunction;
 
 abstract class McpProxyListFactory implements BindingHandler
 {
@@ -98,11 +99,12 @@ abstract class McpProxyListFactory implements BindingHandler
     private final BufferPool bufferPool;
     private final int decodeMax;
     private final LongUnaryOperator supplyInitialId;
-    private final LongIntToLongFunction supplyInitialIdHash;
+    private final LongBinaryOperator supplyInitialIdAffinity;
     private final LongUnaryOperator supplyReplyId;
     private final LongSupplier supplyTraceId;
     private final int mcpTypeId;
     private final LongFunction<McpBindingConfig> supplyBinding;
+    private final ToLongFunction<String> sessionIdAffinity;
     private final int kind;
     private final JsonParserFactory listItemParserFactory;
 
@@ -157,11 +159,12 @@ abstract class McpProxyListFactory implements BindingHandler
         this.bufferPool = context.bufferPool();
         this.decodeMax = bufferPool.slotCapacity();
         this.supplyInitialId = context::supplyInitialId;
-        this.supplyInitialIdHash = context::supplyInitialId;
+        this.supplyInitialIdAffinity = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.supplyTraceId = context::supplyTraceId;
         this.mcpTypeId = context.supplyTypeId(MCP_TYPE_NAME);
         this.supplyBinding = supplyBinding;
+        this.sessionIdAffinity = config.sessionIdAffinity();
         this.kind = kind;
         this.listItemParserFactory = JsonEx.createParserFactory(Map.of());
     }
@@ -378,7 +381,7 @@ abstract class McpProxyListFactory implements BindingHandler
             final String sid = lifecycle.sessionId;
             if (sid != null)
             {
-                initialId = supplyInitialIdHash.apply(routedId, sid.hashCode());
+                initialId = supplyInitialIdAffinity.applyAsLong(routedId, sessionIdAffinity.applyAsLong(sid));
                 replyId = supplyReplyId.applyAsLong(initialId);
 
                 final McpBeginExFW beginEx = mcpBeginExRW

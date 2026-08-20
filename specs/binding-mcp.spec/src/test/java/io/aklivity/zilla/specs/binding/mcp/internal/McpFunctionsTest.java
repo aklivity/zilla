@@ -51,7 +51,7 @@ public class McpFunctionsTest
         byte[] bytes = McpFunctions.beginEx()
             .typeId(0)
             .lifecycle()
-                .sessionId("session-1")
+                .sessionId("5ca1ab1e-c0de-4a11-5e55-000100000000")
                 .build()
             .build();
 
@@ -64,7 +64,7 @@ public class McpFunctionsTest
         BytesMatcher matcher = McpFunctions.matchBeginEx()
             .typeId(0)
             .lifecycle()
-                .sessionId("session-1")
+                .sessionId("5ca1ab1e-c0de-4a11-5e55-000100000000")
                 .build()
             .build();
 
@@ -73,7 +73,7 @@ public class McpFunctionsTest
         new McpBeginExFW.Builder()
             .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
-            .lifecycle(b -> b.sessionId("session-1"))
+            .lifecycle(b -> b.sessionId("5ca1ab1e-c0de-4a11-5e55-000100000000"))
             .build();
 
         assertNotNull(matcher.match(byteBuf));
@@ -85,7 +85,7 @@ public class McpFunctionsTest
         byte[] bytes = McpFunctions.beginEx()
             .typeId(0)
             .toolsList()
-                .sessionId("session-1")
+                .sessionId("5ca1ab1e-c0de-4a11-5e55-000100000000")
                 .timeout(30000L)
                 .build()
             .build();
@@ -102,7 +102,7 @@ public class McpFunctionsTest
         BytesMatcher matcher = McpFunctions.matchBeginEx()
             .typeId(0)
             .toolsList()
-                .sessionId("session-1")
+                .sessionId("5ca1ab1e-c0de-4a11-5e55-000100000000")
                 .timeout(30000L)
                 .build()
             .build();
@@ -112,7 +112,7 @@ public class McpFunctionsTest
         new McpBeginExFW.Builder()
             .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
-            .toolsList(b -> b.sessionId("session-1").timeout(30000L))
+            .toolsList(b -> b.sessionId("5ca1ab1e-c0de-4a11-5e55-000100000000").timeout(30000L))
             .build();
 
         assertNotNull(matcher.match(byteBuf));
@@ -124,7 +124,7 @@ public class McpFunctionsTest
         byte[] bytes = McpFunctions.beginEx()
             .typeId(0)
             .toolsCall()
-                .sessionId("session-1")
+                .sessionId("5ca1ab1e-c0de-4a11-5e55-000100000000")
                 .name("my-tool")
                 .contentLength(59)
                 .timeout(45000L)
@@ -143,7 +143,7 @@ public class McpFunctionsTest
         BytesMatcher matcher = McpFunctions.matchBeginEx()
             .typeId(0)
             .toolsCall()
-                .sessionId("session-1")
+                .sessionId("5ca1ab1e-c0de-4a11-5e55-000100000000")
                 .name("my-tool")
                 .contentLength(59)
                 .timeout(45000L)
@@ -156,7 +156,7 @@ public class McpFunctionsTest
             .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .toolsCall(b -> b
-                .sessionId("session-1")
+                .sessionId("5ca1ab1e-c0de-4a11-5e55-000100000000")
                 .name("my-tool")
                 .contentLength(59)
                 .timeout(45000L))
@@ -171,7 +171,7 @@ public class McpFunctionsTest
         byte[] bytes = McpFunctions.beginEx()
             .typeId(0)
             .promptsList()
-                .sessionId("session-1")
+                .sessionId("5ca1ab1e-c0de-4a11-5e55-000100000000")
                 .timeout(15000L)
                 .build()
             .build();
@@ -188,7 +188,7 @@ public class McpFunctionsTest
         BytesMatcher matcher = McpFunctions.matchBeginEx()
             .typeId(0)
             .promptsList()
-                .sessionId("session-1")
+                .sessionId("5ca1ab1e-c0de-4a11-5e55-000100000000")
                 .timeout(15000L)
                 .build()
             .build();
@@ -199,7 +199,7 @@ public class McpFunctionsTest
             .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .promptsList(b -> b
-                .sessionId("session-1")
+                .sessionId("5ca1ab1e-c0de-4a11-5e55-000100000000")
                 .timeout(15000L))
             .build();
 
@@ -212,7 +212,7 @@ public class McpFunctionsTest
         byte[] bytes = McpFunctions.beginEx()
             .typeId(0)
             .promptsGet()
-                .sessionId("session-1")
+                .sessionId("5ca1ab1e-c0de-4a11-5e55-000100000000")
                 .name("my-prompt")
                 .contentLength(25)
                 .timeout(20000L)
@@ -231,7 +231,7 @@ public class McpFunctionsTest
         BytesMatcher matcher = McpFunctions.matchBeginEx()
             .typeId(0)
             .promptsGet()
-                .sessionId("session-1")
+                .sessionId("5ca1ab1e-c0de-4a11-5e55-000100000000")
                 .name("my-prompt")
                 .contentLength(25)
                 .timeout(20000L)
@@ -244,7 +244,7 @@ public class McpFunctionsTest
             .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .promptsGet(b -> b
-                .sessionId("session-1")
+                .sessionId("5ca1ab1e-c0de-4a11-5e55-000100000000")
                 .name("my-prompt")
                 .contentLength(25)
                 .timeout(20000L))
@@ -259,7 +259,7 @@ public class McpFunctionsTest
         byte[] bytes = McpFunctions.beginEx()
             .typeId(0)
             .resourcesList()
-                .sessionId("session-1")
+                .sessionId("5ca1ab1e-c0de-4a11-5e55-000100000000")
                 .timeout(10000L)
                 .build()
             .build();
@@ -276,7 +276,7 @@ public class McpFunctionsTest
         BytesMatcher matcher = McpFunctions.matchBeginEx()
             .typeId(0)
             .resourcesList()
-                .sessionId("session-1")
+                .sessionId("5ca1ab1e-c0de-4a11-5e55-000100000000")
                 .timeout(10000L)
                 .build()
             .build();
@@ -287,7 +287,7 @@ public class McpFunctionsTest
             .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .resourcesList(b -> b
-                .sessionId("session-1")
+                .sessionId("5ca1ab1e-c0de-4a11-5e55-000100000000")
                 .timeout(10000L))
             .build();
 
@@ -300,7 +300,7 @@ public class McpFunctionsTest
         byte[] bytes = McpFunctions.beginEx()
             .typeId(0)
             .resourcesRead()
-                .sessionId("session-1")
+                .sessionId("5ca1ab1e-c0de-4a11-5e55-000100000000")
                 .uri("file:///data/resource.txt")
                 .contentLength(33)
                 .timeout(25000L)
@@ -319,7 +319,7 @@ public class McpFunctionsTest
         BytesMatcher matcher = McpFunctions.matchBeginEx()
             .typeId(0)
             .resourcesRead()
-                .sessionId("session-1")
+                .sessionId("5ca1ab1e-c0de-4a11-5e55-000100000000")
                 .uri("file:///data/resource.txt")
                 .contentLength(33)
                 .timeout(25000L)
@@ -332,7 +332,7 @@ public class McpFunctionsTest
             .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .resourcesRead(b -> b
-                .sessionId("session-1")
+                .sessionId("5ca1ab1e-c0de-4a11-5e55-000100000000")
                 .uri("file:///data/resource.txt")
                 .contentLength(33)
                 .timeout(25000L))
@@ -347,7 +347,7 @@ public class McpFunctionsTest
         byte[] bytes = McpFunctions.beginEx()
             .typeId(0)
             .resourcesSubscribe()
-                .sessionId("session-1")
+                .sessionId("5ca1ab1e-c0de-4a11-5e55-000100000000")
                 .uri("file:///data/resource.txt")
                 .contentLength(33)
                 .timeout(25000L)
@@ -366,7 +366,7 @@ public class McpFunctionsTest
         BytesMatcher matcher = McpFunctions.matchBeginEx()
             .typeId(0)
             .resourcesSubscribe()
-                .sessionId("session-1")
+                .sessionId("5ca1ab1e-c0de-4a11-5e55-000100000000")
                 .uri("file:///data/resource.txt")
                 .contentLength(33)
                 .timeout(25000L)
@@ -379,7 +379,7 @@ public class McpFunctionsTest
             .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .resourcesSubscribe(b -> b
-                .sessionId("session-1")
+                .sessionId("5ca1ab1e-c0de-4a11-5e55-000100000000")
                 .uri("file:///data/resource.txt")
                 .contentLength(33)
                 .timeout(25000L))
@@ -394,7 +394,7 @@ public class McpFunctionsTest
         byte[] bytes = McpFunctions.beginEx()
             .typeId(0)
             .resourcesUnsubscribe()
-                .sessionId("session-1")
+                .sessionId("5ca1ab1e-c0de-4a11-5e55-000100000000")
                 .uri("file:///data/resource.txt")
                 .contentLength(33)
                 .timeout(25000L)
@@ -413,7 +413,7 @@ public class McpFunctionsTest
         BytesMatcher matcher = McpFunctions.matchBeginEx()
             .typeId(0)
             .resourcesUnsubscribe()
-                .sessionId("session-1")
+                .sessionId("5ca1ab1e-c0de-4a11-5e55-000100000000")
                 .uri("file:///data/resource.txt")
                 .contentLength(33)
                 .timeout(25000L)
@@ -426,7 +426,7 @@ public class McpFunctionsTest
             .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .resourcesUnsubscribe(b -> b
-                .sessionId("session-1")
+                .sessionId("5ca1ab1e-c0de-4a11-5e55-000100000000")
                 .uri("file:///data/resource.txt")
                 .contentLength(33)
                 .timeout(25000L))
@@ -441,7 +441,7 @@ public class McpFunctionsTest
         byte[] bytes = McpFunctions.beginEx()
             .typeId(0)
             .resourcesTemplatesList()
-                .sessionId("session-1")
+                .sessionId("5ca1ab1e-c0de-4a11-5e55-000100000000")
                 .timeout(10000L)
                 .build()
             .build();
@@ -458,7 +458,7 @@ public class McpFunctionsTest
         BytesMatcher matcher = McpFunctions.matchBeginEx()
             .typeId(0)
             .resourcesTemplatesList()
-                .sessionId("session-1")
+                .sessionId("5ca1ab1e-c0de-4a11-5e55-000100000000")
                 .timeout(10000L)
                 .build()
             .build();
@@ -469,7 +469,7 @@ public class McpFunctionsTest
             .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .resourcesTemplatesList(b -> b
-                .sessionId("session-1")
+                .sessionId("5ca1ab1e-c0de-4a11-5e55-000100000000")
                 .timeout(10000L))
             .build();
 
@@ -490,7 +490,7 @@ public class McpFunctionsTest
         new McpBeginExFW.Builder()
             .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
-            .toolsList(b -> b.sessionId("session-1"))
+            .toolsList(b -> b.sessionId("5ca1ab1e-c0de-4a11-5e55-000100000000"))
             .build();
 
         matcher.match(byteBuf);
@@ -1623,7 +1623,7 @@ public class McpFunctionsTest
         byte[] bytes = McpFunctions.beginEx()
             .typeId(0)
             .lifecycle()
-                .sessionId("session-1")
+                .sessionId("5ca1ab1e-c0de-4a11-5e55-000100000000")
                 .capabilities("SERVER_TOOLS", "SERVER_PROMPTS", "SERVER_RESOURCES")
                 .build()
             .build();
@@ -1637,7 +1637,7 @@ public class McpFunctionsTest
         BytesMatcher matcher = McpFunctions.matchBeginEx()
             .typeId(0)
             .lifecycle()
-                .sessionId("session-1")
+                .sessionId("5ca1ab1e-c0de-4a11-5e55-000100000000")
                 .capabilities("SERVER_TOOLS", "SERVER_PROMPTS")
                 .build()
             .build();
@@ -1648,7 +1648,7 @@ public class McpFunctionsTest
             .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .lifecycle(b -> b
-                .sessionId("session-1")
+                .sessionId("5ca1ab1e-c0de-4a11-5e55-000100000000")
                 .capabilities(McpCapabilities.SERVER_TOOLS.value() | McpCapabilities.SERVER_PROMPTS.value()))
             .build();
 
@@ -1671,7 +1671,7 @@ public class McpFunctionsTest
             .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .lifecycle(b -> b
-                .sessionId("session-1")
+                .sessionId("5ca1ab1e-c0de-4a11-5e55-000100000000")
                 .capabilities(McpCapabilities.SERVER_PROMPTS.value()))
             .build();
 
