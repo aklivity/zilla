@@ -14,20 +14,23 @@
  */
 package io.aklivity.zilla.config.model.core;
 
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
 import io.aklivity.zilla.config.engine.Config;
 import io.aklivity.zilla.config.engine.ModelConfig;
+import io.aklivity.zilla.config.engine.NamedConfig;
 import io.aklivity.zilla.config.engine.ValidateConfig;
 
 public final class BytesModelConfig extends ModelConfig
 {
     BytesModelConfig(
         ValidateConfig validate,
-        Map<String, Config> extensions)
+        Map<String, Config> extensions,
+        List<NamedConfig> refs)
     {
-        super("bytes", null, validate, extensions);
+        super("bytes", null, validate, extensions, refs);
     }
 
     public static <T> BytesModelConfigBuilder<T> builder(
