@@ -15,8 +15,8 @@
  */
 package io.aklivity.zilla.runtime.engine.router;
 
+import io.aklivity.zilla.runtime.common.lang.util.function.ObjectIntBiConsumer;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
-import io.aklivity.zilla.runtime.engine.util.function.ObjectIntBiConsumer;
 
 /**
  * Entry point for a stream factory composition plugin.

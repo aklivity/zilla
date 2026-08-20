@@ -21,10 +21,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import io.aklivity.zilla.runtime.common.lang.util.function.ObjectIntBiConsumer;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.router.RouteableContext;
 import io.aklivity.zilla.runtime.engine.router.Router;
-import io.aklivity.zilla.runtime.engine.util.function.ObjectIntBiConsumer;
 
 public final class TestRouter implements Router
 {
