@@ -24,6 +24,7 @@ public final class TestVaultOptionsConfig extends OptionsConfig
     public final List<TestVaultEntryConfig> keys;
     public final TestVaultEntryConfig signer;
     public final List<TestVaultEntryConfig> trust;
+    public final List<TestVaultEntryConfig> wrap;
 
     public static TestVaultOptionsConfigBuilder<TestVaultOptionsConfig> builder()
     {
@@ -39,10 +40,12 @@ public final class TestVaultOptionsConfig extends OptionsConfig
     TestVaultOptionsConfig(
         List<TestVaultEntryConfig> keys,
         TestVaultEntryConfig signer,
-        List<TestVaultEntryConfig> trust)
+        List<TestVaultEntryConfig> trust,
+        List<TestVaultEntryConfig> wrap)
     {
         this.keys = keys;
         this.signer = signer;
         this.trust = trust;
+        this.wrap = wrap;
     }
 }

@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.config.engine;
 
+import java.util.List;
 import java.util.Map;
 
 public abstract class Config
@@ -25,16 +26,25 @@ public abstract class Config
     public abstract static class Extensible extends Config
     {
         private final Map<String, Config> extensions;
+        private final List<NamedConfig> refs;
 
         protected Extensible()
         {
-            this(null);
+            this(null, null);
         }
 
         protected Extensible(
             Map<String, Config> extensions)
         {
+            this(extensions, null);
+        }
+
+        protected Extensible(
+            Map<String, Config> extensions,
+            List<NamedConfig> refs)
+        {
             this.extensions = extensions;
+            this.refs = refs != null ? refs : List.of();
         }
 
         public final <T extends Config> T ext(
@@ -42,6 +52,16 @@ public abstract class Config
             Class<T> type)
         {
             return extensions != null ? type.cast(extensions.get(name)) : null;
+        }
+
+        /**
+         * Named configs (vaults, guards, ...) contributed by this config or any of its own extensions,
+         * each carrying only a name until the engine resolves it to an id once, generically, regardless of
+         * which concrete kind of named config it is.
+         */
+        public final List<NamedConfig> refs()
+        {
+            return refs;
         }
     }
 }

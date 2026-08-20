@@ -61,6 +61,17 @@ public interface AvroPipeline
     boolean identity();
 
     /**
+     * Sets the authorization in effect for the next datum {@link #transform fed} to this pipeline, reached
+     * by any stage via {@link AvroController#authorization()}. The default does nothing, for a pipeline
+     * assembled with no stage that reads it. Call before each {@code transform}, since a reused pipeline
+     * instance carries this value forward otherwise.
+     */
+    default void authorization(
+        long authorization)
+    {
+    }
+
+    /**
      * Feeds the whole datum, or the final window of a streamed one ({@code last == true}).
      */
     default Status transform(
