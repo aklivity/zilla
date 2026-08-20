@@ -48,6 +48,6 @@ public class BytesModelConfigBuilder<T> extends ConfigBuilder.Extensible<T, Byte
     @Override
     public T build()
     {
-        return mapper.apply(new BytesModelConfig(validate, extensions()));
+        return mapper.apply(new BytesModelConfig(validate, extensions(), refs()));
     }
 }
