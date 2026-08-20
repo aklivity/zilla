@@ -38,6 +38,7 @@
 - feat\(engine\): worker/node affinity identity and deterministic mcp-session-id embedding [\#2403](https://github.com/aklivity/zilla/pull/2403) ([jfallows](https://github.com/jfallows))
 - feat\(engine\): encapsulate label management in the Router SPI [\#2404](https://github.com/aklivity/zilla/pull/2404) ([jfallows](https://github.com/jfallows))
 - feat\(model-protobuf\): resolve extension refs and thread authorization through the pipeline [\#2405](https://github.com/aklivity/zilla/pull/2405) ([jfallows](https://github.com/jfallows))
+- refactor\(model-ext\): drop unused name\(\)/type\(\) surface from model extension SPIs [\#2406](https://github.com/aklivity/zilla/pull/2406) ([jfallows](https://github.com/jfallows))
 
 ## [2.3.0](https://github.com/aklivity/zilla/tree/2.3.0) (2026-08-14)
 
