@@ -21,11 +21,14 @@ import io.aklivity.zilla.runtime.engine.router.RouterContext;
 
 final class EngineRouterContext implements RouterContext
 {
+    private final EngineRouter router;
     private final BindingHandler streamFactory;
 
     EngineRouterContext(
+        EngineRouter router,
         BindingHandler streamFactory)
     {
+        this.router = router;
         this.streamFactory = streamFactory;
     }
 
@@ -40,5 +43,19 @@ final class EngineRouterContext implements RouterContext
     public void detach(
         long routerId)
     {
+    }
+
+    @Override
+    public int supplyLabelId(
+        String label)
+    {
+        return router.supplyLabelId(label);
+    }
+
+    @Override
+    public String supplyLabel(
+        int labelId)
+    {
+        return router.supplyLabel(labelId);
     }
 }
