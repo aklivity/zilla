@@ -31,6 +31,7 @@ public final class TestGuardOptionsConfigBuilder<T> extends ConfigBuilder<T, Tes
     public static final String DEFAULT_IDENTITY = "test";
     public static final Duration DEFAULT_CHALLENGE_NEVER = Duration.ofMillis(0L);
     public static final Duration DEFAULT_LIFETIME_FOREVER = Duration.ofMillis(Long.MAX_VALUE);
+    public static final int DEFAULT_MAX_SESSIONS_UNLIMITED = Integer.MAX_VALUE;
 
     private final Function<OptionsConfig, T> mapper;
 
@@ -41,6 +42,8 @@ public final class TestGuardOptionsConfigBuilder<T> extends ConfigBuilder<T, Tes
     private List<String> roles;
     private Map<String, String> attributes;
     private String preauthorize;
+    private boolean deferAcquire;
+    private Integer maxSessions;
 
     TestGuardOptionsConfigBuilder(
         Function<OptionsConfig, T> mapper)
@@ -106,10 +109,24 @@ public final class TestGuardOptionsConfigBuilder<T> extends ConfigBuilder<T, Tes
         return this;
     }
 
+    public TestGuardOptionsConfigBuilder<T> deferAcquire(
+        boolean deferAcquire)
+    {
+        this.deferAcquire = deferAcquire;
+        return this;
+    }
+
     public TestGuardOptionsConfigBuilder<T> preauthorize(
         String preauthorize)
     {
         this.preauthorize = preauthorize;
+        return this;
+    }
+
+    public TestGuardOptionsConfigBuilder<T> maxSessions(
+        int maxSessions)
+    {
+        this.maxSessions = maxSessions;
         return this;
     }
 
@@ -123,6 +140,8 @@ public final class TestGuardOptionsConfigBuilder<T> extends ConfigBuilder<T, Tes
             this.identity != null ? this.identity : DEFAULT_IDENTITY,
             roles,
             attributes,
-            preauthorize));
+            preauthorize,
+            deferAcquire,
+            Optional.ofNullable(maxSessions).orElse(DEFAULT_MAX_SESSIONS_UNLIMITED)));
     }
 }

@@ -15,27 +15,35 @@
 package io.aklivity.zilla.runtime.model.protobuf.internal;
 
 import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_ID;
+import static java.util.Objects.requireNonNull;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+
+import org.agrona.collections.Int2ObjectCache;
 
 import io.aklivity.zilla.config.model.protobuf.ProtobufModelConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.protobuf.Protobuf;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufEnvelope;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufGenerator;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufMessage;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufParser;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufPipeline;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufReporter;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSchema;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufStream;
 import io.aklivity.zilla.runtime.common.protobuf.json.ProtobufJson;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
+import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
-import io.aklivity.zilla.runtime.engine.model.ModelVisitor;
+import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
+import io.aklivity.zilla.runtime.model.protobuf.ext.ProtobufModelExtContext;
 
 // Per-worker factory for a protobuf model. One handler serves both directions: supplyDecoder vends a
 // per-stream ProtobufModelDecoderPipeline (catalog framing and message-index prefix stripped, value validated and
@@ -49,29 +57,42 @@ public final class ProtobufModelHandlerImpl extends ProtobufModelHandler impleme
         (traceId, bindingId, schemaId, data, index, length, next) -> 0;
 
     private final Map<String, Object> jsonConfig;
+    // the encode-side message-index path is fixed per schemaId (catalog.record never changes at runtime),
+    // so resolving it is cached exactly like supplySchema/supplyIndexPadding rather than re-derived (and
+    // defensively re-cloned by ProtobufSchema.messageIndexes) on every encode call
+    private final Int2ObjectCache<int[]> messagePaths;
+    private final ProtobufModelConfig options;
+    private final List<ProtobufModelExtContext> exts;
 
     public ProtobufModelHandlerImpl(
         ProtobufModelConfig config,
-        EngineContext context)
+        EngineContext context,
+        List<ProtobufModelExtContext> exts)
     {
         super(config, context);
         this.jsonConfig = new HashMap<>();
         jsonConfig.put(ProtobufJson.FIELD_NAMES, ProtobufJson.FieldNames.PROTO);
         jsonConfig.put(ProtobufJson.INCLUDE_DEFAULTS, Boolean.TRUE);
+        this.messagePaths = new Int2ObjectCache<>(1, 1024, i -> {});
+        this.options = config;
+        this.exts = exts;
     }
 
     @Override
     public ModelPipeline supplyDecoder(
-        ModelVisitor visitor)
+        ModelEnvelope envelope,
+        ModelTransform transform)
     {
-        return new ProtobufModelDecoderPipeline(this, visitor);
+        return new ProtobufModelDecoderPipeline(this, ProtobufModelEnvelope.of(requireNonNull(envelope)),
+            requireNonNull(transform));
     }
 
     @Override
     public ModelPipeline supplyEncoder(
-        ModelVisitor visitor)
+        ModelEnvelope envelope,
+        ModelTransform transform)
     {
-        return new ProtobufModelEncoderPipeline(this);
+        return new ProtobufModelEncoderPipeline(this, ProtobufModelEnvelope.of(requireNonNull(envelope)));
     }
 
     int decodePadding(
@@ -79,10 +100,26 @@ public final class ProtobufModelHandlerImpl extends ProtobufModelHandler impleme
         int index,
         int length)
     {
-        int padding = handler.decodePadding(data, index, length);
+        int schemaId = resolveSchemaId(data, index, length);
+        int padding = handler.decodePadding(data, index, length) + supplyExtPadding(schemaId);
         if (VIEW_JSON.equals(view))
         {
-            padding += supplyJsonFormatPadding(resolveSchemaId(data, index, length));
+            padding += supplyJsonFormatPadding(schemaId);
+        }
+        return padding;
+    }
+
+    @Override
+    protected int extPadding(
+        ProtobufSchema schema)
+    {
+        int padding = 0;
+        if (schema != null)
+        {
+            for (ProtobufModelExtContext ext : exts)
+            {
+                padding += ext.supplyHandler(schema, options).padding(schema);
+            }
         }
         return padding;
     }
@@ -90,7 +127,8 @@ public final class ProtobufModelHandlerImpl extends ProtobufModelHandler impleme
     int encodePadding(
         int length)
     {
-        return handler.encodePadding(length) + supplyIndexPadding(resolveSchemaId());
+        int schemaId = resolveSchemaId();
+        return handler.encodePadding(length) + supplyIndexPadding(schemaId) + supplyExtPadding(schemaId);
     }
 
     // the catalog framing the value carries on the wire, stripped once at the start of the first fragment
@@ -141,7 +179,24 @@ public final class ProtobufModelHandlerImpl extends ProtobufModelHandler impleme
         return schema != null ? schema.messageByIndexes(decodedPath()) : null;
     }
 
+    // avoids computeIfAbsent for the same reason as ProtobufModelHandler.supplySchema: a capturing method
+    // reference argument is allocated on every call, not just on a cache miss
     int[] messagePath(
+        int schemaId)
+    {
+        int[] path = messagePaths.get(schemaId);
+        if (path == null)
+        {
+            path = resolveMessagePath(schemaId);
+            if (path != null)
+            {
+                messagePaths.put(schemaId, path);
+            }
+        }
+        return path;
+    }
+
+    private int[] resolveMessagePath(
         int schemaId)
     {
         ProtobufSchema schema = supplySchema(schemaId);
@@ -176,7 +231,7 @@ public final class ProtobufModelHandlerImpl extends ProtobufModelHandler impleme
     {
         encodeIndexes(path);
         byte[] framing;
-        if (indexes.size() == 2 && indexes.get(0) == 1 && indexes.get(1) == 0)
+        if (indexes.size() == 2 && indexes.getInt(0) == 1 && indexes.getInt(1) == 0)
         {
             framing = ZERO_INDEX;
         }
@@ -195,7 +250,8 @@ public final class ProtobufModelHandlerImpl extends ProtobufModelHandler impleme
         boolean lenient,
         String messageName,
         ProtobufExtractor extractor,
-        ProtobufReporter reporter)
+        ProtobufReporter reporter,
+        ProtobufEnvelope envelope)
     {
         ProtobufSchema schema = supplySchema(schemaId);
         ProtobufPipeline pipeline = null;
@@ -207,14 +263,16 @@ public final class ProtobufModelHandlerImpl extends ProtobufModelHandler impleme
                 ? ProtobufJson.generator(JsonEx.createGenerator(), schema, messageName, jsonConfig)
                 : Protobuf.generator();
             pipeline = extractor != null
-                ? Protobuf.stream(Protobuf.parser(schema, messageName))
+                ? extendDecode(Protobuf.stream(Protobuf.parser(schema, messageName)), schema)
                     .transform(extractor)
                     .lenient(lenient)
                     .reporting(reporter)
+                    .envelope(envelope)
                     .into(generator, schema, messageName)
-                : Protobuf.stream(Protobuf.parser(schema, messageName))
+                : extendDecode(Protobuf.stream(Protobuf.parser(schema, messageName)), schema)
                     .lenient(lenient)
                     .reporting(reporter)
+                    .envelope(envelope)
                     .into(generator, schema, messageName);
         }
         return pipeline;
@@ -224,7 +282,8 @@ public final class ProtobufModelHandlerImpl extends ProtobufModelHandler impleme
         int schemaId,
         boolean lenient,
         String messageName,
-        ProtobufReporter reporter)
+        ProtobufReporter reporter,
+        ProtobufEnvelope envelope)
     {
         ProtobufSchema schema = supplySchema(schemaId);
         ProtobufPipeline pipeline = null;
@@ -236,12 +295,43 @@ public final class ProtobufModelHandlerImpl extends ProtobufModelHandler impleme
                 ? ProtobufJson.parser(JsonEx.createParser(), schema, messageName,
                     Map.of(ProtobufJson.REJECT_UNKNOWN_FIELDS, Boolean.TRUE))
                 : Protobuf.parser(schema, messageName);
-            pipeline = Protobuf.stream(parser)
+            pipeline = extendEncode(Protobuf.stream(parser), schema)
                 .lenient(lenient)
                 .reporting(reporter)
+                .envelope(envelope)
                 .into(Protobuf.generator(), schema, messageName);
         }
         return pipeline;
+    }
+
+    // folds every installed protobuf model extension's own decode stage(s) into the stream, in discovery
+    // order, ahead of this handler's own extractor stage: the canonical value being decoded into the view
+    // delivered to a reader
+    private ProtobufStream extendDecode(
+        ProtobufStream stream,
+        ProtobufSchema schema)
+    {
+        ProtobufStream extended = stream;
+        for (ProtobufModelExtContext ext : exts)
+        {
+            extended = ext.supplyHandler(schema, options).decode(extended);
+        }
+        return extended;
+    }
+
+    // folds every installed protobuf model extension's own encode stage(s) into the stream, in discovery
+    // order, ahead of this handler's own extractor stage: a caller's value being encoded into its
+    // canonical form
+    private ProtobufStream extendEncode(
+        ProtobufStream stream,
+        ProtobufSchema schema)
+    {
+        ProtobufStream extended = stream;
+        for (ProtobufModelExtContext ext : exts)
+        {
+            extended = ext.supplyHandler(schema, options).encode(extended);
+        }
+        return extended;
     }
 
     void validationFailure(

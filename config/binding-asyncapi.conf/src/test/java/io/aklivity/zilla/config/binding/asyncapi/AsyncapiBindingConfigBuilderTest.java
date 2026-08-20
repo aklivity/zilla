@@ -26,7 +26,6 @@ import io.aklivity.zilla.config.binding.asyncapi.internal.AsyncapiBindingInfo;
 import io.aklivity.zilla.config.engine.ConditionConfig;
 import io.aklivity.zilla.config.engine.RouteConfig;
 import io.aklivity.zilla.config.engine.WithConfig;
-import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfig;
 
 public class AsyncapiBindingConfigBuilderTest
 {

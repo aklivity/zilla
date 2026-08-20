@@ -17,19 +17,21 @@ package io.aklivity.zilla.runtime.binding.http.internal.config;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
+import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 
 /**
  * Per-stream driver around a decode {@link ModelPipeline} for the http binding.
  * <p>
  * Scalar metadata (header, path and query values) is transformed whole-value via the
- * {@link #transform(long, long, DirectBufferEx, int, int)} overload: the value is driven through the
+ * {@link #transform(long, long, long, DirectBufferEx, int, int)} overload: the value is driven through the
  * pipeline and the produced (possibly changed) bytes are exposed via {@link #buffer} / {@link #produced}
  * for the caller to substitute downstream, or {@code -1} signals the model rejected it. Streaming content
- * is transformed via {@link #transform(long, long, int, DirectBufferEx, int, int, int)}: each fragment is
+ * is transformed via {@link #transform(long, long, long, int, DirectBufferEx, int, int, int)}: each fragment is
  * driven through the pipeline and the produced bytes are exposed for the caller to forward downstream.
  * </p>
  */
@@ -50,7 +52,7 @@ public final class HttpModel
         MutableDirectBufferEx scratch)
     {
         return handler != null
-            ? new HttpModel(handler.supplyDecoder(), scratch)
+            ? new HttpModel(handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE), scratch)
             : NONE;
     }
 
@@ -71,6 +73,7 @@ public final class HttpModel
     public int transform(
         long traceId,
         long bindingId,
+        long authorization,
         DirectBufferEx data,
         int index,
         int limit)
@@ -90,7 +93,7 @@ public final class HttpModel
             boolean done = false;
             while (!done)
             {
-                final ModelPipelineResult result = pipeline.transform(traceId, bindingId, flags,
+                final ModelPipelineResult result = pipeline.transform(traceId, bindingId, authorization, flags,
                     data, srcAt, limit, scratch, total, scratch.capacity());
                 final ModelStatus status = result.status();
 
@@ -123,13 +126,14 @@ public final class HttpModel
     public int transform(
         long traceId,
         long bindingId,
+        long authorization,
         int flags,
         DirectBufferEx src,
         int srcIndex,
         int srcLimit,
         int dstMax)
     {
-        final ModelPipelineResult result = pipeline.transform(traceId, bindingId, flags,
+        final ModelPipelineResult result = pipeline.transform(traceId, bindingId, authorization, flags,
             src, srcIndex, srcLimit, scratch, 0, dstMax);
         final ModelStatus status = result.status();
 

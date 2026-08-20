@@ -17,9 +17,6 @@ package io.aklivity.zilla.runtime.binding.kafka.internal.cache;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.emptyList;
-import static java.util.Collections.emptySet;
-import static java.util.Collections.singleton;
-import static java.util.Collections.singletonList;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
@@ -28,8 +25,16 @@ import org.agrona.collections.MutableInteger;
 import org.junit.Test;
 
 import io.aklivity.zilla.config.engine.test.internal.model.config.TestModelConfig;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
+import io.aklivity.zilla.runtime.engine.model.ModelFieldBridge;
+import io.aklivity.zilla.runtime.engine.model.ModelHandler;
+import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
+import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
+import io.aklivity.zilla.runtime.engine.model.ModelStatus;
+import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 import io.aklivity.zilla.runtime.engine.test.internal.model.TestModelHandler;
 
 public class KafkaCacheModelTest
@@ -47,9 +52,9 @@ public class KafkaCacheModelTest
     @Test
     public void shouldTransformWholeValue()
     {
-        KafkaCacheModel model = KafkaCacheModel.decoder(handler(5), emptySet(), new UnsafeBufferEx(new byte[256]));
+        KafkaCacheModel model = KafkaCacheModel.decoder(handler(5), ModelTransform.NONE, new UnsafeBufferEx(new byte[256]));
 
-        int produced = model.transform(0L, 0L, value("hello"), 0, 5, sink);
+        int produced = model.transform(0L, 0L, 0L, value("hello"), 0, 5, sink);
 
         assertEquals(5, produced);
         assertOutput("hello");
@@ -58,9 +63,9 @@ public class KafkaCacheModelTest
     @Test
     public void shouldRejectInvalidValue()
     {
-        KafkaCacheModel model = KafkaCacheModel.decoder(handler(5), emptySet(), new UnsafeBufferEx(new byte[256]));
+        KafkaCacheModel model = KafkaCacheModel.decoder(handler(5), ModelTransform.NONE, new UnsafeBufferEx(new byte[256]));
 
-        int produced = model.transform(0L, 0L, value("nope"), 0, 4, sink);
+        int produced = model.transform(0L, 0L, 0L, value("nope"), 0, 4, sink);
 
         assertEquals(-1, produced);
     }
@@ -68,9 +73,9 @@ public class KafkaCacheModelTest
     @Test
     public void shouldTransformWholeValueToLargerLength()
     {
-        KafkaCacheModel model = KafkaCacheModel.decoder(handler(5, 8), emptySet(), new UnsafeBufferEx(new byte[256]));
+        KafkaCacheModel model = KafkaCacheModel.decoder(handler(5, 8), ModelTransform.NONE, new UnsafeBufferEx(new byte[256]));
 
-        int produced = model.transform(0L, 0L, value("hello"), 0, 5, sink);
+        int produced = model.transform(0L, 0L, 0L, value("hello"), 0, 5, sink);
 
         assertEquals(8, produced);
         assertEquals(8, outputLength.value);
@@ -82,9 +87,9 @@ public class KafkaCacheModelTest
     @Test
     public void shouldTransformWholeValueToSmallerLength()
     {
-        KafkaCacheModel model = KafkaCacheModel.decoder(handler(5, 3), emptySet(), new UnsafeBufferEx(new byte[256]));
+        KafkaCacheModel model = KafkaCacheModel.decoder(handler(5, 3), ModelTransform.NONE, new UnsafeBufferEx(new byte[256]));
 
-        int produced = model.transform(0L, 0L, value("hello"), 0, 5, sink);
+        int produced = model.transform(0L, 0L, 0L, value("hello"), 0, 5, sink);
 
         assertEquals(3, produced);
         assertOutput("hel");
@@ -93,9 +98,9 @@ public class KafkaCacheModelTest
     @Test
     public void shouldTransformAcrossOverflow()
     {
-        KafkaCacheModel model = KafkaCacheModel.decoder(handler(5), emptySet(), new UnsafeBufferEx(new byte[2]));
+        KafkaCacheModel model = KafkaCacheModel.decoder(handler(5), ModelTransform.NONE, new UnsafeBufferEx(new byte[2]));
 
-        int produced = model.transform(0L, 0L, value("hello"), 0, 5, sink);
+        int produced = model.transform(0L, 0L, 0L, value("hello"), 0, 5, sink);
 
         assertEquals(5, produced);
         assertOutput("hello");
@@ -106,7 +111,7 @@ public class KafkaCacheModelTest
     {
         KafkaCacheModel model = KafkaCacheModel.encoder(handler(3), new UnsafeBufferEx(new byte[256]));
 
-        int produced = model.transform(0L, 0L, value("abc"), 0, 3, sink);
+        int produced = model.transform(0L, 0L, 0L, value("abc"), 0, 3, sink);
 
         assertEquals(3, produced);
         assertOutput("abc");
@@ -115,7 +120,7 @@ public class KafkaCacheModelTest
     @Test
     public void shouldForwardWhenNone()
     {
-        int produced = KafkaCacheModel.NONE.transform(0L, 0L, value("passthrough"), 0, 11, sink);
+        int produced = KafkaCacheModel.NONE.transform(0L, 0L, 0L, value("passthrough"), 0, 11, sink);
 
         assertEquals(11, produced);
         assertOutput("passthrough");
@@ -124,36 +129,29 @@ public class KafkaCacheModelTest
     @Test
     public void shouldReportNoneAsDefaults()
     {
-        assertSame(KafkaCacheModel.NONE, KafkaCacheModel.decoder(null, emptySet(), new UnsafeBufferEx(new byte[8])));
+        assertSame(KafkaCacheModel.NONE, KafkaCacheModel.decoder(null, ModelTransform.NONE, new UnsafeBufferEx(new byte[8])));
         assertSame(KafkaCacheModel.NONE, KafkaCacheModel.encoder(null, new UnsafeBufferEx(new byte[8])));
         assertEquals(0, KafkaCacheModel.NONE.padding(value("x"), 0, 1));
-        assertEquals(0, KafkaCacheModel.NONE.extractedLength("$.id"));
-
-        boolean[] visited = { false };
-        KafkaCacheModel.NONE.extracted("$.id", (p, b, i, l) -> visited[0] = true);
-        assertEquals(false, visited[0]);
 
         KafkaCacheModel.NONE.reset();
     }
 
     @Test
-    public void shouldExtractConfiguredField()
+    public void shouldRejectValueRejectedByModel()
     {
-        KafkaCacheModel model = KafkaCacheModel.decoder(extractingHandler(5, "id"), singleton("$.id"),
+        KafkaCacheModel model = new KafkaCacheModel(
+            rejectingHandler("$.id").supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE),
             new UnsafeBufferEx(new byte[256]));
 
-        model.transform(0L, 0L, value("hello"), 0, 5, sink);
+        int produced = model.transform(0L, 0L, 0L, value("hello"), 0, 5, sink);
 
-        assertEquals(4, model.extractedLength("$.id"));
-        String[] captured = { null };
-        model.extracted("$.id", (p, b, i, l) -> captured[0] = b.getStringWithoutLengthUtf8(i, l));
-        assertEquals("1234", captured[0]);
+        assertEquals(-1, produced);
     }
 
     @Test
     public void shouldReportZeroPadding()
     {
-        KafkaCacheModel model = KafkaCacheModel.decoder(handler(5), emptySet(), new UnsafeBufferEx(new byte[256]));
+        KafkaCacheModel model = KafkaCacheModel.decoder(handler(5), ModelTransform.NONE, new UnsafeBufferEx(new byte[256]));
 
         assertEquals(0, model.padding(value("hello"), 0, 5));
     }
@@ -161,13 +159,13 @@ public class KafkaCacheModelTest
     @Test
     public void shouldResetReusablePipeline()
     {
-        KafkaCacheModel model = KafkaCacheModel.decoder(handler(5), emptySet(), new UnsafeBufferEx(new byte[256]));
+        KafkaCacheModel model = KafkaCacheModel.decoder(handler(5), ModelTransform.NONE, new UnsafeBufferEx(new byte[256]));
 
-        model.transform(0L, 0L, value("hello"), 0, 5, sink);
+        model.transform(0L, 0L, 0L, value("hello"), 0, 5, sink);
         model.reset();
         outputLength.value = 0;
 
-        int produced = model.transform(0L, 0L, value("world"), 0, 5, sink);
+        int produced = model.transform(0L, 0L, 0L, value("world"), 0, 5, sink);
 
         assertEquals(5, produced);
         assertOutput("world");
@@ -186,11 +184,29 @@ public class KafkaCacheModelTest
         return new TestModelHandler(new TestModelConfig(length, emptyList(), true, transformLength));
     }
 
-    private static TestModelHandler extractingHandler(
-        int length,
-        String field)
+    // a model that surfaces one field and then rejects the value, as a real model does when a value parses
+    // far enough to yield fields but fails validation later
+    private static ModelHandler rejectingHandler(
+        String path)
     {
-        return new TestModelHandler(new TestModelConfig(length, emptyList(), true, -1, singletonList(field)));
+        return new ModelHandler()
+        {
+            @Override
+            public ModelPipeline supplyDecoder(
+                ModelEnvelope envelope,
+                ModelTransform transform)
+            {
+                return new RejectingPipeline(transform, path);
+            }
+
+            @Override
+            public ModelPipeline supplyEncoder(
+                ModelEnvelope envelope,
+                ModelTransform transform)
+            {
+                return supplyDecoder(envelope, transform);
+            }
+        };
     }
 
     private MutableDirectBufferEx value(
@@ -206,5 +222,49 @@ public class KafkaCacheModelTest
         byte[] actual = new byte[outputLength.value];
         output.getBytes(0, actual);
         assertArrayEquals(expected.getBytes(UTF_8), actual);
+    }
+
+    private static final class RejectingPipeline implements ModelPipeline
+    {
+        private final ModelFieldBridge bridge;
+        private final String path;
+        private final ModelPipelineResult result = new ModelPipelineResult();
+
+        private RejectingPipeline(
+            ModelTransform transform,
+            String path)
+        {
+            this.bridge = new ModelFieldBridge(transform);
+            this.path = path;
+        }
+
+        @Override
+        public ModelPipelineResult transform(
+            long traceId,
+            long bindingId,
+            long authorization,
+            int flags,
+            DirectBufferEx src,
+            int srcIndex,
+            int srcLimit,
+            MutableDirectBufferEx dst,
+            int dstIndex,
+            int dstLimit)
+        {
+            bridge.start(authorization);
+            bridge.field(path, src, srcIndex, srcLimit - srcIndex);
+            return result.set(ModelStatus.REJECTED, 0, 0);
+        }
+
+        @Override
+        public boolean identity()
+        {
+            return false;
+        }
+
+        @Override
+        public void reset()
+        {
+        }
     }
 }

@@ -14,11 +14,11 @@
  */
 package io.aklivity.zilla.config.binding.openapi.asyncapi;
 
+import java.net.URI;
 import java.util.List;
 import java.util.function.Function;
 
 import io.aklivity.zilla.config.engine.ConditionConfig;
-import io.aklivity.zilla.runtime.common.openapi.view.OpenapiServerView;
 
 public class OpenapiAsyncapiConditionConfig extends ConditionConfig
 {
@@ -61,7 +61,7 @@ public class OpenapiAsyncapiConditionConfig extends ConditionConfig
         String spec,
         String operationId,
         List<String> tags,
-        List<OpenapiServerView> operationServers)
+        List<URI> operationServers)
     {
         return matchesSpec(spec) &&
             matchesOperation(operationId) &&
@@ -88,7 +88,7 @@ public class OpenapiAsyncapiConditionConfig extends ConditionConfig
     }
 
     private boolean matchesServers(
-        List<OpenapiServerView> operationServers)
+        List<URI> operationServers)
     {
         return servers == null || servers.isEmpty() ||
             operationServers != null && servers.stream().anyMatch(s -> operationServers.stream().anyMatch(s::matches));

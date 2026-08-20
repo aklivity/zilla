@@ -39,6 +39,24 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/value.envelope/client",
+        "${net}/value.envelope/server" })
+    public void shouldExchangeValueEnvelope() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/value.envelope.bootstrap/client",
+        "${net}/value.envelope.bootstrap/server" })
+    public void shouldExchangeValueEnvelopeBootstrap() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/reconfigure.modify.via.file/client",
         "${net}/reconfigure.modify.via.file/server" })
     public void shouldReconfigureWhenModified() throws Exception

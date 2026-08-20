@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.common.protobuf.internal;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -30,11 +31,14 @@ import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
 
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufConstant;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufEnum;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufException;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufField;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufMessage;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufMethod;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSchema;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufService;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufType;
 import io.aklivity.zilla.runtime.common.protobuf.internal.parser.Protobuf2BaseListener;
 import io.aklivity.zilla.runtime.common.protobuf.internal.parser.Protobuf2Lexer;
@@ -138,7 +142,45 @@ public final class ProtobufSourceCompiler
             }
             schema.message(builder.build());
         }
+        for (DraftService service : draft.services)
+        {
+            ProtobufService.Builder builder = ProtobufService.builder(service.fullName);
+            for (DraftMethod method : service.methods)
+            {
+                builder.method(linkMethod(method, names));
+            }
+            schema.service(builder.build());
+        }
         return schema.build();
+    }
+
+    private ProtobufMethod linkMethod(
+        DraftMethod method,
+        Set<String> names)
+    {
+        String inputType = resolveTypeName(method.inputTypeToken, method.scope, names);
+        if (inputType == null)
+        {
+            throw new ProtobufException("unresolved type " + method.inputTypeToken);
+        }
+        String outputType = resolveTypeName(method.outputTypeToken, method.scope, names);
+        if (outputType == null)
+        {
+            throw new ProtobufException("unresolved type " + method.outputTypeToken);
+        }
+
+        ProtobufMethod.Builder builder = ProtobufMethod.builder()
+            .name(method.name)
+            .inputType(inputType)
+            .outputType(outputType)
+            .clientStreaming(method.clientStreaming)
+            .serverStreaming(method.serverStreaming);
+        if (method.options != null)
+        {
+            builder.options(method.options);
+        }
+
+        return builder.build();
     }
 
     private ProtobufField linkField(
@@ -181,6 +223,10 @@ public final class ProtobufSourceCompiler
         if (field.defaultValue != null)
         {
             builder.defaultValue(field.defaultValue);
+        }
+        if (field.options != null)
+        {
+            builder.options(field.options);
         }
         boolean packed = field.packed != null
             ? field.packed
@@ -250,6 +296,7 @@ public final class ProtobufSourceCompiler
         private final boolean proto3;
         private final List<DraftMessage> messages;
         private final List<DraftEnum> enums;
+        private final List<DraftService> services;
         private final Set<String> enumNames;
         private String packageName;
 
@@ -259,6 +306,7 @@ public final class ProtobufSourceCompiler
             this.proto3 = proto3;
             this.messages = new ArrayList<>();
             this.enums = new ArrayList<>();
+            this.services = new ArrayList<>();
             this.enumNames = new LinkedHashSet<>();
             this.packageName = "";
         }
@@ -309,6 +357,31 @@ public final class ProtobufSourceCompiler
         private String oneofName;
         private String defaultValue;
         private Set<String> enumNames;
+        private Map<String, ProtobufConstant> options;
+    }
+
+    private static final class DraftService
+    {
+        private final String fullName;
+        private final List<DraftMethod> methods;
+
+        private DraftService(
+            String fullName)
+        {
+            this.fullName = fullName;
+            this.methods = new ArrayList<>();
+        }
+    }
+
+    private static final class DraftMethod
+    {
+        private String name;
+        private String scope;
+        private String inputTypeToken;
+        private String outputTypeToken;
+        private boolean clientStreaming;
+        private boolean serverStreaming;
+        private Map<String, ProtobufConstant> options;
     }
 
     private static final class Assembler
@@ -317,6 +390,7 @@ public final class ProtobufSourceCompiler
         private final Deque<String> scope;
         private final Deque<DraftMessage> messages;
         private String oneof;
+        private DraftService service;
 
         private Assembler(
             Draft draft)
@@ -425,6 +499,25 @@ public final class ProtobufSourceCompiler
         private boolean inMessage()
         {
             return !messages.isEmpty();
+        }
+
+        private void enterService(
+            String name)
+        {
+            service = new DraftService(qualify(name));
+            draft.services.add(service);
+        }
+
+        private void exitService()
+        {
+            service = null;
+        }
+
+        private void addMethod(
+            DraftMethod method)
+        {
+            method.scope = currentScope();
+            service.methods.add(method);
         }
     }
 
@@ -541,12 +634,55 @@ public final class ProtobufSourceCompiler
             helper.addEnum(ctx.enumName().getText(), valueNames, valueNumbers);
         }
 
+        @Override
+        public void enterServiceDef(
+            Protobuf3Parser.ServiceDefContext ctx)
+        {
+            helper.enterService(ctx.serviceName().getText());
+        }
+
+        @Override
+        public void exitServiceDef(
+            Protobuf3Parser.ServiceDefContext ctx)
+        {
+            helper.exitService();
+        }
+
+        @Override
+        public void enterRpc(
+            Protobuf3Parser.RpcContext ctx)
+        {
+            DraftMethod method = new DraftMethod();
+            method.name = ctx.rpcName().getText();
+            method.inputTypeToken = ctx.messageType(0).getText();
+            method.outputTypeToken = ctx.messageType(1).getText();
+            method.clientStreaming = ctx.clientStreaming != null;
+            method.serverStreaming = ctx.serverStreaming != null;
+            applyMethodOptions(method, ctx.optionStatement());
+            helper.addMethod(method);
+        }
+
+        private void applyMethodOptions(
+            DraftMethod method,
+            List<Protobuf3Parser.OptionStatementContext> statements)
+        {
+            if (!statements.isEmpty())
+            {
+                method.options = new LinkedHashMap<>();
+                for (Protobuf3Parser.OptionStatementContext option : statements)
+                {
+                    method.options.put(option.optionName().getText(), toConstant(option.constant()));
+                }
+            }
+        }
+
         private void applyOptions(
             DraftField field,
             Protobuf3Parser.FieldOptionsContext ctx)
         {
             if (ctx != null)
             {
+                field.options = new LinkedHashMap<>();
                 for (Protobuf3Parser.FieldOptionContext option : ctx.fieldOption())
                 {
                     String name = option.optionName().getText();
@@ -563,8 +699,65 @@ public final class ProtobufSourceCompiler
                     {
                         field.defaultValue = stripQuotes(value);
                     }
+                    field.options.put(name, toConstant(option.constant()));
                 }
             }
+        }
+
+        private ProtobufConstant toConstant(
+            Protobuf3Parser.ConstantContext ctx)
+        {
+            ProtobufConstant constant;
+            if (ctx.blockLit() != null)
+            {
+                constant = new ProtobufConstant.MessageValue(toFields(ctx.blockLit()));
+            }
+            else if (ctx.strLit() != null)
+            {
+                constant = new ProtobufConstant.TextValue(stripQuotes(ctx.strLit().getText()));
+            }
+            else if (ctx.intLit() != null)
+            {
+                long value = Long.parseLong(ctx.intLit().getText());
+                constant = new ProtobufConstant.IntegerValue(ctx.MINUS() != null ? -value : value);
+            }
+            else if (ctx.floatLit() != null)
+            {
+                double value = Double.parseDouble(ctx.floatLit().getText());
+                constant = new ProtobufConstant.FloatValue(ctx.MINUS() != null ? -value : value);
+            }
+            else if (isBoolLit(ctx))
+            {
+                constant = new ProtobufConstant.BooleanValue("true".equals(ctx.getText()));
+            }
+            else
+            {
+                constant = new ProtobufConstant.Identifier(ctx.fullIdent().getText());
+            }
+            return constant;
+        }
+
+        // "true"/"false" are grammatically ambiguous with a bare fullIdent (the ident rule folds
+        // BOOL_LIT into keywords so identifiers may use those names), and the constant rule lists
+        // fullIdent first, so ANTLR resolves the ambiguity by parsing them as fullIdent rather than
+        // boolLit: check the literal text alongside ctx.boolLit() rather than relying on the latter alone
+        private static boolean isBoolLit(
+            Protobuf3Parser.ConstantContext ctx)
+        {
+            return ctx.boolLit() != null || "true".equals(ctx.getText()) || "false".equals(ctx.getText());
+        }
+
+        private Map<String, ProtobufConstant> toFields(
+            Protobuf3Parser.BlockLitContext ctx)
+        {
+            Map<String, ProtobufConstant> fields = new LinkedHashMap<>();
+            List<Protobuf3Parser.IdentContext> idents = ctx.ident();
+            List<Protobuf3Parser.ConstantContext> values = ctx.constant();
+            for (int i = 0; i < idents.size(); i++)
+            {
+                fields.put(idents.get(i).getText(), toConstant(values.get(i)));
+            }
+            return fields;
         }
     }
 
@@ -681,12 +874,55 @@ public final class ProtobufSourceCompiler
             helper.addEnum(ctx.enumName().getText(), valueNames, valueNumbers);
         }
 
+        @Override
+        public void enterServiceDef(
+            Protobuf2Parser.ServiceDefContext ctx)
+        {
+            helper.enterService(ctx.serviceName().getText());
+        }
+
+        @Override
+        public void exitServiceDef(
+            Protobuf2Parser.ServiceDefContext ctx)
+        {
+            helper.exitService();
+        }
+
+        @Override
+        public void enterRpc(
+            Protobuf2Parser.RpcContext ctx)
+        {
+            DraftMethod method = new DraftMethod();
+            method.name = ctx.rpcName().getText();
+            method.inputTypeToken = ctx.messageType(0).getText();
+            method.outputTypeToken = ctx.messageType(1).getText();
+            method.clientStreaming = ctx.clientStreaming != null;
+            method.serverStreaming = ctx.serverStreaming != null;
+            applyMethodOptions(method, ctx.optionStatement());
+            helper.addMethod(method);
+        }
+
+        private void applyMethodOptions(
+            DraftMethod method,
+            List<Protobuf2Parser.OptionStatementContext> statements)
+        {
+            if (!statements.isEmpty())
+            {
+                method.options = new LinkedHashMap<>();
+                for (Protobuf2Parser.OptionStatementContext option : statements)
+                {
+                    method.options.put(option.optionName().getText(), toConstant(option.constant()));
+                }
+            }
+        }
+
         private void applyOptions(
             DraftField field,
             Protobuf2Parser.FieldOptionsContext ctx)
         {
             if (ctx != null)
             {
+                field.options = new LinkedHashMap<>();
                 for (Protobuf2Parser.FieldOptionContext option : ctx.fieldOption())
                 {
                     String name = option.optionName().getText();
@@ -703,8 +939,63 @@ public final class ProtobufSourceCompiler
                     {
                         field.defaultValue = stripQuotes(value);
                     }
+                    field.options.put(name, toConstant(option.constant()));
                 }
             }
+        }
+
+        private ProtobufConstant toConstant(
+            Protobuf2Parser.ConstantContext ctx)
+        {
+            ProtobufConstant constant;
+            if (ctx.blockLit() != null)
+            {
+                constant = new ProtobufConstant.MessageValue(toFields(ctx.blockLit()));
+            }
+            else if (ctx.strLit() != null)
+            {
+                constant = new ProtobufConstant.TextValue(stripQuotes(ctx.strLit().getText()));
+            }
+            else if (ctx.intLit() != null)
+            {
+                long value = Long.parseLong(ctx.intLit().getText());
+                constant = new ProtobufConstant.IntegerValue(ctx.MINUS() != null ? -value : value);
+            }
+            else if (ctx.floatLit() != null)
+            {
+                double value = Double.parseDouble(ctx.floatLit().getText());
+                constant = new ProtobufConstant.FloatValue(ctx.MINUS() != null ? -value : value);
+            }
+            else if (isBoolLit(ctx))
+            {
+                constant = new ProtobufConstant.BooleanValue("true".equals(ctx.getText()));
+            }
+            else
+            {
+                constant = new ProtobufConstant.Identifier(ctx.fullIdent().getText());
+            }
+            return constant;
+        }
+
+        // see the identically-named helper in Proto3Listener for why this text check is needed
+        // alongside ctx.boolLit()
+        private static boolean isBoolLit(
+            Protobuf2Parser.ConstantContext ctx)
+        {
+            return ctx.boolLit() != null || "true".equals(ctx.getText()) || "false".equals(ctx.getText());
+        }
+
+        private Map<String, ProtobufConstant> toFields(
+            Protobuf2Parser.BlockLitContext ctx)
+        {
+            Map<String, ProtobufConstant> fields = new LinkedHashMap<>();
+            List<Protobuf2Parser.IdentContext> idents = ctx.ident();
+            List<Protobuf2Parser.ConstantContext> values = ctx.constant();
+            for (int i = 0; i < idents.size(); i++)
+            {
+                fields.put(idents.get(i).getText(), toConstant(values.get(i)));
+            }
+            return fields;
         }
     }
 }

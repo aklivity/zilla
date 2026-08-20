@@ -16,7 +16,9 @@ package io.aklivity.zilla.config.binding.grpc.kafka;
 
 import java.util.function.Function;
 
-public final class GrpcKafkaWithProduceOverrideConfig
+import io.aklivity.zilla.config.engine.Config;
+
+public final class GrpcKafkaWithProduceOverrideConfig extends Config
 {
     public final String name;
     public final String value;

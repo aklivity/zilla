@@ -20,6 +20,7 @@ import java.util.Map;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufDiagnostic;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufEnvelope;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufMessage;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufPipeline;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufPipeline.Status;
@@ -39,6 +40,7 @@ final class ProtobufModelEncoderPipeline implements ModelPipeline
 
     private final ProtobufModelHandlerImpl handler;
     private final Map<String, ProtobufPipeline> pipelines;
+    private final ProtobufEnvelope envelope;
     private final ModelPipelineResult result;
 
     private ProtobufPipeline active;
@@ -47,8 +49,10 @@ final class ProtobufModelEncoderPipeline implements ModelPipeline
     private int prefixAt;
 
     ProtobufModelEncoderPipeline(
-        ProtobufModelHandlerImpl handler)
+        ProtobufModelHandlerImpl handler,
+        ProtobufEnvelope envelope)
     {
+        this.envelope = envelope;
         this.handler = handler;
         this.pipelines = new HashMap<>();
         this.result = new ModelPipelineResult();
@@ -58,6 +62,7 @@ final class ProtobufModelEncoderPipeline implements ModelPipeline
     public ModelPipelineResult transform(
         long traceId,
         long bindingId,
+        long authorization,
         int flags,
         DirectBufferEx src,
         int srcIndex,
@@ -97,6 +102,7 @@ final class ProtobufModelEncoderPipeline implements ModelPipeline
         }
         else
         {
+            active.authorization(authorization);
             boolean last = (flags & FLAGS_FIN) != 0;
             ProtobufPipelineResult proto =
                 active.transform(src, srcIndex, srcIndex + srcLength, last, dst, dstIndex + prefix, dstIndex + dstLength);
@@ -166,12 +172,21 @@ final class ProtobufModelEncoderPipeline implements ModelPipeline
         prefixAt += length;
     }
 
+    // called on every message (not just once per messageName), so this checks the cache directly rather
+    // than through computeIfAbsent: that would evaluate the capturing "name -> ..." lambda as an argument
+    // on every call regardless of whether the map already has an entry, allocating it for nothing on the
+    // (overwhelmingly common) cache-hit path
     private ProtobufPipeline supplyPipeline(
         int schemaId,
         String messageName)
     {
-        return pipelines.computeIfAbsent(messageName,
-            name -> handler.newPipeline(schemaId, handler.encodeLenient, name, this::onRejected));
+        ProtobufPipeline pipeline = pipelines.get(messageName);
+        if (pipeline == null)
+        {
+            pipeline = handler.newPipeline(schemaId, handler.encodeLenient, messageName, this::onRejected, envelope);
+            pipelines.put(messageName, pipeline);
+        }
+        return pipeline;
     }
 
     private void onRejected(

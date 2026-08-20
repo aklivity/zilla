@@ -18,6 +18,7 @@ package io.aklivity.zilla.runtime.common.agrona.buffer;
 import static java.lang.foreign.ValueLayout.JAVA_BYTE;
 
 import java.lang.foreign.MemorySegment;
+import java.nio.ByteBuffer;
 
 import org.agrona.BufferUtil;
 import org.agrona.ExpandableDirectByteBuffer;
@@ -26,11 +27,16 @@ import org.agrona.ExpandableDirectByteBuffer;
  * An {@link ExpandableDirectByteBuffer} subclass that implements {@link MutableDirectBufferEx},
  * adding {@link MemorySegment} access to Agrona's expandable direct-memory buffer.
  * <p>
- * The segment is derived lazily from the underlying {@link java.nio.ByteBuffer}
- * since expansions may reallocate it.
+ * The segment is cached and only re-derived from the underlying {@link ByteBuffer} when its identity or
+ * {@link #capacity()} has changed since the last call, since either one signals that an expansion
+ * reallocated it; a segment computed while neither has changed is still valid.
  */
 public class ExpandableDirectByteBufferEx extends ExpandableDirectByteBuffer implements MutableDirectBufferEx
 {
+    private ByteBuffer segmentSource;
+    private int segmentCapacity;
+    private MemorySegment segment;
+
     public ExpandableDirectByteBufferEx()
     {
         super();
@@ -45,7 +51,15 @@ public class ExpandableDirectByteBufferEx extends ExpandableDirectByteBuffer imp
     @Override
     public MemorySegment segment()
     {
-        return MemorySegment.ofAddress(BufferUtil.address(byteBuffer())).reinterpret(capacity());
+        ByteBuffer source = byteBuffer();
+        int capacity = capacity();
+        if (segment == null || source != segmentSource || capacity != segmentCapacity)
+        {
+            segmentSource = source;
+            segmentCapacity = capacity;
+            segment = MemorySegment.ofAddress(BufferUtil.address(source)).reinterpret(capacity);
+        }
+        return segment;
     }
 
     @Override

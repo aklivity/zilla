@@ -8,11 +8,19 @@ services:
       - 7114:7114
       - 7190:7190
       # - 4444:4444
+    # start_interval is what makes `up --wait` return promptly: without it the
+    # first health probe does not run until one full `interval` has elapsed, so a
+    # service that is ready in milliseconds still reports unhealthy for 5s. During
+    # start_period the probe runs every start_interval instead, and the container
+    # is marked healthy on its first success. Measured on this pattern: 13.7s to
+    # healthy without it, 1.6s with. Every fast service below gets the same
+    # treatment; kafka already polls at interval: 1s and needs none.
     healthcheck:
       interval: 5s
       timeout: 3s
       retries: 15
       start_period: 15s
+      start_interval: 250ms
       test: ["CMD", "sh", "-c", "test -f /var/run/zilla/ready"]
     environment:
       ZILLA_INCUBATOR_ENABLED: "true"
@@ -31,7 +39,7 @@ services:
       petstore:
         condition: service_healthy
       karapace-registry:
-        condition: service_started
+        condition: service_healthy
       kafka-connect:
         condition: service_healthy
       kafka:
@@ -43,13 +51,20 @@ services:
     image: node:20-alpine
     hostname: everything
     restart: unless-stopped
-    command: ["npx", "-y", "@modelcontextprotocol/server-everything", "streamableHttp"]
+    # Pinned: unpinned "latest" silently changed behavior (e.g. added a new
+    # "tasks" initialize capability) and reintroduced this container's own
+    # npm-registry fetch time into the cache-hydration budget on every test
+    # run, both of which showed up as an intermittent "cache never finished
+    # hydrating" failure for this toolkit specifically.
+    command: ["npx", "-y", "@modelcontextprotocol/server-everything@2026.7.4", "streamableHttp"]
     environment:
       PORT: "3001"
     healthcheck:
       interval: 5s
       timeout: 3s
       retries: 10
+      start_period: 30s
+      start_interval: 250ms
       test: ["CMD", "nc", "-z", "127.0.0.1", "3001"]
 
   urlelicit:
@@ -68,6 +83,8 @@ services:
       interval: 5s
       timeout: 3s
       retries: 20
+      start_period: 30s
+      start_interval: 250ms
       test: ["CMD", "nc", "-z", "127.0.0.1", "3003"]
 
   # Run on demand: `docker compose run --rm urlelicit-client`.
@@ -100,6 +117,8 @@ services:
       interval: 5s
       timeout: 3s
       retries: 20
+      start_period: 30s
+      start_interval: 250ms
       test: ["CMD", "nc", "-z", "127.0.0.1", "4001"]
 
   # Mock Petstore REST API backing the mcp-openapi "petstore" toolkit.
@@ -117,6 +136,8 @@ services:
       interval: 5s
       timeout: 3s
       retries: 20
+      start_period: 30s
+      start_interval: 250ms
       test: ["CMD", "nc", "-z", "127.0.0.1", "4002"]
 
   # Real single-node Kafka broker (KRaft mode) backing the mcp-kafka "kafka" toolkit.
@@ -208,6 +229,19 @@ services:
       KARAPACE_TOPIC_NAME: _schemas
       KARAPACE_LOG_LEVEL: WARNING
       KARAPACE_COMPATIBILITY: BACKWARD
+    # python3 rather than wget/curl: this image ships neither, nor nc -- the
+    # venv's python is the only HTTP client in it, so a probe copied from the
+    # kafka-connect healthcheck below would never succeed and would leave the
+    # container permanently unhealthy. /subjects is the registry's own API, so
+    # this is ready only when it can actually serve a schema request, which
+    # `service_started` could never establish.
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8081/subjects', timeout=3).status == 200 else 1)"]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+      start_period: 60s
+      start_interval: 1s
 
   # Real Kafka Connect distributed worker backing the mcp-kafka-connect
   # "kafkaconnect" toolkit -- talks to the same real Kafka broker as the
@@ -226,11 +260,14 @@ services:
       kafka:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "nc", "-z", "127.0.0.1", "8083"]
-      interval: 2s
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "-T", "3", "http://127.0.0.1:8083/connectors"]
+      interval: 5s
       timeout: 5s
       retries: 60
-      start_period: 20s
+      start_period: 60s
+      # 1s rather than the 250ms the fast services use: this is a JVM that takes
+      # tens of seconds either way, so a tighter poll only adds probes
+      start_interval: 1s
     environment:
       KAFKA_BOOTSTRAP_SERVER: kafka.examples.dev:29092
     entrypoint: ["/bin/sh", "-c"]
@@ -253,6 +290,7 @@ services:
         rest.advertised.host.name=kafka-connect
         plugin.path=/opt/kafka/libs
         EOF
+        echo 'hello from mcp-kafka-connect' > /tmp/kc-source.txt
         exec /opt/kafka/bin/connect-distributed.sh /tmp/connect-distributed.properties
 
   # Mints JWTs for the authn_jwt guard. Run on demand, e.g.:
@@ -291,6 +329,59 @@ services:
     volumes:
       - ./resource-subscribe-client:/app
     entrypoint: ["sh", "-c", "npm install --no-audit --no-fund --silent && node client.mjs"]
+
+  # One-off verification container -- `docker compose run --rm verify`, which is
+  # all .github/test.sh does once it has minted the caller JWTs. profiles gates
+  # it out of the default set, so a plain `docker compose up` never starts it,
+  # and `docker compose run` enables the profile of the service it targets.
+  #
+  # Depending on zilla alone is enough: zilla already declares every other
+  # component above, so its health transitively covers the mocks, the broker,
+  # the registry and the connect worker.
+  #
+  # The client services above stay as the documented interactive entry points
+  # (README drives them by hand); this mounts the same directories so verify.sh
+  # can run those same client scripts as node processes rather than starting ~48
+  # containers to do it. npm install therefore happens once, here, instead of on
+  # every assertion. url-elicit is not installed: the urlelicit server shares
+  # that bind mount and has already installed into it by the time this runs.
+  #
+  # The docker socket is mounted for exactly one purpose -- two assertions read
+  # another container's log (see service_logs in verify.sh), which has no
+  # equivalent observation point from inside the network. Note that :ro on a
+  # socket mount does not restrict the Docker API; it is the daemon's socket
+  # either way, so this grants full daemon access and is the one real tradeoff
+  # in running the verification inside the stack.
+  verify:
+    image: node:20-alpine
+    profiles: ["test"]
+    working_dir: /work
+    depends_on:
+      zilla:
+        condition: service_healthy
+    volumes:
+      - ./etc/test:/test:ro
+      - ../.github/test-lib.sh:/test-lib.sh:ro
+      - ./tools-list-client:/work/tools-list-client
+      - ./resource-subscribe-client:/work/resource-subscribe-client
+      - ./url-elicit:/work/url-elicit
+      - /var/run/docker.sock:/var/run/docker.sock
+    # verify.sh defaults this to 1 and documents FAIL_FAST=0 as the override, but
+    # `docker compose run` passes no host environment through on its own, so
+    # without declaring it here the override never reaches the container. Fail-fast
+    # stays the default because the workflow copies out zilla's engine directory on
+    # failure: `zilla dump` over it is only useful while the most recent frames are
+    # the failing ones, and ~40 further assertions would bury them.
+    environment:
+      FAIL_FAST: "${FAIL_FAST:-1}"
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -e
+        apk add --no-cache curl docker-cli > /dev/null
+        npm install --prefix /work/tools-list-client --no-audit --no-fund --silent
+        npm install --prefix /work/resource-subscribe-client --no-audit --no-fund --silent
+        exec sh /test/verify.sh
 
 networks:
   default:

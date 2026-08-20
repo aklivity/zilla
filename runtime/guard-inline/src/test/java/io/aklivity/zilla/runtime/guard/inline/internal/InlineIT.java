@@ -51,11 +51,14 @@ public class InlineIT
     @Rule
     public final TestRule chain = outerRule(k3po).around(engine).around(timeout);
 
+    // net0's authorization config resolves a real (non-zero) session via the inline guard, so the
+    // exit-side app0 accept must declare the matching authorization the engine now actually propagates
+    // (see TestBindingFactory) -- the plain handshake scripts assume no authorization at all
     @Test
     @Configuration("zilla.yaml")
     @Specification({
         "${net}/handshake/client",
-        "${app}/handshake/server" })
+        "${app}/handshake.authorized/server" })
     public void shouldReauthorize() throws Exception
     {
         k3po.finish();
@@ -64,7 +67,7 @@ public class InlineIT
     @Test
     public void shouldVerifyIdentityAndRolesWhenAllowAccess() throws Exception
     {
-        InlineGuardHandler guard = new InlineGuardHandler(new MutableLong(1L)::getAndIncrement, null);
+        InlineGuardHandler guard = new InlineGuardHandler(new MutableLong(1L)::getAndIncrement, null, Runnable::run);
 
         String token = "authorization-token";
         long sessionId = guard.reauthorize(0L, 0L, 101L, token);
@@ -84,7 +87,7 @@ public class InlineIT
         InlineOptionsConfig options = InlineOptionsConfig.builder()
             .format("{identity}:{credentials}")
             .build();
-        InlineGuardHandler guard = new InlineGuardHandler(new MutableLong(1L)::getAndIncrement, options);
+        InlineGuardHandler guard = new InlineGuardHandler(new MutableLong(1L)::getAndIncrement, options, Runnable::run);
 
         long sessionId = guard.reauthorize(0L, 0L, 101L, "alice:secret");
 

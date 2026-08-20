@@ -23,14 +23,19 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
+import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
@@ -404,6 +409,76 @@ public class EngineTest
         finally
         {
             assertThat(errors, empty());
+        }
+    }
+
+    @Test
+    public void shouldReuseLabelIdsAfterRestart() throws Exception
+    {
+        Path directory = Path.of("target/zilla-itests-label-restart");
+        if (Files.exists(directory))
+        {
+            Files.walk(directory)
+                .sorted(Comparator.reverseOrder())
+                .forEach(this::delete);
+        }
+
+        properties.put(ENGINE_DIRECTORY.name(), directory.toString());
+        EngineConfiguration config = new EngineConfiguration(properties);
+        List<Throwable> errors = new LinkedList<>();
+
+        try (Engine engine = Engine.builder()
+                .config(config)
+                .errorHandler(errors::add)
+                .affinity("namespace0", "binding0", 0x01L)
+                .build())
+        {
+            engine.start();
+        }
+        catch (Throwable ex)
+        {
+            errors.add(ex);
+        }
+        finally
+        {
+            assertThat(errors, empty());
+        }
+
+        Path labelsPath = directory.resolve("labels");
+        List<String> firstRunLabels = Files.readAllLines(labelsPath);
+        assertThat(firstRunLabels, hasItems("namespace0", "binding0"));
+
+        try (Engine engine = Engine.builder()
+                .config(config)
+                .errorHandler(errors::add)
+                .affinity("namespace0", "binding0", 0x01L)
+                .build())
+        {
+            engine.start();
+        }
+        catch (Throwable ex)
+        {
+            errors.add(ex);
+        }
+        finally
+        {
+            assertThat(errors, empty());
+        }
+
+        List<String> secondRunLabels = Files.readAllLines(labelsPath);
+        assertEquals(firstRunLabels, secondRunLabels);
+    }
+
+    private void delete(
+        Path path)
+    {
+        try
+        {
+            Files.delete(path);
+        }
+        catch (IOException ex)
+        {
+            throw new UncheckedIOException(ex);
         }
     }
 

@@ -15,13 +15,13 @@
 package io.aklivity.zilla.config.binding.grpc.kafka.internal;
 
 import jakarta.json.JsonObject;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.binding.grpc.kafka.GrpcKafkaCapability;
 import io.aklivity.zilla.config.binding.grpc.kafka.GrpcKafkaWithConfig;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.WithConfig;
 
-public final class GrpcKafkaWithConfigAdapter implements JsonbAdapter<WithConfig, JsonObject>
+public final class GrpcKafkaWithConfigAdapter extends ConfigAdapter<WithConfig, JsonObject>
 {
     private static final String CAPABILITY_NAME = "capability";
 

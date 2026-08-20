@@ -17,20 +17,22 @@ package io.aklivity.zilla.config.vault.filesystem.internal;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 import io.aklivity.zilla.config.vault.filesystem.FileSystemOptionsConfig;
 import io.aklivity.zilla.config.vault.filesystem.FileSystemOptionsConfigBuilder;
 
-public final class FileSystemOptionsConfigAdapter implements JsonbAdapter<OptionsConfig, JsonObject>
+public final class FileSystemOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, JsonObject>
 {
     private static final String KEYS_NAME = "keys";
     private static final String TRUST_NAME = "trust";
     private static final String SIGNERS_NAME = "signers";
+    private static final String SECRETS_NAME = "secrets";
     private static final String REVOCATION_NAME = "revocation";
 
     private final FileSystemStoreConfigAdapter store = new FileSystemStoreConfigAdapter();
+    private final FileSystemSecretsConfigAdapter secrets = new FileSystemSecretsConfigAdapter();
 
     @Override
     public JsonObject adaptToJson(
@@ -53,6 +55,11 @@ public final class FileSystemOptionsConfigAdapter implements JsonbAdapter<Option
         if (fsOptions.signers != null)
         {
             object.add(SIGNERS_NAME, store.adaptToJson(fsOptions.signers));
+        }
+
+        if (fsOptions.secrets != null)
+        {
+            object.add(SECRETS_NAME, secrets.adaptToJson(fsOptions.secrets));
         }
 
         if (fsOptions.revocation != null)
@@ -82,6 +89,11 @@ public final class FileSystemOptionsConfigAdapter implements JsonbAdapter<Option
         if (object.containsKey(SIGNERS_NAME))
         {
             fsOptions.signers(store.adaptFromJson(object.getJsonObject(SIGNERS_NAME)));
+        }
+
+        if (object.containsKey(SECRETS_NAME))
+        {
+            fsOptions.secrets(secrets.adaptFromJson(object.getJsonObject(SECRETS_NAME)));
         }
 
         if (object.containsKey(REVOCATION_NAME))

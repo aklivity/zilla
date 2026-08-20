@@ -18,13 +18,13 @@ import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonString;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.binding.http.HttpConditionConfig;
 import io.aklivity.zilla.config.binding.http.HttpConditionConfigBuilder;
 import io.aklivity.zilla.config.engine.ConditionConfig;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 
-public final class HttpConditionConfigAdapter implements JsonbAdapter<ConditionConfig, JsonObject>
+public final class HttpConditionConfigAdapter extends ConfigAdapter<ConditionConfig, JsonObject>
 {
     private static final String HEADERS_NAME = "headers";
 

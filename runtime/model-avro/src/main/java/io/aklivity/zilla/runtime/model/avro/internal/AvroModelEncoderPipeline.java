@@ -19,22 +19,28 @@ import org.agrona.collections.Int2ObjectCache;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.avro.AvroDiagnostic;
+import io.aklivity.zilla.runtime.common.avro.AvroEnvelope;
 import io.aklivity.zilla.runtime.common.avro.AvroPipeline;
 import io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status;
 import io.aklivity.zilla.runtime.common.avro.AvroPipelineResult;
+import io.aklivity.zilla.runtime.common.avro.AvroTransform;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
+import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 
-// Per-stream write transform session vended by AvroModelHandlerImpl: owns its own schema-keyed pipeline
-// cache. transform emits the catalog framing prefix into the destination on the first fragment, then drives
-// the common-avro transform (JSON in, Avro binary out) into the destination after it.
+// Per-stream write transform session vended by AvroModelHandlerImpl: owns its own per-field ModelTransform
+// adapter and schema-keyed pipeline cache. transform emits the catalog framing prefix into the destination on
+// the first fragment, then drives the common-avro transform (JSON in, Avro binary out) into the destination
+// after it; the adapter presents each field to the wired ModelTransform inline, as the value flows through.
 final class AvroModelEncoderPipeline implements ModelPipeline
 {
     private static final int FLAGS_INIT = 0x02;
     private static final int FLAGS_FIN = 0x01;
 
     private final AvroModelHandlerImpl handler;
+    private final AvroTransform adapter;
+    private final AvroEnvelope envelope;
     private final Int2ObjectCache<AvroPipeline> pipelines;
     private final ModelPipelineResult result;
 
@@ -44,9 +50,13 @@ final class AvroModelEncoderPipeline implements ModelPipeline
     private int prefixAt;
 
     AvroModelEncoderPipeline(
-        AvroModelHandlerImpl handler)
+        AvroModelHandlerImpl handler,
+        AvroEnvelope envelope,
+        ModelTransform transform)
     {
         this.handler = handler;
+        this.envelope = envelope;
+        this.adapter = AvroModelTransform.of(transform);
         this.pipelines = new Int2ObjectCache<>(1, 16, p -> {});
         this.result = new ModelPipelineResult();
     }
@@ -55,6 +65,7 @@ final class AvroModelEncoderPipeline implements ModelPipeline
     public ModelPipelineResult transform(
         long traceId,
         long bindingId,
+        long authorization,
         int flags,
         DirectBufferEx src,
         int srcIndex,
@@ -63,6 +74,11 @@ final class AvroModelEncoderPipeline implements ModelPipeline
         int dstIndex,
         int dstLimit)
     {
+        if (adapter instanceof AvroModelTransform mediating)
+        {
+            mediating.authorization(authorization);
+        }
+
         int srcLength = srcLimit - srcIndex;
         int dstLength = dstLimit - dstIndex;
         int prefix = 0;
@@ -91,6 +107,7 @@ final class AvroModelEncoderPipeline implements ModelPipeline
         }
         else
         {
+            active.authorization(authorization);
             boolean last = (flags & FLAGS_FIN) != 0;
             AvroPipelineResult avro =
                 active.transform(src, srcIndex, srcIndex + srcLength, last, dst, dstIndex + prefix, dstIndex + dstLength);
@@ -159,7 +176,8 @@ final class AvroModelEncoderPipeline implements ModelPipeline
     private AvroPipeline supplyPipeline(
         int schemaId)
     {
-        return pipelines.computeIfAbsent(schemaId, id -> handler.newPipeline(id, handler.encodeLenient, this::onRejected));
+        return pipelines.computeIfAbsent(schemaId,
+            id -> handler.newPipeline(id, handler.encodeLenient, adapter, this::onRejected, envelope));
     }
 
     private void onRejected(

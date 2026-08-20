@@ -28,16 +28,16 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import org.agrona.collections.IntHashSet;
 import org.agrona.collections.MutableInteger;
 
 import io.aklivity.zilla.config.binding.tcp.TcpOptionsConfig;
 import io.aklivity.zilla.config.binding.tcp.TcpOptionsConfigBuilder;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
-public final class TcpOptionsConfigAdapter implements JsonbAdapter<OptionsConfig, JsonObject>
+public final class TcpOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, JsonObject>
 {
     private static final String HOST_NAME = "host";
     private static final String PORT_NAME = "port";

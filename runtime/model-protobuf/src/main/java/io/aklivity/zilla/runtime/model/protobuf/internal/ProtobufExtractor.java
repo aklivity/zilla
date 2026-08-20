@@ -37,38 +37,45 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
 // legacy converter.
 final class ProtobufExtractor implements ProtobufTransform
 {
+    // every distinct field name ever seen on this extractor, keyed by name and never shrunk: a Field's
+    // name/path/value buffer are all allocated exactly once (see supplyField) and reused across every
+    // later message that has a field of that name, however many messages that extractor lives across
     private final List<Field> fields;
+    // fields captured for the in-flight message, in encounter order; cleared (not reallocated) on reset()
+    private final List<Field> captured;
 
-    private int captured;
     private int depth;
     private Field current;
 
     ProtobufExtractor()
     {
         this.fields = new ArrayList<>();
+        this.captured = new ArrayList<>();
     }
 
     int captured()
     {
-        return captured;
+        return captured.size();
     }
 
-    String name(
+    // pre-joined "$." + name, computed once per distinct field name (see supplyField) rather than on
+    // every capture, so a caller building a JSON pointer path never pays a per-call concatenation
+    String path(
         int index)
     {
-        return fields.get(index).name;
+        return captured.get(index).path;
     }
 
     int length(
         int index)
     {
-        return fields.get(index).length;
+        return captured.get(index).length;
     }
 
     DirectBufferEx value(
         int index)
     {
-        return fields.get(index).value;
+        return captured.get(index).value;
     }
 
     @Override
@@ -86,7 +93,7 @@ final class ProtobufExtractor implements ProtobufTransform
     public void reset()
     {
         depth = 0;
-        captured = 0;
+        captured.clear();
         current = null;
     }
 
@@ -117,6 +124,12 @@ final class ProtobufExtractor implements ProtobufTransform
             if (current != null)
             {
                 current.length = 0;
+                // a repeated top-level field re-observed within the same message overwrites its value in
+                // place rather than appearing twice in capture order (matches supplyField's Field reuse)
+                if (!captured.contains(current))
+                {
+                    captured.add(current);
+                }
             }
             break;
         case VALUE:
@@ -191,11 +204,14 @@ final class ProtobufExtractor implements ProtobufTransform
         }
     }
 
+    // searches every field name ever seen on this extractor (not just this message's), so a name that
+    // recurs across messages — the common case, since the same schema shapes every message on a stream —
+    // reuses its Field (and thus its name/path Strings) instead of reallocating them every call
     private Field supplyField(
         String name)
     {
         Field result = null;
-        for (int i = 0; result == null && i < captured; i++)
+        for (int i = 0; result == null && i < fields.size(); i++)
         {
             if (fields.get(i).name.equals(name))
             {
@@ -204,13 +220,10 @@ final class ProtobufExtractor implements ProtobufTransform
         }
         if (result == null)
         {
-            if (captured == fields.size())
-            {
-                fields.add(new Field());
-            }
-            result = fields.get(captured);
+            result = new Field();
             result.name = name;
-            captured++;
+            result.path = "$." + name;
+            fields.add(result);
         }
         return result;
     }
@@ -220,6 +233,7 @@ final class ProtobufExtractor implements ProtobufTransform
         private final MutableDirectBufferEx value;
 
         private String name;
+        private String path;
         private int length;
 
         private Field()

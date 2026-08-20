@@ -15,15 +15,14 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.cache;
 
-import java.util.Set;
-
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
-import io.aklivity.zilla.runtime.engine.model.ModelVisitor;
+import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 
 public final class KafkaCacheModel
 {
@@ -42,28 +41,16 @@ public final class KafkaCacheModel
     }
 
     private final ModelPipeline pipeline;
-    private final KafkaExtractor extractor;
     private final MutableDirectBufferEx scratch;
 
     public static KafkaCacheModel decoder(
         ModelHandler handler,
-        Set<String> extractPaths,
+        ModelTransform transform,
         MutableDirectBufferEx scratch)
     {
-        KafkaCacheModel model = NONE;
-        if (handler != null)
-        {
-            if (extractPaths != null && !extractPaths.isEmpty())
-            {
-                KafkaExtractor extractor = new KafkaExtractor(extractPaths);
-                model = new KafkaCacheModel(handler.supplyDecoder(extractor), extractor, scratch);
-            }
-            else
-            {
-                model = new KafkaCacheModel(handler.supplyDecoder(), null, scratch);
-            }
-        }
-        return model;
+        return handler != null
+            ? new KafkaCacheModel(handler.supplyDecoder(ModelEnvelope.NONE, transform), scratch)
+            : NONE;
     }
 
     public static KafkaCacheModel encoder(
@@ -71,30 +58,28 @@ public final class KafkaCacheModel
         MutableDirectBufferEx scratch)
     {
         return handler != null
-            ? new KafkaCacheModel(handler.supplyEncoder(), null, scratch)
+            ? new KafkaCacheModel(handler.supplyEncoder(ModelEnvelope.NONE, ModelTransform.NONE), scratch)
             : NONE;
     }
 
     private KafkaCacheModel()
     {
         this.pipeline = null;
-        this.extractor = null;
         this.scratch = null;
     }
 
     KafkaCacheModel(
         ModelPipeline pipeline,
-        KafkaExtractor extractor,
         MutableDirectBufferEx scratch)
     {
         this.pipeline = pipeline;
-        this.extractor = extractor;
         this.scratch = scratch;
     }
 
     public int transform(
         long traceId,
         long bindingId,
+        long authorization,
         DirectBufferEx data,
         int index,
         int limit,
@@ -109,18 +94,13 @@ public final class KafkaCacheModel
         }
         else
         {
-            if (extractor != null)
-            {
-                extractor.reset();
-            }
-
             total = 0;
             int srcAt = index;
             int flags = FLAGS_INIT | FLAGS_FIN;
             boolean done = false;
             while (!done)
             {
-                final ModelPipelineResult result = pipeline.transform(traceId, bindingId, flags,
+                final ModelPipelineResult result = pipeline.transform(traceId, bindingId, authorization, flags,
                     data, srcAt, limit, scratch, 0, scratch.capacity());
                 final ModelStatus status = result.status();
                 final int produced = result.produced();
@@ -164,32 +144,11 @@ public final class KafkaCacheModel
         return pipeline != null ? pipeline.padding(data, index, length) : 0;
     }
 
-    public int extractedLength(
-        String path)
-    {
-        return extractor != null ? extractor.extractedLength(path) : 0;
-    }
-
-    public void extracted(
-        String path,
-        ModelVisitor visitor)
-    {
-        if (extractor != null)
-        {
-            extractor.extracted(path, visitor);
-        }
-    }
-
     public void reset()
     {
         if (pipeline != null)
         {
             pipeline.reset();
-        }
-
-        if (extractor != null)
-        {
-            extractor.reset();
         }
     }
 }

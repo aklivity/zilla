@@ -18,7 +18,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 
-public final class SseKafkaWithFilterConfig
+import io.aklivity.zilla.config.engine.Config;
+
+public final class SseKafkaWithFilterConfig extends Config
 {
     public final Optional<String> key;
     public final Optional<List<SseKafkaWithFilterHeaderConfig>> headers;

@@ -59,10 +59,12 @@ import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
+import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
+import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 
 public final class McpBindingConfig
 {
@@ -219,6 +221,7 @@ public final class McpBindingConfig
         int schemaId,
         long traceId,
         long bindingId,
+        long authorization,
         DirectBufferEx data,
         int index,
         int limit)
@@ -235,7 +238,7 @@ public final class McpBindingConfig
             boolean done = false;
             while (!done)
             {
-                final ModelPipelineResult result = decoder.transform(traceId, bindingId, flags,
+                final ModelPipelineResult result = decoder.transform(traceId, bindingId, authorization, flags,
                     data, srcAt, limit, scratch, produced, scratch.capacity());
                 final ModelStatus status = result.status();
                 if (status == ModelStatus.REJECTED)
@@ -312,6 +315,7 @@ public final class McpBindingConfig
         int schemaId,
         long traceId,
         long bindingId,
+        long authorization,
         DirectBufferEx params,
         int index,
         int limit)
@@ -321,7 +325,7 @@ public final class McpBindingConfig
         if (arguments != null)
         {
             final int length = argsScratch.putStringWithoutLengthUtf8(0, arguments);
-            valid = validateToolArgs(schemaId, traceId, bindingId, argsScratch, 0, length);
+            valid = validateToolArgs(schemaId, traceId, bindingId, authorization, argsScratch, 0, length);
         }
         return valid;
     }
@@ -498,7 +502,7 @@ public final class McpBindingConfig
         final ModelConfig toolModel = modelConfig.adaptFromJson(model);
         toolModel.cataloged.get(0).id = template.id;
         final ModelHandler handler = supplyModel.apply(toolModel);
-        return handler != null ? handler.supplyDecoder() : null;
+        return handler != null ? handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE) : null;
     }
 
     public void injectHeaders(
@@ -796,6 +800,10 @@ public final class McpBindingConfig
         String redirectURI = null;
         if (httpBeginEx != null)
         {
+            final String scheme = Optional.ofNullable(httpBeginEx.headers()
+                    .matchFirst(h -> HTTP_HEADER_SCHEME.equals(h.name().asString())))
+                .map(h -> h.value().asString())
+                .orElse(SCHEME_HTTPS);
             final String authority = Optional.ofNullable(httpBeginEx.headers()
                     .matchFirst(h -> HTTP_HEADER_AUTHORITY.equals(h.name().asString())))
                 .map(h -> h.value().asString())
@@ -812,7 +820,7 @@ public final class McpBindingConfig
                     .map(o -> o.elicitation)
                     .map(e -> e.callback)
                     .orElse(DEFAULT_CALLBACK_PATH);
-                redirectURI = "https://" + naturalAuthority(authority, SCHEME_HTTPS) + pathOnly + "/" + callback;
+                redirectURI = scheme + "://" + naturalAuthority(authority, scheme) + pathOnly + "/" + callback;
             }
         }
         return redirectURI;
@@ -844,7 +852,7 @@ public final class McpBindingConfig
         HttpBeginExFW httpBeginEx,
         String path)
     {
-        McpAuthorizationResult result = new McpAuthorizationResult(authorization, null);
+        McpAuthorizationResult result = new McpAuthorizationResult(authorization, null, false);
         if (guard != null && !isAuthCallbackPath(path))
         {
             final String authorizationHeader = Optional.ofNullable(httpBeginEx.headers()
@@ -870,10 +878,10 @@ public final class McpBindingConfig
                     : GuardHandler.NOT_AUTHORIZED;
 
                 result = (sessionAuth & GuardHandler.MASK_AUTHORIZED) != 0L
-                    ? new McpAuthorizationResult(sessionAuth, null)
+                    ? new McpAuthorizationResult(sessionAuth, null, true)
                     : new McpAuthorizationResult(authorization, credentials == null
                         ? McpBearerError.INVALID_REQUEST
-                        : McpBearerError.INVALID_TOKEN);
+                        : McpBearerError.INVALID_TOKEN, false);
             }
         }
         return result;

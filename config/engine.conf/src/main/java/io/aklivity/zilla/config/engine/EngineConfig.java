@@ -19,7 +19,7 @@ import static java.util.function.Function.identity;
 
 import java.util.List;
 
-public class EngineConfig
+public class EngineConfig extends Config
 {
     public final List<NamespaceConfig> namespaces;
 

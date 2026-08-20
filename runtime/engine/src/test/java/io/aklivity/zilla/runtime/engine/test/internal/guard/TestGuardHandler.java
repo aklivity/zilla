@@ -18,6 +18,7 @@ package io.aklivity.zilla.runtime.engine.test.internal.guard;
 import static io.aklivity.zilla.config.engine.test.internal.guard.config.TestGuardOptionsConfigBuilder.DEFAULT_CHALLENGE_NEVER;
 import static io.aklivity.zilla.config.engine.test.internal.guard.config.TestGuardOptionsConfigBuilder.DEFAULT_IDENTITY;
 import static io.aklivity.zilla.config.engine.test.internal.guard.config.TestGuardOptionsConfigBuilder.DEFAULT_LIFETIME_FOREVER;
+import static io.aklivity.zilla.config.engine.test.internal.guard.config.TestGuardOptionsConfigBuilder.DEFAULT_MAX_SESSIONS_UNLIMITED;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -25,6 +26,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -38,6 +40,10 @@ public final class TestGuardHandler implements GuardHandler
     private static final String REDIRECT_URI_PLACEHOLDER = "replace.me";
     private static final Pattern REDIRECT_URI_PARAM_PATTERN = Pattern.compile("redirect_uri=[^&]*");
 
+    // observability hook for tests that need to synchronize on an actual release,
+    // e.g. before opening a second guarded connection constrained by max-sessions
+    public static volatile Runnable onDeauthorized;
+
     private final String credentials;
     private final Duration challenge;
     private final Duration lifetime;
@@ -45,19 +51,26 @@ public final class TestGuardHandler implements GuardHandler
     private final List<String> roles;
     private final Map<String, String> attributes;
     private final String preauthorize;
+    private final boolean deferAcquire;
+    private final int maxSessions;
+    private final Consumer<Runnable> dispatcher;
 
     private final Long2LongHashMap sessions;
     private final MutableLong nextSessionId;
 
     public TestGuardHandler(
-        TestGuardConfig config)
+        TestGuardConfig config,
+        Consumer<Runnable> dispatcher)
     {
+        this.dispatcher = dispatcher;
         this.credentials = config.options != null ? config.options.credentials : null;
         this.lifetime = config.options != null ? config.options.lifetime : DEFAULT_LIFETIME_FOREVER;
         this.challenge = config.options != null ? config.options.challenge : DEFAULT_CHALLENGE_NEVER;
         this.identity = config.options != null ? config.options.identity : DEFAULT_IDENTITY;
         this.roles = config.options != null ? config.options.roles : null;
         this.preauthorize = config.options != null ? config.options.preauthorize : null;
+        this.deferAcquire = config.options != null && config.options.deferAcquire;
+        this.maxSessions = config.options != null ? config.options.maxSessions : DEFAULT_MAX_SESSIONS_UNLIMITED;
         this.sessions = new Long2LongHashMap(-1L);
         this.nextSessionId = new MutableLong(1L);
         this.attributes = config.options != null ? config.options.attributes : null;
@@ -72,7 +85,17 @@ public final class TestGuardHandler implements GuardHandler
     {
         long sessionId = NOT_AUTHORIZED;
 
-        if (this.credentials != null && this.credentials.equals(credentials))
+        if (deferAcquire && credentials == null)
+        {
+            // no out-of-band credentials supplied and nothing to await turn-taking on
+            // synchronously -- same shortcut the async completion path takes
+            sessionId = createSession();
+        }
+        else if (deferAcquire)
+        {
+            sessionId = NOT_AUTHORIZED;
+        }
+        else if (this.credentials != null && this.credentials.equals(credentials))
         {
             sessionId = createSession();
         }
@@ -89,6 +112,40 @@ public final class TestGuardHandler implements GuardHandler
         }
 
         return sessionId;
+    }
+
+    @Override
+    public void reauthorize(
+        long traceId,
+        long bindingId,
+        long contextId,
+        String credentials,
+        LongCompletionCallback completion)
+    {
+        dispatcher.accept(() -> complete(traceId, bindingId, contextId, credentials, completion));
+    }
+
+    private void complete(
+        long traceId,
+        long bindingId,
+        long contextId,
+        String credentials,
+        LongCompletionCallback completion)
+    {
+        try
+        {
+            // an acquiring guard holds nothing to decide with synchronously, but can obtain a
+            // session once given a turn -- that sync/async asymmetry is what `acquire: deferred`
+            // models. The deferral itself is not part of it: every guard defers now
+            long sessionId = deferAcquire && credentials == null
+                ? createSession()
+                : reauthorize(traceId, bindingId, contextId, credentials);
+            completion.completed(contextId, sessionId);
+        }
+        catch (Throwable ex)
+        {
+            completion.failed(contextId, ex);
+        }
     }
 
     @Override
@@ -113,12 +170,18 @@ public final class TestGuardHandler implements GuardHandler
 
     private long createSession()
     {
-        long expiresAt = DEFAULT_LIFETIME_FOREVER.equals(lifetime)
-                ? EXPIRES_NEVER
-                : Instant.now().toEpochMilli() + lifetime.toMillis();
+        long sessionId = NOT_AUTHORIZED;
 
-        long sessionId = nextSessionId.value++;
-        sessions.put(sessionId, expiresAt);
+        if (sessions.size() < maxSessions)
+        {
+            long expiresAt = DEFAULT_LIFETIME_FOREVER.equals(lifetime)
+                    ? EXPIRES_NEVER
+                    : Instant.now().toEpochMilli() + lifetime.toMillis();
+
+            sessionId = nextSessionId.value++;
+            sessions.put(sessionId, expiresAt);
+        }
+
         return sessionId;
     }
 
@@ -127,6 +190,12 @@ public final class TestGuardHandler implements GuardHandler
         long sessionId)
     {
         sessions.remove(sessionId);
+
+        final Runnable notify = onDeauthorized;
+        if (notify != null)
+        {
+            notify.run();
+        }
     }
 
     @Override
@@ -148,7 +217,9 @@ public final class TestGuardHandler implements GuardHandler
     public String credentials(
         long sessionId)
     {
-        return credentials;
+        // a deferring guard is cache-only until it has actually acquired, so an
+        // unknown session yields nothing; the default behaviour is unchanged
+        return !deferAcquire || sessions.containsKey(sessionId) ? credentials : null;
     }
 
     @Override

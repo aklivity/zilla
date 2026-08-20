@@ -16,7 +16,9 @@ package io.aklivity.zilla.config.binding.kafka;
 
 import java.util.function.Function;
 
-public class KafkaTopicHeaderConfig
+import io.aklivity.zilla.config.engine.Config;
+
+public class KafkaTopicHeaderConfig extends Config
 {
     public final String name;
     public final String path;

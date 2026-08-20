@@ -18,7 +18,7 @@ import static java.util.function.Function.identity;
 
 import java.util.List;
 
-public class TelemetryRefConfig
+public class TelemetryRefConfig extends Config
 {
     public final List<MetricRefConfig> metricRefs;
     public final List<AttributeConfig> attributes;

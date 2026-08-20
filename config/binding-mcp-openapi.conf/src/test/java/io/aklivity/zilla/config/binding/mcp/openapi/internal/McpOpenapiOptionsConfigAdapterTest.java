@@ -30,6 +30,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiAuthorizationConfig;
+import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiCatalogConfig;
 import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiOptionsConfig;
 import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiSpecificationConfig;
 import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiToolAnnotationsConfig;
@@ -243,6 +244,40 @@ public class McpOpenapiOptionsConfigAdapterTest
                   "catalog": {
                     "catalog0": {
                       "subject": "rest-api",
+                      "version": "latest",
+                      "overlay": {
+                        "overlay0": {
+                          "subject": "rest-api-overlay",
+                          "version": "latest"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            """;
+
+        McpOpenapiOptionsConfig options = jsonb.fromJson(text, McpOpenapiOptionsConfig.class);
+
+        McpOpenapiSpecificationConfig spec = options.specs.get(0);
+        McpOpenapiCatalogConfig catalog = spec.catalogs.get(0);
+        assertThat(catalog.overlay, not(nullValue()));
+        assertThat(catalog.overlay.name, equalTo("overlay0"));
+        assertThat(catalog.overlay.schema.subject, equalTo("rest-api-overlay"));
+    }
+
+    @Test
+    public void shouldReadOptionsWithDeprecatedOverlay()
+    {
+        String text =
+            """
+            {
+              "specs": {
+                "openapi_github0": {
+                  "catalog": {
+                    "catalog0": {
+                      "subject": "rest-api",
                       "version": "latest"
                     }
                   },
@@ -260,9 +295,10 @@ public class McpOpenapiOptionsConfigAdapterTest
         McpOpenapiOptionsConfig options = jsonb.fromJson(text, McpOpenapiOptionsConfig.class);
 
         McpOpenapiSpecificationConfig spec = options.specs.get(0);
-        assertThat(spec.overlay, not(nullValue()));
-        assertThat(spec.overlay.name, equalTo("overlay0"));
-        assertThat(spec.overlay.subject, equalTo("rest-api-overlay"));
+        McpOpenapiCatalogConfig catalog = spec.catalogs.get(0);
+        assertThat(catalog.overlay, not(nullValue()));
+        assertThat(catalog.overlay.name, equalTo("overlay0"));
+        assertThat(catalog.overlay.schema.subject, equalTo("rest-api-overlay"));
     }
 
     @Test
@@ -270,8 +306,8 @@ public class McpOpenapiOptionsConfigAdapterTest
     {
         String expected =
             "{\"specs\":{\"openapi_github0\":{\"catalog\":{\"catalog0\":" +
-            "{\"subject\":\"rest-api\",\"version\":\"latest\"}}," +
-            "\"overlay\":{\"overlay0\":{\"subject\":\"rest-api-overlay\",\"version\":\"latest\"}}}}}";
+            "{\"subject\":\"rest-api\",\"version\":\"latest\",\"overlay\":" +
+            "{\"overlay0\":{\"subject\":\"rest-api-overlay\",\"version\":\"latest\"}}}}}}}";
 
         McpOpenapiOptionsConfig options = McpOpenapiOptionsConfig.builder()
             .spec()
@@ -280,11 +316,11 @@ public class McpOpenapiOptionsConfigAdapterTest
                     .name("catalog0")
                     .subject("rest-api")
                     .version("latest")
-                    .build()
-                .overlay()
-                    .name("overlay0")
-                    .subject("rest-api-overlay")
-                    .version("latest")
+                    .overlay()
+                        .name("overlay0")
+                        .subject("rest-api-overlay")
+                        .version("latest")
+                        .build()
                     .build()
                 .build()
             .build();

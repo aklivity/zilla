@@ -89,4 +89,26 @@ public class ProtobufModelIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("value.view.json.yaml")
+    @Specification({
+        "${net}/client.received.protobuf.json.ext.uppercase/client",
+        "${app}/client.received.protobuf.json.ext.uppercase/server"
+    })
+    public void shouldApplyExtensionToProtobufJson() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("value.binary.yaml")
+    @Specification({
+        "${net}/client.received.protobuf.binary.ext.uppercase/client",
+        "${app}/client.received.protobuf.binary.ext.uppercase/server"
+    })
+    public void shouldApplyExtensionToProtobufBinary() throws Exception
+    {
+        k3po.finish();
+    }
 }

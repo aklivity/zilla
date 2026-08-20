@@ -18,8 +18,13 @@ package io.aklivity.zilla.runtime.engine.router;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
+import static org.mockito.Mockito.mock;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import org.junit.Test;
 
@@ -66,5 +71,41 @@ public class RouterFactoryTest
         assertThat(error.getMessage(), containsString("unknown"));
         assertThat(error.getMessage(), containsString("engine"));
         assertThat(error.getMessage(), containsString("test"));
+    }
+
+    @Test
+    public void shouldResolveLabelIdAndLabelThroughRouterAndRouterContext() throws Exception
+    {
+        RouterFactory factory = RouterFactory.instantiate();
+
+        Router router = factory.create("engine", new Configuration());
+
+        RouteableContext context = mock(RouteableContext.class);
+        RouterContext routerContext = router.supply(context);
+
+        int labelId = router.supplyLabelId("namespace0");
+
+        assertEquals(labelId, routerContext.supplyLabelId("namespace0"));
+        assertEquals("namespace0", routerContext.supplyLabel(labelId));
+        assertEquals("namespace0", router.supplyLabel(labelId));
+    }
+
+    @Test
+    public void shouldNotifyWatchLabelsListenerWhenNewLabelRegistered() throws Exception
+    {
+        RouterFactory factory = RouterFactory.instantiate();
+
+        Router router = factory.create("engine", new Configuration());
+
+        List<String> notifiedLabels = new ArrayList<>();
+        router.watchLabels((label, labelId) -> notifiedLabels.add(label));
+
+        router.supplyLabelId("binding0");
+
+        assertEquals(List.of("binding0"), notifiedLabels);
+
+        router.supplyLabelId("binding0");
+
+        assertEquals(List.of("binding0"), notifiedLabels);
     }
 }

@@ -59,6 +59,11 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
+      <artifactId>common-lang</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
       <artifactId>common-json</artifactId>
       <version>${project.version}</version>
     </dependency>
@@ -180,16 +185,27 @@
         <artifactId>flyweight-maven-plugin</artifactId>
         <version>${project.version}</version>
         <configuration>
-          <scopeNames>core</scopeNames>
           <packageName>io.aklivity.zilla.runtime.engine.internal.types</packageName>
           <testPackageName>io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types</testPackageName>
         </configuration>
         <executions>
           <execution>
+            <id>generate</id>
             <goals>
               <goal>generate</goal>
+            </goals>
+            <configuration>
+              <scopeNames>core</scopeNames>
+            </configuration>
+          </execution>
+          <execution>
+            <id>test-generate</id>
+            <goals>
               <goal>test-generate</goal>
             </goals>
+            <configuration>
+              <scopeNames>core test</scopeNames>
+            </configuration>
           </execution>
         </executions>
       </plugin>

@@ -19,7 +19,7 @@ import static java.util.Objects.requireNonNull;
 import java.util.List;
 import java.util.function.ToLongFunction;
 
-public abstract class BindingConfig
+public abstract class BindingConfig extends Config
 {
     public transient long id;
     public transient long entryId;

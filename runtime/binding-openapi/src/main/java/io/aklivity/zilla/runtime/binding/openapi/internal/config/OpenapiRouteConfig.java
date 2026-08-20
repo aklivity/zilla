@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.openapi.internal.config;
 import static java.util.function.UnaryOperator.identity;
 import static java.util.stream.Collectors.toList;
 
+import java.net.URI;
 import java.util.List;
 import java.util.function.UnaryOperator;
 
@@ -59,6 +60,14 @@ public final class OpenapiRouteConfig
     boolean includes(
         OpenapiOperationView operation)
     {
-        return when.isEmpty() || when.stream().anyMatch(m -> m.matchesServers(operation.servers));
+        return when.isEmpty() || when.stream().anyMatch(m -> m.matchesServers(operationServerUrls(operation)));
+    }
+
+    private static List<URI> operationServerUrls(
+        OpenapiOperationView operation)
+    {
+        return operation.servers.stream()
+            .map(server -> server.url)
+            .collect(toList());
     }
 }

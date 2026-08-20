@@ -36,7 +36,42 @@ const RETRY_DELAY_MS = Number(process.env.RETRY_DELAY_MS ?? 3000);
 
 const headers = JWT_TOKEN ? { authorization: `Bearer ${JWT_TOKEN}` } : {};
 
-const log = (...args) => console.error("[client]", ...args);
+// Elapsed rather than wall-clock: this process's stderr is captured by the
+// caller and only reaches the log when it exits, so every line lands with the
+// same flush timestamp. Stamping each line with its own offset from start is
+// what makes the sequence -- and any gap in it -- readable after the fact.
+const START = Date.now();
+const log = (...args) => console.error("[client]", `+${((Date.now() - START) / 1000).toFixed(3)}s`, ...args);
+
+// node's own startup and the evaluation of the hoisted imports above both run
+// before START, so they are charged to the caller's wall-clock while landing
+// outside every stamp below. That blind spot is not theoretical: a 20.7s
+// round-trip measured here accounted for only 0.489s of client work, and the
+// missing ~20s was invisible until this line existed. process.uptime() is
+// exactly that span.
+log(`node startup and imports took ${process.uptime().toFixed(3)}s, before the stamps below`);
+
+// A pending setTimeout keeps node's event loop alive, so this deadline has to be
+// cleared once the race settles. Left armed, it holds the process open until it
+// fires -- TIMEOUT_MS of dead wall-clock after all the work is already done,
+// charged to the caller as though the gateway were slow. That misread is what it
+// looks like from outside: a round-trip measured at 20.7s whose client work took
+// 0.45s, chased through three wrong explanations before the timer was found.
+const awaitWithin = async (promise, ms, message) =>
+{
+    let timer;
+    try
+    {
+        await Promise.race([
+            promise,
+            new Promise((_, reject) => { timer = setTimeout(() => reject(new Error(message)), ms); })
+        ]);
+    }
+    finally
+    {
+        clearTimeout(timer);
+    }
+};
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -77,17 +112,28 @@ const attempt = async () =>
 
     try
     {
-        await Promise.race([
-            updated,
-            new Promise((_, reject) => setTimeout(
-                () => reject(new Error("timed out waiting for notifications/resources/updated")), TIMEOUT_MS))
-        ]);
+        await awaitWithin(updated, TIMEOUT_MS, "timed out waiting for notifications/resources/updated");
     }
     finally
     {
+        // Each step is logged on completion because this block runs before the process
+        // exits, and therefore before the caller sees any result -- so a slow step here
+        // is charged to the whole round-trip while looking like a slow notification.
         await client.callTool({ name: "everything__toggle-subscriber-updates", arguments: {} });
+        log("toggled subscriber updates off");
         await client.unsubscribeResource({ uri });
+        log(`unsubscribed from ${uri}`);
+        try
+        {
+            await transport.terminateSession();
+            log("terminated session");
+        }
+        catch (err)
+        {
+            log(`failed to terminate session: ${err}`);
+        }
         await client.close();
+        log("closed client");
     }
 
     if (updatedUri !== uri)

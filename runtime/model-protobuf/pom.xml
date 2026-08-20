@@ -85,6 +85,21 @@
       <artifactId>mockito-core</artifactId>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>org.openjdk.jmh</groupId>
+      <artifactId>jmh-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.openjdk.jmh</groupId>
+      <artifactId>jmh-generator-annprocess</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.github.biboudis</groupId>
+      <artifactId>jmh-profilers</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <build>
@@ -157,6 +172,31 @@
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <executions>
+          <execution>
+            <goals>
+              <goal>test-jar</goal>
+            </goals>
+            <configuration>
+              <!--
+                TestUppercaseProtobufModelExtFactorySpi proves the ProtobufModelExtFactorySpi composition
+                mechanism end-to-end but must never reach a consumer of this test-jar: ProtobufModelExt
+                implementations are discovered via ServiceLoader and applied unconditionally (unlike
+                catalogs/vaults/guards, which are type-gated), so shipping its META-INF/services
+                registration here would silently stack this fixture's transform onto any downstream
+                module's own protobuf model extension.
+              -->
+              <excludes>
+                <exclude>io/aklivity/zilla/runtime/model/protobuf/internal/TestUppercaseProtobufModelExtFactorySpi*.class</exclude>
+                <exclude>META-INF/services/io.aklivity.zilla.runtime.model.protobuf.ext.ProtobufModelExtFactorySpi</exclude>
+              </excludes>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-failsafe-plugin</artifactId>
       </plugin>
       <plugin>
@@ -183,6 +223,39 @@
               </limits>
             </rule>
           </rules>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>io.gatling</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <configuration>
+          <artifactSet>
+            <includes>
+              <include>org.agrona:agrona</include>
+              <include>org.openjdk.jmh:jmh-core</include>
+              <include>net.sf.jopt-simple:jopt-simple</include>
+              <include>org.apache.commons:commons-math3</include>
+              <include>commons-cli:commons-cli</include>
+              <include>com.github.biboudis:jmh-profilers</include>
+              <include>io.aklivity.zilla:model-protobuf.conf</include>
+              <include>io.aklivity.zilla:engine.conf</include>
+              <include>io.aklivity.zilla:engine</include>
+              <include>io.aklivity.zilla:common-feature</include>
+              <include>io.aklivity.zilla:common-agrona</include>
+              <include>io.aklivity.zilla:common-yaml</include>
+              <include>io.aklivity.zilla:common-protobuf</include>
+              <include>io.aklivity.zilla:common-lang</include>
+              <include>io.aklivity.zilla:common-json</include>
+              <include>org.antlr:antlr4-runtime</include>
+              <include>jakarta.json:jakarta.json-api</include>
+              <include>jakarta.json.bind:jakarta.json.bind-api</include>
+              <include>org.eclipse:yasson</include>
+              <include>org.mockito:mockito-core</include>
+              <include>net.bytebuddy:byte-buddy</include>
+              <include>net.bytebuddy:byte-buddy-agent</include>
+              <include>org.objenesis:objenesis</include>
+            </includes>
+          </artifactSet>
         </configuration>
       </plugin>
       <plugin>

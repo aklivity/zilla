@@ -63,18 +63,18 @@ public class McpEventFormatterTest
     public void shouldFormatSessionEstablishedEvent()
     {
         McpEventContext events = newEvents();
-        events.sessionEstablished(0L, 0L, "session-1");
+        events.sessionEstablished(0L, 0L, "5ca1ab1e-c0de-4a11-5e55-000100000000");
 
-        assertEquals("MCP session (session-1) was established.", format());
+        assertEquals("MCP session (5ca1ab1e-c0de-4a11-5e55-000100000000) was established.", format());
     }
 
     @Test
     public void shouldFormatSessionClosedEvent()
     {
         McpEventContext events = newEvents();
-        events.sessionClosed(0L, 0L, "session-1", "inactivity timeout");
+        events.sessionClosed(0L, 0L, "5ca1ab1e-c0de-4a11-5e55-000100000000", "inactivity timeout");
 
-        assertEquals("MCP session (session-1) was closed. inactivity timeout", format());
+        assertEquals("MCP session (5ca1ab1e-c0de-4a11-5e55-000100000000) was closed. inactivity timeout", format());
     }
 
     @Test
@@ -90,8 +90,8 @@ public class McpEventFormatterTest
     public void shouldFormatElicitationTimeoutEvent()
     {
         McpEventContext events = newEvents();
-        events.elicitationTimeout(0L, 0L, "session-1", "elicit-1");
+        events.elicitationTimeout(0L, 0L, "5ca1ab1e-c0de-4a11-5e55-000100000000", "elicit-1");
 
-        assertEquals("Elicitation (elicit-1) timed out for session (session-1).", format());
+        assertEquals("Elicitation (elicit-1) timed out for session (5ca1ab1e-c0de-4a11-5e55-000100000000).", format());
     }
 }

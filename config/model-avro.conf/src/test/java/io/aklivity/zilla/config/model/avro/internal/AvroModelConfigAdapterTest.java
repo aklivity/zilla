@@ -20,6 +20,8 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
+import java.util.List;
+
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.bind.JsonbConfig;
@@ -39,7 +41,7 @@ public class AvroModelConfigAdapterTest
     public void initJson()
     {
         JsonbConfig config = new JsonbConfig()
-            .withAdapters(new AvroModelConfigAdapter());
+            .withAdapters(new AvroModelConfigAdapter(List.of()));
         jsonb = JsonbBuilder.create(config);
     }
 
@@ -329,4 +331,5 @@ public class AvroModelConfigAdapterTest
         // THEN
         assertThat(json, not(containsString("validate")));
     }
+
 }

@@ -17,14 +17,14 @@ package io.aklivity.zilla.config.binding.kafka.grpc.internal;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.binding.kafka.grpc.KafkaGrpcCorrelationConfig;
 import io.aklivity.zilla.config.binding.kafka.grpc.KafkaGrpcIdempotencyConfig;
 import io.aklivity.zilla.config.binding.kafka.grpc.KafkaGrpcOptionsConfig;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
-public final class KafkaGrpcOptionsConfigAdapter implements JsonbAdapter<OptionsConfig, JsonObject>
+public final class KafkaGrpcOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, JsonObject>
 {
     private static final String ACKS_NAME = "acks";
     private static final String IDEMPOTENCY_NAME = "idempotency";

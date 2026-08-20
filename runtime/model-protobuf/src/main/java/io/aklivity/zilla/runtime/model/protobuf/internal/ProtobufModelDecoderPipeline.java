@@ -22,29 +22,33 @@ import java.util.Map;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufDiagnostic;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufEnvelope;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufMessage;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufPipeline;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufPipeline.Status;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufPipelineResult;
+import io.aklivity.zilla.runtime.engine.model.ModelFieldBridge;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
-import io.aklivity.zilla.runtime.engine.model.ModelVisitor;
+import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 
 // Per-stream read transform session vended by ProtobufModelHandlerImpl: owns its own extractor and
 // message-keyed pipeline cache so concurrent streams on a worker never share in-flight state. transform
 // strips the catalog framing and the message-index prefix on the first fragment, drives the common-protobuf
 // transform into the caller's destination (re-encoding the wire message as JSON or canonical wire), and
-// surfaces extracted fields to the ModelVisitor when a value completes.
+// surfaces extracted fields to the wired ModelTransform when a value completes. Delivery is
+// observation-only, through ModelFieldBridge, until model-protobuf grows a native ModelTransform adapter.
 final class ProtobufModelDecoderPipeline implements ModelPipeline
 {
     private static final int FLAGS_INIT = 0x02;
     private static final int FLAGS_FIN = 0x01;
 
     private final ProtobufModelHandlerImpl handler;
-    private final ModelVisitor visitor;
+    private final ModelFieldBridge bridge;
     private final ProtobufExtractor extractor;
     private final Map<String, ProtobufPipeline> pipelines;
+    private final ProtobufEnvelope envelope;
     private final ModelPipelineResult result;
 
     private ProtobufPipeline active;
@@ -52,12 +56,14 @@ final class ProtobufModelDecoderPipeline implements ModelPipeline
 
     ProtobufModelDecoderPipeline(
         ProtobufModelHandlerImpl handler,
-        ModelVisitor visitor)
+        ProtobufEnvelope envelope,
+        ModelTransform transform)
     {
+        this.envelope = envelope;
         this.handler = handler;
-        this.visitor = visitor;
-        // a NONE visitor keeps the verbatim/SEGMENTED fast path: no extractor stage, no structured field events
-        this.extractor = visitor != ModelVisitor.NONE ? new ProtobufExtractor() : null;
+        this.bridge = transform != ModelTransform.NONE ? new ModelFieldBridge(transform) : null;
+        // a NONE transform keeps the verbatim/SEGMENTED fast path: no extractor stage, no structured field events
+        this.extractor = transform != ModelTransform.NONE ? new ProtobufExtractor() : null;
         this.pipelines = new HashMap<>();
         this.result = new ModelPipelineResult();
     }
@@ -66,6 +72,7 @@ final class ProtobufModelDecoderPipeline implements ModelPipeline
     public ModelPipelineResult transform(
         long traceId,
         long bindingId,
+        long authorization,
         int flags,
         DirectBufferEx src,
         int srcIndex,
@@ -106,6 +113,7 @@ final class ProtobufModelDecoderPipeline implements ModelPipeline
         }
         else
         {
+            active.authorization(authorization);
             boolean last = (flags & FLAGS_FIN) != 0;
             ProtobufPipelineResult proto =
                 active.transform(src, srcIndex + prefix, srcIndex + srcLength, last, dst, dstIndex, dstIndex + dstLength);
@@ -114,7 +122,7 @@ final class ProtobufModelDecoderPipeline implements ModelPipeline
             produced = proto.produced();
             if (status == ModelStatus.COMPLETE && extractor != null)
             {
-                visitExtracted();
+                visitExtracted(authorization);
             }
             else if (status == ModelStatus.REJECTED)
             {
@@ -150,20 +158,32 @@ final class ProtobufModelDecoderPipeline implements ModelPipeline
         diagnostic = null;
     }
 
-    private void visitExtracted()
+    private void visitExtracted(
+        long authorization)
     {
+        bridge.start(authorization);
         for (int i = 0; i < extractor.captured(); i++)
         {
-            visitor.onField("$." + extractor.name(i), extractor.value(i), 0, extractor.length(i));
+            bridge.field(extractor.path(i), extractor.value(i), 0, extractor.length(i));
         }
+        bridge.end();
     }
 
+    // called on every message (not just once per messageName), so this checks the cache directly rather
+    // than through computeIfAbsent: that would evaluate the capturing "name -> ..." lambda as an argument
+    // on every call regardless of whether the map already has an entry, allocating it for nothing on the
+    // (overwhelmingly common) cache-hit path
     private ProtobufPipeline supplyPipeline(
         int schemaId,
         String messageName)
     {
-        return pipelines.computeIfAbsent(messageName,
-            name -> handler.newPipeline(schemaId, handler.decodeLenient, name, extractor, this::onRejected));
+        ProtobufPipeline pipeline = pipelines.get(messageName);
+        if (pipeline == null)
+        {
+            pipeline = handler.newPipeline(schemaId, handler.decodeLenient, messageName, extractor, this::onRejected, envelope);
+            pipelines.put(messageName, pipeline);
+        }
+        return pipeline;
     }
 
     private void onRejected(

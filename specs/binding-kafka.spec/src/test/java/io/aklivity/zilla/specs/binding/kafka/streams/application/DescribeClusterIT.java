@@ -45,4 +45,13 @@ public class DescribeClusterIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/cluster.brokers.info.twice/client",
+        "${app}/cluster.brokers.info.twice/server"})
+    public void shouldDescribeClusterBrokerInfoTwice() throws Exception
+    {
+        k3po.finish();
+    }
 }

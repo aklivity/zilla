@@ -51,6 +51,7 @@ import io.aklivity.zilla.config.engine.CatalogConfig;
 import io.aklivity.zilla.config.engine.GenericBindingConfig;
 import io.aklivity.zilla.config.engine.GuardedConfig;
 import io.aklivity.zilla.config.engine.NamespaceConfig;
+import io.aklivity.zilla.config.engine.OverlayConfig;
 import io.aklivity.zilla.config.engine.RouteConfig;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.connect.internal.config.McpKafkaConnectBindingConfig;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.connect.internal.config.McpKafkaConnectCompositeConfig;
@@ -149,11 +150,11 @@ public class McpKafkaConnectCompositeGeneratorTest
         assertThat(specCatalog.subject, equalTo("kafka-connect"));
         assertThat(specCatalog.version, equalTo("latest"));
 
-        McpOpenapiCatalogConfig specOverlay = spec.overlay;
+        OverlayConfig specOverlay = specCatalog.overlay;
         assertThat(specOverlay, notNullValue());
         assertThat(specOverlay.name, equalTo("overlays"));
-        assertThat(specOverlay.subject, equalTo("kafka-connect"));
-        assertThat(specOverlay.version, equalTo("latest"));
+        assertThat(specOverlay.schema.subject, equalTo("kafka-connect"));
+        assertThat(specOverlay.schema.version, equalTo("latest"));
 
         assertThat(mcpOpenapi.routes, hasSize(TOOLS.size()));
         for (int i = 0; i < TOOLS.size(); i++)

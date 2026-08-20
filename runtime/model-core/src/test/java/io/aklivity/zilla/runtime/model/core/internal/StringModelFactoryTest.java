@@ -20,6 +20,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.mockito.Mockito.mock;
 
+import java.util.List;
+
 import org.junit.Test;
 
 import io.aklivity.zilla.config.engine.ModelConfig;
@@ -40,7 +42,7 @@ public class StringModelFactoryTest
         ModelFactory factory = ModelFactory.instantiate();
         Model model = factory.create("string", config);
 
-        ModelContext context = new StringModelContext(mock(EngineContext.class));
+        ModelContext context = new StringModelContext(mock(EngineContext.class), List.of());
 
         ModelConfig modelConfig = StringModelConfig.builder().encoding("utf_8").build();
 

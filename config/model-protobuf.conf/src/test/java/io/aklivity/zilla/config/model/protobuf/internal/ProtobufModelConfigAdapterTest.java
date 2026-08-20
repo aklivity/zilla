@@ -21,6 +21,8 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
+import java.util.List;
+
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.bind.JsonbConfig;
@@ -41,7 +43,7 @@ public class ProtobufModelConfigAdapterTest
     public void initJson()
     {
         JsonbConfig config = new JsonbConfig()
-                .withAdapters(new ProtobufModelConfigAdapter());
+                .withAdapters(new ProtobufModelConfigAdapter(List.of()));
         jsonb = JsonbBuilder.create(config);
     }
 

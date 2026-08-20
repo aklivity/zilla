@@ -16,7 +16,9 @@ package io.aklivity.zilla.config.binding.mcp.openapi;
 
 import java.util.function.Function;
 
-public final class McpOpenapiToolAnnotationsConfig
+import io.aklivity.zilla.config.engine.Config;
+
+public final class McpOpenapiToolAnnotationsConfig extends Config
 {
     public final Boolean readOnlyHint;
     public final Boolean destructiveHint;

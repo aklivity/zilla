@@ -17,11 +17,11 @@ package io.aklivity.zilla.config.engine.test.internal.binding.config;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.WithConfig;
 
-public final class TestWithConfigAdapter implements JsonbAdapter<WithConfig, JsonObject>
+public final class TestWithConfigAdapter extends ConfigAdapter<WithConfig, JsonObject>
 {
     private static final String NAME_NAME = "name";
 

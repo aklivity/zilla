@@ -17,7 +17,9 @@ package io.aklivity.zilla.config.binding.kafka;
 
 import java.util.function.Function;
 
-public class KafkaSaslConfig
+import io.aklivity.zilla.config.engine.Config;
+
+public class KafkaSaslConfig extends Config
 {
     public final String mechanism;
     public final String username;

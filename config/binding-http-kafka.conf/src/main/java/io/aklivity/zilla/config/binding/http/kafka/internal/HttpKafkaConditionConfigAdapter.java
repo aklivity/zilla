@@ -17,12 +17,12 @@ package io.aklivity.zilla.config.binding.http.kafka.internal;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaConditionConfig;
 import io.aklivity.zilla.config.engine.ConditionConfig;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 
-public final class HttpKafkaConditionConfigAdapter implements JsonbAdapter<ConditionConfig, JsonObject>
+public final class HttpKafkaConditionConfigAdapter extends ConfigAdapter<ConditionConfig, JsonObject>
 {
     private static final String METHOD_NAME = "method";
     private static final String PATH_NAME = "path";

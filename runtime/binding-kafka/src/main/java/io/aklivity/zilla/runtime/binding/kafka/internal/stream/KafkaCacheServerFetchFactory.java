@@ -47,14 +47,13 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBinding;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCache;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheIndexFile;
-import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheModel;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCachePartition;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCachePartition.Node;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheSegment;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheTopic;
+import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaPipeline;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaBindingConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaRouteConfig;
-import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaTopicTransformsType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaTopicType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.ArrayFW;
@@ -102,6 +101,10 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
     static final int SIZE_OF_FLUSH_WITH_EXTENSION = 64;
 
     private static final int ERROR_NOT_LEADER_FOR_PARTITION = 6;
+
+    // populating the cache from the topic itself, ahead of any consumer's authorized read, carries no
+    // per-consumer authorization to thread through the model pipeline
+    private static final long NO_AUTHORIZATION = 0L;
 
     private static final DirectBufferEx EMPTY_BUFFER = new UnsafeBufferEx();
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
@@ -487,11 +490,9 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
         private final KafkaOffsetType defaultOffset;
         private final long retentionMillisMax;
         private final List<KafkaCacheServerFetchStream> members;
-        private final KafkaCacheModel transformKey;
-        private final KafkaCacheModel transformValue;
+        private final KafkaPipeline pipeline;
         private final MutableInteger entryMark;
         private final MutableInteger valueMark;
-        private final KafkaTopicTransformsType transforms;
 
         private long leaderId;
         private long initialId;
@@ -539,11 +540,10 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
             this.retentionMillisMax = defaultOffset == LIVE ? retentionMillisMaxLive : Long.MAX_VALUE;
             this.members = new ArrayList<>();
             this.leaderId = leaderId;
-            this.transformKey = KafkaCacheModel.decoder(topicType.keyModel, topicType.keyExtractPaths, transformBuffer);
-            this.transformValue = KafkaCacheModel.decoder(topicType.valueModel, topicType.valueExtractPaths, transformBuffer);
+            this.pipeline = KafkaPipeline.decoder(topicType.keyModel, topicType.valueModel,
+                topicType.transforms, transformBuffer);
             this.entryMark = new MutableInteger(0);
             this.valueMark = new MutableInteger(0);
-            this.transforms = topicType.transforms;
         }
 
         private void onServerFanoutMemberOpening(
@@ -823,9 +823,9 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                     entryFlags |= CACHE_ENTRY_FLAGS_ABORTED;
                 }
 
-                partition.writeEntry(context, traceId, routedId, partitionOffset, entryMark, valueMark, timestamp, AUTHORITATIVE,
-                    producerId, EMPTY_KEY, EMPTY_HEADERS, EMPTY_OCTETS,
-                    entryFlags, KafkaDeltaType.NONE, transformKey, transformValue, verbose, transforms);
+                partition.writeEntry(context, traceId, routedId, NO_AUTHORIZATION, partitionOffset, entryMark, valueMark,
+                    timestamp, AUTHORITATIVE, producerId, EMPTY_KEY, EMPTY_HEADERS, EMPTY_OCTETS,
+                    entryFlags, KafkaDeltaType.NONE, pipeline, verbose);
 
                 if (result == KafkaTransactionResult.ABORT)
                 {
@@ -930,9 +930,9 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                 final int entryFlags =
                     ((flags & FLAGS_SKIP) != 0x00 ? CACHE_ENTRY_FLAGS_ABORTED : 0x00) |
                     (timestampType == AUTHORITATIVE ? CACHE_ENTRY_FLAGS_AUTHORITATIVE : 0x00);
-                partition.writeEntryStart(context, traceId, routedId, partitionOffset, entryMark, valueMark,
+                partition.writeEntryStart(context, traceId, routedId, NO_AUTHORIZATION, partitionOffset, entryMark, valueMark,
                     timestamp, timestampType, producerId, key, valueLength, findAncestor, entryFlags, deltaType, valueFragment,
-                    transformKey, transformValue, transforms, verbose);
+                    pipeline, verbose);
             }
 
             if (valueFragment != null)
@@ -956,8 +956,8 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                 assert partitionId == partition.id();
                 assert partitionOffset >= this.partitionOffset;
 
-                partition.writeEntryFinish(headers, deltaType, context, traceId, routedId, flags, partitionOffset,
-                    entryMark, valueMark, transformKey, transformValue, verbose, transforms);
+                partition.writeEntryFinish(headers, deltaType, context, traceId, routedId, NO_AUTHORIZATION, flags,
+                    partitionOffset, entryMark, valueMark, pipeline, verbose);
 
                 this.partitionOffset = partitionOffset;
                 this.stableOffset = stableOffset;
@@ -1173,6 +1173,11 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                 if (KafkaConfiguration.DEBUG)
                 {
                     System.out.format("[0x%016x] %s FETCH disconnect, error %d\n", initialId, partition, error);
+                }
+
+                if (error == ERROR_NOT_LEADER_FOR_PARTITION)
+                {
+                    leaderId = LEADER_UNKNOWN;
                 }
 
                 members.forEach(s -> s.doServerInitialResetIfNecessary(traceId, extension));

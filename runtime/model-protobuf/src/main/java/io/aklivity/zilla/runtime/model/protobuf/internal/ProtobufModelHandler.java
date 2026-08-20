@@ -14,15 +14,21 @@
  */
 package io.aklivity.zilla.runtime.model.protobuf.internal;
 
+import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_ID;
+
+import java.io.StringReader;
 import java.util.Arrays;
-import java.util.LinkedList;
-import java.util.List;
+
+import jakarta.json.Json;
+import jakarta.json.JsonValue;
 
 import org.agrona.BitUtil;
 import org.agrona.collections.Int2IntHashMap;
-import org.agrona.collections.Int2ObjectCache;
+import org.agrona.collections.IntArrayList;
+import org.agrona.collections.Long2ObjectCache;
 
 import io.aklivity.zilla.config.engine.CatalogedConfig;
+import io.aklivity.zilla.config.engine.OverlayConfig;
 import io.aklivity.zilla.config.engine.SchemaConfig;
 import io.aklivity.zilla.config.engine.ValidateMode;
 import io.aklivity.zilla.config.model.protobuf.ProtobufModelConfig;
@@ -30,6 +36,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.protobuf.Protobuf;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufField;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufMessage;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufOverlay;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSchema;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
@@ -45,16 +52,25 @@ public class ProtobufModelHandler
     protected final SchemaConfig catalog;
     protected final CatalogHandler handler;
     protected final String subject;
+    protected final CatalogHandler overlayHandler;
+    protected final String overlaySubject;
+    protected final String overlayVersion;
     protected final String view;
-    protected final List<Integer> indexes;
+    // a scratch path buffer, reused (not boxed) across every decode/encode call: IntArrayList backs its
+    // elements with a primitive int[] (no per-add Node/Integer allocation, unlike List<Integer>)
+    protected final IntArrayList indexes;
     protected final ProtobufModelEventContext event;
     // LENIENT per direction: a semantic-validation failure passes through (inert today — no protobuf
     // semantic validation stage throws yet, so the wired branch is unreached)
     protected final boolean decodeLenient;
     protected final boolean encodeLenient;
 
-    private final Int2ObjectCache<ProtobufSchema> schemas;
+    private final Long2ObjectCache<ProtobufSchema> schemas;
     private final Int2IntHashMap paddings;
+    private final Int2IntHashMap extPaddings;
+    // decodedPath()'s reused result buffer: resized only when the path depth actually changes, which is
+    // fixed per message shape, so a decode stream settles into zero allocation after its first message
+    private int[] pathScratch;
 
     protected ProtobufModelHandler(
         ProtobufModelConfig config,
@@ -66,19 +82,63 @@ public class ProtobufModelHandler
         this.subject = catalog != null && catalog.subject != null
                 ? catalog.subject
                 : config.subject;
+        OverlayConfig overlay = catalog != null ? catalog.overlay : null;
+        this.overlayHandler = overlay != null ? context.supplyCatalog(overlay.id) : null;
+        this.overlaySubject = overlay != null ? overlay.schema.subject : null;
+        this.overlayVersion = overlay != null ? overlay.schema.version : null;
         this.view = config.view;
         this.decodeLenient = config.validate.decode == ValidateMode.LENIENT;
         this.encodeLenient = config.validate.encode == ValidateMode.LENIENT;
-        this.schemas = new Int2ObjectCache<>(1, 1024, i -> {});
-        this.indexes = new LinkedList<>();
+        this.schemas = new Long2ObjectCache<>(1, 1024, i -> {});
+        this.indexes = new IntArrayList();
         this.paddings = new Int2IntHashMap(-1);
+        this.extPaddings = new Int2IntHashMap(-1);
         this.event = new ProtobufModelEventContext(context);
+        this.pathScratch = new int[0];
     }
 
+    // called on every decode/encode call, so this checks the cache directly rather than through
+    // computeIfAbsent: a capturing lambda argument is allocated fresh on every evaluation of that
+    // argument expression, regardless of whether the cache already has an entry, so computeIfAbsent
+    // would pay that cost on every call instead of once per distinct (schemaId, overlaySchemaId) pair
     protected ProtobufSchema supplySchema(
         int schemaId)
     {
-        return schemas.computeIfAbsent(schemaId, this::createSchema);
+        int overlaySchemaId = overlayHandler != null
+            ? overlayHandler.resolve(overlaySubject, overlayVersion)
+            : NO_SCHEMA_ID;
+        long key = cacheKey(schemaId, overlaySchemaId);
+        ProtobufSchema schema = schemas.get(key);
+        if (schema == null)
+        {
+            schema = createSchema(schemaId, overlaySchemaId);
+            if (schema != null)
+            {
+                schemas.put(key, schema);
+            }
+        }
+        return schema;
+    }
+
+    private static long cacheKey(
+        int schemaId,
+        int overlaySchemaId)
+    {
+        return (long) schemaId << 32 | overlaySchemaId & 0xFFFFFFFFL;
+    }
+
+    protected final int supplyExtPadding(
+        int schemaId)
+    {
+        return extPaddings.computeIfAbsent(schemaId, id -> extPadding(supplySchema(id)));
+    }
+
+    // overridden by ProtobufModelHandlerImpl to sum the padding contributed by each installed model
+    // extension; the base (encoder) handler never installs extensions, so this stays 0 there
+    protected int extPadding(
+        ProtobufSchema schema)
+    {
+        return 0;
     }
 
     protected byte[] encodeIndexes()
@@ -90,7 +150,7 @@ public class ProtobufModelHandler
         int index = 0;
         for (int i = 0; i < size; i++)
         {
-            int entry = this.indexes.get(i);
+            int entry = this.indexes.getInt(i);
             int value = (entry << 1) ^ (entry >> 31);
             while ((value & ~0x7F) != 0)
             {
@@ -114,11 +174,11 @@ public class ProtobufModelHandler
         progress += BitUtil.SIZE_OF_BYTE;
         if (encodedLength == 0)
         {
-            indexes.add(encodedLength);
+            indexes.addInt(encodedLength);
         }
         for (int i = 0; i < encodedLength; i++)
         {
-            indexes.add(decodeIndex(data.getByte(index + progress)));
+            indexes.addInt(decodeIndex(data.getByte(index + progress)));
             progress += BitUtil.SIZE_OF_BYTE;
         }
         return progress;
@@ -126,35 +186,53 @@ public class ProtobufModelHandler
 
     protected int[] decodedPath()
     {
-        int[] path = new int[indexes.size()];
-        for (int i = 0; i < indexes.size(); i++)
+        int size = indexes.size();
+        if (pathScratch.length != size)
         {
-            path[i] = indexes.get(i);
+            pathScratch = new int[size];
         }
-        return path;
+        for (int i = 0; i < size; i++)
+        {
+            pathScratch[i] = indexes.getInt(i);
+        }
+        return pathScratch;
     }
 
     protected void encodeIndexes(
         int[] path)
     {
         indexes.clear();
-        indexes.add(path.length);
+        indexes.addInt(path.length);
         for (int entry : path)
         {
-            indexes.add(entry);
+            indexes.addInt(entry);
         }
     }
 
+    // avoids computeIfAbsent for the same reason as supplySchema above: a capturing method reference
+    // argument is allocated on every call, not just on a cache miss
     protected int supplyIndexPadding(
         int schemaId)
     {
-        return paddings.computeIfAbsent(schemaId, this::calculateIndexPadding);
+        int padding = paddings.get(schemaId);
+        if (padding == paddings.missingValue())
+        {
+            padding = calculateIndexPadding(schemaId);
+            paddings.put(schemaId, padding);
+        }
+        return padding;
     }
 
     protected int supplyJsonFormatPadding(
         int schemaId)
     {
-        return paddings.computeIfAbsent(schemaId, this::calculateJsonFormatPadding);
+        int padding = paddings.get(schemaId);
+        if (padding == paddings.missingValue())
+        {
+            padding = calculateJsonFormatPadding(schemaId);
+            paddings.put(schemaId, padding);
+        }
+        return padding;
     }
 
     private int decodeIndex(
@@ -213,14 +291,21 @@ public class ProtobufModelHandler
     }
 
     private ProtobufSchema createSchema(
-        int schemaId)
+        int schemaId,
+        int overlaySchemaId)
     {
         ProtobufSchema schema = null;
 
         String schemaText = handler.resolve(schemaId);
-        if (schemaText != null)
+        String overlayText = overlayHandler != null ? overlayHandler.resolve(overlaySchemaId) : null;
+        if (schemaText != null && (overlayHandler == null || overlayText != null))
         {
             schema = Protobuf.schema(schemaText);
+            if (overlayText != null)
+            {
+                JsonValue overlay = Json.createReader(new StringReader(overlayText)).readValue();
+                schema = ProtobufOverlay.of(overlay).apply(schema);
+            }
         }
         return schema;
     }

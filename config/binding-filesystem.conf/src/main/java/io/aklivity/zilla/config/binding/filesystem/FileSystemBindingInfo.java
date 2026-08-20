@@ -17,10 +17,10 @@ package io.aklivity.zilla.config.binding.filesystem;
 import java.net.URL;
 
 import jakarta.json.JsonObject;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.binding.filesystem.internal.FileSystemOptionsConfigAdapter;
 import io.aklivity.zilla.config.engine.BindingInfo;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public final class FileSystemBindingInfo implements BindingInfo
@@ -40,7 +40,7 @@ public final class FileSystemBindingInfo implements BindingInfo
     }
 
     @Override
-    public JsonbAdapter<OptionsConfig, JsonObject> options()
+    public ConfigAdapter<OptionsConfig, JsonObject> options()
     {
         return new FileSystemOptionsConfigAdapter();
     }

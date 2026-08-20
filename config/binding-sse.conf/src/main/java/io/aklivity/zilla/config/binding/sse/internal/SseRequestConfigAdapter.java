@@ -18,13 +18,13 @@ import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonValue;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.binding.sse.SsePathConfigBuilder;
 import io.aklivity.zilla.config.binding.sse.SseRequestConfig;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.ModelConfigAdapter;
 
-public class SseRequestConfigAdapter implements JsonbAdapter<SseRequestConfig, JsonObject>
+public class SseRequestConfigAdapter extends ConfigAdapter<SseRequestConfig, JsonObject>
 {
     private static final String PATH_NAME = "path";
     private static final String CONTENT_NAME = "content";

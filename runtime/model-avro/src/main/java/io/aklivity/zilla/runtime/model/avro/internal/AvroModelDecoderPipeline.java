@@ -21,30 +21,32 @@ import org.agrona.collections.Int2ObjectCache;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.avro.AvroDiagnostic;
+import io.aklivity.zilla.runtime.common.avro.AvroEnvelope;
 import io.aklivity.zilla.runtime.common.avro.AvroPipeline;
 import io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status;
 import io.aklivity.zilla.runtime.common.avro.AvroPipelineResult;
+import io.aklivity.zilla.runtime.common.avro.AvroTransform;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
-import io.aklivity.zilla.runtime.engine.model.ModelVisitor;
+import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 
-// Per-stream read transform session vended by AvroModelHandlerImpl: owns its own JSON generator, extractor
-// and schema-keyed pipeline cache so concurrent streams on a worker never share in-flight state. transform
-// strips the catalog framing on the first fragment, drives the common-avro transform into the caller's
-// destination (re-encoding Avro as JSON or canonical Avro), and surfaces extracted fields to the
-// ModelVisitor when a value completes.
+// Per-stream read transform session vended by AvroModelHandlerImpl: owns its own JSON generator, per-field
+// ModelTransform adapter and schema-keyed pipeline cache so concurrent streams on a worker never share
+// in-flight state. transform strips the catalog framing on the first fragment and drives the common-avro
+// transform into the caller's destination (re-encoding Avro as JSON or canonical Avro); the adapter presents
+// each field to the wired ModelTransform inline, as the value flows through.
 final class AvroModelDecoderPipeline implements ModelPipeline
 {
     private static final int FLAGS_INIT = 0x02;
     private static final int FLAGS_FIN = 0x01;
 
     private final AvroModelHandlerImpl handler;
-    private final ModelVisitor visitor;
     private final JsonGeneratorEx generator;
-    private final AvroExtractor extractor;
+    private final AvroTransform adapter;
+    private final AvroEnvelope envelope;
     private final Int2ObjectCache<AvroPipeline> pipelines;
     private final ModelPipelineResult result;
 
@@ -53,13 +55,13 @@ final class AvroModelDecoderPipeline implements ModelPipeline
 
     AvroModelDecoderPipeline(
         AvroModelHandlerImpl handler,
-        ModelVisitor visitor)
+        AvroEnvelope envelope,
+        ModelTransform transform)
     {
         this.handler = handler;
-        this.visitor = visitor;
+        this.envelope = envelope;
         this.generator = JsonEx.createGenerator();
-        // a NONE visitor keeps the verbatim/SEGMENTED fast path: no extractor stage, no structured field events
-        this.extractor = visitor != ModelVisitor.NONE ? new AvroExtractor() : null;
+        this.adapter = AvroModelTransform.of(transform);
         this.pipelines = new Int2ObjectCache<>(1, 16, p -> {});
         this.result = new ModelPipelineResult();
     }
@@ -68,6 +70,7 @@ final class AvroModelDecoderPipeline implements ModelPipeline
     public ModelPipelineResult transform(
         long traceId,
         long bindingId,
+        long authorization,
         int flags,
         DirectBufferEx src,
         int srcIndex,
@@ -76,6 +79,11 @@ final class AvroModelDecoderPipeline implements ModelPipeline
         int dstIndex,
         int dstLimit)
     {
+        if (adapter instanceof AvroModelTransform mediating)
+        {
+            mediating.authorization(authorization);
+        }
+
         int srcLength = srcLimit - srcIndex;
         int dstLength = dstLimit - dstIndex;
         int prefix = 0;
@@ -105,17 +113,14 @@ final class AvroModelDecoderPipeline implements ModelPipeline
         }
         else
         {
+            active.authorization(authorization);
             boolean last = (flags & FLAGS_FIN) != 0;
             AvroPipelineResult avro =
                 active.transform(src, srcIndex + prefix, srcIndex + srcLength, last, dst, dstIndex, dstIndex + dstLength);
             status = map(avro.status());
             consumed = prefix + avro.consumed();
             produced = avro.produced();
-            if (status == ModelStatus.COMPLETE && extractor != null)
-            {
-                visitExtracted();
-            }
-            else if (status == ModelStatus.REJECTED)
+            if (status == ModelStatus.REJECTED)
             {
                 handler.validationFailure(traceId, bindingId, diagnostic != null ? diagnostic : AvroModel.NAME);
             }
@@ -149,20 +154,11 @@ final class AvroModelDecoderPipeline implements ModelPipeline
         diagnostic = null;
     }
 
-    private void visitExtracted()
-    {
-        for (int i = 0; i < extractor.captured(); i++)
-        {
-            visitor.onField("$." + extractor.name(i), extractor.value(i), 0, extractor.length(i));
-        }
-    }
-
     private AvroPipeline supplyPipeline(
         int schemaId)
     {
-        return pipelines.computeIfAbsent(schemaId, id -> extractor != null
-            ? handler.newPipeline(id, handler.decodeLenient, generator, extractor, this::onRejected)
-            : handler.newPipeline(id, handler.decodeLenient, generator, this::onRejected));
+        return pipelines.computeIfAbsent(schemaId,
+            id -> handler.newPipeline(id, handler.decodeLenient, generator, adapter, this::onRejected, envelope));
     }
 
     private void onRejected(

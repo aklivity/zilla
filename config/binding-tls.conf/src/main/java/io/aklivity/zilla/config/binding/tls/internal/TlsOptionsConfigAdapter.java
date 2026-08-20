@@ -14,8 +14,6 @@
  */
 package io.aklivity.zilla.config.binding.tls.internal;
 
-import static java.util.stream.Collectors.toList;
-
 import java.util.List;
 
 import jakarta.json.Json;
@@ -25,14 +23,18 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.binding.tls.TlsAuthorizationConfig;
+import io.aklivity.zilla.config.binding.tls.TlsAuthorizationConfigBuilder;
+import io.aklivity.zilla.config.binding.tls.TlsCertificatesConfig;
+import io.aklivity.zilla.config.binding.tls.TlsCredentialsConfig;
 import io.aklivity.zilla.config.binding.tls.TlsMutualConfig;
 import io.aklivity.zilla.config.binding.tls.TlsOptionsConfig;
 import io.aklivity.zilla.config.binding.tls.TlsOptionsConfigBuilder;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
-public final class TlsOptionsConfigAdapter implements JsonbAdapter<OptionsConfig, JsonObject>
+public final class TlsOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, JsonObject>
 {
     private static final String VERSION_NAME = "version";
     private static final String KEYS_NAME = "keys";
@@ -42,6 +44,9 @@ public final class TlsOptionsConfigAdapter implements JsonbAdapter<OptionsConfig
     private static final String MUTUAL_NAME = "mutual";
     private static final String SIGNERS_NAME = "signers";
     private static final String TRUSTCACERTS_NAME = "trustcacerts";
+    private static final String AUTHORIZATION_NAME = "authorization";
+    private static final String AUTHORIZATION_CREDENTIALS_NAME = "credentials";
+    private static final String AUTHORIZATION_CREDENTIALS_CERTIFICATES_NAME = "certificates";
 
     @Override
     public JsonObject adaptToJson(
@@ -102,6 +107,27 @@ public final class TlsOptionsConfigAdapter implements JsonbAdapter<OptionsConfig
             object.add(SIGNERS_NAME, signers);
         }
 
+        TlsAuthorizationConfig tlsAuthorization = tlsOptions.authorization;
+        if (tlsAuthorization != null)
+        {
+            JsonObjectBuilder authorization = Json.createObjectBuilder();
+
+            TlsCredentialsConfig tlsCredentials = tlsAuthorization.credentials;
+            if (tlsCredentials != null && tlsCredentials.certificates != null)
+            {
+                JsonObjectBuilder credentials = Json.createObjectBuilder();
+                credentials.add(AUTHORIZATION_CREDENTIALS_CERTIFICATES_NAME,
+                    tlsCredentials.certificates.name().toLowerCase());
+
+                authorization.add(AUTHORIZATION_CREDENTIALS_NAME, credentials);
+            }
+
+            JsonObjectBuilder authorizations = Json.createObjectBuilder();
+            authorizations.add(tlsAuthorization.name, authorization);
+
+            object.add(AUTHORIZATION_NAME, authorizations);
+        }
+
         return object.build();
     }
 
@@ -151,6 +177,32 @@ public final class TlsOptionsConfigAdapter implements JsonbAdapter<OptionsConfig
             tlsOptions.signers(asListString(object.getJsonArray(SIGNERS_NAME)));
         }
 
+        if (object.containsKey(AUTHORIZATION_NAME))
+        {
+            TlsAuthorizationConfigBuilder<?> tlsAuthorization = tlsOptions.authorization();
+
+            JsonObject authorizations = object.getJsonObject(AUTHORIZATION_NAME);
+
+            for (String name : authorizations.keySet())
+            {
+                tlsAuthorization.name(name);
+
+                JsonObject authorization = authorizations.getJsonObject(name);
+                JsonObject credentials = authorization.getJsonObject(AUTHORIZATION_CREDENTIALS_NAME);
+                if (credentials != null && credentials.containsKey(AUTHORIZATION_CREDENTIALS_CERTIFICATES_NAME))
+                {
+                    String certificates = credentials.getString(AUTHORIZATION_CREDENTIALS_CERTIFICATES_NAME);
+
+                    tlsAuthorization
+                        .credentials()
+                            .certificates(TlsCertificatesConfig.valueOf(certificates.toUpperCase()))
+                            .build();
+                }
+            }
+
+            tlsAuthorization.build();
+        }
+
         return tlsOptions.build();
     }
 
@@ -159,7 +211,7 @@ public final class TlsOptionsConfigAdapter implements JsonbAdapter<OptionsConfig
     {
         return array.stream()
             .map(TlsOptionsConfigAdapter::asString)
-            .collect(toList());
+            .toList();
     }
 
     private static String asString(

@@ -54,6 +54,19 @@ import io.aklivity.zilla.runtime.common.json.JsonTransforms;
  * a structured benchmark over the same input and projection so throughput and (under {@code -prof gc})
  * allocation can be compared directly. The scalar-leaf case has no segmented counterpart because a
  * scalar value is never segmented — it is the control where the two modes coincide.
+ * <p>
+ * The {@code validate*} benchmarks drive {@code JsonSchemaImpl.Validator} (the push-based
+ * {@code JsonTransform} every {@code JsonPipeline} consumer gets from {@code schema.validator()}) rather
+ * than a projector, so allocation regressions in {@code Validator}/{@code Eval}'s fastKeys path are
+ * caught here directly instead of only downstream in a consumer module's own benchmarks.
+ * {@code validateCanonical}/{@code validateVerbatim} use a schema with no declared {@code properties},
+ * so every key falls through to the default (never-fails) {@code additionalProperties}.
+ * {@code validatePropertiesCanonical}/{@code validatePropertiesVerbatim} add declared {@code properties}
+ * and {@code required}, exercising fastKeys' matched-property path (expected ~0 B/op: the pointer segment
+ * reuses the schema's own property name). {@code validateAdditionalCanonical}/
+ * {@code validateAdditionalVerbatim} route an undeclared key to a real (fallible) {@code
+ * additionalProperties} sub-schema — the one case fastKeys still has to materialize the document's own
+ * key text, since the schema has no name of its own to reuse for it.
  */
 @State(Scope.Benchmark)
 @BenchmarkMode(Mode.Throughput)
@@ -91,6 +104,22 @@ public class JsonPipelineBM
     private static final String VALIDATE_DOCUMENT = ROOT_IDENTITY;
     private static final String VALIDATE_SCHEMA = "{\"type\":\"object\"}";
 
+    // unlike VALIDATE_SCHEMA (bare "type":"object", no declared properties), this exercises Eval's
+    // fastKeys "matched declared property" branch: "id" and "ok" resolve against propertyKeys/requiredKeys
+    // (array scans, the schema's own strings pushed onto the pointer trail — see onFastKey), while "items"
+    // falls through to the default additionalProperties:true (ANY, never fails, no pointer push at all)
+    private static final String VALIDATE_PROPERTIES_SCHEMA =
+        "{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"integer\"},\"ok\":{\"type\":\"boolean\"}}," +
+        "\"required\":[\"id\",\"ok\"]}";
+
+    // "note" is not a declared property, and additionalProperties is a real (fallible) sub-schema rather
+    // than the bare-true/absent default — the one case fastKeys still has to materialize the document's
+    // own key text (not the schema's), since the schema has no name for it to reuse
+    private static final String VALIDATE_ADDITIONAL_SCHEMA =
+        "{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"integer\"}},\"required\":[\"id\"]," +
+        "\"additionalProperties\":{\"type\":\"string\"}}";
+    private static final String VALIDATE_ADDITIONAL_DOCUMENT = "{\"id\":1,\"note\":\"hello\"} ";
+
     private final MutableDirectBufferEx outputBuffer = new UnsafeBufferEx(new byte[16 * 1024]);
     private final JsonGeneratorEx generator = JsonEx.createGenerator();
     // structured = the explicit canonical opt-out (re-render); the bare default now prefers bytes
@@ -110,6 +139,10 @@ public class JsonPipelineBM
     private JsonPipeline fragmentNumberStructuredPipeline;
     private JsonPipeline validateCanonicalPipeline;
     private JsonPipeline validateVerbatimPipeline;
+    private JsonPipeline validatePropertiesCanonicalPipeline;
+    private JsonPipeline validatePropertiesVerbatimPipeline;
+    private JsonPipeline validateAdditionalCanonicalPipeline;
+    private JsonPipeline validateAdditionalVerbatimPipeline;
 
     private UnsafeBufferEx flatBuffer;
     private UnsafeBufferEx nestedBuffer;
@@ -118,6 +151,7 @@ public class JsonPipelineBM
     private UnsafeBufferEx largeStringBuffer;
     private UnsafeBufferEx largeNumberBuffer;
     private UnsafeBufferEx validateBuffer;
+    private UnsafeBufferEx validateAdditionalBuffer;
 
     private int flatLength;
     private int nestedLength;
@@ -126,6 +160,7 @@ public class JsonPipelineBM
     private int largeStringLength;
     private int largeNumberLength;
     private int validateLength;
+    private int validateAdditionalLength;
 
     @Setup(Level.Trial)
     public void init()
@@ -159,6 +194,14 @@ public class JsonPipelineBM
             .transform(JsonSchema.of(VALIDATE_SCHEMA).validator()).into(structuredSink);
         validateVerbatimPipeline = JsonEx.stream(JsonEx.createParser())
             .transform(JsonSchema.of(VALIDATE_SCHEMA).validator()).into(bytePreferringSink);
+        validatePropertiesCanonicalPipeline = JsonEx.stream(JsonEx.createParser())
+            .transform(JsonSchema.of(VALIDATE_PROPERTIES_SCHEMA).validator()).into(structuredSink);
+        validatePropertiesVerbatimPipeline = JsonEx.stream(JsonEx.createParser())
+            .transform(JsonSchema.of(VALIDATE_PROPERTIES_SCHEMA).validator()).into(bytePreferringSink);
+        validateAdditionalCanonicalPipeline = JsonEx.stream(JsonEx.createParser())
+            .transform(JsonSchema.of(VALIDATE_ADDITIONAL_SCHEMA).validator()).into(structuredSink);
+        validateAdditionalVerbatimPipeline = JsonEx.stream(JsonEx.createParser())
+            .transform(JsonSchema.of(VALIDATE_ADDITIONAL_SCHEMA).validator()).into(bytePreferringSink);
 
         byte[] flatBytes = FLAT_OBJECT.getBytes(UTF_8);
         byte[] nestedBytes = NESTED_OBJECT.getBytes(UTF_8);
@@ -167,6 +210,7 @@ public class JsonPipelineBM
         byte[] largeStringBytes = LARGE_STRING.getBytes(UTF_8);
         byte[] largeNumberBytes = LARGE_NUMBER.getBytes(UTF_8);
         byte[] validateBytes = VALIDATE_DOCUMENT.getBytes(UTF_8);
+        byte[] validateAdditionalBytes = VALIDATE_ADDITIONAL_DOCUMENT.getBytes(UTF_8);
 
         flatBuffer = new UnsafeBufferEx(flatBytes);
         nestedBuffer = new UnsafeBufferEx(nestedBytes);
@@ -175,6 +219,7 @@ public class JsonPipelineBM
         largeStringBuffer = new UnsafeBufferEx(largeStringBytes);
         largeNumberBuffer = new UnsafeBufferEx(largeNumberBytes);
         validateBuffer = new UnsafeBufferEx(validateBytes);
+        validateAdditionalBuffer = new UnsafeBufferEx(validateAdditionalBytes);
 
         flatLength = flatBytes.length;
         nestedLength = nestedBytes.length;
@@ -183,6 +228,7 @@ public class JsonPipelineBM
         largeStringLength = largeStringBytes.length;
         largeNumberLength = largeNumberBytes.length;
         validateLength = validateBytes.length;
+        validateAdditionalLength = validateAdditionalBytes.length;
     }
 
     @Benchmark
@@ -255,6 +301,30 @@ public class JsonPipelineBM
     public int validateVerbatim()
     {
         return run(validateVerbatimPipeline, validateBuffer, validateLength);
+    }
+
+    @Benchmark
+    public int validatePropertiesCanonical()
+    {
+        return run(validatePropertiesCanonicalPipeline, validateBuffer, validateLength);
+    }
+
+    @Benchmark
+    public int validatePropertiesVerbatim()
+    {
+        return run(validatePropertiesVerbatimPipeline, validateBuffer, validateLength);
+    }
+
+    @Benchmark
+    public int validateAdditionalCanonical()
+    {
+        return run(validateAdditionalCanonicalPipeline, validateAdditionalBuffer, validateAdditionalLength);
+    }
+
+    @Benchmark
+    public int validateAdditionalVerbatim()
+    {
+        return run(validateAdditionalVerbatimPipeline, validateAdditionalBuffer, validateAdditionalLength);
     }
 
     private int run(

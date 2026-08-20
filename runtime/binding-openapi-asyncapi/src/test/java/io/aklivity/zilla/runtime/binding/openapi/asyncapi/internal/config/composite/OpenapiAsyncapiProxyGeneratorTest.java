@@ -39,19 +39,19 @@ import org.mockito.junit.MockitoRule;
 
 import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaConditionConfig;
 import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaWithConfig;
+import io.aklivity.zilla.config.binding.openapi.asyncapi.AsyncapiCatalogConfig;
+import io.aklivity.zilla.config.binding.openapi.asyncapi.AsyncapiSpecificationConfig;
 import io.aklivity.zilla.config.binding.openapi.asyncapi.OpenapiAsyncapiConditionConfig;
 import io.aklivity.zilla.config.binding.openapi.asyncapi.OpenapiAsyncapiOptionsConfig;
 import io.aklivity.zilla.config.binding.openapi.asyncapi.OpenapiAsyncapiWithConfig;
+import io.aklivity.zilla.config.binding.openapi.asyncapi.OpenapiCatalogConfig;
+import io.aklivity.zilla.config.binding.openapi.asyncapi.OpenapiSpecificationConfig;
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.config.engine.GenericBindingConfig;
 import io.aklivity.zilla.config.engine.GuardedConfig;
 import io.aklivity.zilla.config.engine.RouteConfig;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config.OpenapiAsyncapiBindingConfig;
 import io.aklivity.zilla.runtime.binding.openapi.asyncapi.internal.config.OpenapiAsyncapiCompositeConfig;
-import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiCatalogConfig;
-import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfig;
-import io.aklivity.zilla.runtime.common.openapi.config.OpenapiCatalogConfig;
-import io.aklivity.zilla.runtime.common.openapi.config.OpenapiSpecificationConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 
@@ -266,13 +266,13 @@ public class OpenapiAsyncapiProxyGeneratorTest
                     .openapi(Set.of(new OpenapiSpecificationConfig(
                         "openapi-id",
                         null,
-                        List.of(new OpenapiCatalogConfig("catalog0", "test", "latest")),
-                        Map.of("bearerAuth", "guard0"),
-                        new OpenapiCatalogConfig("catalog0", "test-overlay", "latest"))))
+                        List.of(new OpenapiCatalogConfig("catalog0", "test", "latest",
+                            new OpenapiCatalogConfig("catalog0", "test-overlay", "latest"))),
+                        Map.of("bearerAuth", "guard0"))))
                     .asyncapi(Set.of(AsyncapiSpecificationConfig.builder()
                         .label("asyncapi-id")
-                        .catalog(new AsyncapiCatalogConfig("catalog1", "test", "latest"))
-                        .overlay(new AsyncapiCatalogConfig("catalog1", "test-overlay", "latest"))
+                        .catalog(new AsyncapiCatalogConfig("catalog1", "test", "latest",
+                            new AsyncapiCatalogConfig("catalog1", "test-overlay", "latest")))
                         .build()))
                     .build()
                 .build())

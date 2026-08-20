@@ -27,6 +27,14 @@ package io.aklivity.zilla.runtime.engine.model;
  * {@link ModelContext} returns {@code null} when no model is configured; a caller that holds a
  * {@code null} handler forwards its bytes unchanged rather than driving a pipeline.
  * </p>
+ * <p>
+ * Neither the {@link ModelEnvelope} nor the {@link ModelTransform} supplied to
+ * {@link #supplyDecoder(ModelEnvelope, ModelTransform)} and
+ * {@link #supplyEncoder(ModelEnvelope, ModelTransform)} is ever {@code null}: a caller with no metadata
+ * channel passes {@link ModelEnvelope#NONE} and a caller with no per-field policy passes
+ * {@link ModelTransform#NONE}, both of which an implementation is free to recognize and wire away
+ * entirely.
+ * </p>
  *
  * @see ModelContext
  * @see ModelPipeline
@@ -34,42 +42,39 @@ package io.aklivity.zilla.runtime.engine.model;
 public interface ModelHandler
 {
     /**
-     * Supplies a new read-direction {@link ModelPipeline} for a single stream, wiring the given
-     * {@link ModelVisitor} to receive any extracted field values as the pipeline transforms each value.
+     * Supplies a new read-direction {@link ModelPipeline} for a single stream, binding it to the given
+     * {@link ModelEnvelope} so the pipeline reads the metadata travelling alongside each value it
+     * transforms, and wiring the given {@link ModelTransform} into it so the transform observes,
+     * substitutes, or declines each field of that value.
+     * <p>
+     * The envelope is bound as the pipeline is built rather than supplied again per value, so an
+     * implementation adapts it into its own internals once. The supplier owns its lifecycle from there.
+     * </p>
      *
-     * @param visitor  the visitor to receive extracted field values
+     * @param envelope   the metadata channel to bind the pipeline to
+     * @param transform  the per-field transform to wire into the pipeline
      * @return a new per-stream decode pipeline
      */
     ModelPipeline supplyDecoder(
-        ModelVisitor visitor);
+        ModelEnvelope envelope,
+        ModelTransform transform);
 
     /**
-     * Supplies a new read-direction {@link ModelPipeline} for a single stream with no extraction visitor.
+     * Supplies a new write-direction {@link ModelPipeline} for a single stream, binding it to the given
+     * {@link ModelEnvelope} so the pipeline writes the metadata travelling alongside each value it
+     * transforms, and wiring the given {@link ModelTransform} into it so the transform observes,
+     * substitutes, or declines each field of that value.
+     * <p>
+     * The envelope is bound as the pipeline is built rather than supplied again per value, so an
+     * implementation adapts it into its own internals once. The supplier owns its lifecycle from there,
+     * draining whatever accumulated into it as the scope it describes turns over.
+     * </p>
      *
-     * @return a new per-stream decode pipeline
-     */
-    default ModelPipeline supplyDecoder()
-    {
-        return supplyDecoder(ModelVisitor.NONE);
-    }
-
-    /**
-     * Supplies a new write-direction {@link ModelPipeline} for a single stream, wiring the given
-     * {@link ModelVisitor} to receive any extracted field values as the pipeline transforms each value.
-     *
-     * @param visitor  the visitor to receive extracted field values
+     * @param envelope   the metadata channel to bind the pipeline to
+     * @param transform  the per-field transform to wire into the pipeline
      * @return a new per-stream encode pipeline
      */
     ModelPipeline supplyEncoder(
-        ModelVisitor visitor);
-
-    /**
-     * Supplies a new write-direction {@link ModelPipeline} for a single stream with no extraction visitor.
-     *
-     * @return a new per-stream encode pipeline
-     */
-    default ModelPipeline supplyEncoder()
-    {
-        return supplyEncoder(ModelVisitor.NONE);
-    }
+        ModelEnvelope envelope,
+        ModelTransform transform);
 }

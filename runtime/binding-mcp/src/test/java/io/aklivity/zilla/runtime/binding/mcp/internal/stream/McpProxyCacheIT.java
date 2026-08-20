@@ -644,11 +644,15 @@ public class McpProxyCacheIT
         k3po.finish();
     }
 
-    private static final List<String> SESSION_IDS = List.of("hydrate-1", "agent-1");
+    private static final List<String> SESSION_IDS = List.of(
+        "5ca1ab1e-c0de-4a11-feed-000100000000",
+        "5ca1ab1e-c0de-4a11-b007-000100000000");
     private static Iterator<String> sessionIds = SESSION_IDS.iterator();
 
-    public static String sessionId()
+    public static String sessionId(
+        long affinity)
     {
+        assert affinity == 0L;
         return sessionIds.next();
     }
 
@@ -658,11 +662,13 @@ public class McpProxyCacheIT
         sessionIds = SESSION_IDS.iterator();
     }
 
-    private static final String[] CONTENDED_SESSION_IDS = { "hydrate-A", "hydrate-B" };
+    private static final String[] CONTENDED_SESSION_MARKERS = { "000a", "000b" };
     private static final AtomicInteger CONTENDED_SESSION_INDEX = new AtomicInteger();
 
-    public static String contendedSessionId()
+    public static String contendedSessionId(
+        long affinity)
     {
-        return CONTENDED_SESSION_IDS[CONTENDED_SESSION_INDEX.getAndIncrement() % CONTENDED_SESSION_IDS.length];
+        String marker = CONTENDED_SESSION_MARKERS[CONTENDED_SESSION_INDEX.getAndIncrement() % CONTENDED_SESSION_MARKERS.length];
+        return "5ca1ab1e-c0de-4a11-feed-%s%08x".formatted(marker, affinity & 0xffff_ffffL);
     }
 }

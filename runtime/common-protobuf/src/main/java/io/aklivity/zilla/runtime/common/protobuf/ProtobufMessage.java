@@ -17,9 +17,13 @@ package io.aklivity.zilla.runtime.common.protobuf;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.function.Predicate;
 
 /**
  * An immutable Protobuf message descriptor: its fields indexed by number, proto JSON name, and
@@ -142,6 +146,56 @@ public final class ProtobufMessage
     public ProtobufField mapValue()
     {
         return fieldByNumber.get(2);
+    }
+
+    /**
+     * The paths of every {@link ProtobufField} reachable from this message — through composite
+     * (message-typed) fields — for which {@code filter} returns {@code true}, in declaration order.
+     * A field's own match does not stop descent into its message: a matching field nested beneath an
+     * already-matching ancestor is still reported, independently, at its own path. A {@code repeated}
+     * composite field contributes a synthetic {@code -} wildcard segment before its message's own
+     * fields, matching the array-of-objects path convention used elsewhere for Avro and JSON Schema
+     * (a {@code map} field is a repeated synthetic entry message with named {@code key}/{@code value}
+     * fields, so its own value type is reached one segment deeper, at {@code .../value/...}, rather
+     * than directly at {@code -}). The one thing that does stop descent is a recursive message
+     * revisiting a message already on the current path; that message's fields are not re-examined a
+     * second time along the same descent.
+     */
+    public List<String> matchingPaths(
+        Predicate<ProtobufField> filter)
+    {
+        Set<String> pointers = new LinkedHashSet<>();
+        collectPaths("", filter, new HashSet<>(), pointers);
+        return new ArrayList<>(pointers);
+    }
+
+    // identity-based (ProtobufMessage has no equals/hashCode override): guards against a recursive
+    // message revisiting itself along the same descent, not against revisiting via a different path
+    private void collectPaths(
+        String pointer,
+        Predicate<ProtobufField> filter,
+        Set<ProtobufMessage> visiting,
+        Set<String> pointers)
+    {
+        if (visiting.add(this))
+        {
+            for (ProtobufField field : fields)
+            {
+                String fieldPointer = pointer + "/" + field.name();
+                if (filter.test(field))
+                {
+                    pointers.add(fieldPointer);
+                }
+
+                ProtobufMessage nested = field.message();
+                if (nested != null)
+                {
+                    nested.collectPaths(field.repeated() ? fieldPointer + "/-" : fieldPointer, filter, visiting,
+                        pointers);
+                }
+            }
+            visiting.remove(this);
+        }
     }
 
     public static Builder builder(

@@ -18,7 +18,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 
-public final class GrpcKafkaWithFetchFilterConfig
+import io.aklivity.zilla.config.engine.Config;
+
+public final class GrpcKafkaWithFetchFilterConfig extends Config
 {
     public final Optional<String> key;
     public final Optional<List<GrpcKafkaWithFetchFilterHeaderConfig>> headers;

@@ -19,6 +19,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.time.Clock;
+import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -28,11 +29,12 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
-import io.aklivity.zilla.runtime.engine.model.ModelVisitor;
+import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 
 public class StringModelPipelineTest
 {
@@ -54,14 +56,14 @@ public class StringModelPipelineTest
     public void shouldOverflowBoundedDestination()
     {
         ModelHandler handler = handler(StringModelConfig.builder().encoding("utf_8").build());
-        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
 
         byte[] bytes = "Valid String".getBytes();
         MutableDirectBufferEx src = new UnsafeBufferEx(bytes);
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[bytes.length]);
 
         // first call: only 5 bytes of room -> OVERFLOW, 5 consumed/produced
-        ModelPipelineResult first = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult first = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
             src, 0, bytes.length, dst, 0, 5);
         assertEquals(ModelStatus.OVERFLOW, first.status());
         assertEquals(5, first.consumed());
@@ -69,7 +71,7 @@ public class StringModelPipelineTest
 
         // re-call advancing the source by what was consumed, INIT cleared per the driver contract
         int progress = first.consumed();
-        ModelPipelineResult second = pipeline.transform(0L, 0L, FLAGS_FIN,
+        ModelPipelineResult second = pipeline.transform(0L, 0L, 0L, FLAGS_FIN,
             src, progress, bytes.length, dst, progress, bytes.length);
         assertEquals(ModelStatus.COMPLETE, second.status());
         assertEquals(bytes.length - progress, second.consumed());
@@ -81,11 +83,11 @@ public class StringModelPipelineTest
     public void shouldOverflowWithEmptyDestination()
     {
         ModelHandler handler = handler(StringModelConfig.builder().encoding("utf_8").build());
-        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
 
         byte[] bytes = "Valid String".getBytes();
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[0]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
             new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, 0);
 
         assertEquals(ModelStatus.OVERFLOW, result.status());
@@ -98,23 +100,23 @@ public class StringModelPipelineTest
     {
         ModelHandler handler = handler(StringModelConfig.builder().encoding("utf_8").build());
         // one per-worker handler vends two per-stream pipelines; fragmenting A across B must not corrupt A
-        ModelPipeline a = handler.supplyDecoder(ModelVisitor.NONE);
-        ModelPipeline b = handler.supplyDecoder(ModelVisitor.NONE);
+        ModelPipeline a = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
+        ModelPipeline b = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
 
         byte[] a1 = "Valid ".getBytes();
         byte[] a2 = "String".getBytes();
         byte[] whole = "Other Value".getBytes();
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[64]);
 
-        ModelPipelineResult ra1 = a.transform(0L, 0L, FLAGS_INIT,
+        ModelPipelineResult ra1 = a.transform(0L, 0L, 0L, FLAGS_INIT,
             new UnsafeBufferEx(a1), 0, a1.length, dst, 0, dst.capacity());
         assertEquals(ModelStatus.UNDERFLOW, ra1.status());
 
-        ModelPipelineResult rb = b.transform(0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult rb = b.transform(0L, 0L, 0L, FLAGS_COMPLETE,
             new UnsafeBufferEx(whole), 0, whole.length, dst, 0, dst.capacity());
         assertEquals(ModelStatus.COMPLETE, rb.status());
 
-        ModelPipelineResult ra2 = a.transform(0L, 0L, FLAGS_FIN,
+        ModelPipelineResult ra2 = a.transform(0L, 0L, 0L, FLAGS_FIN,
             new UnsafeBufferEx(a2), 0, a2.length, dst, 0, dst.capacity());
         assertEquals(ModelStatus.COMPLETE, ra2.status());
     }
@@ -123,15 +125,15 @@ public class StringModelPipelineTest
     public void shouldResetForNextValue()
     {
         ModelHandler handler = handler(StringModelConfig.builder().encoding("utf_8").build());
-        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
 
         byte[] bytes = "abc".getBytes();
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[16]);
-        pipeline.transform(0L, 0L, FLAGS_COMPLETE,
+        pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
             new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
         pipeline.reset();
 
-        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
             new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
         assertEquals(ModelStatus.COMPLETE, result.status());
         assertEquals(bytes.length, result.produced());
@@ -141,18 +143,18 @@ public class StringModelPipelineTest
     public void shouldTransformMultiByteFragmented()
     {
         ModelHandler handler = handler(StringModelConfig.builder().encoding("utf_8").build());
-        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
 
         // "é€" split at the character boundary: "é" is 2 bytes, "€" is 3 bytes
         byte[] head = "é".getBytes(java.nio.charset.StandardCharsets.UTF_8);
         byte[] tail = "€".getBytes(java.nio.charset.StandardCharsets.UTF_8);
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[16]);
 
-        ModelPipelineResult first = pipeline.transform(0L, 0L, FLAGS_INIT,
+        ModelPipelineResult first = pipeline.transform(0L, 0L, 0L, FLAGS_INIT,
             new UnsafeBufferEx(head), 0, head.length, dst, 0, dst.capacity());
         assertEquals(ModelStatus.UNDERFLOW, first.status());
 
-        ModelPipelineResult second = pipeline.transform(0L, 0L, FLAGS_FIN,
+        ModelPipelineResult second = pipeline.transform(0L, 0L, 0L, FLAGS_FIN,
             new UnsafeBufferEx(tail), 0, tail.length, dst, first.produced(), dst.capacity());
         assertEquals(ModelStatus.COMPLETE, second.status());
     }
@@ -160,6 +162,6 @@ public class StringModelPipelineTest
     private ModelHandler handler(
         StringModelConfig config)
     {
-        return new StringModelContext(context).supplyHandler(config);
+        return new StringModelContext(context, List.of()).supplyHandler(config);
     }
 }

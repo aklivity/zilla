@@ -15,34 +15,50 @@
  */
 package io.aklivity.zilla.runtime.binding.tls.internal.identity;
 
+import static io.aklivity.zilla.runtime.common.x509.X509Fields.X5T_S256;
+
 import java.net.Socket;
 import java.security.Principal;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.X509ExtendedKeyManager;
 import javax.net.ssl.X509KeyManager;
-import javax.security.auth.x500.X500Principal;
 
 import io.aklivity.zilla.runtime.binding.tls.internal.TlsConfiguration;
+import io.aklivity.zilla.runtime.common.x509.X509Fields;
 
 public final class TlsClientX509ExtendedKeyManager extends X509ExtendedKeyManager implements X509KeyManager
 {
-    public static final String COMMON_NAME_KEY = "common.name";
+    /**
+     * Names the certificate properties the handshake must match, resolved at route time and read
+     * back during the handshake. {@code chooseEngineClientAlias} receives only the {@link SSLEngine},
+     * and key managers are built into the {@code SSLContext} once per binding, so the session is the
+     * only per-stream channel available.
+     */
+    public static final String CERTIFICATE_FIELDS_KEY = "certificate.fields";
 
-    public static final Pattern COMMON_NAME_PATTERN = Pattern.compile("CN=(?<cn>[^,]+)");
-
-    private static final ThreadLocal<Matcher> COMMON_NAME_MATCHER =
-            ThreadLocal.withInitial(() -> COMMON_NAME_PATTERN.matcher(""));
+    // candidates are exposed only per key algorithm, so the index is the union over the algorithms
+    // a candidate key could use; an algorithm with no candidates simply contributes none
+    private static final List<String> KEY_ALGORITHMS =
+        List.of("RSA", "RSASSA-PSS", "EC", "DSA", "Ed25519", "Ed448");
 
     private final X509ExtendedKeyManager delegate;
     private final boolean debug;
+
+    // Keyed by leaf certificate rather than by alias: a key manager alias carries a counter that
+    // advances on every enumeration, so the same key yields a different alias each time it is
+    // listed. The keystore is fixed for the binding's lifetime, so this is populated once and
+    // selection is a lookup rather than a certificate parse per handshake.
+    private final Map<X509Certificate, Map<String, List<String>>> fieldsByCertificate;
 
     public TlsClientX509ExtendedKeyManager(
         TlsConfiguration config,
@@ -50,6 +66,18 @@ public final class TlsClientX509ExtendedKeyManager extends X509ExtendedKeyManage
     {
         this.debug = config.debug();
         this.delegate = delegate;
+        this.fieldsByCertificate = indexCertificates(delegate);
+    }
+
+    /**
+     * Reports whether any candidate key matches {@code selector}, so a selection that can never
+     * succeed is observable before the handshake begins. Reads only the pre-built index, so it is
+     * safe to call from the worker thread while resolving a route.
+     */
+    public boolean matchesAny(
+        Map<String, String> selector)
+    {
+        return fieldsByCertificate.values().stream().anyMatch(fields -> matches(fields, selector));
     }
 
     @Override
@@ -87,6 +115,7 @@ public final class TlsClientX509ExtendedKeyManager extends X509ExtendedKeyManage
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public String chooseEngineClientAlias(
         String[] keyTypes,
         Principal[] issuers,
@@ -95,10 +124,9 @@ public final class TlsClientX509ExtendedKeyManager extends X509ExtendedKeyManage
         String alias = null;
 
         SSLSession session = engine.getSession();
-        String subjectCN = (String) session.getValue(COMMON_NAME_KEY);
+        Map<String, String> selector = (Map<String, String>) session.getValue(CERTIFICATE_FIELDS_KEY);
 
-        alias:
-        if (subjectCN == null)
+        if (selector == null)
         {
             alias = delegate.chooseEngineClientAlias(keyTypes, issuers, engine);
         }
@@ -111,28 +139,18 @@ public final class TlsClientX509ExtendedKeyManager extends X509ExtendedKeyManage
                 {
                     for (String candidate : candidates)
                     {
-                        X509Certificate[] chain = delegate.getCertificateChain(candidate);
-                        if (chain != null)
+                        if (matches(candidate, selector) && supersedes(candidate, alias))
                         {
-                            Matcher matchCN = COMMON_NAME_MATCHER.get();
-                            X500Principal subject = chain[0].getSubjectX500Principal();
-
-                            if (subject != null &&
-                                matchCN.reset(subject.getName()).find() &&
-                                subjectCN.equals(matchCN.group("cn")))
-                            {
-                                alias = candidate;
-                                break alias;
-                            }
+                            alias = candidate;
                         }
                     }
                 }
             }
 
-            if (debug)
+            if (alias == null && debug)
             {
-                System.out.printf("[binding-tls] No match found for Subject CN [%s], Key Types [%s], Issuers [%s] \n",
-                    subjectCN,
+                System.out.printf("[binding-tls] No match found for Certificate [%s], Key Types [%s], Issuers [%s] \n",
+                    selector,
                     String.join(", ", keyTypes),
                     issuers != null
                         ? Arrays.stream(issuers).map(Principal::getName).collect(Collectors.joining(", "))
@@ -164,5 +182,108 @@ public final class TlsClientX509ExtendedKeyManager extends X509ExtendedKeyManage
         String alias)
     {
         return delegate.getPrivateKey(alias);
+    }
+
+    /**
+     * Orders two matching candidates so selection is stable across restarts: the later
+     * {@code notBefore} wins, which also prefers the new certificate while an old one is still
+     * valid during a rotation. Keystore enumeration order carries no such guarantee, so taking
+     * the first match found would vary between runs of the same configuration.
+     */
+    private boolean supersedes(
+        String candidate,
+        String alias)
+    {
+        boolean supersedes = alias == null;
+
+        if (!supersedes)
+        {
+            int compared = notBefore(candidate).compareTo(notBefore(alias));
+
+            supersedes = compared > 0 || compared == 0 && thumbprint(candidate).compareTo(thumbprint(alias)) > 0;
+        }
+
+        return supersedes;
+    }
+
+    private Date notBefore(
+        String alias)
+    {
+        X509Certificate[] chain = delegate.getCertificateChain(alias);
+        return chain[0].getNotBefore();
+    }
+
+    private String thumbprint(
+        String alias)
+    {
+        List<String> values = resolveFields(alias).get(X5T_S256);
+        return values != null && !values.isEmpty() ? values.get(0) : "";
+    }
+
+    private boolean matches(
+        String alias,
+        Map<String, String> selector)
+    {
+        return matches(resolveFields(alias), selector);
+    }
+
+    private static boolean matches(
+        Map<String, List<String>> fields,
+        Map<String, String> selector)
+    {
+        boolean matches = fields != null;
+
+        if (matches)
+        {
+            for (Map.Entry<String, String> entry : selector.entrySet())
+            {
+                List<String> values = fields.get(entry.getKey());
+
+                if (values == null || !values.contains(entry.getValue()))
+                {
+                    matches = false;
+                    break;
+                }
+            }
+        }
+
+        return matches;
+    }
+
+    private Map<String, List<String>> resolveFields(
+        String alias)
+    {
+        X509Certificate[] chain = delegate.getCertificateChain(alias);
+
+        // a key algorithm outside the pre-indexed set still resolves, and is indexed on first use
+        return chain != null && chain.length != 0
+            ? fieldsByCertificate.computeIfAbsent(chain[0], X509Fields::resolve)
+            : null;
+    }
+
+    private static Map<X509Certificate, Map<String, List<String>>> indexCertificates(
+        X509ExtendedKeyManager delegate)
+    {
+        Map<X509Certificate, Map<String, List<String>>> fieldsByCertificate = new HashMap<>();
+
+        for (String keyAlgorithm : KEY_ALGORITHMS)
+        {
+            String[] aliases = delegate.getClientAliases(keyAlgorithm, null);
+
+            if (aliases != null)
+            {
+                for (String alias : aliases)
+                {
+                    X509Certificate[] chain = delegate.getCertificateChain(alias);
+
+                    if (chain != null && chain.length != 0)
+                    {
+                        fieldsByCertificate.computeIfAbsent(chain[0], X509Fields::resolve);
+                    }
+                }
+            }
+        }
+
+        return fieldsByCertificate;
     }
 }

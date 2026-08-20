@@ -14,30 +14,39 @@
  */
 package io.aklivity.zilla.runtime.model.protobuf.internal;
 
+import java.util.List;
+
 import io.aklivity.zilla.config.engine.ModelConfig;
 import io.aklivity.zilla.config.model.protobuf.ProtobufModelConfig;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.ModelContext;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
+import io.aklivity.zilla.runtime.model.protobuf.ext.ProtobufModelExt;
+import io.aklivity.zilla.runtime.model.protobuf.ext.ProtobufModelExtContext;
 
 public class ProtobufModelContext implements ModelContext
 {
     private final EngineContext context;
     private final ProtobufModelConfiguration config;
+    private final List<ProtobufModelExtContext> exts;
 
     public ProtobufModelContext(
         Configuration config,
-        EngineContext context)
+        EngineContext context,
+        List<ProtobufModelExt> exts)
     {
         this.config = new ProtobufModelConfiguration(config);
         this.context = context;
+        this.exts = exts.stream().map(ext -> ext.supply(context)).toList();
     }
 
     @Override
     public ModelHandler supplyHandler(
         ModelConfig config)
     {
-        return new ProtobufModelHandlerImpl(ProtobufModelConfig.class.cast(config), context);
+        ProtobufModelConfig protobufConfig = ProtobufModelConfig.class.cast(config);
+        exts.forEach(ext -> ext.attach(protobufConfig));
+        return new ProtobufModelHandlerImpl(protobufConfig, context, exts);
     }
 }

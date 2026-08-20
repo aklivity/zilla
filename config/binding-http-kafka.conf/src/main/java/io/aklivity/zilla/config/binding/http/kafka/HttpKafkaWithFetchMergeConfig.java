@@ -16,7 +16,9 @@ package io.aklivity.zilla.config.binding.http.kafka;
 
 import java.util.function.Function;
 
-public final class HttpKafkaWithFetchMergeConfig
+import io.aklivity.zilla.config.engine.Config;
+
+public final class HttpKafkaWithFetchMergeConfig extends Config
 {
     public final String contentType;
     public final String initial;

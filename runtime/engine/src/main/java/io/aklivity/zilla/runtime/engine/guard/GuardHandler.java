@@ -63,14 +63,28 @@ public interface GuardHandler
     /**
      * Validates the given credentials and returns a session id for the authorized session.
      * <p>
+     * <b>Decides locally and returns on the caller's stack.</b> This variant never performs
+     * I/O and never blocks; it answers only from what the guard already holds. A guard that
+     * cannot reach a decision without I/O returns {@link #NOT_AUTHORIZED} here, and the
+     * caller uses {@link #reauthorize(long, long, long, String, LongCompletionCallback)}
+     * instead when it is prepared to wait for a decision.
+     * </p>
+     * <p>
      * Possible outcomes:
      * <ul>
      *   <li>positive session id — credentials accepted, session created</li>
-     *   <li>{@link #NOT_AUTHORIZED} — credentials rejected</li>
+     *   <li>{@link #NOT_AUTHORIZED} — credentials rejected, or no local decision available</li>
      *   <li>{@link #NEEDS_PREAUTHORIZE} — credentials recognized but the upstream has no
      *       prior consent for this subject; the caller should invoke {@link #preauthorize}
      *       to obtain a URL for the user to visit</li>
      * </ul>
+     * </p>
+     * <p>
+     * <b>A positive session id obliges the caller to release it.</b> The caller must invoke
+     * {@link #deauthorize} exactly once with that session id, when the stream or connection
+     * that acquired it ends — whether it closes cleanly, is aborted, or is reset. Neither
+     * {@link #NOT_AUTHORIZED} nor {@link #NEEDS_PREAUTHORIZE} creates a session, so neither
+     * requires a matching {@link #deauthorize} call.
      * </p>
      *
      * @param traceId    the trace identifier for diagnostics
@@ -87,22 +101,36 @@ public interface GuardHandler
         String credentials);
 
     /**
-     * Async variant of {@link #reauthorize} for guards whose authorization decision
-     * requires non-blocking I/O (for example, an upstream token exchange after an
-     * out-of-band consent step). The result is delivered to {@code completion} on
-     * the same engine worker thread that invoked this method; implementations that
-     * do off-thread work must dispatch back via {@code EngineContext.signaler()}
-     * before invoking the callback.
+     * Async variant of {@link #reauthorize} for callers prepared to wait for an
+     * authorization decision, including one that requires non-blocking I/O (for example,
+     * an upstream token exchange after an out-of-band consent step).
      * <p>
-     * The default implementation delegates to the synchronous {@link #reauthorize},
-     * so guards that always decide locally need no source change. Exceptions thrown
-     * by the synchronous variant are routed to {@link CompletionCallback#failed}.
+     * <b>Completes asynchronously, always.</b> {@code completion} fires <em>strictly
+     * later</em> than this call returns — never on the caller's stack, even when the guard
+     * could decide locally and inline. A guard that decides locally still defers delivery
+     * by one tick, typically via {@code EngineContext.dispatch}. The callback fires on the
+     * engine worker thread that invoked this method; an implementation doing off-thread
+     * work is responsible for hopping back onto that thread first. So the caller observes
+     * "callback runs on my thread, later" in every case, and never has to handle a
+     * reentrant completion.
+     * </p>
+     * <p>
+     * Whether authorization is resolved synchronously or asynchronously is therefore the
+     * caller's choice, expressed by which overload it invokes — not something an individual
+     * guard varies. Exceptions raised while deciding are routed to
+     * {@link CompletionCallback#failed}, also strictly later than this call returns.
      * </p>
      * <p>
      * The {@code contextId} supplied at the call site is echoed back through the
      * callback so a single shared {@link LongCompletionCallback} instance can route
      * results to the correct stream — typically by issuing a {@code Signaler}
      * signal — without per-call lambda capture.
+     * </p>
+     * <p>
+     * The same release obligation as the synchronous overload applies to a positive
+     * session id delivered to {@code completion}: the caller must invoke
+     * {@link #deauthorize} exactly once with that session id, when the stream or
+     * connection that acquired it ends.
      * </p>
      *
      * @param traceId      the trace identifier for diagnostics
@@ -113,26 +141,23 @@ public interface GuardHandler
      *                     {@link #NOT_AUTHORIZED} on failure, or {@link #NEEDS_PREAUTHORIZE}
      *                     if pre-authorization is required first
      */
-    default void reauthorize(
+    void reauthorize(
         long traceId,
         long bindingId,
         long contextId,
         String credentials,
-        LongCompletionCallback completion)
-    {
-        try
-        {
-            long result = reauthorize(traceId, bindingId, contextId, credentials);
-            completion.completed(contextId, result);
-        }
-        catch (Throwable ex)
-        {
-            completion.failed(contextId, ex);
-        }
-    }
+        LongCompletionCallback completion);
 
     /**
      * Invalidates and releases the given session.
+     * <p>
+     * Every positive session id returned by {@link #reauthorize} must be released with
+     * exactly one matching call to this method, once the stream or connection that
+     * acquired it ends — whether it closes cleanly, is aborted, or is reset. A guard is
+     * entitled to retain per-session state (e.g. identity, attributes, credentials,
+     * expiry) for as long as a session remains unreleased, so an acquiring caller that
+     * never releases causes that state to accumulate for the life of the process.
+     * </p>
      *
      * @param sessionId  the session identifier to deauthorize
      */

@@ -16,7 +16,9 @@ package io.aklivity.zilla.config.binding.kafka.grpc;
 
 import java.util.function.Function;
 
-public final class KafkaGrpcIdempotencyConfig
+import io.aklivity.zilla.config.engine.Config;
+
+public final class KafkaGrpcIdempotencyConfig extends Config
 {
     public final String metadata;
 

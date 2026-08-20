@@ -18,13 +18,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
-public final class McpOpenapiSpecificationConfig
+import io.aklivity.zilla.config.engine.Config;
+
+public final class McpOpenapiSpecificationConfig extends Config
 {
     public final String label;
     public final String server;
     public final List<McpOpenapiCatalogConfig> catalogs;
     public final Map<String, String> security;
-    public final McpOpenapiCatalogConfig overlay;
 
     public static McpOpenapiSpecificationConfigBuilder<McpOpenapiSpecificationConfig> builder()
     {
@@ -41,13 +42,11 @@ public final class McpOpenapiSpecificationConfig
         String label,
         String server,
         List<McpOpenapiCatalogConfig> catalogs,
-        Map<String, String> security,
-        McpOpenapiCatalogConfig overlay)
+        Map<String, String> security)
     {
         this.label = label;
         this.server = server;
         this.catalogs = catalogs;
         this.security = security;
-        this.overlay = overlay;
     }
 }

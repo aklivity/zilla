@@ -17,9 +17,8 @@ package io.aklivity.zilla.config.engine;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
-public class SchemaConfigAdapter implements JsonbAdapter<SchemaConfig, JsonObject>
+public class SchemaConfigAdapter extends ConfigAdapter<SchemaConfig, JsonObject>
 {
     private static final String STRATEGY_NAME = "strategy";
     private static final String SUBJECT_NAME = "subject";
@@ -27,6 +26,7 @@ public class SchemaConfigAdapter implements JsonbAdapter<SchemaConfig, JsonObjec
     private static final String VERSION_DEFAULT = "latest";
     private static final String ID_NAME = "id";
     private static final String RECORD_NAME = "record";
+    private static final String OVERLAY_NAME = "overlay";
 
     @Override
     public JsonObject adaptToJson(
@@ -52,6 +52,10 @@ public class SchemaConfigAdapter implements JsonbAdapter<SchemaConfig, JsonObjec
         if (schema.record != null)
         {
             object.add(RECORD_NAME, schema.record);
+        }
+        if (schema.overlay != null)
+        {
+            object.add(OVERLAY_NAME, new OverlayConfigAdapter().adaptToJson(schema.overlay));
         }
         return object.build();
     }
@@ -89,6 +93,11 @@ public class SchemaConfigAdapter implements JsonbAdapter<SchemaConfig, JsonObjec
         if (object.containsKey(RECORD_NAME))
         {
             builder.record(object.getString(RECORD_NAME));
+        }
+
+        if (object.containsKey(OVERLAY_NAME))
+        {
+            builder.overlay(new OverlayConfigAdapter().adaptFromJson(object.getJsonObject(OVERLAY_NAME)));
         }
 
         return builder.build();

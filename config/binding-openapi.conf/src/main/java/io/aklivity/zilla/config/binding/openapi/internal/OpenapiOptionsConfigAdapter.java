@@ -25,16 +25,16 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.binding.openapi.OpenapiCatalogConfig;
+import io.aklivity.zilla.config.binding.openapi.OpenapiCatalogConfigBuilder;
 import io.aklivity.zilla.config.binding.openapi.OpenapiOptionsConfig;
 import io.aklivity.zilla.config.binding.openapi.OpenapiOptionsConfigBuilder;
+import io.aklivity.zilla.config.binding.openapi.OpenapiSpecificationConfig;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfig;
-import io.aklivity.zilla.runtime.common.openapi.config.OpenapiCatalogConfig;
-import io.aklivity.zilla.runtime.common.openapi.config.OpenapiCatalogConfigBuilder;
-import io.aklivity.zilla.runtime.common.openapi.config.OpenapiSpecificationConfig;
 
-public final class OpenapiOptionsConfigAdapter implements JsonbAdapter<OptionsConfig, JsonObject>
+public final class OpenapiOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, JsonObject>
 {
     private static final String SPECS_NAME = "specs";
     private static final String SERVERS_NAME = "servers";
@@ -77,23 +77,14 @@ public final class OpenapiOptionsConfigAdapter implements JsonbAdapter<OptionsCo
                         schemaObject.add(VERSION_NAME, catalog.version);
                     }
 
+                    if (catalog.overlay != null)
+                    {
+                        schemaObject.add(OVERLAY_NAME, overlayObject(catalog.overlay));
+                    }
+
                     subjectObject.add(catalog.name, schemaObject);
                 }
                 catalogObject.add(CATALOG_NAME, subjectObject);
-
-                if (openapiConfig.overlay != null)
-                {
-                    final JsonObjectBuilder overlaySchema = Json.createObjectBuilder();
-                    overlaySchema.add(SUBJECT_NAME, openapiConfig.overlay.subject);
-                    if (openapiConfig.overlay.version != null)
-                    {
-                        overlaySchema.add(VERSION_NAME, openapiConfig.overlay.version);
-                    }
-
-                    final JsonObjectBuilder overlaySubject = Json.createObjectBuilder();
-                    overlaySubject.add(openapiConfig.overlay.name, overlaySchema);
-                    catalogObject.add(OVERLAY_NAME, overlaySubject);
-                }
 
                 if (openapiConfig.security != null && !openapiConfig.security.isEmpty())
                 {
@@ -134,6 +125,12 @@ public final class OpenapiOptionsConfigAdapter implements JsonbAdapter<OptionsCo
                     }
                 }
 
+                OpenapiCatalogConfig deprecatedOverlay = null;
+                if (specObject.containsKey(OVERLAY_NAME))
+                {
+                    deprecatedOverlay = asOverlay(specObject.getJsonObject(OVERLAY_NAME));
+                }
+
                 List<OpenapiCatalogConfig> catalogs = new ArrayList<>();
                 if (specObject.containsKey(CATALOG_NAME))
                 {
@@ -141,9 +138,9 @@ public final class OpenapiOptionsConfigAdapter implements JsonbAdapter<OptionsCo
 
                     for (Map.Entry<String, JsonValue> catalogEntry : catalog.entrySet())
                     {
-                        OpenapiCatalogConfigBuilder<OpenapiCatalogConfig> catalogBuilder = OpenapiCatalogConfig.builder();
-                        JsonObject catalogObject = catalogEntry.getValue().asJsonObject();
+                        final JsonObject catalogObject = catalogEntry.getValue().asJsonObject();
 
+                        OpenapiCatalogConfigBuilder<OpenapiCatalogConfig> catalogBuilder = OpenapiCatalogConfig.builder();
                         catalogBuilder.name(catalogEntry.getKey());
 
                         if (catalogObject.containsKey(SUBJECT_NAME))
@@ -155,9 +152,20 @@ public final class OpenapiOptionsConfigAdapter implements JsonbAdapter<OptionsCo
                         {
                             catalogBuilder.version(catalogObject.getString(VERSION_NAME));
                         }
+
+                        final OpenapiCatalogConfig catalogOverlay = catalogObject.containsKey(OVERLAY_NAME)
+                            ? asOverlay(catalogObject.getJsonObject(OVERLAY_NAME))
+                            : deprecatedOverlay;
+
+                        if (catalogOverlay != null)
+                        {
+                            catalogBuilder.overlay(catalogOverlay);
+                        }
+
                         catalogs.add(catalogBuilder.build());
                     }
                 }
+
                 Map<String, String> security = null;
                 if (specObject.containsKey(SECURITY_NAME))
                 {
@@ -169,32 +177,47 @@ public final class OpenapiOptionsConfigAdapter implements JsonbAdapter<OptionsCo
                     }
                 }
 
-                OpenapiCatalogConfig overlay = null;
-                if (specObject.containsKey(OVERLAY_NAME))
-                {
-                    final JsonObject overlayObject = specObject.getJsonObject(OVERLAY_NAME);
-                    final Map.Entry<String, JsonValue> overlayEntry = overlayObject.entrySet().iterator().next();
-                    final JsonObject overlaySchemaObject = overlayEntry.getValue().asJsonObject();
-
-                    OpenapiCatalogConfigBuilder<OpenapiCatalogConfig> overlayBuilder = OpenapiCatalogConfig.builder();
-                    overlayBuilder.name(overlayEntry.getKey());
-
-                    if (overlaySchemaObject.containsKey(SUBJECT_NAME))
-                    {
-                        overlayBuilder.subject(overlaySchemaObject.getString(SUBJECT_NAME));
-                    }
-
-                    if (overlaySchemaObject.containsKey(VERSION_NAME))
-                    {
-                        overlayBuilder.version(overlaySchemaObject.getString(VERSION_NAME));
-                    }
-                    overlay = overlayBuilder.build();
-                }
-
-                openapiOptions.spec(new OpenapiSpecificationConfig(specLabel, servers, catalogs, security, overlay));
+                openapiOptions.spec(new OpenapiSpecificationConfig(specLabel, servers, catalogs, security));
             }
         }
 
         return openapiOptions.build();
+    }
+
+    private static OpenapiCatalogConfig asOverlay(
+        JsonObject overlayObject)
+    {
+        final Map.Entry<String, JsonValue> overlayEntry = overlayObject.entrySet().iterator().next();
+        final JsonObject overlaySchemaObject = overlayEntry.getValue().asJsonObject();
+
+        OpenapiCatalogConfigBuilder<OpenapiCatalogConfig> overlayBuilder = OpenapiCatalogConfig.builder()
+            .name(overlayEntry.getKey());
+
+        if (overlaySchemaObject.containsKey(SUBJECT_NAME))
+        {
+            overlayBuilder.subject(overlaySchemaObject.getString(SUBJECT_NAME));
+        }
+
+        if (overlaySchemaObject.containsKey(VERSION_NAME))
+        {
+            overlayBuilder.version(overlaySchemaObject.getString(VERSION_NAME));
+        }
+
+        return overlayBuilder.build();
+    }
+
+    private static JsonObjectBuilder overlayObject(
+        OpenapiCatalogConfig overlay)
+    {
+        final JsonObjectBuilder overlaySchema = Json.createObjectBuilder();
+        overlaySchema.add(SUBJECT_NAME, overlay.subject);
+        if (overlay.version != null)
+        {
+            overlaySchema.add(VERSION_NAME, overlay.version);
+        }
+
+        final JsonObjectBuilder overlaySubject = Json.createObjectBuilder();
+        overlaySubject.add(overlay.name, overlaySchema);
+        return overlaySubject;
     }
 }

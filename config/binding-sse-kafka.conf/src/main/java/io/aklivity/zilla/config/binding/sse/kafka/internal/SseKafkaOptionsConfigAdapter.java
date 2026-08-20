@@ -16,11 +16,11 @@ package io.aklivity.zilla.config.binding.sse.kafka.internal;
 
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
-public final class SseKafkaOptionsConfigAdapter implements JsonbAdapter<OptionsConfig, JsonObject>
+public final class SseKafkaOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, JsonObject>
 {
     @Override
     public JsonObject adaptToJson(

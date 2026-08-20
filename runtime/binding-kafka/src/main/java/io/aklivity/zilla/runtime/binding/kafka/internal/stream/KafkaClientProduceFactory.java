@@ -1611,6 +1611,8 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                         traceId, authorization, EMPTY_EXTENSION);
 
                 cleanupEncodeSlotIfNecessary();
+
+                deauthorizeGuardSession();
             }
 
             private void doNetworkAbortIfNecessary(
@@ -1624,6 +1626,8 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                 }
 
                 cleanupEncodeSlotIfNecessary();
+
+                deauthorizeGuardSession();
             }
 
             private void doNetworkResetIfNecessary(
@@ -1637,6 +1641,8 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                 }
 
                 cleanupDecodeSlotIfNecessary();
+
+                deauthorizeGuardSession();
             }
 
             private void doNetworkWindow(

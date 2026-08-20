@@ -15,10 +15,15 @@
 package io.aklivity.zilla.runtime.model.core.internal;
 
 import java.net.URL;
+import java.util.List;
+import java.util.ServiceLoader;
 
+import io.aklivity.zilla.config.engine.factory.Factory;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.model.Model;
 import io.aklivity.zilla.runtime.engine.model.ModelFactorySpi;
+import io.aklivity.zilla.runtime.model.core.ext.StringModelExt;
+import io.aklivity.zilla.runtime.model.core.ext.StringModelExtFactorySpi;
 
 public final class StringModelFactorySpi implements ModelFactorySpi
 {
@@ -38,8 +43,10 @@ public final class StringModelFactorySpi implements ModelFactorySpi
     public Model create(
         Configuration config)
     {
-        return new StringModel();
+        List<StringModelExt> exts = Factory.instantiate(ServiceLoader.load(StringModelExtFactorySpi.class))
+            .stream()
+            .map(spi -> spi.create(config))
+            .toList();
+        return new StringModel(exts);
     }
-
-
 }

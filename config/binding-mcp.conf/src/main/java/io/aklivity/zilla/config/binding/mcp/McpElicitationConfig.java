@@ -17,7 +17,9 @@ package io.aklivity.zilla.config.binding.mcp;
 import java.time.Duration;
 import java.util.function.Function;
 
-public final class McpElicitationConfig
+import io.aklivity.zilla.config.engine.Config;
+
+public final class McpElicitationConfig extends Config
 {
     public static final String DEFAULT_CALLBACK_PATH = "auth/callback";
 

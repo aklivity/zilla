@@ -19,7 +19,9 @@ import static java.util.function.Function.identity;
 import java.util.List;
 import java.util.function.Function;
 
-public class MqttPublishConfig
+import io.aklivity.zilla.config.engine.Config;
+
+public class MqttPublishConfig extends Config
 {
     public final String topic;
 

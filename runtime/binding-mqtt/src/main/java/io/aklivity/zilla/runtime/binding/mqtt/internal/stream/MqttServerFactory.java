@@ -67,6 +67,8 @@ import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttP
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttPublishDataExFW.Builder.DEFAULT_FORMAT;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
+import static io.aklivity.zilla.runtime.engine.guard.GuardHandler.MASK_AUTHORIZED;
+import static io.aklivity.zilla.runtime.engine.guard.GuardHandler.NOT_AUTHORIZED;
 import static java.lang.System.currentTimeMillis;
 import static java.nio.ByteOrder.BIG_ENDIAN;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -1439,7 +1441,8 @@ public final class MqttServerFactory implements MqttStreamFactory
 
             final MqttPublishHelper mqttPublishHelper = this.mqttPublishHelper.reset();
 
-            reasonCode = mqttPublishHelper.decodeV5(traceId, server, topicName, properties, typeAndFlags, qos, packetId);
+            reasonCode = mqttPublishHelper.decodeV5(traceId, authorization, server, topicName, properties, typeAndFlags,
+                qos, packetId);
 
             if (reasonCode == SUCCESS)
             {
@@ -1552,7 +1555,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     else
                     {
                         final int produced =
-                            model.transform(traceId, publisher.routedId, buffer, offset, offset + sourceBytes);
+                            model.transform(traceId, publisher.routedId, authorization, buffer, offset, offset + sourceBytes);
                         if (produced < 0)
                         {
                             reasonCode = PAYLOAD_FORMAT_INVALID;
@@ -1601,7 +1604,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     final boolean first = !server.publishPayloadValidating;
                     final boolean last = sizeClaimed == server.decodeablePublishPayloadBytes;
                     server.publishPayloadValidating = !last;
-                    if (!model.validate(traceId, publisher.routedId, first, last,
+                    if (!model.validate(traceId, publisher.routedId, authorization, first, last,
                             payloadBuffer, payloadOffset, payloadOffset + sizeClaimed))
                     {
                         reasonCode = PAYLOAD_FORMAT_INVALID;
@@ -2620,6 +2623,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
         private int state;
         private long sessionId;
+        private long guardSessionId = NOT_AUTHORIZED;
         private int decodableRemainingBytes;
         private final Int2ObjectHashMap<MqttSubscribeStream> qos1Subscribes;
         private final Int2ObjectHashMap<MqttSubscribeStream> qos2Subscribes;
@@ -3091,6 +3095,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     if (credentialsMatch != null)
                     {
                         sessionAuth = guard.reauthorize(traceId, routedId, initialId, credentialsMatch);
+                        guardSessionId = sessionAuth;
                     }
                 }
 
@@ -4514,6 +4519,8 @@ public final class MqttServerFactory implements MqttStreamFactory
                 doEnd(network, originId, routedId, replyId, encodeSeq, encodeAck, encodeMax,
                     traceId, authorization, EMPTY_OCTETS);
             }
+
+            deauthorizeGuardSession();
         }
 
         private void doNetworkAbort(
@@ -4529,6 +4536,8 @@ public final class MqttServerFactory implements MqttStreamFactory
                 doAbort(network, originId, routedId, replyId, encodeSeq, encodeAck, encodeMax,
                     traceId, authorization, EMPTY_OCTETS);
             }
+
+            deauthorizeGuardSession();
         }
 
         private void doNetworkReset(
@@ -4543,6 +4552,17 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                 doReset(network, originId, routedId, initialId, decodeSeq, decodeAck, decodeMax,
                     traceId, authorization, EMPTY_OCTETS);
+            }
+
+            deauthorizeGuardSession();
+        }
+
+        private void deauthorizeGuardSession()
+        {
+            if (guard != null && (guardSessionId & MASK_AUTHORIZED) != 0)
+            {
+                guard.deauthorize(guardSessionId);
+                guardSessionId = NOT_AUTHORIZED;
             }
         }
 
@@ -7516,6 +7536,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
         private int decodeV5(
             long traceId,
+            long authorization,
             MqttServer server,
             String16FW topicName,
             MqttPropertiesFW properties,
@@ -7619,7 +7640,8 @@ public final class MqttServerFactory implements MqttStreamFactory
                             MqttModel.decoder(config != null ? supplyModel.apply(config) : null, modelBuffer);
                         if (model.active())
                         {
-                            final int produced = model.transform(traceId, server.routedId, userPropertyValue.buffer(),
+                            final int produced = model.transform(traceId, server.routedId, authorization,
+                                userPropertyValue.buffer(),
                                 userPropertyValue.offset() + BitUtil.SIZE_OF_SHORT, userPropertyValue.limit());
                             if (produced < 0)
                             {

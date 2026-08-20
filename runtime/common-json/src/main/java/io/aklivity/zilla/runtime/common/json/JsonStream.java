@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.common.json;
 
+import java.util.Map;
+
 /**
  * A description of a {@code common-json} pipeline — a driver bound by {@link JsonEx#stream(JsonParserEx)} plus
  * an ordered list of {@link JsonTransform} stages. Append stages with {@link #transform(JsonTransform)}
@@ -21,7 +23,7 @@ package io.aklivity.zilla.runtime.common.json;
  * {@link #reporting(JsonReporter)}; terminate with {@link #into(JsonSink)} to obtain the runnable,
  * resumable {@link JsonPipeline}. A {@code JsonStream} carries no state and is not itself runnable.
  */
-public interface JsonStream
+public interface JsonStream extends JsonTransformable<JsonStream>
 {
     JsonStream transform(
         JsonTransform transform);
@@ -44,6 +46,15 @@ public interface JsonStream
     JsonStream reporting(
         JsonReporter reporter);
 
+    /**
+     * Binds the pipeline to the {@link JsonEnvelope} its stages read and write named metadata through,
+     * reachable from any stage via {@link JsonController#envelope()}. The last bound envelope wins; the
+     * default is {@link JsonEnvelope#NONE}, which reads as empty and discards writes, so a pipeline
+     * assembled without one costs a stage that never asks for it nothing.
+     */
+    JsonStream envelope(
+        JsonEnvelope envelope);
+
     JsonPipeline into(
         JsonSink sink);
 
@@ -56,4 +67,17 @@ public interface JsonStream
      */
     JsonPipeline into(
         JsonGeneratorEx generator);
+
+    /**
+     * Variant of {@link #into(JsonGeneratorEx)} taking sink config (e.g. {@link JsonSink#DELIVERY}) —
+     * the generator-owning, re-targeted terminal a repeatedly-invoked pipeline (a model's decode pipeline,
+     * called once per incoming record) needs, with the same {@link JsonSink.Delivery#STRUCTURED} opt-out
+     * {@link JsonEx#createSink(JsonGeneratorEx, Map)} already exposes on the single-shot
+     * {@link #into(JsonSink)} terminal. A stage that substitutes values (redacting a field, say) needs this:
+     * byte-preserving delivery splices a value's original source bytes, which a substituted value has none
+     * of.
+     */
+    JsonPipeline into(
+        JsonGeneratorEx generator,
+        Map<String, ?> config);
 }

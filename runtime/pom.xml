@@ -58,6 +58,7 @@
     <module>common-lang</module>
     <module>common-openapi</module>
     <module>common-protobuf</module>
+    <module>common-x509</module>
     <module>common-yaml</module>
     <module>command</module>
     <module>command-logs</module>
@@ -71,6 +72,7 @@
     <module>filesystem-http</module>
     <module>guard-inline</module>
     <module>guard-jwt</module>
+    <module>guard-x509</module>
     <module>metrics-grpc</module>
     <module>metrics-http</module>
     <module>metrics-mcp</module>
@@ -249,6 +251,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>guard-jwt.conf</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>guard-x509.conf</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
@@ -488,6 +495,11 @@
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
+        <artifactId>common-x509</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
         <artifactId>common-yaml</artifactId>
         <version>${project.version}</version>
       </dependency>
@@ -549,6 +561,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>guard-jwt</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>guard-x509</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

@@ -65,6 +65,7 @@ public class JwtGuardHandler implements GuardHandler
     private final Long2ObjectHashMap<JwtSessionStore> sessionStoresByContextId;
     private final JwtEventContext event;
     private final Map<String, String> attributes;
+    private final Consumer<Runnable> dispatcher;
 
     public JwtGuardHandler(
         JwtOptionsConfig options,
@@ -119,6 +120,7 @@ public class JwtGuardHandler implements GuardHandler
         this.sessionStoresByContextId = new Long2ObjectHashMap<>();
         this.event = new JwtEventContext(context);
         this.attributes = options.attributes;
+        this.dispatcher = context::dispatch;
     }
 
     @Override
@@ -229,6 +231,36 @@ public class JwtGuardHandler implements GuardHandler
             event.authorizationFailed(traceId, bindingId, identity, reason);
         }
         return session != null ? session.authorized : NOT_AUTHORIZED;
+    }
+
+    // a JWT is self-contained, so the decision above is always available locally; delivery is
+    // still deferred a tick because the async contract promises the caller a later callback
+    @Override
+    public void reauthorize(
+        long traceId,
+        long bindingId,
+        long contextId,
+        String credentials,
+        LongCompletionCallback completion)
+    {
+        dispatcher.accept(() -> complete(traceId, bindingId, contextId, credentials, completion));
+    }
+
+    private void complete(
+        long traceId,
+        long bindingId,
+        long contextId,
+        String credentials,
+        LongCompletionCallback completion)
+    {
+        try
+        {
+            completion.completed(contextId, reauthorize(traceId, bindingId, contextId, credentials));
+        }
+        catch (Throwable ex)
+        {
+            completion.failed(contextId, ex);
+        }
     }
 
     @Override

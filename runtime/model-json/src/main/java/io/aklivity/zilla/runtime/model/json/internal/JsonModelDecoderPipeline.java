@@ -21,30 +21,34 @@ import org.agrona.collections.Int2ObjectCache;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonDiagnostic;
+import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 import io.aklivity.zilla.runtime.common.json.JsonPipelineResult;
+import io.aklivity.zilla.runtime.engine.model.ModelFieldBridge;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
-import io.aklivity.zilla.runtime.engine.model.ModelVisitor;
+import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 
 // Per-stream read transform session vended by JsonModelHandlerImpl: owns its own generator, extractor and
 // schema-keyed pipeline cache so concurrent streams on a worker never share in-flight state. transform
 // strips the catalog framing on the first fragment, drives the common-json transform into the caller's
-// destination, and surfaces extracted fields to the ModelVisitor when a value completes.
+// destination, and surfaces extracted fields to the wired ModelTransform when a value completes. Delivery
+// is observation-only, through ModelFieldBridge, until model-json grows a native ModelTransform adapter.
 final class JsonModelDecoderPipeline implements ModelPipeline
 {
     private static final int FLAGS_INIT = 0x02;
     private static final int FLAGS_FIN = 0x01;
 
     private final JsonModelHandlerImpl handler;
-    private final ModelVisitor visitor;
+    private final ModelFieldBridge bridge;
     private final JsonGeneratorEx generator;
     private final JsonExtractor extractor;
     private final Int2ObjectCache<JsonPipeline> pipelines;
+    private final JsonEnvelope envelope;
     private final ModelPipelineResult result;
 
     private JsonPipeline active;
@@ -56,13 +60,15 @@ final class JsonModelDecoderPipeline implements ModelPipeline
 
     JsonModelDecoderPipeline(
         JsonModelHandlerImpl handler,
-        ModelVisitor visitor)
+        JsonEnvelope envelope,
+        ModelTransform transform)
     {
+        this.envelope = envelope;
         this.handler = handler;
-        this.visitor = visitor;
+        this.bridge = transform != ModelTransform.NONE ? new ModelFieldBridge(transform) : null;
         this.generator = JsonEx.createGenerator();
-        // a NONE visitor keeps the verbatim/SEGMENTED fast path: no extractor stage, no structured field events
-        this.extractor = visitor != ModelVisitor.NONE ? new JsonExtractor() : null;
+        // a NONE transform keeps the verbatim/SEGMENTED fast path: no extractor stage, no structured field events
+        this.extractor = transform != ModelTransform.NONE ? new JsonExtractor() : null;
         this.pipelines = new Int2ObjectCache<>(1, 16, p -> {});
         this.result = new ModelPipelineResult();
     }
@@ -71,6 +77,7 @@ final class JsonModelDecoderPipeline implements ModelPipeline
     public ModelPipelineResult transform(
         long traceId,
         long bindingId,
+        long authorization,
         int flags,
         DirectBufferEx src,
         int srcIndex,
@@ -89,7 +96,7 @@ final class JsonModelDecoderPipeline implements ModelPipeline
             // the catalog framing sits at the value start; strip it once on the first fragment and select
             // the schema-bound pipeline, then later fragments stream straight through
             int schemaId = handler.resolveSchemaId(src, srcIndex, srcLength);
-            prefix = handler.decodePadding(src, srcIndex, srcLength);
+            prefix = handler.prefix(src, srcIndex, srcLength);
             active = schemaId != NO_SCHEMA_ID ? supplyPipeline(schemaId) : null;
             if (active != null)
             {
@@ -122,7 +129,7 @@ final class JsonModelDecoderPipeline implements ModelPipeline
             // under LENIENT the value still completes (original bytes passed through) and the event still fired
             if (status == ModelStatus.COMPLETE && extractor != null)
             {
-                visitExtracted();
+                visitExtracted(authorization);
             }
         }
         return result.set(status, consumed, produced);
@@ -154,20 +161,22 @@ final class JsonModelDecoderPipeline implements ModelPipeline
         diagnostic = null;
     }
 
-    private void visitExtracted()
+    private void visitExtracted(
+        long authorization)
     {
+        bridge.start(authorization);
         for (int i = 0; i < extractor.captured(); i++)
         {
-            visitor.onField("$." + extractor.name(i), extractor.value(i), 0, extractor.length(i));
+            bridge.field(extractor.path(i), extractor.value(i), 0, extractor.length(i));
         }
+        bridge.end();
     }
 
     private JsonPipeline supplyPipeline(
         int schemaId)
     {
-        return pipelines.computeIfAbsent(schemaId, id -> extractor != null
-            ? handler.newPipeline(id, handler.decodeLenient, generator, extractor, this::onRejected)
-            : handler.newPipeline(id, handler.decodeLenient, generator, this::onRejected));
+        return pipelines.computeIfAbsent(schemaId,
+            id -> handler.newPipeline(id, handler.decodeLenient, generator, extractor, this::onRejected, envelope));
     }
 
     private void onRejected(

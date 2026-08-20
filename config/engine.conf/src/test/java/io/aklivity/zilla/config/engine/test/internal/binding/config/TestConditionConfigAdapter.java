@@ -17,11 +17,11 @@ package io.aklivity.zilla.config.engine.test.internal.binding.config;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.engine.ConditionConfig;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 
-public final class TestConditionConfigAdapter implements JsonbAdapter<ConditionConfig, JsonObject>
+public final class TestConditionConfigAdapter extends ConfigAdapter<ConditionConfig, JsonObject>
 {
     private static final String MATCH_NAME = "match";
 

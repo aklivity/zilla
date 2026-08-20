@@ -18,7 +18,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 
-public final class HttpKafkaWithProduceConfig
+import io.aklivity.zilla.config.engine.Config;
+
+public final class HttpKafkaWithProduceConfig extends Config
 {
     public final String topic;
     public final String acks;

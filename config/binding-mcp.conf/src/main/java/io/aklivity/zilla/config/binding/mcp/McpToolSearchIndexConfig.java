@@ -14,7 +14,9 @@
  */
 package io.aklivity.zilla.config.binding.mcp;
 
-public abstract class McpToolSearchIndexConfig
+import io.aklivity.zilla.config.engine.Config;
+
+public abstract class McpToolSearchIndexConfig extends Config
 {
     public final String type;
 

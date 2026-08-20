@@ -17,7 +17,9 @@ package io.aklivity.zilla.config.binding.mqtt;
 import java.util.List;
 import java.util.function.Function;
 
-public final class MqttCredentialsConfig
+import io.aklivity.zilla.config.engine.Config;
+
+public final class MqttCredentialsConfig extends Config
 {
     public final List<MqttPatternConfig> connect;
 

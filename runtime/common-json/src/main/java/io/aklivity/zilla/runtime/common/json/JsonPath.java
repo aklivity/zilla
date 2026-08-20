@@ -20,6 +20,7 @@ import java.util.function.BiConsumer;
 
 import jakarta.json.JsonArray;
 import jakarta.json.JsonObject;
+import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
 
 /**
@@ -29,9 +30,11 @@ import jakarta.json.JsonValue;
  * Only the subset of JSONPath needed to express OpenAPI Overlay Specification targets is
  * supported: the root selector ({@code $}), dot and bracket member selectors (including
  * single- or double-quoted bracket names for keys containing reserved characters), integer
- * array indices (including negative indices counted from the end), and the wildcard selector
- * ({@code .*} or {@code [*]}) over object values or array elements. Descendant segments,
- * filter expressions, slices and unions are not supported.
+ * array indices (including negative indices counted from the end), the wildcard selector
+ * ({@code .*} or {@code [*]}) over object values or array elements, and an equality-only filter
+ * expression ({@code [?(@.name=='value')]}) selecting array elements whose named property is a
+ * string equal to the quoted literal. Descendant segments, comparisons other than equality, and
+ * slices and unions are not supported.
  */
 public final class JsonPath
 {
@@ -186,6 +189,48 @@ public final class JsonPath
         }
     }
 
+    private static final class FilterSegment implements Segment
+    {
+        private final String name;
+        private final String value;
+
+        private FilterSegment(
+            String name,
+            String value)
+        {
+            this.name = name;
+            this.value = value;
+        }
+
+        @Override
+        public void match(
+            JsonValue node,
+            BiConsumer<String, JsonValue> emit)
+        {
+            if (node.getValueType() == JsonValue.ValueType.ARRAY)
+            {
+                JsonArray array = node.asJsonArray();
+                for (int i = 0; i < array.size(); i++)
+                {
+                    JsonValue element = array.get(i);
+                    if (element.getValueType() == JsonValue.ValueType.OBJECT && matches(element.asJsonObject()))
+                    {
+                        emit.accept(String.valueOf(i), element);
+                    }
+                }
+            }
+        }
+
+        private boolean matches(
+            JsonObject object)
+        {
+            JsonValue candidate = object.get(name);
+            return candidate != null &&
+                candidate.getValueType() == JsonValue.ValueType.STRING &&
+                ((JsonString) candidate).getString().equals(value);
+        }
+    }
+
     private static final class Parser
     {
         private final String expression;
@@ -236,16 +281,7 @@ public final class JsonPath
             }
             else
             {
-                int start = position;
-                while (position < expression.length() && isNameChar(expression.charAt(position)))
-                {
-                    position++;
-                }
-                if (position == start)
-                {
-                    throw new IllegalArgumentException("Expected property name at " + position + " in: " + expression);
-                }
-                segment = new NameSegment(expression.substring(start, position));
+                segment = new NameSegment(parseName());
             }
             return segment;
         }
@@ -269,6 +305,10 @@ public final class JsonPath
                 position++;
                 segment = new WildcardSegment();
             }
+            else if (c == '?')
+            {
+                segment = parseFilterSegment();
+            }
             else
             {
                 segment = new IndexSegment(parseIndex());
@@ -281,6 +321,48 @@ public final class JsonPath
             position++;
 
             return segment;
+        }
+
+        private Segment parseFilterSegment()
+        {
+            expect('?');
+            expect('(');
+            expect('@');
+            expect('.');
+            String name = parseName();
+            expect('=');
+            expect('=');
+            if (position >= expression.length() || expression.charAt(position) != '\'' && expression.charAt(position) != '"')
+            {
+                throw new IllegalArgumentException("Expected quoted filter value at " + position + " in: " + expression);
+            }
+            String value = parseQuotedName(expression.charAt(position));
+            expect(')');
+            return new FilterSegment(name, value);
+        }
+
+        private String parseName()
+        {
+            int start = position;
+            while (position < expression.length() && isNameChar(expression.charAt(position)))
+            {
+                position++;
+            }
+            if (position == start)
+            {
+                throw new IllegalArgumentException("Expected property name at " + position + " in: " + expression);
+            }
+            return expression.substring(start, position);
+        }
+
+        private void expect(
+            char expected)
+        {
+            if (position >= expression.length() || expression.charAt(position) != expected)
+            {
+                throw new IllegalArgumentException("Expected '" + expected + "' at " + position + " in: " + expression);
+            }
+            position++;
         }
 
         private String parseQuotedName(

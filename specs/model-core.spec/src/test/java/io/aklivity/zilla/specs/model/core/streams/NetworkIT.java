@@ -195,4 +195,64 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/client.sent.bytes/client",
+        "${net}/client.sent.bytes/server"
+    })
+    public void shouldForwardBytes() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/client.received.bytes.ext.uppercase/client",
+        "${net}/client.received.bytes.ext.uppercase/server"
+    })
+    public void shouldReceiveUppercasedBytes() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/client.received.bytes.ext.uppercase.100k/client",
+        "${net}/client.received.bytes.ext.uppercase.100k/server"
+    })
+    public void shouldReceiveUppercasedLargeBytesField() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/client.received.bytes.ext.withhold/client",
+        "${net}/client.received.bytes.ext.withhold/server"
+    })
+    public void shouldReceiveAbortForWithheldBytes() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/client.received.bytes.ext.reject/client",
+        "${net}/client.received.bytes.ext.reject/server"
+    })
+    public void shouldReceiveAbortForRejectedBytes() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/client.sent.bytes.ext.uppercase/client",
+        "${net}/client.sent.bytes.ext.uppercase/server"
+    })
+    public void shouldSendMarkedBytes() throws Exception
+    {
+        k3po.finish();
+    }
 }

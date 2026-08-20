@@ -25,15 +25,15 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.binding.http.HttpParamConfig;
 import io.aklivity.zilla.config.binding.http.HttpRequestConfig;
 import io.aklivity.zilla.config.binding.http.HttpResponseConfig;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.ModelConfig;
 import io.aklivity.zilla.config.engine.ModelConfigAdapter;
 
-public class HttpRequestConfigAdapter implements JsonbAdapter<HttpRequestConfig, JsonObject>
+public class HttpRequestConfigAdapter extends ConfigAdapter<HttpRequestConfig, JsonObject>
 {
     private static final String PATH_NAME = "path";
     private static final String METHOD_NAME = "method";

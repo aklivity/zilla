@@ -22,17 +22,17 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.binding.asyncapi.AsyncapiCatalogConfig;
+import io.aklivity.zilla.config.binding.asyncapi.AsyncapiCatalogConfigBuilder;
 import io.aklivity.zilla.config.binding.asyncapi.AsyncapiOptionsConfig;
 import io.aklivity.zilla.config.binding.asyncapi.AsyncapiOptionsConfigBuilder;
+import io.aklivity.zilla.config.binding.asyncapi.AsyncapiSpecificationConfig;
+import io.aklivity.zilla.config.binding.asyncapi.AsyncapiSpecificationConfigBuilder;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfig;
-import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiCatalogConfig;
-import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiCatalogConfigBuilder;
-import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfig;
-import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfigBuilder;
 
-public final class AsyncapiOptionsConfigAdapter implements JsonbAdapter<OptionsConfig, JsonObject>
+public final class AsyncapiOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, JsonObject>
 {
     private static final String SPECS_NAME = "specs";
     private static final String SERVERS_NAME = "servers";
@@ -76,23 +76,14 @@ public final class AsyncapiOptionsConfigAdapter implements JsonbAdapter<OptionsC
                         schemaObject.add(VERSION_NAME, catalog.version);
                     }
 
+                    if (catalog.overlay != null)
+                    {
+                        schemaObject.add(OVERLAY_NAME, overlayObject(catalog.overlay));
+                    }
+
                     subjectObject.add(catalog.name, schemaObject);
                 }
                 catalogObject.add(CATALOG_NAME, subjectObject);
-
-                if (asyncapiConfig.overlay != null)
-                {
-                    final JsonObjectBuilder overlaySchema = Json.createObjectBuilder();
-                    overlaySchema.add(SUBJECT_NAME, asyncapiConfig.overlay.subject);
-                    if (asyncapiConfig.overlay.version != null)
-                    {
-                        overlaySchema.add(VERSION_NAME, asyncapiConfig.overlay.version);
-                    }
-
-                    final JsonObjectBuilder overlaySubject = Json.createObjectBuilder();
-                    overlaySubject.add(asyncapiConfig.overlay.name, overlaySchema);
-                    catalogObject.add(OVERLAY_NAME, overlaySubject);
-                }
 
                 if (asyncapiConfig.security != null && !asyncapiConfig.security.isEmpty())
                 {
@@ -141,17 +132,23 @@ public final class AsyncapiOptionsConfigAdapter implements JsonbAdapter<OptionsC
                     }
                 }
 
+                AsyncapiCatalogConfig deprecatedOverlay = null;
+                if (spec.containsKey(OVERLAY_NAME))
+                {
+                    deprecatedOverlay = asOverlay(spec.getJsonObject(OVERLAY_NAME));
+                }
+
                 if (spec.containsKey(CATALOG_NAME))
                 {
                     final JsonObject catalogs = spec.getJsonObject(CATALOG_NAME);
 
                     for (Map.Entry<String, JsonValue> catalogEntry : catalogs.entrySet())
                     {
-                        final AsyncapiCatalogConfigBuilder<?> catalogBuilder = specBuilder.catalog();
-
                         final String catalogName = catalogEntry.getKey();
-                        JsonObject catalogObject = catalogEntry.getValue().asJsonObject();
+                        final JsonObject catalogObject = catalogEntry.getValue().asJsonObject();
 
+                        final AsyncapiCatalogConfigBuilder<AsyncapiCatalogConfig> catalogBuilder =
+                            AsyncapiCatalogConfig.builder();
                         catalogBuilder.name(catalogName);
 
                         if (catalogObject.containsKey(SUBJECT_NAME))
@@ -164,7 +161,16 @@ public final class AsyncapiOptionsConfigAdapter implements JsonbAdapter<OptionsC
                             catalogBuilder.version(catalogObject.getString(VERSION_NAME));
                         }
 
-                        catalogBuilder.build();
+                        final AsyncapiCatalogConfig catalogOverlay = catalogObject.containsKey(OVERLAY_NAME)
+                            ? asOverlay(catalogObject.getJsonObject(OVERLAY_NAME))
+                            : deprecatedOverlay;
+
+                        if (catalogOverlay != null)
+                        {
+                            catalogBuilder.overlay(catalogOverlay);
+                        }
+
+                        specBuilder.catalog(catalogBuilder.build());
                     }
                 }
 
@@ -182,32 +188,47 @@ public final class AsyncapiOptionsConfigAdapter implements JsonbAdapter<OptionsC
                     specBuilder.store(spec.getString(STORE_NAME));
                 }
 
-                if (spec.containsKey(OVERLAY_NAME))
-                {
-                    final JsonObject overlayObject = spec.getJsonObject(OVERLAY_NAME);
-                    final Map.Entry<String, JsonValue> overlayEntry = overlayObject.entrySet().iterator().next();
-                    final JsonObject overlaySchemaObject = overlayEntry.getValue().asJsonObject();
-
-                    final AsyncapiCatalogConfigBuilder<?> overlayBuilder = specBuilder.overlay();
-                    overlayBuilder.name(overlayEntry.getKey());
-
-                    if (overlaySchemaObject.containsKey(SUBJECT_NAME))
-                    {
-                        overlayBuilder.subject(overlaySchemaObject.getString(SUBJECT_NAME));
-                    }
-
-                    if (overlaySchemaObject.containsKey(VERSION_NAME))
-                    {
-                        overlayBuilder.version(overlaySchemaObject.getString(VERSION_NAME));
-                    }
-
-                    overlayBuilder.build();
-                }
-
                 specBuilder.build();
             }
         }
 
         return builder.build();
+    }
+
+    private static AsyncapiCatalogConfig asOverlay(
+        JsonObject overlayObject)
+    {
+        final Map.Entry<String, JsonValue> overlayEntry = overlayObject.entrySet().iterator().next();
+        final JsonObject overlaySchemaObject = overlayEntry.getValue().asJsonObject();
+
+        final AsyncapiCatalogConfigBuilder<AsyncapiCatalogConfig> overlayBuilder = AsyncapiCatalogConfig.builder()
+            .name(overlayEntry.getKey());
+
+        if (overlaySchemaObject.containsKey(SUBJECT_NAME))
+        {
+            overlayBuilder.subject(overlaySchemaObject.getString(SUBJECT_NAME));
+        }
+
+        if (overlaySchemaObject.containsKey(VERSION_NAME))
+        {
+            overlayBuilder.version(overlaySchemaObject.getString(VERSION_NAME));
+        }
+
+        return overlayBuilder.build();
+    }
+
+    private static JsonObjectBuilder overlayObject(
+        AsyncapiCatalogConfig overlay)
+    {
+        final JsonObjectBuilder overlaySchema = Json.createObjectBuilder();
+        overlaySchema.add(SUBJECT_NAME, overlay.subject);
+        if (overlay.version != null)
+        {
+            overlaySchema.add(VERSION_NAME, overlay.version);
+        }
+
+        final JsonObjectBuilder overlaySubject = Json.createObjectBuilder();
+        overlaySubject.add(overlay.name, overlaySchema);
+        return overlaySubject;
     }
 }

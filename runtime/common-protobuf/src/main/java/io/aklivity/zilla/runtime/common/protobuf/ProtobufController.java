@@ -27,6 +27,31 @@ public interface ProtobufController
     void segmentable();
 
     /**
+     * Returns the authorization in effect for the message currently being transformed.
+     * <p>
+     * A mediating stage may override this to scope the authorization further for a nested composition; a
+     * non-mediating stage passes its own through, so this reflects the authorization the pipeline received
+     * for the current message unless some stage along the way has narrowed it.
+     * </p>
+     *
+     * @return the authorization in effect for the current message
+     */
+    long authorization();
+
+    /**
+     * Returns the metadata travelling alongside the value being transformed, addressed by name rather than
+     * by position within the value. The default is {@link ProtobufEnvelope#NONE}, in force when no envelope
+     * was supplied to the pipeline, so a stage reads an empty envelope rather than no envelope at all. A
+     * mediating stage may supply its own to its downstream.
+     *
+     * @return the envelope in force for this pipeline
+     */
+    default ProtobufEnvelope envelope()
+    {
+        return ProtobufEnvelope.NONE;
+    }
+
+    /**
      * Reports {@code sourceBytes} source bytes consumed by a verbatim segment write so the upstream advances
      * past them and re-exposes the value's remainder from {@link ProtobufSource#segment()} on resume — the
      * pushback that lets a bounded sink stream a length-delimited value without tracking its own write cursor.

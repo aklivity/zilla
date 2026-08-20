@@ -132,6 +132,7 @@ public final class TlsClientFactory implements TlsStreamFactory
     private final LongUnaryOperator supplyReplyId;
     private final int initialPadAdjust;
     private final Long2ObjectHashMap<TlsBindingConfig> bindings;
+    private final EngineContext context;
     private final TlsEventContext event;
 
     private final int decodeMax;
@@ -172,6 +173,7 @@ public final class TlsClientFactory implements TlsStreamFactory
         this.initialPadAdjust = Math.max(context.bufferPool().slotCapacity() >> 14, 1) * MAXIMUM_HEADER_SIZE;
 
         this.bindings = new Long2ObjectHashMap<>();
+        this.context = context;
         this.event = new TlsEventContext(context);
         this.inNetByteBuffer = ByteBuffer.allocate(writeBuffer.capacity());
         this.inNetBuffer = new UnsafeBufferEx(inNetByteBuffer);
@@ -201,7 +203,7 @@ public final class TlsClientFactory implements TlsStreamFactory
     public void attach(
         BindingConfig binding)
     {
-        TlsBindingConfig tlsBinding = new TlsBindingConfig(binding);
+        TlsBindingConfig tlsBinding = new TlsBindingConfig(context, binding);
         assert tlsBinding.options != null;
 
         VaultHandler vault = supplyVault.apply(tlsBinding.vaultId);
@@ -242,7 +244,7 @@ public final class TlsClientFactory implements TlsStreamFactory
         TlsRouteConfig route = binding != null ? binding.resolve(authorization, beginEx) : null;
         if (route != null)
         {
-            final SSLEngine tlsEngine = binding.newClientEngine(beginEx);
+            final SSLEngine tlsEngine = binding.newClientEngine(begin.traceId(), authorization, route, beginEx);
 
             if (tlsEngine != null)
             {

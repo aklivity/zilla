@@ -25,6 +25,7 @@ import org.junit.rules.Timeout;
 
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
+import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 
@@ -40,6 +41,7 @@ public class JsonModelIT
         .directory("target/zilla-itests")
         .countersBufferCapacity(4096)
         .configurationRoot("io/aklivity/zilla/specs/model/json/config")
+        .configure(EngineConfiguration.ENGINE_BUFFER_SLOT_CAPACITY, 65_536)
         .external("app0")
         .clean();
 
@@ -141,6 +143,83 @@ public class JsonModelIT
         "${app}/client.sent.json.strict.missing.required.fragmented/server"
     })
     public void shouldRejectJsonStrictMissingRequiredFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("value.overlay.yaml")
+    @Specification({
+        "${net}/client.sent.json.overlay.required/client",
+        "${app}/client.sent.json.overlay.required/server"
+    })
+    public void shouldRejectJsonMissingOverlayRequiredProperty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("json.ext.yaml")
+    @Specification({
+        "${net}/client.received.json.ext.uppercase/client",
+        "${app}/client.received.json.ext.uppercase/server"
+    })
+    public void shouldApplyExtensionOnDecode() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("json.ext.yaml")
+    @Specification({
+        "${net}/client.received.json.ext.uppercase.100k/client",
+        "${app}/client.received.json.ext.uppercase.100k/server"
+    })
+    public void shouldDrainExtensionOverflowOnDecodeAcrossMultipleFrames() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("json.ext.yaml")
+    @Specification({
+        "${net}/client.received.json.ext.reject/client",
+        "${app}/client.received.json.ext.reject/server"
+    })
+    public void shouldAbortWhenExtensionSignalsRejectOnDecode() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("json.ext.yaml")
+    @Specification({
+        "${net}/client.sent.json.ext.uppercase/client",
+        "${app}/client.sent.json.ext.uppercase/server"
+    })
+    public void shouldApplyExtensionOnEncode() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("json.ext.yaml")
+    @Specification({
+        "${net}/client.sent.json.ext.uppercase.100k/client",
+        "${app}/client.sent.json.ext.uppercase.100k/server"
+    })
+    public void shouldDrainExtensionOverflowOnEncodeAcrossMultipleFrames() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("json.ext.yaml")
+    @Specification({
+        "${net}/client.sent.json.ext.reject/client",
+        "${app}/client.sent.json.ext.reject/server"
+    })
+    public void shouldAbortWhenExtensionSignalsRejectOnEncode() throws Exception
     {
         k3po.finish();
     }

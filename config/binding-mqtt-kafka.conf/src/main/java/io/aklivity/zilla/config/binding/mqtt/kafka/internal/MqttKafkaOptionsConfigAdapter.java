@@ -22,15 +22,15 @@ import jakarta.json.JsonArray;
 import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.binding.mqtt.kafka.MqttKafkaOptionsConfig;
 import io.aklivity.zilla.config.binding.mqtt.kafka.MqttKafkaOptionsConfigBuilder;
 import io.aklivity.zilla.config.binding.mqtt.kafka.MqttKafkaPublishConfig;
 import io.aklivity.zilla.config.binding.mqtt.kafka.MqttKafkaTopicsConfig;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
-public class MqttKafkaOptionsConfigAdapter implements JsonbAdapter<OptionsConfig, JsonObject>
+public class MqttKafkaOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, JsonObject>
 {
     private static final String TOPICS_NAME = "topics";
     private static final String CLIENTS_NAME = "clients";

@@ -17,15 +17,15 @@ package io.aklivity.zilla.config.catalog.inline.internal;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.catalog.inline.InlineOptionsConfig;
 import io.aklivity.zilla.config.catalog.inline.InlineOptionsConfigBuilder;
 import io.aklivity.zilla.config.catalog.inline.InlineSchemaConfig;
 import io.aklivity.zilla.config.catalog.inline.InlineSchemaConfigBuilder;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
-public class InlineOptionsConfigAdapter implements JsonbAdapter<OptionsConfig, JsonObject>
+public class InlineOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, JsonObject>
 {
     private static final String SUBJECTS_NAME = "subjects";
     private static final String VERSION_NAME = "version";

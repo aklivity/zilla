@@ -17,12 +17,12 @@ package io.aklivity.zilla.config.binding.proxy.internal;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.binding.proxy.ProxyOptionsConfig;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
-public final class ProxyOptionsConfigAdapter implements JsonbAdapter<OptionsConfig, JsonObject>
+public final class ProxyOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, JsonObject>
 {
     @Override
     public JsonObject adaptToJson(

@@ -42,6 +42,7 @@ import io.aklivity.zilla.config.engine.GenericBindingConfig;
 import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.runtime.binding.tls.internal.TlsConfiguration;
 import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
 
 public class TlsBindingConfigTest
@@ -61,7 +62,7 @@ public class TlsBindingConfigTest
             .options(options)
             .build();
 
-        return new TlsBindingConfig(binding);
+        return new TlsBindingConfig(mock(EngineContext.class), binding);
     }
 
     private static TrustManagerFactory mockTrust()
@@ -82,7 +83,7 @@ public class TlsBindingConfigTest
 
         binding.init(config, null, vault, random);
 
-        SSLEngine engine = binding.newServerEngine(0L, 0);
+        SSLEngine engine = binding.newServerEngine(0);
         assertThat(engine.getNeedClientAuth(), equalTo(true));
         assertThat(engine.getWantClientAuth(), equalTo(false));
     }
@@ -98,7 +99,7 @@ public class TlsBindingConfigTest
 
         binding.init(config, null, vault, random);
 
-        SSLEngine engine = binding.newServerEngine(0L, 0);
+        SSLEngine engine = binding.newServerEngine(0);
         assertThat(engine.getNeedClientAuth(), equalTo(true));
         assertThat(engine.getWantClientAuth(), equalTo(false));
     }
@@ -113,7 +114,7 @@ public class TlsBindingConfigTest
 
         binding.init(config, null, vault, random);
 
-        SSLEngine engine = binding.newServerEngine(0L, 0);
+        SSLEngine engine = binding.newServerEngine(0);
         assertThat(engine.getNeedClientAuth(), equalTo(false));
         assertThat(engine.getWantClientAuth(), equalTo(false));
     }
@@ -132,7 +133,7 @@ public class TlsBindingConfigTest
 
         binding.init(config, null, vault, random);
 
-        SSLEngine engine = binding.newServerEngine(0L, 0);
+        SSLEngine engine = binding.newServerEngine(0);
         assertThat(engine.getNeedClientAuth(), equalTo(false));
         assertThat(engine.getWantClientAuth(), equalTo(false));
     }
@@ -177,7 +178,7 @@ public class TlsBindingConfigTest
 
         binding.init(config, null, vault, random);
 
-        SSLEngine engine = binding.newServerEngine(0L, 0);
+        SSLEngine engine = binding.newServerEngine(0);
         assertThat(engine.getNeedClientAuth(), equalTo(true));
     }
 
@@ -193,7 +194,7 @@ public class TlsBindingConfigTest
 
         binding.init(config, null, vault, random);
 
-        SSLEngine engine = binding.newServerEngine(0L, 0);
+        SSLEngine engine = binding.newServerEngine(0);
         assertThat(engine.getNeedClientAuth(), equalTo(true));
     }
 

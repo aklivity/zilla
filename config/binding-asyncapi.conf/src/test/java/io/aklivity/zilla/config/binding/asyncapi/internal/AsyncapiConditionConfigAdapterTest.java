@@ -14,12 +14,15 @@
  */
 package io.aklivity.zilla.config.binding.asyncapi.internal;
 
+import static java.util.stream.Collectors.toMap;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
+import java.net.URI;
 import java.util.List;
+import java.util.Map;
 
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
@@ -181,9 +184,9 @@ public class AsyncapiConditionConfigAdapterTest
     @Test
     public void shouldMatchServerByName() throws Exception
     {
-        List<AsyncapiServerView> prodOnly = serverViews().stream()
+        Map<String, URI> prodOnly = toServerMap(serverViews().stream()
             .filter(s -> "prod".equals(s.name))
-            .toList();
+            .toList());
 
         AsyncapiConditionConfig condition = AsyncapiConditionConfig.builder()
             .spec("test")
@@ -207,9 +210,9 @@ public class AsyncapiConditionConfigAdapterTest
     @Test
     public void shouldMatchServerByUrl() throws Exception
     {
-        List<AsyncapiServerView> prodOnly = serverViews().stream()
+        Map<String, URI> prodOnly = toServerMap(serverViews().stream()
             .filter(s -> "prod".equals(s.name))
-            .toList();
+            .toList());
 
         AsyncapiConditionConfig condition = AsyncapiConditionConfig.builder()
             .spec("test")
@@ -245,7 +248,7 @@ public class AsyncapiConditionConfigAdapterTest
             channels: {}
             """);
 
-        List<AsyncapiServerView> servers = AsyncapiView.of(model).servers;
+        Map<String, URI> servers = toServerMap(AsyncapiView.of(model).servers);
 
         AsyncapiConditionConfig condition = AsyncapiConditionConfig.builder()
             .spec("test")
@@ -273,8 +276,14 @@ public class AsyncapiConditionConfigAdapterTest
             .spec("test")
             .build();
 
-        assertThat(condition.matches("test", "listPets", null, serverViews()), equalTo(true));
+        assertThat(condition.matches("test", "listPets", null, toServerMap(serverViews())), equalTo(true));
         assertThat(condition.matches("test", "listPets", null, null), equalTo(true));
+    }
+
+    private static Map<String, URI> toServerMap(
+        List<AsyncapiServerView> servers)
+    {
+        return servers.stream().collect(toMap(s -> s.name, s -> s.url, (a, b) -> a));
     }
 
     private static List<AsyncapiServerView> serverViews() throws Exception

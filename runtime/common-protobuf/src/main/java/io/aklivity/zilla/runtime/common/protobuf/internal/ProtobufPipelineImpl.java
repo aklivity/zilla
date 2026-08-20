@@ -20,6 +20,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufController;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufDiagnostic;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufEnvelope;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufEvent;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufException;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufField;
@@ -48,6 +49,7 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
     private final ProtobufParser parser;
     private final Source source;
     private final Control control;
+    private final ProtobufEnvelope envelope;
     private final ProtobufSink head;
     private final ProtobufReporter reporter;
     private final Diagnostic diagnostic;
@@ -67,7 +69,8 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
         ProtobufSink sink,
         ProtobufReporter reporter,
         ProtobufGenerator generator,
-        boolean lenient)
+        boolean lenient,
+        ProtobufEnvelope envelope)
     {
         this.parser = parser;
         this.reporter = reporter;
@@ -79,6 +82,7 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
         // that records a stage's segment request which the pump turns into the SEGMENTED mode on the next pull
         this.source = new Source(parser);
         this.control = new Control();
+        this.envelope = envelope;
 
         ProtobufSink chain = sink;
         for (int i = transforms.size() - 1; i >= 0; i--)
@@ -102,6 +106,13 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
     public boolean identity()
     {
         return parser.identity() && head.identity();
+    }
+
+    @Override
+    public void authorization(
+        long authorization)
+    {
+        control.authorization = authorization;
     }
 
     @Override
@@ -330,6 +341,19 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
     private final class Control implements ProtobufController
     {
         private boolean segmented;
+        private long authorization;
+
+        @Override
+        public long authorization()
+        {
+            return authorization;
+        }
+
+        @Override
+        public ProtobufEnvelope envelope()
+        {
+            return envelope;
+        }
 
         @Override
         public void segmentable()

@@ -291,6 +291,26 @@ public class ServerIT
     }
 
     @Test
+    @Configuration("server.mutual.guarded.yaml")
+    @Specification({
+        "${net}/server.mutual.auth/client",
+        "${app}/server.mutual.auth.guarded/server"})
+    public void shouldAuthorizeGuardedRouteWithClientCertChain() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.mutual.guarded.requested.yaml")
+    @Specification({
+        "${net}/server.mutual.cert.absent/client",
+        "${app}/server.mutual.guarded.unauthorized/server"})
+    public void shouldNotAuthorizeGuardedRouteWhenClientCertAbsent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("server.mutual.requested.yaml")
     @Specification({
         "${net}/server.mutual.auth/client",

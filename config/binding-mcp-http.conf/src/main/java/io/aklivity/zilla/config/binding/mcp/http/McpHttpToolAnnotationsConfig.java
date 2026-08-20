@@ -16,7 +16,9 @@ package io.aklivity.zilla.config.binding.mcp.http;
 
 import java.util.function.Function;
 
-public final class McpHttpToolAnnotationsConfig
+import io.aklivity.zilla.config.engine.Config;
+
+public final class McpHttpToolAnnotationsConfig extends Config
 {
     public final Boolean readOnlyHint;
     public final Boolean destructiveHint;

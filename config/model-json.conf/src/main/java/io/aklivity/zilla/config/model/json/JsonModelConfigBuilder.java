@@ -23,7 +23,7 @@ import io.aklivity.zilla.config.engine.CatalogedConfigBuilder;
 import io.aklivity.zilla.config.engine.ConfigBuilder;
 import io.aklivity.zilla.config.engine.ValidateConfig;
 
-public class JsonModelConfigBuilder<T> extends ConfigBuilder<T, JsonModelConfigBuilder<T>>
+public class JsonModelConfigBuilder<T> extends ConfigBuilder.Extensible<T, JsonModelConfigBuilder<T>>
 {
     private final Function<JsonModelConfig, T> mapper;
 
@@ -77,6 +77,6 @@ public class JsonModelConfigBuilder<T> extends ConfigBuilder<T, JsonModelConfigB
     @Override
     public T build()
     {
-        return mapper.apply(new JsonModelConfig(catalogs, subject, validate));
+        return mapper.apply(new JsonModelConfig(catalogs, subject, validate, extensions()));
     }
 }

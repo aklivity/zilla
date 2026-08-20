@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.common.protobuf;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,18 +36,26 @@ public final class ProtobufSchema
 {
     private final Map<String, ProtobufMessage> messages;
     private final Map<String, ProtobufEnum> enums;
+    private final Map<String, ProtobufService> services;
     private final Map<String, int[]> indexesByRecord;
-    private final Map<String, ProtobufMessage> messageByIndexes;
+    private final Map<IndexPath, ProtobufMessage> messageByIndexes;
+    // a single mutable key reused for every lookup, so resolving a message by its decoded index path
+    // never materializes a String (or any other per-call object) as a map key; index() below is the only
+    // place that puts an (immutable, build-time-only) IndexPath into the map
+    private final IndexPath lookupPath;
 
     private ProtobufSchema(
         Map<String, ProtobufMessage> messages,
         Map<String, ProtobufEnum> enums,
+        Map<String, ProtobufService> services,
         List<ProtobufMessage> ordered)
     {
         this.messages = messages;
         this.enums = enums;
+        this.services = services;
         this.indexesByRecord = new LinkedHashMap<>();
         this.messageByIndexes = new LinkedHashMap<>();
+        this.lookupPath = new IndexPath(null);
         index(ordered);
     }
 
@@ -71,7 +80,7 @@ public final class ProtobufSchema
     public ProtobufMessage messageByIndexes(
         int[] indexes)
     {
-        return indexes != null ? messageByIndexes.get(Arrays.toString(indexes)) : null;
+        return indexes != null ? messageByIndexes.get(lookupPath.wrap(indexes)) : null;
     }
 
     private void index(
@@ -127,8 +136,45 @@ public final class ProtobufSchema
             String simplePath = simplePrefix.isEmpty() ? simpleName : simplePrefix + "." + simpleName;
             indexesByRecord.put(message.name(), path);
             indexesByRecord.put(simplePath, path);
-            messageByIndexes.put(Arrays.toString(path), message);
+            // path is a fresh array owned by this node (never mutated after this point, and never handed
+            // to a caller by reference — messageIndexes(String) below always returns a defensive clone),
+            // so the key can wrap it directly with no extra copy
+            messageByIndexes.put(new IndexPath(path), message);
             index(childrenOf.getOrDefault(message.name(), List.of()), path, simplePath, childrenOf);
+        }
+    }
+
+    // a Map key over int[] content: equals/hashCode compare array contents rather than identity, exactly
+    // as Arrays.toString(indexes) achieved via a String key, but with a mutable variant (wrap) reused as a
+    // scratch lookup key so resolving a message by its decoded index path allocates nothing
+    private static final class IndexPath
+    {
+        private int[] value;
+
+        private IndexPath(
+            int[] value)
+        {
+            this.value = value;
+        }
+
+        private IndexPath wrap(
+            int[] value)
+        {
+            this.value = value;
+            return this;
+        }
+
+        @Override
+        public int hashCode()
+        {
+            return Arrays.hashCode(value);
+        }
+
+        @Override
+        public boolean equals(
+            Object obj)
+        {
+            return obj instanceof IndexPath && Arrays.equals(value, ((IndexPath) obj).value);
         }
     }
 
@@ -142,6 +188,30 @@ public final class ProtobufSchema
         String name)
     {
         return enums.get(name);
+    }
+
+    public ProtobufService service(
+        String name)
+    {
+        return services.get(name);
+    }
+
+    public Collection<ProtobufService> services()
+    {
+        return services.values();
+    }
+
+    // package-private: only used internally by ProtobufOverlay's schema rebuild, which must deep-copy
+    // every field to avoid mutating a shared ProtobufField's resolve() link (see Builder#build below) —
+    // no external consumer needs to enumerate every message/enum in a schema today
+    Collection<ProtobufMessage> messages()
+    {
+        return messages.values();
+    }
+
+    Collection<ProtobufEnum> enumerations()
+    {
+        return enums.values();
     }
 
     public ProtobufMessage resolveMessage(
@@ -206,15 +276,35 @@ public final class ProtobufSchema
     public static final class Builder
     {
         private final Map<String, ProtobufMessage> messages;
+        private final List<ProtobufMessage> toRelink;
         private final Map<String, ProtobufEnum> enums;
+        private final Map<String, ProtobufService> services;
 
         private Builder()
         {
             this.messages = new LinkedHashMap<>();
+            this.toRelink = new ArrayList<>();
             this.enums = new LinkedHashMap<>();
+            this.services = new LinkedHashMap<>();
         }
 
         public Builder message(
+            ProtobufMessage message)
+        {
+            messages.put(message.name(), message);
+            toRelink.add(message);
+            return this;
+        }
+
+        /**
+         * Adds {@code message} to the schema being resolved without re-linking its fields'
+         * {@link ProtobufField#message()}/{@link ProtobufField#enumeration()} — for a message reused
+         * verbatim from a schema already built (e.g. by {@link ProtobufOverlay}), whose fields are
+         * already correctly linked and must not be re-resolved, since {@link ProtobufField#resolve}
+         * mutates the field in place and those fields may still be shared with the schema {@code
+         * message} was reused from.
+         */
+        Builder reuse(
             ProtobufMessage message)
         {
             messages.put(message.name(), message);
@@ -228,11 +318,19 @@ public final class ProtobufSchema
             return this;
         }
 
+        public Builder service(
+            ProtobufService service)
+        {
+            services.put(service.name(), service);
+            return this;
+        }
+
         public ProtobufSchema build()
         {
             Map<String, ProtobufMessage> resolvedMessages = Map.copyOf(messages);
             Map<String, ProtobufEnum> resolvedEnums = Map.copyOf(enums);
-            for (ProtobufMessage message : resolvedMessages.values())
+            Map<String, ProtobufService> resolvedServices = Map.copyOf(services);
+            for (ProtobufMessage message : toRelink)
             {
                 for (ProtobufField field : message.fields())
                 {
@@ -246,7 +344,7 @@ public final class ProtobufSchema
                     }
                 }
             }
-            return new ProtobufSchema(resolvedMessages, resolvedEnums, new ArrayList<>(messages.values()));
+            return new ProtobufSchema(resolvedMessages, resolvedEnums, resolvedServices, new ArrayList<>(messages.values()));
         }
     }
 }

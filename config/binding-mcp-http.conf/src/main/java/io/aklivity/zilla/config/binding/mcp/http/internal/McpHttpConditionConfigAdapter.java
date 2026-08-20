@@ -17,12 +17,12 @@ package io.aklivity.zilla.config.binding.mcp.http.internal;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.binding.mcp.http.McpHttpConditionConfig;
 import io.aklivity.zilla.config.engine.ConditionConfig;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 
-public final class McpHttpConditionConfigAdapter implements JsonbAdapter<ConditionConfig, JsonObject>
+public final class McpHttpConditionConfigAdapter extends ConfigAdapter<ConditionConfig, JsonObject>
 {
     private static final String TOOL_NAME = "tool";
     private static final String RESOURCE_NAME = "resource";

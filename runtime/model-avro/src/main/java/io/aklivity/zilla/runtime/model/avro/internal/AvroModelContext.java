@@ -14,30 +14,39 @@
  */
 package io.aklivity.zilla.runtime.model.avro.internal;
 
+import java.util.List;
+
 import io.aklivity.zilla.config.engine.ModelConfig;
 import io.aklivity.zilla.config.model.avro.AvroModelConfig;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.ModelContext;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
+import io.aklivity.zilla.runtime.model.avro.ext.AvroModelExt;
+import io.aklivity.zilla.runtime.model.avro.ext.AvroModelExtContext;
 
 public class AvroModelContext implements ModelContext
 {
     private final EngineContext context;
     private final AvroModelConfiguration config;
+    private final List<AvroModelExtContext> exts;
 
     public AvroModelContext(
         Configuration config,
-        EngineContext context)
+        EngineContext context,
+        List<AvroModelExt> exts)
     {
         this.config = new AvroModelConfiguration(config);
         this.context = context;
+        this.exts = exts.stream().map(ext -> ext.supply(context)).toList();
     }
 
     @Override
     public ModelHandler supplyHandler(
         ModelConfig options)
     {
-        return new AvroModelHandlerImpl(config, AvroModelConfig.class.cast(options), context);
+        AvroModelConfig avroOptions = AvroModelConfig.class.cast(options);
+        exts.forEach(ext -> ext.attach(avroOptions));
+        return new AvroModelHandlerImpl(config, avroOptions, context, exts);
     }
 }

@@ -40,6 +40,8 @@ public final class TestBindingOptionsConfigBuilder<T> extends ConfigBuilder<T, T
     private VaultAssertion vaultAssertion;
     private String store;
     private List<TestBindingOptionsConfig.StoreAssertions> storeAssertions;
+    private List<TestBindingOptionsConfig.EnvelopeValue> envelope;
+    private List<TestBindingOptionsConfig.EnvelopeAssertion> envelopeAssertions;
 
     TestBindingOptionsConfigBuilder(
         Function<OptionsConfig, T> mapper)
@@ -117,6 +119,21 @@ public final class TestBindingOptionsConfigBuilder<T> extends ConfigBuilder<T, T
         return this;
     }
 
+    public TestBindingOptionsConfigBuilder<T> authorization(
+        String name,
+        String credentials,
+        String callback,
+        Map<String, String> callbackParams,
+        String expectIdentity,
+        String expectCredentials,
+        Map<String, String> attributes,
+        boolean releaseOnEnd)
+    {
+        this.authorization = new TestAuthorizationConfig(
+            name, credentials, callback, callbackParams, expectIdentity, expectCredentials, attributes, releaseOnEnd);
+        return this;
+    }
+
     public TestBindingOptionsConfigBuilder<T> event(
         long timestamp,
         String message)
@@ -180,10 +197,57 @@ public final class TestBindingOptionsConfigBuilder<T> extends ConfigBuilder<T, T
         return this;
     }
 
+    public TestBindingOptionsConfigBuilder<T> envelope(
+        String name,
+        String value)
+    {
+        if (this.envelope == null)
+        {
+            this.envelope = new LinkedList<>();
+        }
+        this.envelope.add(new TestBindingOptionsConfig.EnvelopeValue(name, value, null));
+        return this;
+    }
+
+    public TestBindingOptionsConfigBuilder<T> envelopeBytes(
+        String name,
+        byte[] bytes)
+    {
+        if (this.envelope == null)
+        {
+            this.envelope = new LinkedList<>();
+        }
+        this.envelope.add(new TestBindingOptionsConfig.EnvelopeValue(name, null, bytes));
+        return this;
+    }
+
+    public TestBindingOptionsConfigBuilder<T> envelopeAssertion(
+        String name)
+    {
+        if (this.envelopeAssertions == null)
+        {
+            this.envelopeAssertions = new LinkedList<>();
+        }
+        this.envelopeAssertions.add(new TestBindingOptionsConfig.EnvelopeAssertion(name, null, false));
+        return this;
+    }
+
+    public TestBindingOptionsConfigBuilder<T> envelopeAssertion(
+        String name,
+        String value)
+    {
+        if (this.envelopeAssertions == null)
+        {
+            this.envelopeAssertions = new LinkedList<>();
+        }
+        this.envelopeAssertions.add(new TestBindingOptionsConfig.EnvelopeAssertion(name, value, true));
+        return this;
+    }
+
     @Override
     public T build()
     {
         return mapper.apply(new TestBindingOptionsConfig(value, mode, schema, authorization, catalogs, events,
-                metrics, catalogAssertions, vaultAssertion, store, storeAssertions));
+                metrics, catalogAssertions, vaultAssertion, store, storeAssertions, envelope, envelopeAssertions));
     }
 }

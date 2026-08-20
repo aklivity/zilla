@@ -21,13 +21,18 @@ import java.util.List;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.TrustManagerFactory;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+
 /**
- * Provides access to TLS cryptographic material from an attached vault.
+ * Provides access to cryptographic material from an attached vault, for TLS contexts and
+ * for wrapping and unwrapping arbitrary byte buffers under a named key.
  * <p>
  * Obtained from {@link VaultContext#attach(VaultConfig)}, a {@code VaultHandler} resolves
  * named key and certificate references from the vault's backing store (e.g., a PKCS#12 file
  * or PEM directory) into {@link javax.net.ssl.KeyManagerFactory} and
- * {@link javax.net.ssl.TrustManagerFactory} instances ready for use in TLS contexts.
+ * {@link javax.net.ssl.TrustManagerFactory} instances ready for use in TLS contexts, or into
+ * a {@link SecretKeyManagerFactory} for wrapping and unwrapping arbitrary byte buffers under
+ * a named key.
  * </p>
  *
  * @see VaultContext
@@ -119,4 +124,99 @@ public interface VaultHandler
      */
     TrustManagerFactory initTrust(
         KeyStore cacerts);
+
+    /**
+     * Initializes a {@link SecretKeyManagerFactory} from the named secret key entries in
+     * the vault, for wrapping and unwrapping arbitrary byte buffers under those keys.
+     * <p>
+     * Like {@link #initKeys(List)}, any retrieval this vault implementation needs (e.g., a
+     * call to a remote secret store) happens here, once; the {@link SecretKeyManager}
+     * obtained from the returned factory then wraps and unwraps synchronously.
+     * </p>
+     *
+     * @param secretKeyRefs  list of vault entry names identifying the secret keys to include
+     * @return an initialized {@link SecretKeyManagerFactory}, or {@code null} if none of
+     *         the referenced keys could be resolved
+     */
+    default SecretKeyManagerFactory initSecretKeys(
+        List<String> secretKeyRefs)
+    {
+        return null;
+    }
+
+    /**
+     * Wraps a buffer of bytes under the named key held by this vault, without the key's
+     * raw material ever leaving the vault's implementation.
+     * <p>
+     * The result is delivered asynchronously to {@code next}, since resolving the named
+     * key may require a call outside this thread. On success, {@code next} receives the
+     * wrapped bytes; on failure (e.g., the named key could not be resolved), {@code next}
+     * receives a {@code null} buffer and the caller treats the operation as failed. The
+     * reason for a failure is reported separately, through this vault's own diagnostics.
+     * </p>
+     *
+     * @param traceId  the trace identifier correlating this operation with its caller
+     * @param key      the vault-specific name of the key to wrap under
+     * @param bytes    the buffer containing the bytes to wrap
+     * @param index    the index within {@code bytes} at which the bytes to wrap begin
+     * @param length   the length in bytes of the data to wrap
+     * @param next     invoked with the wrapped bytes on success, or a {@code null} buffer
+     *                 on failure
+     */
+    default void wrap(
+        long traceId,
+        String key,
+        DirectBufferEx bytes,
+        int index,
+        int length,
+        BytesConsumer next)
+    {
+        next.accept(null, 0, 0);
+    }
+
+    /**
+     * Unwraps a buffer of previously wrapped bytes under the named key held by this vault,
+     * without the key's raw material ever leaving the vault's implementation.
+     * <p>
+     * The result is delivered asynchronously to {@code next}, since resolving the named
+     * key may require a call outside this thread. On success, {@code next} receives the
+     * unwrapped bytes; on failure (e.g., the named key could not be resolved), {@code next}
+     * receives a {@code null} buffer and the caller treats the operation as failed. The
+     * reason for a failure is reported separately, through this vault's own diagnostics.
+     * </p>
+     *
+     * @param traceId  the trace identifier correlating this operation with its caller
+     * @param key      the vault-specific name of the key to unwrap under
+     * @param bytes    the buffer containing the wrapped bytes to unwrap
+     * @param index    the index within {@code bytes} at which the wrapped bytes begin
+     * @param length   the length in bytes of the wrapped data
+     * @param next     invoked with the unwrapped bytes on success, or a {@code null} buffer
+     *                 on failure
+     */
+    default void unwrap(
+        long traceId,
+        String key,
+        DirectBufferEx bytes,
+        int index,
+        int length,
+        BytesConsumer next)
+    {
+        next.accept(null, 0, 0);
+    }
+
+    /**
+     * Receives the result of a {@link #wrap} or {@link #unwrap} operation.
+     * <p>
+     * A {@code null} buffer signals that the operation failed; the reason is reported
+     * separately, through the vault's own diagnostics.
+     * </p>
+     */
+    @FunctionalInterface
+    interface BytesConsumer
+    {
+        void accept(
+            DirectBufferEx buffer,
+            int index,
+            int length);
+    }
 }

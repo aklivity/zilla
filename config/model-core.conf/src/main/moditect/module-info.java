@@ -20,16 +20,11 @@ module io.aklivity.zilla.config.model.core
 
     exports io.aklivity.zilla.config.model.core;
 
-    provides io.aklivity.zilla.config.engine.ModelConfigAdapterSpi
-        with io.aklivity.zilla.config.model.core.internal.BooleanModelConfigAdapter,
-            io.aklivity.zilla.config.model.core.internal.DoubleModelConfigAdapter,
-            io.aklivity.zilla.config.model.core.internal.FloatModelConfigAdapter,
-            io.aklivity.zilla.config.model.core.internal.Int32ModelConfigAdapter,
-            io.aklivity.zilla.config.model.core.internal.Int64ModelConfigAdapter,
-            io.aklivity.zilla.config.model.core.internal.StringModelConfigAdapter;
+    uses io.aklivity.zilla.config.engine.ModelExtInfo;
 
     provides io.aklivity.zilla.config.engine.ModelInfo
         with io.aklivity.zilla.config.model.core.internal.BooleanModelInfo,
+            io.aklivity.zilla.config.model.core.internal.BytesModelInfo,
             io.aklivity.zilla.config.model.core.internal.DoubleModelInfo,
             io.aklivity.zilla.config.model.core.internal.FloatModelInfo,
             io.aklivity.zilla.config.model.core.internal.Int32ModelInfo,

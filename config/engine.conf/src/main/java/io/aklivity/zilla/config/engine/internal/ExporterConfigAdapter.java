@@ -17,8 +17,8 @@ package io.aklivity.zilla.config.engine.internal;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.ExporterConfig;
 import io.aklivity.zilla.config.engine.ExporterInfo;
 import io.aklivity.zilla.config.engine.GenericExporterConfig;
@@ -31,7 +31,7 @@ public class ExporterConfigAdapter
     private static final String OPTIONS_NAME = "options";
 
     private final String type;
-    private final JsonbAdapter<OptionsConfig, JsonObject> options;
+    private final ConfigAdapter<OptionsConfig, JsonObject> options;
 
     public ExporterConfigAdapter(
         ExporterInfo info)
@@ -41,7 +41,7 @@ public class ExporterConfigAdapter
     }
 
     public JsonObject adaptToJson(
-        ExporterConfig exporter) throws Exception
+        ExporterConfig exporter)
     {
         JsonObjectBuilder item = Json.createObjectBuilder();
         item.add(TYPE_NAME, exporter.type);
@@ -60,7 +60,7 @@ public class ExporterConfigAdapter
     public ExporterConfig adaptFromJson(
         String namespace,
         String name,
-        JsonObject object) throws Exception
+        JsonObject object)
     {
         String vault = null;
         if (object.containsKey(VAULT_NAME))

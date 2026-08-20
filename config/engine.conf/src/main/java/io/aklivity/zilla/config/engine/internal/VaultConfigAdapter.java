@@ -17,8 +17,8 @@ package io.aklivity.zilla.config.engine.internal;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.GenericVaultConfig;
 import io.aklivity.zilla.config.engine.GenericVaultConfigBuilder;
 import io.aklivity.zilla.config.engine.OptionsConfig;
@@ -31,7 +31,7 @@ public class VaultConfigAdapter
     private static final String OPTIONS_NAME = "options";
 
     private final String type;
-    private final JsonbAdapter<OptionsConfig, JsonObject> options;
+    private final ConfigAdapter<OptionsConfig, JsonObject> options;
 
     public VaultConfigAdapter(
         VaultInfo info)
@@ -41,7 +41,7 @@ public class VaultConfigAdapter
     }
 
     public JsonObject adaptToJson(
-        VaultConfig vault) throws Exception
+        VaultConfig vault)
     {
         JsonObjectBuilder object = Json.createObjectBuilder();
 
@@ -58,7 +58,7 @@ public class VaultConfigAdapter
     public VaultConfig adaptFromJson(
         String namespace,
         String name,
-        JsonObject object) throws Exception
+        JsonObject object)
     {
         GenericVaultConfigBuilder<GenericVaultConfig> vault = GenericVaultConfig.builder()
             .namespace(namespace)

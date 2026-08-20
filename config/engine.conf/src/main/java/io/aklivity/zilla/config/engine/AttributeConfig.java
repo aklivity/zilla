@@ -17,7 +17,7 @@ package io.aklivity.zilla.config.engine;
 import static java.util.Objects.requireNonNull;
 import static java.util.function.Function.identity;
 
-public class AttributeConfig
+public class AttributeConfig extends Config
 {
     public transient long id;
 

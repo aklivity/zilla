@@ -132,8 +132,7 @@
                                             }
                                         ]
                                     }
-                                },
-                                "with": false
+                                }
                             }
                         }
                     }
@@ -178,7 +177,58 @@
                             },
                             "options":
                             {
-                                "$ref": "#/$defs/options/binding/tls"
+                                "allOf":
+                                [
+                                    {
+                                        "$ref": "#/$defs/options/binding/tls"
+                                    },
+                                    {
+                                        "not":
+                                        {
+                                            "required": ["authorization"]
+                                        }
+                                    }
+                                ]
+                            },
+                            "routes":
+                            {
+                                "items":
+                                {
+                                    "properties":
+                                    {
+                                        "with":
+                                        {
+                                            "title": "With",
+                                            "type": "object",
+                                            "properties":
+                                            {
+                                                "certificate":
+                                                {
+                                                    "title": "Client Certificate",
+                                                    "type": "object",
+                                                    "properties":
+                                                    {
+                                                        "subject.cn":
+                                                        {
+                                                            "title": "Subject Common Name",
+                                                            "type": "string"
+                                                        },
+                                                        "subject.dn":
+                                                        {
+                                                            "title": "Subject Distinguished Name",
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "minProperties": 1,
+                                                    "maxProperties": 1,
+                                                    "additionalProperties": false
+                                                }
+                                            },
+                                            "required": ["certificate"],
+                                            "additionalProperties": false
+                                        }
+                                    }
+                                }
                             }
                         }
                     },
@@ -208,6 +258,16 @@
                                         ]
                                     }
                                 ]
+                            },
+                            "routes":
+                            {
+                                "items":
+                                {
+                                    "properties":
+                                    {
+                                        "with": false
+                                    }
+                                }
                             }
                         }
                     },
@@ -218,7 +278,17 @@
                             {
                                 "const": "proxy"
                             },
-                            "options": false
+                            "options": false,
+                            "routes":
+                            {
+                                "items":
+                                {
+                                    "properties":
+                                    {
+                                        "with": false
+                                    }
+                                }
+                            }
                         }
                     }
                 ]
@@ -294,8 +364,41 @@
                     {
                         "type": "string"
                     }
+                },
+                "authorization":
+                {
+                    "title": "Authorization",
+                    "type": "object",
+                    "patternProperties":
+                    {
+                        "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                        {
+                            "title": "Guard",
+                            "type": "object",
+                            "properties":
+                            {
+                                "credentials":
+                                {
+                                    "title": "Credentials",
+                                    "type": "object",
+                                    "properties":
+                                    {
+                                        "certificates":
+                                        {
+                                            "title": "Certificates Format",
+                                            "type": "string",
+                                            "enum": [ "pem" ]
+                                        }
+                                    },
+                                    "additionalProperties": false
+                                }
+                            },
+                            "additionalProperties": false
+                        }
+                    },
+                    "maxProperties": 1,
+                    "additionalProperties": false
                 }
-
             },
             "not":
             {

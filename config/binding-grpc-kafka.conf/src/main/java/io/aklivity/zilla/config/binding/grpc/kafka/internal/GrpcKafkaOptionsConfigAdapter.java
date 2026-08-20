@@ -17,15 +17,15 @@ package io.aklivity.zilla.config.binding.grpc.kafka.internal;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.binding.grpc.kafka.GrpcKafkaCorrelationConfig;
 import io.aklivity.zilla.config.binding.grpc.kafka.GrpcKafkaIdempotencyConfig;
 import io.aklivity.zilla.config.binding.grpc.kafka.GrpcKafkaOptionsConfig;
 import io.aklivity.zilla.config.binding.grpc.kafka.GrpcKafkaReliabilityConfig;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
-public final class GrpcKafkaOptionsConfigAdapter implements JsonbAdapter<OptionsConfig, JsonObject>
+public final class GrpcKafkaOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, JsonObject>
 {
     private static final String RELIABILITY_NAME = "reliability";
     private static final String RELIABILITY_FIELD_NAME = "field";

@@ -16,21 +16,28 @@ package io.aklivity.zilla.config.engine.internal;
 
 import static io.aklivity.zilla.config.engine.BindingConfigBuilder.ROUTES_DEFAULT;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import jakarta.json.Json;
+import jakarta.json.JsonArray;
 import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonValue;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import org.agrona.collections.MutableInteger;
 
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.config.engine.BindingInfo;
+import io.aklivity.zilla.config.engine.CatalogedConfig;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.GenericBindingConfig;
 import io.aklivity.zilla.config.engine.GenericBindingConfigBuilder;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 import io.aklivity.zilla.config.engine.RouteConfig;
+import io.aklivity.zilla.config.engine.SchemaConfig;
+import io.aklivity.zilla.config.engine.SchemaConfigAdapter;
 
 public class BindingConfigAdapter
 {
@@ -45,10 +52,10 @@ public class BindingConfigAdapter
     private static final String TELEMETRY_NAME = "telemetry";
 
     private final String type;
-    private final JsonbAdapter<OptionsConfig, JsonObject> options;
+    private final ConfigAdapter<OptionsConfig, JsonObject> options;
     private final KindConfigAdapter kind;
     private final RouteConfigAdapter route;
-    private final CatalogedConfigAdapter cataloged;
+    private final SchemaConfigAdapter schema;
     private final TelemetryRefConfigAdapter telemetryRef;
 
     public BindingConfigAdapter(
@@ -58,12 +65,12 @@ public class BindingConfigAdapter
         this.options = info.options();
         this.kind = new KindConfigAdapter();
         this.route = new RouteConfigAdapter(info);
-        this.cataloged = new CatalogedConfigAdapter();
+        this.schema = new SchemaConfigAdapter();
         this.telemetryRef = new TelemetryRefConfigAdapter();
     }
 
     public JsonObject adaptToJson(
-        BindingConfig binding) throws Exception
+        BindingConfig binding)
     {
         JsonObjectBuilder item = Json.createObjectBuilder();
 
@@ -88,8 +95,16 @@ public class BindingConfigAdapter
 
         if (binding.catalogs != null && !binding.catalogs.isEmpty())
         {
-            JsonArrayBuilder catalogs = Json.createArrayBuilder();
-            catalogs.add(cataloged.adaptToJson(binding.catalogs));
+            JsonObjectBuilder catalogs = Json.createObjectBuilder();
+            for (CatalogedConfig catalog : binding.catalogs)
+            {
+                JsonArrayBuilder schemas = Json.createArrayBuilder();
+                for (SchemaConfig schemaItem : catalog.schemas)
+                {
+                    schemas.add(schema.adaptToJson(schemaItem));
+                }
+                catalogs.add(catalog.name, schemas);
+            }
             item.add(CATALOG_NAME, catalogs);
         }
 
@@ -135,7 +150,7 @@ public class BindingConfigAdapter
     public BindingConfig adaptFromJson(
         String namespace,
         String name,
-        JsonObject value) throws Exception
+        JsonObject value)
     {
         GenericBindingConfigBuilder<GenericBindingConfig> builder = GenericBindingConfig.builder()
             .namespace(namespace)
@@ -155,7 +170,19 @@ public class BindingConfigAdapter
 
         if (value.containsKey(CATALOG_NAME))
         {
-            builder.catalogs(cataloged.adaptFromJson(value.getJsonObject(CATALOG_NAME)));
+            JsonObject catalogsJson = value.getJsonObject(CATALOG_NAME);
+            List<CatalogedConfig> catalogs = new ArrayList<>();
+            for (String catalogName : catalogsJson.keySet())
+            {
+                JsonArray schemasJson = catalogsJson.getJsonArray(catalogName);
+                List<SchemaConfig> schemas = new ArrayList<>();
+                for (JsonValue schemaValue : schemasJson)
+                {
+                    schemas.add(schema.adaptFromJson(schemaValue.asJsonObject()));
+                }
+                catalogs.add(CatalogedConfig.builder().name(catalogName).schemas(schemas).build());
+            }
+            builder.catalogs(catalogs);
         }
 
         if (value.containsKey(OPTIONS_NAME))

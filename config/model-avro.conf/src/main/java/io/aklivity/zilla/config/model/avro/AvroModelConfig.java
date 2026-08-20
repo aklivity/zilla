@@ -15,10 +15,13 @@
 package io.aklivity.zilla.config.model.avro;
 
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 
 import io.aklivity.zilla.config.engine.CatalogedConfig;
+import io.aklivity.zilla.config.engine.Config;
 import io.aklivity.zilla.config.engine.ModelConfig;
+import io.aklivity.zilla.config.engine.NamedConfig;
 import io.aklivity.zilla.config.engine.ValidateConfig;
 
 public final class AvroModelConfig extends ModelConfig
@@ -30,9 +33,11 @@ public final class AvroModelConfig extends ModelConfig
         List<CatalogedConfig> cataloged,
         String subject,
         String view,
-        ValidateConfig validate)
+        ValidateConfig validate,
+        Map<String, Config> extensions,
+        List<NamedConfig> refs)
     {
-        super("avro", cataloged, validate);
+        super("avro", cataloged, validate, extensions, refs);
         this.subject = subject;
         this.view = view;
     }

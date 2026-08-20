@@ -111,6 +111,7 @@
                 </artifactItem>
               </artifactItems>
               <includes>io/aklivity/zilla/specs/model/core/schema/boolean.schema.patch.json,
+                io/aklivity/zilla/specs/model/core/schema/bytes.schema.patch.json,
                 io/aklivity/zilla/specs/model/core/schema/double.schema.patch.json,
                 io/aklivity/zilla/specs/model/core/schema/float.schema.patch.json,
                 io/aklivity/zilla/specs/model/core/schema/int32.schema.patch.json,

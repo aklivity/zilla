@@ -350,7 +350,7 @@ public final class HttpClientFactory implements HttpStreamFactory
     private final int encodeMax;
     private final int decodeMax;
     private final int maximumRequestQueueSize;
-    private final int maximumConnectionsPerRoute;
+    private final int maximumConnectionsPerOrigin;
     private final int maximumPushPromiseListSize;
 
     public HttpClientFactory(
@@ -388,7 +388,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         this.maximumRequestQueueSize = bufferPool.slotCapacity();
 
         this.clientPools = new Long2ObjectHashMap<>();
-        this.maximumConnectionsPerRoute = config.maximumConnectionsPerRoute();
+        this.maximumConnectionsPerOrigin = config.maximumConnectionsPerOrigin();
         this.maximumPushPromiseListSize = config.maxPushPromiseListSize();
         this.decodeMax = bufferPool.slotCapacity();
         this.encodeMax = bufferPool.slotCapacity();
@@ -2090,7 +2090,11 @@ public final class HttpClientFactory implements HttpStreamFactory
             HttpClient client = supplyClient(scheme, authority);
             final int queuedRequestLength = HttpQueueEntryFW.FIELD_OFFSET_VALUE_LENGTH + begin.extension().sizeof();
 
-            if (client == null || queuedRequestLength > maximumRequestQueueSize)
+            if (client == null)
+            {
+                newStream = rejectWithStatusCode(sender, begin, HEADERS_503_RETRY_AFTER);
+            }
+            else if (queuedRequestLength > maximumRequestQueueSize)
             {
                 newStream = rejectWithStatusCode(sender, begin, HEADERS_431_REQUEST_TOO_LARGE);
             }
@@ -2169,7 +2173,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                 .findFirst()
                 .orElse(null);
 
-            if (client == null && clients.size() < maximumConnectionsPerRoute)
+            if (client == null && countConnections(scheme, authority) < maximumConnectionsPerOrigin)
             {
                 client = new HttpClient(this);
                 client.scheme = scheme;
@@ -2188,18 +2192,33 @@ public final class HttpClientFactory implements HttpStreamFactory
             return client;
         }
 
+        // a connection is pinned at creation to the origin it was created for, and canServe never
+        // offers it to another, so bounding on the whole pool charged a request for connections
+        // that could never carry it -- one busy origin refused every other origin reaching the
+        // same exit. The bound is over the connections this origin can actually use; the total
+        // across origins is already bounded by the engine, which caps combined inbound and
+        // outbound connections.
+        private long countConnections(
+            String scheme,
+            String authority)
+        {
+            return clients.stream()
+                .filter(c -> c.canServe(scheme, authority))
+                .count();
+        }
+
         private void onCreated(
             HttpClient client)
         {
             clients.add(client);
-            assert clients.size() <= maximumConnectionsPerRoute;
+            assert countConnections(client.scheme, client.authority) <= maximumConnectionsPerOrigin;
         }
 
         private void onUpgradedOrClosed(
             HttpClient client)
         {
             clients.remove(client);
-            assert clients.size() <= maximumConnectionsPerRoute;
+            assert countConnections(client.scheme, client.authority) <= maximumConnectionsPerOrigin;
         }
     }
 
@@ -2280,6 +2299,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         private int httpQueueSlot = NO_SLOT;
         private int httpQueueSlotOffset;
         private int httpQueueSlotLimit;
+        private boolean flushing;
 
         private HttpClient(
             HttpClientPool pool)
@@ -4453,8 +4473,21 @@ public final class HttpClientFactory implements HttpStreamFactory
                 encoder == HttpEncoder.H2C;
         }
 
+        // dequeuing calls out to the exchange, which can close and re-enter here. A nested
+        // drain releases the queue slot and zeroes the offset that the outer frame is about
+        // to advance, leaving that frame pointing past a slot that is no longer there, and
+        // re-wraps the shared entry flyweight the outer frame still holds. One frame owns
+        // the queue for the duration; whatever a nested call would have drained is still
+        // reached by the loop below, which re-reads the offset on every pass.
         private void flushNext()
         {
+            if (flushing)
+            {
+                return;
+            }
+
+            flushing = true;
+
             dequeue:
             while (httpQueueSlotOffset != httpQueueSlotLimit)
             {
@@ -4493,6 +4526,8 @@ public final class HttpClientFactory implements HttpStreamFactory
             }
 
             cleanupQueueSlotIfNecessary();
+
+            flushing = false;
         }
 
         private void cleanupQueueSlotIfNecessary()
@@ -5095,7 +5130,8 @@ public final class HttpClientFactory implements HttpStreamFactory
                 final int responseNoAck = (int)(responseSeq - responseAck);
                 final int window = Math.max(responseMax - responseNoAck - responsePad, 0);
                 final int dstMax = Math.min(window, modelBuffer.capacity());
-                final int consumed = content.transform(traceId, routedId, flags, buffer, offset, limit, dstMax);
+                final int consumed =
+                    content.transform(traceId, routedId, authorization, flags, buffer, offset, limit, dstMax);
 
                 if (consumed < 0)
                 {
@@ -5358,7 +5394,8 @@ public final class HttpClientFactory implements HttpStreamFactory
                         final HttpModel model = response.headers.get(name);
                         if (model != null && model != HttpModel.NONE)
                         {
-                            final int produced = model.transform(traceId, routedId, value.value(), 0, value.length());
+                            final int produced =
+                                model.transform(traceId, routedId, requestAuth, value.value(), 0, value.length());
                             if (produced < 0)
                             {
                                 modelValid.value = false;

@@ -137,6 +137,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/lifecycle.initialize.guarded.reauthorize.after.close/client",
+        "${net}/lifecycle.initialize.guarded.reauthorize.after.close/server"})
+    public void shouldReauthorizeGuardedBearerAfterClose() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/tools.call.reject.bearer/client",
         "${net}/tools.call.reject.bearer/server"})
     public void shouldRejectToolsCallOnUpstreamBearerChallenge() throws Exception
@@ -320,6 +329,15 @@ public class NetworkIT
         "${net}/tools.call.is.error/client",
         "${net}/tools.call.is.error/server"})
     public void shouldCallToolIsError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/tools.call.reject.status/client",
+        "${net}/tools.call.reject.status/server"})
+    public void shouldCallToolRejectedByStatus() throws Exception
     {
         k3po.finish();
     }

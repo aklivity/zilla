@@ -24,7 +24,6 @@ import org.junit.Test;
 
 import io.aklivity.zilla.config.engine.ConditionConfig;
 import io.aklivity.zilla.config.engine.RouteConfig;
-import io.aklivity.zilla.runtime.common.openapi.config.OpenapiSpecificationConfig;
 
 public class OpenapiBindingConfigBuilderTest
 {

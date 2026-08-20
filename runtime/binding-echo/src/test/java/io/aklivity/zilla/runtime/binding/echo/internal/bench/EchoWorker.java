@@ -60,6 +60,12 @@ public class EchoWorker implements EngineContext
     }
 
     @Override
+    public long affinity()
+    {
+        return 0L;
+    }
+
+    @Override
     public Signaler signaler()
     {
         return null;
@@ -82,17 +88,15 @@ public class EchoWorker implements EngineContext
     @Override
     public long supplyInitialId(
         long bindingId,
-        int hash)
+        long affinityId)
     {
         return 0;
     }
 
     @Override
-    public boolean isLocalIndex(
-        long bindingId,
-        int hash)
+    public long supplyAffinityId()
     {
-        return true;
+        return 0;
     }
 
     @Override
@@ -422,5 +426,14 @@ public class EchoWorker implements EngineContext
     public Clock clock()
     {
         return null;
+    }
+
+    // this harness has no event loop to defer onto, so it runs the task inline rather than
+    // strictly later; nothing here depends on the async SPI contracts that guarantee builds on
+    @Override
+    public void dispatch(
+        Runnable task)
+    {
+        task.run();
     }
 }

@@ -21,7 +21,7 @@ package io.aklivity.zilla.runtime.common.protobuf;
  * {@link #reporting(ProtobufReporter)}; terminate with {@link #into(ProtobufSink)} to obtain the runnable
  * {@link ProtobufPipeline}. A {@code ProtobufStream} carries no state and is not itself runnable.
  */
-public interface ProtobufStream
+public interface ProtobufStream extends ProtobufTransformable<ProtobufStream>
 {
     ProtobufStream transform(
         ProtobufTransform transform);
@@ -45,6 +45,15 @@ public interface ProtobufStream
      */
     ProtobufStream reporting(
         ProtobufReporter reporter);
+
+    /**
+     * Binds the pipeline to the {@link ProtobufEnvelope} its stages read and write named metadata through,
+     * reachable from any stage via {@link ProtobufController#envelope()}. The last bound envelope wins; the
+     * default is {@link ProtobufEnvelope#NONE}, which reads as empty and discards writes, so a pipeline
+     * assembled without one costs a stage that never asks for it nothing.
+     */
+    ProtobufStream envelope(
+        ProtobufEnvelope envelope);
 
     ProtobufPipeline into(
         ProtobufSink sink);

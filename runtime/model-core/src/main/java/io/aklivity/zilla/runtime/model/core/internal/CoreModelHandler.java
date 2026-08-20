@@ -17,9 +17,10 @@ package io.aklivity.zilla.runtime.model.core.internal;
 import java.util.function.Supplier;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
-import io.aklivity.zilla.runtime.engine.model.ModelVisitor;
+import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 
 // Per-worker factory for a core model. The decode and encode conversions are an identity copy gated by
 // validation, so one handler serves both directions; it owns the config-derived event reporter and
@@ -49,15 +50,21 @@ final class CoreModelHandler implements ModelHandler
 
     @Override
     public ModelPipeline supplyDecoder(
-        ModelVisitor visitor)
+        ModelEnvelope envelope,
+        ModelTransform transform)
     {
+        assert envelope != null;
+
         return new CoreModelPipeline(this, supplier.get(), decodeLenient);
     }
 
     @Override
     public ModelPipeline supplyEncoder(
-        ModelVisitor visitor)
+        ModelEnvelope envelope,
+        ModelTransform transform)
     {
+        assert envelope != null;
+
         return new CoreModelPipeline(this, supplier.get(), encodeLenient);
     }
 
@@ -66,5 +73,15 @@ final class CoreModelHandler implements ModelHandler
         long bindingId)
     {
         event.validationFailure(traceId, bindingId, model);
+    }
+
+    // a stage rejecting a value supplies its own reason, which stands in for the bare model name a
+    // validation failure would otherwise carry
+    void validationFailure(
+        long traceId,
+        long bindingId,
+        String diagnostic)
+    {
+        event.validationFailure(traceId, bindingId, diagnostic);
     }
 }

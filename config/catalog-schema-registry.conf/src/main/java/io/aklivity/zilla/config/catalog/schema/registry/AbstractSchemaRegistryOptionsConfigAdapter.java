@@ -14,8 +14,6 @@
  */
 package io.aklivity.zilla.config.catalog.schema.registry;
 
-import static java.util.stream.Collectors.toList;
-
 import java.time.Duration;
 import java.util.List;
 import java.util.function.Supplier;
@@ -27,12 +25,12 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public abstract class AbstractSchemaRegistryOptionsConfigAdapter<T extends AbstractSchemaRegistryOptionsConfig>
-    implements JsonbAdapter<OptionsConfig, JsonObject>
+    extends ConfigAdapter<OptionsConfig, JsonObject>
 {
     private static final String URL = "url";
     private static final String CONTEXT = "context";
@@ -176,7 +174,7 @@ public abstract class AbstractSchemaRegistryOptionsConfigAdapter<T extends Abstr
     {
         return array.stream()
             .map(AbstractSchemaRegistryOptionsConfigAdapter::asString)
-            .collect(toList());
+            .toList();
     }
 
     private static String asString(

@@ -36,9 +36,10 @@ final class McpProxyPromptsGetFactory extends McpProxyItemFactory
         McpBeginExFW.Builder builder,
         String sessionId,
         String identifier,
-        int contentLength)
+        int contentLength,
+        long timeout)
     {
-        builder.promptsGet(p -> p.sessionId(sessionId).name(identifier).contentLength(contentLength));
+        builder.promptsGet(p -> p.sessionId(sessionId).name(identifier).contentLength(contentLength).timeout(timeout));
     }
 
     @Override
@@ -62,5 +63,12 @@ final class McpProxyPromptsGetFactory extends McpProxyItemFactory
         McpBeginExFW beginEx)
     {
         return beginEx.promptsGet().contentLength();
+    }
+
+    @Override
+    protected long timeout(
+        McpBeginExFW beginEx)
+    {
+        return beginEx.promptsGet().timeout();
     }
 }

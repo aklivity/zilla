@@ -32,7 +32,7 @@ connected
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .lifecycle()
-                               .sessionId("session-1")
+                               .sessionId("5ca1ab1e-c0de-4a11-5e55-000100000000")
                                .build()
                            .build()}
 write flush
@@ -42,7 +42,7 @@ accepted
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .toolsCall()
-                              .sessionId("session-1")
+                              .sessionId("5ca1ab1e-c0de-4a11-5e55-000100000000")
                               .name("get_weather")
                               .contentLength(59)
                               .build()
@@ -52,7 +52,7 @@ read advise zilla:challenge ${mcp:challengeEx()
                                   .typeId(zilla:id("mcp"))
                                   .elicitCreate()
                                       .id("elicit-1")
-                                      .url("https://server.example.com/authorize?state=7f3a9b1c&redirect_uri=%s".formatted(http:encodeQuery("https://localhost:8080/mcp/auth/callback")))
+                                      .url("https://server.example.com/authorize?state=7f3a9b1c&redirect_uri=%s".formatted(http:encodeQuery("http://localhost:8080/mcp/auth/callback")))
                                       .correlationId("a1b2c3")
                                       .build()
                                   .build()}

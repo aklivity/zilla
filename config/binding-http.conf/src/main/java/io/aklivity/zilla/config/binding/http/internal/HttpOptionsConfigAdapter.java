@@ -26,7 +26,6 @@ import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonString;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.binding.http.HttpAccessControlConfig;
 import io.aklivity.zilla.config.binding.http.HttpAccessControlConfigBuilder;
@@ -42,9 +41,10 @@ import io.aklivity.zilla.config.binding.http.HttpOptionsConfig;
 import io.aklivity.zilla.config.binding.http.HttpOptionsConfigBuilder;
 import io.aklivity.zilla.config.binding.http.HttpRequestConfig;
 import io.aklivity.zilla.config.binding.http.HttpVersion;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
-public final class HttpOptionsConfigAdapter implements JsonbAdapter<OptionsConfig, JsonObject>
+public final class HttpOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, JsonObject>
 {
     private static final String VERSIONS_NAME = "versions";
     private static final String OVERRIDES_NAME = "overrides";

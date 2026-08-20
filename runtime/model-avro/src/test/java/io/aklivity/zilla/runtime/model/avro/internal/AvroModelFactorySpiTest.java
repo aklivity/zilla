@@ -18,6 +18,8 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.mock;
 
+import java.util.List;
+
 import org.junit.Test;
 
 import io.aklivity.zilla.config.engine.ModelConfig;
@@ -37,7 +39,7 @@ public class AvroModelFactorySpiTest
         ModelFactory factory = ModelFactory.instantiate();
         Model model = factory.create("avro", config);
 
-        ModelContext context = new AvroModelContext(config, mock(EngineContext.class));
+        ModelContext context = new AvroModelContext(config, mock(EngineContext.class), List.of());
 
         ModelConfig modelConfig = AvroModelConfig.builder()
                 .subject("test-value")

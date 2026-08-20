@@ -127,7 +127,6 @@ import io.aklivity.zilla.runtime.engine.exporter.ExporterHandler;
 import io.aklivity.zilla.runtime.engine.guard.Guard;
 import io.aklivity.zilla.runtime.engine.guard.GuardContext;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
-import io.aklivity.zilla.runtime.engine.internal.LabelManager;
 import io.aklivity.zilla.runtime.engine.internal.budget.BudgetHandleRegistry;
 import io.aklivity.zilla.runtime.engine.internal.budget.DefaultBudgetCreditor;
 import io.aklivity.zilla.runtime.engine.internal.budget.DefaultBudgetDebitor;
@@ -199,8 +198,8 @@ public class EngineWorker implements EngineContext, Agent
     private final WindowFW.Builder windowRW = new WindowFW.Builder();
 
     private final int localIndex;
+    private final long affinity;
     private final EngineConfiguration config;
-    private final LabelManager labels;
     private final String agentName;
     private final Function<String, InetAddress[]> resolveHost;
     private final boolean timestamps;
@@ -278,6 +277,7 @@ public class EngineWorker implements EngineContext, Agent
     private long traceId;
     private long budgetId;
     private long authorizedId;
+    private long affinityId;
 
     private long lastReadStreamId;
     private int idleCount;
@@ -292,7 +292,6 @@ public class EngineWorker implements EngineContext, Agent
     public EngineWorker(
         EngineConfiguration config,
         ExecutorService executor,
-        LabelManager labels,
         ErrorHandler errorHandler,
         LongUnaryOperator affinityMask,
         Collection<Binding> bindings,
@@ -314,10 +313,10 @@ public class EngineWorker implements EngineContext, Agent
         EngineBoss boss)
     {
         this.localIndex = index;
+        this.affinity = (((long) config.nodeId() & 0xffL) << 24) | (index & 0x00ff_ffffL);
         this.config = config;
         this.configPath = Path.of(config.configURI());
         this.localConfigPath = Optional.ofNullable(config.localConfigURI()).map(Path::of);
-        this.labels = labels;
         this.affinityMask = affinityMask;
         this.readonly = readonly;
 
@@ -414,6 +413,7 @@ public class EngineWorker implements EngineContext, Agent
         this.traceId = initial;
         this.budgetId = initial;
         this.authorizedId = initial;
+        this.affinityId = initial;
 
         final BudgetsLayout budgetsLayout = new BudgetsLayout.Builder()
                 .path(config.directory().resolve(String.format("budgets%d", index)))
@@ -456,7 +456,7 @@ public class EngineWorker implements EngineContext, Agent
             metricGroupsByName.put(metricGroup.name(), metricGroup);
         }
         this.metricGroupsByName = metricGroupsByName;
-        this.usageMetric = supplyGauge(NO_NAMESPACED_ID, labels.supplyLabelId(EngineWorkersUsageMetric.NAME), 0);
+        this.usageMetric = supplyGauge(NO_NAMESPACED_ID, router.supplyLabelId(EngineWorkersUsageMetric.NAME), 0);
     }
 
     public static int indexOfId(
@@ -472,6 +472,12 @@ public class EngineWorker implements EngineContext, Agent
     }
 
     @Override
+    public long affinity()
+    {
+        return affinity;
+    }
+
+    @Override
     public Signaler signaler()
     {
         return signaler;
@@ -481,29 +487,29 @@ public class EngineWorker implements EngineContext, Agent
     public String supplyNamespace(
         long namespacedId)
     {
-        return labels.lookupLabel(NamespacedId.namespaceId(namespacedId));
+        return router.supplyLabel(NamespacedId.namespaceId(namespacedId));
     }
 
     @Override
     public String supplyLocalName(
         long namespacedId)
     {
-        return labels.lookupLabel(NamespacedId.localId(namespacedId));
+        return router.supplyLabel(NamespacedId.localId(namespacedId));
     }
 
     @Override
     public String supplyQName(
         long namespacedId)
     {
-        return String.format("%s:%s", labels.lookupLabel(NamespacedId.namespaceId(namespacedId)),
-            labels.lookupLabel(NamespacedId.localId(namespacedId)));
+        return String.format("%s:%s", router.supplyLabel(NamespacedId.namespaceId(namespacedId)),
+            router.supplyLabel(NamespacedId.localId(namespacedId)));
     }
 
     @Override
     public int supplyEventId(
         String name)
     {
-        return labels.supplyLabelId(name);
+        return router.supplyLabelId(name);
     }
 
     @Override
@@ -517,7 +523,7 @@ public class EngineWorker implements EngineContext, Agent
     public int supplyTypeId(
         String name)
     {
-        return labels.supplyLabelId(name);
+        return router.supplyLabelId(name);
     }
 
     @Override
@@ -536,23 +542,15 @@ public class EngineWorker implements EngineContext, Agent
     @Override
     public long supplyInitialId(
         long bindingId,
-        int hash)
+        long affinityId)
     {
-        final int remoteIndex = resolveRemoteIndex(bindingId, hash);
+        final int remoteIndex = resolveRemoteIndex(bindingId, affinityId);
 
         initialId += 2L;
         initialId &= mask;
 
         return (((long)remoteIndex << 48) & 0x00ff_0000_0000_0000L) |
                (initialId & 0xff00_0000_7fff_ffffL) | 0x0000_0000_0000_0001L;
-    }
-
-    @Override
-    public boolean isLocalIndex(
-        long bindingId,
-        int hash)
-    {
-        return localIndex == resolveRemoteIndex(bindingId, hash);
     }
 
     @Override
@@ -580,6 +578,14 @@ public class EngineWorker implements EngineContext, Agent
         authorizedId++;
         authorizedId &= mask;
         return authorizedId;
+    }
+
+    @Override
+    public long supplyAffinityId()
+    {
+        affinityId++;
+        affinityId &= mask;
+        return affinityId;
     }
 
     @Override
@@ -767,8 +773,8 @@ public class EngineWorker implements EngineContext, Agent
         NamespaceConfig namespace,
         BindingConfig binding)
     {
-        final int namespaceId = labels.supplyLabelId(namespace.name);
-        final int bindingId = labels.supplyLabelId(binding.name);
+        final int namespaceId = router.supplyLabelId(namespace.name);
+        final int bindingId = router.supplyLabelId(binding.name);
         return NamespacedId.id(namespaceId, bindingId);
     }
 
@@ -821,7 +827,7 @@ public class EngineWorker implements EngineContext, Agent
     @Override
     public LongConsumer supplyUtilizationMetric()
     {
-        final int metricId = labels.supplyLabelId(EngineWorkersUsageMetric.NAME);
+        final int metricId = router.supplyLabelId(EngineWorkersUsageMetric.NAME);
 
         return supplyMetricWriter(GAUGE, NO_NAMESPACED_ID, metricId, 0, null);
     }
@@ -1050,18 +1056,18 @@ public class EngineWorker implements EngineContext, Agent
 
         this.registry = new EngineRegistry(
                 bindingsByType::get, guardsByType::get, vaultsByType::get, catalogsByType::get, metricsByName::get,
-                exportersByType::get, storesByType::get, labels::supplyLabelId, this::onExporterAttached,
+                exportersByType::get, storesByType::get, router::supplyLabelId, this::onExporterAttached,
                 this::onExporterDetached, this::supplyMetricWriter, this::detachStreams, collector, process);
 
         if (!readonly)
         {
-            int workersMetricId = labels.supplyLabelId(EngineWorkersCountMetric.NAME);
+            int workersMetricId = router.supplyLabelId(EngineWorkersCountMetric.NAME);
             LongConsumer recordCount = supplyMetricWriter(GAUGE, NO_NAMESPACED_ID, workersMetricId, 0, null);
 
-            int capacityMetricId = labels.supplyLabelId(EngineWorkersCapacityMetric.NAME);
+            int capacityMetricId = router.supplyLabelId(EngineWorkersCapacityMetric.NAME);
             LongConsumer recordCapacity = supplyGaugeWriter(capacityMetricId);
 
-            int utilizationMetricId = labels.supplyLabelId(EngineWorkersUsageMetric.NAME);
+            int utilizationMetricId = router.supplyLabelId(EngineWorkersUsageMetric.NAME);
             LongConsumer recordUtilization = supplyGaugeWriter(utilizationMetricId);
 
             recordCount.accept(1);
@@ -2176,7 +2182,7 @@ public class EngineWorker implements EngineContext, Agent
 
     private int resolveRemoteIndex(
         long bindingId,
-        int hash)
+        long affinityId)
     {
         final Affinity affinity = supplyAffinity(bindingId);
         final BitSet mask = affinity.mask;
@@ -2184,8 +2190,8 @@ public class EngineWorker implements EngineContext, Agent
 
         assert cardinality != 0;
 
-        // pick the n-th set bit of the mask, where n = floorMod(hash, cardinality)
-        int slot = Math.floorMod(hash, cardinality);
+        // pick the n-th set bit of the mask, where n = floorMod(affinityId, cardinality)
+        int slot = Math.floorMod(affinityId, cardinality);
         int remoteIndex = mask.nextSetBit(0);
         while (slot-- > 0)
         {
@@ -2209,8 +2215,8 @@ public class EngineWorker implements EngineContext, Agent
         {
             int namespaceId = NamespacedId.namespaceId(bindingId);
             int localId = NamespacedId.localId(bindingId);
-            String namespace = labels.lookupLabel(namespaceId);
-            String binding = labels.lookupLabel(localId);
+            String namespace = router.supplyLabel(namespaceId);
+            String binding = router.supplyLabel(localId);
             throw new IllegalStateException(String.format("affinity mask must specify at least one bit: %s.%s %d",
                     namespace, binding, mask));
         }

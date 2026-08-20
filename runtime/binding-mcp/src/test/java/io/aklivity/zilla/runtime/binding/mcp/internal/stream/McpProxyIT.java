@@ -85,6 +85,17 @@ public class McpProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Specification({
+        "${app}/lifecycle.shutdown.events/client",
+        "${app}/lifecycle.shutdown.events/server" })
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldShutdownLifecycleEvents() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
         "${app}/tools.call/client",
         "${app}/tools.call/server" })
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
@@ -680,8 +691,10 @@ public class McpProxyIT
         k3po.finish();
     }
 
-    public static String sessionId()
+    public static String sessionId(
+        long affinity)
     {
-        return "session-1";
+        assert affinity == 0L;
+        return "5ca1ab1e-c0de-4a11-5e55-000100000000";
     }
 }

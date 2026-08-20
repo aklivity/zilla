@@ -18,7 +18,7 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.function.ToLongFunction;
 
-public abstract class GuardConfig
+public abstract class GuardConfig extends Config
 {
     public transient long id;
     public transient long storeId;

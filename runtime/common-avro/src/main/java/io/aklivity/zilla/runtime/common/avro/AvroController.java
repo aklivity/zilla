@@ -28,6 +28,31 @@ public interface AvroController
     void segmentable();
 
     /**
+     * Returns the authorization in effect for the message currently being transformed.
+     * <p>
+     * A mediating stage may override this to scope the authorization further for a nested composition; a
+     * non-mediating stage passes its own through, so this reflects the authorization the pipeline received
+     * for the current message unless some stage along the way has narrowed it.
+     * </p>
+     *
+     * @return the authorization in effect for the current message
+     */
+    long authorization();
+
+    /**
+     * Returns the metadata travelling alongside the datum being transformed, addressed by name rather than
+     * by position within the datum. The default is {@link AvroEnvelope#NONE}, in force when no envelope was
+     * supplied to the pipeline, so a stage reads an empty envelope rather than no envelope at all. A
+     * mediating stage may supply its own to its downstream.
+     *
+     * @return the envelope in force for this pipeline
+     */
+    default AvroEnvelope envelope()
+    {
+        return AvroEnvelope.NONE;
+    }
+
+    /**
      * Reports {@code sourceBytes} payload bytes consumed by a bounded value write, so the upstream advances
      * its segment cursor and re-exposes the value's unconsumed remainder on resume — the output-side
      * back-pressure pushback that lets a terminal sink stream a length-delimited value without keeping its

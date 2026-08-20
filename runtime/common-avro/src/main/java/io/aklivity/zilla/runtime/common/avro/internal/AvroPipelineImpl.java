@@ -24,6 +24,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.avro.AvroController;
 import io.aklivity.zilla.runtime.common.avro.AvroDiagnostic;
+import io.aklivity.zilla.runtime.common.avro.AvroEnvelope;
 import io.aklivity.zilla.runtime.common.avro.AvroEvent;
 import io.aklivity.zilla.runtime.common.avro.AvroException;
 import io.aklivity.zilla.runtime.common.avro.AvroGenerator;
@@ -70,11 +71,12 @@ final class AvroPipelineImpl implements AvroPipeline
         AvroSink root,
         AvroReporter reporter,
         AvroGenerator generator,
-        boolean lenient)
+        boolean lenient,
+        AvroEnvelope envelope)
     {
         this.parser = parser;
         this.source = new Source(parser);
-        this.control = new Control(parser);
+        this.control = new Control(parser, envelope);
         this.root = root;
         this.reporter = reporter;
         this.diagnostic = new Diagnostic();
@@ -96,6 +98,13 @@ final class AvroPipelineImpl implements AvroPipeline
     public boolean identity()
     {
         return parser.identity() && root.identity();
+    }
+
+    @Override
+    public void authorization(
+        long authorization)
+    {
+        control.authorization = authorization;
     }
 
     @Override
@@ -243,6 +252,12 @@ final class AvroPipelineImpl implements AvroPipeline
         }
 
         @Override
+        public CharSequence getStringView()
+        {
+            return parser.getStringView();
+        }
+
+        @Override
         public String getField()
         {
             return parser.getField();
@@ -285,13 +300,29 @@ final class AvroPipelineImpl implements AvroPipeline
     private static final class Control implements AvroController
     {
         private final AvroParser parser;
+        private final AvroEnvelope envelope;
 
         private boolean segmented;
+        private long authorization;
 
         private Control(
-            AvroParser parser)
+            AvroParser parser,
+            AvroEnvelope envelope)
         {
             this.parser = parser;
+            this.envelope = envelope;
+        }
+
+        @Override
+        public long authorization()
+        {
+            return authorization;
+        }
+
+        @Override
+        public AvroEnvelope envelope()
+        {
+            return envelope;
         }
 
         @Override

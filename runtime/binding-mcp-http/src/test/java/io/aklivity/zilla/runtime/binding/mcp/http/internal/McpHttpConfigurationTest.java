@@ -16,14 +16,14 @@ package io.aklivity.zilla.runtime.binding.mcp.http.internal;
 
 import static io.aklivity.zilla.runtime.binding.mcp.http.internal.McpHttpConfiguration.MCP_HTTP_CLIENT_EXIT;
 import static io.aklivity.zilla.runtime.binding.mcp.http.internal.McpHttpConfiguration.MCP_HTTP_SESSION_ID;
-import static io.aklivity.zilla.runtime.binding.mcp.http.internal.McpHttpConfiguration.MCP_HTTP_SESSION_ID_ATTEMPTS;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
 
 import java.util.Properties;
 import java.util.UUID;
+import java.util.function.LongFunction;
 
 import org.junit.Test;
 
@@ -32,23 +32,13 @@ import io.aklivity.zilla.runtime.engine.Configuration;
 public class McpHttpConfigurationTest
 {
     public static final String MCP_HTTP_SESSION_ID_NAME = "zilla.binding.mcp.http.session.id";
-    public static final String MCP_HTTP_SESSION_ID_ATTEMPTS_NAME = "zilla.binding.mcp.http.session.id.attempts";
     public static final String MCP_HTTP_CLIENT_EXIT_NAME = "zilla.binding.mcp.http.client.exit";
 
     @Test
     public void shouldVerifyConstants() throws Exception
     {
         assertEquals(MCP_HTTP_SESSION_ID.name(), MCP_HTTP_SESSION_ID_NAME);
-        assertEquals(MCP_HTTP_SESSION_ID_ATTEMPTS.name(), MCP_HTTP_SESSION_ID_ATTEMPTS_NAME);
         assertEquals(MCP_HTTP_CLIENT_EXIT.name(), MCP_HTTP_CLIENT_EXIT_NAME);
-    }
-
-    @Test
-    public void shouldConstructWithNoArgs()
-    {
-        McpHttpConfiguration config = new McpHttpConfiguration();
-
-        assertTrue(config.sessionIdAttempts() > 0);
     }
 
     @Test
@@ -74,10 +64,44 @@ public class McpHttpConfigurationTest
     {
         McpHttpConfiguration config = new McpHttpConfiguration();
 
-        String sessionId = config.sessionIdSupplier().get();
+        String sessionId = config.sessionIdSupplier().apply(0L);
 
         assertNotNull(sessionId);
         assertNotNull(UUID.fromString(sessionId));
+    }
+
+    @Test
+    public void shouldEmbedGivenAffinityInDefaultSessionId()
+    {
+        McpHttpConfiguration config = new McpHttpConfiguration();
+
+        String sessionId = config.sessionIdSupplier().apply(0x07000001L);
+
+        assertEquals("07000001", sessionId.substring(28, 36));
+    }
+
+    @Test
+    public void shouldMaskAffinityToThirtyTwoBitsInDefaultSessionId()
+    {
+        McpHttpConfiguration config = new McpHttpConfiguration();
+
+        String sessionId = config.sessionIdSupplier().apply(0xffff_ffff_0000_0001L);
+
+        assertEquals("00000001", sessionId.substring(28, 36));
+    }
+
+    @Test
+    public void shouldMintDistinctSessionIdsForTheSameAffinity()
+    {
+        McpHttpConfiguration config = new McpHttpConfiguration();
+        LongFunction<String> supplySessionId = config.sessionIdSupplier();
+
+        String first = supplySessionId.apply(7L);
+        String second = supplySessionId.apply(7L);
+
+        assertNotEquals(first, second);
+        assertEquals("00000007", first.substring(28, 36));
+        assertEquals("00000007", second.substring(28, 36));
     }
 
     @Test
@@ -98,10 +122,11 @@ public class McpHttpConfigurationTest
             "%s::throwingSessionId".formatted(McpHttpConfigurationTest.class.getName()));
         McpHttpConfiguration config = new McpHttpConfiguration(new Configuration(properties));
 
-        assertThrows(RuntimeException.class, () -> config.sessionIdSupplier().get());
+        assertThrows(RuntimeException.class, () -> config.sessionIdSupplier().apply(0L));
     }
 
-    public static String throwingSessionId()
+    public static String throwingSessionId(
+        long affinity)
     {
         throw new IllegalStateException("boom");
     }

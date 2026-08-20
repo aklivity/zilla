@@ -48,6 +48,33 @@ class AvroPipelineTransformTest
     }
 
     @Test
+    void shouldForwardEveryEventWhenTransformIsNone()
+    {
+        AvroSchema schema = Avro.schema("\"string\"");
+        AvroPipeline pipeline = Avro.stream(Avro.parser(schema))
+            .transform(AvroTransform.NONE)
+            .into(generatorFor(schema));
+        pipeline.reset();
+
+        // "foo": length 3 (zigzag varint 0x06) followed by the three bytes
+        byte[] in = { 0x06, 0x66, 0x6f, 0x6f };
+        int dstCap = 64;
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[DST_OFFSET + dstCap]);
+        MutableDirectBufferEx src = new UnsafeBufferEx(new byte[SRC_OFFSET + in.length]);
+        src.putBytes(SRC_OFFSET, in);
+
+        AvroPipelineResult result = pipeline.transform(src, SRC_OFFSET, SRC_OFFSET + in.length, true,
+            dst, DST_OFFSET, DST_OFFSET + dstCap);
+
+        // a NONE stage is dropped at assembly rather than bound, so the datum reaches the generator untouched
+        assertEquals(Status.COMPLETED, result.status());
+        assertTrue(pipeline.identity());
+        byte[] out = new byte[result.produced()];
+        dst.getBytes(DST_OFFSET, out);
+        assertArrayEquals(in, out);
+    }
+
+    @Test
     void shouldTransformWholeValueIntoDestination()
     {
         AvroSchema schema = Avro.schema("\"string\"");

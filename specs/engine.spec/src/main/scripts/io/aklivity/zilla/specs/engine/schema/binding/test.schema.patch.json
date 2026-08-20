@@ -121,6 +121,30 @@
                                                 "type": "boolean"
                                             }
                                         }
+                                    },
+                                    "envelope":
+                                    {
+                                        "type": "array",
+                                        "items":
+                                        {
+                                            "type": "object",
+                                            "properties":
+                                            {
+                                                "name":
+                                                {
+                                                    "type": "string"
+                                                },
+                                                "value":
+                                                {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required":
+                                            [
+                                                "name"
+                                            ],
+                                            "additionalProperties": false
+                                        }
                                     }
                                 }
                             },
@@ -206,6 +230,10 @@
                                                         }
                                                     },
                                                     "additionalProperties": false
+                                                },
+                                                "releaseOnEnd":
+                                                {
+                                                    "type": "boolean"
                                                 }
                                             }
                                         }
@@ -262,6 +290,34 @@
                             "store":
                             {
                                 "type": "string"
+                            },
+                            "envelope":
+                            {
+                                "type": "array",
+                                "items":
+                                {
+                                    "type": "object",
+                                    "properties":
+                                    {
+                                        "name":
+                                        {
+                                            "type": "string"
+                                        },
+                                        "value":
+                                        {
+                                            "type": "string"
+                                        },
+                                        "bytes":
+                                        {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required":
+                                    [
+                                        "name"
+                                    ],
+                                    "additionalProperties": false
+                                }
                             }
                         },
                         "additionalProperties": false

@@ -14,6 +14,11 @@
  */
 package io.aklivity.zilla.config.engine;
 
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 public abstract class ConfigBuilder<T, B extends ConfigBuilder<T, B>>
@@ -27,4 +32,49 @@ public abstract class ConfigBuilder<T, B extends ConfigBuilder<T, B>>
     }
 
     public abstract T build();
+
+    public abstract static class Extensible<T, B extends ConfigBuilder<T, B>> extends ConfigBuilder<T, B>
+    {
+        private Map<String, Config> extensions;
+        private List<NamedConfig> refs;
+
+        public final <X extends ConfigExtBuilder<B>> X ext(
+            Function<BiFunction<String, Config, B>, X> factory)
+        {
+            return factory.apply(this::ext);
+        }
+
+        B ext(
+            String name,
+            Config value)
+        {
+            if (extensions == null)
+            {
+                extensions = new LinkedHashMap<>();
+            }
+            extensions.put(name, value);
+            return thisType().cast(this);
+        }
+
+        public final B ref(
+            NamedConfig ref)
+        {
+            if (refs == null)
+            {
+                refs = new LinkedList<>();
+            }
+            refs.add(ref);
+            return thisType().cast(this);
+        }
+
+        protected final Map<String, Config> extensions()
+        {
+            return extensions;
+        }
+
+        protected final List<NamedConfig> refs()
+        {
+            return refs != null ? refs : List.of();
+        }
+    }
 }

@@ -27,17 +27,56 @@ import org.junit.jupiter.api.Test;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.avro.Avro;
+import io.aklivity.zilla.runtime.common.avro.AvroEvent;
 import io.aklivity.zilla.runtime.common.avro.AvroGenerator;
 import io.aklivity.zilla.runtime.common.avro.AvroPipeline;
 import io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status;
 import io.aklivity.zilla.runtime.common.avro.AvroSchema;
 import io.aklivity.zilla.runtime.common.avro.AvroSink;
+import io.aklivity.zilla.runtime.common.avro.AvroValues.Entry;
+import io.aklivity.zilla.runtime.common.avro.AvroValues.Recorder;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 
 public class AvroJsonTest
 {
+    @Test
+    public void shouldViewString()
+    {
+        Entry entry = recordJson(Avro.schema("\"string\""), "\"foo\"").entries.get(0);
+        assertEquals(AvroEvent.STRING, entry.event);
+        assertEquals("foo", entry.stringView);
+    }
+
+    @Test
+    public void shouldViewMultiByteUtf8String()
+    {
+        Entry entry = recordJson(Avro.schema("\"string\""), "\"café\"").entries.get(0);
+        assertEquals("café", entry.stringView);
+    }
+
+    @Test
+    public void shouldViewEscapedString()
+    {
+        // the CharSequence view is read after JSON escape decoding, same as getString()
+        Entry entry = recordJson(Avro.schema("\"string\""), "\"a\\nb\"").entries.get(0);
+        assertEquals("a\nb", entry.stringView);
+    }
+
+    private static Recorder recordJson(
+        AvroSchema schema,
+        String json)
+    {
+        byte[] jsonBytes = json.getBytes(UTF_8);
+        JsonParserEx parser = JsonEx.createParser();
+        Recorder recorder = new Recorder();
+        AvroPipeline pipeline = AvroJson.stream(schema, parser).into(recorder);
+        pipeline.reset();
+        recorder.status = pipeline.transform(new UnsafeBufferEx(jsonBytes), 0, jsonBytes.length);
+        return recorder;
+    }
+
     @Test
     public void shouldNotReportIdentityForJsonGeneratorPipeline()
     {

@@ -18,19 +18,24 @@ import static java.util.Objects.requireNonNull;
 import static java.util.function.Function.identity;
 
 import java.util.List;
+import java.util.function.Function;
 import java.util.function.LongFunction;
 
 import io.aklivity.zilla.runtime.common.lang.util.function.LongObjectBiFunction;
 
-public class GuardedConfig
+public class GuardedConfig extends NamedConfig
 {
-    public transient long id;
     public transient LongFunction<String> identity;
     public transient LongObjectBiFunction<String, String> attributes;
     public transient String qname;
 
-    public final String name;
     public final List<String> roles;
+
+    public static <T> GuardedConfigBuilder<T> builder(
+        Function<GuardedConfig, T> mapper)
+    {
+        return new GuardedConfigBuilder<>(mapper);
+    }
 
     public static GuardedConfigBuilder<GuardedConfig> builder()
     {
@@ -41,7 +46,7 @@ public class GuardedConfig
         String name,
         List<String> roles)
     {
-        this.name = requireNonNull(name);
+        super(name);
         this.roles = requireNonNull(roles);
     }
 }

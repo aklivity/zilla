@@ -32,7 +32,7 @@ connected
 write zilla:begin.ext ${mcp:beginEx()
                             .typeId(zilla:id("mcp"))
                             .lifecycle()
-                                .sessionId("session-1")
+                                .sessionId("5ca1ab1e-c0de-4a11-5e55-000100000000")
                                 .build()
                             .build()}
 write flush
@@ -42,7 +42,7 @@ accepted
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .toolsCall()
-                              .sessionId("session-1")
+                              .sessionId("5ca1ab1e-c0de-4a11-5e55-000100000000")
                               .name("validate_connector_config")
                               .contentLength(135)
                               .build()

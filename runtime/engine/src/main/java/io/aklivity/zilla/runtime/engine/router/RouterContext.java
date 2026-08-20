@@ -49,4 +49,23 @@ public interface RouterContext
      */
     void detach(
         long routerId);
+
+    /**
+     * Resolves a label to its integer label id, registering the label if it has not
+     * been seen before.
+     *
+     * @param label  the label
+     * @return the corresponding integer label id
+     */
+    int supplyLabelId(
+        String label);
+
+    /**
+     * Resolves an integer label id back to its label.
+     *
+     * @param labelId  the label id
+     * @return the corresponding label
+     */
+    String supplyLabel(
+        int labelId);
 }

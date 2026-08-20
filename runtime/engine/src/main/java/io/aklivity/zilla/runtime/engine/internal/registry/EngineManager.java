@@ -60,6 +60,7 @@ import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.config.engine.MetricConfig;
 import io.aklivity.zilla.config.engine.MetricRefConfig;
 import io.aklivity.zilla.config.engine.ModelConfig;
+import io.aklivity.zilla.config.engine.NamedConfig;
 import io.aklivity.zilla.config.engine.NamespaceConfig;
 import io.aklivity.zilla.config.engine.NamespaceConfigReader;
 import io.aklivity.zilla.config.engine.RouteConfig;
@@ -439,12 +440,9 @@ public class EngineManager
             {
                 for (ModelConfig model : binding.options.models)
                 {
-                    if (model.cataloged != null)
+                    for (NamedConfig ref : model.refs())
                     {
-                        for (CatalogedConfig cataloged : model.cataloged)
-                        {
-                            cataloged.id = resolver.resolve(cataloged.name);
-                        }
+                        ref.id = resolver.resolve(ref.name);
                     }
                 }
             }

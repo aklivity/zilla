@@ -17,16 +17,18 @@ package io.aklivity.zilla.runtime.binding.mqtt.internal.config;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
+import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 
 /**
  * Per-stream driver around a decode {@link ModelPipeline} for the mqtt binding.
  * <p>
  * A publish payload or user-property value is transformed whole-value via
- * {@link #transform(long, long, DirectBufferEx, int, int)}: the value is driven through the pipeline and the
+ * {@link #transform(long, long, long, DirectBufferEx, int, int)}: the value is driven through the pipeline and the
  * produced (possibly changed) bytes are exposed via {@link #buffer} for the caller to forward downstream, or
  * {@code -1} signals the model rejected it.
  * </p>
@@ -46,7 +48,7 @@ public final class MqttModel
         MutableDirectBufferEx scratch)
     {
         return handler != null
-            ? new MqttModel(handler.supplyDecoder(), scratch)
+            ? new MqttModel(handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE), scratch)
             : NONE;
     }
 
@@ -77,6 +79,7 @@ public final class MqttModel
     public int transform(
         long traceId,
         long bindingId,
+        long authorization,
         DirectBufferEx data,
         int index,
         int limit)
@@ -87,7 +90,7 @@ public final class MqttModel
         boolean done = false;
         while (!done)
         {
-            final ModelPipelineResult result = pipeline.transform(traceId, bindingId, flags,
+            final ModelPipelineResult result = pipeline.transform(traceId, bindingId, authorization, flags,
                 data, srcAt, limit, scratch, total, scratch.capacity());
             final ModelStatus status = result.status();
 
@@ -119,6 +122,7 @@ public final class MqttModel
     public boolean validate(
         long traceId,
         long bindingId,
+        long authorization,
         boolean first,
         boolean last,
         DirectBufferEx data,
@@ -135,7 +139,7 @@ public final class MqttModel
             flags |= FLAGS_FIN;
         }
 
-        final ModelPipelineResult result = pipeline.transform(traceId, bindingId, flags,
+        final ModelPipelineResult result = pipeline.transform(traceId, bindingId, authorization, flags,
             data, index, limit, scratch, 0, scratch.capacity());
         final ModelStatus status = result.status();
         final boolean valid = status != ModelStatus.REJECTED;

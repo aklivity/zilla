@@ -21,13 +21,13 @@ import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonValue;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.engine.AttributeConfig;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.TelemetryRefConfig;
 import io.aklivity.zilla.config.engine.TelemetryRefConfigBuilder;
 
-public class TelemetryRefConfigAdapter implements JsonbAdapter<TelemetryRefConfig, JsonObject>
+public class TelemetryRefConfigAdapter extends ConfigAdapter<TelemetryRefConfig, JsonObject>
 {
     private static final String METRICS_NAME = "metrics";
     private static final String ATTRIBUTES_NAME = "attributes";

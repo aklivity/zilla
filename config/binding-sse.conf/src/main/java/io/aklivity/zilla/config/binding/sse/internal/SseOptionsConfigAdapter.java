@@ -21,14 +21,14 @@ import jakarta.json.Json;
 import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.binding.sse.SseOptionsConfig;
 import io.aklivity.zilla.config.binding.sse.SseOptionsConfigBuilder;
 import io.aklivity.zilla.config.binding.sse.SseRequestConfig;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
-public final class SseOptionsConfigAdapter implements JsonbAdapter<OptionsConfig, JsonObject>
+public final class SseOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, JsonObject>
 {
     private static final String RETRY_NAME = "retry";
     private static final String REQUESTS_NAME = "requests";

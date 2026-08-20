@@ -21,7 +21,6 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.binding.mcp.McpCacheConfig;
 import io.aklivity.zilla.config.binding.mcp.McpCacheConfigBuilder;
@@ -29,11 +28,12 @@ import io.aklivity.zilla.config.binding.mcp.McpElicitationConfig;
 import io.aklivity.zilla.config.binding.mcp.McpElicitationConfigBuilder;
 import io.aklivity.zilla.config.binding.mcp.McpOptionsConfig;
 import io.aklivity.zilla.config.binding.mcp.McpOptionsConfigBuilder;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.ModelConfig;
 import io.aklivity.zilla.config.engine.ModelConfigAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
-public final class McpOptionsConfigAdapter implements JsonbAdapter<OptionsConfig, JsonObject>
+public final class McpOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, JsonObject>
 {
     private static final String ELICITATION_NAME = "elicitation";
     private static final String ELICITATION_CALLBACK_NAME = "callback";

@@ -21,6 +21,7 @@ import java.util.Map;
 
 import jakarta.json.Json;
 import jakarta.json.JsonArray;
+import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonPointer;
@@ -28,44 +29,60 @@ import jakarta.json.JsonStructure;
 import jakarta.json.JsonValue;
 
 /**
- * Applies an OpenAPI Overlay Specification (1.0.0) document to a target {@link JsonValue}
- * document, producing the materialized result. Each action's {@code target} JSONPath (see
- * {@link JsonPath}) is re-evaluated against the document as it stands after every preceding
- * action, so later actions observe earlier edits.
+ * Applies an OpenAPI Overlay Specification (1.0.0 or 1.1.0) document to a target
+ * {@link JsonValue} document, producing the materialized result. Each action's {@code target}
+ * JSONPath (see {@link JsonPath}) is re-evaluated against the document as it stands after every
+ * preceding action, so later actions observe earlier edits.
  * <p>
  * For a matched node that is an object, {@code update} is recursively merged into it
- * (existing properties are overwritten, new properties are added). For a matched node that
- * is an array, {@code update} is appended as a new element. For any other matched node
- * (a scalar or {@code null}), {@code update} replaces it outright. A {@code remove} action
- * deletes every matched node from its containing object or array; when a single action
- * matches multiple array elements, removal proceeds from the highest index to the lowest so
- * earlier indices remain valid. A target that matches nothing is a no-op.
+ * (existing properties are overwritten, new properties are added). For a matched node that is
+ * an array: under {@code 1.0.0}, {@code update} is always appended as a single new element;
+ * under {@code 1.1.0}, an {@code update} that is itself an array is concatenated with the
+ * matched array, while any other {@code update} is still appended as a single new element. For
+ * any other matched node (a scalar or {@code null}), {@code update} replaces it outright. A
+ * {@code remove} action deletes every matched node from its containing object or array; when a
+ * single action matches multiple array elements, removal proceeds from the highest index to the
+ * lowest so earlier indices remain valid. A target that matches nothing is a no-op.
  */
 public final class JsonOverlay
 {
+    private static final String VERSION_1_1_0 = "1.1.0";
+    private static final String VERSION_1_0_0 = "1.0.0";
+
+    private final String version;
     private final List<JsonOverlayAction> actions;
 
     private JsonOverlay(
+        String version,
         List<JsonOverlayAction> actions)
     {
+        this.version = version;
         this.actions = actions;
     }
 
     public static JsonOverlay of(
         List<JsonOverlayAction> actions)
     {
+        return of(VERSION_1_0_0, actions);
+    }
+
+    private static JsonOverlay of(
+        String version,
+        List<JsonOverlayAction> actions)
+    {
         if (actions.isEmpty())
         {
             throw new IllegalArgumentException("Overlay must contain at least one action");
         }
-        return new JsonOverlay(new ArrayList<>(actions));
+        return new JsonOverlay(version, new ArrayList<>(actions));
     }
 
     public static JsonOverlay of(
         JsonValue document)
     {
         JsonObject object = document.asJsonObject();
-        if (!object.containsKey("overlay") || object.getString("overlay", "").isEmpty())
+        String version = object.getString("overlay", "");
+        if (!object.containsKey("overlay") || version.isEmpty())
         {
             throw new IllegalArgumentException("Overlay document missing required \"overlay\" version field");
         }
@@ -90,7 +107,7 @@ public final class JsonOverlay
             actions.add(new JsonOverlayAction(target, update, remove));
         }
 
-        return of(actions);
+        return of(version, actions);
     }
 
     public JsonValue apply(
@@ -104,7 +121,7 @@ public final class JsonOverlay
         return result;
     }
 
-    private static JsonStructure applyAction(
+    private JsonStructure applyAction(
         JsonOverlayAction action,
         JsonStructure document)
     {
@@ -132,7 +149,7 @@ public final class JsonOverlay
         return result;
     }
 
-    private static JsonValue merge(
+    private JsonValue merge(
         JsonValue existing,
         JsonValue update)
     {
@@ -151,12 +168,26 @@ public final class JsonOverlay
         }
         else if (existing.getValueType() == JsonValue.ValueType.ARRAY)
         {
-            merged = Json.createArrayBuilder(existing.asJsonArray()).add(update).build();
+            merged = VERSION_1_1_0.equals(version) && update.getValueType() == JsonValue.ValueType.ARRAY
+                ? concat(existing.asJsonArray(), update.asJsonArray())
+                : Json.createArrayBuilder(existing.asJsonArray()).add(update).build();
         }
         else
         {
             merged = update;
         }
         return merged;
+    }
+
+    private static JsonArray concat(
+        JsonArray existing,
+        JsonArray update)
+    {
+        JsonArrayBuilder builder = Json.createArrayBuilder(existing);
+        for (JsonValue item : update)
+        {
+            builder.add(item);
+        }
+        return builder.build();
     }
 }

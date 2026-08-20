@@ -37,8 +37,11 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
+import io.aklivity.zilla.config.binding.asyncapi.AsyncapiCatalogConfig;
 import io.aklivity.zilla.config.binding.asyncapi.AsyncapiConditionConfig;
 import io.aklivity.zilla.config.binding.asyncapi.AsyncapiOptionsConfig;
+import io.aklivity.zilla.config.binding.asyncapi.AsyncapiSpecificationConfig;
+import io.aklivity.zilla.config.binding.asyncapi.AsyncapiSpecificationConfigBuilder;
 import io.aklivity.zilla.config.binding.asyncapi.AsyncapiWithConfig;
 import io.aklivity.zilla.config.binding.mqtt.kafka.MqttKafkaOptionsConfig;
 import io.aklivity.zilla.config.binding.sse.kafka.SseKafkaConditionConfig;
@@ -49,9 +52,6 @@ import io.aklivity.zilla.config.engine.GuardedConfig;
 import io.aklivity.zilla.config.engine.RouteConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiBindingConfig;
 import io.aklivity.zilla.runtime.binding.asyncapi.internal.config.AsyncapiCompositeConfig;
-import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiCatalogConfig;
-import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfig;
-import io.aklivity.zilla.runtime.common.asyncapi.config.AsyncapiSpecificationConfigBuilder;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 

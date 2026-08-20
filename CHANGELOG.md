@@ -1,5 +1,160 @@
 # Changelog
 
+## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/2.3.0...HEAD)
+
+**Closed issues:**
+
+- Declare AvroModelExtFactorySpi and wire provider-supplied pipeline stages in avro model [\#1681](https://github.com/aklivity/zilla/issues/1681) ([jfallows](https://github.com/jfallows))
+- Declare JsonModelExtFactorySpi and wire provider-supplied pipeline stages in json model [\#1682](https://github.com/aklivity/zilla/issues/1682) ([jfallows](https://github.com/jfallows))
+- Declare ProtobufModelExtFactorySpi and wire provider-supplied pipeline stages in protobuf model [\#1683](https://github.com/aklivity/zilla/issues/1683) ([jfallows](https://github.com/jfallows))
+- engine: add ModelEnvelope for message metadata outside the value, exposed via ModelController [\#2384](https://github.com/aklivity/zilla/issues/2384) ([jfallows](https://github.com/jfallows))
+- engine: supply ModelEnvelope per message, and expose it to a model's format-native transform stages [\#2389](https://github.com/aklivity/zilla/issues/2389) ([jfallows](https://github.com/jfallows))
+- model-core: align bytes/string extension stages with the streaming stage design, and make them bidirectional [\#2393](https://github.com/aklivity/zilla/issues/2393) ([jfallows](https://github.com/jfallows))
+
+**Merged pull requests:**
+
+- feat\(common-json,model-json,model-protobuf,model-avro\): schema overlay support [\#2375](https://github.com/aklivity/zilla/pull/2375) ([jfallows](https://github.com/jfallows))
+- feat\(model-avro\): add AvroModelExt SPI for provider-supplied pipeline stages [\#2376](https://github.com/aklivity/zilla/pull/2376) ([jfallows](https://github.com/jfallows))
+- fix\(model-avro,binding-kafka\): reserve enough Kafka cache capacity for values that expand during decode [\#2377](https://github.com/aklivity/zilla/pull/2377) ([jfallows](https://github.com/jfallows))
+- docs: add rule for justifying changes to shared components [\#2378](https://github.com/aklivity/zilla/pull/2378) ([jfallows](https://github.com/jfallows))
+- docs\(engine\): drop in-tree-consumer example from SPI PR neutrality rule [\#2379](https://github.com/aklivity/zilla/pull/2379) ([jfallows](https://github.com/jfallows))
+- feat\(model-protobuf\): add ProtobufModelExt SPI for provider-supplied pipeline stages [\#2380](https://github.com/aklivity/zilla/pull/2380) ([jfallows](https://github.com/jfallows))
+- test\(engine\): apply the configured value model as decoder on reply direction too [\#2381](https://github.com/aklivity/zilla/pull/2381) ([jfallows](https://github.com/jfallows))
+- feat\(model-core\): add bytes/string models and ModelExtFactorySpi composition [\#2382](https://github.com/aklivity/zilla/pull/2382) ([jfallows](https://github.com/jfallows))
+- fix\(model-avro\): fold installed extensions into the encoder pipeline too [\#2383](https://github.com/aklivity/zilla/pull/2383) ([jfallows](https://github.com/jfallows))
+- feat\(model-json\): add JsonModelExtFactorySpi for provider-supplied pipeline stages [\#2385](https://github.com/aklivity/zilla/pull/2385) ([jfallows](https://github.com/jfallows))
+- test\(model-avro\): drop unneeded ENGINE\_BUFFER\_SLOT\_CAPACITY override in AvroModelIT [\#2387](https://github.com/aklivity/zilla/pull/2387) ([jfallows](https://github.com/jfallows))
+- fix\(engine\): emit terminal frame for a completed test-binding transform with zero produced bytes [\#2388](https://github.com/aklivity/zilla/pull/2388) ([jfallows](https://github.com/jfallows))
+- feat\(engine\): add ModelEnvelope, bound to a pipeline at supply time [\#2390](https://github.com/aklivity/zilla/pull/2390) ([jfallows](https://github.com/jfallows))
+- fix\(examples\): make a failing example run diagnosable and pin the mcp.proxy everything server [\#2392](https://github.com/aklivity/zilla/pull/2392) ([jfallows](https://github.com/jfallows))
+- feat\(common-avro,common-json,common-protobuf\): reach the metadata envelope from a format-native stage [\#2394](https://github.com/aklivity/zilla/pull/2394) ([jfallows](https://github.com/jfallows))
+- feat\(model-core\): realign bytes/string extension stages with the streaming stage design, and make them bidirectional [\#2395](https://github.com/aklivity/zilla/pull/2395) ([jfallows](https://github.com/jfallows))
+- feat\(engine\): generic named-config refs\(\) resolution, plus TestBinding authorization/envelope/secret-key support [\#2396](https://github.com/aklivity/zilla/pull/2396) ([jfallows](https://github.com/jfallows))
+- Support wildcard-registered subjects in inline catalog [\#2397](https://github.com/aklivity/zilla/pull/2397) ([akrambek](https://github.com/akrambek))
+- fix\(binding-kafka\): reconnect fetch/produce cache fanouts to the updated leader after NOT\_LEADER\_FOR\_PARTITION [\#2399](https://github.com/aklivity/zilla/pull/2399) ([jfallows](https://github.com/jfallows))
+- Revert "Support wildcard-registered subjects in inline catalog" [\#2402](https://github.com/aklivity/zilla/pull/2402) ([jfallows](https://github.com/jfallows))
+- feat\(engine\): worker/node affinity identity and deterministic mcp-session-id embedding [\#2403](https://github.com/aklivity/zilla/pull/2403) ([jfallows](https://github.com/jfallows))
+- feat\(engine\): encapsulate label management in the Router SPI [\#2404](https://github.com/aklivity/zilla/pull/2404) ([jfallows](https://github.com/jfallows))
+- feat\(model-protobuf\): resolve extension refs and thread authorization through the pipeline [\#2405](https://github.com/aklivity/zilla/pull/2405) ([jfallows](https://github.com/jfallows))
+
+## [2.3.0](https://github.com/aklivity/zilla/tree/2.3.0) (2026-08-14)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/2.2.3...2.3.0)
+
+**Closed issues:**
+
+- Extend vault SPI with KMS encryption operations [\#1678](https://github.com/aklivity/zilla/issues/1678) ([jfallows](https://github.com/jfallows))
+- Add SecretKeyEntry encryption key support to filesystem vault [\#1679](https://github.com/aklivity/zilla/issues/1679) ([jfallows](https://github.com/jfallows))
+- common-protobuf: support method- and field-level options overlay for FileDescriptorSet [\#2279](https://github.com/aklivity/zilla/issues/2279) ([jfallows](https://github.com/jfallows))
+- engine: add per-message authorization to ModelPipeline.transform [\#2310](https://github.com/aklivity/zilla/issues/2310) ([jfallows](https://github.com/jfallows))
+- Consolidate overlay: config across binding-openapi, binding-asyncapi, binding-openapi-asyncapi, binding-mcp-openapi; reposition as a peer of subject/version [\#2365](https://github.com/aklivity/zilla/issues/2365) ([jfallows](https://github.com/jfallows))
+- Unused jakarta.json.bind module dependency in binding-openapi.conf/binding-asyncapi.conf/binding-openapi-asyncapi.conf [\#2372](https://github.com/aklivity/zilla/issues/2372) ([jfallows](https://github.com/jfallows))
+
+**Merged pull requests:**
+
+- feat\(engine\): extend VaultHandler SPI with wrap/unwrap KMS operations [\#2367](https://github.com/aklivity/zilla/pull/2367) ([jfallows](https://github.com/jfallows))
+- feat\(common-avro,common-json,common-protobuf\): retain and expose field-level schema annotations [\#2368](https://github.com/aklivity/zilla/pull/2368) ([jfallows](https://github.com/jfallows))
+- feat\(engine\): add per-message authorization to ModelPipeline.transform [\#2369](https://github.com/aklivity/zilla/pull/2369) ([jfallows](https://github.com/jfallows))
+- feat\(config\): reposition overlay as peer of subject/version, share one implementation [\#2370](https://github.com/aklivity/zilla/pull/2370) ([jfallows](https://github.com/jfallows))
+- feat\(vault-filesystem\): add SecretKeyEntry encryption key support [\#2371](https://github.com/aklivity/zilla/pull/2371) ([jfallows](https://github.com/jfallows))
+- fix\(config\): remove unused jakarta.json.bind dependency from openapi/asyncapi bindings [\#2373](https://github.com/aklivity/zilla/pull/2373) ([jfallows](https://github.com/jfallows))
+- feat\(common-protobuf\): support method- and field-level options overlay [\#2374](https://github.com/aklivity/zilla/pull/2374) ([jfallows](https://github.com/jfallows))
+
+## [2.2.3](https://github.com/aklivity/zilla/tree/2.2.3) (2026-08-13)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/2.2.2...2.2.3)
+
+**Closed issues:**
+
+- engine: add Config/ConfigBuilder extension mechanism \(ConfigInfo, ConfigExtInfo, ConfigExtAdapter\) [\#2360](https://github.com/aklivity/zilla/issues/2360) ([jfallows](https://github.com/jfallows))
+- engine: support x-incubating property-level schema annotation [\#2361](https://github.com/aklivity/zilla/issues/2361) ([jfallows](https://github.com/jfallows))
+
+**Merged pull requests:**
+
+- engine: support x-incubating property-level schema annotation [\#2362](https://github.com/aklivity/zilla/pull/2362) ([jfallows](https://github.com/jfallows))
+- engine: add Config/ConfigBuilder extension mechanism [\#2363](https://github.com/aklivity/zilla/pull/2363) ([jfallows](https://github.com/jfallows))
+
+## [2.2.2](https://github.com/aklivity/zilla/tree/2.2.2) (2026-08-12)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/2.2.1...2.2.2)
+
+**Merged pull requests:**
+
+- fix\(binding-mcp\): fix DCR authorization-code elicitation flow for tools/call [\#2359](https://github.com/aklivity/zilla/pull/2359) ([jfallows](https://github.com/jfallows))
+
+## [2.2.1](https://github.com/aklivity/zilla/tree/2.2.1) (2026-08-11)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/2.2.0...2.2.1)
+
+**Merged pull requests:**
+
+- fix\(binding-mcp\): preserve per-request elicitation timeout across proxy relay [\#2358](https://github.com/aklivity/zilla/pull/2358) ([jfallows](https://github.com/jfallows))
+
+## [2.2.0](https://github.com/aklivity/zilla/tree/2.2.0) (2026-08-11)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/2.1.1...2.2.0)
+
+**Closed issues:**
+
+- Add a KafkaPipeline for message-level key/headers/value composition, retire KafkaExtractor's stash-and-replay [\#2329](https://github.com/aklivity/zilla/issues/2329) ([jfallows](https://github.com/jfallows))
+- tls client binding: select client certificate from guarded session identity via routes\[\].with [\#2345](https://github.com/aklivity/zilla/issues/2345) ([jfallows](https://github.com/jfallows))
+- Guard sessions acquired via reauthorize are never released except by binding-http [\#2355](https://github.com/aklivity/zilla/issues/2355) ([jfallows](https://github.com/jfallows))
+
+**Merged pull requests:**
+
+- feat\(binding-kafka\): add KafkaPipeline for message-level key/headers/value composition, retire KafkaExtractor's stash-and-replay [\#2331](https://github.com/aklivity/zilla/pull/2331) ([jfallows](https://github.com/jfallows))
+- feat\(binding-tls\): select client certificate from guarded session identity [\#2347](https://github.com/aklivity/zilla/pull/2347) ([jfallows](https://github.com/jfallows))
+- test\(model-protobuf\): add JMH benchmarks, fix allocations they found [\#2351](https://github.com/aklivity/zilla/pull/2351) ([jfallows](https://github.com/jfallows))
+- test\(model-avro\): add JMH benchmarks for decode/encode pipeline [\#2352](https://github.com/aklivity/zilla/pull/2352) ([jfallows](https://github.com/jfallows))
+- test\(model-json\): add JMH benchmarks, fix allocations they found [\#2353](https://github.com/aklivity/zilla/pull/2353) ([jfallows](https://github.com/jfallows))
+- test\(engine\): let TestBindingFactory model guard session acquire+release [\#2356](https://github.com/aklivity/zilla/pull/2356) ([jfallows](https://github.com/jfallows))
+- fix\(engine,binding-mqtt,binding-kafka,binding-mcp\): release guard sessions on connection end [\#2357](https://github.com/aklivity/zilla/pull/2357) ([jfallows](https://github.com/jfallows))
+
+## [2.1.1](https://github.com/aklivity/zilla/tree/2.1.1) (2026-08-10)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/2.1.0...2.1.1)
+
+**Closed issues:**
+
+- binding-http: scope client connection capacity per origin, not per route [\#2339](https://github.com/aklivity/zilla/issues/2339) ([jfallows](https://github.com/jfallows))
+- zpm install: module-generation phase logs nothing, making multi-minute stalls undiagnosable [\#2343](https://github.com/aklivity/zilla/issues/2343) ([jfallows](https://github.com/jfallows))
+
+**Merged pull requests:**
+
+- fix\(binding-http\): scope client connection capacity per origin, not per route [\#2341](https://github.com/aklivity/zilla/pull/2341) ([jfallows](https://github.com/jfallows))
+- test\(examples/mcp.proxy\): run the example verification inside the stack [\#2342](https://github.com/aklivity/zilla/pull/2342) ([jfallows](https://github.com/jfallows))
+- fix\(examples/mcp.proxy\): remove unnecessary waits and bound the gates that remain [\#2344](https://github.com/aklivity/zilla/pull/2344) ([jfallows](https://github.com/jfallows))
+- feat\(manager\): log phase and elapsed time during zpm install [\#2346](https://github.com/aklivity/zilla/pull/2346) ([jfallows](https://github.com/jfallows))
+- fix\(manager\): bound the transfer timeouts when resolving dependencies [\#2348](https://github.com/aklivity/zilla/pull/2348) ([jfallows](https://github.com/jfallows))
+
+## [2.1.0](https://github.com/aklivity/zilla/tree/2.1.0) (2026-08-08)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/2.0.0...2.1.0)
+
+**Closed issues:**
+
+- release: create GitHub Release with version-specific CHANGELOG section, marked latest only when released from develop [\#2303](https://github.com/aklivity/zilla/issues/2303) ([jfallows](https://github.com/jfallows))
+- Add a pluggable per-field ModelTransform hook to the model pipeline \(decode + encode\) [\#2325](https://github.com/aklivity/zilla/issues/2325) ([jfallows](https://github.com/jfallows))
+- tls binding: supply verified peer certificate chain as guard credentials [\#2333](https://github.com/aklivity/zilla/issues/2333) ([jfallows](https://github.com/jfallows))
+- x509 guard: authorize sessions from a verified client certificate chain [\#2334](https://github.com/aklivity/zilla/issues/2334) ([jfallows](https://github.com/jfallows))
+
+**Merged pull requests:**
+
+- feat\(release\): create GitHub Release with version-specific changelog section [\#2304](https://github.com/aklivity/zilla/pull/2304) ([jfallows](https://github.com/jfallows))
+- fix\(examples/mcp.proxy\): report failed assertions at the end of the log [\#2313](https://github.com/aklivity/zilla/pull/2313) ([jfallows](https://github.com/jfallows))
+- Revise README for improved clarity and structure [\#2321](https://github.com/aklivity/zilla/pull/2321) ([llukyanov](https://github.com/llukyanov))
+- fix\(binding-mcp\): acquire outbound guard credentials on the async path [\#2323](https://github.com/aklivity/zilla/pull/2323) ([jfallows](https://github.com/jfallows))
+- feat\(engine\): guarantee async guard reauthorize completes strictly later [\#2324](https://github.com/aklivity/zilla/pull/2324) ([jfallows](https://github.com/jfallows))
+- feat\(engine\): add pluggable per-field ModelTransform hook to the model pipeline [\#2326](https://github.com/aklivity/zilla/pull/2326) ([jfallows](https://github.com/jfallows))
+- fix\(binding-http\): guard flushNext against re-entrant drain [\#2327](https://github.com/aklivity/zilla/pull/2327) ([jfallows](https://github.com/jfallows))
+- fix\(command-dump\): reassemble Kafka payloads split across DATA frames [\#2330](https://github.com/aklivity/zilla/pull/2330) ([ankitk-me](https://github.com/ankitk-me))
+- fix\(binding-mcp\): surface an upstream non-2xx and keep an acquiring request alive [\#2332](https://github.com/aklivity/zilla/pull/2332) ([jfallows](https://github.com/jfallows))
+- feat\(guard-x509\): authorize sessions from a verified client certificate chain [\#2335](https://github.com/aklivity/zilla/pull/2335) ([jfallows](https://github.com/jfallows))
+- feat\(binding-tls\): supply verified peer certificate chain as guard credentials [\#2336](https://github.com/aklivity/zilla/pull/2336) ([jfallows](https://github.com/jfallows))
+- fix\(binding-http\): answer 503, not 431, when the client pool is exhausted [\#2337](https://github.com/aklivity/zilla/pull/2337) ([jfallows](https://github.com/jfallows))
+
 ## [2.0.0](https://github.com/aklivity/zilla/tree/2.0.0) (2026-08-04)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/1.2.4...2.0.0)
@@ -53,6 +208,7 @@
 - binding-mcp: add cache option to mcp · proxy binding [\#1737](https://github.com/aklivity/zilla/issues/1737) ([jfallows](https://github.com/jfallows))
 - binding-mcp server: emit Alt-Svc header advertising engine service hostname [\#1770](https://github.com/aklivity/zilla/issues/1770) ([jfallows](https://github.com/jfallows))
 - binding-http: translate Alt-Svc placeholder to wire-level ALPN, host, and physical port [\#1772](https://github.com/aklivity/zilla/issues/1772) ([jfallows](https://github.com/jfallows))
+- feat\(binding-mcp\): notification-driven cache refresh via list\_changed [\#1776](https://github.com/aklivity/zilla/issues/1776) ([jfallows](https://github.com/jfallows))
 - binding-mcp: add missing peer-to-peer ApplicationIT coverage for 14 scenarios [\#1783](https://github.com/aklivity/zilla/issues/1783) ([jfallows](https://github.com/jfallows))
 - binding-mcp: propagate upstream auth challenges to inbound client [\#1795](https://github.com/aklivity/zilla/issues/1795) ([jfallows](https://github.com/jfallows))
 - Deprecate Kafka-group session ownership in mqtt-kafka binding [\#1797](https://github.com/aklivity/zilla/issues/1797) ([jfallows](https://github.com/jfallows))
@@ -140,6 +296,7 @@
 - binding-mcp-http: add kind: client \(implicit sys:http\_client exit\) and require exit for kind: proxy [\#2238](https://github.com/aklivity/zilla/issues/2238) ([jfallows](https://github.com/jfallows))
 - binding-tcp: kind: server's per-route exit requirement doesn't actually enforce anything [\#2239](https://github.com/aklivity/zilla/issues/2239) ([jfallows](https://github.com/jfallows))
 - mcp proxy: disambiguate tool `title` across toolkits [\#2260](https://github.com/aklivity/zilla/issues/2260) ([jfallows](https://github.com/jfallows))
+- binding-mcp-http/mcp-openapi: tool title nested in annotations, but McpToolTitleDisambiguator reads it top-level [\#2270](https://github.com/aklivity/zilla/issues/2270) ([jfallows](https://github.com/jfallows))
 - mcp-kafka-connect toolkit never hydrates behind mcp\(proxy\) against a real Kafka Connect worker [\#2273](https://github.com/aklivity/zilla/issues/2273) ([jfallows](https://github.com/jfallows))
 - mcp-kafka: normalize inconsistent field naming across tool schemas \(topic/name, partition/partition\_id, additionalProperties\) [\#2284](https://github.com/aklivity/zilla/issues/2284) ([jfallows](https://github.com/jfallows))
 - mcp-kafka: tool schema completeness gaps \(create\_topics sub-schemas, timeout availability\) [\#2285](https://github.com/aklivity/zilla/issues/2285) ([jfallows](https://github.com/jfallows))

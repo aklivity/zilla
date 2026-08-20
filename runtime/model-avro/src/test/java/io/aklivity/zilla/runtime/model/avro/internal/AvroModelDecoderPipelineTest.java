@@ -23,6 +23,7 @@ import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayOutputStream;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.junit.Before;
@@ -32,15 +33,24 @@ import io.aklivity.zilla.config.engine.GenericCatalogConfig;
 import io.aklivity.zilla.config.engine.test.internal.catalog.config.TestCatalogConfig;
 import io.aklivity.zilla.config.engine.test.internal.catalog.config.TestCatalogOptionsConfig;
 import io.aklivity.zilla.config.model.avro.AvroModelConfig;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.common.avro.AvroSchema;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.model.ModelController;
+import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
+import io.aklivity.zilla.runtime.engine.model.ModelEvent;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
+import io.aklivity.zilla.runtime.engine.model.ModelSink;
+import io.aklivity.zilla.runtime.engine.model.ModelSource;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
-import io.aklivity.zilla.runtime.engine.model.ModelVisitor;
+import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.TestCatalogHandler;
+import io.aklivity.zilla.runtime.model.avro.ext.AvroModelExtContext;
+import io.aklivity.zilla.runtime.model.avro.ext.AvroModelExtHandler;
 
 public class AvroModelDecoderPipelineTest
 {
@@ -95,8 +105,8 @@ public class AvroModelDecoderPipelineTest
     {
         AvroModelHandlerImpl handler = newHandler();
         // two per-stream pipelines from the same per-worker handler
-        ModelPipeline a = handler.supplyDecoder(ModelVisitor.NONE);
-        ModelPipeline b = handler.supplyDecoder(ModelVisitor.NONE);
+        ModelPipeline a = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
+        ModelPipeline b = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
 
         // stream A split at the field boundary: the id field first, the status field on the final fragment
         byte[] a1 = {0x06, 0x69, 0x64, 0x30};
@@ -105,20 +115,20 @@ public class AvroModelDecoderPipelineTest
         ByteArrayOutputStream outA = new ByteArrayOutputStream();
 
         // stream A: first fragment, incomplete -> UNDERFLOW
-        ModelPipelineResult ra1 = a.transform(0L, 0L, FLAGS_INIT,
+        ModelPipelineResult ra1 = a.transform(0L, 0L, 0L, FLAGS_INIT,
             new UnsafeBufferEx(a1), 0, a1.length, dst, 0, dst.capacity());
         assertEquals(ModelStatus.UNDERFLOW, ra1.status());
         drain(dst, ra1.produced(), outA);
 
         // stream B: a whole value fed in the middle of A — would corrupt A if state were shared
-        ModelPipelineResult rb = b.transform(0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult rb = b.transform(0L, 0L, 0L, FLAGS_COMPLETE,
             new UnsafeBufferEx(AVRO), 0, AVRO.length, dst, 0, dst.capacity());
         assertEquals(ModelStatus.COMPLETE, rb.status());
         assertEquals(JSON, text(dst, rb.produced()));
 
         // stream A: finish, prepending A's unconsumed remainder (the caller's decode-slot residue)
         byte[] a2 = concat(a1, ra1.consumed(), a2tail);
-        ModelPipelineResult ra2 = a.transform(0L, 0L, FLAGS_FIN,
+        ModelPipelineResult ra2 = a.transform(0L, 0L, 0L, FLAGS_FIN,
             new UnsafeBufferEx(a2), 0, a2.length, dst, 0, dst.capacity());
         assertEquals(ModelStatus.COMPLETE, ra2.status());
         drain(dst, ra2.produced(), outA);
@@ -132,12 +142,10 @@ public class AvroModelDecoderPipelineTest
         AvroModelHandlerImpl handler = newHandler();
 
         Map<String, String> extracted = new HashMap<>();
-        ModelVisitor visitor = (path, buffer, index, length) ->
-            extracted.put(path, buffer.getStringWithoutLengthUtf8(index, length));
-        ModelPipeline pipeline = handler.supplyDecoder(visitor);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, observer(extracted));
 
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
             new UnsafeBufferEx(AVRO), 0, AVRO.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.COMPLETE, result.status());
@@ -151,9 +159,7 @@ public class AvroModelDecoderPipelineTest
         AvroModelHandlerImpl handler = newHandler(SCALARS_SCHEMA, "json");
 
         Map<String, String> extracted = new HashMap<>();
-        ModelVisitor visitor = (path, buffer, index, length) ->
-            extracted.put(path, buffer.getStringWithoutLengthUtf8(index, length));
-        ModelPipeline pipeline = handler.supplyDecoder(visitor);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, observer(extracted));
 
         // i=5, l=7, f=1.5, d=2.5, b=true, e=index 1
         byte[] scalars =
@@ -166,7 +172,7 @@ public class AvroModelDecoderPipelineTest
             0x02
         };
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
             new UnsafeBufferEx(scalars), 0, scalars.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.COMPLETE, result.status());
@@ -182,21 +188,35 @@ public class AvroModelDecoderPipelineTest
     public void shouldReportDecodePadding()
     {
         AvroModelHandlerImpl handler = newHandler();
-        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
 
         assertTrue(pipeline.padding(new UnsafeBufferEx(AVRO), 0, AVRO.length) >= 0);
+    }
+
+    @Test
+    public void shouldIncludeExtensionPaddingContribution()
+    {
+        AvroModelHandlerImpl baseline = newHandler(SCHEMA, "json", List.of());
+        AvroModelHandlerImpl extended = newHandler(SCHEMA, "json", List.of(expandingExt(64)));
+
+        int basePadding = baseline.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE)
+            .padding(new UnsafeBufferEx(AVRO), 0, AVRO.length);
+        int extPadding = extended.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE)
+            .padding(new UnsafeBufferEx(AVRO), 0, AVRO.length);
+
+        assertEquals(basePadding + 64, extPadding);
     }
 
     @Test
     public void shouldReportIdentityWhenNoView()
     {
         AvroModelHandlerImpl handler = newHandler(SCHEMA, null);
-        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
 
         assertFalse(pipeline.identity());
 
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
-        pipeline.transform(0L, 0L, FLAGS_COMPLETE,
+        pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
             new UnsafeBufferEx(AVRO), 0, AVRO.length, dst, 0, dst.capacity());
 
         assertTrue(pipeline.identity());
@@ -206,10 +226,10 @@ public class AvroModelDecoderPipelineTest
     public void shouldNotReportIdentityWhenJsonView()
     {
         AvroModelHandlerImpl handler = newHandler(SCHEMA, "json");
-        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
 
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
-        pipeline.transform(0L, 0L, FLAGS_COMPLETE,
+        pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
             new UnsafeBufferEx(AVRO), 0, AVRO.length, dst, 0, dst.capacity());
 
         assertFalse(pipeline.identity());
@@ -223,6 +243,14 @@ public class AvroModelDecoderPipelineTest
     private AvroModelHandlerImpl newHandler(
         String schema,
         String view)
+    {
+        return newHandler(schema, view, List.of());
+    }
+
+    private AvroModelHandlerImpl newHandler(
+        String schema,
+        String view,
+        List<AvroModelExtContext> exts)
     {
         TestCatalogConfig catalog = GenericCatalogConfig.builder(TestCatalogConfig::new)
             .namespace("test")
@@ -245,7 +273,21 @@ public class AvroModelDecoderPipelineTest
                 .build()
             .build();
         when(context.supplyCatalog(catalog.id)).thenReturn(new TestCatalogHandler(catalog.options));
-        return new AvroModelHandlerImpl(config, model, context);
+        return new AvroModelHandlerImpl(config, model, context, exts);
+    }
+
+    private static AvroModelExtContext expandingExt(
+        int padding)
+    {
+        return (schema, config) -> new AvroModelExtHandler()
+        {
+            @Override
+            public int padding(
+                AvroSchema schema)
+            {
+                return padding;
+            }
+        };
     }
 
     private static byte[] concat(
@@ -277,5 +319,33 @@ public class AvroModelDecoderPipelineTest
         byte[] chunk = new byte[produced];
         dst.getBytes(0, chunk);
         return new String(chunk, UTF_8);
+    }
+
+    private static ModelTransform observer(
+        Map<String, String> extracted)
+    {
+        return new ModelTransform()
+        {
+            @Override
+            public ModelStatus transform(
+                ModelController control,
+                ModelSource source,
+                ModelEvent event,
+                ModelSink sink)
+            {
+                if (event == ModelEvent.FIELD)
+                {
+                    DirectBufferEx value = source.getValue();
+                    extracted.put(source.getPath(), value.getStringWithoutLengthUtf8(0, value.capacity()));
+                }
+                return sink.transform(control, source, event);
+            }
+
+            @Override
+            public boolean identity()
+            {
+                return true;
+            }
+        };
     }
 }

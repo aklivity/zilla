@@ -19,13 +19,13 @@ import java.time.Duration;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.config.catalog.apicurio.ApicurioOptionsConfig;
 import io.aklivity.zilla.config.catalog.apicurio.ApicurioOptionsConfigBuilder;
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
-public class ApicurioOptionsConfigAdapter implements JsonbAdapter<OptionsConfig, JsonObject>
+public class ApicurioOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, JsonObject>
 {
     private static final String URL = "url";
     private static final String GROUP_ID = "group-id";

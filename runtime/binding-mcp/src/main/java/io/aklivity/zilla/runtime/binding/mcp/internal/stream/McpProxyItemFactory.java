@@ -20,8 +20,10 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.function.LongBinaryOperator;
 import java.util.function.LongFunction;
 import java.util.function.LongUnaryOperator;
+import java.util.function.ToLongFunction;
 
 import io.aklivity.zilla.config.binding.mcp.McpCacheToolsSearchConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
@@ -58,7 +60,6 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
-import io.aklivity.zilla.runtime.engine.util.function.LongIntToLongFunction;
 
 abstract class McpProxyItemFactory implements BindingHandler
 {
@@ -140,10 +141,11 @@ abstract class McpProxyItemFactory implements BindingHandler
     private final MutableDirectBufferEx codecBuffer;
     private final MutableDirectBufferEx extBuffer;
     private final BindingHandler streamFactory;
-    private final LongIntToLongFunction supplyInitialIdHash;
+    private final LongBinaryOperator supplyInitialIdAffinity;
     private final LongUnaryOperator supplyReplyId;
     private final int mcpTypeId;
     private final LongFunction<McpBindingConfig> supplyBinding;
+    private final ToLongFunction<String> sessionIdAffinity;
     private final int kind;
 
     // reusable, growable per-worker scratch arrays shared by both search-family tools' response
@@ -166,10 +168,11 @@ abstract class McpProxyItemFactory implements BindingHandler
         this.codecBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
         this.extBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
         this.streamFactory = context.streamFactory();
-        this.supplyInitialIdHash = context::supplyInitialId;
+        this.supplyInitialIdAffinity = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.mcpTypeId = context.supplyTypeId(MCP_TYPE_NAME);
         this.supplyBinding = supplyBinding;
+        this.sessionIdAffinity = config.sessionIdAffinity();
         this.kind = kind;
     }
 
@@ -233,6 +236,8 @@ abstract class McpProxyItemFactory implements BindingHandler
                 }
                 else if (executeCache != null)
                 {
+                    final long timeout = timeout(beginEx);
+
                     newStream = new McpExecuteToolServer(
                         binding,
                         lifecycle,
@@ -241,7 +246,8 @@ abstract class McpProxyItemFactory implements BindingHandler
                         routedId,
                         initialId,
                         affinity,
-                        authorization)::onExecuteToolMessage;
+                        authorization,
+                        timeout)::onExecuteToolMessage;
                 }
                 else
                 {
@@ -250,6 +256,7 @@ abstract class McpProxyItemFactory implements BindingHandler
                     {
                         final String identifier = route.strip(beginEx);
                         final int contentLength = contentLength(beginEx);
+                        final long timeout = timeout(beginEx);
                         final String prefix = route.prefix(beginEx);
 
                         newStream = new McpServer(
@@ -264,6 +271,7 @@ abstract class McpProxyItemFactory implements BindingHandler
                             authorization,
                             identifier,
                             contentLength,
+                            timeout,
                             prefix)::onServerMessage;
                     }
                 }
@@ -425,7 +433,8 @@ abstract class McpProxyItemFactory implements BindingHandler
         McpBeginExFW.Builder builder,
         String sessionId,
         String identifier,
-        int contentLength);
+        int contentLength,
+        long timeout);
 
     protected abstract void injectReplyBeginEx(
         McpBeginExFW.Builder builder,
@@ -436,6 +445,9 @@ abstract class McpProxyItemFactory implements BindingHandler
         McpBeginExFW beginEx);
 
     protected abstract int contentLength(
+        McpBeginExFW beginEx);
+
+    protected abstract long timeout(
         McpBeginExFW beginEx);
 
     private final class McpServer
@@ -451,6 +463,7 @@ abstract class McpProxyItemFactory implements BindingHandler
         private final long authorization;
         private final String identifier;
         private final int contentLength;
+        private final long timeout;
         private final String prefix;
         private boolean prefixStripped;
         private ExpandableDirectByteBufferEx prefixCarryBuffer;
@@ -486,6 +499,7 @@ abstract class McpProxyItemFactory implements BindingHandler
             long authorization,
             String identifier,
             int contentLength,
+            long timeout,
             String prefix)
         {
             this.binding = binding;
@@ -499,6 +513,7 @@ abstract class McpProxyItemFactory implements BindingHandler
             this.authorization = authorization;
             this.identifier = identifier;
             this.contentLength = contentLength;
+            this.timeout = timeout;
             this.prefix = prefix;
             this.toolSchemaId = kind == McpBeginExFW.KIND_TOOLS_CALL && binding.validatesTools()
                 ? binding.toolSchemaId(prefix + identifier)
@@ -723,7 +738,7 @@ abstract class McpProxyItemFactory implements BindingHandler
             long traceId)
         {
             final boolean valid =
-                binding.validateToolCall(toolSchemaId, traceId, routedId, argsBuffer, 0, argsProgress);
+                binding.validateToolCall(toolSchemaId, traceId, routedId, authorization, argsBuffer, 0, argsProgress);
             if (valid)
             {
                 client.doClientData(traceId, 0L, DATA_FLAG_COMPLETE, argsProgress,
@@ -1739,6 +1754,7 @@ abstract class McpProxyItemFactory implements BindingHandler
         private final long replyId;
         private final long affinity;
         private final long authorization;
+        private final long timeout;
         private final McpExecuteToolCallScanner scanner;
         // survives the async gap between registering for the delegate's upstream lifecycle to settle
         // and that settlement actually happening -- unlike the factory's shared, per-worker scratch
@@ -1750,6 +1766,7 @@ abstract class McpProxyItemFactory implements BindingHandler
         private McpServer delegate;
         private int state;
         private boolean ready;
+        private boolean settled;
         private DirectBufferEx cachedBuf;
         private int cachedLen;
         private int emitOffset;
@@ -1771,7 +1788,8 @@ abstract class McpProxyItemFactory implements BindingHandler
             long routedId,
             long initialId,
             long affinity,
-            long authorization)
+            long authorization,
+            long timeout)
         {
             this.binding = binding;
             this.lifecycle = lifecycle;
@@ -1782,6 +1800,7 @@ abstract class McpProxyItemFactory implements BindingHandler
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.affinity = affinity;
             this.authorization = authorization;
+            this.timeout = timeout;
             this.scanner = new McpExecuteToolCallScanner();
         }
 
@@ -1820,6 +1839,22 @@ abstract class McpProxyItemFactory implements BindingHandler
             case WindowFW.TYPE_ID:
             case ResetFW.TYPE_ID:
             case ChallengeFW.TYPE_ID:
+                delegate.onServerMessage(msgTypeId, buffer, index, length);
+                break;
+            case EndFW.TYPE_ID:
+                // relayed rather than absorbed, so the delegate ends when the caller does; held
+                // back until the synthetic DATA has been driven, since the lifecycle it depends on
+                // settles asynchronously and an END arriving first would still clobber it
+                final EndFW end = endRO.wrap(buffer, index, index + length);
+                state = McpState.closedInitial(state);
+                if (settled)
+                {
+                    doDelegateEnd(end.traceId());
+                }
+                break;
+            case AbortFW.TYPE_ID:
+                // the delegate now relies on the caller to terminate its initial side, so a caller
+                // that gives up must tear it down rather than leave it open
                 delegate.onServerMessage(msgTypeId, buffer, index, length);
                 break;
             default:
@@ -2041,6 +2076,7 @@ abstract class McpProxyItemFactory implements BindingHandler
                 authorization,
                 identifier,
                 prefix.length() + bodyLength,
+                timeout,
                 prefix);
 
             driveDelegateBegin(traceId);
@@ -2082,6 +2118,11 @@ abstract class McpProxyItemFactory implements BindingHandler
         private void driveDelegateData(
             long traceId)
         {
+            if (settled)
+            {
+                return;
+            }
+
             final int bodyLength = pendingBodyLength;
             int offset = 0;
             while (offset < bodyLength)
@@ -2111,17 +2152,34 @@ abstract class McpProxyItemFactory implements BindingHandler
                 offset += chunk;
             }
 
+            settled = true;
+
+            if (McpState.initialClosed(state))
+            {
+                doDelegateEnd(traceId);
+            }
+        }
+
+        // the delegate's initial side ends when the real caller's does, never before: the caller
+        // defers its own END until it has the response, which is what leaves the initial stream open
+        // long enough for a CHALLENGE to come back and be answered, or for a guard on the route to
+        // acquire a credential. Ending it as soon as the body was written made this re-dispatch the
+        // one caller that does not do that, and any target needing either would be aborted mid-flight
+        private void doDelegateEnd(
+            long traceId)
+        {
             final EndFW syntheticEnd = endRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
                 .routedId(routedId)
                 .streamId(initialId)
-                .sequence((long) bodyLength)
+                .sequence((long) pendingBodyLength)
                 .acknowledge(0L)
                 .maximum(0)
                 .traceId(traceId)
                 .authorization(authorization)
                 .build();
-            delegate.onServerMessage(EndFW.TYPE_ID, syntheticEnd.buffer(), syntheticEnd.offset(), syntheticEnd.sizeof());
+            delegate.onServerMessage(EndFW.TYPE_ID, syntheticEnd.buffer(), syntheticEnd.offset(),
+                syntheticEnd.sizeof());
         }
 
         private void emitIfReady(
@@ -2284,13 +2342,14 @@ abstract class McpProxyItemFactory implements BindingHandler
             final String sid = lifecycle.sessionId;
             if (sid != null)
             {
-                initialId = supplyInitialIdHash.apply(routedId, sid.hashCode());
+                initialId = supplyInitialIdAffinity.applyAsLong(routedId, sessionIdAffinity.applyAsLong(sid));
                 replyId = supplyReplyId.applyAsLong(initialId);
 
                 final McpBeginExFW beginEx = mcpBeginExRW
                     .wrap(codecBuffer, 0, codecBuffer.capacity())
                     .typeId(mcpTypeId)
-                    .inject(b -> injectInitialBeginEx(b, sid, server.identifier, server.contentLength - server.prefix.length()))
+                    .inject(b -> injectInitialBeginEx(b, sid, server.identifier,
+                        server.contentLength - server.prefix.length(), server.timeout))
                     .build();
 
                 sender = newStream(this::onClientMessage, originId, routedId, initialId,

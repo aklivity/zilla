@@ -17,9 +17,10 @@ package io.aklivity.zilla.config.model.core.internal;
 import java.net.URL;
 
 import jakarta.json.JsonValue;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.ModelConfig;
+import io.aklivity.zilla.config.engine.ModelExtInfo;
 import io.aklivity.zilla.config.engine.ModelInfo;
 
 public final class StringModelInfo implements ModelInfo
@@ -39,8 +40,8 @@ public final class StringModelInfo implements ModelInfo
     }
 
     @Override
-    public JsonbAdapter<ModelConfig, JsonValue> adapter()
+    public ConfigAdapter<ModelConfig, JsonValue> adapter()
     {
-        return new StringModelConfigAdapter();
+        return new StringModelConfigAdapter(extensions().stream().map(ModelExtInfo::adapter).toList());
     }
 }

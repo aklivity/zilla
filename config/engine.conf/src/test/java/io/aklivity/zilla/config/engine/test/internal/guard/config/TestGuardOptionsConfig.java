@@ -31,6 +31,8 @@ public final class TestGuardOptionsConfig extends OptionsConfig
     public final List<String> roles;
     public final Map<String, String> attributes;
     public final String preauthorize;
+    public final boolean deferAcquire;
+    public final int maxSessions;
 
     public static TestGuardOptionsConfigBuilder<TestGuardOptionsConfig> builder()
     {
@@ -50,7 +52,9 @@ public final class TestGuardOptionsConfig extends OptionsConfig
         String identity,
         List<String> roles,
         Map<String, String> attributes,
-        String preauthorize)
+        String preauthorize,
+        boolean deferAcquire,
+        int maxSessions)
     {
         this.credentials = credentials;
         this.lifetime = Objects.requireNonNull(lifetime);
@@ -59,5 +63,7 @@ public final class TestGuardOptionsConfig extends OptionsConfig
         this.roles = roles;
         this.attributes = attributes;
         this.preauthorize = preauthorize;
+        this.deferAcquire = deferAcquire;
+        this.maxSessions = maxSessions;
     }
 }

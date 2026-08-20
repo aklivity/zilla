@@ -14,13 +14,24 @@
  */
 package io.aklivity.zilla.runtime.model.json.internal;
 
+import java.util.List;
+
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.Model;
 import io.aklivity.zilla.runtime.engine.model.ModelContext;
+import io.aklivity.zilla.runtime.model.json.ext.JsonModelExt;
 
 public class JsonModel implements Model
 {
     public static final String NAME = "json";
+
+    private final List<JsonModelExt> exts;
+
+    public JsonModel(
+        List<JsonModelExt> exts)
+    {
+        this.exts = exts;
+    }
 
     @Override
     public String name()
@@ -32,6 +43,6 @@ public class JsonModel implements Model
     public ModelContext supply(
         EngineContext context)
     {
-        return new JsonModelContext(context);
+        return new JsonModelContext(context, exts);
     }
 }

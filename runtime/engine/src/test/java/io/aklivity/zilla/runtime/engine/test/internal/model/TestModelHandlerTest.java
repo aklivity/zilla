@@ -20,19 +20,30 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.junit.Test;
 
 import io.aklivity.zilla.config.engine.ValidateConfig;
 import io.aklivity.zilla.config.engine.ValidateMode;
 import io.aklivity.zilla.config.engine.test.internal.model.config.TestModelConfig;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.model.ModelController;
+import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
+import io.aklivity.zilla.runtime.engine.model.ModelEvent;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
+import io.aklivity.zilla.runtime.engine.model.ModelSink;
+import io.aklivity.zilla.runtime.engine.model.ModelSource;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
-import io.aklivity.zilla.runtime.engine.model.ModelVisitor;
+import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 
 public class TestModelHandlerTest
 {
@@ -49,7 +60,7 @@ public class TestModelHandlerTest
 
         byte[] bytes = {1, 2, 3, 4};
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[16]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
             new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.COMPLETE, result.status());
@@ -64,7 +75,7 @@ public class TestModelHandlerTest
 
         byte[] bytes = {1, 2, 3};
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[16]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
             new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.REJECTED, result.status());
@@ -77,7 +88,7 @@ public class TestModelHandlerTest
 
         byte[] bytes = {1, 2, 3};
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[16]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
             new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.COMPLETE, result.status());
@@ -96,15 +107,15 @@ public class TestModelHandlerTest
 
         byte[] bytes = {1, 2, 3};
 
-        ModelPipeline decoder = handler.supplyDecoder(ModelVisitor.NONE);
+        ModelPipeline decoder = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
         MutableDirectBufferEx decodeDst = new UnsafeBufferEx(new byte[16]);
-        ModelPipelineResult decoded = decoder.transform(0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult decoded = decoder.transform(0L, 0L, 0L, FLAGS_COMPLETE,
             new UnsafeBufferEx(bytes), 0, bytes.length, decodeDst, 0, decodeDst.capacity());
         assertEquals(ModelStatus.COMPLETE, decoded.status());
 
-        ModelPipeline encoder = handler.supplyEncoder(ModelVisitor.NONE);
+        ModelPipeline encoder = handler.supplyEncoder(ModelEnvelope.NONE, ModelTransform.NONE);
         MutableDirectBufferEx encodeDst = new UnsafeBufferEx(new byte[16]);
-        ModelPipelineResult encoded = encoder.transform(0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult encoded = encoder.transform(0L, 0L, 0L, FLAGS_COMPLETE,
             new UnsafeBufferEx(bytes), 0, bytes.length, encodeDst, 0, encodeDst.capacity());
         assertEquals(ModelStatus.REJECTED, encoded.status());
     }
@@ -118,13 +129,13 @@ public class TestModelHandlerTest
         MutableDirectBufferEx src = new UnsafeBufferEx(bytes);
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[4]);
 
-        ModelPipelineResult first = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult first = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
             src, 0, bytes.length, dst, 0, 2);
         assertEquals(ModelStatus.OVERFLOW, first.status());
         assertEquals(2, first.consumed());
 
         int progress = first.consumed();
-        ModelPipelineResult second = pipeline.transform(0L, 0L, FLAGS_FIN,
+        ModelPipelineResult second = pipeline.transform(0L, 0L, 0L, FLAGS_FIN,
             src, progress, bytes.length, dst, progress, bytes.length);
         assertEquals(ModelStatus.COMPLETE, second.status());
     }
@@ -136,7 +147,7 @@ public class TestModelHandlerTest
 
         byte[] head = {1, 2};
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[16]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_INIT,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_INIT,
             new UnsafeBufferEx(head), 0, head.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.UNDERFLOW, result.status());
@@ -150,7 +161,7 @@ public class TestModelHandlerTest
 
         byte[] bytes = {1, 2, 3, 4};
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[0]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
             new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, 0);
 
         assertEquals(ModelStatus.OVERFLOW, result.status());
@@ -174,13 +185,107 @@ public class TestModelHandlerTest
 
         byte[] bytes = {1, 2, 3, 4};
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[16]);
-        pipeline.transform(0L, 0L, FLAGS_COMPLETE,
+        pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
             new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
         pipeline.reset();
 
-        ModelPipelineResult result = pipeline.transform(0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
             new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
         assertEquals(ModelStatus.COMPLETE, result.status());
+    }
+
+    @Test
+    public void shouldObserveAuthorizationReceivedByPipeline()
+    {
+        TestModelConfig config = TestModelConfig.builder()
+            .length(4)
+            .field("$.a")
+            .build();
+        ModelHandler handler = new TestModelContext(context).supplyHandler(config);
+
+        List<Long> observed = new ArrayList<>();
+        ModelTransform transform = new ModelTransform()
+        {
+            @Override
+            public ModelStatus transform(
+                ModelController control,
+                ModelSource source,
+                ModelEvent event,
+                ModelSink sink)
+            {
+                observed.add(control.authorization());
+                return sink.transform(control, source, event);
+            }
+
+            @Override
+            public boolean identity()
+            {
+                return true;
+            }
+        };
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, transform);
+
+        byte[] bytes = {1, 2, 3, 4};
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[16]);
+        pipeline.transform(0L, 0L, 0x0102L, FLAGS_COMPLETE,
+            new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
+        pipeline.reset();
+        int firstValueEvents = observed.size();
+
+        pipeline.transform(0L, 0L, 0x0304L, FLAGS_COMPLETE,
+            new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
+
+        assertFalse(observed.isEmpty());
+        assertTrue(observed.subList(0, firstValueEvents).stream().allMatch(a -> a == 0x0102L));
+        assertTrue(observed.subList(firstValueEvents, observed.size()).stream().allMatch(a -> a == 0x0304L));
+    }
+
+    @Test
+    public void shouldWriteExtractedFieldsToSuppliedEnvelope()
+    {
+        TestModelConfig config = TestModelConfig.builder()
+            .length(4)
+            .field("a")
+            .field("b")
+            .build();
+        ModelHandler handler = new TestModelContext(context).supplyHandler(config);
+
+        Metadata envelope = new Metadata();
+        ModelPipeline pipeline = handler.supplyDecoder(envelope, ModelTransform.NONE);
+
+        byte[] bytes = {1, 2, 3, 4};
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[16]);
+        pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+            new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
+
+        assertEquals(1, envelope.count("$.a"));
+        assertEquals(1, envelope.count("$.b"));
+        assertEquals(0, envelope.count("$.c"));
+    }
+
+    @Test
+    public void shouldKeepSuppliedEnvelopeAcrossValues()
+    {
+        TestModelConfig config = TestModelConfig.builder()
+            .length(4)
+            .field("a")
+            .build();
+        ModelHandler handler = new TestModelContext(context).supplyHandler(config);
+
+        Metadata envelope = new Metadata();
+        ModelPipeline pipeline = handler.supplyDecoder(envelope, ModelTransform.NONE);
+
+        byte[] bytes = {1, 2, 3, 4};
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[16]);
+        pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+            new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
+        pipeline.reset();
+        pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+            new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
+
+        // the pipeline binds to the envelope it was supplied with and never resets it; the supplier owns
+        // when its contents turn over, so a second value accumulates alongside the first
+        assertEquals(2, envelope.count("$.a"));
     }
 
     @Test
@@ -199,7 +304,7 @@ public class TestModelHandlerTest
             .transformLength(8)
             .build();
         ModelHandler handler = new TestModelContext(context).supplyHandler(config);
-        ModelPipeline pipeline = handler.supplyDecoder(ModelVisitor.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
 
         assertFalse(pipeline.identity());
     }
@@ -208,14 +313,14 @@ public class TestModelHandlerTest
         int length)
     {
         ModelHandler handler = new TestModelContext(context).supplyHandler(config(length));
-        return handler.supplyDecoder(ModelVisitor.NONE);
+        return handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
     }
 
     private ModelPipeline writePipeline(
         int length)
     {
         ModelHandler handler = new TestModelContext(context).supplyHandler(config(length));
-        return handler.supplyEncoder();
+        return handler.supplyEncoder(ModelEnvelope.NONE, ModelTransform.NONE);
     }
 
     private ModelPipeline lenientReadPipeline(
@@ -226,12 +331,45 @@ public class TestModelHandlerTest
             .validate(ValidateConfig.builder().decode(ValidateMode.LENIENT).encode(ValidateMode.LENIENT).build())
             .build();
         ModelHandler handler = new TestModelContext(context).supplyHandler(config);
-        return handler.supplyDecoder(ModelVisitor.NONE);
+        return handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
     }
 
     private static TestModelConfig config(
         int length)
     {
         return TestModelConfig.builder().length(length).build();
+    }
+
+    // an envelope a caller supplies to the pipeline, recording what the model writes into it
+    private static final class Metadata implements ModelEnvelope
+    {
+        private final Map<String, List<DirectBufferEx>> values = new LinkedHashMap<>();
+
+        @Override
+        public int count(
+            String name)
+        {
+            List<DirectBufferEx> named = values.get(name);
+            return named != null ? named.size() : 0;
+        }
+
+        @Override
+        public DirectBufferEx get(
+            String name,
+            int index)
+        {
+            List<DirectBufferEx> named = values.get(name);
+            return named != null && index < named.size() ? named.get(index) : null;
+        }
+
+        @Override
+        public void set(
+            String name,
+            DirectBufferEx value)
+        {
+            byte[] copy = new byte[value.capacity()];
+            value.getBytes(0, copy);
+            values.computeIfAbsent(name, n -> new ArrayList<>()).add(new UnsafeBufferEx(copy));
+        }
     }
 }
