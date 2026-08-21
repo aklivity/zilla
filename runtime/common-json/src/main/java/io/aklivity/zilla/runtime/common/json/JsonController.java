@@ -28,6 +28,21 @@ public interface JsonController
     void segmentable();
 
     /**
+     * Returns the authorization in effect for the value currently being transformed.
+     * <p>
+     * A mediating stage may override this to scope the authorization further for a nested composition; a
+     * non-mediating stage passes its own through, so this reflects the authorization the pipeline received
+     * via {@link JsonPipeline#authorization(long)} unless narrowed. The default is {@code 0L}, for a
+     * pipeline that never received one.
+     *
+     * @return the authorization in effect for the current value
+     */
+    default long authorization()
+    {
+        return 0L;
+    }
+
+    /**
      * Returns the metadata travelling alongside the value being transformed, addressed by name rather than
      * by position within the value. The default is {@link JsonEnvelope#NONE}, in force when no envelope
      * was supplied to the pipeline, so a stage reads an empty envelope rather than no envelope at all. A

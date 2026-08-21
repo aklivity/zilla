@@ -89,6 +89,7 @@ final class JsonModelEncoderPipeline implements ModelPipeline
             if (active != null)
             {
                 active.reset();
+                active.authorization(authorization);
                 // the schema framing prefix is emitted once into the destination ahead of the value
                 prefix = writePrefix(traceId, bindingId, schemaId, src, srcIndex, srcLength, dst, dstIndex);
             }

@@ -47,6 +47,18 @@ public interface JsonPipeline
     void reset();
 
     /**
+     * Sets the authorization in effect for the next datum {@link #transform fed} to this pipeline, reached
+     * by any stage via {@link JsonController#authorization()}. The default does nothing, for a pipeline
+     * that never carries one.
+     *
+     * @param authorization the authorization in effect for the next datum
+     */
+    default void authorization(
+        long authorization)
+    {
+    }
+
+    /**
      * Whether this pipeline reproduces its input bytes for every accepted datum — the composition of its
      * parser, transform stages, and terminal generator all being identity.
      */
