@@ -28,6 +28,7 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufGenerator;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufMessage;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSchema;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufType;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufWellKnownTypes;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
 
 /**
@@ -164,7 +165,7 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
         if (rootOpened && depth >= 0)
         {
             Scope scope = scopes[depth];
-            if (!scope.mapEntry && scope.message != null)
+            if (!scope.mapEntry && !scope.wrapper && scope.message != null)
             {
                 int separator = scope.openField != -1 || !scope.written.isEmpty() ? 1 : 0;
                 for (ProtobufField field : scope.message.sortedFields())
@@ -551,9 +552,9 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
         }
         if (complete)
         {
-            complete = emitDefaults(scope);
+            complete = scope.wrapper ? emitWrapperDefault(scope) : emitDefaults(scope);
         }
-        if (complete && !scope.mapEntry)
+        if (complete && !scope.mapEntry && !scope.wrapper)
         {
             complete = writeEndChecked();
         }
@@ -570,7 +571,7 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
         {
             rootOpened = true;
             depth = 0;
-            scopes[0].set(schema.message(messageName), false);
+            scopes[0].set(schema.message(messageName), false, false);
         }
         return rootOpened;
     }
@@ -631,6 +632,10 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
                     width = scope.pendingKey.length() + 3 + separator;
                 }
             }
+            else if (scope.wrapper)
+            {
+                width = 0;
+            }
             else if (scope.message != null)
             {
                 ProtobufField field = scope.message.field(number);
@@ -657,7 +662,7 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
         if (!keyDrained && rootOpened && depth >= 0)
         {
             Scope scope = scopes[depth];
-            if (!scope.mapEntry && scope.message != null)
+            if (!scope.mapEntry && !scope.wrapper && scope.message != null)
             {
                 ProtobufField field = scope.message.field(number);
                 if (field != null && !(field.repeated() && scope.openField == number))
@@ -699,6 +704,14 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
             {
                 json.writeKey(scope.pendingKey);
             }
+        }
+        else if (scope.wrapper)
+        {
+            // the wrapper's own value field renders exactly where its enclosing field/array-element/map-value
+            // position already put us (see start()) — no key of its own to write
+            scalarField = scope.message.field(number);
+            scalarKey = false;
+            scope.written.set(number);
         }
         else
         {
@@ -748,11 +761,17 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
             Scope scope = scopes[depth];
             if (scope.mapEntry)
             {
-                if (json.remaining() >= keyWidth(scope, scope.pendingKey) + 1)
+                ProtobufField field = scope.message.field(number);
+                boolean wrapper = wrapper(field);
+                int braceWidth = wrapper ? 0 : 1;
+                if (json.remaining() >= keyWidth(scope, scope.pendingKey) + braceWidth)
                 {
                     writeKeyChecked(scope.pendingKey);
-                    writeStartObjectChecked();
-                    pushScope(scope.message.field(number).message(), false);
+                    if (!wrapper)
+                    {
+                        writeStartObjectChecked();
+                    }
+                    pushScope(field.message(), false, wrapper);
                     written = true;
                 }
             }
@@ -778,13 +797,15 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
                             scope.openField = number;
                         }
                         scope.written.set(number);
-                        pushScope(field.message(), true);
+                        pushScope(field.message(), true, false);
                         written = true;
                     }
                 }
                 else if (field.repeated())
                 {
-                    if (json.remaining() >= closeWidth + openWidth + 1)
+                    boolean wrapper = wrapper(field);
+                    int braceWidth = wrapper ? 0 : 1;
+                    if (json.remaining() >= closeWidth + openWidth + braceWidth)
                     {
                         if (closesPrior)
                         {
@@ -797,14 +818,19 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
                             scope.openField = number;
                         }
                         scope.written.set(number);
-                        writeStartObjectChecked();
-                        pushScope(field.message(), false);
+                        if (!wrapper)
+                        {
+                            writeStartObjectChecked();
+                        }
+                        pushScope(field.message(), false, wrapper);
                         written = true;
                     }
                 }
                 else
                 {
-                    if (json.remaining() >= closeWidth + keyWidth(scope, key(field)) + 1)
+                    boolean wrapper = wrapper(field);
+                    int braceWidth = wrapper ? 0 : 1;
+                    if (json.remaining() >= closeWidth + keyWidth(scope, key(field)) + braceWidth)
                     {
                         if (closesPrior)
                         {
@@ -812,8 +838,11 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
                         }
                         scope.written.set(number);
                         writeKeyChecked(key(field));
-                        writeStartObjectChecked();
-                        pushScope(field.message(), false);
+                        if (!wrapper)
+                        {
+                            writeStartObjectChecked();
+                        }
+                        pushScope(field.message(), false, wrapper);
                         written = true;
                     }
                 }
@@ -899,6 +928,19 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
             }
         }
         return written;
+    }
+
+    // A wrapper message's own presence was already explicit (its enclosing field/element/map-value started
+    // this scope), so unlike a normal composite field's absence, its value field is never itself omitted:
+    // if the wire never wrote it (proto3 omits a default scalar), its bare zero value renders here instead.
+    private boolean emitWrapperDefault(
+        Scope scope)
+    {
+        if (!scope.written.get(1))
+        {
+            emitScalarDefault(scope.message.field(1));
+        }
+        return true;
     }
 
     private void emitScalarDefault(
@@ -1142,7 +1184,8 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
 
     private void pushScope(
         ProtobufMessage message,
-        boolean mapEntry)
+        boolean mapEntry,
+        boolean wrapper)
     {
         depth++;
         if (depth == scopes.length)
@@ -1155,7 +1198,7 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
             }
             scopes = grown;
         }
-        scopes[depth].set(message, mapEntry);
+        scopes[depth].set(message, mapEntry, wrapper);
     }
 
     private void appendUnsigned(
@@ -1222,6 +1265,12 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
         return field.repeated() && message != null && message.mapEntry();
     }
 
+    private static boolean wrapper(
+        ProtobufField field)
+    {
+        return ProtobufWellKnownTypes.wrapper(field.typeName());
+    }
+
     private static String nonFinite(
         double value)
     {
@@ -1243,15 +1292,18 @@ public final class ProtobufJsonGeneratorImpl implements ProtobufGenerator
 
         private ProtobufMessage message;
         private boolean mapEntry;
+        private boolean wrapper;
         private int openField;
         private String pendingKey;
 
         private void set(
             ProtobufMessage message,
-            boolean mapEntry)
+            boolean mapEntry,
+            boolean wrapper)
         {
             this.message = message;
             this.mapEntry = mapEntry;
+            this.wrapper = wrapper;
             this.openField = -1;
             this.pendingKey = null;
             this.written.clear();
