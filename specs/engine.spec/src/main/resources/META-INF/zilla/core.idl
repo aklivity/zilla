@@ -44,6 +44,7 @@ scope core
         struct Begin extends Frame [0x00000001]
         {
             int64 affinity;
+            int64 redirectedId = 0;
             octets extension;
         }
 

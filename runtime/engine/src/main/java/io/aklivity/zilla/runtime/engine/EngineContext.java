@@ -125,20 +125,42 @@ public interface EngineContext
         long bindingId);
 
     /**
-     * Allocates a new initial (inbound) stream id for the given binding, selecting
-     * a deterministic worker by {@code Math.floorMod(affinityId, mask.cardinality())}
-     * over the binding's affinity mask. Used to pin per-key application streams to
-     * a specific worker so per-worker session state remains valid across requests
-     * for the same logical key.
+     * Allocates a new initial (inbound) stream id for the given routed binding, pinned to
+     * the worker identified by {@code affinityId} when that worker is local to this engine
+     * node, or selected round-robin over {@code routedId}'s affinity mask otherwise. Used to
+     * pin per-key application streams to a specific worker so per-worker session state
+     * remains valid across requests for the same logical key.
+     * <p>
+     * When redirecting across engine nodes, callers should first resolve {@code routedId}
+     * via {@link #resolveRoutedId(long, long)} so the worker selected here belongs to the
+     * binding the stream will actually be dispatched to.
+     * </p>
      *
-     * @param bindingId   the binding id to associate with the new stream
+     * @param routedId    the routed binding id to associate with the new stream
      * @param affinityId  the affinity value to pin the stream to; same value yields
-     *                     the same worker for a given binding affinity mask
+     *                     the same worker when local to this engine node
      * @return a new unique initial stream id pinned to the worker selected by affinityId
      */
     long supplyInitialId(
-        long bindingId,
+        long routedId,
         long affinityId);
+
+    /**
+     * Resolves the binding id that a stream carrying the given affinity should actually be
+     * routed to, e.g. redirecting to a different binding when the affinity designates a
+     * remote engine node. Identity by default: {@code routedId} unchanged, meaning no
+     * redirection applies.
+     *
+     * @param routedId  the originally configured routed binding id
+     * @param affinity  the affinity value carried by the stream
+     * @return the binding id the stream should actually be routed to
+     */
+    default long resolveRoutedId(
+        long routedId,
+        long affinity)
+    {
+        return routedId;
+    }
 
     /**
      * Returns the reply (outbound) stream id paired with the given initial stream id.
