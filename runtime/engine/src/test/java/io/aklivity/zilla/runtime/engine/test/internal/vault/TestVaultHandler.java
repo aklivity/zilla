@@ -53,7 +53,6 @@ import io.aklivity.zilla.config.engine.test.internal.vault.config.TestVaultEntry
 import io.aklivity.zilla.config.engine.test.internal.vault.config.TestVaultOptionsConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
-import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.vault.SecretKeyManager;
 import io.aklivity.zilla.runtime.engine.vault.SecretKeyManagerFactory;
 import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
@@ -121,64 +120,6 @@ public final class TestVaultHandler implements VaultHandler
         }
 
         return key;
-    }
-
-    @Override
-    public void wrap(
-        long traceId,
-        String key,
-        DirectBufferEx bytes,
-        int index,
-        int length,
-        BytesConsumer next)
-    {
-        SecretKey secretKey = wraps != null ? wraps.get(key) : null;
-
-        if (secretKey == null)
-        {
-            next.accept(null, 0, 0);
-        }
-        else
-        {
-            try
-            {
-                byte[] wrapped = wrapNamed(secretKey, key, bytes, index, length);
-                next.accept(new UnsafeBufferEx(wrapped), 0, wrapped.length);
-            }
-            catch (Exception ex)
-            {
-                next.accept(null, 0, 0);
-            }
-        }
-    }
-
-    @Override
-    public void unwrap(
-        long traceId,
-        DirectBufferEx bytes,
-        int index,
-        int length,
-        BytesConsumer next)
-    {
-        String key = nameOf(bytes, index, length);
-        SecretKey secretKey = key != null && wraps != null ? wraps.get(key) : null;
-
-        if (secretKey == null)
-        {
-            next.accept(null, 0, 0);
-        }
-        else
-        {
-            try
-            {
-                byte[] plaintext = unwrapNamed(secretKey, bytes, index, length);
-                next.accept(new UnsafeBufferEx(plaintext), 0, plaintext.length);
-            }
-            catch (Exception ex)
-            {
-                next.accept(null, 0, 0);
-            }
-        }
     }
 
     // wraps bytes with a length-prefixed copy of `key` ahead of the iv + ciphertext, so a

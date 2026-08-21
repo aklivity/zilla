@@ -50,72 +50,6 @@ public class TestVaultHandlerTest
         "-----END SECRET KEY-----";
 
     @Test
-    public void shouldRoundTripWrapAndUnwrap()
-    {
-        TestVaultHandler handler = newHandler();
-        byte[] plaintext = "super secret payload".getBytes(UTF_8);
-        DirectBufferEx source = new UnsafeBufferEx(plaintext);
-        CapturedResult wrapped = new CapturedResult();
-
-        handler.wrap(1L, "kek", source, 0, source.capacity(), wrapped::accept);
-
-        assertNotNull(wrapped.buffer);
-        assertNotEquals(plaintext.length, wrapped.length);
-
-        byte[] wrappedBytes = copyOf(wrapped);
-        DirectBufferEx wrappedBuffer = new UnsafeBufferEx(wrappedBytes);
-        CapturedResult unwrapped = new CapturedResult();
-
-        handler.unwrap(1L, wrappedBuffer, 0, wrappedBuffer.capacity(), unwrapped::accept);
-
-        assertNotNull(unwrapped.buffer);
-        assertArrayEquals(plaintext, copyOf(unwrapped));
-    }
-
-    @Test
-    public void shouldUnwrapEachOfMultipleNamedKeysWithoutExternalName()
-    {
-        TestVaultHandler handler = newHandlerWithTwoKeys();
-
-        byte[] plaintextA = "payload for kek".getBytes(UTF_8);
-        byte[] plaintextB = "payload for other-kek".getBytes(UTF_8);
-
-        CapturedResult wrappedA = new CapturedResult();
-        handler.wrap(1L, "kek", new UnsafeBufferEx(plaintextA), 0, plaintextA.length, wrappedA::accept);
-
-        CapturedResult wrappedB = new CapturedResult();
-        handler.wrap(1L, "other-kek", new UnsafeBufferEx(plaintextB), 0, plaintextB.length, wrappedB::accept);
-
-        CapturedResult unwrappedA = new CapturedResult();
-        handler.unwrap(1L, new UnsafeBufferEx(copyOf(wrappedA)), 0, wrappedA.length, unwrappedA::accept);
-
-        CapturedResult unwrappedB = new CapturedResult();
-        handler.unwrap(1L, new UnsafeBufferEx(copyOf(wrappedB)), 0, wrappedB.length, unwrappedB::accept);
-
-        assertArrayEquals(plaintextA, copyOf(unwrappedA));
-        assertArrayEquals(plaintextB, copyOf(unwrappedB));
-    }
-
-    @Test
-    public void shouldUnwrapWrappedBytesWithNoOtherContextThanTheBytesThemselves()
-    {
-        TestVaultHandler wrappingHandler = newHandler();
-        byte[] plaintext = "super secret payload".getBytes(UTF_8);
-        CapturedResult wrapped = new CapturedResult();
-
-        wrappingHandler.wrap(1L, "kek", new UnsafeBufferEx(plaintext), 0, plaintext.length, wrapped::accept);
-
-        // a distinct handler instance, built from the same declarative config, unwraps the
-        // bytes with no other context — the wrapped artifact alone is sufficient
-        TestVaultHandler unwrappingHandler = newHandler();
-        CapturedResult unwrapped = new CapturedResult();
-
-        unwrappingHandler.unwrap(1L, new UnsafeBufferEx(copyOf(wrapped)), 0, wrapped.length, unwrapped::accept);
-
-        assertArrayEquals(plaintext, copyOf(unwrapped));
-    }
-
-    @Test
     public void shouldRoundTripWrapAndUnwrapViaSecretKeyManager()
     {
         TestVaultHandler handler = newHandler();
@@ -142,6 +76,61 @@ public class TestVaultHandlerTest
     }
 
     @Test
+    public void shouldUnwrapEachOfMultipleNamedKeysWithoutExternalName()
+    {
+        TestVaultHandler handler = newHandlerWithTwoKeys();
+        SecretKeyManager manager = handler.initSecretKeys(List.of("kek", "other-kek")).getSecretKeyManager();
+
+        byte[] plaintextA = "payload for kek".getBytes(UTF_8);
+        byte[] plaintextB = "payload for other-kek".getBytes(UTF_8);
+
+        MutableDirectBufferEx wrappedA = new UnsafeBufferEx(new byte[128]);
+        int wrappedALength = manager.wrap("kek", new UnsafeBufferEx(plaintextA), 0, plaintextA.length, wrappedA, 0);
+
+        MutableDirectBufferEx wrappedB = new UnsafeBufferEx(new byte[128]);
+        int wrappedBLength =
+            manager.wrap("other-kek", new UnsafeBufferEx(plaintextB), 0, plaintextB.length, wrappedB, 0);
+
+        MutableDirectBufferEx unwrappedA = new UnsafeBufferEx(new byte[128]);
+        int unwrappedALength = manager.unwrap(wrappedA, 0, wrappedALength, unwrappedA, 0);
+
+        MutableDirectBufferEx unwrappedB = new UnsafeBufferEx(new byte[128]);
+        int unwrappedBLength = manager.unwrap(wrappedB, 0, wrappedBLength, unwrappedB, 0);
+
+        byte[] roundTrippedA = new byte[unwrappedALength];
+        unwrappedA.getBytes(0, roundTrippedA);
+        byte[] roundTrippedB = new byte[unwrappedBLength];
+        unwrappedB.getBytes(0, roundTrippedB);
+
+        assertArrayEquals(plaintextA, roundTrippedA);
+        assertArrayEquals(plaintextB, roundTrippedB);
+    }
+
+    @Test
+    public void shouldUnwrapWrappedBytesWithNoOtherContextThanTheBytesThemselves()
+    {
+        TestVaultHandler wrappingHandler = newHandler();
+        SecretKeyManager wrappingManager = wrappingHandler.initSecretKeys(List.of("kek")).getSecretKeyManager();
+
+        byte[] plaintext = "super secret payload".getBytes(UTF_8);
+        MutableDirectBufferEx wrapped = new UnsafeBufferEx(new byte[128]);
+        int wrappedLength =
+            wrappingManager.wrap("kek", new UnsafeBufferEx(plaintext), 0, plaintext.length, wrapped, 0);
+
+        // a distinct handler instance, built from the same declarative config, unwraps the
+        // bytes with no other context — the wrapped artifact alone is sufficient
+        TestVaultHandler unwrappingHandler = newHandler();
+        SecretKeyManager unwrappingManager = unwrappingHandler.initSecretKeys(List.of("kek")).getSecretKeyManager();
+
+        MutableDirectBufferEx unwrapped = new UnsafeBufferEx(new byte[128]);
+        int unwrappedLength = unwrappingManager.unwrap(wrapped, 0, wrappedLength, unwrapped, 0);
+
+        byte[] roundTripped = new byte[unwrappedLength];
+        unwrapped.getBytes(0, roundTripped);
+        assertArrayEquals(plaintext, roundTripped);
+    }
+
+    @Test
     public void shouldNotInitSecretKeysForUnknownAlias()
     {
         TestVaultHandler handler = newHandler();
@@ -154,71 +143,50 @@ public class TestVaultHandlerTest
     public void shouldFailWrapWithUnknownAlias()
     {
         TestVaultHandler handler = newHandler();
+        SecretKeyManager manager = handler.initSecretKeys(List.of("kek")).getSecretKeyManager();
         DirectBufferEx source = new UnsafeBufferEx("payload".getBytes(UTF_8));
-        CapturedResult captured = new CapturedResult();
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[128]);
 
-        handler.wrap(1L, "unknown", source, 0, source.capacity(), captured::accept);
-
-        assertNull(captured.buffer);
-        assertEquals(0, captured.index);
-        assertEquals(0, captured.length);
+        assertEquals(-1, manager.wrap("unknown", source, 0, source.capacity(), dst, 0));
     }
 
     @Test
     public void shouldFailUnwrapWithForeignBytes()
     {
         TestVaultHandler handler = newHandler();
+        SecretKeyManager manager = handler.initSecretKeys(List.of("kek")).getSecretKeyManager();
         DirectBufferEx source = new UnsafeBufferEx("payload".getBytes(UTF_8));
-        CapturedResult captured = new CapturedResult();
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[128]);
 
-        handler.unwrap(1L, source, 0, source.capacity(), captured::accept);
-
-        assertNull(captured.buffer);
-        assertEquals(0, captured.index);
-        assertEquals(0, captured.length);
+        assertEquals(-1, manager.unwrap(source, 0, source.capacity(), dst, 0));
     }
 
     @Test
     public void shouldFailUnwrapWithTamperedCiphertext()
     {
         TestVaultHandler handler = newHandler();
+        SecretKeyManager manager = handler.initSecretKeys(List.of("kek")).getSecretKeyManager();
         DirectBufferEx source = new UnsafeBufferEx("payload".getBytes(UTF_8));
-        CapturedResult wrapped = new CapturedResult();
+        MutableDirectBufferEx wrapped = new UnsafeBufferEx(new byte[128]);
 
-        handler.wrap(1L, "kek", source, 0, source.capacity(), wrapped::accept);
-
-        byte[] tampered = copyOf(wrapped);
+        int wrappedLength = manager.wrap("kek", source, 0, source.capacity(), wrapped, 0);
+        byte[] tampered = new byte[wrappedLength];
+        wrapped.getBytes(0, tampered);
         tampered[tampered.length - 1] ^= (byte) 0xFF;
-        DirectBufferEx tamperedBuffer = new UnsafeBufferEx(tampered);
-        CapturedResult unwrapped = new CapturedResult();
 
-        handler.unwrap(1L, tamperedBuffer, 0, tamperedBuffer.capacity(), unwrapped::accept);
-
-        assertNull(unwrapped.buffer);
-        assertEquals(0, unwrapped.index);
-        assertEquals(0, unwrapped.length);
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[128]);
+        assertEquals(-1, manager.unwrap(new UnsafeBufferEx(tampered), 0, tampered.length, dst, 0));
     }
 
     @Test
     public void shouldFailUnwrapWithTruncatedInput()
     {
         TestVaultHandler handler = newHandler();
+        SecretKeyManager manager = handler.initSecretKeys(List.of("kek")).getSecretKeyManager();
         DirectBufferEx source = new UnsafeBufferEx(new byte[] { 0x01, 0x02, 0x03 });
-        CapturedResult captured = new CapturedResult();
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[128]);
 
-        handler.unwrap(1L, source, 0, source.capacity(), captured::accept);
-
-        assertNull(captured.buffer);
-        assertEquals(0, captured.index);
-        assertEquals(0, captured.length);
-    }
-
-    private static byte[] copyOf(
-        CapturedResult captured)
-    {
-        byte[] copy = new byte[captured.length];
-        captured.buffer.getBytes(captured.index, copy);
-        return copy;
+        assertEquals(-1, manager.unwrap(source, 0, source.capacity(), dst, 0));
     }
 
     private static TestVaultHandler newHandler()
@@ -246,22 +214,5 @@ public class TestVaultHandlerTest
                 .build())
             .build();
         return new TestVaultHandler(vault);
-    }
-
-    private static final class CapturedResult
-    {
-        private DirectBufferEx buffer;
-        private int index;
-        private int length;
-
-        private void accept(
-            DirectBufferEx buffer,
-            int index,
-            int length)
-        {
-            this.buffer = buffer;
-            this.index = index;
-            this.length = length;
-        }
     }
 }

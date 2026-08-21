@@ -314,15 +314,16 @@ public class FileSystemVaultTest
             .build();
 
         FileSystemVaultHandler vault = new FileSystemVaultHandler(options, FileSystemVaultTest::resourcePath);
+        SecretKeyManager manager = manager(vault, "app-key");
 
         byte[] plaintext = "top secret payload".getBytes(StandardCharsets.UTF_8);
-        Captured wrapped = wrap(vault, "app-key", plaintext);
+        Captured wrapped = wrap(manager, "app-key", plaintext);
 
-        assertThat(wrapped.buffer, not(nullValue()));
+        assertThat(wrapped.length, not(equalTo(-1)));
 
-        Captured unwrapped = unwrap(vault, wrapped.bytes());
+        Captured unwrapped = unwrap(manager, wrapped.bytes());
 
-        assertThat(unwrapped.buffer, not(nullValue()));
+        assertThat(unwrapped.length, not(equalTo(-1)));
         assertArrayEquals(plaintext, unwrapped.bytes());
     }
 
@@ -344,9 +345,9 @@ public class FileSystemVaultTest
         FileSystemVaultHandler vault = new FileSystemVaultHandler(options, FileSystemVaultTest::resourcePath);
 
         byte[] plaintext = "session secret".getBytes(StandardCharsets.UTF_8);
-        Captured wrapped = wrap(vault, "session-key", plaintext);
+        Captured wrapped = wrap(manager(vault, "session-key"), "session-key", plaintext);
 
-        assertThat(wrapped.buffer, not(nullValue()));
+        assertThat(wrapped.length, not(equalTo(-1)));
 
         // a vault instance that only knows version 2 still unwraps it, proving the active
         // version (2) — not version 1 — was the one embedded by the wrap above
@@ -364,7 +365,7 @@ public class FileSystemVaultTest
         FileSystemVaultHandler vaultOnlyVersionTwo =
             new FileSystemVaultHandler(onlyVersionTwo, FileSystemVaultTest::resourcePath);
 
-        Captured unwrapped = unwrap(vaultOnlyVersionTwo, wrapped.bytes());
+        Captured unwrapped = unwrap(manager(vaultOnlyVersionTwo, "session-key"), wrapped.bytes());
         assertArrayEquals(plaintext, unwrapped.bytes());
     }
 
@@ -386,7 +387,7 @@ public class FileSystemVaultTest
             new FileSystemVaultHandler(beforeRotation, FileSystemVaultTest::resourcePath);
 
         byte[] plaintext = "session secret v1".getBytes(StandardCharsets.UTF_8);
-        Captured wrappedBeforeRotation = wrap(vaultBeforeRotation, "session-key", plaintext);
+        Captured wrappedBeforeRotation = wrap(manager(vaultBeforeRotation, "session-key"), "session-key", plaintext);
 
         FileSystemOptionsConfig afterRotation = FileSystemOptionsConfig.builder()
             .secrets()
@@ -402,9 +403,9 @@ public class FileSystemVaultTest
 
         FileSystemVaultHandler vaultAfterRotation = new FileSystemVaultHandler(afterRotation, FileSystemVaultTest::resourcePath);
 
-        Captured unwrapped = unwrap(vaultAfterRotation, wrappedBeforeRotation.bytes());
+        Captured unwrapped = unwrap(manager(vaultAfterRotation, "session-key"), wrappedBeforeRotation.bytes());
 
-        assertThat(unwrapped.buffer, not(nullValue()));
+        assertThat(unwrapped.length, not(equalTo(-1)));
         assertArrayEquals(plaintext, unwrapped.bytes());
     }
 
@@ -424,15 +425,15 @@ public class FileSystemVaultTest
             .build();
 
         FileSystemVaultHandler vault = new FileSystemVaultHandler(options, FileSystemVaultTest::resourcePath);
+        SecretKeyManager manager = manager(vault, "session-key");
 
-        Captured wrapped = wrap(vault, "session-key", "session secret".getBytes(StandardCharsets.UTF_8));
+        Captured wrapped = wrap(manager, "session-key", "session secret".getBytes(StandardCharsets.UTF_8));
         byte[] corrupted = wrapped.bytes();
         corruptEmbeddedVersion(corrupted, "session-key", 9);
 
-        Captured unwrapped = unwrap(vault, corrupted);
+        Captured unwrapped = unwrap(manager, corrupted);
 
-        assertThat(unwrapped.buffer, nullValue());
-        assertThat(unwrapped.length, equalTo(0));
+        assertThat(unwrapped.length, equalTo(-1));
     }
 
     @Test
@@ -449,16 +450,16 @@ public class FileSystemVaultTest
             .build();
 
         FileSystemVaultHandler vault = new FileSystemVaultHandler(options, FileSystemVaultTest::resourcePath);
+        SecretKeyManager manager = manager(vault, "app-key");
 
-        Captured wrapped = wrap(vault, "app-key", "top secret payload".getBytes(StandardCharsets.UTF_8));
+        Captured wrapped = wrap(manager, "app-key", "top secret payload".getBytes(StandardCharsets.UTF_8));
         byte[] foreign = wrapped.bytes();
         // rewrite the embedded name to one this vault does not manage, without changing its length
         System.arraycopy("unknown-key".getBytes(StandardCharsets.UTF_8), 0, foreign, Integer.BYTES, "app-key".length());
 
-        Captured unwrapped = unwrap(vault, foreign);
+        Captured unwrapped = unwrap(manager, foreign);
 
-        assertThat(unwrapped.buffer, nullValue());
-        assertThat(unwrapped.length, equalTo(0));
+        assertThat(unwrapped.length, equalTo(-1));
     }
 
     @Test
@@ -476,10 +477,10 @@ public class FileSystemVaultTest
 
         FileSystemVaultHandler vault = new FileSystemVaultHandler(options, FileSystemVaultTest::resourcePath);
 
-        Captured unwrapped = unwrap(vault, "not a wrapped secret at all, just garbage".getBytes(StandardCharsets.UTF_8));
+        byte[] garbage = "not a wrapped secret at all, just garbage".getBytes(StandardCharsets.UTF_8);
+        Captured unwrapped = unwrap(manager(vault, "app-key"), garbage);
 
-        assertThat(unwrapped.buffer, nullValue());
-        assertThat(unwrapped.length, equalTo(0));
+        assertThat(unwrapped.length, equalTo(-1));
     }
 
     @Test
@@ -499,15 +500,16 @@ public class FileSystemVaultTest
             .build();
 
         FileSystemVaultHandler vault = new FileSystemVaultHandler(options, FileSystemVaultTest::resourcePath);
+        SecretKeyManager manager = manager(vault, "key-128", "key-256");
 
         byte[] plaintextA = "payload for key-128".getBytes(StandardCharsets.UTF_8);
         byte[] plaintextB = "payload for key-256".getBytes(StandardCharsets.UTF_8);
 
-        Captured wrappedA = wrap(vault, "key-128", plaintextA);
-        Captured wrappedB = wrap(vault, "key-256", plaintextB);
+        Captured wrappedA = wrap(manager, "key-128", plaintextA);
+        Captured wrappedB = wrap(manager, "key-256", plaintextB);
 
-        assertArrayEquals(plaintextA, unwrap(vault, wrappedA.bytes()).bytes());
-        assertArrayEquals(plaintextB, unwrap(vault, wrappedB.bytes()).bytes());
+        assertArrayEquals(plaintextA, unwrap(manager, wrappedA.bytes()).bytes());
+        assertArrayEquals(plaintextB, unwrap(manager, wrappedB.bytes()).bytes());
     }
 
     @Test
@@ -525,12 +527,12 @@ public class FileSystemVaultTest
 
         FileSystemVaultHandler wrappingVault = new FileSystemVaultHandler(options, FileSystemVaultTest::resourcePath);
         byte[] plaintext = "top secret payload".getBytes(StandardCharsets.UTF_8);
-        Captured wrapped = wrap(wrappingVault, "app-key", plaintext);
+        Captured wrapped = wrap(manager(wrappingVault, "app-key"), "app-key", plaintext);
 
         // a distinct vault instance, backed by the same secrets store, unwraps the bytes with
         // no other context — the wrapped artifact alone is sufficient
         FileSystemVaultHandler unwrappingVault = new FileSystemVaultHandler(options, FileSystemVaultTest::resourcePath);
-        Captured unwrapped = unwrap(unwrappingVault, wrapped.bytes());
+        Captured unwrapped = unwrap(manager(unwrappingVault, "app-key"), wrapped.bytes());
 
         assertArrayEquals(plaintext, unwrapped.bytes());
     }
@@ -551,7 +553,7 @@ public class FileSystemVaultTest
         FileSystemVaultHandler plainVault = new FileSystemVaultHandler(plainString, FileSystemVaultTest::resourcePath);
 
         byte[] plaintext = "app secret".getBytes(StandardCharsets.UTF_8);
-        Captured wrapped = wrap(plainVault, "app-key", plaintext);
+        Captured wrapped = wrap(manager(plainVault, "app-key"), "app-key", plaintext);
 
         FileSystemOptionsConfig promoted = FileSystemOptionsConfig.builder()
             .secrets()
@@ -566,9 +568,9 @@ public class FileSystemVaultTest
 
         FileSystemVaultHandler promotedVault = new FileSystemVaultHandler(promoted, FileSystemVaultTest::resourcePath);
 
-        Captured unwrapped = unwrap(promotedVault, wrapped.bytes());
+        Captured unwrapped = unwrap(manager(promotedVault, "app-key"), wrapped.bytes());
 
-        assertThat(unwrapped.buffer, not(nullValue()));
+        assertThat(unwrapped.length, not(equalTo(-1)));
         assertArrayEquals(plaintext, unwrapped.bytes());
     }
 
@@ -589,17 +591,18 @@ public class FileSystemVaultTest
             .build();
 
         FileSystemVaultHandler vault = new FileSystemVaultHandler(options, FileSystemVaultTest::resourcePath);
+        SecretKeyManager manager = manager(vault, "key-128", "key-256");
 
         byte[] plaintext = "secret".getBytes(StandardCharsets.UTF_8);
 
-        Captured wrapped128 = wrap(vault, "key-128", plaintext);
-        Captured wrapped256 = wrap(vault, "key-256", plaintext);
+        Captured wrapped128 = wrap(manager, "key-128", plaintext);
+        Captured wrapped256 = wrap(manager, "key-256", plaintext);
 
-        assertThat(wrapped128.buffer, not(nullValue()));
-        assertThat(wrapped256.buffer, not(nullValue()));
+        assertThat(wrapped128.length, not(equalTo(-1)));
+        assertThat(wrapped256.length, not(equalTo(-1)));
 
-        assertArrayEquals(plaintext, unwrap(vault, wrapped128.bytes()).bytes());
-        assertArrayEquals(plaintext, unwrap(vault, wrapped256.bytes()).bytes());
+        assertArrayEquals(plaintext, unwrap(manager, wrapped128.bytes()).bytes());
+        assertArrayEquals(plaintext, unwrap(manager, wrapped256.bytes()).bytes());
     }
 
     @Test
@@ -617,9 +620,9 @@ public class FileSystemVaultTest
 
         FileSystemVaultHandler vault = new FileSystemVaultHandler(options, FileSystemVaultTest::resourcePath);
 
-        Captured wrapped = wrap(vault, "wide-key", "secret".getBytes(StandardCharsets.UTF_8));
+        Captured wrapped = wrap(manager(vault, "wide-key"), "wide-key", "secret".getBytes(StandardCharsets.UTF_8));
 
-        assertThat(wrapped.buffer, nullValue());
+        assertThat(wrapped.length, equalTo(-1));
     }
 
     @Test
@@ -638,12 +641,13 @@ public class FileSystemVaultTest
             .build();
 
         FileSystemVaultHandler vault = new FileSystemVaultHandler(options, FileSystemVaultTest::resourcePath);
+        SecretKeyManager manager = manager(vault, "wide-key");
 
         byte[] plaintext = "secret".getBytes(StandardCharsets.UTF_8);
-        Captured wrapped = wrap(vault, "wide-key", plaintext);
+        Captured wrapped = wrap(manager, "wide-key", plaintext);
 
-        assertThat(wrapped.buffer, not(nullValue()));
-        assertArrayEquals(plaintext, unwrap(vault, wrapped.bytes()).bytes());
+        assertThat(wrapped.length, not(equalTo(-1)));
+        assertArrayEquals(plaintext, unwrap(manager, wrapped.bytes()).bytes());
     }
 
     @Test
@@ -661,22 +665,10 @@ public class FileSystemVaultTest
 
         FileSystemVaultHandler vault = new FileSystemVaultHandler(options, FileSystemVaultTest::resourcePath);
 
-        Captured wrapped = wrap(vault, "unknown-key", "secret".getBytes(StandardCharsets.UTF_8));
+        // "unknown-key" is not even a configured secret, let alone permitted for this manager
+        Captured wrapped = wrap(manager(vault, "app-key"), "unknown-key", "secret".getBytes(StandardCharsets.UTF_8));
 
-        assertThat(wrapped.buffer, nullValue());
-    }
-
-    @Test
-    public void shouldFailWrapWhenSecretsNotConfigured() throws Exception
-    {
-        FileSystemOptionsConfig options = FileSystemOptionsConfig.builder()
-            .build();
-
-        FileSystemVaultHandler vault = new FileSystemVaultHandler(options, FileSystemVaultTest::resourcePath);
-
-        Captured wrapped = wrap(vault, "app-key", "secret".getBytes(StandardCharsets.UTF_8));
-
-        assertThat(wrapped.buffer, nullValue());
+        assertThat(wrapped.length, equalTo(-1));
     }
 
     @Test
@@ -747,7 +739,8 @@ public class FileSystemVaultTest
         // bytes wrapped under "session-key" (not permitted for this manager) embed that
         // identity themselves; the manager must reject them on unwrap even with no key
         // argument to check against its permitted set
-        Captured wrappedUnderSessionKey = wrap(vault, "session-key", "payload".getBytes(StandardCharsets.UTF_8));
+        Captured wrappedUnderSessionKey =
+            wrap(manager(vault, "session-key"), "session-key", "payload".getBytes(StandardCharsets.UTF_8));
         DirectBufferEx foreignWrapped = new UnsafeBufferEx(wrappedUnderSessionKey.bytes());
 
         assertThat(manager.unwrap(foreignWrapped, 0, foreignWrapped.capacity(), dst, 0), equalTo(-1));
@@ -786,25 +779,33 @@ public class FileSystemVaultTest
         assertThat(factory, nullValue());
     }
 
-    private static Captured wrap(
+    private static SecretKeyManager manager(
         FileSystemVaultHandler vault,
+        String... keys)
+    {
+        SecretKeyManagerFactory factory = vault.initSecretKeys(List.of(keys));
+        return factory != null ? factory.getSecretKeyManager() : null;
+    }
+
+    private static Captured wrap(
+        SecretKeyManager manager,
         String key,
         byte[] plaintext)
     {
-        Captured captured = new Captured();
-        DirectBufferEx bytes = new UnsafeBufferEx(plaintext);
-        vault.wrap(1L, key, bytes, 0, bytes.capacity(), captured::accept);
-        return captured;
+        DirectBufferEx source = new UnsafeBufferEx(plaintext);
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
+        int length = manager != null ? manager.wrap(key, source, 0, source.capacity(), dst, 0) : -1;
+        return new Captured(dst, length);
     }
 
     private static Captured unwrap(
-        FileSystemVaultHandler vault,
+        SecretKeyManager manager,
         byte[] wrapped)
     {
-        Captured captured = new Captured();
-        DirectBufferEx bytes = new UnsafeBufferEx(wrapped);
-        vault.unwrap(1L, bytes, 0, bytes.capacity(), captured::accept);
-        return captured;
+        DirectBufferEx source = new UnsafeBufferEx(wrapped);
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
+        int length = manager != null ? manager.unwrap(source, 0, source.capacity(), dst, 0) : -1;
+        return new Captured(dst, length);
     }
 
     private static void corruptEmbeddedVersion(
@@ -829,29 +830,24 @@ public class FileSystemVaultTest
 
     private static final class Captured
     {
-        private DirectBufferEx buffer;
-        private int index;
-        private int length;
-        private byte[] copy;
+        private final MutableDirectBufferEx buffer;
+        private final int length;
 
-        private void accept(
-            DirectBufferEx buffer,
-            int index,
+        private Captured(
+            MutableDirectBufferEx buffer,
             int length)
         {
             this.buffer = buffer;
-            this.index = index;
             this.length = length;
-
-            this.copy = new byte[length];
-            if (buffer != null)
-            {
-                buffer.getBytes(index, copy, 0, length);
-            }
         }
 
         private byte[] bytes()
         {
+            byte[] copy = new byte[Math.max(length, 0)];
+            if (length >= 0)
+            {
+                buffer.getBytes(0, copy);
+            }
             return copy;
         }
     }
