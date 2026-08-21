@@ -714,6 +714,7 @@ public final class HttpServerFactory implements HttpStreamFactory
         MessageConsumer sender,
         long originId,
         long routedId,
+        long redirectedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -733,6 +734,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 .traceId(traceId)
                 .authorization(authorization)
                 .affinity(affinity)
+                .redirectedId(redirectedId)
                 .extension(extension.buffer(), extension.offset(), extension.sizeof())
                 .build();
 
@@ -2852,7 +2854,7 @@ public final class HttpServerFactory implements HttpStreamFactory
         private final class HttpExchange
         {
             private final long originId;
-            private final long routedId;
+            private long routedId;
             private final long traceId;
             private final long sessionId;
             private final HttpPolicyConfig policy;
@@ -2924,8 +2926,8 @@ public final class HttpServerFactory implements HttpStreamFactory
                 requestSeq = 0;
                 requestAck = requestSeq;
 
-                application = newStream(this::onExchange, originId, routedId, requestId, requestSeq, requestAck, requestMax,
-                    traceId, sessionId, affinity, extension);
+                application = newStream(this::onExchange, originId, routedId, 0L, requestId, requestSeq, requestAck,
+                    requestMax, traceId, sessionId, affinity, extension);
             }
 
             private int doRequestData(
@@ -3119,12 +3121,15 @@ public final class HttpServerFactory implements HttpStreamFactory
 
                 clear();
 
+                final long redirectedId = routedId;
+                routedId = context.resolveRoutedId(redirectedId, newAffinity);
+
                 requestId = context.supplyInitialId(routedId, newAffinity);
                 responseId = supplyReplyId.applyAsLong(requestId);
                 affinity = newAffinity;
 
-                application = newStream(this::onExchange, originId, routedId, requestId, requestSeq, requestAck, requestMax,
-                    traceId, sessionId, affinity, extension);
+                application = newStream(this::onExchange, originId, routedId, redirectedId, requestId, requestSeq,
+                    requestAck, requestMax, traceId, sessionId, affinity, extension);
 
                 if (wasRequestClosed)
                 {
@@ -6016,7 +6021,7 @@ public final class HttpServerFactory implements HttpStreamFactory
         private final class Http2Exchange
         {
             private final long originId;
-            private final long routedId;
+            private long routedId;
             private final long traceId;
             private final int streamId;
             private final long sessionId;
@@ -6100,8 +6105,8 @@ public final class HttpServerFactory implements HttpStreamFactory
                 assert state == 0;
                 state = HttpState.openingInitial(state);
 
-                application = newStream(this::onExchange, originId, routedId, requestId, requestSeq, requestAck, requestMax,
-                    traceId, sessionId, affinity, extension);
+                application = newStream(this::onExchange, originId, routedId, 0L, requestId, requestSeq, requestAck,
+                    requestMax, traceId, sessionId, affinity, extension);
                 streams.put(streamId, this);
                 streamsActive[streamId & 0x01]++;
                 applicationHeadersProcessed.add(streamId);
@@ -6298,14 +6303,17 @@ public final class HttpServerFactory implements HttpStreamFactory
 
                 clear();
 
+                final long redirectedId = routedId;
+                routedId = context.resolveRoutedId(redirectedId, newAffinity);
+
                 requestId = context.supplyInitialId(routedId, newAffinity);
                 responseId = supplyReplyId.applyAsLong(requestId);
                 affinity = newAffinity;
                 state = HttpState.openingInitial(state);
                 localBudget = localSettings.initialWindowSize;
 
-                application = newStream(this::onExchange, originId, routedId, requestId, requestSeq, requestAck, requestMax,
-                    traceId, sessionId, affinity, extension);
+                application = newStream(this::onExchange, originId, routedId, redirectedId, requestId, requestSeq,
+                    requestAck, requestMax, traceId, sessionId, affinity, extension);
                 streams.put(streamId, this);
 
                 onResponseWindowUpdate(traceId, sessionId, remoteSettings.initialWindowSize);

@@ -29,6 +29,7 @@ import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
+import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
 public class McpProxyIT
 {
@@ -76,7 +77,9 @@ public class McpProxyIT
     @Specification({
         "${app}/lifecycle.shutdown.requests/client",
         "${app}/lifecycle.shutdown.requests/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
+    @Configure(name = MCP_SESSION_ID_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyIT::sessionIdExternal")
     public void shouldShutdownLifecycleRequests() throws Exception
     {
         k3po.finish();
@@ -98,7 +101,9 @@ public class McpProxyIT
     @Specification({
         "${app}/tools.call/client",
         "${app}/tools.call/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
+    @Configure(name = MCP_SESSION_ID_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyIT::sessionIdExternal")
     public void shouldCallTool() throws Exception
     {
         k3po.finish();
@@ -109,7 +114,9 @@ public class McpProxyIT
     @Specification({
         "${app}/tools.call.is.error/client",
         "${app}/tools.call.is.error/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
+    @Configure(name = MCP_SESSION_ID_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyIT::sessionIdExternal")
     public void shouldCallToolIsError() throws Exception
     {
         k3po.finish();
@@ -120,7 +127,9 @@ public class McpProxyIT
     @Specification({
         "${app}/tools.call.aborted/client",
         "${app}/tools.call.aborted/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
+    @Configure(name = MCP_SESSION_ID_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyIT::sessionIdExternal")
     public void shouldAbortCallTool() throws Exception
     {
         k3po.finish();
@@ -131,7 +140,7 @@ public class McpProxyIT
     @Specification({
         "${app}/tools.call.toolkit.prefixed/client",
         "${app}/tools.call.toolkit/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
     public void shouldCallToolWithToolkit() throws Exception
     {
         k3po.finish();
@@ -142,7 +151,7 @@ public class McpProxyIT
     @Specification({
         "${app}/tools.call.toolkit.prefixed.fragmented/client",
         "${app}/tools.call.toolkit/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
     public void shouldCallToolWithToolkitFragmented() throws Exception
     {
         k3po.finish();
@@ -164,7 +173,9 @@ public class McpProxyIT
     @Specification({
         "${app}/tools.list/client",
         "${app}/tools.list/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
+    @Configure(name = MCP_SESSION_ID_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyIT::sessionIdExternal")
     public void shouldListTools() throws Exception
     {
         k3po.finish();
@@ -175,7 +186,7 @@ public class McpProxyIT
     @Specification({
         "${app}/tools.list.toolkit.prefixed/client",
         "${app}/tools.list.toolkit/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
     public void shouldListToolsWithToolkit() throws Exception
     {
         k3po.finish();
@@ -186,7 +197,9 @@ public class McpProxyIT
     @Specification({
         "${app}/tools.list.toolkit.filtered/client",
         "${app}/tools.list.toolkit.filtered/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
+    @Configure(name = MCP_SESSION_ID_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyIT::sessionIdExternal")
     public void shouldListToolsFilteredByAllowSet() throws Exception
     {
         k3po.finish();
@@ -197,6 +210,7 @@ public class McpProxyIT
     @Specification({
         "${app}/tools.list.toolkit.multi.prefixed/client",
         "${app}/tools.list.toolkit.multi/server" })
+    @ScriptProperty("affinity \"0000003f\"")
     public void shouldListToolsWithToolkitMulti() throws Exception
     {
         k3po.finish();
@@ -217,6 +231,7 @@ public class McpProxyIT
     @Specification({
         "${app}/lifecycle.notify.tools.list.changed.toolkit.multi.prefixed/client",
         "${app}/lifecycle.notify.tools.list.changed.toolkit.multi/server" })
+    @ScriptProperty("affinity \"0000003f\"")
     public void shouldNotifyToolsListChangedWithAggregateEventId() throws Exception
     {
         k3po.finish();
@@ -262,6 +277,7 @@ public class McpProxyIT
     @Specification({
         "${app}/tools.list.partial.toolkit.multi.prefixed/client",
         "${app}/tools.list.partial.toolkit.multi/server" })
+    @ScriptProperty("affinity \"0000003f\"")
     public void shouldListToolsWithPartialToolkitMulti() throws Exception
     {
         k3po.finish();
@@ -272,6 +288,7 @@ public class McpProxyIT
     @Specification({
         "${app}/lifecycle.notify.tools.list.changed.after.authorize.toolkit.multi.prefixed/client",
         "${app}/lifecycle.notify.tools.list.changed.after.authorize.toolkit.multi/server" })
+    @ScriptProperty("affinity \"0000003f\"")
     public void shouldNotifyToolsListChangedAfterAuthorizeToolkitMulti() throws Exception
     {
         k3po.finish();
@@ -302,7 +319,9 @@ public class McpProxyIT
     @Specification({
         "${app}/prompts.get/client",
         "${app}/prompts.get/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
+    @Configure(name = MCP_SESSION_ID_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyIT::sessionIdExternal")
     public void shouldGetPrompt() throws Exception
     {
         k3po.finish();
@@ -313,7 +332,7 @@ public class McpProxyIT
     @Specification({
         "${app}/prompts.get.toolkit.prefixed/client",
         "${app}/prompts.get.toolkit/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
     public void shouldGetPromptWithToolkit() throws Exception
     {
         k3po.finish();
@@ -324,7 +343,9 @@ public class McpProxyIT
     @Specification({
         "${app}/prompts.list/client",
         "${app}/prompts.list/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
+    @Configure(name = MCP_SESSION_ID_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyIT::sessionIdExternal")
     public void shouldListPrompts() throws Exception
     {
         k3po.finish();
@@ -335,7 +356,7 @@ public class McpProxyIT
     @Specification({
         "${app}/prompts.list.toolkit.prefixed/client",
         "${app}/prompts.list.toolkit/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
     public void shouldListPromptsWithToolkit() throws Exception
     {
         k3po.finish();
@@ -346,6 +367,7 @@ public class McpProxyIT
     @Specification({
         "${app}/prompts.list.toolkit.multi.prefixed/client",
         "${app}/prompts.list.toolkit.multi/server" })
+    @ScriptProperty("affinity \"0000003f\"")
     public void shouldListPromptsWithToolkitMulti() throws Exception
     {
         k3po.finish();
@@ -356,7 +378,9 @@ public class McpProxyIT
     @Specification({
         "${app}/resources.read/client",
         "${app}/resources.read/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
+    @Configure(name = MCP_SESSION_ID_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyIT::sessionIdExternal")
     public void shouldReadResource() throws Exception
     {
         k3po.finish();
@@ -367,7 +391,9 @@ public class McpProxyIT
     @Specification({
         "${app}/resources.subscribe/client",
         "${app}/resources.subscribe/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
+    @Configure(name = MCP_SESSION_ID_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyIT::sessionIdExternal")
     public void shouldSubscribeToResource() throws Exception
     {
         k3po.finish();
@@ -378,7 +404,9 @@ public class McpProxyIT
     @Specification({
         "${app}/resources.unsubscribe/client",
         "${app}/resources.unsubscribe/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
+    @Configure(name = MCP_SESSION_ID_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyIT::sessionIdExternal")
     public void shouldUnsubscribeFromResource() throws Exception
     {
         k3po.finish();
@@ -389,7 +417,7 @@ public class McpProxyIT
     @Specification({
         "${app}/resources.read.toolkit.prefixed/client",
         "${app}/resources.read.toolkit/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
     public void shouldReadResourceWithToolkit() throws Exception
     {
         k3po.finish();
@@ -400,7 +428,9 @@ public class McpProxyIT
     @Specification({
         "${app}/resources.list/client",
         "${app}/resources.list/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
+    @Configure(name = MCP_SESSION_ID_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyIT::sessionIdExternal")
     public void shouldListResources() throws Exception
     {
         k3po.finish();
@@ -411,7 +441,9 @@ public class McpProxyIT
     @Specification({
         "${app}/resources.templates.list/client",
         "${app}/resources.templates.list/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
+    @Configure(name = MCP_SESSION_ID_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyIT::sessionIdExternal")
     public void shouldListResourcesTemplates() throws Exception
     {
         k3po.finish();
@@ -422,7 +454,7 @@ public class McpProxyIT
     @Specification({
         "${app}/resources.list.toolkit.prefixed/client",
         "${app}/resources.list.toolkit/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
     public void shouldListResourcesWithToolkit() throws Exception
     {
         k3po.finish();
@@ -433,6 +465,7 @@ public class McpProxyIT
     @Specification({
         "${app}/resources.list.toolkit.multi.prefixed/client",
         "${app}/resources.list.toolkit.multi/server" })
+    @ScriptProperty("affinity \"0000003f\"")
     public void shouldListResourcesWithToolkitMulti() throws Exception
     {
         k3po.finish();
@@ -443,7 +476,9 @@ public class McpProxyIT
     @Specification({
         "${app}/tools.list.aborted/client",
         "${app}/tools.list.aborted/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
+    @Configure(name = MCP_SESSION_ID_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyIT::sessionIdExternal")
     public void shouldAbortToolsList() throws Exception
     {
         k3po.finish();
@@ -454,7 +489,9 @@ public class McpProxyIT
     @Specification({
         "${app}/tools.list.canceled/client",
         "${app}/tools.list.canceled/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
+    @Configure(name = MCP_SESSION_ID_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyIT::sessionIdExternal")
     public void shouldListToolsThenCancel() throws Exception
     {
         k3po.finish();
@@ -465,7 +502,9 @@ public class McpProxyIT
     @Specification({
         "${app}/prompts.list.aborted/client",
         "${app}/prompts.list.aborted/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
+    @Configure(name = MCP_SESSION_ID_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyIT::sessionIdExternal")
     public void shouldAbortListPrompts() throws Exception
     {
         k3po.finish();
@@ -476,7 +515,9 @@ public class McpProxyIT
     @Specification({
         "${app}/prompts.get.aborted/client",
         "${app}/prompts.get.aborted/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
+    @Configure(name = MCP_SESSION_ID_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyIT::sessionIdExternal")
     public void shouldAbortGetPrompt() throws Exception
     {
         k3po.finish();
@@ -487,7 +528,9 @@ public class McpProxyIT
     @Specification({
         "${app}/resources.list.aborted/client",
         "${app}/resources.list.aborted/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
+    @Configure(name = MCP_SESSION_ID_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyIT::sessionIdExternal")
     public void shouldAbortListResources() throws Exception
     {
         k3po.finish();
@@ -498,7 +541,9 @@ public class McpProxyIT
     @Specification({
         "${app}/resources.templates.list.aborted/client",
         "${app}/resources.templates.list.aborted/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
+    @Configure(name = MCP_SESSION_ID_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyIT::sessionIdExternal")
     public void shouldAbortListResourcesTemplates() throws Exception
     {
         k3po.finish();
@@ -509,7 +554,9 @@ public class McpProxyIT
     @Specification({
         "${app}/resources.read.aborted/client",
         "${app}/resources.read.aborted/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
+    @Configure(name = MCP_SESSION_ID_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyIT::sessionIdExternal")
     public void shouldAbortReadResource() throws Exception
     {
         k3po.finish();
@@ -520,7 +567,9 @@ public class McpProxyIT
     @Specification({
         "${app}/tools.call.10k/client",
         "${app}/tools.call.10k/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
+    @Configure(name = MCP_SESSION_ID_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyIT::sessionIdExternal")
     public void shouldCallToolWith10kParams() throws Exception
     {
         k3po.finish();
@@ -531,7 +580,9 @@ public class McpProxyIT
     @Specification({
         "${app}/tools.call.100k/client",
         "${app}/tools.call.100k/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
+    @Configure(name = MCP_SESSION_ID_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyIT::sessionIdExternal")
     public void shouldCallToolWith100kParams() throws Exception
     {
         k3po.finish();
@@ -542,7 +593,9 @@ public class McpProxyIT
     @Specification({
         "${app}/resources.read.10k/client",
         "${app}/resources.read.10k/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
+    @Configure(name = MCP_SESSION_ID_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyIT::sessionIdExternal")
     public void shouldReadResourceWith10kContents() throws Exception
     {
         k3po.finish();
@@ -553,7 +606,9 @@ public class McpProxyIT
     @Specification({
         "${app}/resources.read.100k/client",
         "${app}/resources.read.100k/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
+    @Configure(name = MCP_SESSION_ID_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyIT::sessionIdExternal")
     public void shouldReadResourceWith100kContents() throws Exception
     {
         k3po.finish();
@@ -564,7 +619,9 @@ public class McpProxyIT
     @Specification({
         "${app}/tools.call.with.progress/client",
         "${app}/tools.call.with.progress/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
+    @Configure(name = MCP_SESSION_ID_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyIT::sessionIdExternal")
     public void shouldCallToolWithProgress() throws Exception
     {
         k3po.finish();
@@ -575,7 +632,7 @@ public class McpProxyIT
     @Specification({
         "${app}/tools.call.toolkit.with.progress.prefixed/client",
         "${app}/tools.call.toolkit.with.progress/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
     public void shouldCallToolWithToolkitWithProgress() throws Exception
     {
         k3po.finish();
@@ -586,7 +643,9 @@ public class McpProxyIT
     @Specification({
         "${app}/tools.call.10k.with.progress/client",
         "${app}/tools.call.10k.with.progress/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
+    @Configure(name = MCP_SESSION_ID_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyIT::sessionIdExternal")
     public void shouldCallToolWith10kParamsWithProgress() throws Exception
     {
         k3po.finish();
@@ -597,7 +656,9 @@ public class McpProxyIT
     @Specification({
         "${app}/tools.call.100k.with.progress/client",
         "${app}/tools.call.100k.with.progress/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
+    @Configure(name = MCP_SESSION_ID_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyIT::sessionIdExternal")
     public void shouldCallToolWith100kParamsWithProgress() throws Exception
     {
         k3po.finish();
@@ -608,7 +669,9 @@ public class McpProxyIT
     @Specification({
         "${app}/resources.read.10k.with.progress/client",
         "${app}/resources.read.10k.with.progress/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
+    @Configure(name = MCP_SESSION_ID_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyIT::sessionIdExternal")
     public void shouldReadResourceWith10kContentWithProgress() throws Exception
     {
         k3po.finish();
@@ -619,7 +682,9 @@ public class McpProxyIT
     @Specification({
         "${app}/resources.read.100k.with.progress/client",
         "${app}/resources.read.100k.with.progress/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
+    @Configure(name = MCP_SESSION_ID_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyIT::sessionIdExternal")
     public void shouldReadResourceWith100kContentWithProgress() throws Exception
     {
         k3po.finish();
@@ -630,7 +695,9 @@ public class McpProxyIT
     @Specification({
         "${app}/prompts.get.10k.with.progress/client",
         "${app}/prompts.get.10k.with.progress/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
+    @Configure(name = MCP_SESSION_ID_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyIT::sessionIdExternal")
     public void shouldGetPromptWith10kMessageWithProgress() throws Exception
     {
         k3po.finish();
@@ -641,7 +708,9 @@ public class McpProxyIT
     @Specification({
         "${app}/prompts.get.100k.with.progress/client",
         "${app}/prompts.get.100k.with.progress/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
+    @Configure(name = MCP_SESSION_ID_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyIT::sessionIdExternal")
     public void shouldGetPromptWith100kMessageWithProgress() throws Exception
     {
         k3po.finish();
@@ -652,7 +721,9 @@ public class McpProxyIT
     @Specification({
         "${app}/tools.call.elicit.completed.proxied/client",
         "${app}/tools.call.elicit.completed.proxied/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
+    @Configure(name = MCP_SESSION_ID_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyIT::sessionIdExternal")
     public void shouldCallToolElicitCompletedProxied() throws Exception
     {
         k3po.finish();
@@ -674,7 +745,9 @@ public class McpProxyIT
     @Specification({
         "${app}/tools.call.elicit.declined.proxied/client",
         "${app}/tools.call.elicit.declined.proxied/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
+    @Configure(name = MCP_SESSION_ID_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyIT::sessionIdExternal")
     public void shouldCallToolElicitDeclinedProxied() throws Exception
     {
         k3po.finish();
@@ -685,7 +758,9 @@ public class McpProxyIT
     @Specification({
         "${app}/tools.call.elicit.timeout.proxied/client",
         "${app}/tools.call.elicit.timeout.proxied/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
+    @Configure(name = MCP_SESSION_ID_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyIT::sessionIdExternal")
     public void shouldCallToolElicitTimeoutProxied() throws Exception
     {
         k3po.finish();
@@ -696,5 +771,12 @@ public class McpProxyIT
     {
         assert affinity == 0L;
         return "5ca1ab1e-c0de-4a11-5e55-000100000000";
+    }
+
+    public static String sessionIdExternal(
+        long affinity)
+    {
+        assert affinity == 0L;
+        return "5ca1ab1e-c0de-4a11-5e55-00010000003f";
     }
 }
