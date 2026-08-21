@@ -197,10 +197,9 @@ public final class TestVaultHandler implements VaultHandler
         bytes.getBytes(cipherOffset, ciphertext);
 
         Cipher cipher = Cipher.getInstance(CIPHER_TRANSFORM);
-        GCMParameterSpec spec = new GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv);
 
         // codeql[java/static-initialization-vector]: iv comes from wrapNamed, not static
-        cipher.init(Cipher.DECRYPT_MODE, secretKey, spec);
+        cipher.init(Cipher.DECRYPT_MODE, secretKey, new GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv));
         return cipher.doFinal(ciphertext);
     }
 
