@@ -58,13 +58,6 @@ public class FileSystemVaultIT
 
     @Test
     @Configuration("vault.secrets.yaml")
-    public void shouldInitializeWithSecrets() throws Exception
-    {
-        System.out.println("done!");
-    }
-
-    @Test
-    @Configuration("vault.secrets.wrap.yaml")
     @Specification({
         "${net}/handshake/client",
         "${app}/handshake/server"})
@@ -74,7 +67,7 @@ public class FileSystemVaultIT
     }
 
     @Test
-    @Configuration("vault.secrets.wrap.unknown.yaml")
+    @Configuration("vault.secrets.unknown.yaml")
     @Specification({
         "${net}/vault.assert.reject/client",
         "${app}/vault.assert.reject/server"})
