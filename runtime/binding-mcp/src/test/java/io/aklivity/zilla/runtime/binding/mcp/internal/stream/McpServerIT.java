@@ -35,6 +35,7 @@ import org.junit.rules.DisableOnDebug;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
 
+import io.aklivity.k3po.runtime.junit.annotation.ScriptProperty;
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
@@ -192,6 +193,7 @@ public class McpServerIT
     @Specification({
         "${net}/tools.call.reject.bearer/client",
         "${app}/tools.call.reject.bearer/server"})
+    @ScriptProperty("affinity \"0000003f\"")
     public void shouldRejectToolsCallWithBearerChallenge() throws Exception
     {
         k3po.finish();
@@ -202,6 +204,7 @@ public class McpServerIT
     @Specification({
         "${net}/tools.call.reject.error/client",
         "${app}/tools.call.reject.error/server"})
+    @ScriptProperty("affinity \"0000003f\"")
     public void shouldRejectToolsCallWithError() throws Exception
     {
         k3po.finish();
@@ -243,6 +246,7 @@ public class McpServerIT
     @Specification({
         "${net}/lifecycle.shutdown.requests/client",
         "${app}/lifecycle.shutdown.requests/server"})
+    @ScriptProperty("affinity \"0000003f\"")
     @Configure(name = ENGINE_SYNTHETIC_ABORT_NAME, value = "false")
     @Configure(name = ENGINE_DETACH_ON_CLOSE_NAME, value = "false")
     public void shouldShutdownLifecycleRequests() throws Exception
@@ -276,6 +280,7 @@ public class McpServerIT
     @Specification({
         "${net}/tools.list.id.last/client",
         "${app}/tools.list/server"})
+    @ScriptProperty("affinity \"0000003f\"")
     public void shouldListToolsWithIdLast() throws Exception
     {
         k3po.finish();
@@ -326,6 +331,7 @@ public class McpServerIT
     @Specification({
         "${net}/tools.call.10k/client",
         "${app}/tools.call.10k/server"})
+    @ScriptProperty("affinity \"0000003f\"")
     public void shouldCallToolWith10kParams() throws Exception
     {
         k3po.finish();
@@ -336,6 +342,7 @@ public class McpServerIT
     @Specification({
         "${net}/tools.call.100k/client",
         "${app}/tools.call.100k/server"})
+    @ScriptProperty("affinity \"0000003f\"")
     public void shouldCallToolWith100kParams() throws Exception
     {
         k3po.finish();
@@ -346,6 +353,7 @@ public class McpServerIT
     @Specification({
         "${net}/resources.read.10k/client",
         "${app}/resources.read.10k/server"})
+    @ScriptProperty("affinity \"0000003f\"")
     public void shouldReadResourceWith10kContents() throws Exception
     {
         k3po.finish();
@@ -356,6 +364,7 @@ public class McpServerIT
     @Specification({
         "${net}/resources.read.100k/client",
         "${app}/resources.read.100k/server"})
+    @ScriptProperty("affinity \"0000003f\"")
     public void shouldReadResourceWith100kContents() throws Exception
     {
         k3po.finish();
@@ -366,6 +375,7 @@ public class McpServerIT
     @Specification({
         "${net}/tools.call/client",
         "${app}/tools.call/server"})
+    @ScriptProperty("affinity \"0000003f\"")
     public void shouldCallTool() throws Exception
     {
         k3po.finish();
@@ -376,6 +386,7 @@ public class McpServerIT
     @Specification({
         "${net}/tools.call.timeout/client",
         "${app}/tools.call.timeout/server"})
+    @ScriptProperty("affinity \"0000003f\"")
     public void shouldCallToolWithTimeout() throws Exception
     {
         k3po.finish();
@@ -386,6 +397,7 @@ public class McpServerIT
     @Specification({
         "${net}/tools.call/client",
         "${app}/tools.call.resumable/server"})
+    @ScriptProperty("affinity \"0000003f\"")
     public void shouldCallToolWithUpstreamResumableFlush() throws Exception
     {
         k3po.finish();
@@ -396,6 +408,7 @@ public class McpServerIT
     @Specification({
         "${net}/tools.call.elicit.completed/client",
         "${app}/tools.call.elicit.completed/server"})
+    @ScriptProperty("affinity \"0000003f\"")
     public void shouldCallToolElicitCompleted() throws Exception
     {
         k3po.finish();
@@ -406,6 +419,7 @@ public class McpServerIT
     @Specification({
         "${net}/tools.call.elicit.after.result/client",
         "${app}/tools.call.elicit.after.result/server"})
+    @ScriptProperty("affinity \"0000003f\"")
     public void shouldCallToolElicitAfterResult() throws Exception
     {
         k3po.finish();
@@ -416,6 +430,7 @@ public class McpServerIT
     @Specification({
         "${net}/tools.call.elicit.deferred/client",
         "${app}/tools.call.elicit.deferred/server"})
+    @ScriptProperty("affinity \"0000003f\"")
     public void shouldCallToolElicitDeferred() throws Exception
     {
         k3po.finish();
@@ -426,6 +441,7 @@ public class McpServerIT
     @Specification({
         "${net}/tools.call.elicit.completed.context/client",
         "${app}/tools.call.elicit.completed.context/server"})
+    @ScriptProperty("affinity \"0000003f\"")
     public void shouldCallToolElicitCompletedWithContext() throws Exception
     {
         k3po.finish();
@@ -466,6 +482,7 @@ public class McpServerIT
     @Specification({
         "${net}/tools.call.elicit.passthrough/client",
         "${app}/tools.call.elicit.passthrough/server"})
+    @ScriptProperty("affinity \"0000003f\"")
     public void shouldCallToolElicitPassthrough() throws Exception
     {
         k3po.finish();
@@ -476,6 +493,7 @@ public class McpServerIT
     @Specification({
         "${net}/tools.call.elicit.declined/client",
         "${app}/tools.call.elicit.declined/server"})
+    @ScriptProperty("affinity \"0000003f\"")
     public void shouldCallToolElicitDeclined() throws Exception
     {
         k3po.finish();
@@ -486,6 +504,7 @@ public class McpServerIT
     @Specification({
         "${net}/tools.call.elicit.timeout/client",
         "${app}/tools.call.elicit.timeout/server"})
+    @ScriptProperty("affinity \"0000003f\"")
     public void shouldCallToolElicitTimeout() throws Exception
     {
         k3po.finish();
@@ -496,6 +515,7 @@ public class McpServerIT
     @Specification({
         "${net}/tools.call.elicit.reject/client",
         "${app}/tools.call.elicit.reject/server"})
+    @ScriptProperty("affinity \"0000003f\"")
     public void shouldRejectToolsCallElicitUrlRequired() throws Exception
     {
         k3po.finish();
@@ -506,6 +526,7 @@ public class McpServerIT
     @Specification({
         "${net}/tools.list/client",
         "${app}/tools.list/server"})
+    @ScriptProperty("affinity \"0000003f\"")
     public void shouldListTools() throws Exception
     {
         k3po.finish();
@@ -516,6 +537,7 @@ public class McpServerIT
     @Specification({
         "${net}/tools.list.security.schemes/client",
         "${app}/tools.list.security.schemes/server"})
+    @ScriptProperty("affinity \"0000003f\"")
     public void shouldListToolsExcludingSecuritySchemes() throws Exception
     {
         k3po.finish();
@@ -526,6 +548,7 @@ public class McpServerIT
     @Specification({
         "${net}/tools.list.aborted/client",
         "${app}/tools.list.aborted/server"})
+    @ScriptProperty("affinity \"0000003f\"")
     public void shouldAbortToolsList() throws Exception
     {
         k3po.finish();
@@ -536,6 +559,7 @@ public class McpServerIT
     @Specification({
         "${net}/tools.call.aborted/client",
         "${app}/tools.call.aborted/server"})
+    @ScriptProperty("affinity \"0000003f\"")
     public void shouldAbortCallTool() throws Exception
     {
         k3po.finish();
@@ -546,6 +570,7 @@ public class McpServerIT
     @Specification({
         "${net}/prompts.list.aborted/client",
         "${app}/prompts.list.aborted/server"})
+    @ScriptProperty("affinity \"0000003f\"")
     public void shouldAbortListPrompts() throws Exception
     {
         k3po.finish();
@@ -556,6 +581,7 @@ public class McpServerIT
     @Specification({
         "${net}/prompts.get.aborted/client",
         "${app}/prompts.get.aborted/server"})
+    @ScriptProperty("affinity \"0000003f\"")
     public void shouldAbortGetPrompt() throws Exception
     {
         k3po.finish();
@@ -566,6 +592,7 @@ public class McpServerIT
     @Specification({
         "${net}/resources.list.aborted/client",
         "${app}/resources.list.aborted/server"})
+    @ScriptProperty("affinity \"0000003f\"")
     public void shouldAbortListResources() throws Exception
     {
         k3po.finish();
@@ -576,6 +603,7 @@ public class McpServerIT
     @Specification({
         "${net}/resources.templates.list.aborted/client",
         "${app}/resources.templates.list.aborted/server"})
+    @ScriptProperty("affinity \"0000003f\"")
     public void shouldAbortListResourcesTemplates() throws Exception
     {
         k3po.finish();
@@ -586,6 +614,7 @@ public class McpServerIT
     @Specification({
         "${net}/resources.read.aborted/client",
         "${app}/resources.read.aborted/server"})
+    @ScriptProperty("affinity \"0000003f\"")
     public void shouldAbortReadResource() throws Exception
     {
         k3po.finish();
@@ -596,6 +625,7 @@ public class McpServerIT
     @Specification({
         "${net}/tools.list.canceled/client",
         "${app}/tools.list.canceled/server"})
+    @ScriptProperty("affinity \"0000003f\"")
     public void shouldListToolsThenCancel() throws Exception
     {
         k3po.finish();
@@ -626,6 +656,7 @@ public class McpServerIT
     @Specification({
         "${net}/prompts.list/client",
         "${app}/prompts.list/server"})
+    @ScriptProperty("affinity \"0000003f\"")
     public void shouldListPrompts() throws Exception
     {
         k3po.finish();
@@ -636,6 +667,7 @@ public class McpServerIT
     @Specification({
         "${net}/resources.list/client",
         "${app}/resources.list/server"})
+    @ScriptProperty("affinity \"0000003f\"")
     public void shouldListResources() throws Exception
     {
         k3po.finish();
@@ -646,6 +678,7 @@ public class McpServerIT
     @Specification({
         "${net}/resources.templates.list/client",
         "${app}/resources.templates.list/server"})
+    @ScriptProperty("affinity \"0000003f\"")
     public void shouldListResourcesTemplates() throws Exception
     {
         k3po.finish();
@@ -656,6 +689,7 @@ public class McpServerIT
     @Specification({
         "${net}/prompts.get/client",
         "${app}/prompts.get/server"})
+    @ScriptProperty("affinity \"0000003f\"")
     public void shouldGetPrompt() throws Exception
     {
         k3po.finish();
@@ -666,6 +700,7 @@ public class McpServerIT
     @Specification({
         "${net}/resources.read/client",
         "${app}/resources.read/server"})
+    @ScriptProperty("affinity \"0000003f\"")
     public void shouldReadResource() throws Exception
     {
         k3po.finish();
@@ -676,6 +711,7 @@ public class McpServerIT
     @Specification({
         "${net}/resources.subscribe/client",
         "${app}/resources.subscribe/server"})
+    @ScriptProperty("affinity \"0000003f\"")
     public void shouldSubscribeToResource() throws Exception
     {
         k3po.finish();
@@ -686,6 +722,7 @@ public class McpServerIT
     @Specification({
         "${net}/resources.unsubscribe/client",
         "${app}/resources.unsubscribe/server"})
+    @ScriptProperty("affinity \"0000003f\"")
     public void shouldUnsubscribeFromResource() throws Exception
     {
         k3po.finish();
@@ -903,6 +940,7 @@ public class McpServerIT
     @Specification({
         "${net}/tools.call.with.progress/client",
         "${app}/tools.call.with.progress/server"})
+    @ScriptProperty("affinity \"0000003f\"")
     public void shouldCallToolWithProgress() throws Exception
     {
         k3po.finish();
@@ -913,6 +951,7 @@ public class McpServerIT
     @Specification({
         "${net}/tools.call.with.progress.suspend/client",
         "${app}/tools.call.with.progress.suspend/server"})
+    @ScriptProperty("affinity \"0000003f\"")
     public void shouldCallToolWithProgressSuspend() throws Exception
     {
         k3po.finish();
@@ -923,6 +962,7 @@ public class McpServerIT
     @Specification({
         "${net}/tools.call.with.progress.suspended/client",
         "${app}/tools.call.with.progress.suspended/server"})
+    @ScriptProperty("affinity \"0000003f\"")
     public void shouldCallToolWithProgressSuspended() throws Exception
     {
         k3po.finish();
@@ -933,6 +973,7 @@ public class McpServerIT
     @Specification({
         "${net}/tools.call.with.progress.resume/client",
         "${app}/tools.call.with.progress.resume/server"})
+    @ScriptProperty("affinity \"0000003f\"")
     public void shouldCallToolWithProgressResume() throws Exception
     {
         k3po.finish();
@@ -965,6 +1006,7 @@ public class McpServerIT
     @Specification({
         "${net}/tools.call.10k.with.progress/client",
         "${app}/tools.call.10k.with.progress/server"})
+    @ScriptProperty("affinity \"0000003f\"")
     public void shouldCallToolWith10kParamsWithProgress() throws Exception
     {
         k3po.finish();
@@ -975,6 +1017,7 @@ public class McpServerIT
     @Specification({
         "${net}/tools.call.100k.with.progress/client",
         "${app}/tools.call.100k.with.progress/server"})
+    @ScriptProperty("affinity \"0000003f\"")
     public void shouldCallToolWith100kParamsWithProgress() throws Exception
     {
         k3po.finish();
@@ -985,6 +1028,7 @@ public class McpServerIT
     @Specification({
         "${net}/resources.read.10k.with.progress/client",
         "${app}/resources.read.10k.with.progress/server"})
+    @ScriptProperty("affinity \"0000003f\"")
     public void shouldReadResourceWith10kContentWithProgress() throws Exception
     {
         k3po.finish();
@@ -995,6 +1039,7 @@ public class McpServerIT
     @Specification({
         "${net}/resources.read.100k.with.progress/client",
         "${app}/resources.read.100k.with.progress/server"})
+    @ScriptProperty("affinity \"0000003f\"")
     public void shouldReadResourceWith100kContentWithProgress() throws Exception
     {
         k3po.finish();
@@ -1005,6 +1050,7 @@ public class McpServerIT
     @Specification({
         "${net}/prompts.get.10k.with.progress/client",
         "${app}/prompts.get.10k.with.progress/server"})
+    @ScriptProperty("affinity \"0000003f\"")
     public void shouldGetPromptWith10kMessageWithProgress() throws Exception
     {
         k3po.finish();
@@ -1015,6 +1061,7 @@ public class McpServerIT
     @Specification({
         "${net}/prompts.get.100k.with.progress/client",
         "${app}/prompts.get.100k.with.progress/server"})
+    @ScriptProperty("affinity \"0000003f\"")
     public void shouldGetPromptWith100kMessageWithProgress() throws Exception
     {
         k3po.finish();

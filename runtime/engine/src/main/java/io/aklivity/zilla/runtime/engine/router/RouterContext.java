@@ -68,4 +68,23 @@ public interface RouterContext
      */
     String supplyLabel(
         int labelId);
+
+    /**
+     * Resolves the binding id that a stream carrying the given affinity should actually be
+     * routed to, e.g. redirecting to a different binding when the affinity designates a
+     * remote node.
+     * <p>
+     * Identity by default: {@code routedId} unchanged, meaning no redirection applies.
+     * </p>
+     *
+     * @param routedId  the originally configured routed binding id
+     * @param affinity  the affinity value carried by the stream
+     * @return the binding id the stream should actually be routed to
+     */
+    default long resolveRoutedId(
+        long routedId,
+        long affinity)
+    {
+        return routedId;
+    }
 }

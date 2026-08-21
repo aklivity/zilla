@@ -541,16 +541,24 @@ public class EngineWorker implements EngineContext, Agent
 
     @Override
     public long supplyInitialId(
-        long bindingId,
+        long routedId,
         long affinityId)
     {
-        final int remoteIndex = resolveRemoteIndex(bindingId, affinityId);
+        final int remoteIndex = resolveRemoteIndex(routedId, affinityId);
 
         initialId += 2L;
         initialId &= mask;
 
         return (((long)remoteIndex << 48) & 0x00ff_0000_0000_0000L) |
                (initialId & 0xff00_0000_7fff_ffffL) | 0x0000_0000_0000_0001L;
+    }
+
+    @Override
+    public long resolveRoutedId(
+        long routedId,
+        long affinity)
+    {
+        return router.resolveRoutedId(routedId, affinity);
     }
 
     @Override
@@ -2181,23 +2189,13 @@ public class EngineWorker implements EngineContext, Agent
     }
 
     private int resolveRemoteIndex(
-        long bindingId,
+        long routedId,
         long affinityId)
     {
-        final Affinity affinity = supplyAffinity(bindingId);
-        final BitSet mask = affinity.mask;
-        final int cardinality = mask.cardinality();
+        final boolean isLocalNode = ((affinityId >>> 24) & 0xffL) == ((long) config.nodeId() & 0xffL);
+        final int index = isLocalNode ? (int)(affinityId & 0x00ff_ffffL) : -1;
 
-        assert cardinality != 0;
-
-        // pick the n-th set bit of the mask, where n = floorMod(affinityId, cardinality)
-        int slot = Math.floorMod(affinityId, cardinality);
-        int remoteIndex = mask.nextSetBit(0);
-        while (slot-- > 0)
-        {
-            remoteIndex = mask.nextSetBit(remoteIndex + 1);
-        }
-        return remoteIndex;
+        return index >= 0 && index < config.workers() ? index : resolveRemoteIndex(routedId);
     }
 
     private Affinity supplyAffinity(
