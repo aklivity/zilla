@@ -12,6 +12,7 @@
 - engine: add ModelEnvelope for message metadata outside the value, exposed via ModelController [\#2384](https://github.com/aklivity/zilla/issues/2384) ([jfallows](https://github.com/jfallows))
 - engine: supply ModelEnvelope per message, and expose it to a model's format-native transform stages [\#2389](https://github.com/aklivity/zilla/issues/2389) ([jfallows](https://github.com/jfallows))
 - model-core: align bytes/string extension stages with the streaming stage design, and make them bidirectional [\#2393](https://github.com/aklivity/zilla/issues/2393) ([jfallows](https://github.com/jfallows))
+- binding-tls: TlsClientFactory reply-direction ProxyBeginEx cannot convey the underlying network address [\#2407](https://github.com/aklivity/zilla/issues/2407) ([jfallows](https://github.com/jfallows))
 
 **Merged pull requests:**
 
@@ -39,6 +40,8 @@
 - feat\(engine\): encapsulate label management in the Router SPI [\#2404](https://github.com/aklivity/zilla/pull/2404) ([jfallows](https://github.com/jfallows))
 - feat\(model-protobuf\): resolve extension refs and thread authorization through the pipeline [\#2405](https://github.com/aklivity/zilla/pull/2405) ([jfallows](https://github.com/jfallows))
 - refactor\(model-ext\): drop unused name\(\)/type\(\) surface from model extension SPIs [\#2406](https://github.com/aklivity/zilla/pull/2406) ([jfallows](https://github.com/jfallows))
+- fix\(binding-tls\): merge net reply address into TlsClientFactory reply ProxyBeginEx [\#2408](https://github.com/aklivity/zilla/pull/2408) ([jfallows](https://github.com/jfallows))
+- fix\(model-core\): forward named-config refs from BytesModelConfig/StringModelConfig [\#2409](https://github.com/aklivity/zilla/pull/2409) ([jfallows](https://github.com/jfallows))
 
 ## [2.3.0](https://github.com/aklivity/zilla/tree/2.3.0) (2026-08-14)
 
