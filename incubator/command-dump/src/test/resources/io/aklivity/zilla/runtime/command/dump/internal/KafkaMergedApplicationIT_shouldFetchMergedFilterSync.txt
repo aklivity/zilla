@@ -26,6 +26,7 @@ Zilla Frame
     Trace ID: 0x8000000000000001
     Authorization: 0x0000000000000000
     Affinity: 0x0000000000000000
+    Redirected ID: 0x0000000000000000
     Extension: kafka
         Stream Type ID: 0xe1204b08
         Stream Type: kafka
@@ -134,6 +135,7 @@ Zilla Frame
     Trace ID: 0x8000000000000003
     Authorization: 0x0000000000000000
     Affinity: 0x0000000000000000
+    Redirected ID: 0x0000000000000000
     Extension: kafka
         Stream Type ID: 0xe1204b08
         Stream Type: kafka

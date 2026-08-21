@@ -26,6 +26,7 @@ Zilla Frame
     Trace ID: 0x8000000000000001
     Authorization: 0x0000000000000000
     Affinity: 0x0000000000000000
+    Redirected ID: 0x0000000000000000
     Extension: proxy
         Stream Type ID: 0x50a8ce8d
         Stream Type: proxy
@@ -67,6 +68,7 @@ Zilla Frame
     Trace ID: 0x8000000000000002
     Authorization: 0x0000000000000000
     Affinity: 0x0000000000000000
+    Redirected ID: 0x0000000000000000
 
 Frame 3: 211 bytes on wire (1688 bits), 211 bytes captured (1688 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
