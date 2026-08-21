@@ -4,6 +4,10 @@
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/2.3.0...HEAD)
 
+**Fixed bugs:**
+
+- common-protobuf JSON codec doesn't unwrap well-known wrapper types [\#2411](https://github.com/aklivity/zilla/issues/2411) ([jfallows](https://github.com/jfallows))
+
 **Closed issues:**
 
 - Declare AvroModelExtFactorySpi and wire provider-supplied pipeline stages in avro model [\#1681](https://github.com/aklivity/zilla/issues/1681) ([jfallows](https://github.com/jfallows))
@@ -44,6 +48,7 @@
 - fix\(model-core\): forward named-config refs from BytesModelConfig/StringModelConfig [\#2409](https://github.com/aklivity/zilla/pull/2409) ([jfallows](https://github.com/jfallows))
 - feat\(model-json\): support refs, attach\(\), and authorization [\#2410](https://github.com/aklivity/zilla/pull/2410) ([jfallows](https://github.com/jfallows))
 - feat\(model-core\): expose the pipeline's authorization to transform stages [\#2413](https://github.com/aklivity/zilla/pull/2413) ([jfallows](https://github.com/jfallows))
+- fix\(common-protobuf\): unwrap well-known wrapper types in JSON codec [\#2414](https://github.com/aklivity/zilla/pull/2414) ([jfallows](https://github.com/jfallows))
 
 ## [2.3.0](https://github.com/aklivity/zilla/tree/2.3.0) (2026-08-14)
 

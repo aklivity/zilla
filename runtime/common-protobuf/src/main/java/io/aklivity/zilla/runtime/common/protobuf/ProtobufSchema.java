@@ -327,7 +327,12 @@ public final class ProtobufSchema
 
         public ProtobufSchema build()
         {
-            Map<String, ProtobufMessage> resolvedMessages = Map.copyOf(messages);
+            Map<String, ProtobufMessage> withWellKnown = new LinkedHashMap<>(messages);
+            for (String typeName : ProtobufWellKnownTypes.names())
+            {
+                withWellKnown.putIfAbsent(typeName, ProtobufWellKnownTypes.wrapperMessage(typeName));
+            }
+            Map<String, ProtobufMessage> resolvedMessages = Map.copyOf(withWellKnown);
             Map<String, ProtobufEnum> resolvedEnums = Map.copyOf(enums);
             Map<String, ProtobufService> resolvedServices = Map.copyOf(services);
             for (ProtobufMessage message : toRelink)
