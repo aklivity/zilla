@@ -91,6 +91,13 @@ public final class JsonPipelineImpl implements JsonPipeline
     }
 
     @Override
+    public void authorization(
+        long authorization)
+    {
+        control.authorization = authorization;
+    }
+
+    @Override
     public boolean identity()
     {
         return parser.identity() && root.identity();
@@ -329,6 +336,7 @@ public final class JsonPipelineImpl implements JsonPipeline
         private final JsonEnvelope envelope;
 
         private boolean segmented;
+        private long authorization;
 
         private Control(
             JsonParserEx parser,
@@ -336,6 +344,12 @@ public final class JsonPipelineImpl implements JsonPipeline
         {
             this.parser = parser;
             this.envelope = envelope;
+        }
+
+        @Override
+        public long authorization()
+        {
+            return authorization;
         }
 
         @Override

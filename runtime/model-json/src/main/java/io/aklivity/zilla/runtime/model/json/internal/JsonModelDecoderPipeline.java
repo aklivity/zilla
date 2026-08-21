@@ -101,6 +101,7 @@ final class JsonModelDecoderPipeline implements ModelPipeline
             if (active != null)
             {
                 active.reset();
+                active.authorization(authorization);
             }
             diagnostic = null;
         }
