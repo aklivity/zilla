@@ -1,0 +1,20 @@
+---
+name: example
+bindings:
+  north_tcp_server:
+    type: tcp
+    kind: server
+    options:
+      host: 0.0.0.0
+      port: 12345
+    exit: south_tcp_client
+  south_tcp_client:
+    type: tcp
+    kind: client
+    options:
+      host: iperf-server
+      port: 5201
+telemetry:
+  exporters:
+    stdout_logs_exporter:
+      type: stdout
