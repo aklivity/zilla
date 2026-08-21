@@ -43,6 +43,12 @@ public class TestVaultHandlerTest
         "jOl3tg1ZDuqTrzB7WOVaUOEoezst8sz/ywPPbsGE8bA=\n" +
         "-----END SECRET KEY-----";
 
+    // a second, distinct 32-byte AES-256 key, used to prove dispatch is by embedded name
+    private static final String OTHER_SECRET_KEY_PEM =
+        "-----BEGIN SECRET KEY-----\n" +
+        "J5XxCYN3xHEx4qzx6juAdpYPDBhT11KBg2Y/LJz6AIE=\n" +
+        "-----END SECRET KEY-----";
+
     @Test
     public void shouldRoundTripWrapAndUnwrap()
     {
@@ -60,9 +66,52 @@ public class TestVaultHandlerTest
         DirectBufferEx wrappedBuffer = new UnsafeBufferEx(wrappedBytes);
         CapturedResult unwrapped = new CapturedResult();
 
-        handler.unwrap(1L, "kek", wrappedBuffer, 0, wrappedBuffer.capacity(), unwrapped::accept);
+        handler.unwrap(1L, wrappedBuffer, 0, wrappedBuffer.capacity(), unwrapped::accept);
 
         assertNotNull(unwrapped.buffer);
+        assertArrayEquals(plaintext, copyOf(unwrapped));
+    }
+
+    @Test
+    public void shouldUnwrapEachOfMultipleNamedKeysWithoutExternalName()
+    {
+        TestVaultHandler handler = newHandlerWithTwoKeys();
+
+        byte[] plaintextA = "payload for kek".getBytes(UTF_8);
+        byte[] plaintextB = "payload for other-kek".getBytes(UTF_8);
+
+        CapturedResult wrappedA = new CapturedResult();
+        handler.wrap(1L, "kek", new UnsafeBufferEx(plaintextA), 0, plaintextA.length, wrappedA::accept);
+
+        CapturedResult wrappedB = new CapturedResult();
+        handler.wrap(1L, "other-kek", new UnsafeBufferEx(plaintextB), 0, plaintextB.length, wrappedB::accept);
+
+        CapturedResult unwrappedA = new CapturedResult();
+        handler.unwrap(1L, new UnsafeBufferEx(copyOf(wrappedA)), 0, wrappedA.length, unwrappedA::accept);
+
+        CapturedResult unwrappedB = new CapturedResult();
+        handler.unwrap(1L, new UnsafeBufferEx(copyOf(wrappedB)), 0, wrappedB.length, unwrappedB::accept);
+
+        assertArrayEquals(plaintextA, copyOf(unwrappedA));
+        assertArrayEquals(plaintextB, copyOf(unwrappedB));
+    }
+
+    @Test
+    public void shouldUnwrapWrappedBytesWithNoOtherContextThanTheBytesThemselves()
+    {
+        TestVaultHandler wrappingHandler = newHandler();
+        byte[] plaintext = "super secret payload".getBytes(UTF_8);
+        CapturedResult wrapped = new CapturedResult();
+
+        wrappingHandler.wrap(1L, "kek", new UnsafeBufferEx(plaintext), 0, plaintext.length, wrapped::accept);
+
+        // a distinct handler instance, built from the same declarative config, unwraps the
+        // bytes with no other context — the wrapped artifact alone is sufficient
+        TestVaultHandler unwrappingHandler = newHandler();
+        CapturedResult unwrapped = new CapturedResult();
+
+        unwrappingHandler.unwrap(1L, new UnsafeBufferEx(copyOf(wrapped)), 0, wrapped.length, unwrapped::accept);
+
         assertArrayEquals(plaintext, copyOf(unwrapped));
     }
 
@@ -84,7 +133,7 @@ public class TestVaultHandlerTest
         assertNotEquals(plaintext.length, wrappedLength);
 
         MutableDirectBufferEx unwrapped = new UnsafeBufferEx(new byte[128]);
-        int unwrappedLength = manager.unwrap("kek", wrapped, 0, wrappedLength, unwrapped, 0);
+        int unwrappedLength = manager.unwrap(wrapped, 0, wrappedLength, unwrapped, 0);
 
         assertEquals(plaintext.length, unwrappedLength);
         byte[] roundTripped = new byte[unwrappedLength];
@@ -116,13 +165,13 @@ public class TestVaultHandlerTest
     }
 
     @Test
-    public void shouldFailUnwrapWithUnknownAlias()
+    public void shouldFailUnwrapWithForeignBytes()
     {
         TestVaultHandler handler = newHandler();
         DirectBufferEx source = new UnsafeBufferEx("payload".getBytes(UTF_8));
         CapturedResult captured = new CapturedResult();
 
-        handler.unwrap(1L, "unknown", source, 0, source.capacity(), captured::accept);
+        handler.unwrap(1L, source, 0, source.capacity(), captured::accept);
 
         assertNull(captured.buffer);
         assertEquals(0, captured.index);
@@ -143,7 +192,7 @@ public class TestVaultHandlerTest
         DirectBufferEx tamperedBuffer = new UnsafeBufferEx(tampered);
         CapturedResult unwrapped = new CapturedResult();
 
-        handler.unwrap(1L, "kek", tamperedBuffer, 0, tamperedBuffer.capacity(), unwrapped::accept);
+        handler.unwrap(1L, tamperedBuffer, 0, tamperedBuffer.capacity(), unwrapped::accept);
 
         assertNull(unwrapped.buffer);
         assertEquals(0, unwrapped.index);
@@ -157,7 +206,7 @@ public class TestVaultHandlerTest
         DirectBufferEx source = new UnsafeBufferEx(new byte[] { 0x01, 0x02, 0x03 });
         CapturedResult captured = new CapturedResult();
 
-        handler.unwrap(1L, "kek", source, 0, source.capacity(), captured::accept);
+        handler.unwrap(1L, source, 0, source.capacity(), captured::accept);
 
         assertNull(captured.buffer);
         assertEquals(0, captured.index);
@@ -180,6 +229,20 @@ public class TestVaultHandlerTest
             .type("test")
             .options(TestVaultOptionsConfig.builder()
                 .wrap("kek", SECRET_KEY_PEM)
+                .build())
+            .build();
+        return new TestVaultHandler(vault);
+    }
+
+    private static TestVaultHandler newHandlerWithTwoKeys()
+    {
+        VaultConfig vault = GenericVaultConfig.builder()
+            .namespace("test")
+            .name("vault0")
+            .type("test")
+            .options(TestVaultOptionsConfig.builder()
+                .wrap("kek", SECRET_KEY_PEM)
+                .wrap("other-kek", OTHER_SECRET_KEY_PEM)
                 .build())
             .build();
         return new TestVaultHandler(vault);

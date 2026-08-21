@@ -16,9 +16,11 @@
 package io.aklivity.zilla.runtime.engine.test.internal.vault;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.nio.ByteOrder;
 import java.security.KeyFactory;
 import java.security.KeyStore;
 import java.security.KeyStore.TrustedCertificateEntry;
@@ -140,20 +142,7 @@ public final class TestVaultHandler implements VaultHandler
         {
             try
             {
-                byte[] iv = new byte[GCM_IV_LENGTH];
-                RANDOM.nextBytes(iv);
-
-                byte[] plaintext = new byte[length];
-                bytes.getBytes(index, plaintext);
-
-                Cipher cipher = Cipher.getInstance(CIPHER_TRANSFORM);
-                cipher.init(Cipher.ENCRYPT_MODE, secretKey, new GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv));
-                byte[] ciphertext = cipher.doFinal(plaintext);
-
-                byte[] wrapped = new byte[iv.length + ciphertext.length];
-                System.arraycopy(iv, 0, wrapped, 0, iv.length);
-                System.arraycopy(ciphertext, 0, wrapped, iv.length, ciphertext.length);
-
+                byte[] wrapped = wrapNamed(secretKey, key, bytes, index, length);
                 next.accept(new UnsafeBufferEx(wrapped), 0, wrapped.length);
             }
             catch (Exception ex)
@@ -166,15 +155,15 @@ public final class TestVaultHandler implements VaultHandler
     @Override
     public void unwrap(
         long traceId,
-        String key,
         DirectBufferEx bytes,
         int index,
         int length,
         BytesConsumer next)
     {
-        SecretKey secretKey = wraps != null ? wraps.get(key) : null;
+        String key = nameOf(bytes, index, length);
+        SecretKey secretKey = key != null && wraps != null ? wraps.get(key) : null;
 
-        if (secretKey == null || length < GCM_IV_LENGTH)
+        if (secretKey == null)
         {
             next.accept(null, 0, 0);
         }
@@ -182,19 +171,7 @@ public final class TestVaultHandler implements VaultHandler
         {
             try
             {
-                // codeql[java/static-initialization-vector]
-                byte[] iv = new byte[GCM_IV_LENGTH];
-                bytes.getBytes(index, iv);
-
-                int ciphertextLength = length - GCM_IV_LENGTH;
-                byte[] ciphertext = new byte[ciphertextLength];
-                bytes.getBytes(index + GCM_IV_LENGTH, ciphertext);
-
-                Cipher cipher = Cipher.getInstance(CIPHER_TRANSFORM);
-                GCMParameterSpec spec = new GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv);
-                cipher.init(Cipher.DECRYPT_MODE, secretKey, spec);
-                byte[] plaintext = cipher.doFinal(ciphertext);
-
+                byte[] plaintext = unwrapNamed(secretKey, bytes, index, length);
                 next.accept(new UnsafeBufferEx(plaintext), 0, plaintext.length);
             }
             catch (Exception ex)
@@ -202,6 +179,98 @@ public final class TestVaultHandler implements VaultHandler
                 next.accept(null, 0, 0);
             }
         }
+    }
+
+    // wraps bytes with a length-prefixed copy of `key` ahead of the iv + ciphertext, so a
+    // matching #unwrapNamed can recover which key to unwrap under with no key argument
+    private static byte[] wrapNamed(
+        SecretKey secretKey,
+        String key,
+        DirectBufferEx bytes,
+        int index,
+        int length)
+        throws Exception
+    {
+        byte[] iv = new byte[GCM_IV_LENGTH];
+        RANDOM.nextBytes(iv);
+
+        byte[] plaintext = new byte[length];
+        bytes.getBytes(index, plaintext);
+
+        Cipher cipher = Cipher.getInstance(CIPHER_TRANSFORM);
+        cipher.init(Cipher.ENCRYPT_MODE, secretKey, new GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv));
+        byte[] ciphertext = cipher.doFinal(plaintext);
+
+        byte[] name = key.getBytes(UTF_8);
+        byte[] wrapped = new byte[Integer.BYTES + name.length + iv.length + ciphertext.length];
+        putInt(wrapped, 0, name.length);
+        System.arraycopy(name, 0, wrapped, Integer.BYTES, name.length);
+        System.arraycopy(iv, 0, wrapped, Integer.BYTES + name.length, iv.length);
+        System.arraycopy(ciphertext, 0, wrapped, Integer.BYTES + name.length + iv.length, ciphertext.length);
+
+        return wrapped;
+    }
+
+    // recovers the key name embedded by #wrapNamed, or null if the bytes are too short or
+    // foreign (i.e. do not carry a recoverable name) to have been produced by it
+    private static String nameOf(
+        DirectBufferEx bytes,
+        int index,
+        int length)
+    {
+        String name = null;
+
+        int remaining = length - Integer.BYTES;
+        if (remaining >= 0)
+        {
+            int nameLength = bytes.getInt(index, ByteOrder.BIG_ENDIAN);
+
+            if (nameLength >= 0 && nameLength <= remaining - GCM_IV_LENGTH)
+            {
+                byte[] nameBytes = new byte[nameLength];
+                bytes.getBytes(index + Integer.BYTES, nameBytes);
+                name = new String(nameBytes, UTF_8);
+            }
+        }
+
+        return name;
+    }
+
+    // decrypts the iv + ciphertext following the name embedded by #wrapNamed
+    private static byte[] unwrapNamed(
+        SecretKey secretKey,
+        DirectBufferEx bytes,
+        int index,
+        int length)
+        throws Exception
+    {
+        int nameLength = bytes.getInt(index, ByteOrder.BIG_ENDIAN);
+        int ivOffset = index + Integer.BYTES + nameLength;
+
+        // codeql[java/static-initialization-vector]
+        byte[] iv = new byte[GCM_IV_LENGTH];
+        bytes.getBytes(ivOffset, iv);
+
+        int cipherOffset = ivOffset + GCM_IV_LENGTH;
+        int cipherLength = length - (cipherOffset - index);
+        byte[] ciphertext = new byte[cipherLength];
+        bytes.getBytes(cipherOffset, ciphertext);
+
+        Cipher cipher = Cipher.getInstance(CIPHER_TRANSFORM);
+        GCMParameterSpec spec = new GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv);
+        cipher.init(Cipher.DECRYPT_MODE, secretKey, spec);
+        return cipher.doFinal(ciphertext);
+    }
+
+    private static void putInt(
+        byte[] buffer,
+        int offset,
+        int value)
+    {
+        buffer[offset] = (byte) (value >>> 24);
+        buffer[offset + 1] = (byte) (value >>> 16);
+        buffer[offset + 2] = (byte) (value >>> 8);
+        buffer[offset + 3] = (byte) value;
     }
 
     @Override
@@ -454,19 +523,9 @@ public final class TestVaultHandler implements VaultHandler
             {
                 try
                 {
-                    byte[] iv = new byte[GCM_IV_LENGTH];
-                    RANDOM.nextBytes(iv);
-
-                    byte[] plaintext = new byte[length];
-                    bytes.getBytes(index, plaintext);
-
-                    Cipher cipher = Cipher.getInstance(CIPHER_TRANSFORM);
-                    cipher.init(Cipher.ENCRYPT_MODE, secretKey, new GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv));
-                    byte[] ciphertext = cipher.doFinal(plaintext);
-
-                    dst.putBytes(dstIndex, iv);
-                    dst.putBytes(dstIndex + iv.length, ciphertext);
-                    written = iv.length + ciphertext.length;
+                    byte[] wrapped = wrapNamed(secretKey, keyName, bytes, index, length);
+                    dst.putBytes(dstIndex, wrapped);
+                    written = wrapped.length;
                 }
                 catch (Exception ex)
                 {
@@ -479,33 +538,21 @@ public final class TestVaultHandler implements VaultHandler
 
         @Override
         public int unwrap(
-            String keyName,
             DirectBufferEx bytes,
             int index,
             int length,
             MutableDirectBufferEx dst,
             int dstIndex)
         {
-            SecretKey secretKey = keys.get(keyName);
+            String keyName = nameOf(bytes, index, length);
+            SecretKey secretKey = keyName != null ? keys.get(keyName) : null;
             int written = -1;
 
-            if (secretKey != null && length >= GCM_IV_LENGTH)
+            if (secretKey != null)
             {
                 try
                 {
-                    // codeql[java/static-initialization-vector]
-                    byte[] iv = new byte[GCM_IV_LENGTH];
-                    bytes.getBytes(index, iv);
-
-                    int ciphertextLength = length - GCM_IV_LENGTH;
-                    byte[] ciphertext = new byte[ciphertextLength];
-                    bytes.getBytes(index + GCM_IV_LENGTH, ciphertext);
-
-                    Cipher cipher = Cipher.getInstance(CIPHER_TRANSFORM);
-                    GCMParameterSpec spec = new GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv);
-                    cipher.init(Cipher.DECRYPT_MODE, secretKey, spec);
-                    byte[] plaintext = cipher.doFinal(ciphertext);
-
+                    byte[] plaintext = unwrapNamed(secretKey, bytes, index, length);
                     dst.putBytes(dstIndex, plaintext);
                     written = plaintext.length;
                 }

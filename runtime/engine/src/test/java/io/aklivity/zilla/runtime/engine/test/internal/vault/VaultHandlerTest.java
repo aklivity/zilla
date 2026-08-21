@@ -54,7 +54,7 @@ public class VaultHandlerTest
         DirectBufferEx bytes = new UnsafeBufferEx(new byte[] { 0x05, 0x06, 0x07, 0x08 });
         CapturedResult captured = new CapturedResult();
 
-        handler.unwrap(1L, "kek", bytes, 0, bytes.capacity(), captured::accept);
+        handler.unwrap(1L, bytes, 0, bytes.capacity(), captured::accept);
 
         assertNull(captured.buffer);
         assertEquals(0, captured.index);
@@ -92,11 +92,11 @@ public class VaultHandlerTest
     @Test
     public void shouldUnwrapWithNamedKey()
     {
-        VaultHandler handler = new NamedKeyVaultHandler("kek");
+        VaultHandler handler = new NamedKeyVaultHandler("kek", true);
         DirectBufferEx bytes = new UnsafeBufferEx(new byte[] { 0x05, 0x06, 0x07, 0x08 });
         CapturedResult captured = new CapturedResult();
 
-        handler.unwrap(1L, "kek", bytes, 0, bytes.capacity(), captured::accept);
+        handler.unwrap(1L, bytes, 0, bytes.capacity(), captured::accept);
 
         assertSame(bytes, captured.buffer);
         assertEquals(0, captured.index);
@@ -104,13 +104,13 @@ public class VaultHandlerTest
     }
 
     @Test
-    public void shouldFailUnwrapWithUnknownKey()
+    public void shouldFailUnwrapWhenKeyNotResolved()
     {
-        VaultHandler handler = new NamedKeyVaultHandler("kek");
+        VaultHandler handler = new NamedKeyVaultHandler("kek", false);
         DirectBufferEx bytes = new UnsafeBufferEx(new byte[] { 0x05, 0x06, 0x07, 0x08 });
         CapturedResult captured = new CapturedResult();
 
-        handler.unwrap(1L, "unknown", bytes, 0, bytes.capacity(), captured::accept);
+        handler.unwrap(1L, bytes, 0, bytes.capacity(), captured::accept);
 
         assertNull(captured.buffer);
         assertEquals(0, captured.index);
@@ -181,11 +181,20 @@ public class VaultHandlerTest
     private static final class NamedKeyVaultHandler extends EmptyVaultHandler
     {
         private final String key;
+        private final boolean resolvable;
 
         private NamedKeyVaultHandler(
             String key)
         {
+            this(key, true);
+        }
+
+        private NamedKeyVaultHandler(
+            String key,
+            boolean resolvable)
+        {
             this.key = key;
+            this.resolvable = resolvable;
         }
 
         @Override
@@ -210,13 +219,12 @@ public class VaultHandlerTest
         @Override
         public void unwrap(
             long traceId,
-            String key,
             DirectBufferEx bytes,
             int index,
             int length,
             BytesConsumer next)
         {
-            if (this.key.equals(key))
+            if (resolvable)
             {
                 next.accept(bytes, index, length);
             }

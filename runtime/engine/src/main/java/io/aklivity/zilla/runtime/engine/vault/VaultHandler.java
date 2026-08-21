@@ -175,18 +175,18 @@ public interface VaultHandler
     }
 
     /**
-     * Unwraps a buffer of previously wrapped bytes under the named key held by this vault,
-     * without the key's raw material ever leaving the vault's implementation.
+     * Unwraps a buffer of previously wrapped bytes under the key held by this vault that
+     * wrapped them, resolved from the wrapped bytes themselves, without the key's raw
+     * material ever leaving the vault's implementation.
      * <p>
-     * The result is delivered asynchronously to {@code next}, since resolving the named
-     * key may require a call outside this thread. On success, {@code next} receives the
-     * unwrapped bytes; on failure (e.g., the named key could not be resolved), {@code next}
+     * The result is delivered asynchronously to {@code next}, since resolving the key may
+     * require a call outside this thread. On success, {@code next} receives the unwrapped
+     * bytes; on failure (e.g., no key could be resolved from the wrapped bytes), {@code next}
      * receives a {@code null} buffer and the caller treats the operation as failed. The
      * reason for a failure is reported separately, through this vault's own diagnostics.
      * </p>
      *
      * @param traceId  the trace identifier correlating this operation with its caller
-     * @param key      the vault-specific name of the key to unwrap under
      * @param bytes    the buffer containing the wrapped bytes to unwrap
      * @param index    the index within {@code bytes} at which the wrapped bytes begin
      * @param length   the length in bytes of the wrapped data
@@ -195,7 +195,6 @@ public interface VaultHandler
      */
     default void unwrap(
         long traceId,
-        String key,
         DirectBufferEx bytes,
         int index,
         int length,

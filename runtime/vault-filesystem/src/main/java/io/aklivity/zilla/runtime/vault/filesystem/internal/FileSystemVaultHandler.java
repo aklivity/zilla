@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.vault.filesystem.internal;
 
 import java.io.InputStream;
 import java.nio.ByteOrder;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.GeneralSecurityException;
@@ -43,6 +44,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
@@ -197,13 +199,12 @@ public class FileSystemVaultHandler implements VaultHandler
     @Override
     public void unwrap(
         long traceId,
-        String key,
         DirectBufferEx bytes,
         int index,
         int length,
         BytesConsumer next)
     {
-        int producedLength = unwrapCore(key, bytes, index, length);
+        int producedLength = unwrapCore(bytes, index, length, null);
         DirectBufferEx unwrapped = null;
 
         if (producedLength >= 0)
@@ -247,7 +248,9 @@ public class FileSystemVaultHandler implements VaultHandler
     }
 
     // returns the length of the wrapped bytes written to `output` (see #output), or -1 on failure;
-    // shared by both the async #wrap and the synchronous FileSystemSecretKeyManager#wrap
+    // shared by both the async #wrap and the synchronous FileSystemSecretKeyManager#wrap;
+    // the wrapped bytes are self-sufficient for #unwrapCore: a length-prefixed copy of `key`
+    // precedes the version + iv + ciphertext so no external name is needed to unwrap them
     private int wrapCore(
         String key,
         DirectBufferEx bytes,
@@ -268,11 +271,17 @@ public class FileSystemVaultHandler implements VaultHandler
                 random.nextBytes(iv);
                 cipher.init(Cipher.ENCRYPT_MODE, secretKey, new GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv));
 
-                byte[] wire = output(PREFIX_LENGTH + cipher.getOutputSize(length));
-                putInt(wire, 0, entry.active);
-                System.arraycopy(iv, 0, wire, Integer.BYTES, GCM_IV_LENGTH);
+                byte[] nameBytes = entry.nameBytes();
+                int nameHeaderLength = Integer.BYTES + nameBytes.length;
+                int headerLength = nameHeaderLength + PREFIX_LENGTH;
 
-                int position = update(bytes, index, length, wire, PREFIX_LENGTH);
+                byte[] wire = output(headerLength + cipher.getOutputSize(length));
+                putInt(wire, 0, nameBytes.length);
+                System.arraycopy(nameBytes, 0, wire, Integer.BYTES, nameBytes.length);
+                putInt(wire, nameHeaderLength, entry.active);
+                System.arraycopy(iv, 0, wire, nameHeaderLength + Integer.BYTES, GCM_IV_LENGTH);
+
+                int position = update(bytes, index, length, wire, headerLength);
                 producedLength = position + cipher.doFinal(wire, position);
             }
             catch (GeneralSecurityException ex)
@@ -285,42 +294,57 @@ public class FileSystemVaultHandler implements VaultHandler
     }
 
     // returns the length of the unwrapped bytes written to `output` (see #output), or -1 on failure;
-    // shared by both the async #unwrap and the synchronous FileSystemSecretKeyManager#unwrap
+    // shared by both the async #unwrap and the synchronous FileSystemSecretKeyManager#unwrap; the
+    // key to unwrap under is recovered entirely from the length-prefixed name embedded by
+    // #wrapCore, not supplied by the caller; `permitted` further restricts the recovered name
+    // (e.g. to a SecretKeyManager's configured set), or is null when any resolved key is allowed
     private int unwrapCore(
-        String key,
         DirectBufferEx bytes,
         int index,
-        int length)
+        int length,
+        Predicate<String> permitted)
     {
         int producedLength = -1;
 
-        FileSystemSecretEntryInfo entry = secrets != null ? secrets.entry(key) : null;
-
-        if (entry != null && length >= PREFIX_LENGTH)
+        int remaining = length - Integer.BYTES;
+        if (secrets != null && remaining >= 0)
         {
-            int version = bytes.getInt(index, ByteOrder.BIG_ENDIAN);
-            int cipherIndex = index + PREFIX_LENGTH;
-            int cipherLength = length - PREFIX_LENGTH;
+            int nameLength = bytes.getInt(index, ByteOrder.BIG_ENDIAN);
+            int nameOffset = index + Integer.BYTES;
 
-            String alias = entry.alias(version);
-            SecretKey secretKey = alias != null ? secrets.secretKey(alias) : null;
-
-            if (secretKey != null)
+            if (nameLength >= 0 && nameLength <= remaining - PREFIX_LENGTH)
             {
-                try
-                {
-                    bytes.getBytes(index + Integer.BYTES, iv, 0, GCM_IV_LENGTH);
+                FileSystemSecretEntryInfo entry = secrets.entry(bytes, nameOffset, nameLength);
 
-                    // codeql[java/static-initialization-vector]: iv comes from wrap, not static
-                    cipher.init(Cipher.DECRYPT_MODE, secretKey, new GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv));
-
-                    byte[] plaintext = output(cipher.getOutputSize(cipherLength));
-                    int position = update(bytes, cipherIndex, cipherLength, plaintext, 0);
-                    producedLength = position + cipher.doFinal(plaintext, position);
-                }
-                catch (GeneralSecurityException ex)
+                if (entry != null && (permitted == null || permitted.test(entry.name())))
                 {
-                    producedLength = -1;
+                    int versionOffset = nameOffset + nameLength;
+                    int headerLength = (versionOffset - index) + PREFIX_LENGTH;
+                    int version = bytes.getInt(versionOffset, ByteOrder.BIG_ENDIAN);
+
+                    String alias = entry.alias(version);
+                    SecretKey secretKey = alias != null ? secrets.secretKey(alias) : null;
+
+                    if (secretKey != null)
+                    {
+                        try
+                        {
+                            bytes.getBytes(versionOffset + Integer.BYTES, iv, 0, GCM_IV_LENGTH);
+
+                            // codeql[java/static-initialization-vector]: iv comes from wrap, not static
+                            cipher.init(Cipher.DECRYPT_MODE, secretKey, new GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv));
+
+                            int cipherIndex = index + headerLength;
+                            int cipherLength = length - headerLength;
+                            byte[] plaintext = output(cipher.getOutputSize(cipherLength));
+                            int position = update(bytes, cipherIndex, cipherLength, plaintext, 0);
+                            producedLength = position + cipher.doFinal(plaintext, position);
+                        }
+                        catch (GeneralSecurityException ex)
+                        {
+                            producedLength = -1;
+                        }
+                    }
                 }
             }
         }
@@ -750,7 +774,7 @@ public class FileSystemVaultHandler implements VaultHandler
             Map<String, FileSystemSecretEntryInfo> resolved = new LinkedHashMap<>();
             if (entries != null)
             {
-                entries.forEach((name, entry) -> resolved.put(name, new FileSystemSecretEntryInfo(entry)));
+                entries.forEach((name, entry) -> resolved.put(name, new FileSystemSecretEntryInfo(name, entry)));
             }
             this.entries = resolved;
             this.resolvedKeys = new LinkedHashMap<>();
@@ -760,6 +784,25 @@ public class FileSystemVaultHandler implements VaultHandler
             String name)
         {
             return entries.get(name);
+        }
+
+        private FileSystemSecretEntryInfo entry(
+            DirectBufferEx bytes,
+            int offset,
+            int length)
+        {
+            FileSystemSecretEntryInfo matched = null;
+
+            for (FileSystemSecretEntryInfo candidate : entries.values())
+            {
+                if (candidate.matchesName(bytes, offset, length))
+                {
+                    matched = candidate;
+                    break;
+                }
+            }
+
+            return matched;
         }
 
         private SecretKey secretKey(
@@ -791,13 +834,18 @@ public class FileSystemVaultHandler implements VaultHandler
 
     private static final class FileSystemSecretEntryInfo
     {
+        private final String name;
+        private final byte[] nameBytes;
         private final int active;
         private final Map<Integer, String> aliases;
         private final String algorithm;
 
         private FileSystemSecretEntryInfo(
+            String name,
             FileSystemSecretEntryConfig config)
         {
+            this.name = name;
+            this.nameBytes = name.getBytes(StandardCharsets.UTF_8);
             this.active = Integer.parseInt(config.active);
 
             Map<Integer, String> aliases = new LinkedHashMap<>();
@@ -805,6 +853,31 @@ public class FileSystemVaultHandler implements VaultHandler
             this.aliases = aliases;
 
             this.algorithm = config.algorithm;
+        }
+
+        private String name()
+        {
+            return name;
+        }
+
+        private byte[] nameBytes()
+        {
+            return nameBytes;
+        }
+
+        private boolean matchesName(
+            DirectBufferEx bytes,
+            int offset,
+            int length)
+        {
+            boolean matches = nameBytes.length == length;
+
+            for (int i = 0; matches && i < length; i++)
+            {
+                matches = nameBytes[i] == bytes.getByte(offset + i);
+            }
+
+            return matches;
         }
 
         private String alias(
@@ -850,14 +923,13 @@ public class FileSystemVaultHandler implements VaultHandler
 
         @Override
         public int unwrap(
-            String keyName,
             DirectBufferEx bytes,
             int index,
             int length,
             MutableDirectBufferEx dst,
             int dstIndex)
         {
-            int producedLength = permitted.contains(keyName) ? unwrapCore(keyName, bytes, index, length) : -1;
+            int producedLength = unwrapCore(bytes, index, length, permitted::contains);
 
             if (producedLength >= 0)
             {
