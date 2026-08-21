@@ -95,6 +95,12 @@ final class BytesExtModelPipeline extends CoreExtModelPipeline
     private final class Control implements BytesController
     {
         @Override
+        public long authorization()
+        {
+            return BytesExtModelPipeline.this.authorization();
+        }
+
+        @Override
         public ModelEnvelope envelope()
         {
             return BytesExtModelPipeline.this.envelope();

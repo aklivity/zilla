@@ -297,6 +297,19 @@ public class CoreExtModelPipelineTest
         assertSame(envelope, envelopes.observed);
     }
 
+    @Test
+    public void shouldReachAuthorizationFromStage()
+    {
+        Authorizations authorizations = new Authorizations();
+        ModelHandler handler = handler(mock(EngineContext.class), stage(authorizations));
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
+        UnsafeBufferEx dst = new UnsafeBufferEx(new byte[16]);
+
+        pipeline.transform(0L, 0L, 42L, FLAGS_COMPLETE, buffer("abc"), 0, 3, dst, 0, dst.capacity());
+
+        assertEquals(42L, authorizations.observed);
+    }
+
     private static ModelPipeline decoder(
         BytesModelExtHandler... exts)
     {
@@ -435,6 +448,24 @@ public class CoreExtModelPipelineTest
             BytesSink sink)
         {
             observed = control.envelope();
+            return sink.transform(control, source, event);
+        }
+    }
+
+    // reads the authorization in force and remembers it, so a test can assert a stage reaches the
+    // authorization the pipeline received through its control handle
+    private static final class Authorizations implements BytesTransform
+    {
+        private long observed;
+
+        @Override
+        public ModelStatus transform(
+            BytesController control,
+            BytesSource source,
+            BytesEvent event,
+            BytesSink sink)
+        {
+            observed = control.authorization();
             return sink.transform(control, source, event);
         }
     }

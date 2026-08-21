@@ -43,6 +43,7 @@
 - fix\(binding-tls\): merge net reply address into TlsClientFactory reply ProxyBeginEx [\#2408](https://github.com/aklivity/zilla/pull/2408) ([jfallows](https://github.com/jfallows))
 - fix\(model-core\): forward named-config refs from BytesModelConfig/StringModelConfig [\#2409](https://github.com/aklivity/zilla/pull/2409) ([jfallows](https://github.com/jfallows))
 - feat\(model-json\): support refs, attach\(\), and authorization [\#2410](https://github.com/aklivity/zilla/pull/2410) ([jfallows](https://github.com/jfallows))
+- feat\(model-core\): expose the pipeline's authorization to transform stages [\#2413](https://github.com/aklivity/zilla/pull/2413) ([jfallows](https://github.com/jfallows))
 
 ## [2.3.0](https://github.com/aklivity/zilla/tree/2.3.0) (2026-08-14)
 
