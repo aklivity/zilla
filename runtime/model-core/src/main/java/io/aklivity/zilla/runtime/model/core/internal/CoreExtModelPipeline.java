@@ -70,6 +70,7 @@ abstract class CoreExtModelPipeline implements ModelPipeline
     private int reported;
     private String diagnostic;
     private boolean withheld;
+    private long authorization;
 
     CoreExtModelPipeline(
         CoreModelHandler handler,
@@ -107,6 +108,7 @@ abstract class CoreExtModelPipeline implements ModelPipeline
             reset();
         }
 
+        this.authorization = authorization;
         target = dst;
         targetAt = dstIndex;
         targetLimit = dstLimit;
@@ -215,6 +217,11 @@ abstract class CoreExtModelPipeline implements ModelPipeline
     protected final ModelEnvelope envelope()
     {
         return envelope;
+    }
+
+    protected final long authorization()
+    {
+        return authorization;
     }
 
     protected final void consumed(
