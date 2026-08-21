@@ -28,7 +28,7 @@ connected
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .lifecycle()
-                              .sessionId("5ca1ab1e-c0de-4a11-feed-000a00000000")
+                              .sessionId("5ca1ab1e-c0de-4a11-feed-000a0000003f")
                               .build()
                           .build()}
 
@@ -42,7 +42,7 @@ connect await LIFECYCLE_INITIALIZED
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .toolsList()
-                               .sessionId("5ca1ab1e-c0de-4a11-feed-000a00000000")
+                               .sessionId("5ca1ab1e-c0de-4a11-feed-000a0000003f")
                                .build()
                            .build()}
 
@@ -63,7 +63,7 @@ connect await TOOLS_LIST_COMPLETE
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .toolsList()
-                               .sessionId("5ca1ab1e-c0de-4a11-feed-000a00000000")
+                               .sessionId("5ca1ab1e-c0de-4a11-feed-000a0000003f")
                                .build()
                            .build()}
 

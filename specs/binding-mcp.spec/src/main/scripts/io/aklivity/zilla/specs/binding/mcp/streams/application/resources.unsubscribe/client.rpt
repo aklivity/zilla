@@ -13,6 +13,8 @@
 # specific language governing permissions and limitations under the License.
 #
 
+property affinity "00000000"
+
 property authorization 0L
 
 connect "zilla://streams/app0"
@@ -31,7 +33,7 @@ connected
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .lifecycle()
-                              .sessionId("5ca1ab1e-c0de-4a11-5e55-000100000000")
+                              .sessionId("5ca1ab1e-c0de-4a11-5e55-0001".concat(affinity))
                               .build()
                           .build()}
 
@@ -46,7 +48,7 @@ connect await LIFECYCLE_INITIALIZED
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .resourcesUnsubscribe()
-                               .sessionId("5ca1ab1e-c0de-4a11-5e55-000100000000")
+                               .sessionId("5ca1ab1e-c0de-4a11-5e55-0001".concat(affinity))
                                .uri("file:///data/readme.txt")
                                .contentLength(33)
                                .build()
