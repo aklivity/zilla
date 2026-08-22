@@ -49,6 +49,15 @@ public class ProduceIT
 
     @Test
     @Specification({
+        "${app}/message.value.after.fan.reply.abort/client",
+        "${app}/message.value.after.fan.reply.abort/server"})
+    public void shouldSendMessageValueAfterFanReplyAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/topic.missing/client",
         "${app}/topic.missing/server"})
     public void shouldRejectWhenTopicMissing() throws Exception
