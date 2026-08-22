@@ -54,6 +54,7 @@
 - feat\(vault\): drop keyName param from SecretKeyManager/VaultHandler unwrap [\#2417](https://github.com/aklivity/zilla/pull/2417) ([jfallows](https://github.com/jfallows))
 - test\(engine\): add option zilla:redirectedId to k3po connect/accept [\#2418](https://github.com/aklivity/zilla/pull/2418) ([jfallows](https://github.com/jfallows))
 - feat\(common-feature\): add @Internal, a permanent non-overridable visibility gate [\#2419](https://github.com/aklivity/zilla/pull/2419) ([jfallows](https://github.com/jfallows))
+- feat\(engine\): add RouteableContext\#supplyStore [\#2420](https://github.com/aklivity/zilla/pull/2420) ([jfallows](https://github.com/jfallows))
 
 ## [2.3.0](https://github.com/aklivity/zilla/tree/2.3.0) (2026-08-14)
 
