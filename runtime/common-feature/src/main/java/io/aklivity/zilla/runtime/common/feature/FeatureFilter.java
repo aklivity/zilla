@@ -26,6 +26,7 @@ public final class FeatureFilter
     }
 
     private static final boolean INCUBATOR_ENABLED = incubatorEnabled();
+    private static final boolean INTERNAL_ENABLED = internalEnabled();
     private static final Predicate<Object> FEATURE_ENABLED = FeatureFilter::featureEnabled;
 
     public static <S> Iterable<S> filter(
@@ -37,15 +38,14 @@ public final class FeatureFilter
     private static boolean featureEnabled(
         Object feature)
     {
-        return INCUBATOR_ENABLED ||
-            !feature.getClass().isAnnotationPresent(Incubating.class);
+        return featureEnabled(feature.getClass());
     }
 
     public static boolean featureEnabled(
         Class<?> feature)
     {
-        return INCUBATOR_ENABLED ||
-            !feature.isAnnotationPresent(Incubating.class);
+        return (INCUBATOR_ENABLED || !feature.isAnnotationPresent(Incubating.class)) &&
+            (INTERNAL_ENABLED || !feature.isAnnotationPresent(Internal.class));
     }
 
     public static boolean isIncubatorEnabled()
@@ -53,14 +53,29 @@ public final class FeatureFilter
         return INCUBATOR_ENABLED;
     }
 
+    public static boolean isInternalEnabled()
+    {
+        return INTERNAL_ENABLED;
+    }
+
     private static boolean incubatorEnabled()
     {
-        final Module module = FeatureFilter.class.getModule();
         final String override = System.getProperty("zilla.incubator.enabled");
 
-        return override != null ? Boolean.parseBoolean(override) : module == null ||
-            module.getDescriptor() == null || "develop-SNAPSHOT".equals(
-                module.getDescriptor().version().map(ModuleDescriptor.Version::toString)
-                    .orElse("develop-SNAPSHOT"));
+        return override != null ? Boolean.parseBoolean(override) : isDevelopSnapshot();
+    }
+
+    private static boolean internalEnabled()
+    {
+        return isDevelopSnapshot();
+    }
+
+    private static boolean isDevelopSnapshot()
+    {
+        final Module module = FeatureFilter.class.getModule();
+
+        return module == null || module.getDescriptor() == null || "develop-SNAPSHOT".equals(
+            module.getDescriptor().version().map(ModuleDescriptor.Version::toString)
+                .orElse("develop-SNAPSHOT"));
     }
 }
