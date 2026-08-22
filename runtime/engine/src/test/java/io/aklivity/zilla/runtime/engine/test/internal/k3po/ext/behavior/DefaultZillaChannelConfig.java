@@ -23,6 +23,7 @@ import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.Zill
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_BYTE_ORDER;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_CAPABILITIES;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_PADDING;
+import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_REDIRECTED_ID;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_SHARED_WINDOW;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_STREAM_ID;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_THROTTLE;
@@ -49,6 +50,7 @@ public class DefaultZillaChannelConfig extends DefaultChannelConfig implements Z
     private ZillaThrottleMode throttle = ZillaThrottleMode.STREAM;
     private ZillaUpdateMode update = ZillaUpdateMode.STREAM;
     private long affinity;
+    private long redirectedId;
     private byte capabilities;
     private boolean timestamps;
 
@@ -180,6 +182,19 @@ public class DefaultZillaChannelConfig extends DefaultChannelConfig implements Z
     }
 
     @Override
+    public void setRedirectedId(
+        long redirectedId)
+    {
+        this.redirectedId = redirectedId;
+    }
+
+    @Override
+    public long getRedirectedId()
+    {
+        return redirectedId;
+    }
+
+    @Override
     public void setCapabilities(
         byte capabilities)
     {
@@ -253,6 +268,10 @@ public class DefaultZillaChannelConfig extends DefaultChannelConfig implements Z
         else if (OPTION_AFFINITY.getName().equals(key))
         {
             setAffinity(convertToLong(value));
+        }
+        else if (OPTION_REDIRECTED_ID.getName().equals(key))
+        {
+            setRedirectedId(convertToLong(value));
         }
         else if (OPTION_CAPABILITIES.getName().equals(key))
         {

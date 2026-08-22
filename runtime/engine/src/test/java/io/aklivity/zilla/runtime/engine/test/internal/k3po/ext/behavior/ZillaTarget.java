@@ -256,6 +256,7 @@ final class ZillaTarget implements AutoCloseable
             client.targetAuth(authorization);
 
             final long affinity = clientConfig.getAffinity();
+            final long redirectedId = clientConfig.getRedirectedId();
 
             ChannelBuffer beginExt = client.writeExtBuffer(BEGIN, true);
             final int writableExtBytes = beginExt.readableBytes();
@@ -276,6 +277,7 @@ final class ZillaTarget implements AutoCloseable
                 .traceId(supplyTraceId.getAsLong())
                 .authorization(authorization)
                 .affinity(affinity)
+                .redirectedId(redirectedId)
                 .extension(p -> p.set(beginExtCopy))
                 .build();
 
@@ -384,6 +386,7 @@ final class ZillaTarget implements AutoCloseable
         final long acknowledge = channel.targetAck();
         final int maximum = channel.targetMax();
         final long affinity = channel.getConfig().getAffinity();
+        final long redirectedId = channel.getConfig().getRedirectedId();
 
         final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
@@ -395,6 +398,7 @@ final class ZillaTarget implements AutoCloseable
                 .timestamp(channel.timestamp())
                 .traceId(supplyTraceId.getAsLong())
                 .affinity(affinity)
+                .redirectedId(redirectedId)
                 .extension(p -> p.set(beginExtCopy))
                 .build();
 

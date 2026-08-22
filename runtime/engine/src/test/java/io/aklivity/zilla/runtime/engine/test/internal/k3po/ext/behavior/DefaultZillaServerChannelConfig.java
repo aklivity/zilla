@@ -48,6 +48,7 @@ public class DefaultZillaServerChannelConfig extends DefaultServerChannelConfig 
     private ZillaThrottleMode throttle = ZillaThrottleMode.STREAM;
     private ZillaUpdateMode update = ZillaUpdateMode.STREAM;
     private long affinity;
+    private long redirectedId;
     private byte capabilities;
     private boolean timestamps;
 
@@ -164,6 +165,19 @@ public class DefaultZillaServerChannelConfig extends DefaultServerChannelConfig 
     public long getAffinity()
     {
         return affinity;
+    }
+
+    @Override
+    public void setRedirectedId(
+        long redirectedId)
+    {
+        this.redirectedId = redirectedId;
+    }
+
+    @Override
+    public long getRedirectedId()
+    {
+        return redirectedId;
     }
 
     @Override
