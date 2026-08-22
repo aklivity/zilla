@@ -17,6 +17,7 @@
 - engine: supply ModelEnvelope per message, and expose it to a model's format-native transform stages [\#2389](https://github.com/aklivity/zilla/issues/2389) ([jfallows](https://github.com/jfallows))
 - model-core: align bytes/string extension stages with the streaming stage design, and make them bidirectional [\#2393](https://github.com/aklivity/zilla/issues/2393) ([jfallows](https://github.com/jfallows))
 - binding-tls: TlsClientFactory reply-direction ProxyBeginEx cannot convey the underlying network address [\#2407](https://github.com/aklivity/zilla/issues/2407) ([jfallows](https://github.com/jfallows))
+- Make wrapped key material self-sufficient for unwrap — drop the explicit key-name parameter from SecretKeyManager/VaultHandler.unwrap [\#2416](https://github.com/aklivity/zilla/issues/2416) ([jfallows](https://github.com/jfallows))
 
 **Merged pull requests:**
 
@@ -50,6 +51,7 @@
 - fix\(engine\): honor affinity's embedded worker index for routing [\#2412](https://github.com/aklivity/zilla/pull/2412) ([jfallows](https://github.com/jfallows))
 - feat\(model-core\): expose the pipeline's authorization to transform stages [\#2413](https://github.com/aklivity/zilla/pull/2413) ([jfallows](https://github.com/jfallows))
 - fix\(common-protobuf\): unwrap well-known wrapper types in JSON codec [\#2414](https://github.com/aklivity/zilla/pull/2414) ([jfallows](https://github.com/jfallows))
+- feat\(vault\): drop keyName param from SecretKeyManager/VaultHandler unwrap [\#2417](https://github.com/aklivity/zilla/pull/2417) ([jfallows](https://github.com/jfallows))
 
 ## [2.3.0](https://github.com/aklivity/zilla/tree/2.3.0) (2026-08-14)
 
