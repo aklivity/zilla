@@ -428,7 +428,7 @@ public class EngineWorker implements EngineContext, Agent
 
         this.routerConfig = routerConfig;
         EngineRouteable routeable = new EngineRouteable(config, this::newStream,
-            this::attachComposite, this::detachComposite);
+            this::attachComposite, this::detachComposite, this::supplyStore);
         this.router = router.supply(routeable);
 
         this.bindings = bindings;
