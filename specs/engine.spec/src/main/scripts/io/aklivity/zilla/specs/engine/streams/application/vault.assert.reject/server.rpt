@@ -14,27 +14,8 @@
 # under the License.
 #
 
----
-name: test
-vaults:
-    local-secrets:
-        type: filesystem
-        options:
-            secrets:
-                store: stores/secrets/secrets
-                type: pkcs12
-                password: generated
-                entries:
-                    app-key: alias128
-bindings:
-    net0:
-        type: test
-        kind: server
-        vault: local-secrets
-        options:
-            assertions:
-                vault:
-                    secretKey: app-key
-                    wrap: top secret payload
-        routes:
-            - exit: app0
+accept "zilla://streams/app0"
+       option zilla:transmission "duplex"
+       option zilla:window 8192
+
+rejected

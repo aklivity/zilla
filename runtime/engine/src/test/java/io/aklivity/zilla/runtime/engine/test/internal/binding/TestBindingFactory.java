@@ -26,6 +26,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyStore;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -80,6 +81,8 @@ import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.stream.Rese
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.stream.TestDataExFW;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.stream.TestEnvelopeValueFW;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.stream.WindowFW;
+import io.aklivity.zilla.runtime.engine.vault.SecretKeyManager;
+import io.aklivity.zilla.runtime.engine.vault.SecretKeyManagerFactory;
 import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
 
 final class TestBindingFactory implements BindingHandler
@@ -718,6 +721,13 @@ final class TestBindingFactory implements BindingHandler
                     List<String> certRefs = trust != null ? List.of(trust) : emptyList();
                     vault.initTrust(certRefs, cacerts);
                 }
+
+                String secretKey = vaultAssertion.secretKey;
+                String wrap = vaultAssertion.wrap;
+                if (secretKey != null && wrap != null && !roundTripsSecretKey(secretKey, wrap))
+                {
+                    doInitialReset(traceId);
+                }
             }
 
             if (catalogs != null)
@@ -815,6 +825,38 @@ final class TestBindingFactory implements BindingHandler
                 event.connected(traceId, routedId, e.timestamp, e.message);
                 eventIndex++;
             }
+        }
+
+        private boolean roundTripsSecretKey(
+            String secretKey,
+            String wrap)
+        {
+            SecretKeyManagerFactory factory = vault.initSecretKeys(List.of(secretKey));
+            SecretKeyManager manager = factory != null ? factory.getSecretKeyManager() : null;
+            boolean roundTripped = false;
+
+            if (manager != null)
+            {
+                byte[] plaintext = wrap.getBytes(StandardCharsets.UTF_8);
+                DirectBufferEx source = new UnsafeBufferEx(plaintext);
+                MutableDirectBufferEx wrapped = new UnsafeBufferEx(new byte[256]);
+                int wrappedLength = manager.wrap(secretKey, source, 0, source.capacity(), wrapped, 0);
+
+                if (wrappedLength >= 0)
+                {
+                    MutableDirectBufferEx unwrapped = new UnsafeBufferEx(new byte[256]);
+                    int unwrappedLength = manager.unwrap(wrapped, 0, wrappedLength, unwrapped, 0);
+
+                    if (unwrappedLength == plaintext.length)
+                    {
+                        byte[] roundTrippedBytes = new byte[unwrappedLength];
+                        unwrapped.getBytes(0, roundTrippedBytes);
+                        roundTripped = Arrays.equals(plaintext, roundTrippedBytes);
+                    }
+                }
+            }
+
+            return roundTripped;
         }
 
         private void runStoreAssertions(
