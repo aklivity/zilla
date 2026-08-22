@@ -25,11 +25,17 @@ import org.junit.rules.DisableOnDebug;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
 
+import io.aklivity.k3po.runtime.junit.annotation.Specification;
+import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 
 public class FileSystemVaultIT
 {
+    private final K3poRule k3po = new K3poRule()
+        .addScriptRoot("net", "io/aklivity/zilla/specs/engine/streams/network")
+        .addScriptRoot("app", "io/aklivity/zilla/specs/engine/streams/application");
+
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
     private final EngineRule engine = new EngineRule()
@@ -37,10 +43,11 @@ public class FileSystemVaultIT
             .countersBufferCapacity(8192)
             .configurationRoot("io/aklivity/zilla/specs/vault/filesystem/config")
             .configure(ENGINE_DRAIN_ON_CLOSE, false)
+            .external("app0")
             .clean();
 
     @Rule
-    public final TestRule chain = outerRule(engine).around(timeout);
+    public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
     @Configuration("vault.yaml")
@@ -51,8 +58,21 @@ public class FileSystemVaultIT
 
     @Test
     @Configuration("vault.secrets.yaml")
-    public void shouldInitializeWithSecrets() throws Exception
+    @Specification({
+        "${net}/handshake/client",
+        "${app}/handshake/server"})
+    public void shouldWrapAndUnwrapSecretKeyThroughEngine() throws Exception
     {
-        System.out.println("done!");
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("vault.secrets.unknown.yaml")
+    @Specification({
+        "${net}/vault.assert.reject/client",
+        "${app}/vault.assert.reject/server"})
+    public void shouldRejectWhenSecretKeyUnknownThroughEngine() throws Exception
+    {
+        k3po.finish();
     }
 }

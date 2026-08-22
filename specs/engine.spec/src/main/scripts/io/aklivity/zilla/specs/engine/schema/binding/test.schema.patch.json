@@ -119,6 +119,14 @@
                                             "trustcacerts":
                                             {
                                                 "type": "boolean"
+                                            },
+                                            "secretKey":
+                                            {
+                                                "type": "string"
+                                            },
+                                            "wrap":
+                                            {
+                                                "type": "string"
                                             }
                                         }
                                     },
