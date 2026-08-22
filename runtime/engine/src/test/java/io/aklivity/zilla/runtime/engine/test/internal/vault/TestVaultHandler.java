@@ -188,6 +188,7 @@ public final class TestVaultHandler implements VaultHandler
         int nameLength = bytes.getInt(index, ByteOrder.BIG_ENDIAN);
         int ivOffset = index + Integer.BYTES + nameLength;
 
+        // codeql[java/static-initialization-vector]: iv comes from wrapNamed, not static
         byte[] iv = new byte[GCM_IV_LENGTH];
         bytes.getBytes(ivOffset, iv);
 
@@ -197,8 +198,6 @@ public final class TestVaultHandler implements VaultHandler
         bytes.getBytes(cipherOffset, ciphertext);
 
         Cipher cipher = Cipher.getInstance(CIPHER_TRANSFORM);
-
-        // codeql[java/static-initialization-vector]: iv comes from wrapNamed, not static
         cipher.init(Cipher.DECRYPT_MODE, secretKey, new GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv));
         return cipher.doFinal(ciphertext);
     }
