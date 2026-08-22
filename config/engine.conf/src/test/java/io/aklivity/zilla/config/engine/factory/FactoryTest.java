@@ -23,6 +23,7 @@ import java.util.Map;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.common.feature.Incubating;
+import io.aklivity.zilla.runtime.common.feature.Internal;
 
 public class FactoryTest
 {
@@ -48,6 +49,20 @@ public class FactoryTest
 
         assertThat(instances.contains(stable), equalTo(instancesByType.containsKey("stable")));
         assertThat(instances.contains(incubating), equalTo(instancesByType.containsKey("incubating")));
+    }
+
+    @Test
+    public void shouldFilterInternalIdenticallyToMapOverload()
+    {
+        TestFactorySpi stable = new TestFactorySpi("stable");
+        InternalTestFactorySpi internal = new InternalTestFactorySpi("internal");
+        List<TestFactorySpi> provided = List.of(stable, internal);
+
+        List<TestFactorySpi> instances = Factory.instantiate(provided);
+        Map<String, TestFactorySpi> instancesByType = new TestFactory().map(provided);
+
+        assertThat(instances.contains(stable), equalTo(instancesByType.containsKey("stable")));
+        assertThat(instances.contains(internal), equalTo(instancesByType.containsKey("internal")));
     }
 
     private static final class TestFactory extends Factory
@@ -80,6 +95,16 @@ public class FactoryTest
     private static final class IncubatingTestFactorySpi extends TestFactorySpi
     {
         private IncubatingTestFactorySpi(
+            String type)
+        {
+            super(type);
+        }
+    }
+
+    @Internal
+    private static final class InternalTestFactorySpi extends TestFactorySpi
+    {
+        private InternalTestFactorySpi(
             String type)
         {
             super(type);
