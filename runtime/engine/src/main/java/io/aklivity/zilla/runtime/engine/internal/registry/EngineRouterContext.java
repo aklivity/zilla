@@ -33,10 +33,15 @@ final class EngineRouterContext implements RouterContext
     }
 
     @Override
-    public BindingHandler attach(
-        RouterConfig config)
+    public BindingHandler streamFactory()
     {
         return streamFactory;
+    }
+
+    @Override
+    public void attach(
+        RouterConfig config)
+    {
     }
 
     @Override

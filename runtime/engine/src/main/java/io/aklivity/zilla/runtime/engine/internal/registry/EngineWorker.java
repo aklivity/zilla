@@ -430,6 +430,7 @@ public class EngineWorker implements EngineContext, Agent
         EngineRouteable routeable = new EngineRouteable(config, this::newStream,
             this::attachComposite, this::detachComposite, this::supplyStore);
         this.router = router.supply(routeable);
+        this.streamFactory = this.router.streamFactory();
 
         this.bindings = bindings;
         this.exporters = exporters;
@@ -993,8 +994,6 @@ public class EngineWorker implements EngineContext, Agent
 
     private void doInit()
     {
-        this.streamFactory = router.attach(routerConfig);
-
         Map<String, BindingContext> bindingsByType = bindings.stream()
             .collect(toMap(Binding::name, b -> b.supply(this), (a, b) -> a, LinkedHashMap::new));
 
@@ -1192,6 +1191,28 @@ public class EngineWorker implements EngineContext, Agent
             writeBindingTypes(registry);
         }
         return detachTask.future();
+    }
+
+    public CompletableFuture<Void> attachRouter(
+        RouterConfig config)
+    {
+        assert thread != Thread.currentThread();
+
+        CompletableFuture<Void> future = new CompletableFuture<>();
+        dispatch(() ->
+        {
+            try
+            {
+                router.attach(config);
+                future.complete(null);
+            }
+            catch (Throwable ex)
+            {
+                future.completeExceptionally(ex);
+            }
+        });
+
+        return future;
     }
 
     public AgentRunner runner()
