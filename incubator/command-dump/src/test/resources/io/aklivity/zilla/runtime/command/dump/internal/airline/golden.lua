@@ -122,6 +122,8 @@ add_field("acknowledge", ProtoField.int64("zilla.acknowledge", "Acknowledge", ba
 add_field("maximum", ProtoField.int32("zilla.maximum", "Maximum", base.DEC))
 add_field("timestamp", ProtoField.uint64("zilla.timestamp", "Timestamp", base.HEX))
 add_field("trace_id", ProtoField.uint64("zilla.trace_id", "Trace ID", base.HEX))
+add_field("trace_id_node", ProtoField.uint8("zilla.trace_id.node", "Node", base.DEC))
+add_field("trace_id_worker", ProtoField.uint8("zilla.trace_id.worker", "Worker", base.DEC))
 add_field("authorization", ProtoField.uint64("zilla.authorization", "Authorization", base.HEX))
 
 -- begin frame
@@ -4060,7 +4062,10 @@ function zilla_protocol.dissector(buffer, pinfo, tree)
     subtree:add_le(fields.acknowledge, slice_acknowledge)
     subtree:add_le(fields.maximum, slice_maximum)
     subtree:add_le(fields.timestamp, slice_timestamp)
-    subtree:add_le(fields.trace_id, slice_trace_id)
+    local trace_id_subtree = subtree:add(zilla_protocol, slice_trace_id, "Trace ID")
+    trace_id_subtree:add_le(fields.trace_id, slice_trace_id)
+    trace_id_subtree:add_le(fields.trace_id_node, buffer(frame_offset + 62, 1))
+    trace_id_subtree:add_le(fields.trace_id_worker, buffer(frame_offset + 63, 1))
     subtree:add_le(fields.authorization, slice_authorization)
 
     pinfo.cols.protocol = zilla_protocol.name

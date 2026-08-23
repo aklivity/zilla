@@ -183,11 +183,6 @@ public class EngineWorker implements EngineContext, Agent
 
     private static final int SHIFT_SIZE = 56;
 
-    // Sits directly below the local worker index (bits 56-63), forming one contiguous
-    // 16-bit (node, worker) pair at the top of every id sharing this worker's `initial`/
-    // `mask` (initialId, promiseId, traceId, budgetId, authorizedId, this.affinityId) --
-    // the same field width as EngineConfiguration's own node.id byte, so every such id is
-    // cluster-wide unique, not just unique within this node.
     private static final int NODE_SHIFT_SIZE = 48;
 
     private static final int SIGNAL_TASK_QUEUED = 1;
