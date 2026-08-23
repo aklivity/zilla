@@ -44,6 +44,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.ServiceLoader;
 import java.util.ServiceLoader.Provider;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
@@ -372,6 +373,12 @@ public final class Engine implements Collector, AutoCloseable
         if (!readonly)
         {
             manager.start();
+
+            workers.stream()
+                .map(w -> w.attachRouter(routerConfig))
+                .reduce(CompletableFuture::allOf)
+                .ifPresent(CompletableFuture::join);
+
             Ready.markReady(config.directory());
         }
     }

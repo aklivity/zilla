@@ -31,13 +31,27 @@ import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 public interface RouterContext
 {
     /**
-     * Attaches a router configuration to this thread's context, returning the composed
-     * {@link BindingHandler} that will be installed as the engine's stream factory.
+     * Returns this thread's composed {@link BindingHandler}, installed as the engine's
+     * stream factory.
+     * <p>
+     * Available immediately once this context is constructed, independent of {@link #attach},
+     * so the engine can wire it into bindings before any registry-dependent setup has run.
+     * </p>
+     *
+     * @return the composed stream factory
+     */
+    BindingHandler streamFactory();
+
+    /**
+     * Attaches a router configuration to this thread's context.
+     * <p>
+     * Called once this thread's namespace registry reflects the engine's bootstrap
+     * configuration, so implementations may safely attach synthesized namespaces here.
+     * </p>
      *
      * @param config  the router configuration to activate
-     * @return a {@link BindingHandler} that the engine installs as its stream factory
      */
-    BindingHandler attach(
+    void attach(
         RouterConfig config);
 
     /**
