@@ -34,10 +34,15 @@ public final class TestRouterContext implements RouterContext
     }
 
     @Override
-    public BindingHandler attach(
-        RouterConfig config)
+    public BindingHandler streamFactory()
     {
         return streamFactory;
+    }
+
+    @Override
+    public void attach(
+        RouterConfig config)
+    {
     }
 
     @Override
