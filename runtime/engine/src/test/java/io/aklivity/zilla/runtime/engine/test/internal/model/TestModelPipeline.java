@@ -46,6 +46,8 @@ final class TestModelPipeline implements ModelPipeline
 
     private final DirectBufferEx extractedValue = new UnsafeBufferEx("1234".getBytes(UTF_8));
 
+    private static final int AUTHORIZATION_STAMP_BYTES = 8;
+
     private final int length;
     private final int transformLength;
     private final List<String> fields;
@@ -53,6 +55,7 @@ final class TestModelPipeline implements ModelPipeline
     private final ModelEnvelope envelope;
     private final ModelFieldBridge bridge;
     private final ModelPipelineResult result;
+    private final boolean transformAuthorization;
 
     private int processed;
 
@@ -62,7 +65,8 @@ final class TestModelPipeline implements ModelPipeline
         List<String> fields,
         boolean lenient,
         ModelEnvelope envelope,
-        ModelTransform transform)
+        ModelTransform transform,
+        boolean transformAuthorization)
     {
         this.length = length;
         this.transformLength = transformLength;
@@ -71,6 +75,7 @@ final class TestModelPipeline implements ModelPipeline
         this.envelope = envelope;
         this.bridge = transform != ModelTransform.NONE ? new ModelFieldBridge(transform) : null;
         this.result = new ModelPipelineResult();
+        this.transformAuthorization = transformAuthorization;
     }
 
     @Override
@@ -148,13 +153,19 @@ final class TestModelPipeline implements ModelPipeline
                 status = ModelStatus.UNDERFLOW;
             }
         }
+
+        if (transformAuthorization && status == ModelStatus.COMPLETE)
+        {
+            stampAuthorization(authorization, dst, dstIndex, produced);
+        }
+
         return result.set(status, consumed, produced);
     }
 
     @Override
     public boolean identity()
     {
-        return transformLength < 0;
+        return transformLength < 0 && !transformAuthorization;
     }
 
     @Override
@@ -186,6 +197,21 @@ final class TestModelPipeline implements ModelPipeline
         if (bridge != null)
         {
             bridge.end();
+        }
+    }
+
+    private void stampAuthorization(
+        long authorization,
+        MutableDirectBufferEx dst,
+        int dstIndex,
+        int produced)
+    {
+        final int stamped = Math.min(AUTHORIZATION_STAMP_BYTES, produced);
+        final int stampIndex = dstIndex + produced - stamped;
+        for (int i = 0; i < stamped; i++)
+        {
+            final int shift = (stamped - 1 - i) * Byte.SIZE;
+            dst.putByte(stampIndex + i, (byte) (authorization >>> shift));
         }
     }
 }

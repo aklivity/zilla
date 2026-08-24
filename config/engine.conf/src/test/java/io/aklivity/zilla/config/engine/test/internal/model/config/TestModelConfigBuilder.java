@@ -34,6 +34,7 @@ public class TestModelConfigBuilder<T> extends ConfigBuilder<T, TestModelConfigB
     private List<CatalogedConfig> catalogs;
     private List<String> fields;
     private ValidateConfig validate;
+    private boolean transformAuthorization;
 
     TestModelConfigBuilder(
         Function<ModelConfig, T> mapper)
@@ -66,6 +67,13 @@ public class TestModelConfigBuilder<T> extends ConfigBuilder<T, TestModelConfigB
         int transformLength)
     {
         this.transformLength = transformLength;
+        return this;
+    }
+
+    public TestModelConfigBuilder<T> transformAuthorization(
+        boolean transformAuthorization)
+    {
+        this.transformAuthorization = transformAuthorization;
         return this;
     }
 
@@ -106,6 +114,7 @@ public class TestModelConfigBuilder<T> extends ConfigBuilder<T, TestModelConfigB
     @Override
     public T build()
     {
-        return mapper.apply(new TestModelConfig(length, catalogs, read, transformLength, fields, validate));
+        return mapper.apply(
+            new TestModelConfig(length, catalogs, read, transformLength, fields, validate, transformAuthorization));
     }
 }

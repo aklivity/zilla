@@ -36,6 +36,7 @@ public class TestModelConfigAdapter extends ConfigAdapter<ModelConfig, JsonValue
     private static final String TEST = "test";
     private static final String LENGTH = "length";
     private static final String TRANSFORM = "transform";
+    private static final String AUTHORIZATION = "authorization";
     private static final String CAPABILITY = "capability";
     private static final String READ = "read";
     private static final String CATALOG_NAME = "catalog";
@@ -62,8 +63,12 @@ public class TestModelConfigAdapter extends ConfigAdapter<ModelConfig, JsonValue
             : 0;
 
         int transformLength = object.containsKey(TRANSFORM)
-            ? object.getJsonObject(TRANSFORM).getInt(LENGTH)
+            ? object.getJsonObject(TRANSFORM).getInt(LENGTH, -1)
             : -1;
+
+        boolean transformAuthorization = object.containsKey(TRANSFORM)
+            ? object.getJsonObject(TRANSFORM).getBoolean(AUTHORIZATION, false)
+            : false;
 
         boolean read = object.containsKey(CAPABILITY)
             ? object.getString(CAPABILITY).equals(READ)
@@ -99,6 +104,6 @@ public class TestModelConfigAdapter extends ConfigAdapter<ModelConfig, JsonValue
 
         ValidateConfig validateConfig = validate.adaptFromJsonObject(object);
 
-        return new TestModelConfig(length, catalogs, read, transformLength, fields, validateConfig);
+        return new TestModelConfig(length, catalogs, read, transformLength, fields, validateConfig, transformAuthorization);
     }
 }
