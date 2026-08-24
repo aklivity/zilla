@@ -183,6 +183,8 @@ public class EngineWorker implements EngineContext, Agent
 
     private static final int SHIFT_SIZE = 56;
 
+    private static final int NODE_SHIFT_SIZE = 48;
+
     private static final int SIGNAL_TASK_QUEUED = 1;
 
     private final FrameFW frameRO = new FrameFW();
@@ -403,7 +405,7 @@ public class EngineWorker implements EngineContext, Agent
 
         final BufferPool bufferPool = bufferPoolLayout.bufferPool();
 
-        final long initial = ((long) index) << SHIFT_SIZE;
+        final long initial = (((long) index) << SHIFT_SIZE) | ((config.nodeId() & 0xffL) << NODE_SHIFT_SIZE);
         final long mask = initial | (-1L >>> RESERVED_SIZE);
 
         this.mask = mask;
@@ -464,6 +466,12 @@ public class EngineWorker implements EngineContext, Agent
         long indexedId)
     {
         return (int) (indexedId >> SHIFT_SIZE);
+    }
+
+    public static int nodeOfId(
+        long indexedId)
+    {
+        return (int) ((indexedId >>> NODE_SHIFT_SIZE) & 0xffL);
     }
 
     @Override
