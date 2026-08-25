@@ -57,6 +57,9 @@
 - feat\(engine\): add RouteableContext\#supplyStore [\#2420](https://github.com/aklivity/zilla/pull/2420) ([jfallows](https://github.com/jfallows))
 - feat\(engine\): embed cluster node id into worker-scoped ids [\#2421](https://github.com/aklivity/zilla/pull/2421) ([jfallows](https://github.com/jfallows))
 - feat\(engine\): defer RouterContext.attach to run after registry bootstrap [\#2422](https://github.com/aklivity/zilla/pull/2422) ([jfallows](https://github.com/jfallows))
+- fix\(binding-kafka\): use each producer stream's own authorization for cache encode [\#2425](https://github.com/aklivity/zilla/pull/2425) ([jfallows](https://github.com/jfallows))
+- fix\(binding-mcp\): defer mcp\(client\) lifecycle connect until guard decides [\#2426](https://github.com/aklivity/zilla/pull/2426) ([jfallows](https://github.com/jfallows))
+- fix\(binding-mcp\): settle a still-establishing toolkit client on reset/abort [\#2427](https://github.com/aklivity/zilla/pull/2427) ([jfallows](https://github.com/jfallows))
 
 ## [2.3.0](https://github.com/aklivity/zilla/tree/2.3.0) (2026-08-14)
 

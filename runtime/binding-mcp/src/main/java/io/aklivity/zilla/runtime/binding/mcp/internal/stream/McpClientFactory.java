@@ -2343,6 +2343,12 @@ public final class McpClientFactory implements McpStreamFactory
         private HttpEventStream sse;
         boolean eventsUnsupported;
 
+        private boolean pendingConnect;
+        private long acquireTraceId;
+        private long acquireAuthorization;
+        private String guardElicitElicitationId;
+        private String guardElicitCorrelationId;
+
         private final LongCompletionCallback reauthorizeCompletion = new LongCompletionCallback()
         {
             @Override
@@ -2361,10 +2367,41 @@ public final class McpClientFactory implements McpStreamFactory
             }
         };
 
+        private final LongCompletionCallback connectAcquireCompletion = new LongCompletionCallback()
+        {
+            @Override
+            public void completed(
+                long contextId,
+                long sessionId)
+            {
+                if (pendingConnect)
+                {
+                    onConnectAcquireDecided(sessionId);
+                }
+            }
+
+            @Override
+            public void failed(
+                long contextId,
+                Throwable ex)
+            {
+                if (pendingConnect)
+                {
+                    onConnectAcquireDecided(GuardHandler.NOT_AUTHORIZED);
+                }
+            }
+        };
+
         @Override
         McpBindingConfig binding()
         {
             return binding;
+        }
+
+        @Override
+        boolean awaitingAuth()
+        {
+            return pendingConnect;
         }
 
         @Override
@@ -2441,6 +2478,100 @@ public final class McpClientFactory implements McpStreamFactory
         {
             touch();
             return requests.remove(id) != null;
+        }
+
+        @Override
+        boolean proceedWithRequest(
+            long traceId,
+            long authorization,
+            McpBeginExFW mcpBeginEx)
+        {
+            final GuardHandler guard = binding.guard;
+            if (guard == null)
+            {
+                return true;
+            }
+
+            if ((authorization & GuardHandler.MASK_AUTHORIZED) != 0L)
+            {
+                final String resolved = guard.credentials(authorization);
+                if (resolved != null)
+                {
+                    credentials = resolved;
+                    return true;
+                }
+            }
+
+            acquireTraceId = traceId;
+            acquireAuthorization = authorization;
+            pendingConnect = true;
+            guard.reauthorize(traceId, binding.id, authorization, null, connectAcquireCompletion);
+
+            return false;
+        }
+
+        private void onConnectAcquireDecided(
+            long sessionId)
+        {
+            final GuardHandler guard = binding.guard;
+
+            if ((sessionId & GuardHandler.MASK_AUTHORIZED) != 0L)
+            {
+                pendingConnect = false;
+                credentials = guard.credentials(sessionId);
+                guardSessionId = sessionId;
+                resumeDeferredConnect(acquireTraceId, acquireAuthorization);
+                return;
+            }
+
+            if (sessionId == GuardHandler.NEEDS_PREAUTHORIZE && binding.needsCredentials)
+            {
+                final String preauthorizeUrl =
+                    guard.preauthorize(acquireTraceId, binding.id, initialId, acquireAuthorization, authCallback);
+                if (preauthorizeUrl == null)
+                {
+                    pendingConnect = false;
+                    doAppReset(acquireTraceId, acquireAuthorization);
+                    doAppAbort(acquireTraceId, acquireAuthorization);
+                    return;
+                }
+
+                guardElicitElicitationId = supplyElicitationId.get();
+                guardElicitCorrelationId = supplyElicitCorrelationId.get();
+
+                final McpChallengeExFW challengeEx = mcpChallengeExRW
+                    .wrap(extBuffer, 0, extBuffer.capacity())
+                    .typeId(mcpTypeId)
+                    .elicitCreate(b -> b
+                        .id(guardElicitElicitationId)
+                        .url(preauthorizeUrl)
+                        .message(ELICIT_MESSAGE_PREAUTHORIZE)
+                        .correlationId(guardElicitCorrelationId))
+                    .build();
+                doAppChallenge(acquireTraceId, acquireAuthorization, challengeEx);
+
+                return;
+            }
+
+            pendingConnect = false;
+            if (!binding.needsCredentials)
+            {
+                resumeDeferredConnect(acquireTraceId, acquireAuthorization);
+            }
+            else
+            {
+                doAppReset(acquireTraceId, acquireAuthorization);
+                doAppAbort(acquireTraceId, acquireAuthorization);
+            }
+        }
+
+        private void resumeDeferredConnect(
+            long traceId,
+            long authorization)
+        {
+            http.doEncodeRequestBegin(traceId, authorization);
+            onAppBeginImpl(traceId, authorization, null);
+            doAppWindow(traceId, authorization, 0L, 0);
         }
 
         @Override
@@ -2701,6 +2832,13 @@ public final class McpClientFactory implements McpStreamFactory
                 deauthorizeGuardSession();
                 guardSessionId = sessionId;
 
+                if (pendingConnect)
+                {
+                    pendingConnect = false;
+                    resumeDeferredConnect(acquireTraceId, acquireAuthorization);
+                    return;
+                }
+
                 final McpFlushExFW flushEx = mcpFlushExRW
                     .wrap(extBuffer, 0, extBuffer.capacity())
                     .typeId(mcpTypeId)
@@ -2709,6 +2847,12 @@ public final class McpClientFactory implements McpStreamFactory
                     })
                     .build();
                 doAppFlush(reauthTraceId, reauthAuthorization, flushEx);
+            }
+            else if (pendingConnect)
+            {
+                pendingConnect = false;
+                doAppReset(reauthTraceId, reauthAuthorization);
+                doAppAbort(reauthTraceId, reauthAuthorization);
             }
         }
 
