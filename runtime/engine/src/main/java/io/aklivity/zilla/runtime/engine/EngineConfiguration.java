@@ -17,12 +17,15 @@ package io.aklivity.zilla.runtime.engine;
 
 import static java.lang.Math.min;
 import static java.lang.management.ManagementFactory.getOperatingSystemMXBean;
+import static java.nio.file.StandardOpenOption.CREATE;
+import static java.nio.file.StandardOpenOption.TRUNCATE_EXISTING;
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.io.File;
+import java.io.IOException;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
@@ -32,11 +35,13 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
 import java.net.UnknownHostException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.KeyStore;
 import java.time.Clock;
 import java.util.Properties;
+import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -109,7 +114,8 @@ public class EngineConfiguration extends Configuration
     public static final PropertyDef<Path> ENGINE_DIAGNOSTICS_DIRECTORY;
     public static final PropertyDef<String> ENGINE_ROUTER;
     public static final PropertyDef<String> ENGINE_SERVICE_HOSTNAME;
-    public static final BytePropertyDef ENGINE_NODE_ID;
+    public static final PropertyDef<Path> ENGINE_NODE_INSTANCE_ID_FILE;
+    public static final PropertyDef<String> ENGINE_NODE_INSTANCE_ID;
 
     private static final ConfigurationDef ENGINE_CONFIG;
 
@@ -180,7 +186,9 @@ public class EngineConfiguration extends Configuration
             EngineConfiguration::decodeDiagnosticsDirectory, (String) null);
         ENGINE_ROUTER = config.property("router", "engine");
         ENGINE_SERVICE_HOSTNAME = config.property("service.hostname");
-        ENGINE_NODE_ID = config.property("node.id", (byte) 0);
+        ENGINE_NODE_INSTANCE_ID_FILE = config.property(Path.class, "node.instance.id.file",
+            EngineConfiguration::decodeNodeInstanceIdFile, ".instance.id");
+        ENGINE_NODE_INSTANCE_ID = config.property("node.instance.id", EngineConfiguration::defaultNodeInstanceId);
         ENGINE_CONFIG = config;
     }
 
@@ -440,9 +448,9 @@ public class EngineConfiguration extends Configuration
         return ENGINE_SERVICE_HOSTNAME.get(this);
     }
 
-    public byte nodeId()
+    public String nodeInstanceId()
     {
-        return ENGINE_NODE_ID.getAsByte(this);
+        return ENGINE_NODE_INSTANCE_ID.get(this);
     }
 
     private static int defaultTaskParallelism(
@@ -560,6 +568,40 @@ public class EngineConfiguration extends Configuration
         String cacheDirectory)
     {
         return Paths.get(ENGINE_DIRECTORY.get(config)).resolve(cacheDirectory);
+    }
+
+    private static Path decodeNodeInstanceIdFile(
+        Configuration config,
+        String filename)
+    {
+        return Paths.get(ENGINE_DIRECTORY.get(config)).resolve(filename);
+    }
+
+    private static String defaultNodeInstanceId(
+        Configuration config)
+    {
+        final Path instanceIdFile = ENGINE_NODE_INSTANCE_ID_FILE.get(config);
+
+        String instanceId;
+        try
+        {
+            if (Files.exists(instanceIdFile))
+            {
+                instanceId = Files.readString(instanceIdFile).strip();
+            }
+            else
+            {
+                instanceId = UUID.randomUUID().toString();
+                Files.createDirectories(instanceIdFile.getParent());
+                Files.writeString(instanceIdFile, instanceId, CREATE, TRUNCATE_EXISTING);
+            }
+        }
+        catch (IOException ex)
+        {
+            instanceId = UUID.randomUUID().toString();
+        }
+
+        return instanceId;
     }
 
     private static Path decodeDiagnosticsDirectory(

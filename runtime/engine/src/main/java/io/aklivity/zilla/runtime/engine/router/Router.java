@@ -85,4 +85,21 @@ public interface Router
      */
     void watchLabels(
         ObjectIntBiConsumer<String> listener);
+
+    /**
+     * Resolves this engine instance's own node identity, embedded in the affinity value
+     * each worker mints for itself and consulted whenever an affinity's node component is
+     * compared against this instance's own.
+     * <p>
+     * Identity is a single byte, shared cluster-wide; a router coordinating membership
+     * across instances is responsible for assigning distinct values. The default, with no
+     * such coordination in effect, is {@code 0}.
+     * </p>
+     *
+     * @return this instance's own node identity
+     */
+    default byte resolveNodeId()
+    {
+        return 0;
+    }
 }
