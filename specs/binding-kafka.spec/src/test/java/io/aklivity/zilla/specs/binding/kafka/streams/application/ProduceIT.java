@@ -329,6 +329,13 @@ public class ProduceIT
         k3po.finish();
     }
 
+    // message.values.authorization.distinct has no peer-to-peer counterpart here: k3po itself
+    // (independent of any Zilla engine behavior) cannot correlate a third notify/await-gated
+    // connect to the same accept address in this harness -- confirmed by the pre-existing,
+    // never-covered message.values.parallel scenario failing the identical way peer-to-peer.
+    // The scenario is still fully covered by CacheProduceIT#shouldSendMessageValuesAuthorizationDistinct,
+    // which drives it through a live engine instead.
+
     @Test
     @Specification({
         "${app}/message.header/client",

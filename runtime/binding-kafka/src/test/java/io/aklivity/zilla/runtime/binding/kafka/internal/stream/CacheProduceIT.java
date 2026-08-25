@@ -138,6 +138,18 @@ public class CacheProduceIT
     }
 
     @Test
+    @Configuration("cache.value.model.authorization.yaml")
+    @Specification({
+        "${app}/message.values.authorization.distinct/client",
+        "${app}/message.values.authorization.distinct/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @Configure(name = KAFKA_CACHE_SERVER_RECONNECT_DELAY_NAME, value = "1")
+    public void shouldSendMessageValuesAuthorizationDistinct() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("cache.yaml")
     @Specification({
         "${app}/message.key/client",

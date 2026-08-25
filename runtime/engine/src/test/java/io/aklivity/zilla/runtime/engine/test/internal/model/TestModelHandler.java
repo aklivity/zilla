@@ -33,6 +33,9 @@ public class TestModelHandler implements ModelHandler
     private final List<String> fields;
     private final boolean decodeLenient;
     private final boolean encodeLenient;
+    private final List<Long> transformAuthorizations;
+
+    private int transformAuthorizationIndex;
 
     public TestModelHandler(
         TestModelConfig config)
@@ -42,6 +45,7 @@ public class TestModelHandler implements ModelHandler
         this.fields = config.fields != null ? config.fields : emptyList();
         this.decodeLenient = config.validate.decode == ValidateMode.LENIENT;
         this.encodeLenient = config.validate.encode == ValidateMode.LENIENT;
+        this.transformAuthorizations = config.transformAuthorizations;
     }
 
     @Override
@@ -49,7 +53,7 @@ public class TestModelHandler implements ModelHandler
         ModelEnvelope envelope,
         ModelTransform transform)
     {
-        return new TestModelPipeline(length, transformLength, fields, decodeLenient, envelope, transform);
+        return new TestModelPipeline(length, transformLength, fields, decodeLenient, envelope, transform, this);
     }
 
     @Override
@@ -57,6 +61,13 @@ public class TestModelHandler implements ModelHandler
         ModelEnvelope envelope,
         ModelTransform transform)
     {
-        return new TestModelPipeline(length, transformLength, fields, encodeLenient, envelope, transform);
+        return new TestModelPipeline(length, transformLength, fields, encodeLenient, envelope, transform, this);
+    }
+
+    Long nextTransformAuthorization()
+    {
+        return transformAuthorizations != null && transformAuthorizationIndex < transformAuthorizations.size()
+            ? transformAuthorizations.get(transformAuthorizationIndex++)
+            : null;
     }
 }

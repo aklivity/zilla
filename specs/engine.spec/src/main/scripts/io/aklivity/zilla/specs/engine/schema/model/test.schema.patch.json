@@ -82,6 +82,14 @@
                             "type": "string"
                         }
                     },
+                    "transformAuthorizations":
+                    {
+                        "type": "array",
+                        "items":
+                        {
+                            "type": "integer"
+                        }
+                    },
                     "catalog":
                     {
                         "type": "object",

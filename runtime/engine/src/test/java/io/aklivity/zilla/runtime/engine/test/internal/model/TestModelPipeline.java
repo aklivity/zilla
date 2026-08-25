@@ -39,6 +39,16 @@ import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 // value when an accepted value completes; the same fields are written to the supplied envelope under their
 // own paths, so a caller supplying a real envelope observes what the model surfaced without wiring a
 // transform at all. State lives on the pipeline so interleaved streams stay isolated.
+//
+// When the handler is configured with an ordered `transformAuthorizations` list, each completed value --
+// across every pipeline this handler ever supplies, not just this one -- consumes the next entry from that
+// list as its expected authorization: message order, not pipeline-instance order, is what the list tracks.
+// A completed value whose `authorization` argument doesn't match is rejected, giving callers a way to assert
+// which authorization value actually reached a given encode/decode call without any extra observability
+// machinery -- the mismatch surfaces as an ordinary REJECTED status, same as a length violation. Binding the
+// check to pipeline-construction order instead would miss exactly the bug this exists to catch: a single
+// pipeline instance shared across multiple producers only ever sees one expected value if it were fixed at
+// construction, even though it processes several messages, each with its own authorization.
 final class TestModelPipeline implements ModelPipeline
 {
     private static final int FLAGS_INIT = 0x02;
@@ -53,6 +63,7 @@ final class TestModelPipeline implements ModelPipeline
     private final ModelEnvelope envelope;
     private final ModelFieldBridge bridge;
     private final ModelPipelineResult result;
+    private final TestModelHandler handler;
 
     private int processed;
 
@@ -62,7 +73,8 @@ final class TestModelPipeline implements ModelPipeline
         List<String> fields,
         boolean lenient,
         ModelEnvelope envelope,
-        ModelTransform transform)
+        ModelTransform transform,
+        TestModelHandler handler)
     {
         this.length = length;
         this.transformLength = transformLength;
@@ -71,6 +83,7 @@ final class TestModelPipeline implements ModelPipeline
         this.envelope = envelope;
         this.bridge = transform != ModelTransform.NONE ? new ModelFieldBridge(transform) : null;
         this.result = new ModelPipelineResult();
+        this.handler = handler;
     }
 
     @Override
@@ -148,6 +161,16 @@ final class TestModelPipeline implements ModelPipeline
                 status = ModelStatus.UNDERFLOW;
             }
         }
+
+        if (status == ModelStatus.COMPLETE)
+        {
+            final Long expectedAuthorization = handler.nextTransformAuthorization();
+            if (expectedAuthorization != null && authorization != expectedAuthorization)
+            {
+                status = ModelStatus.REJECTED;
+            }
+        }
+
         return result.set(status, consumed, produced);
     }
 

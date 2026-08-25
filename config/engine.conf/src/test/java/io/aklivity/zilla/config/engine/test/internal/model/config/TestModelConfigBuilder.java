@@ -34,6 +34,7 @@ public class TestModelConfigBuilder<T> extends ConfigBuilder<T, TestModelConfigB
     private List<CatalogedConfig> catalogs;
     private List<String> fields;
     private ValidateConfig validate;
+    private List<Long> transformAuthorizations;
 
     TestModelConfigBuilder(
         Function<ModelConfig, T> mapper)
@@ -66,6 +67,17 @@ public class TestModelConfigBuilder<T> extends ConfigBuilder<T, TestModelConfigB
         int transformLength)
     {
         this.transformLength = transformLength;
+        return this;
+    }
+
+    public TestModelConfigBuilder<T> transformAuthorization(
+        long transformAuthorization)
+    {
+        if (transformAuthorizations == null)
+        {
+            transformAuthorizations = new LinkedList<>();
+        }
+        transformAuthorizations.add(transformAuthorization);
         return this;
     }
 
@@ -106,6 +118,7 @@ public class TestModelConfigBuilder<T> extends ConfigBuilder<T, TestModelConfigB
     @Override
     public T build()
     {
-        return mapper.apply(new TestModelConfig(length, catalogs, read, transformLength, fields, validate));
+        return mapper.apply(
+            new TestModelConfig(length, catalogs, read, transformLength, fields, validate, transformAuthorizations));
     }
 }
