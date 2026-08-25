@@ -129,6 +129,15 @@ public class SessionIT
         k3po.finish();
     }
 
+    @Test
+    @Specification({
+        "${net}/session.will.message.header.exceeds.window/client",
+        "${net}/session.will.message.header.exceeds.window/server"})
+    public void shouldDeferWillMessageWhenHeaderExceedsSessionWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
     // [MQTT-3.1.2-15]
     @Test
     @Specification({

@@ -190,6 +190,16 @@ public class SessionIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/session.will.message.header.exceeds.window/client",
+        "${app}/session.will.message.header.exceeds.window/server"})
+    public void shouldDeferWillMessageWhenHeaderExceedsSessionWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/session.will.message.disconnect.with.will.message/client",
         "${app}/session.will.message.abort/server"})
     public void shouldCloseSessionDisconnectWithWill() throws Exception
