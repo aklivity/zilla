@@ -1205,4 +1205,22 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/tools.list.toolkit.multi.route.error/client",
+        "${app}/tools.list.toolkit.multi.route.error/server"})
+    public void shouldListToolsWithToolkitMultiRouteError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/tools.list.toolkit.multi.route.error.prefixed/client",
+        "${app}/tools.list.toolkit.multi.route.error.prefixed/server"})
+    public void shouldListToolsWithToolkitMultiRouteErrorPrefixed() throws Exception
+    {
+        k3po.finish();
+    }
 }

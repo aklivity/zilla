@@ -286,6 +286,17 @@ public class McpProxyIT
     @Test
     @Configuration("proxy.toolkit.multi.yaml")
     @Specification({
+        "${app}/tools.list.toolkit.multi.route.error.prefixed/client",
+        "${app}/tools.list.toolkit.multi.route.error/server" })
+    @ScriptProperty("affinity \"0000003f\"")
+    public void shouldListToolsWithToolkitMultiRouteError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.toolkit.multi.yaml")
+    @Specification({
         "${app}/lifecycle.notify.tools.list.changed.after.authorize.toolkit.multi.prefixed/client",
         "${app}/lifecycle.notify.tools.list.changed.after.authorize.toolkit.multi/server" })
     @ScriptProperty("affinity \"0000003f\"")
