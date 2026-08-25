@@ -66,10 +66,6 @@
                             "length":
                             {
                                 "type": "integer"
-                            },
-                            "authorization":
-                            {
-                                "type": "boolean"
                             }
                         },
                         "additionalProperties": false
@@ -84,6 +80,14 @@
                         "items":
                         {
                             "type": "string"
+                        }
+                    },
+                    "transformAuthorizations":
+                    {
+                        "type": "array",
+                        "items":
+                        {
+                            "type": "integer"
                         }
                     },
                     "catalog":

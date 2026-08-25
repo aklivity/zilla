@@ -26,8 +26,7 @@ bindings:
                   value:
                       model: test
                       length: 12
-                      transform:
-                          authorization: true
+                      transformAuthorizations: [2, 0]
         routes:
             - exit: cache0
               when:

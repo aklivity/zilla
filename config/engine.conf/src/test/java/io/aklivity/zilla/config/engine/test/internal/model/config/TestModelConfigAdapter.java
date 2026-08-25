@@ -19,6 +19,7 @@ import java.util.List;
 
 import jakarta.json.Json;
 import jakarta.json.JsonArray;
+import jakarta.json.JsonNumber;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
@@ -36,7 +37,7 @@ public class TestModelConfigAdapter extends ConfigAdapter<ModelConfig, JsonValue
     private static final String TEST = "test";
     private static final String LENGTH = "length";
     private static final String TRANSFORM = "transform";
-    private static final String AUTHORIZATION = "authorization";
+    private static final String TRANSFORM_AUTHORIZATIONS = "transformAuthorizations";
     private static final String CAPABILITY = "capability";
     private static final String READ = "read";
     private static final String CATALOG_NAME = "catalog";
@@ -66,9 +67,15 @@ public class TestModelConfigAdapter extends ConfigAdapter<ModelConfig, JsonValue
             ? object.getJsonObject(TRANSFORM).getInt(LENGTH, -1)
             : -1;
 
-        boolean transformAuthorization = object.containsKey(TRANSFORM)
-            ? object.getJsonObject(TRANSFORM).getBoolean(AUTHORIZATION, false)
-            : false;
+        List<Long> transformAuthorizations = null;
+        if (object.containsKey(TRANSFORM_AUTHORIZATIONS))
+        {
+            transformAuthorizations = new LinkedList<>();
+            for (JsonValue item : object.getJsonArray(TRANSFORM_AUTHORIZATIONS))
+            {
+                transformAuthorizations.add(((JsonNumber) item).longValue());
+            }
+        }
 
         boolean read = object.containsKey(CAPABILITY)
             ? object.getString(CAPABILITY).equals(READ)
@@ -104,6 +111,6 @@ public class TestModelConfigAdapter extends ConfigAdapter<ModelConfig, JsonValue
 
         ValidateConfig validateConfig = validate.adaptFromJsonObject(object);
 
-        return new TestModelConfig(length, catalogs, read, transformLength, fields, validateConfig, transformAuthorization);
+        return new TestModelConfig(length, catalogs, read, transformLength, fields, validateConfig, transformAuthorizations);
     }
 }

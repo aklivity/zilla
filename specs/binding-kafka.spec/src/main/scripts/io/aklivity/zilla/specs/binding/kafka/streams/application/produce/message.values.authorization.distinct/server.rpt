@@ -95,14 +95,14 @@ read zilla:data.ext ${kafka:matchDataEx()
                              .produce()
                                  .build()
                              .build()}
-read "Hell" [0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x02]
+read "Hello, again"
 
 read zilla:data.ext ${kafka:matchDataEx()
                              .typeId(zilla:id("kafka"))
                              .produce()
                                  .build()
                              .build()}
-read "Hell" [0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00]
+read "Hello, world"
 
 
 
