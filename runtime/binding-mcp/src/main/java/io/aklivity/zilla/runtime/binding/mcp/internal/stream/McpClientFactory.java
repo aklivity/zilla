@@ -2343,6 +2343,17 @@ public final class McpClientFactory implements McpStreamFactory
         private HttpEventStream sse;
         boolean eventsUnsupported;
 
+        // guard-gated connect state: distinct from elicitCorrelationId/reauthTraceId above,
+        // which answer a backend-initiated elicitation on an already-open connection. These
+        // instead defer the very first doEncodeRequestBegin/onAppBeginImpl below until the
+        // guard actually decides -- see proceedWithRequest, which the base McpStream always
+        // resolves synchronously and unconditionally proceeds regardless of the outcome
+        private boolean pendingConnect;
+        private long acquireTraceId;
+        private long acquireAuthorization;
+        private String guardElicitElicitationId;
+        private String guardElicitCorrelationId;
+
         private final LongCompletionCallback reauthorizeCompletion = new LongCompletionCallback()
         {
             @Override
@@ -2361,10 +2372,41 @@ public final class McpClientFactory implements McpStreamFactory
             }
         };
 
+        private final LongCompletionCallback connectAcquireCompletion = new LongCompletionCallback()
+        {
+            @Override
+            public void completed(
+                long contextId,
+                long sessionId)
+            {
+                if (pendingConnect)
+                {
+                    onConnectAcquireDecided(sessionId);
+                }
+            }
+
+            @Override
+            public void failed(
+                long contextId,
+                Throwable ex)
+            {
+                if (pendingConnect)
+                {
+                    onConnectAcquireDecided(GuardHandler.NOT_AUTHORIZED);
+                }
+            }
+        };
+
         @Override
         McpBindingConfig binding()
         {
             return binding;
+        }
+
+        @Override
+        boolean awaitingAuth()
+        {
+            return pendingConnect;
         }
 
         @Override
@@ -2441,6 +2483,122 @@ public final class McpClientFactory implements McpStreamFactory
         {
             touch();
             return requests.remove(id) != null;
+        }
+
+        /**
+         * Unlike the base {@link McpStream#proceedWithRequest}, which always resolves the
+         * guard synchronously and proceeds regardless of the outcome, this defers the actual
+         * connect (below, via {@link #resumeDeferredConnect}) until the guard has genuinely
+         * decided -- including the async, potentially-interactive path a DCR + authorization-
+         * code guard needs. A {@code NEEDS_PREAUTHORIZE} decision is surfaced as the same
+         * {@code elicitCreate} challenge {@link #onDecodeElicitCreate} already sends for a
+         * backend-initiated elicitation, so the existing relay in McpProxyLifecycleFactory
+         * (settling this client's contribution to session establishment, then forwarding the
+         * challenge north) carries it through unchanged; the answer arrives the same way too,
+         * on {@link #onAppFlush}'s existing {@code KIND_ELICIT_CALLBACK} handling.
+         */
+        @Override
+        boolean proceedWithRequest(
+            long traceId,
+            long authorization,
+            McpBeginExFW mcpBeginEx)
+        {
+            final GuardHandler guard = binding.guard;
+            if (guard == null)
+            {
+                return true;
+            }
+
+            if ((authorization & GuardHandler.MASK_AUTHORIZED) != 0L)
+            {
+                final String resolved = guard.credentials(authorization);
+                if (resolved != null)
+                {
+                    credentials = resolved;
+                    return true;
+                }
+            }
+
+            acquireTraceId = traceId;
+            acquireAuthorization = authorization;
+            pendingConnect = true;
+            guard.reauthorize(traceId, binding.id, authorization, null, connectAcquireCompletion);
+
+            return false;
+        }
+
+        private void onConnectAcquireDecided(
+            long sessionId)
+        {
+            final GuardHandler guard = binding.guard;
+
+            if ((sessionId & GuardHandler.MASK_AUTHORIZED) != 0L)
+            {
+                pendingConnect = false;
+                credentials = guard.credentials(sessionId);
+                guardSessionId = sessionId;
+                resumeDeferredConnect(acquireTraceId, acquireAuthorization);
+                return;
+            }
+
+            if (sessionId == GuardHandler.NEEDS_PREAUTHORIZE && binding.needsCredentials)
+            {
+                final String preauthorizeUrl =
+                    guard.preauthorize(acquireTraceId, binding.id, initialId, acquireAuthorization, authCallback);
+                if (preauthorizeUrl == null)
+                {
+                    pendingConnect = false;
+                    doAppReset(acquireTraceId, acquireAuthorization);
+                    doAppAbort(acquireTraceId, acquireAuthorization);
+                    return;
+                }
+
+                guardElicitElicitationId = supplyElicitationId.get();
+                guardElicitCorrelationId = supplyElicitCorrelationId.get();
+
+                final McpChallengeExFW challengeEx = mcpChallengeExRW
+                    .wrap(extBuffer, 0, extBuffer.capacity())
+                    .typeId(mcpTypeId)
+                    .elicitCreate(b -> b
+                        .id(guardElicitElicitationId)
+                        .url(preauthorizeUrl)
+                        .message(ELICIT_MESSAGE_PREAUTHORIZE)
+                        .correlationId(guardElicitCorrelationId))
+                    .build();
+                doAppChallenge(acquireTraceId, acquireAuthorization, challengeEx);
+
+                // pendingConnect stays true: the decision -- and the deferred connect it
+                // gates -- resumes from onReauthorized once the login callback answers it
+                return;
+            }
+
+            pendingConnect = false;
+            if (!binding.needsCredentials)
+            {
+                resumeDeferredConnect(acquireTraceId, acquireAuthorization);
+            }
+            else
+            {
+                doAppReset(acquireTraceId, acquireAuthorization);
+                doAppAbort(acquireTraceId, acquireAuthorization);
+            }
+        }
+
+        /**
+         * Mirrors {@link McpRequestStream#onAcquireCompleted}: {@link #onAppBegin} withheld
+         * the app-level window while {@code awaitingAuth()} (via {@link #pendingConnect}), so
+         * granting it here is what lets whoever is waiting on this lifecycle connection's own
+         * accept stop waiting -- omitting it left the caller timing out and tearing the
+         * connection down long after the guard had actually decided, in an endless reconnect
+         * loop, since nothing else ever re-arms the window this class deferred.
+         */
+        private void resumeDeferredConnect(
+            long traceId,
+            long authorization)
+        {
+            http.doEncodeRequestBegin(traceId, authorization);
+            onAppBeginImpl(traceId, authorization, null);
+            doAppWindow(traceId, authorization, 0L, 0);
         }
 
         @Override
@@ -2701,6 +2859,13 @@ public final class McpClientFactory implements McpStreamFactory
                 deauthorizeGuardSession();
                 guardSessionId = sessionId;
 
+                if (pendingConnect)
+                {
+                    pendingConnect = false;
+                    resumeDeferredConnect(acquireTraceId, acquireAuthorization);
+                    return;
+                }
+
                 final McpFlushExFW flushEx = mcpFlushExRW
                     .wrap(extBuffer, 0, extBuffer.capacity())
                     .typeId(mcpTypeId)
@@ -2709,6 +2874,14 @@ public final class McpClientFactory implements McpStreamFactory
                     })
                     .build();
                 doAppFlush(reauthTraceId, reauthAuthorization, flushEx);
+            }
+            else if (pendingConnect)
+            {
+                // the login callback failed to resolve to a usable session -- the connect
+                // this client deferred in proceedWithRequest has nothing left to wait for
+                pendingConnect = false;
+                doAppReset(reauthTraceId, reauthAuthorization);
+                doAppAbort(reauthTraceId, reauthAuthorization);
             }
         }
 
