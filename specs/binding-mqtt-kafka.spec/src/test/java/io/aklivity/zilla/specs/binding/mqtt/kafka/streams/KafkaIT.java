@@ -749,6 +749,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/session.will.message.qos2.abort.before.session.established/client",
+        "${kafka}/session.will.message.qos2.abort.before.session.established/server"})
+    public void shouldSkipWillSignalOnQos2AbortBeforeSessionEstablished() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/session.will.message.will.id.mismatch.skip.delivery/client",
         "${kafka}/session.will.message.will.id.mismatch.skip.delivery/server"})
     public void shouldNotSendWillMessageOnWillIdMismatch() throws Exception

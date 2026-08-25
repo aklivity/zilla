@@ -632,6 +632,17 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/session.will.message.qos2.abort.before.session.established/client",
+        "${mqtt}/session.will.message.qos2.abort.before.session.established/server"})
+    public void shouldSkipWillSignalOnQos2AbortBeforeSessionEstablished() throws Exception
+    {
+        k3po.start();
+        k3po.notifyBarrier("SESSION_META_STREAMS_OPENED");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/publish.qos1/client",
         "${mqtt}/publish.qos1/server"})
     public void shouldPublishQoS1Message() throws Exception
