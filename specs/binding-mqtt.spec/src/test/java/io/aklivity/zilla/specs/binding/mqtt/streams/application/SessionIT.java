@@ -121,6 +121,15 @@ public class SessionIT
 
     @Test
     @Specification({
+        "${app}/session.will.message.header.exceeds.window/client",
+        "${app}/session.will.message.header.exceeds.window/server"})
+    public void shouldDeferWillMessageWhenHeaderExceedsSessionWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/session.subscribe/client",
         "${app}/session.subscribe/server"})
     public void shouldSubscribeSaveSubscriptionsInSession() throws Exception

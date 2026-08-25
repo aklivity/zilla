@@ -3561,6 +3561,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             final int willQos = decodeWillQos(connectFlags);
             final boolean willFlagSet = isSetWillFlag(connectFlags);
 
+            decode:
             if (willFlagSet && MqttState.initialOpened(session.state))
             {
                 int publishedWillSize = 0;
@@ -3588,6 +3589,12 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                     final MqttWillMessageFW will = willMessageBuilder.build();
                     final int headerSize = willMessageBuilder.sizeof();
+
+                    if (!session.hasSessionWindow(headerSize))
+                    {
+                        break decode;
+                    }
+
                     int payloadSize = Math.min(limit - offset, session.initialBudget() - headerSize);
 
                     final OctetsFW payload = payloadRO.wrap(buffer, offset, offset + payloadSize);
