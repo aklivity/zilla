@@ -267,6 +267,14 @@ public class FetchIT
         k3po.finish();
     }
 
+    // message.value.authorization.distinct has no peer-to-peer counterpart here: like
+    // message.values.authorization.distinct on the produce side (see ProduceIT), two consumer connects
+    // sharing one underlying cache fanout cannot be 1:1 correlated to a single accept address by k3po
+    // itself, independent of any Zilla engine behavior -- confirmed by the second fetch connect leaving
+    // the first accepted block's peer with a "write aborted" mismatch. The scenario is still fully
+    // covered by CacheFetchIT#shouldReceiveMessageValueAuthorizationDistinct, which drives it through a
+    // live engine instead.
+
     @Test
     @Specification({
         "${app}/message.header/client",

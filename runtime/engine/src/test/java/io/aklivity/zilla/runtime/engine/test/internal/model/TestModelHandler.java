@@ -15,12 +15,15 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.model;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.emptyList;
 
 import java.util.List;
 
 import io.aklivity.zilla.config.engine.ValidateMode;
 import io.aklivity.zilla.config.engine.test.internal.model.config.TestModelConfig;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
@@ -34,6 +37,8 @@ public class TestModelHandler implements ModelHandler
     private final boolean decodeLenient;
     private final boolean encodeLenient;
     private final List<Long> transformAuthorizations;
+    private final List<Long> discloseAuthorized;
+    private final DirectBufferEx discloseRedacted;
 
     private int transformAuthorizationIndex;
 
@@ -46,6 +51,19 @@ public class TestModelHandler implements ModelHandler
         this.decodeLenient = config.validate.decode == ValidateMode.LENIENT;
         this.encodeLenient = config.validate.encode == ValidateMode.LENIENT;
         this.transformAuthorizations = config.transformAuthorizations;
+        this.discloseAuthorized = config.discloseAuthorized;
+        this.discloseRedacted = config.discloseRedacted != null
+            ? new UnsafeBufferEx(config.discloseRedacted.getBytes(UTF_8))
+            : null;
+    }
+
+    @Override
+    public ModelPipeline supplyCacheable(
+        ModelEnvelope envelope,
+        ModelTransform transform)
+    {
+        return new TestModelPipeline(length, transformLength, fields, decodeLenient, envelope, transform, this,
+            null, null);
     }
 
     @Override
@@ -53,7 +71,8 @@ public class TestModelHandler implements ModelHandler
         ModelEnvelope envelope,
         ModelTransform transform)
     {
-        return new TestModelPipeline(length, transformLength, fields, decodeLenient, envelope, transform, this);
+        return new TestModelPipeline(length, transformLength, fields, decodeLenient, envelope, transform, this,
+            discloseAuthorized, discloseRedacted);
     }
 
     @Override
@@ -61,7 +80,8 @@ public class TestModelHandler implements ModelHandler
         ModelEnvelope envelope,
         ModelTransform transform)
     {
-        return new TestModelPipeline(length, transformLength, fields, encodeLenient, envelope, transform, this);
+        return new TestModelPipeline(length, transformLength, fields, encodeLenient, envelope, transform, this,
+            null, null);
     }
 
     Long nextTransformAuthorization()

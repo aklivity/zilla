@@ -426,6 +426,18 @@ public class CacheFetchIT
     }
 
     @Test
+    @Configuration("cache.value.model.disclose.yaml")
+    @Specification({
+        "${app}/message.value.authorization.distinct/client",
+        "${app}/message.value.authorization.distinct/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldReceiveMessageValueAuthorizationDistinct() throws Exception
+    {
+        partition.append(16L);
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("cache.yaml")
     @Specification({
         "${app}/message.header/client",

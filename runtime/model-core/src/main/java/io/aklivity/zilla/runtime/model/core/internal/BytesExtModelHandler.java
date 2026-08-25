@@ -57,6 +57,14 @@ final class BytesExtModelHandler implements ModelHandler
     }
 
     @Override
+    public ModelPipeline supplyCacheable(
+        ModelEnvelope envelope,
+        ModelTransform transform)
+    {
+        return supplyDecoder(envelope, transform);
+    }
+
+    @Override
     public ModelPipeline supplyDecoder(
         ModelEnvelope envelope,
         ModelTransform transform)

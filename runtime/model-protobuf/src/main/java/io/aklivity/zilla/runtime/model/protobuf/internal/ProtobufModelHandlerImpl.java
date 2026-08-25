@@ -79,6 +79,14 @@ public final class ProtobufModelHandlerImpl extends ProtobufModelHandler impleme
     }
 
     @Override
+    public ModelPipeline supplyCacheable(
+        ModelEnvelope envelope,
+        ModelTransform transform)
+    {
+        return supplyDecoder(envelope, transform);
+    }
+
+    @Override
     public ModelPipeline supplyDecoder(
         ModelEnvelope envelope,
         ModelTransform transform)

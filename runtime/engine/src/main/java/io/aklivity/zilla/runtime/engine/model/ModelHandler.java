@@ -20,20 +20,18 @@ package io.aklivity.zilla.runtime.engine.model;
  * <p>
  * A {@code ModelHandler} is supplied by {@link ModelContext} and confined to a single I/O thread. It
  * owns the configuration-derived state shared across every stream — schema resolution and caches,
- * and padding policy — and vends a fresh {@link ModelPipeline} per
- * stream via {@link #supplyDecoder} and {@link #supplyEncoder}.
+ * and padding policy — and vends a fresh {@link ModelPipeline} per stream via {@link #supplyCacheable},
+ * {@link #supplyDecoder}, and {@link #supplyEncoder}.
  * </p>
  * <p>
  * {@link ModelContext} returns {@code null} when no model is configured; a caller that holds a
  * {@code null} handler forwards its bytes unchanged rather than driving a pipeline.
  * </p>
  * <p>
- * Neither the {@link ModelEnvelope} nor the {@link ModelTransform} supplied to
- * {@link #supplyDecoder(ModelEnvelope, ModelTransform)} and
- * {@link #supplyEncoder(ModelEnvelope, ModelTransform)} is ever {@code null}: a caller with no metadata
- * channel passes {@link ModelEnvelope#NONE} and a caller with no per-field policy passes
- * {@link ModelTransform#NONE}, both of which an implementation is free to recognize and wire away
- * entirely.
+ * Neither the {@link ModelEnvelope} nor the {@link ModelTransform} supplied to any of these methods is
+ * ever {@code null}: a caller with no metadata channel passes {@link ModelEnvelope#NONE} and a caller
+ * with no per-field policy passes {@link ModelTransform#NONE}, both of which an implementation is free
+ * to recognize and wire away entirely.
  * </p>
  *
  * @see ModelContext
@@ -41,6 +39,28 @@ package io.aklivity.zilla.runtime.engine.model;
  */
 public interface ModelHandler
 {
+    /**
+     * Supplies a new read-direction {@link ModelPipeline} for a single stream, intended for a caller that
+     * persists the transformed value ahead of any specific consumer's request, binding it to the given
+     * {@link ModelEnvelope} and wiring the given {@link ModelTransform} exactly as {@link #supplyDecoder}
+     * does.
+     * <p>
+     * The distinction from {@link #supplyDecoder} is entirely about when a caller invokes the pipeline
+     * relative to who will read the transformed value: a caller that stores a value for later,
+     * unspecified consumers uses this method once at the time it is stored; a caller that produces a
+     * value for the specific consumer requesting it right now uses {@link #supplyDecoder}. An
+     * implementation with nothing consumer-specific to apply returns the identical pipeline behavior
+     * from both methods.
+     * </p>
+     *
+     * @param envelope   the metadata channel to bind the pipeline to
+     * @param transform  the per-field transform to wire into the pipeline
+     * @return a new per-stream pipeline suitable for transforming a value ahead of a specific consumer
+     */
+    ModelPipeline supplyCacheable(
+        ModelEnvelope envelope,
+        ModelTransform transform);
+
     /**
      * Supplies a new read-direction {@link ModelPipeline} for a single stream, binding it to the given
      * {@link ModelEnvelope} so the pipeline reads the metadata travelling alongside each value it

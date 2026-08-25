@@ -53,6 +53,16 @@ public final class KafkaCacheModel
             : NONE;
     }
 
+    public static KafkaCacheModel cacheable(
+        ModelHandler handler,
+        ModelTransform transform,
+        MutableDirectBufferEx scratch)
+    {
+        return handler != null
+            ? new KafkaCacheModel(handler.supplyCacheable(ModelEnvelope.NONE, transform), scratch)
+            : NONE;
+    }
+
     public static KafkaCacheModel encoder(
         ModelHandler handler,
         MutableDirectBufferEx scratch)
@@ -150,5 +160,10 @@ public final class KafkaCacheModel
         {
             pipeline.reset();
         }
+    }
+
+    public boolean identity()
+    {
+        return pipeline == null || pipeline.identity();
     }
 }
