@@ -50,6 +50,7 @@ final class JsonModelDecoderPipeline implements ModelPipeline
     private final Int2ObjectCache<JsonPipeline> pipelines;
     private final JsonEnvelope envelope;
     private final ModelPipelineResult result;
+    private final boolean cacheable;
 
     private JsonPipeline active;
     private String diagnostic;
@@ -61,7 +62,8 @@ final class JsonModelDecoderPipeline implements ModelPipeline
     JsonModelDecoderPipeline(
         JsonModelHandlerImpl handler,
         JsonEnvelope envelope,
-        ModelTransform transform)
+        ModelTransform transform,
+        boolean cacheable)
     {
         this.envelope = envelope;
         this.handler = handler;
@@ -71,6 +73,7 @@ final class JsonModelDecoderPipeline implements ModelPipeline
         this.extractor = transform != ModelTransform.NONE ? new JsonExtractor() : null;
         this.pipelines = new Int2ObjectCache<>(1, 16, p -> {});
         this.result = new ModelPipelineResult();
+        this.cacheable = cacheable;
     }
 
     @Override
@@ -177,7 +180,8 @@ final class JsonModelDecoderPipeline implements ModelPipeline
         int schemaId)
     {
         return pipelines.computeIfAbsent(schemaId,
-            id -> handler.newPipeline(id, handler.decodeLenient, generator, extractor, this::onRejected, envelope));
+            id -> handler.newPipeline(id, handler.decodeLenient, generator, extractor, this::onRejected, envelope,
+                cacheable));
     }
 
     private void onRejected(

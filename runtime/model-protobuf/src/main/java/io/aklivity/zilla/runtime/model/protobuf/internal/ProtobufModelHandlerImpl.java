@@ -83,7 +83,8 @@ public final class ProtobufModelHandlerImpl extends ProtobufModelHandler impleme
         ModelEnvelope envelope,
         ModelTransform transform)
     {
-        return supplyDecoder(envelope, transform);
+        return new ProtobufModelDecoderPipeline(this, ProtobufModelEnvelope.of(requireNonNull(envelope)),
+            requireNonNull(transform), true);
     }
 
     @Override
@@ -92,7 +93,7 @@ public final class ProtobufModelHandlerImpl extends ProtobufModelHandler impleme
         ModelTransform transform)
     {
         return new ProtobufModelDecoderPipeline(this, ProtobufModelEnvelope.of(requireNonNull(envelope)),
-            requireNonNull(transform));
+            requireNonNull(transform), false);
     }
 
     @Override
@@ -259,7 +260,8 @@ public final class ProtobufModelHandlerImpl extends ProtobufModelHandler impleme
         String messageName,
         ProtobufExtractor extractor,
         ProtobufReporter reporter,
-        ProtobufEnvelope envelope)
+        ProtobufEnvelope envelope,
+        boolean cacheable)
     {
         ProtobufSchema schema = supplySchema(schemaId);
         ProtobufPipeline pipeline = null;
@@ -270,14 +272,17 @@ public final class ProtobufModelHandlerImpl extends ProtobufModelHandler impleme
             ProtobufGenerator generator = VIEW_JSON.equals(view)
                 ? ProtobufJson.generator(JsonEx.createGenerator(), schema, messageName, jsonConfig)
                 : Protobuf.generator();
+            ProtobufStream extended = cacheable
+                ? extendCacheable(Protobuf.stream(Protobuf.parser(schema, messageName)), schema)
+                : extendDecode(Protobuf.stream(Protobuf.parser(schema, messageName)), schema);
             pipeline = extractor != null
-                ? extendDecode(Protobuf.stream(Protobuf.parser(schema, messageName)), schema)
+                ? extended
                     .transform(extractor)
                     .lenient(lenient)
                     .reporting(reporter)
                     .envelope(envelope)
                     .into(generator, schema, messageName)
-                : extendDecode(Protobuf.stream(Protobuf.parser(schema, messageName)), schema)
+                : extended
                     .lenient(lenient)
                     .reporting(reporter)
                     .envelope(envelope)
@@ -323,6 +328,21 @@ public final class ProtobufModelHandlerImpl extends ProtobufModelHandler impleme
         for (ProtobufModelExtContext ext : exts)
         {
             extended = ext.supplyHandler(schema, options).decode(extended);
+        }
+        return extended;
+    }
+
+    // folds every installed protobuf model extension's own cacheable-fold stage(s) into the stream, in
+    // discovery order, ahead of this handler's own extractor stage: the canonical value being decoded
+    // ahead of any specific reader's request, as opposed to extendDecode's per-reader resolution
+    private ProtobufStream extendCacheable(
+        ProtobufStream stream,
+        ProtobufSchema schema)
+    {
+        ProtobufStream extended = stream;
+        for (ProtobufModelExtContext ext : exts)
+        {
+            extended = ext.supplyHandler(schema, options).cacheable(extended);
         }
         return extended;
     }

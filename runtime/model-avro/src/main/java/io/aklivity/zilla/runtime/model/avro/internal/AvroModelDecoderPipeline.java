@@ -49,6 +49,7 @@ final class AvroModelDecoderPipeline implements ModelPipeline
     private final AvroEnvelope envelope;
     private final Int2ObjectCache<AvroPipeline> pipelines;
     private final ModelPipelineResult result;
+    private final boolean cacheable;
 
     private AvroPipeline active;
     private String diagnostic;
@@ -56,7 +57,8 @@ final class AvroModelDecoderPipeline implements ModelPipeline
     AvroModelDecoderPipeline(
         AvroModelHandlerImpl handler,
         AvroEnvelope envelope,
-        ModelTransform transform)
+        ModelTransform transform,
+        boolean cacheable)
     {
         this.handler = handler;
         this.envelope = envelope;
@@ -64,6 +66,7 @@ final class AvroModelDecoderPipeline implements ModelPipeline
         this.adapter = AvroModelTransform.of(transform);
         this.pipelines = new Int2ObjectCache<>(1, 16, p -> {});
         this.result = new ModelPipelineResult();
+        this.cacheable = cacheable;
     }
 
     @Override
@@ -158,7 +161,7 @@ final class AvroModelDecoderPipeline implements ModelPipeline
         int schemaId)
     {
         return pipelines.computeIfAbsent(schemaId,
-            id -> handler.newPipeline(id, handler.decodeLenient, generator, adapter, this::onRejected, envelope));
+            id -> handler.newPipeline(id, handler.decodeLenient, generator, adapter, this::onRejected, envelope, cacheable));
     }
 
     private void onRejected(

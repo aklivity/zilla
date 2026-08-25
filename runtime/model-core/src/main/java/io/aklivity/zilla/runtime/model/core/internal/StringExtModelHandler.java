@@ -61,7 +61,19 @@ final class StringExtModelHandler implements ModelHandler
         ModelEnvelope envelope,
         ModelTransform transform)
     {
-        return supplyDecoder(envelope, transform);
+        assert envelope != null;
+
+        StringTransformStream stream = new StringTransformStream();
+        for (StringModelExtHandler handler : handlers)
+        {
+            stream = handler.cacheable(stream);
+        }
+
+        List<StringTransform> transforms = stream.transforms();
+
+        return transforms.isEmpty()
+            ? plain.supplyCacheable(envelope, transform)
+            : new StringExtModelPipeline(plain, supplier.get(), decodeLenient, transforms, envelope, decodePadding);
     }
 
     @Override

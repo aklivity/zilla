@@ -71,7 +71,8 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
         ModelEnvelope envelope,
         ModelTransform transform)
     {
-        return supplyDecoder(envelope, transform);
+        return new AvroModelDecoderPipeline(this, AvroModelEnvelope.of(requireNonNull(envelope)), requireNonNull(transform),
+            true);
     }
 
     @Override
@@ -79,7 +80,8 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
         ModelEnvelope envelope,
         ModelTransform transform)
     {
-        return new AvroModelDecoderPipeline(this, AvroModelEnvelope.of(requireNonNull(envelope)), requireNonNull(transform));
+        return new AvroModelDecoderPipeline(this, AvroModelEnvelope.of(requireNonNull(envelope)), requireNonNull(transform),
+            false);
     }
 
     @Override
@@ -175,7 +177,8 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
         JsonGeneratorEx json,
         AvroTransform adapter,
         AvroReporter reporter,
-        AvroEnvelope envelope)
+        AvroEnvelope envelope,
+        boolean cacheable)
     {
         AvroSchema schema = supplySchema(schemaId);
         AvroPipeline pipeline = null;
@@ -186,7 +189,10 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
             AvroGenerator generator = VIEW_JSON.equals(view)
                 ? AvroJson.generator(schema, json, true)
                 : Avro.generator(schema, new UnsafeBufferEx(new byte[1]), 0);
-            pipeline = extendDecode(Avro.stream(Avro.parser(schema)), schema)
+            AvroStream extended = cacheable
+                ? extendCacheable(Avro.stream(Avro.parser(schema)), schema)
+                : extendDecode(Avro.stream(Avro.parser(schema)), schema);
+            pipeline = extended
                 .transform(adapter)
                 .lenient(lenient)
                 .reporting(reporter)
@@ -234,6 +240,21 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
         for (AvroModelExtContext ext : exts)
         {
             extended = ext.supplyHandler(schema, options).decode(extended);
+        }
+        return extended;
+    }
+
+    // folds every installed avro model extension's own cacheable-fold stage(s) into the stream, in
+    // discovery order, ahead of this handler's own adapter stage: the canonical value being decoded ahead
+    // of any specific reader's request, as opposed to extendDecode's per-reader resolution
+    private AvroStream extendCacheable(
+        AvroStream stream,
+        AvroSchema schema)
+    {
+        AvroStream extended = stream;
+        for (AvroModelExtContext ext : exts)
+        {
+            extended = ext.supplyHandler(schema, options).cacheable(extended);
         }
         return extended;
     }

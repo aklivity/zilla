@@ -19,10 +19,10 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufTransformable;
 
 /**
  * Appends whatever stages this extension contributes to an in-progress protobuf pipeline, for one resolved
- * schema and configuration. A pipeline decoding the canonical value into the view delivered to a reader
- * and one encoding a caller's value into its canonical form are extended independently, so an extension
- * that only applies to one direction overrides that method alone; the default leaves the other direction
- * unchanged.
+ * schema and configuration. A pipeline decoding the canonical value ahead of any specific reader's request,
+ * one resolving the view delivered to the reader making a request right now, and one encoding a caller's
+ * value into its canonical form are extended independently, so an extension that only applies to some of
+ * these overrides those methods alone; the default for each leaves the others unaffected.
  */
 public interface ProtobufModelExtHandler
 {
@@ -39,6 +39,24 @@ public interface ProtobufModelExtHandler
         T transformable)
     {
         return transformable;
+    }
+
+    /**
+     * Appends this extension's own stage or stages to {@code transformable}, in data-flow order, for a
+     * pipeline decoding the canonical value ahead of any specific reader's request -- the pass whose
+     * result is safe to persist and share across readers, as opposed to {@link #decode}, which resolves
+     * the view delivered to the specific reader making the request right now. The default appends the
+     * identical stage(s) {@link #decode} would, so an extension with nothing reader-specific to withhold
+     * needs no override at all.
+     *
+     * @param <T>              the caller's own concrete stream type
+     * @param transformable    the in-progress stream to extend
+     * @return the extended stream, as the same concrete type supplied
+     */
+    default <T extends ProtobufTransformable<T>> T cacheable(
+        T transformable)
+    {
+        return decode(transformable);
     }
 
     /**

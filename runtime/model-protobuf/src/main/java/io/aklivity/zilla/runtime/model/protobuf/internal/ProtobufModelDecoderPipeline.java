@@ -50,6 +50,7 @@ final class ProtobufModelDecoderPipeline implements ModelPipeline
     private final Map<String, ProtobufPipeline> pipelines;
     private final ProtobufEnvelope envelope;
     private final ModelPipelineResult result;
+    private final boolean cacheable;
 
     private ProtobufPipeline active;
     private String diagnostic;
@@ -57,7 +58,8 @@ final class ProtobufModelDecoderPipeline implements ModelPipeline
     ProtobufModelDecoderPipeline(
         ProtobufModelHandlerImpl handler,
         ProtobufEnvelope envelope,
-        ModelTransform transform)
+        ModelTransform transform,
+        boolean cacheable)
     {
         this.envelope = envelope;
         this.handler = handler;
@@ -66,6 +68,7 @@ final class ProtobufModelDecoderPipeline implements ModelPipeline
         this.extractor = transform != ModelTransform.NONE ? new ProtobufExtractor() : null;
         this.pipelines = new HashMap<>();
         this.result = new ModelPipelineResult();
+        this.cacheable = cacheable;
     }
 
     @Override
@@ -180,7 +183,8 @@ final class ProtobufModelDecoderPipeline implements ModelPipeline
         ProtobufPipeline pipeline = pipelines.get(messageName);
         if (pipeline == null)
         {
-            pipeline = handler.newPipeline(schemaId, handler.decodeLenient, messageName, extractor, this::onRejected, envelope);
+            pipeline = handler.newPipeline(schemaId, handler.decodeLenient, messageName, extractor, this::onRejected, envelope,
+                cacheable);
             pipelines.put(messageName, pipeline);
         }
         return pipeline;

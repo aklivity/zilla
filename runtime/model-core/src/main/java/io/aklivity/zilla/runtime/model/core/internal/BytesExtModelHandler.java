@@ -61,7 +61,19 @@ final class BytesExtModelHandler implements ModelHandler
         ModelEnvelope envelope,
         ModelTransform transform)
     {
-        return supplyDecoder(envelope, transform);
+        assert envelope != null;
+
+        BytesTransformStream stream = new BytesTransformStream();
+        for (BytesModelExtHandler handler : handlers)
+        {
+            stream = handler.cacheable(stream);
+        }
+
+        List<BytesTransform> transforms = stream.transforms();
+
+        return transforms.isEmpty()
+            ? plain.supplyCacheable(envelope, transform)
+            : new BytesExtModelPipeline(plain, supplier.get(), decodeLenient, transforms, envelope, decodePadding);
     }
 
     @Override
