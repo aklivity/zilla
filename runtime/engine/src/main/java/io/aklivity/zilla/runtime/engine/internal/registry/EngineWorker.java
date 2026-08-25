@@ -306,6 +306,7 @@ public class EngineWorker implements EngineContext, Agent
         Collection<MetricGroup> metricGroups,
         Collection<Store> stores,
         Router router,
+        byte nodeId,
         RouterConfig routerConfig,
         Collector collector,
         Supplier<MessageReader> supplyEventReader,
@@ -316,7 +317,7 @@ public class EngineWorker implements EngineContext, Agent
         EngineBoss boss)
     {
         this.localIndex = index;
-        this.selfNodeId = router.supplyNodeId(config.nodeInstanceId());
+        this.selfNodeId = nodeId;
         this.affinity = (((long) selfNodeId & 0xffL) << 24) | (index & 0x00ff_ffffL);
         this.config = config;
         this.configPath = Path.of(config.configURI());
