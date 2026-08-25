@@ -14,12 +14,8 @@
 # under the License.
 #
 
-# window is smaller than the encoded will message header (44 bytes for topic
-# "wills/one"), so the will message must remain deferred instead of being
-# written with a negative payload size
-
 accept "zilla://streams/app0"
-        option zilla:window 32
+        option zilla:window 8192
         option zilla:transmission "duplex"
 
 accepted
@@ -46,7 +42,22 @@ write zilla:begin.ext ${mqtt:beginEx()
 
 connected
 
+
+read zilla:data.ext ${mqtt:dataEx()
+                             .typeId(zilla:id("mqtt"))
+                             .session()
+                                .deferred(24620)
+                                .kind("WILL")
+                                .build()
+                             .build()}
+read ${mqtt:will()
+               .topic("wills/one")
+               .payloadSize(32768)
+               .build()}
+read [0..32768]
+
 write zilla:data.empty
 write flush
 
-read aborted
+read closed
+write close

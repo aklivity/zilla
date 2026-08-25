@@ -15,7 +15,7 @@
 #
 
 connect "zilla://streams/app0"
-         option zilla:window 32
+         option zilla:window 8192
          option zilla:transmission "duplex"
 
 write zilla:begin.ext ${mqtt:beginEx()
@@ -40,6 +40,40 @@ read zilla:begin.ext ${mqtt:matchBeginEx()
 
 connected
 
+write option zilla:flags "init"
+write zilla:data.ext ${mqtt:dataEx()
+                             .typeId(zilla:id("mqtt"))
+                             .session()
+                                .deferred(24620)
+                                .kind("WILL")
+                                .build()
+                             .build()}
+write ${mqtt:will()
+               .topic("wills/one")
+               .payloadSize(32768)
+               .build()}
+${mqtt:randomBytes(8148)}
+write flush
+
+# middle fragment carries neither the INIT nor the FIN flag
+write option zilla:flags "none"
+write ${mqtt:randomBytes(8192)}
+write flush
+
+write option zilla:flags "none"
+write ${mqtt:randomBytes(8192)}
+write flush
+
+write option zilla:flags "none"
+write ${mqtt:randomBytes(8192)}
+write flush
+
+write option zilla:flags "fin"
+write ${mqtt:randomBytes(44)}
+write flush
+
+
 read zilla:data.empty
 
-write abort
+write close
+read closed

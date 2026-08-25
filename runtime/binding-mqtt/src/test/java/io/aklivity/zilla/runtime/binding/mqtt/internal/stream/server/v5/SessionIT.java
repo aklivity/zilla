@@ -190,9 +190,10 @@ public class SessionIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/session.will.message.header.exceeds.window/client",
-        "${app}/session.will.message.header.exceeds.window/server"})
-    public void shouldDeferWillMessageWhenHeaderExceedsSessionWindow() throws Exception
+        "${net}/session.will.message.32k/client",
+        "${app}/session.will.message.32k/server"})
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    public void shouldSendWillMessage32k() throws Exception
     {
         k3po.finish();
     }

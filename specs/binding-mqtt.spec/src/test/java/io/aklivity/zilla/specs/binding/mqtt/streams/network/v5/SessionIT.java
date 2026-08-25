@@ -131,9 +131,9 @@ public class SessionIT
 
     @Test
     @Specification({
-        "${net}/session.will.message.header.exceeds.window/client",
-        "${net}/session.will.message.header.exceeds.window/server"})
-    public void shouldDeferWillMessageWhenHeaderExceedsSessionWindow() throws Exception
+        "${net}/session.will.message.32k/client",
+        "${net}/session.will.message.32k/server"})
+    public void shouldSendWillMessage32k() throws Exception
     {
         k3po.finish();
     }
