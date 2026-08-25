@@ -87,19 +87,20 @@ public interface Router
         ObjectIntBiConsumer<String> listener);
 
     /**
-     * Resolves this engine instance's own node identity, embedded in the affinity value
+     * Supplies this engine instance's own node identity, embedded in the affinity value
      * each worker mints for itself and consulted whenever an affinity's node component is
      * compared against this instance's own.
      * <p>
      * Identity is a single byte, shared cluster-wide; a router coordinating membership
-     * across instances is responsible for assigning distinct values. The default, with no
-     * such coordination in effect, is {@code 0}.
+     * across instances is responsible for assigning distinct values from the given,
+     * engine-supplied {@code instanceId} -- a stable per-instance label the caller owns
+     * resolving, persisting, and passing in, so a router implementation never needs its
+     * own access to engine configuration to obtain one.
      * </p>
      *
+     * @param instanceId  this engine instance's own stable, persistent identity label
      * @return this instance's own node identity
      */
-    default byte resolveNodeId()
-    {
-        return 0;
-    }
+    byte supplyNodeId(
+        String instanceId);
 }

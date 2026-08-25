@@ -316,7 +316,7 @@ public class EngineWorker implements EngineContext, Agent
         EngineBoss boss)
     {
         this.localIndex = index;
-        this.selfNodeId = router.resolveNodeId();
+        this.selfNodeId = router.supplyNodeId(config.nodeInstanceId());
         this.affinity = (((long) selfNodeId & 0xffL) << 24) | (index & 0x00ff_ffffL);
         this.config = config;
         this.configPath = Path.of(config.configURI());
