@@ -800,6 +800,24 @@ public class McpServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/lifecycle.shutdown.session.unknown/client"})
+    public void shouldRejectLifecycleShutdownSessionUnknown() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/lifecycle.shutdown.session.missing/client"})
+    public void shouldRejectLifecycleShutdownSessionMissing() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/reject.method.not.allowed/client"})
     public void shouldRejectMethodNotAllowed() throws Exception
     {
