@@ -130,6 +130,15 @@ public class SessionIT
 
     @Test
     @Specification({
+        "${app}/session.will.message.end.without.disconnect/client",
+        "${app}/session.will.message.end.without.disconnect/server"})
+    public void shouldEndWithoutDisconnect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/session.subscribe/client",
         "${app}/session.subscribe/server"})
     public void shouldSubscribeSaveSubscriptionsInSession() throws Exception

@@ -2795,13 +2795,30 @@ public final class MqttServerFactory implements MqttStreamFactory
 
             if (decodeSlot == NO_SLOT)
             {
+                final boolean disconnected = MqttState.initialClosing(state);
+
                 state = MqttState.closeInitial(state);
 
-                closeStreams(traceId, authorization);
+                if (disconnected || !isSetWillFlag(connectFlags))
+                {
+                    closeStreams(traceId, authorization);
+                }
+                else
+                {
+                    // a will was set but no DISCONNECT was ever decoded, so this is not a clean
+                    // disconnect per MQTT-3.14.4-3 - clean up as if the network had aborted
+                    cleanupStreamsUsingAbort(traceId);
+                    doReleaseOwnership(traceId);
+                    decoder = decodeIgnoreAll;
+                }
 
                 doNetworkEnd(traceId, authorization);
-
-                decoder = decodeIgnoreAll;
+            }
+            else
+            {
+                // a decode is still deferred (e.g. awaiting session window for a will payload);
+                // mark closing and let it complete via the session window retry in decodeNetwork
+                state = MqttState.closingInitial(state);
             }
         }
 

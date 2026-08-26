@@ -201,6 +201,17 @@ public class SessionIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/session.will.message.end.without.disconnect/client",
+        "${app}/session.will.message.end.without.disconnect/server"})
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    public void shouldAbortSessionOnEndWithoutDisconnect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/session.will.message.disconnect.with.will.message/client",
         "${app}/session.will.message.abort/server"})
     public void shouldCloseSessionDisconnectWithWill() throws Exception
