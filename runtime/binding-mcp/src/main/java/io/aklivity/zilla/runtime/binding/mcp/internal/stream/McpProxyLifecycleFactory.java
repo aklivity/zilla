@@ -1268,7 +1268,10 @@ final class McpProxyLifecycleFactory implements BindingHandler
             settleRequests(traceId);
             doClientEnd(traceId);
             server.clients.remove(routedId, this);
-            server.doServerEnd(traceId);
+            if (server.clients.isEmpty())
+            {
+                server.doServerEnd(traceId);
+            }
         }
 
         private void onClientAbort(
@@ -1294,7 +1297,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
             {
                 settleLifecycle(traceId);
             }
-            else
+            else if (server.clients.isEmpty())
             {
                 server.doServerAbort(traceId);
             }
@@ -1342,11 +1345,12 @@ final class McpProxyLifecycleFactory implements BindingHandler
             server.clients.remove(routedId, this);
 
             final boolean bearer = extension.sizeof() > 0;
+
             if (server.hydration && sessionId == null || bearer)
             {
                 settleLifecycle(traceId);
             }
-            else
+            else if (server.clients.isEmpty())
             {
                 server.doServerReset(traceId, extension);
             }
