@@ -139,6 +139,15 @@ public class SessionIT
 
     @Test
     @Specification({
+        "${app}/session.will.message.abort.while.deferred/client",
+        "${app}/session.will.message.abort.while.deferred/server"})
+    public void shouldAbortWhileDeferred() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/session.subscribe/client",
         "${app}/session.subscribe/server"})
     public void shouldSubscribeSaveSubscriptionsInSession() throws Exception

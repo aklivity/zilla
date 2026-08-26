@@ -1226,12 +1226,8 @@ public final class MqttServerFactory implements MqttStreamFactory
         final int offset,
         final int limit)
     {
-        int progress = offset;
+        int progress = server.onDecodeConnectWillMessage(traceId, authorization, buffer, offset, limit);
 
-        if (server.willPayloadDeferred == 0)
-        {
-            progress = server.onDecodeConnectWillMessage(traceId, authorization, buffer, progress, limit);
-        }
         server.decodableRemainingBytes -= progress - offset;
 
         return progress;
@@ -2828,11 +2824,23 @@ public final class MqttServerFactory implements MqttStreamFactory
             final long traceId = abort.traceId();
             final long authorization = abort.authorization();
 
-            state = MqttState.closeInitial(state);
+            if (decodeSlot == NO_SLOT)
+            {
+                state = MqttState.closeInitial(state);
 
-            cleanupDecodeSlot();
+                cleanupNetwork(traceId, authorization);
+            }
+            else
+            {
+                // a decode is still deferred (e.g. awaiting session window for a will payload);
+                // mark closing and let it complete via the session window retry in decodeNetwork,
+                // rather than discarding the deferred payload along with the dead network -
+                // doNetworkReset is skipped here since it would cleanupDecodeSlot() as a side effect
+                state = MqttState.closingInitial(state);
 
-            cleanupNetwork(traceId, authorization);
+                doReleaseOwnership(traceId);
+                doNetworkAbort(traceId, authorization);
+            }
         }
 
         private void onNetworkWindow(
@@ -3503,7 +3511,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             decode:
             {
                 final MqttConnectPayload payload = mqttConnectPayloadRO.reset();
-                int connectPayloadLimit = payload.decode(buffer, progress, limit, connectFlags, version);
+                final int connectPayloadLimit = payload.decode(buffer, progress, limit, connectFlags, version);
 
                 willPayloadBytes = payload.payloadSize;
                 final boolean willFlagSet = isSetWillFlag(connectFlags);
@@ -3538,8 +3546,71 @@ public final class MqttServerFactory implements MqttStreamFactory
                     break decode;
                 }
 
-                decoder = decodeConnectWillMessagePayload;
-                progress = connectPayloadLimit;
+                // re-derived from buffer on every attempt, including retries - progress is not
+                // committed past these bytes until they are actually handed to session.doSessionData,
+                // so decodeNetwork's own decodeSlot buffering keeps them available for the next retry;
+                // no snapshot needs to survive between calls, however large the will payload is
+                final int willFlags = decodeWillFlags(flags);
+                final MqttWillMessageFW.Builder willMessageBuilder =
+                    mqttWillMessageRW.wrap(willMessageBuffer, 0, willMessageBuffer.capacity())
+                        .topic(payload.willTopic)
+                        .delay(payload.willDelay)
+                        .qos(willQos)
+                        .flags(willFlags)
+                        .expiryInterval(payload.expiryInterval)
+                        .contentType(payload.contentType)
+                        .format(f -> f.set(payload.payloadFormat))
+                        .responseTopic(payload.responseTopic)
+                        .correlation(c -> c.bytes(payload.correlationData))
+                        .payloadSize(payload.payloadSize);
+
+                if (version == 5)
+                {
+                    final Array32FW<MqttUserPropertyFW> userProperties = willUserPropertiesRW.build();
+                    userProperties.forEach(
+                        c -> willMessageBuilder.propertiesItem(p -> p.key(c.key()).value(c.value())));
+                }
+
+                willMessageBuilder.build();
+                final int headerSize = willMessageBuilder.sizeof();
+
+                if (!session.hasSessionWindow(headerSize))
+                {
+                    // not enough session window even for the header yet - leave progress where it
+                    // started so these bytes stay in decodeSlot for the next session window retry
+                    break decode;
+                }
+
+                // bounded by whatever is currently available in buffer (network-limited),
+                // the session window (backpressure-limited), and the declared will payload length
+                final int payloadAvailable = Math.min(limit - connectPayloadLimit, willPayloadBytes);
+                final int payloadSize = Math.min(payloadAvailable, session.initialBudget() - headerSize);
+                final OctetsFW willPayload = payloadRO.wrap(buffer, connectPayloadLimit, connectPayloadLimit + payloadSize);
+
+                willMessageBuffer.putBytes(headerSize, willPayload.buffer(), willPayload.offset(), willPayload.limit());
+
+                final int deferred = willPayloadBytes - payloadSize;
+                final int dataFlags = deferred > 0 ? FLAG_INIT : FLAG_INIT | FLAG_FIN;
+
+                final MqttDataExFW.Builder sessionDataExBuilder =
+                    mqttSessionDataExRW.wrap(sessionExtBuffer, 0, sessionExtBuffer.capacity())
+                        .typeId(mqttTypeId)
+                        .session(s -> s.deferred(deferred).kind(k -> k.set(MqttSessionDataKind.WILL)));
+
+                final int publishedWillSize = session.doSessionData(traceId, dataFlags,
+                    willMessageBuffer, 0, headerSize + willPayload.sizeof(), headerSize, sessionDataExBuilder.build());
+
+                if (publishedWillSize < headerSize)
+                {
+                    // session stream pushed back before even the header went through - retry later
+                    break decode;
+                }
+
+                willPayloadDeferred = deferred;
+                willPayloadBytes -= payloadSize;
+                progress = connectPayloadLimit + payloadSize;
+
+                decoder = deferred > 0 ? decodeConnectWillMessagePayload : decodePacketTypeByVersion.get(version);
             }
 
             if (reasonCode != SUCCESS)
@@ -3561,7 +3632,6 @@ public final class MqttServerFactory implements MqttStreamFactory
                 progress = limit;
             }
 
-
             return progress;
         }
 
@@ -3572,87 +3642,16 @@ public final class MqttServerFactory implements MqttStreamFactory
             int offset,
             int limit)
         {
-            int progress = offset;
+            final OctetsFW payload = payloadRO.wrap(buffer, offset, limit);
+            assert willPayloadDeferred >= 0;
+            final int flags = willPayloadDeferred - payload.sizeof() > 0 ? FLAG_CONT : FLAG_FIN;
 
-            final int willFlags = decodeWillFlags(connectFlags);
-            final int willQos = decodeWillQos(connectFlags);
-            final boolean willFlagSet = isSetWillFlag(connectFlags);
+            final int publishedWillSize = session.doSessionData(traceId, flags,
+                payload.buffer(), offset, limit, 0, EMPTY_OCTETS);
+            willPayloadDeferred -= publishedWillSize;
+            willPayloadBytes -= publishedWillSize;
 
-            decode:
-            if (willFlagSet && MqttState.initialOpened(session.state))
-            {
-                int publishedWillSize = 0;
-                if (willPayloadDeferred == 0)
-                {
-                    final MqttWillMessageFW.Builder willMessageBuilder =
-                        mqttWillMessageRW.wrap(willMessageBuffer, 0, willMessageBuffer.capacity())
-                            .topic(mqttConnectPayloadRO.willTopic)
-                            .delay(mqttConnectPayloadRO.willDelay)
-                            .qos(willQos)
-                            .flags(willFlags)
-                            .expiryInterval(mqttConnectPayloadRO.expiryInterval)
-                            .contentType(mqttConnectPayloadRO.contentType)
-                            .format(f -> f.set(mqttConnectPayloadRO.payloadFormat))
-                            .responseTopic(mqttConnectPayloadRO.responseTopic)
-                            .correlation(c -> c.bytes(mqttConnectPayloadRO.correlationData))
-                            .payloadSize(mqttConnectPayloadRO.payloadSize);
-
-                    if (version == 5)
-                    {
-                        final Array32FW<MqttUserPropertyFW> userProperties = willUserPropertiesRW.build();
-                        userProperties.forEach(
-                            c -> willMessageBuilder.propertiesItem(p -> p.key(c.key()).value(c.value())));
-                    }
-
-                    final MqttWillMessageFW will = willMessageBuilder.build();
-                    final int headerSize = willMessageBuilder.sizeof();
-
-                    if (!session.hasSessionWindow(headerSize))
-                    {
-                        break decode;
-                    }
-
-                    int payloadSize = Math.min(limit - offset, session.initialBudget() - headerSize);
-
-                    final OctetsFW payload = payloadRO.wrap(buffer, offset, offset + payloadSize);
-
-                    willMessageBuffer.putBytes(will.limit(), payload.buffer(), payload.offset(), payload.limit());
-
-                    int flags = willPayloadBytes + headerSize > session.initialBudget() ? FLAG_INIT : FLAG_INIT | FLAG_FIN;
-                    int deferred = Math.max(willPayloadBytes + headerSize - session.initialBudget(), 0);
-                    willPayloadDeferred = deferred;
-
-                    final MqttDataExFW.Builder sessionDataExBuilder =
-                        mqttSessionDataExRW.wrap(sessionExtBuffer, 0, sessionExtBuffer.capacity())
-                            .typeId(mqttTypeId)
-                            .session(s -> s.deferred(deferred).kind(k -> k.set(MqttSessionDataKind.WILL)));
-
-                    publishedWillSize = session.doSessionData(traceId, flags,
-                        willMessageBuffer, 0, headerSize + payload.sizeof(), headerSize, sessionDataExBuilder.build());
-
-                    if (publishedWillSize < headerSize)
-                    {
-                        willPayloadDeferred = 0;
-                    }
-
-                    willPayloadBytes -= payloadSize;
-                    progress += payloadSize;
-                }
-                else
-                {
-                    final OctetsFW payload = payloadRO.wrap(buffer, offset, limit);
-                    assert willPayloadDeferred >= 0;
-                    int flags = willPayloadDeferred - payload.sizeof() > 0 ? FLAG_CONT : FLAG_FIN;
-
-                    publishedWillSize = session.doSessionData(traceId, flags,
-                        payload.buffer(), offset, limit, 0, EMPTY_OCTETS);
-                    willPayloadDeferred -= publishedWillSize;
-                    willPayloadBytes -= publishedWillSize;
-                    progress += publishedWillSize;
-                }
-            }
-
-            return progress;
+            return offset + publishedWillSize;
         }
 
         private MqttPublishStream resolvePublishStream(
@@ -4461,15 +4460,25 @@ public final class MqttServerFactory implements MqttStreamFactory
             int reasonCode,
             int version)
         {
-            switch (reasonCode)
+            if (!willPayloadPending())
             {
-            case SESSION_TAKEN_OVER:
-                closeStreams(traceId, authorization);
-                break;
-            default:
-                cleanupStreamsUsingAbort(traceId);
-                break;
+                switch (reasonCode)
+                {
+                case SESSION_TAKEN_OVER:
+                    closeStreams(traceId, authorization);
+                    break;
+                default:
+                    cleanupStreamsUsingAbort(traceId);
+                    break;
+                }
             }
+            else
+            {
+                // the will payload forward is still deferred, awaiting session window; mark
+                // closing and let it complete via the session window retry in decodeNetwork
+                state = MqttState.closingInitial(state);
+            }
+
             if (version != MQTT_PROTOCOL_VERSION_4 || (reasonCode & 0xff)  <= MAX_CONNACK_REASONCODE_V4)
             {
                 if (connected || reasonCode == SESSION_TAKEN_OVER)
@@ -5465,6 +5474,15 @@ public final class MqttServerFactory implements MqttStreamFactory
                 decodeSlotOffset = 0;
                 decodeSlotReserved = 0;
             }
+        }
+
+        private boolean willPayloadPending()
+        {
+            // decodeSlot alone is not a reliable signal here - it is also populated by ordinary
+            // network fragmentation of any packet, with no session window retry to complete it.
+            // only a will-message decode blocked on session window can resume via that retry.
+            return decodeSlot != NO_SLOT &&
+                (decoder == decodeConnectWillMessage || decoder == decodeConnectWillMessagePayload);
         }
 
         private void cleanupEncodeSlot()
