@@ -211,6 +211,16 @@ public class SessionIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/session.will.message.with.user.properties/client",
+        "${app}/session.will.message.with.user.properties/server"})
+    public void shouldSendWillMessageWithUserProperties() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/session.will.message.end.without.disconnect/client",
         "${app}/session.will.message.end.without.disconnect/server"})
     @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")

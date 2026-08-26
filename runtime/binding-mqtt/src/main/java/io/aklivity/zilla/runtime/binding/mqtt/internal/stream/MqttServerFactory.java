@@ -3561,8 +3561,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                         .contentType(payload.contentType)
                         .format(f -> f.set(payload.payloadFormat))
                         .responseTopic(payload.responseTopic)
-                        .correlation(c -> c.bytes(payload.correlationData))
-                        .payloadSize(payload.payloadSize);
+                        .correlation(c -> c.bytes(payload.correlationData));
 
                 if (version == 5)
                 {
@@ -3571,6 +3570,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                         c -> willMessageBuilder.propertiesItem(p -> p.key(c.key()).value(c.value())));
                 }
 
+                willMessageBuilder.payloadSize(payload.payloadSize);
                 willMessageBuilder.build();
                 final int headerSize = willMessageBuilder.sizeof();
 
@@ -7535,7 +7535,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                         break;
                     case KIND_USER_PROPERTY:
                         final MqttUserPropertyFW userProperty = mqttProperty.userProperty();
-                        userPropertiesRW.item(c -> c.key(userProperty.key()).value(userProperty.value()));
+                        willUserPropertiesRW.item(c -> c.key(userProperty.key()).value(userProperty.value()));
                         break;
                     default:
                         reasonCode = MALFORMED_PACKET;

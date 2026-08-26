@@ -157,6 +157,15 @@ public class SessionIT
 
     @Test
     @Specification({
+        "${app}/session.will.message.with.user.properties/client",
+        "${app}/session.will.message.with.user.properties/server"})
+    public void shouldSendWillMessageWithUserProperties() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/session.subscribe/client",
         "${app}/session.subscribe/server"})
     public void shouldSubscribeSaveSubscriptionsInSession() throws Exception

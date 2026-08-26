@@ -165,6 +165,15 @@ public class SessionIT
         k3po.finish();
     }
 
+    @Test
+    @Specification({
+        "${net}/session.will.message.with.user.properties/client",
+        "${net}/session.will.message.with.user.properties/server"})
+    public void shouldSendWillMessageWithUserProperties() throws Exception
+    {
+        k3po.finish();
+    }
+
     // [MQTT-3.1.2-15]
     @Test
     @Specification({
