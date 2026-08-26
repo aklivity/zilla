@@ -471,14 +471,21 @@ public final class McpServerFactory implements McpStreamFactory
                     altSvc);
                 break;
             case "DELETE":
-                newStream = new McpShutdownHandler(
-                    sender,
-                    originId,
-                    routedId,
-                    initialId,
-                    resolvedId,
-                    session,
-                    altSvc)::onNetMessage;
+                if (session == null)
+                {
+                    newStream = new McpRejectHandler(sender, STATUS_400)::onNetBegin;
+                }
+                else
+                {
+                    newStream = new McpShutdownHandler(
+                        sender,
+                        originId,
+                        routedId,
+                        initialId,
+                        resolvedId,
+                        session,
+                        altSvc)::onNetMessage;
+                }
                 break;
             default:
                 newStream = new McpRejectHandler(sender, STATUS_405)::onNetBegin;

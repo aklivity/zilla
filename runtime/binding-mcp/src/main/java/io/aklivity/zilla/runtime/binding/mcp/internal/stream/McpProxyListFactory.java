@@ -592,6 +592,7 @@ abstract class McpProxyListFactory implements BindingHandler
             state = McpState.closedReply(state);
             cleanupClientSlot();
             doClientEnd(traceId);
+            server.anySucceeded = true;
             server.onClientClosed(traceId);
         }
 
@@ -1545,6 +1546,8 @@ abstract class McpProxyListFactory implements BindingHandler
 
         private int state;
         private int itemsEmitted;
+        private boolean anySucceeded;
+        private boolean anyErrored;
         private McpListClient client;
 
         private int preludeProgress;
@@ -1784,8 +1787,21 @@ abstract class McpProxyListFactory implements BindingHandler
         private void onClientError(
             long traceId)
         {
-            remaining.clear();
-            doServerAbort(traceId);
+            anyErrored = true;
+            // a route erroring (Abort/Reset/buffer exhaustion) only fails the overall response
+            // when every route that was tried errored and none ever succeeded -- a sole failing
+            // route, or one among several, is otherwise excluded the same way an
+            // unauthorized/skipped route already is, converging to an empty list
+            if (hydration || remaining.isEmpty() && !anySucceeded)
+            {
+                remaining.clear();
+                doServerAbort(traceId);
+            }
+            else
+            {
+                client = null;
+                onNextClient(traceId);
+            }
         }
 
         private void onClientSkip(
