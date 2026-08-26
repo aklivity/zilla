@@ -17,6 +17,8 @@ package io.aklivity.zilla.runtime.common.avro;
 import java.util.List;
 import java.util.function.Predicate;
 
+import jakarta.json.JsonValue;
+
 /**
  * An immutable, read-only node in a compiled Avro type graph. The {@link #kind()} selects which
  * accessors carry meaning; the others return an empty list, {@code null}, or {@code 0}. The graph is
@@ -92,6 +94,14 @@ public interface AvroType
      * The byte count of a {@link AvroKind#FIXED}; {@code 0} otherwise.
      */
     int size();
+
+    /**
+     * The value of an arbitrary member declared on this type's schema object. A field's own members are
+     * not visible here, and a member declared here is not inherited by any field. {@code null} when this
+     * type declares no such key, and when the type is expressed as a union or a bare type name.
+     */
+    JsonValue attribute(
+        String name);
 
     /**
      * The paths of every {@link AvroField} reachable from this type — through record fields,
