@@ -30,6 +30,7 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufType;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.model.protobuf.ext.ProtobufCache;
 import io.aklivity.zilla.runtime.model.protobuf.ext.ProtobufModelExt;
 import io.aklivity.zilla.runtime.model.protobuf.ext.ProtobufModelExtContext;
 import io.aklivity.zilla.runtime.model.protobuf.ext.ProtobufModelExtFactorySpi;
@@ -61,7 +62,8 @@ public final class TestUppercaseProtobufModelExtFactorySpi implements ProtobufMo
 
                     @Override
                     public <T extends ProtobufTransformable<T>> T decode(
-                        T transformable)
+                        T transformable,
+                        ProtobufCache cache)
                     {
                         return transformable.transform(transform);
                     }

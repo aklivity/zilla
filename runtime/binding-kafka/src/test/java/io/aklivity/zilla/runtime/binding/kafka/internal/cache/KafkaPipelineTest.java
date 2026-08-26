@@ -35,6 +35,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaTopicTransfo
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.engine.model.ModelCache;
 import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelFieldBridge;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
@@ -245,17 +246,10 @@ public class KafkaPipelineTest
         return new ModelHandler()
         {
             @Override
-            public ModelPipeline supplyCacheable(
-                ModelEnvelope envelope,
-                ModelTransform transform)
-            {
-                return supplyDecoder(envelope, transform);
-            }
-
-            @Override
             public ModelPipeline supplyDecoder(
                 ModelEnvelope envelope,
-                ModelTransform transform)
+                ModelTransform transform,
+                ModelCache cache)
             {
                 return new FieldsPipeline(transform, pathsAndValues, false);
             }
@@ -265,7 +259,7 @@ public class KafkaPipelineTest
                 ModelEnvelope envelope,
                 ModelTransform transform)
             {
-                return supplyDecoder(envelope, transform);
+                return supplyDecoder(envelope, transform, ModelCache.NONE);
             }
         };
     }
@@ -278,17 +272,10 @@ public class KafkaPipelineTest
         return new ModelHandler()
         {
             @Override
-            public ModelPipeline supplyCacheable(
-                ModelEnvelope envelope,
-                ModelTransform transform)
-            {
-                return supplyDecoder(envelope, transform);
-            }
-
-            @Override
             public ModelPipeline supplyDecoder(
                 ModelEnvelope envelope,
-                ModelTransform transform)
+                ModelTransform transform,
+                ModelCache cache)
             {
                 return new FieldsPipeline(transform, new String[] { path, "east" }, true);
             }
@@ -298,7 +285,7 @@ public class KafkaPipelineTest
                 ModelEnvelope envelope,
                 ModelTransform transform)
             {
-                return supplyDecoder(envelope, transform);
+                return supplyDecoder(envelope, transform, ModelCache.NONE);
             }
         };
     }

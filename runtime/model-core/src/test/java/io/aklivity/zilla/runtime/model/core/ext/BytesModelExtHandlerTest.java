@@ -45,7 +45,7 @@ public class BytesModelExtHandlerTest
         };
         Stream stream = new Stream();
 
-        assertSame(stream, handler.decode(stream));
+        assertSame(stream, handler.decode(stream, CoreCache.NONE));
         assertSame(stream, handler.encode(stream));
     }
 
@@ -56,14 +56,15 @@ public class BytesModelExtHandlerTest
         {
             @Override
             public <T extends BytesTransformable<T>> T decode(
-                T stream)
+                T stream,
+                CoreCache cache)
             {
                 return stream.transform(BytesTransform.NONE);
             }
         };
         Stream stream = new Stream();
 
-        handler.decode(stream);
+        handler.decode(stream, CoreCache.NONE);
         handler.encode(stream);
 
         assertEquals(1, stream.count);

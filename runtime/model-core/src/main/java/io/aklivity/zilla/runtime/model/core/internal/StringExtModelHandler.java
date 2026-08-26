@@ -18,10 +18,12 @@ import java.util.List;
 import java.util.function.Supplier;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.model.ModelCache;
 import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelTransform;
+import io.aklivity.zilla.runtime.model.core.ext.CoreCache;
 import io.aklivity.zilla.runtime.model.core.ext.StringModelExtHandler;
 import io.aklivity.zilla.runtime.model.core.ext.StringTransform;
 
@@ -57,43 +59,36 @@ final class StringExtModelHandler implements ModelHandler
     }
 
     @Override
-    public ModelPipeline supplyCacheable(
+    public ModelPipeline supplyDecoder(
         ModelEnvelope envelope,
-        ModelTransform transform)
+        ModelTransform transform,
+        ModelCache cache)
     {
         assert envelope != null;
 
+        CoreCache coreCache = extCache(cache);
         StringTransformStream stream = new StringTransformStream();
         for (StringModelExtHandler handler : handlers)
         {
-            stream = handler.cacheable(stream);
+            stream = handler.decode(stream, coreCache);
         }
 
         List<StringTransform> transforms = stream.transforms();
 
         return transforms.isEmpty()
-            ? plain.supplyCacheable(envelope, transform)
+            ? plain.supplyDecoder(envelope, transform, cache)
             : new StringExtModelPipeline(plain, supplier.get(), decodeLenient, transforms, envelope, decodePadding);
     }
 
-    @Override
-    public ModelPipeline supplyDecoder(
-        ModelEnvelope envelope,
-        ModelTransform transform)
+    private static CoreCache extCache(
+        ModelCache cache)
     {
-        assert envelope != null;
-
-        StringTransformStream stream = new StringTransformStream();
-        for (StringModelExtHandler handler : handlers)
+        return switch (cache)
         {
-            stream = handler.decode(stream);
-        }
-
-        List<StringTransform> transforms = stream.transforms();
-
-        return transforms.isEmpty()
-            ? plain.supplyDecoder(envelope, transform)
-            : new StringExtModelPipeline(plain, supplier.get(), decodeLenient, transforms, envelope, decodePadding);
+        case WRITE -> CoreCache.WRITE;
+        case READ -> CoreCache.READ;
+        default -> CoreCache.NONE;
+        };
     }
 
     @Override

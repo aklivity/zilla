@@ -30,6 +30,7 @@ import io.aklivity.zilla.runtime.common.json.JsonTransformable;
 import io.aklivity.zilla.runtime.common.json.JsonVerbatim;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.model.json.ext.JsonCache;
 import io.aklivity.zilla.runtime.model.json.ext.JsonModelExt;
 import io.aklivity.zilla.runtime.model.json.ext.JsonModelExtContext;
 import io.aklivity.zilla.runtime.model.json.ext.JsonModelExtFactorySpi;
@@ -63,7 +64,8 @@ public final class TestUppercaseJsonModelExtFactorySpi implements JsonModelExtFa
 
                     @Override
                     public <T extends JsonTransformable<T>> T decode(
-                        T stream)
+                        T stream,
+                        JsonCache cache)
                     {
                         return stream.transform(transform);
                     }

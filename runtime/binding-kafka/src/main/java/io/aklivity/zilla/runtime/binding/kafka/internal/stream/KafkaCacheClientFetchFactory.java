@@ -965,7 +965,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             this.initialGroupIsolatedOffset = isolation ==
                     READ_COMMITTED ? () -> initialGroupStableOffset : () -> initialGroupLatestOffset;
             this.transformBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
-            this.valueDecoder = KafkaCacheModel.decoder(topicType.valueModel, ModelTransform.NONE, transformBuffer);
+            this.valueDecoder = KafkaCacheModel.reader(topicType.valueModel, ModelTransform.NONE, transformBuffer);
         }
 
         private void onClientMessage(

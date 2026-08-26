@@ -33,11 +33,13 @@ import io.aklivity.zilla.runtime.common.json.JsonStream;
 import io.aklivity.zilla.runtime.common.json.JsonTransform;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
+import io.aklivity.zilla.runtime.engine.model.ModelCache;
 import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
+import io.aklivity.zilla.runtime.model.json.ext.JsonCache;
 import io.aklivity.zilla.runtime.model.json.ext.JsonModelExtContext;
 
 // Per-worker factory for a JSON model. One handler serves both directions: supplyDecoder vends a
@@ -68,21 +70,13 @@ public final class JsonModelHandlerImpl extends JsonModelHandler implements Mode
     }
 
     @Override
-    public ModelPipeline supplyCacheable(
-        ModelEnvelope envelope,
-        ModelTransform transform)
-    {
-        return new JsonModelDecoderPipeline(this, JsonModelEnvelope.of(requireNonNull(envelope)), requireNonNull(transform),
-            true);
-    }
-
-    @Override
     public ModelPipeline supplyDecoder(
         ModelEnvelope envelope,
-        ModelTransform transform)
+        ModelTransform transform,
+        ModelCache cache)
     {
         return new JsonModelDecoderPipeline(this, JsonModelEnvelope.of(requireNonNull(envelope)), requireNonNull(transform),
-            false);
+            cache);
     }
 
     @Override
@@ -184,13 +178,11 @@ public final class JsonModelHandlerImpl extends JsonModelHandler implements Mode
         JsonTransform extractor,
         JsonReporter reporter,
         JsonEnvelope envelope,
-        boolean cacheable)
+        ModelCache cache)
     {
         JsonSchema schema = supplySchema(schemaId);
         JsonStream stream = schema != null
-            ? (cacheable
-                ? extendCacheable(JsonEx.stream(JsonEx.createParser()), schema)
-                : extendDecode(JsonEx.stream(JsonEx.createParser()), schema)).transform(schema.validator(lenient))
+            ? extendDecode(JsonEx.stream(JsonEx.createParser()), schema, cache).transform(schema.validator(lenient))
             : null;
         JsonStream terminal = stream != null
             ? (extractor != null ? stream.transform(extractor) : stream)
@@ -235,33 +227,30 @@ public final class JsonModelHandlerImpl extends JsonModelHandler implements Mode
 
     // folds every installed json model extension's own decode stage(s) into the stream, in discovery
     // order, ahead of this handler's own validator/extractor stages: the canonical value being decoded
-    // into the view delivered to a reader
+    // into the view delivered to a reader, for the given cache context
     private JsonStream extendDecode(
         JsonStream stream,
-        JsonSchema schema)
+        JsonSchema schema,
+        ModelCache cache)
     {
+        JsonCache jsonCache = extCache(cache);
         JsonStream extended = stream;
         for (JsonModelExtContext ext : exts)
         {
-            extended = ext.supplyHandler(schema, options).decode(extended);
+            extended = ext.supplyHandler(schema, options).decode(extended, jsonCache);
         }
         return extended;
     }
 
-    // folds every installed json model extension's own cacheable stage(s) into the stream, in discovery
-    // order, ahead of this handler's own validator/extractor stages: the canonical value being decoded
-    // ahead of any specific reader's request, as opposed to extendDecode, which resolves the view
-    // delivered to the specific reader making the request right now
-    private JsonStream extendCacheable(
-        JsonStream stream,
-        JsonSchema schema)
+    private static JsonCache extCache(
+        ModelCache cache)
     {
-        JsonStream extended = stream;
-        for (JsonModelExtContext ext : exts)
+        return switch (cache)
         {
-            extended = ext.supplyHandler(schema, options).cacheable(extended);
-        }
-        return extended;
+        case WRITE -> JsonCache.WRITE;
+        case READ -> JsonCache.READ;
+        default -> JsonCache.NONE;
+        };
     }
 
     // folds every installed json model extension's own encode stage(s) into the stream, in discovery

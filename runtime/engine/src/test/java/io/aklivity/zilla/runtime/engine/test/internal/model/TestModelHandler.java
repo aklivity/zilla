@@ -24,6 +24,7 @@ import io.aklivity.zilla.config.engine.ValidateMode;
 import io.aklivity.zilla.config.engine.test.internal.model.config.TestModelConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.engine.model.ModelCache;
 import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
@@ -58,21 +59,16 @@ public class TestModelHandler implements ModelHandler
     }
 
     @Override
-    public ModelPipeline supplyCacheable(
-        ModelEnvelope envelope,
-        ModelTransform transform)
-    {
-        return new TestModelPipeline(length, transformLength, fields, decodeLenient, envelope, transform, this,
-            null, null);
-    }
-
-    @Override
     public ModelPipeline supplyDecoder(
         ModelEnvelope envelope,
-        ModelTransform transform)
+        ModelTransform transform,
+        ModelCache cache)
     {
-        return new TestModelPipeline(length, transformLength, fields, decodeLenient, envelope, transform, this,
-            discloseAuthorized, discloseRedacted);
+        return cache == ModelCache.WRITE
+            ? new TestModelPipeline(length, transformLength, fields, decodeLenient, envelope, transform, this,
+                null, null)
+            : new TestModelPipeline(length, transformLength, fields, decodeLenient, envelope, transform, this,
+                discloseAuthorized, discloseRedacted);
     }
 
     @Override

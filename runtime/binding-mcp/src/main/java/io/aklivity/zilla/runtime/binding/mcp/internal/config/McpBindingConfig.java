@@ -59,6 +59,7 @@ import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
+import io.aklivity.zilla.runtime.engine.model.ModelCache;
 import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
@@ -502,7 +503,7 @@ public final class McpBindingConfig
         final ModelConfig toolModel = modelConfig.adaptFromJson(model);
         toolModel.cataloged.get(0).id = template.id;
         final ModelHandler handler = supplyModel.apply(toolModel);
-        return handler != null ? handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE) : null;
+        return handler != null ? handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE) : null;
     }
 
     public void injectHeaders(

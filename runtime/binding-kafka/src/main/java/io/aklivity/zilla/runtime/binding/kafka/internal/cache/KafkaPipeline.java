@@ -21,6 +21,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaTopicHeaderT
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaTopicTransformsType;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.engine.model.ModelCache;
 import io.aklivity.zilla.runtime.engine.model.ModelController;
 import io.aklivity.zilla.runtime.engine.model.ModelEvent;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
@@ -96,9 +97,9 @@ public final class KafkaPipeline
 
     /**
      * Builds a pipeline intended for a caller that persists the transformed key and value ahead of any
-     * specific consumer's request, wiring each lane's model through {@link ModelHandler#supplyCacheable}
-     * rather than {@link ModelHandler#supplyDecoder}. Otherwise identical to {@link #decoder}, including
-     * the same {@code extractKey} / {@code extractHeaders} lane transforms.
+     * specific consumer's request, wiring each lane's model through {@link ModelCache#WRITE} rather than
+     * {@link ModelCache#NONE}. Otherwise identical to {@link #decoder}, including the same
+     * {@code extractKey} / {@code extractHeaders} lane transforms.
      *
      * @param keyModel   the key lane's model handler, or {@code null} if the key is not modeled
      * @param valueModel the value lane's model handler, or {@code null} if the value is not modeled
@@ -106,7 +107,7 @@ public final class KafkaPipeline
      * @param scratch    the shared scratch buffer each lane's model writes transformed output into
      * @return a new pipeline suitable for transforming a message ahead of a specific consumer
      */
-    public static KafkaPipeline cacheable(
+    public static KafkaPipeline writer(
         ModelHandler keyModel,
         ModelHandler valueModel,
         KafkaTopicTransformsType transforms,
@@ -315,7 +316,7 @@ public final class KafkaPipeline
     {
         final ModelTransform transform = extracting ? new KafkaLane(lane) : ModelTransform.NONE;
         return cacheable
-            ? KafkaCacheModel.cacheable(handler, transform, scratch)
+            ? KafkaCacheModel.writer(handler, transform, scratch)
             : KafkaCacheModel.decoder(handler, transform, scratch);
     }
 

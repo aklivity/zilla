@@ -27,6 +27,7 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufMessage;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufPipeline;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufPipeline.Status;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufPipelineResult;
+import io.aklivity.zilla.runtime.engine.model.ModelCache;
 import io.aklivity.zilla.runtime.engine.model.ModelFieldBridge;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
@@ -50,16 +51,18 @@ final class ProtobufModelDecoderPipeline implements ModelPipeline
     private final Map<String, ProtobufPipeline> pipelines;
     private final ProtobufEnvelope envelope;
     private final ModelPipelineResult result;
-    private final boolean cacheable;
+    private final ModelCache cache;
 
     private ProtobufPipeline active;
     private String diagnostic;
+    private MutableDirectBufferEx framingBuffer;
+    private int framingAt;
 
     ProtobufModelDecoderPipeline(
         ProtobufModelHandlerImpl handler,
         ProtobufEnvelope envelope,
         ModelTransform transform,
-        boolean cacheable)
+        ModelCache cache)
     {
         this.envelope = envelope;
         this.handler = handler;
@@ -68,7 +71,7 @@ final class ProtobufModelDecoderPipeline implements ModelPipeline
         this.extractor = transform != ModelTransform.NONE ? new ProtobufExtractor() : null;
         this.pipelines = new HashMap<>();
         this.result = new ModelPipelineResult();
-        this.cacheable = cacheable;
+        this.cache = cache;
     }
 
     @Override
@@ -87,19 +90,36 @@ final class ProtobufModelDecoderPipeline implements ModelPipeline
         int srcLength = srcLimit - srcIndex;
         int dstLength = dstLimit - dstIndex;
         int prefix = 0;
+        int framing = 0;
         if ((flags & FLAGS_INIT) != 0)
         {
             // the catalog framing then the message-index prefix sit at the value start; strip both once on the
-            // first fragment and select the schema-bound pipeline, then later fragments stream straight through
+            // first fragment and select the schema-bound pipeline, then later fragments stream straight through.
+            // a value already in the form a WRITE pipeline produced carries no message-index framing, view or
+            // no view, since WRITE's decode output never re-emits it -- resolve the message via the same
+            // static, configured path the encode side already uses instead
             int catalogPrefix = handler.prefix(src, srcIndex, srcLength);
             int schemaId = handler.resolveSchemaId(src, srcIndex, srcLength);
-            int indexProgress = handler.messageProgress(src, srcIndex + catalogPrefix, srcLength - catalogPrefix);
-            ProtobufMessage message = handler.message(schemaId);
+            boolean cachedRead = handler.cachedRead(cache);
+            int indexProgress = cachedRead
+                ? 0
+                : handler.messageProgress(src, srcIndex + catalogPrefix, srcLength - catalogPrefix);
+            ProtobufMessage message = cachedRead
+                ? handler.message(schemaId, handler.messagePath(schemaId))
+                : handler.message(schemaId);
             prefix = catalogPrefix + indexProgress;
             active = schemaId != NO_SCHEMA_ID && message != null ? supplyPipeline(schemaId, message.name()) : null;
             if (active != null)
             {
                 active.reset();
+                if (cache == ModelCache.WRITE)
+                {
+                    // WRITE persists the resolved schema id as catalog framing ahead of its cached output, so
+                    // a later READ of this cached value recovers it directly instead of falling back to
+                    // static config resolution -- the case that matters is a per-message schema id (an
+                    // encoded strategy), which a view-converting WRITE output would otherwise discard
+                    framing = writeFraming(traceId, bindingId, schemaId, src, srcIndex, srcLength, dst, dstIndex);
+                }
             }
             diagnostic = null;
         }
@@ -118,11 +138,11 @@ final class ProtobufModelDecoderPipeline implements ModelPipeline
         {
             active.authorization(authorization);
             boolean last = (flags & FLAGS_FIN) != 0;
-            ProtobufPipelineResult proto =
-                active.transform(src, srcIndex + prefix, srcIndex + srcLength, last, dst, dstIndex, dstIndex + dstLength);
+            ProtobufPipelineResult proto = active.transform(src, srcIndex + prefix, srcIndex + srcLength, last,
+                dst, dstIndex + framing, dstIndex + dstLength);
             status = map(proto.status());
             consumed = prefix + proto.consumed();
-            produced = proto.produced();
+            produced = framing + proto.produced();
             if (status == ModelStatus.COMPLETE && extractor != null)
             {
                 visitExtracted(authorization);
@@ -147,7 +167,12 @@ final class ProtobufModelDecoderPipeline implements ModelPipeline
         int index,
         int length)
     {
-        return handler.decodePadding(data, index, length);
+        int padding = handler.decodePadding(data, index, length);
+        if (cache == ModelCache.WRITE)
+        {
+            padding += handler.framingPadding(length);
+        }
+        return padding;
     }
 
     @Override
@@ -184,7 +209,7 @@ final class ProtobufModelDecoderPipeline implements ModelPipeline
         if (pipeline == null)
         {
             pipeline = handler.newPipeline(schemaId, handler.decodeLenient, messageName, extractor, this::onRejected, envelope,
-                cacheable);
+                cache);
             pipelines.put(messageName, pipeline);
         }
         return pipeline;
@@ -194,6 +219,31 @@ final class ProtobufModelDecoderPipeline implements ModelPipeline
         ProtobufDiagnostic diagnostic)
     {
         this.diagnostic = diagnostic.message();
+    }
+
+    private int writeFraming(
+        long traceId,
+        long bindingId,
+        int schemaId,
+        DirectBufferEx src,
+        int srcIndex,
+        int srcLength,
+        MutableDirectBufferEx dst,
+        int dstIndex)
+    {
+        framingBuffer = dst;
+        framingAt = dstIndex;
+        handler.encodePrefix(traceId, bindingId, schemaId, src, srcIndex, srcLength, this::putFraming);
+        return framingAt - dstIndex;
+    }
+
+    private void putFraming(
+        DirectBufferEx buffer,
+        int index,
+        int length)
+    {
+        framingBuffer.putBytes(framingAt, buffer, index, length);
+        framingAt += length;
     }
 
     private static ModelStatus map(

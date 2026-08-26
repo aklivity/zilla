@@ -43,6 +43,7 @@ import io.aklivity.zilla.config.model.protobuf.ProtobufModelConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.model.ModelCache;
 import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
@@ -87,8 +88,8 @@ public class ProtobufModelDecoderPipelineBM
     @Setup(Level.Trial)
     public void init()
     {
-        wirePipeline = newHandler(null).supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
-        jsonPipeline = newHandler("json").supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
+        wirePipeline = newHandler(null).supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
+        jsonPipeline = newHandler("json").supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
     }
 
     @Benchmark

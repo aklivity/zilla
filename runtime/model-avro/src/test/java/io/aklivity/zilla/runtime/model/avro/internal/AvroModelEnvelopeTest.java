@@ -45,6 +45,7 @@ import io.aklivity.zilla.runtime.common.avro.AvroTransform;
 import io.aklivity.zilla.runtime.common.avro.AvroTransformable;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.model.ModelCache;
 import io.aklivity.zilla.runtime.engine.model.ModelController;
 import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelEvent;
@@ -54,6 +55,7 @@ import io.aklivity.zilla.runtime.engine.model.ModelSource;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.TestCatalogHandler;
+import io.aklivity.zilla.runtime.model.avro.ext.AvroCache;
 import io.aklivity.zilla.runtime.model.avro.ext.AvroModelExtContext;
 import io.aklivity.zilla.runtime.model.avro.ext.AvroModelExtHandler;
 
@@ -93,7 +95,7 @@ public class AvroModelEnvelopeTest
         envelope.set("mark", buffer("two"));
 
         AvroModelHandlerImpl handler = newHandler(List.of(echoingExt("mark", "echo")));
-        ModelPipeline pipeline = handler.supplyDecoder(envelope, ModelTransform.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(envelope, ModelTransform.NONE, ModelCache.NONE);
 
         transform(pipeline);
 
@@ -126,7 +128,7 @@ public class AvroModelEnvelopeTest
         // both vocabularies observe one store
         Reading reading = new Reading(envelope, "mark");
         AvroModelHandlerImpl handler = newHandler(List.of(echoingExt("mark", "echo")));
-        ModelPipeline pipeline = handler.supplyDecoder(envelope, reading);
+        ModelPipeline pipeline = handler.supplyDecoder(envelope, reading, ModelCache.NONE);
 
         transform(pipeline);
 
@@ -141,7 +143,7 @@ public class AvroModelEnvelopeTest
         Observing observing = new Observing();
 
         AvroModelHandlerImpl handler = newHandler(List.of(observingExt(observing)));
-        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
 
         transform(pipeline);
 
@@ -194,7 +196,8 @@ public class AvroModelEnvelopeTest
 
             @Override
             public <T extends AvroTransformable<T>> T decode(
-                T transformable)
+                T transformable,
+                AvroCache cache)
             {
                 return transformable.transform(transform);
             }
@@ -218,7 +221,8 @@ public class AvroModelEnvelopeTest
 
             @Override
             public <T extends AvroTransformable<T>> T decode(
-                T transformable)
+                T transformable,
+                AvroCache cache)
             {
                 return transformable.transform(transform);
             }
@@ -239,7 +243,8 @@ public class AvroModelEnvelopeTest
         {
             @Override
             public <T extends AvroTransformable<T>> T decode(
-                T transformable)
+                T transformable,
+                AvroCache cache)
             {
                 return transformable.transform(observing);
             }
