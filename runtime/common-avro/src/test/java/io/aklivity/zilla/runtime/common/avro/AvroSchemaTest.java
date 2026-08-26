@@ -21,10 +21,14 @@ import static io.aklivity.zilla.runtime.common.avro.AvroPipeline.Status.COMPLETE
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import jakarta.json.JsonString;
+import jakarta.json.JsonValue;
 
 import org.junit.jupiter.api.Test;
 
@@ -242,6 +246,19 @@ public class AvroSchemaTest
             new byte[] { 0x02, 0x04, 0x68, 0x69 }, sink));
         assertEquals(2, depth[0]);
         assertEquals(1L, position[0]);
+    }
+
+    @Test
+    public void shouldExposeTypeAttributes()
+    {
+        AvroType type = Avro.schema("""
+            {"type":"record","name":"R","x-owner":"payments","x-labels":["A"],
+            "fields":[{"name":"id","type":"int"}]}""").type();
+
+        assertEquals("payments", ((JsonString) type.attribute("x-owner")).getString());
+        assertEquals(JsonValue.ValueType.ARRAY, type.attribute("x-labels").getValueType());
+        assertEquals("A", type.attribute("x-labels").asJsonArray().getString(0));
+        assertNull(type.attribute("x-missing"));
     }
 
     @Test
