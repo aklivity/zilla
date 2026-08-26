@@ -201,6 +201,16 @@ public class SessionIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/session.will.message.zero.window.on.connect/client",
+        "${app}/session.will.message.zero.window.on.connect/server"})
+    public void shouldSendWillMessageWhenSessionWindowStartsAtZero() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/session.will.message.end.without.disconnect/client",
         "${app}/session.will.message.end.without.disconnect/server"})
     @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")

@@ -148,6 +148,15 @@ public class SessionIT
 
     @Test
     @Specification({
+        "${app}/session.will.message.zero.window.on.connect/client",
+        "${app}/session.will.message.zero.window.on.connect/server"})
+    public void shouldSendWillMessageWhenSessionWindowStartsAtZero() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/session.subscribe/client",
         "${app}/session.subscribe/server"})
     public void shouldSubscribeSaveSubscriptionsInSession() throws Exception
