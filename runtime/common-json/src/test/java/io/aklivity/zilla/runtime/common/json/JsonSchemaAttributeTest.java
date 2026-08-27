@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.common.json;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
+import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
 
 import org.junit.jupiter.api.Test;
@@ -66,6 +67,19 @@ class JsonSchemaAttributeTest
 
         assertNull(schema.attribute("x-flag"));
         assertNull(schema.property("email"));
+    }
+
+    @Test
+    void shouldExposeRootAttribute()
+    {
+        JsonSchema schema = JsonSchema.of("""
+            {"type":"object","x-owner":"payments","x-labels":["A"],
+             "properties":{"email":{"type":"string"}}}""");
+
+        assertEquals("payments", ((JsonString) schema.attribute("x-owner")).getString());
+        assertEquals(JsonValue.ValueType.ARRAY, schema.attribute("x-labels").getValueType());
+        assertEquals("A", schema.attribute("x-labels").asJsonArray().getString(0));
+        assertNull(schema.attribute("x-missing"));
     }
 
     @Test
