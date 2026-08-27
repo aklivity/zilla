@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>cloud</artifactId>
-    <version>2.4.0-rc20</version>
+    <version>2.4.0-rc20a</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
