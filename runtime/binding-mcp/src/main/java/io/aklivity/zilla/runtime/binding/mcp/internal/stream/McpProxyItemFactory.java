@@ -584,7 +584,7 @@ abstract class McpProxyItemFactory implements BindingHandler
 
             state = McpState.openingInitial(state);
 
-            client.doClientBegin(traceId);
+            client.doClientBegin(traceId, authorization);
 
             final int minInitialMax = toolSchemaId != NO_SCHEMA_ID ? codecBuffer.capacity() : 0;
             flushServerWindow(traceId, 0L, 0, 0L, minInitialMax);
@@ -2094,13 +2094,22 @@ abstract class McpProxyItemFactory implements BindingHandler
         private void driveDelegateBegin(
             long traceId)
         {
+            // the delegate's own initial-side maximum must never advertise less than this outer
+            // execute_tool request already promised the real caller on their one shared reply channel --
+            // restarting at zero let the delegate's own onServerBegin -> flushServerWindow send a second,
+            // smaller WINDOW, regressing what the real caller already recorded and tripping its
+            // monotonic-window assertion. sequence/acknowledge stay at zero (the delegate's own,
+            // self-contained numbering) since this outer request's own first window already advertised
+            // acknowledge=0 too -- there is no divergence to seed there, only maximum ever shrank
+            delegate.initialMax = initialMax;
+
             final BeginFW syntheticBegin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
                 .routedId(routedId)
                 .streamId(initialId)
                 .sequence(0L)
                 .acknowledge(0L)
-                .maximum(0)
+                .maximum(initialMax)
                 .traceId(traceId)
                 .authorization(authorization)
                 .affinity(affinity)
@@ -2132,6 +2141,14 @@ abstract class McpProxyItemFactory implements BindingHandler
                 final boolean last = offset + chunk >= bodyLength;
                 final int flags = (first ? DATA_FLAG_INIT : 0) | (last ? DATA_FLAG_FIN : 0);
 
+                // batches every reserved this outer request's own inbound DATA ever aggregated
+                // (initialSeq, the outer's own final total) onto the last synthetic chunk -- not
+                // each chunk, which would recount those same past reserves once per chunk -- so the
+                // delegate's own initialSeq lands exactly on the outer's already-final value once
+                // this loop completes, matching what the real caller's own frames (a later timeout
+                // abort, in particular) will always show from here on
+                final int chunkReserved = last ? (int) (initialSeq - offset) : 0;
+
                 final DataFW syntheticData = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                     .originId(originId)
                     .routedId(routedId)
@@ -2143,7 +2160,7 @@ abstract class McpProxyItemFactory implements BindingHandler
                     .authorization(authorization)
                     .flags(flags)
                     .budgetId(0L)
-                    .reserved(chunk)
+                    .reserved(chunkReserved)
                     .payload(pendingBody, offset, chunk)
                     .build();
                 delegate.onServerMessage(DataFW.TYPE_ID, syntheticData.buffer(), syntheticData.offset(),
@@ -2168,11 +2185,17 @@ abstract class McpProxyItemFactory implements BindingHandler
         private void doDelegateEnd(
             long traceId)
         {
+            // driveDelegateData's own reserved accounting already brought the delegate's initialSeq up to
+            // exactly this outer request's own final initialSeq, so this END's sequence just continues
+            // that same value -- not initialSeq + pendingBodyLength, which double-counts a value the DATA
+            // loop already folded in. From here on the delegate's counter matches exactly what the real
+            // caller's own frames (a later timeout abort, in particular) will show, permanently, since
+            // neither side advances further after this point
             final EndFW syntheticEnd = endRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
                 .routedId(routedId)
                 .streamId(initialId)
-                .sequence((long) pendingBodyLength)
+                .sequence(initialSeq)
                 .acknowledge(0L)
                 .maximum(0)
                 .traceId(traceId)
@@ -2324,9 +2347,10 @@ abstract class McpProxyItemFactory implements BindingHandler
         }
 
         private void doClientBegin(
-            long traceId)
+            long traceId,
+            long authorization)
         {
-            lifecycle.doClientBegin(traceId);
+            lifecycle.doClientBegin(traceId, authorization);
             lifecycle.register(traceId, this);
         }
 

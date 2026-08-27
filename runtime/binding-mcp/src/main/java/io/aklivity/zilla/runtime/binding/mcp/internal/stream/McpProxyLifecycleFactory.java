@@ -305,13 +305,14 @@ final class McpProxyLifecycleFactory implements BindingHandler
                 onDecodeEventId(route.id, eventId);
                 final McpLifecycleClient client = supplyClient(route.id);
                 client.resumeId = eventId;
-                client.doClientBegin(traceId);
+                client.doClientBegin(traceId, authorization);
                 client.doClientResume(traceId, authorization);
             }
         }
 
         private void onServerResumeRoutes(
-            long traceId)
+            long traceId,
+            long authorization)
         {
             for (McpAggregateRoute route : binding.aggregateRoutes)
             {
@@ -319,7 +320,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
                 if (!clients.containsKey(routedId))
                 {
                     final McpLifecycleClient client = supplyClient(routedId);
-                    client.doClientBegin(traceId);
+                    client.doClientBegin(traceId, authorization);
                 }
             }
         }
@@ -473,13 +474,13 @@ final class McpProxyLifecycleFactory implements BindingHandler
                 {
                     McpAggregateEventId.decode(aggregate,
                         (prefix, eventId) -> onDecodeAggregateEventId(traceId, authorization, prefix, eventId));
-                    onServerResumeRoutes(traceId);
+                    onServerResumeRoutes(traceId, authorization);
                 }
                 else
                 {
                     if (aggregating())
                     {
-                        onServerResumeRoutes(traceId);
+                        onServerResumeRoutes(traceId, authorization);
                     }
                     for (McpLifecycleClient client : clients.values())
                     {
@@ -557,7 +558,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
             for (long routeId : routeIds)
             {
                 final McpLifecycleClient client = supplyClient(routeId);
-                client.doClientBegin(traceId);
+                client.doClientBegin(traceId, authorization);
             }
 
             doServerBeginDeferred(traceId);
@@ -928,7 +929,8 @@ final class McpProxyLifecycleFactory implements BindingHandler
         }
 
         void doClientBegin(
-            long traceId)
+            long traceId,
+            long authorization)
         {
             if (!McpState.initialOpening(state))
             {
@@ -936,6 +938,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
                 {
                     authorization = server.binding.routeCacheAuthorization(traceId, routedId);
                 }
+                this.authorization = authorization;
 
                 final int clientCapabilities = server.clientCapabilities;
                 final String authCallback = server.authCallback;
@@ -1268,7 +1271,10 @@ final class McpProxyLifecycleFactory implements BindingHandler
             settleRequests(traceId);
             doClientEnd(traceId);
             server.clients.remove(routedId, this);
-            server.doServerEnd(traceId);
+            if (server.clients.isEmpty())
+            {
+                server.doServerEnd(traceId);
+            }
         }
 
         private void onClientAbort(
@@ -1294,7 +1300,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
             {
                 settleLifecycle(traceId);
             }
-            else
+            else if (server.clients.isEmpty())
             {
                 server.doServerAbort(traceId);
             }
@@ -1342,11 +1348,12 @@ final class McpProxyLifecycleFactory implements BindingHandler
             server.clients.remove(routedId, this);
 
             final boolean bearer = extension.sizeof() > 0;
+
             if (server.hydration && sessionId == null || bearer)
             {
                 settleLifecycle(traceId);
             }
-            else
+            else if (server.clients.isEmpty())
             {
                 server.doServerReset(traceId, extension);
             }

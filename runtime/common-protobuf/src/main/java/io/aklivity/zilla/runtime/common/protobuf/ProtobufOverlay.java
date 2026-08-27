@@ -178,7 +178,8 @@ public final class ProtobufOverlay
         ProtobufMessage message,
         Map<String, JsonObject> overlaysByField)
     {
-        ProtobufMessage.Builder builder = ProtobufMessage.builder(message.name()).mapEntry(message.mapEntry());
+        ProtobufMessage.Builder builder = ProtobufMessage.builder(message.name()).mapEntry(message.mapEntry())
+            .options(message.rawOptions());
         for (ProtobufField field : message.fields())
         {
             builder.field(copyField(field, overlaysByField.get(field.name())));

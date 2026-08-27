@@ -4702,7 +4702,7 @@ public final class McpClientFactory implements McpStreamFactory
                 encodeSlot == NO_SLOT)
             {
                 state = McpState.closedInitial(state);
-                doEnd(net, originId, routedId, initialId, traceId, authorization);
+                doEnd(net, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization);
 
                 cleanupEncodeSlot();
             }
