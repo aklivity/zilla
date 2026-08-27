@@ -305,13 +305,14 @@ final class McpProxyLifecycleFactory implements BindingHandler
                 onDecodeEventId(route.id, eventId);
                 final McpLifecycleClient client = supplyClient(route.id);
                 client.resumeId = eventId;
-                client.doClientBegin(traceId);
+                client.doClientBegin(traceId, authorization);
                 client.doClientResume(traceId, authorization);
             }
         }
 
         private void onServerResumeRoutes(
-            long traceId)
+            long traceId,
+            long authorization)
         {
             for (McpAggregateRoute route : binding.aggregateRoutes)
             {
@@ -319,7 +320,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
                 if (!clients.containsKey(routedId))
                 {
                     final McpLifecycleClient client = supplyClient(routedId);
-                    client.doClientBegin(traceId);
+                    client.doClientBegin(traceId, authorization);
                 }
             }
         }
@@ -473,13 +474,13 @@ final class McpProxyLifecycleFactory implements BindingHandler
                 {
                     McpAggregateEventId.decode(aggregate,
                         (prefix, eventId) -> onDecodeAggregateEventId(traceId, authorization, prefix, eventId));
-                    onServerResumeRoutes(traceId);
+                    onServerResumeRoutes(traceId, authorization);
                 }
                 else
                 {
                     if (aggregating())
                     {
-                        onServerResumeRoutes(traceId);
+                        onServerResumeRoutes(traceId, authorization);
                     }
                     for (McpLifecycleClient client : clients.values())
                     {
@@ -557,7 +558,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
             for (long routeId : routeIds)
             {
                 final McpLifecycleClient client = supplyClient(routeId);
-                client.doClientBegin(traceId);
+                client.doClientBegin(traceId, authorization);
             }
 
             doServerBeginDeferred(traceId);
@@ -928,7 +929,8 @@ final class McpProxyLifecycleFactory implements BindingHandler
         }
 
         void doClientBegin(
-            long traceId)
+            long traceId,
+            long authorization)
         {
             if (!McpState.initialOpening(state))
             {
@@ -936,6 +938,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
                 {
                     authorization = server.binding.routeCacheAuthorization(traceId, routedId);
                 }
+                this.authorization = authorization;
 
                 final int clientCapabilities = server.clientCapabilities;
                 final String authCallback = server.authCallback;
