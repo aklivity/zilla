@@ -5003,9 +5003,10 @@ public final class HttpClientFactory implements HttpStreamFactory
             assert requestAck <= requestSeq;
             client.requestSharedBudget -= reserved;
 
+            final boolean alreadyClosed = HttpState.initialClosed(state);
             state = HttpState.closeInitial(state);
 
-            if ((streamId & 0x01) == 0x01)
+            if (!alreadyClosed && (streamId & 0x01) == 0x01)
             {
                 final HttpEndExFW endEx = end.extension().get(endExRO::tryWrap);
                 final Array32FW<HttpHeaderFW> trailers = endEx != null ? endEx.trailers() : DEFAULT_TRAILERS;

@@ -14,98 +14,87 @@
 #
 
 property affinity "00000000"
-property authorization 0L
 
-accept "zilla://streams/app1"
-       option zilla:window 8192
-       option zilla:transmission "half-duplex"
-       option zilla:authorization ${authorization}
-
-accepted
-
-read zilla:begin.ext ${mcp:matchBeginEx()
-                          .typeId(zilla:id("mcp"))
-                          .lifecycle()
-                              .build()
-                          .build()}
-
-connected
+connect "zilla://streams/app1"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
 
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .lifecycle()
-                               .sessionId("5ca1ab1e-c0de-4a11-5e55-000a".concat(affinity))
                                .build()
                            .build()}
-write flush
 
-accepted
+connected
 
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
-                          .toolsList()
+                          .lifecycle()
                               .sessionId("5ca1ab1e-c0de-4a11-5e55-000a".concat(affinity))
                               .build()
                           .build()}
 
+read notify LIFECYCLE_INITIALIZED_1
+
+connect await LIFECYCLE_INITIALIZED_1
+        "zilla://streams/app1"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+
+write zilla:begin.ext ${mcp:beginEx()
+                           .typeId(zilla:id("mcp"))
+                           .toolsList()
+                               .sessionId("5ca1ab1e-c0de-4a11-5e55-000a".concat(affinity))
+                               .build()
+                           .build()}
+
 connected
 
-write flush
-
-write '{"tools":'
+read  '{"tools":'
         '['
           '{"name":"get_weather"}'
         ']'
       '}'
-write flush
+read closed
 
 write close
 
-read closed
+read notify SERVER_1_DONE
 
-accept "zilla://streams/app2"
-       option zilla:window 8192
-       option zilla:transmission "half-duplex"
-       option zilla:authorization ${authorization}
-
-accepted
-
-read zilla:begin.ext ${mcp:matchBeginEx()
-                          .typeId(zilla:id("mcp"))
-                          .lifecycle()
-                              .build()
-                          .build()}
-
-connected
+connect await SERVER_1_DONE
+        "zilla://streams/app2"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
 
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .lifecycle()
-                               .sessionId("5ca1ab1e-c0de-4a11-5e55-000b".concat(affinity))
                                .build()
                            .build()}
-write flush
 
-accepted
+connected
 
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
-                          .toolsList()
+                          .lifecycle()
                               .sessionId("5ca1ab1e-c0de-4a11-5e55-000b".concat(affinity))
                               .build()
                           .build()}
 
+read notify LIFECYCLE_INITIALIZED_2
+
+connect await LIFECYCLE_INITIALIZED_2
+        "zilla://streams/app2"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+
+write zilla:begin.ext ${mcp:beginEx()
+                           .typeId(zilla:id("mcp"))
+                           .toolsList()
+                               .sessionId("5ca1ab1e-c0de-4a11-5e55-000b".concat(affinity))
+                               .build()
+                           .build()}
+
 connected
 
-write flush
-
-write '{"tools":'
-        '['
-          '{"name":"get_current_time"}'
-        ']'
-      '}'
-write flush
-
-write close
-
-read closed
+read aborted

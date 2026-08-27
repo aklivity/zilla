@@ -14,12 +14,10 @@
 #
 
 property serverAddress "zilla://streams/app0"
-property authorization 0L
 
 accept ${serverAddress}
        option zilla:window 8192
        option zilla:transmission "half-duplex"
-       option zilla:authorization ${authorization}
 
 accepted
 
@@ -39,22 +37,26 @@ write zilla:begin.ext ${mcp:beginEx()
                            .build()}
 write flush
 
-write advised zilla:challenge ${mcp:matchChallengeEx()
-                                    .typeId(zilla:id("mcp"))
-                                    .resume()
-                                        .id("event-99")
-                                        .build()
-                                    .build()}
+accepted
 
-write advise zilla:flush ${mcp:flushEx()
-                              .typeId(zilla:id("mcp"))
-                              .resumable()
-                                  .build()
-                              .build()}
+read zilla:begin.ext ${mcp:matchBeginEx()
+                          .typeId(zilla:id("mcp"))
+                          .toolsList()
+                              .sessionId("5ca1ab1e-c0de-4a11-5e55-000100000000")
+                              .build()
+                          .build()}
 
-write advise zilla:flush ${mcp:flushEx()
-                              .typeId(zilla:id("mcp"))
-                              .suspend()
-                                  .retry(60000)
-                                  .build()
-                              .build()}
+connected
+
+write flush
+
+write '{"tools":'
+        '['
+          '{"name":"bluesky__get_weather"}'
+        ']'
+      '}'
+write flush
+
+write close
+
+read closed

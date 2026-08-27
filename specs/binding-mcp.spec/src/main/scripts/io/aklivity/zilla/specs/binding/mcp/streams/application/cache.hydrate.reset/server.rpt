@@ -14,12 +14,12 @@
 #
 
 property affinity "00000000"
-property authorization 0L
 
-accept "zilla://streams/app1"
+property serverAddress "zilla://streams/app0"
+
+accept ${serverAddress}
        option zilla:window 8192
        option zilla:transmission "half-duplex"
-       option zilla:authorization ${authorization}
 
 accepted
 
@@ -34,7 +34,7 @@ connected
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .lifecycle()
-                               .sessionId("5ca1ab1e-c0de-4a11-5e55-000a".concat(affinity))
+                               .sessionId("5ca1ab1e-c0de-4a11-feed-0001".concat(affinity))
                                .build()
                            .build()}
 write flush
@@ -43,8 +43,8 @@ accepted
 
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
-                          .toolsList()
-                              .sessionId("5ca1ab1e-c0de-4a11-5e55-000a".concat(affinity))
+                          .promptsList()
+                              .sessionId("5ca1ab1e-c0de-4a11-feed-0001".concat(affinity))
                               .build()
                           .build()}
 
@@ -52,46 +52,32 @@ connected
 
 write flush
 
-write '{"tools":'
-        '['
-          '{"name":"get_weather"}'
-        ']'
-      '}'
+write '{"prompts":[]}'
 write flush
 
 write close
 
 read closed
 
-accept "zilla://streams/app2"
-       option zilla:window 8192
-       option zilla:transmission "half-duplex"
-       option zilla:authorization ${authorization}
-
-accepted
-
-read zilla:begin.ext ${mcp:matchBeginEx()
-                          .typeId(zilla:id("mcp"))
-                          .lifecycle()
-                              .build()
-                          .build()}
-
-connected
-
-write zilla:begin.ext ${mcp:beginEx()
-                           .typeId(zilla:id("mcp"))
-                           .lifecycle()
-                               .sessionId("5ca1ab1e-c0de-4a11-5e55-000b".concat(affinity))
-                               .build()
-                           .build()}
-write flush
-
 accepted
 
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .toolsList()
-                              .sessionId("5ca1ab1e-c0de-4a11-5e55-000b".concat(affinity))
+                              .sessionId("5ca1ab1e-c0de-4a11-feed-0001".concat(affinity))
+                              .build()
+                          .build()}
+
+connected
+
+read abort
+
+accepted
+
+read zilla:begin.ext ${mcp:matchBeginEx()
+                          .typeId(zilla:id("mcp"))
+                          .resourcesTemplatesList()
+                              .sessionId("5ca1ab1e-c0de-4a11-feed-0001".concat(affinity))
                               .build()
                           .build()}
 
@@ -99,11 +85,27 @@ connected
 
 write flush
 
-write '{"tools":'
-        '['
-          '{"name":"get_current_time"}'
-        ']'
-      '}'
+write '{"resourceTemplates":[]}'
+write flush
+
+write close
+
+read closed
+
+accepted
+
+read zilla:begin.ext ${mcp:matchBeginEx()
+                          .typeId(zilla:id("mcp"))
+                          .resourcesList()
+                              .sessionId("5ca1ab1e-c0de-4a11-feed-0001".concat(affinity))
+                              .build()
+                          .build()}
+
+connected
+
+write flush
+
+write '{"resources":[]}'
 write flush
 
 write close

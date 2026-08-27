@@ -83,6 +83,16 @@ public class McpProxyCacheIT
     }
 
     @Test
+    @Configuration("proxy.cache.yaml")
+    @Specification({
+        "${app}/cache.hydrate.reset/server" })
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
+    public void shouldHydrateReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.cache.credentials.yaml")
     @Specification({
         "${app}/cache.hydrate.credentials/server" })
