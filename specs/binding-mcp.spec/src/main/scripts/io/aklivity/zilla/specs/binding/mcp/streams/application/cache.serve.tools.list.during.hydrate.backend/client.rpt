@@ -13,8 +13,6 @@
 # specific language governing permissions and limitations under the License.
 #
 
-property affinity "00000000"
-
 connect "zilla://streams/app0"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
@@ -27,21 +25,16 @@ write zilla:begin.ext ${mcp:beginEx()
 
 connected
 
+write notify CLIENT_AWAITER_REGISTERED
+
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .lifecycle()
-                              .sessionId("5ca1ab1e-c0de-4a11-b007-0001".concat(affinity))
+                              .sessionId("5ca1ab1e-c0de-4a11-b007-000100000000")
                               .build()
                           .build()}
 
 read notify LIFECYCLE_INITIALIZED
-
-read advised zilla:flush ${mcp:matchFlushEx()
-                               .typeId(zilla:id("mcp"))
-                               .toolsListChanged()
-                                   .id(null)
-                                   .build()
-                               .build()}
 
 connect await LIFECYCLE_INITIALIZED
         "zilla://streams/app0"
@@ -50,18 +43,14 @@ connect await LIFECYCLE_INITIALIZED
 
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
-                           .toolsCall()
-                               .sessionId("5ca1ab1e-c0de-4a11-b007-0001".concat(affinity))
-                               .name("get_weather")
-                               .contentLength(58)
+                           .toolsList()
+                               .sessionId("5ca1ab1e-c0de-4a11-b007-000100000000")
                                .build()
                            .build()}
 
 connected
 
-write '{"name":"get_weather","arguments":{"location":"New York"}}'
-
-read '{"content":[{"type":"text","text":"sunny"}],"isError":false}'
+read  '{"tools":[{"name":"get_weather"}]}'
 read closed
 
 write close

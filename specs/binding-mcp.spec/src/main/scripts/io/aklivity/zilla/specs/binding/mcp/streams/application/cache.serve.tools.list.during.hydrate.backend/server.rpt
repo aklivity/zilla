@@ -15,28 +15,48 @@
 
 property affinity "00000000"
 
-connect "zilla://streams/app0"
-        option zilla:window 8192
-        option zilla:transmission "half-duplex"
+property serverAddress "zilla://streams/app0"
 
-write zilla:begin.ext ${mcp:beginEx()
-                           .typeId(zilla:id("mcp"))
-                           .lifecycle()
-                               .build()
-                           .build()}
+accept ${serverAddress}
+       option zilla:window 8192
+       option zilla:transmission "half-duplex"
 
-connected
+accepted
 
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .lifecycle()
-                              .sessionId("5ca1ab1e-c0de-4a11-feed-0001".concat(affinity))
                               .build()
                           .build()}
 
-read advised zilla:flush ${mcp:matchFlushEx()
-                               .typeId(zilla:id("mcp"))
-                               .toolsListChanged()
-                                   .id(null)
-                                   .build()
-                               .build()}
+connected
+
+write zilla:begin.ext ${mcp:beginEx()
+                           .typeId(zilla:id("mcp"))
+                           .lifecycle()
+                               .sessionId("5ca1ab1e-c0de-4a11-b007-000100000000")
+                               .build()
+                           .build()}
+write flush
+
+accepted
+
+read zilla:begin.ext ${mcp:matchBeginEx()
+                          .typeId(zilla:id("mcp"))
+                          .toolsList()
+                              .sessionId("5ca1ab1e-c0de-4a11-b007-000100000000")
+                              .build()
+                          .build()}
+
+connected
+
+write flush
+
+read await CLIENT_AWAITER_REGISTERED
+
+write '{"tools":[{"name":"get_weather"}]}'
+write flush
+
+write close
+
+read closed

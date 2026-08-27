@@ -434,8 +434,8 @@ public class ProxyCacheIT
 
     @Test
     @Specification({
-        "${app}/cache.serve.tools.list.during.hydrate/client",
-        "${app}/cache.serve.tools.list.during.hydrate/server" })
+        "${app}/cache.serve.tools.list.during.hydrate.backend/client",
+        "${app}/cache.serve.tools.list.during.hydrate.backend/server" })
     public void shouldServeToolsListDuringHydrate() throws Exception
     {
         k3po.finish();
@@ -461,8 +461,8 @@ public class ProxyCacheIT
 
     @Test
     @Specification({
-        "${app}/cache.notify.tools.list.changed/client",
-        "${app}/cache.notify.tools.list.changed/server" })
+        "${app}/cache.notify.tools.list.changed.backend/client",
+        "${app}/cache.notify.tools.list.changed.backend/server" })
     public void shouldNotifyToolsListChanged() throws Exception
     {
         k3po.finish();
@@ -470,8 +470,8 @@ public class ProxyCacheIT
 
     @Test
     @Specification({
-        "${app}/cache.notify.tools.list.changed.after.tools.call/client",
-        "${app}/cache.notify.tools.list.changed.after.tools.call/server" })
+        "${app}/cache.notify.tools.list.changed.after.tools.call.backend/client",
+        "${app}/cache.notify.tools.list.changed.after.tools.call.backend/server" })
     public void shouldNotifyToolsListChangedAfterToolsCall() throws Exception
     {
         k3po.finish();
@@ -479,8 +479,8 @@ public class ProxyCacheIT
 
     @Test
     @Specification({
-        "${app}/cache.notify.tools.list.changed.during.refresh/client",
-        "${app}/cache.notify.tools.list.changed.during.refresh/server" })
+        "${app}/cache.notify.tools.list.changed.during.refresh.backend/client",
+        "${app}/cache.notify.tools.list.changed.during.refresh.backend/server" })
     public void shouldNotifyToolsListChangedDuringRefresh() throws Exception
     {
         k3po.finish();
