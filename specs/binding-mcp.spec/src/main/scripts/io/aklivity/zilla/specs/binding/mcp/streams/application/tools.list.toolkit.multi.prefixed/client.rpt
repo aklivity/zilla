@@ -18,7 +18,7 @@ property authorization 1L
 connect "zilla://streams/app0"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
-        option zilla:authorization ${authorization}
+        option zilla:authorization 0L
 
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))

@@ -761,6 +761,31 @@ public class McpServerIT
     }
 
     @Test
+    @Configuration("server.guarded.yaml")
+    @ScriptProperty("authorization 1L")
+    @Specification({
+        "${net}/lifecycle.events.resume/client",
+        "${app}/lifecycle.events.resume/server"})
+    public void shouldDeauthorizeGuardSessionOnResumeClose() throws Exception
+    {
+        // three guarded HTTP requests share this scenario (POST initialize, POST
+        // notifications/initialized, GET/SSE reconnect), each minting its own guard
+        // session on open and releasing it on close -- the GET/SSE reconnect leg is
+        // the one McpEventStream itself is responsible for releasing
+        CountDownLatch deauthorized = new CountDownLatch(3);
+        TestGuardHandler.onDeauthorized = deauthorized::countDown;
+        try
+        {
+            k3po.finish();
+            assertTrue(deauthorized.await(5, SECONDS));
+        }
+        finally
+        {
+            TestGuardHandler.onDeauthorized = null;
+        }
+    }
+
+    @Test
     @Configuration("server.yaml")
     @Specification({
         "${net}/lifecycle.events.resume.reject.bearer/client",

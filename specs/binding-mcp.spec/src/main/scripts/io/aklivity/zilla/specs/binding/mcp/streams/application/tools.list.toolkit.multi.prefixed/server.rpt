@@ -14,11 +14,12 @@
 #
 
 property serverAddress "zilla://streams/app0"
+property authorization 1L
 
 accept ${serverAddress}
        option zilla:window 8192
        option zilla:transmission "half-duplex"
-       option zilla:authorization 1L
+       option zilla:authorization 0L
 
 accepted
 
@@ -37,6 +38,11 @@ write zilla:begin.ext ${mcp:beginEx()
                                .build()
                            .build()}
 write flush
+
+accept ${serverAddress}
+       option zilla:window 8192
+       option zilla:transmission "half-duplex"
+       option zilla:authorization ${authorization}
 
 accepted
 
