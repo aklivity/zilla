@@ -98,6 +98,21 @@ public interface EngineContext
     long affinity();
 
     /**
+     * Decodes the worker index encoded into an id minted by {@link #supplyInitialId(long)} or
+     * a similarly-encoded id, regardless of which worker originally minted it.
+     * <p>
+     * Pure decode of the id's own bit layout — safe to call from any worker's {@link EngineContext},
+     * not just the one that minted the id. Used to route a lookup for state that is confined to a
+     * single worker (e.g. a guard's local session cache) back to the worker that actually owns it.
+     * </p>
+     *
+     * @param id  an id minted by this or another worker
+     * @return the zero-based index of the worker that minted the id
+     */
+    int indexOf(
+        long id);
+
+    /**
      * Returns the {@link Signaler} for scheduling time-based and task-based signals on
      * this I/O thread.
      *
