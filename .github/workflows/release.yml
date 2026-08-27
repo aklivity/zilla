@@ -254,8 +254,8 @@ jobs:
         platforms: linux/amd64,linux/arm64
         push: true
         provenance: false
-        cache-from: type=registry,ref=ghcr.io/aklivity/zilla:buildcache
-        cache-to: type=registry,ref=ghcr.io/aklivity/zilla:buildcache,mode=max
+        cache-from: type=registry,ref=ghcr.io/aklivity/zilla-buildcache:latest
+        cache-to: type=registry,ref=ghcr.io/aklivity/zilla-buildcache:latest,mode=max
         tags: |
           ghcr.io/aklivity/zilla:${{ inputs.version }}
           ${{ steps.tag.outputs.minor && format('ghcr.io/aklivity/zilla:{0}', steps.tag.outputs.minor) || '' }}
@@ -270,8 +270,8 @@ jobs:
         platforms: linux/amd64
         push: true
         provenance: false
-        cache-from: type=registry,ref=ghcr.io/aklivity/zilla:buildcache-alpine
-        cache-to: type=registry,ref=ghcr.io/aklivity/zilla:buildcache-alpine,mode=max
+        cache-from: type=registry,ref=ghcr.io/aklivity/zilla-buildcache:alpine
+        cache-to: type=registry,ref=ghcr.io/aklivity/zilla-buildcache:alpine,mode=max
         tags: |
           ghcr.io/aklivity/zilla:${{ inputs.version }}-alpine
           ${{ steps.tag.outputs.minor && format('ghcr.io/aklivity/zilla:{0}-alpine', steps.tag.outputs.minor) || '' }}
