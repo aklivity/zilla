@@ -188,6 +188,16 @@ public class McpClientIT
     @Test
     @Configuration("client.yaml")
     @Specification({
+        "${app}/tools.call.elicit.completed.proxied.string.id/client",
+        "${net}/tools.call.elicit.completed.proxied.string.id/server"})
+    public void shouldCallToolElicitCompletedProxiedStringId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
         "${app}/tools.call.elicit.declined.proxied/client",
         "${net}/tools.call.elicit.declined.proxied/server"})
     public void shouldCallToolElicitDeclinedProxied() throws Exception

@@ -1535,6 +1535,23 @@ public final class McpClientFactory implements McpStreamFactory
         return colon < 0 ? id : id.substring(colon + 1);
     }
 
+    // the JSON-RPC id decoder accepts either a string or number id but only keeps the token
+    // text, not which one it was; this re-derives it from the token's own shape so a reverse
+    // elicitation response can echo the id back as the same JSON type it originally arrived as
+    private static boolean isJsonRpcNumericId(
+        String id)
+    {
+        boolean numeric = id != null && !id.isEmpty();
+        for (int i = 0; numeric && i < id.length(); i++)
+        {
+            final char ch = id.charAt(i);
+            final boolean digit = ch >= '0' && ch <= '9';
+            final boolean sign = i == 0 && ch == '-' && id.length() > 1;
+            numeric = digit || sign;
+        }
+        return numeric;
+    }
+
     @Override
     public int originTypeId()
     {
@@ -6363,6 +6380,7 @@ public final class McpClientFactory implements McpStreamFactory
         private final String sessionId;
         private final String protocolVersion;
         private final String requestId;
+        private final boolean numericRequestId;
         private final String action;
         private final McpBindingConfig binding;
         private final int contentLength;
@@ -6391,12 +6409,14 @@ public final class McpClientFactory implements McpStreamFactory
             this.sessionId = mcp.transportSessionId();
             this.protocolVersion = mcp.protocolVersion();
             this.requestId = requestId;
+            this.numericRequestId = isJsonRpcNumericId(requestId);
             this.action = action;
             this.originId = mcp.routedId;
             this.routedId = mcp.resolvedId;
             this.affinity = mcp.affinity;
             this.binding = mcp.binding();
-            this.contentLength = JSON_RPC_ELICIT_RESPONSE_PREFIX.length() + requestId.length() +
+            final int idQuotes = numericRequestId ? 0 : 2;
+            this.contentLength = JSON_RPC_ELICIT_RESPONSE_PREFIX.length() + idQuotes + requestId.length() +
                 JSON_RPC_ELICIT_RESPONSE_MIDDLE.length() + action.length() + JSON_RPC_ELICIT_RESPONSE_SUFFIX.length();
         }
 
@@ -6432,7 +6452,15 @@ public final class McpClientFactory implements McpStreamFactory
         {
             int codecLength = 0;
             codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, JSON_RPC_ELICIT_RESPONSE_PREFIX);
+            if (!numericRequestId)
+            {
+                codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, "\"");
+            }
             codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, requestId);
+            if (!numericRequestId)
+            {
+                codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, "\"");
+            }
             codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, JSON_RPC_ELICIT_RESPONSE_MIDDLE);
             codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, action);
             codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, JSON_RPC_ELICIT_RESPONSE_SUFFIX);
