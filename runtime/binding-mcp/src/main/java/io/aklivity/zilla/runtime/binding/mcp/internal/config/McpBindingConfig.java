@@ -74,6 +74,10 @@ public final class McpBindingConfig
     private static final String HTTP_HEADER_PATH = ":path";
     private static final String HTTP_HEADER_AUTHORIZATION = "authorization";
 
+    private static final Runnable NOOP = () ->
+    {
+    };
+
     private static final String SCHEME_HTTPS = "https";
     private static final int PORT_HTTP = 80;
     private static final int PORT_HTTPS = 443;
@@ -853,7 +857,7 @@ public final class McpBindingConfig
         HttpBeginExFW httpBeginEx,
         String path)
     {
-        McpAuthorizationResult result = new McpAuthorizationResult(authorization, null, false);
+        McpAuthorizationResult result = new McpAuthorizationResult(authorization, null, NOOP);
         if (guard != null && !isAuthCallbackPath(path))
         {
             final String authorizationHeader = Optional.ofNullable(httpBeginEx.headers()
@@ -878,11 +882,15 @@ public final class McpBindingConfig
                     ? guard.reauthorize(traceId, routedId, initialId, credentials)
                     : GuardHandler.NOT_AUTHORIZED;
 
+                // deauthorize is only ever the real thing here: this reauthorize call is the
+                // one that incremented the session's ref count, so this is the one call site
+                // responsible for eventually decrementing it back -- the transport-level
+                // authorization above is never ours to deauthorize, whatever guard minted it.
                 result = (sessionAuth & GuardHandler.MASK_AUTHORIZED) != 0L
-                    ? new McpAuthorizationResult(sessionAuth, null, true)
+                    ? new McpAuthorizationResult(sessionAuth, null, () -> guard.deauthorize(sessionAuth))
                     : new McpAuthorizationResult(authorization, credentials == null
                         ? McpBearerError.INVALID_REQUEST
-                        : McpBearerError.INVALID_TOKEN, false);
+                        : McpBearerError.INVALID_TOKEN, NOOP);
             }
         }
         return result;

@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 
 import org.agrona.collections.Long2ObjectHashMap;
@@ -66,11 +67,13 @@ public class JwtGuardHandler implements GuardHandler
     private final JwtEventContext event;
     private final Map<String, String> attributes;
     private final Consumer<Runnable> dispatcher;
+    private final LongFunction<String> credentialer;
 
     public JwtGuardHandler(
         JwtOptionsConfig options,
         EngineContext context,
-        LongSupplier supplyAuthorizedId)
+        LongSupplier supplyAuthorizedId,
+        LongFunction<String> credentialer)
     {
         this.issuer = options.issuer;
         this.audience = options.audience;
@@ -121,6 +124,7 @@ public class JwtGuardHandler implements GuardHandler
         this.event = new JwtEventContext(context);
         this.attributes = options.attributes;
         this.dispatcher = context::dispatch;
+        this.credentialer = credentialer;
     }
 
     @Override
@@ -299,6 +303,18 @@ public class JwtGuardHandler implements GuardHandler
 
     @Override
     public String credentials(
+        long sessionId)
+    {
+        String local = credentialsLocal(sessionId);
+        return local != null ? local : credentialer.apply(sessionId);
+    }
+
+    // local-only lookup, reused by credentials() above as its fast path and by JwtGuard's
+    // cross-worker dispatch (reached via the credentialer callback) once it has already
+    // routed to the specific worker that owns sessionId -- never itself falls back, so a
+    // session that turns out not to be local anywhere simply resolves to null rather than
+    // looping back through the callback that got us here
+    String credentialsLocal(
         long sessionId)
     {
         JwtSession session = sessionsById.get(sessionId);

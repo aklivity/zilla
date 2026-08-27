@@ -13,12 +13,9 @@
 # specific language governing permissions and limitations under the License.
 #
 
-property authorization 0L
-
 connect "zilla://streams/app0"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
-        option zilla:authorization ${authorization}
 
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
@@ -35,22 +32,27 @@ read zilla:begin.ext ${mcp:matchBeginEx()
                               .build()
                           .build()}
 
-read advise zilla:challenge ${mcp:challengeEx()
-                                  .typeId(zilla:id("mcp"))
-                                  .resume()
-                                      .id("event-99")
-                                      .build()
-                                  .build()}
+read notify LIFECYCLE_INITIALIZED
 
-read advised zilla:flush ${mcp:matchFlushEx()
-                               .typeId(zilla:id("mcp"))
-                               .resumable()
-                                   .build()
-                               .build()}
+connect await LIFECYCLE_INITIALIZED
+        "zilla://streams/app0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
 
-read advised zilla:flush ${mcp:matchFlushEx()
-                               .typeId(zilla:id("mcp"))
-                               .suspend()
-                                   .retry(60000)
-                                   .build()
-                               .build()}
+write zilla:begin.ext ${mcp:beginEx()
+                           .typeId(zilla:id("mcp"))
+                           .toolsList()
+                               .sessionId("5ca1ab1e-c0de-4a11-5e55-000100000000")
+                               .build()
+                           .build()}
+
+connected
+
+read  '{"tools":'
+        '['
+          '{"name":"bluesky__get_weather"}'
+        ']'
+      '}'
+read closed
+
+write close

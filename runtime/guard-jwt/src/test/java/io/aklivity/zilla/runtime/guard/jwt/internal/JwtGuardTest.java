@@ -536,4 +536,89 @@ public class JwtGuardTest
         LongObjectBiFunction<String, String> attributor = guard.attributor(s -> 0, guarded);
         assertEquals(attributor.apply(sessionId, "mail_to"), "recipient@email.address");
     }
+
+    @Test
+    public void shouldResolveCredentialsAcrossWorkers() throws Exception
+    {
+        EngineContext engine0 = Mockito.mock(EngineContext.class);
+        when(engine0.index()).thenReturn(0);
+        when(engine0.supplyAuthorizedId()).thenReturn(1L);
+
+        EngineContext engine1 = Mockito.mock(EngineContext.class);
+        when(engine1.index()).thenReturn(1);
+        when(engine1.indexOf(Mockito.anyLong())).thenReturn(0);
+
+        GuardFactory factory = GuardFactory.instantiate();
+        Guard guard = factory.create("jwt", new Configuration());
+
+        GuardContext context0 = guard.supply(engine0);
+        GuardContext context1 = guard.supply(engine1);
+
+        GuardConfig guardConfig = GenericGuardConfig.builder()
+            .inject(identity())
+            .namespace("test")
+            .name("test0")
+            .type("jwt")
+            .options(JwtOptionsConfig::builder)
+                .inject(identity())
+                .issuer("test issuer")
+                .audience("testAudience")
+                .key(RFC7515_RS256_CONFIG)
+                .build()
+            .build();
+
+        // reauthorize happens on worker 0, the owner; worker 1 never sees the JWT directly
+        GuardHandler handler0 = context0.attach(guardConfig);
+        GuardHandler handler1 = context1.attach(guardConfig);
+
+        Instant now = Instant.now();
+
+        JwtClaims claims = new JwtClaims();
+        claims.setClaim("iss", "test issuer");
+        claims.setClaim("aud", "testAudience");
+        claims.setClaim("sub", "testSubject");
+        claims.setClaim("exp", now.getEpochSecond() + 10L);
+        claims.setClaim("scope", "read:stream");
+
+        String token = sign(claims.toJson(), "test", RFC7515_RS256, "RS256");
+
+        long sessionId = handler0.reauthorize(0L, 0L, 101L, token);
+
+        assertEquals(token, handler1.credentials(sessionId));
+    }
+
+    @Test
+    public void shouldNotResolveCredentialsWhenSessionUnknownEverywhere() throws Exception
+    {
+        EngineContext engine0 = Mockito.mock(EngineContext.class);
+        when(engine0.index()).thenReturn(0);
+
+        EngineContext engine1 = Mockito.mock(EngineContext.class);
+        when(engine1.index()).thenReturn(1);
+        when(engine1.indexOf(Mockito.anyLong())).thenReturn(0);
+
+        GuardFactory factory = GuardFactory.instantiate();
+        Guard guard = factory.create("jwt", new Configuration());
+
+        GuardContext context0 = guard.supply(engine0);
+        GuardContext context1 = guard.supply(engine1);
+
+        GuardConfig guardConfig = GenericGuardConfig.builder()
+            .inject(identity())
+            .namespace("test")
+            .name("test0")
+            .type("jwt")
+            .options(JwtOptionsConfig::builder)
+                .inject(identity())
+                .issuer("test issuer")
+                .audience("testAudience")
+                .key(RFC7515_RS256_CONFIG)
+                .build()
+            .build();
+
+        context0.attach(guardConfig);
+        GuardHandler handler1 = context1.attach(guardConfig);
+
+        assertEquals(null, handler1.credentials(999L));
+    }
 }

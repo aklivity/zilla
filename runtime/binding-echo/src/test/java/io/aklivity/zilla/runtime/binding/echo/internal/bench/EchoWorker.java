@@ -66,6 +66,13 @@ public class EchoWorker implements EngineContext
     }
 
     @Override
+    public int indexOf(
+        long id)
+    {
+        return 0;
+    }
+
+    @Override
     public Signaler signaler()
     {
         return null;
