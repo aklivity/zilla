@@ -13,11 +13,14 @@
 - Declare AvroModelExtFactorySpi and wire provider-supplied pipeline stages in avro model [\#1681](https://github.com/aklivity/zilla/issues/1681) ([jfallows](https://github.com/jfallows))
 - Declare JsonModelExtFactorySpi and wire provider-supplied pipeline stages in json model [\#1682](https://github.com/aklivity/zilla/issues/1682) ([jfallows](https://github.com/jfallows))
 - Declare ProtobufModelExtFactorySpi and wire provider-supplied pipeline stages in protobuf model [\#1683](https://github.com/aklivity/zilla/issues/1683) ([jfallows](https://github.com/jfallows))
+- Apply schema overlay at catalog entry resolution [\#2318](https://github.com/aklivity/zilla/issues/2318) ([jfallows](https://github.com/jfallows))
 - engine: add ModelEnvelope for message metadata outside the value, exposed via ModelController [\#2384](https://github.com/aklivity/zilla/issues/2384) ([jfallows](https://github.com/jfallows))
 - engine: supply ModelEnvelope per message, and expose it to a model's format-native transform stages [\#2389](https://github.com/aklivity/zilla/issues/2389) ([jfallows](https://github.com/jfallows))
 - model-core: align bytes/string extension stages with the streaming stage design, and make them bidirectional [\#2393](https://github.com/aklivity/zilla/issues/2393) ([jfallows](https://github.com/jfallows))
 - binding-tls: TlsClientFactory reply-direction ProxyBeginEx cannot convey the underlying network address [\#2407](https://github.com/aklivity/zilla/issues/2407) ([jfallows](https://github.com/jfallows))
+- Retain and expose unrecognized schema-root properties, alongside existing field-level annotation retention [\#2415](https://github.com/aklivity/zilla/issues/2415) ([jfallows](https://github.com/jfallows))
 - Make wrapped key material self-sufficient for unwrap — drop the explicit key-name parameter from SecretKeyManager/VaultHandler.unwrap [\#2416](https://github.com/aklivity/zilla/issues/2416) ([jfallows](https://github.com/jfallows))
+- MQTT CONNECT with a Will message crashes the whole engine \(JVM segfault\), not just the connection [\#2428](https://github.com/aklivity/zilla/issues/2428) ([sfr-oc](https://github.com/sfr-oc))
 
 **Merged pull requests:**
 
@@ -60,6 +63,12 @@
 - fix\(binding-kafka\): use each producer stream's own authorization for cache encode [\#2425](https://github.com/aklivity/zilla/pull/2425) ([jfallows](https://github.com/jfallows))
 - fix\(binding-mcp\): defer mcp\(client\) lifecycle connect until guard decides [\#2426](https://github.com/aklivity/zilla/pull/2426) ([jfallows](https://github.com/jfallows))
 - fix\(binding-mcp\): settle a still-establishing toolkit client on reset/abort [\#2427](https://github.com/aklivity/zilla/pull/2427) ([jfallows](https://github.com/jfallows))
+- fix\(binding-mcp\): keep serving other routes when one route errors during tools/prompts/resources list [\#2432](https://github.com/aklivity/zilla/pull/2432) ([jfallows](https://github.com/jfallows))
+- test\(binding-mcp\): model the mcp\(client\) lifecycle preauthorize challenge [\#2433](https://github.com/aklivity/zilla/pull/2433) ([jfallows](https://github.com/jfallows))
+- fix\(binding-mcp\): preserve request sequence on mcp\(client\) HttpStream end [\#2434](https://github.com/aklivity/zilla/pull/2434) ([jfallows](https://github.com/jfallows))
+- Expose schema root properties [\#2435](https://github.com/aklivity/zilla/pull/2435) ([ReguiguiMohamed](https://github.com/ReguiguiMohamed))
+- fix\(binding-mqtt\): preserve a deferred will payload across abort, decode error, and end [\#2436](https://github.com/aklivity/zilla/pull/2436) ([jfallows](https://github.com/jfallows))
+- fix\(guard-jwt\): resolve credentials\(\) for a session minted on a different worker [\#2437](https://github.com/aklivity/zilla/pull/2437) ([jfallows](https://github.com/jfallows))
 
 ## [2.3.0](https://github.com/aklivity/zilla/tree/2.3.0) (2026-08-14)
 
@@ -70,6 +79,7 @@
 - Extend vault SPI with KMS encryption operations [\#1678](https://github.com/aklivity/zilla/issues/1678) ([jfallows](https://github.com/jfallows))
 - Add SecretKeyEntry encryption key support to filesystem vault [\#1679](https://github.com/aklivity/zilla/issues/1679) ([jfallows](https://github.com/jfallows))
 - common-protobuf: support method- and field-level options overlay for FileDescriptorSet [\#2279](https://github.com/aklivity/zilla/issues/2279) ([jfallows](https://github.com/jfallows))
+- Retain and expose schema field annotations from Avro, JSON Schema, and Protobuf codecs [\#2302](https://github.com/aklivity/zilla/issues/2302) ([jfallows](https://github.com/jfallows))
 - engine: add per-message authorization to ModelPipeline.transform [\#2310](https://github.com/aklivity/zilla/issues/2310) ([jfallows](https://github.com/jfallows))
 - Consolidate overlay: config across binding-openapi, binding-asyncapi, binding-openapi-asyncapi, binding-mcp-openapi; reposition as a peer of subject/version [\#2365](https://github.com/aklivity/zilla/issues/2365) ([jfallows](https://github.com/jfallows))
 - Unused jakarta.json.bind module dependency in binding-openapi.conf/binding-asyncapi.conf/binding-openapi-asyncapi.conf [\#2372](https://github.com/aklivity/zilla/issues/2372) ([jfallows](https://github.com/jfallows))
