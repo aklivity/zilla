@@ -490,6 +490,13 @@ public class EngineWorker implements EngineContext, Agent
     }
 
     @Override
+    public int indexOf(
+        long id)
+    {
+        return indexOfId(id);
+    }
+
+    @Override
     public Signaler signaler()
     {
         return signaler;

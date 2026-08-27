@@ -54,7 +54,7 @@ public final class JwtGuard implements Guard
     public JwtGuardContext supply(
         EngineContext context)
     {
-        JwtGuardContext guard = new JwtGuardContext(config, context);
+        JwtGuardContext guard = new JwtGuardContext(config, context, this);
         contexts[context.index()] = guard;
         return guard;
     }
@@ -147,5 +147,24 @@ public final class JwtGuard implements Guard
         final JwtGuardContext context = contexts[sessionIndex];
         final JwtGuardHandler handler = context != null ? context.handler(guardId) : null;
         return handler != null ? handler.attribute(sessionId, name) : null;
+    }
+
+    // reached from JwtGuardHandler.credentials(...) on a local cache miss, via the credentialer
+    // callback threaded through JwtGuardContext.attach(...) -- unlike verify/identity/attribute above,
+    // sessionIndex here can legitimately fall outside this node's own workers (e.g. a session id
+    // minted before a redirect this node was never part of), so it is bounds-checked rather than
+    // trusted the way the guarded-route-evaluation callers above already are
+    String credentials(
+        int sessionIndex,
+        long guardId,
+        long sessionId)
+    {
+        if (sessionIndex < 0 || sessionIndex >= contexts.length)
+        {
+            return null;
+        }
+        final JwtGuardContext context = contexts[sessionIndex];
+        final JwtGuardHandler handler = context != null ? context.handler(guardId) : null;
+        return handler != null ? handler.credentialsLocal(sessionId) : null;
     }
 }
