@@ -2899,6 +2899,14 @@ public final class McpClientFactory implements McpStreamFactory
             {
                 final String sid = sessionId;
                 final int caps = serverCapabilities;
+
+                // the south handshake has now genuinely finished -- this session is ready to
+                // carry other south-bound traffic before its own reply is dispatched, since
+                // doAppBegin below can synchronously cascade into a request that was waiting
+                // on this exact connect to settle (e.g. the proxy layer's settleRequests(),
+                // called from the same reply it is about to receive)
+                pendingConnect = false;
+
                 doAppBegin(traceId, authorization, mcpBeginExRW
                     .wrap(codecBuffer, 0, codecBuffer.capacity())
                     .typeId(mcpTypeId)
@@ -2908,10 +2916,6 @@ public final class McpClientFactory implements McpStreamFactory
                     .build());
                 touch();
                 scheduleKeepalive(traceId);
-
-                // the south handshake has now genuinely finished -- only now is this session
-                // actually ready to carry other south-bound traffic
-                pendingConnect = false;
             }
         }
 
