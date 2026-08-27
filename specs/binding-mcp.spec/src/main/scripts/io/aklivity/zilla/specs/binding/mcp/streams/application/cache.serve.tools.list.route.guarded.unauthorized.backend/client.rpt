@@ -15,9 +15,12 @@
 
 property affinity "00000000"
 
-connect "zilla://streams/app0"
+property authorization 1L
+
+connect "zilla://streams/app1"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
+        option zilla:authorization ${authorization}
 
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
@@ -34,20 +37,13 @@ read zilla:begin.ext ${mcp:matchBeginEx()
                               .build()
                           .build()}
 
-read notify LIFECYCLE_INITIALIZED
+read notify APP1_LIFECYCLE
 
-read advised zilla:flush ${mcp:matchFlushEx()
-                               .typeId(zilla:id("mcp"))
-                               .toolsListChanged()
-                                   .build()
-                               .build()}
-
-read notify TOOLS_LIST_CHANGED
-
-connect await LIFECYCLE_INITIALIZED
-        "zilla://streams/app0"
+connect await APP1_LIFECYCLE
+        "zilla://streams/app1"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
+        option zilla:authorization ${authorization}
 
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
@@ -58,26 +54,65 @@ write zilla:begin.ext ${mcp:beginEx()
 
 connected
 
-read '{"tools":[{"name":"get_weather"}]}'
+read  '{"tools":'
+        '['
+          '{'
+            '"name":"list_pets",'
+            '"description":"List pets"'
+          '}'
+          ','
+          '{'
+            '"name":"create_pet",'
+            '"description":"Create a pet",'
+            '"securitySchemes":[{"type":"oauth2","scopes":["pets:write"]}]'
+          '}'
+        ']'
+      '}'
 read closed
 
 write close
 
-connect await TOOLS_LIST_CHANGED
-        "zilla://streams/app0"
+read notify APP1_DONE
+
+connect await APP1_DONE
+        "zilla://streams/app2"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
+        option zilla:authorization ${authorization}
 
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
-                           .toolsList()
-                               .sessionId("5ca1ab1e-c0de-4a11-feed-0001".concat(affinity))
+                           .lifecycle()
                                .build()
                            .build()}
 
 connected
 
-read '{"tools":[{"name":"get_weather"},{"name":"get_time"}]}'
+read zilla:begin.ext ${mcp:matchBeginEx()
+                          .typeId(zilla:id("mcp"))
+                          .lifecycle()
+                              .sessionId("5ca1ab1e-c0de-4a11-feed-0002".concat(affinity))
+                              .build()
+                          .build()}
+
+read notify APP2_LIFECYCLE
+
+connect await APP2_LIFECYCLE
+        "zilla://streams/app2"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+        option zilla:authorization ${authorization}
+
+write zilla:begin.ext ${mcp:beginEx()
+                           .typeId(zilla:id("mcp"))
+                           .toolsList()
+                               .sessionId("5ca1ab1e-c0de-4a11-feed-0002".concat(affinity))
+                               .build()
+                           .build()}
+
+connected
+
+read  '{"tools":[{"name":"ping"}]}'
 read closed
 
 write close

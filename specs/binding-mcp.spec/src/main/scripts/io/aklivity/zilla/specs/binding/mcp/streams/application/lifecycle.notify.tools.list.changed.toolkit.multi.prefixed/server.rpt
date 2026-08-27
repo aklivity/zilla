@@ -13,11 +13,7 @@
 # specific language governing permissions and limitations under the License.
 #
 
-property affinity "00000000"
-
-property serverAddress "zilla://streams/app0"
-
-accept ${serverAddress}
+accept "zilla://streams/app0"
        option zilla:window 8192
        option zilla:transmission "half-duplex"
 
@@ -34,17 +30,38 @@ connected
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .lifecycle()
-                               .sessionId("5ca1ab1e-c0de-4a11-b007-000100000000")
+                               .sessionId("5ca1ab1e-c0de-4a11-5e55-000100000000")
                                .build()
                            .build()}
 write flush
+
+write advise zilla:flush ${mcp:flushEx()
+                              .typeId(zilla:id("mcp"))
+                              .toolsListChanged()
+                                  .id("S=100")
+                                  .build()
+                              .build()}
+
+write advise zilla:flush ${mcp:flushEx()
+                              .typeId(zilla:id("mcp"))
+                              .toolsListChanged()
+                                  .id("2=200;S=100")
+                                  .build()
+                              .build()}
+
+write advise zilla:flush ${mcp:flushEx()
+                              .typeId(zilla:id("mcp"))
+                              .toolsListChanged()
+                                  .id("2=200;S=101")
+                                  .build()
+                              .build()}
 
 accepted
 
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .toolsList()
-                              .sessionId("5ca1ab1e-c0de-4a11-b007-000100000000")
+                              .sessionId("5ca1ab1e-c0de-4a11-5e55-000100000000")
                               .build()
                           .build()}
 
@@ -52,9 +69,12 @@ connected
 
 write flush
 
-read await CLIENT_AWAITER_REGISTERED
-
-write '{"tools":[{"name":"get_weather"}]}'
+write '{"tools":'
+        '['
+          '{"name":"bluesky__get_weather"},'
+          '{"name":"quartz__get_current_time"}'
+        ']'
+      '}'
 write flush
 
 write close

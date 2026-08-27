@@ -13,9 +13,7 @@
 # specific language governing permissions and limitations under the License.
 #
 
-property affinity "00000000"
-
-connect "zilla://streams/app0"
+connect "zilla://streams/app1"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
 
@@ -30,54 +28,38 @@ connected
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .lifecycle()
-                              .sessionId("5ca1ab1e-c0de-4a11-feed-0001".concat(affinity))
+                              .sessionId("5ca1ab1e-c0de-4a11-5e55-000a00000000")
                               .build()
                           .build()}
 
-read notify LIFECYCLE_INITIALIZED
+read notify APP1_LIFECYCLE
 
-read advised zilla:flush ${mcp:matchFlushEx()
-                               .typeId(zilla:id("mcp"))
-                               .toolsListChanged()
-                                   .build()
-                               .build()}
-
-read notify TOOLS_LIST_CHANGED
-
-connect await LIFECYCLE_INITIALIZED
-        "zilla://streams/app0"
+connect await APP1_LIFECYCLE
+        "zilla://streams/app2"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
 
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
-                           .toolsList()
-                               .sessionId("5ca1ab1e-c0de-4a11-feed-0001".concat(affinity))
+                           .lifecycle()
                                .build()
                            .build()}
 
 connected
 
-read '{"tools":[{"name":"get_weather"}]}'
-read closed
+write advised zilla:challenge ${mcp:matchChallengeEx()
+                                    .typeId(zilla:id("mcp"))
+                                    .elicitCreate()
+                                        .id("elicit-1")
+                                        .url("https://server.example.com/authorize?state=7f3a9b1c&redirect_uri=%s".formatted(http:encodeQuery("https://replace.me/callback")))
+                                        .build()
+                                    .build()}
 
-write close
-
-connect await TOOLS_LIST_CHANGED
-        "zilla://streams/app0"
-        option zilla:window 8192
-        option zilla:transmission "half-duplex"
-
-write zilla:begin.ext ${mcp:beginEx()
-                           .typeId(zilla:id("mcp"))
-                           .toolsList()
-                               .sessionId("5ca1ab1e-c0de-4a11-feed-0001".concat(affinity))
-                               .build()
-                           .build()}
-
-connected
-
-read '{"tools":[{"name":"get_weather"},{"name":"get_time"}]}'
-read closed
+write advise zilla:flush ${mcp:flushEx()
+                              .typeId(zilla:id("mcp"))
+                              .elicitCallback()
+                                  .url("http://localhost:8080/mcp/auth/callback?code=xyz&state=7f3a9b1c")
+                                  .build()
+                              .build()}
 
 write close

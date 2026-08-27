@@ -15,9 +15,12 @@
 
 property affinity "00000000"
 
-connect "zilla://streams/app0"
+property authorization 1L
+
+connect "zilla://streams/app1"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
+        option zilla:authorization ${authorization}
 
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
@@ -34,39 +37,65 @@ read zilla:begin.ext ${mcp:matchBeginEx()
                               .build()
                           .build()}
 
-read notify FEED_LIFECYCLE_INITIALIZED
+read notify APP1_LIFECYCLE
 
-read advised zilla:flush ${mcp:matchFlushEx()
-                               .typeId(zilla:id("mcp"))
-                               .toolsListChanged()
-                                   .build()
-                               .build()}
-
-connect await FEED_LIFECYCLE_INITIALIZED
-        "zilla://streams/app0"
+connect await APP1_LIFECYCLE
+        "zilla://streams/app1"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
+        option zilla:authorization ${authorization}
 
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
-                           .toolsList()
+                           .resourcesTemplatesList()
                                .sessionId("5ca1ab1e-c0de-4a11-feed-0001".concat(affinity))
                                .build()
                            .build()}
 
 connected
 
-read '{"tools":[{"name":"get_weather"}]}'
+read  '{"resourceTemplates":[]}'
 read closed
 
 write close
 
-write notify FEED_TOOLS_HYDRATED
+read notify APP1_TEMPLATES
 
-connect await FEED_TOOLS_HYDRATED
-        "zilla://streams/app0"
+connect await APP1_TEMPLATES
+        "zilla://streams/app1"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
+        option zilla:authorization ${authorization}
+
+write zilla:begin.ext ${mcp:beginEx()
+                           .typeId(zilla:id("mcp"))
+                           .resourcesList()
+                               .sessionId("5ca1ab1e-c0de-4a11-feed-0001".concat(affinity))
+                               .build()
+                           .build()}
+
+connected
+
+read  '{"resources":'
+        '['
+          '{'
+            '"name":"featured_pets",'
+            '"uri":"/pets/featured",'
+            '"description":"Featured pets"'
+          '}'
+        ']'
+      '}'
+read closed
+
+write close
+
+read notify APP1_DONE
+
+connect await APP1_DONE
+        "zilla://streams/app2"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+        option zilla:authorization ${authorization}
 
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
@@ -79,58 +108,50 @@ connected
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .lifecycle()
-                              .sessionId("5ca1ab1e-c0de-4a11-b007-0001".concat(affinity))
+                              .sessionId("5ca1ab1e-c0de-4a11-feed-0002".concat(affinity))
                               .build()
                           .build()}
 
-read notify B007_LIFECYCLE_INITIALIZED
+read notify APP2_LIFECYCLE
 
-read advised zilla:flush ${mcp:matchFlushEx()
-                               .typeId(zilla:id("mcp"))
-                               .toolsListChanged()
-                                   .build()
-                               .build()}
-
-connect await B007_LIFECYCLE_INITIALIZED
-        "zilla://streams/app0"
+connect await APP2_LIFECYCLE
+        "zilla://streams/app2"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
+        option zilla:authorization ${authorization}
 
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
-                           .toolsCall()
-                               .sessionId("5ca1ab1e-c0de-4a11-b007-0001".concat(affinity))
-                               .name("get_weather")
-                               .contentLength(58)
+                           .resourcesTemplatesList()
+                               .sessionId("5ca1ab1e-c0de-4a11-feed-0002".concat(affinity))
                                .build()
                            .build()}
 
 connected
 
-write '{"name":"get_weather","arguments":{"location":"New York"}}'
-
-read '{"content":[{"type":"text","text":"sunny"}],"isError":false}'
+read  '{"resourceTemplates":[]}'
 read closed
 
 write close
 
-read notify TOOLS_CALL_RETURNED
+read notify APP2_TEMPLATES
 
-connect await TOOLS_CALL_RETURNED
-        "zilla://streams/app0"
+connect await APP2_TEMPLATES
+        "zilla://streams/app2"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
+        option zilla:authorization ${authorization}
 
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
-                           .toolsList()
-                               .sessionId("5ca1ab1e-c0de-4a11-feed-0001".concat(affinity))
+                           .resourcesList()
+                               .sessionId("5ca1ab1e-c0de-4a11-feed-0002".concat(affinity))
                                .build()
                            .build()}
 
 connected
 
-read '{"tools":[{"name":"get_weather"},{"name":"get_time"}]}'
+read  '{"resources":[{"name":"ping_doc","uri":"/ping"}]}'
 read closed
 
 write close

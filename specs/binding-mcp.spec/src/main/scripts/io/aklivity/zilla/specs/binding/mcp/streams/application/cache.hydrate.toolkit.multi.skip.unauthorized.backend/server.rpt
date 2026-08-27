@@ -15,9 +15,32 @@
 
 property affinity "00000000"
 
-property serverAddress "zilla://streams/app0"
+accept "zilla://streams/app1"
+       option zilla:window 8192
+       option zilla:transmission "half-duplex"
 
-accept ${serverAddress}
+accepted
+
+read zilla:begin.ext ${mcp:matchBeginEx()
+                          .typeId(zilla:id("mcp"))
+                          .lifecycle()
+                              .build()
+                          .build()}
+
+connected
+
+write zilla:reset.ext ${mcp:resetEx()
+                           .typeId(zilla:id("mcp"))
+                           .bearer()
+                               .realm("github")
+                               .scopes("repo")
+                               .error("INVALID_TOKEN")
+                               .build()
+                           .build()}
+
+read abort
+
+accept "zilla://streams/app2"
        option zilla:window 8192
        option zilla:transmission "half-duplex"
 
@@ -34,7 +57,7 @@ connected
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .lifecycle()
-                               .sessionId("5ca1ab1e-c0de-4a11-b007-000100000000")
+                               .sessionId("5ca1ab1e-c0de-4a11-5e55-000a".concat(affinity))
                                .build()
                            .build()}
 write flush
@@ -44,7 +67,7 @@ accepted
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .toolsList()
-                              .sessionId("5ca1ab1e-c0de-4a11-b007-000100000000")
+                              .sessionId("5ca1ab1e-c0de-4a11-5e55-000a".concat(affinity))
                               .build()
                           .build()}
 
@@ -52,9 +75,7 @@ connected
 
 write flush
 
-read await CLIENT_AWAITER_REGISTERED
-
-write '{"tools":[{"name":"get_weather"}]}'
+write '{"tools":[{"name":"get_current_time"}]}'
 write flush
 
 write close

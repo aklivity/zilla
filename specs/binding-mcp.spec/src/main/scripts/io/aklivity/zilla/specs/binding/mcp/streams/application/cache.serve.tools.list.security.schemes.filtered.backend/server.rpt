@@ -15,9 +15,7 @@
 
 property affinity "00000000"
 
-property serverAddress "zilla://streams/app0"
-
-accept ${serverAddress}
+accept "zilla://streams/app1"
        option zilla:window 8192
        option zilla:transmission "half-duplex"
 
@@ -34,7 +32,7 @@ connected
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .lifecycle()
-                               .sessionId("5ca1ab1e-c0de-4a11-b007-000100000000")
+                               .sessionId("5ca1ab1e-c0de-4a11-feed-0001".concat(affinity))
                                .build()
                            .build()}
 write flush
@@ -44,7 +42,7 @@ accepted
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .toolsList()
-                              .sessionId("5ca1ab1e-c0de-4a11-b007-000100000000")
+                              .sessionId("5ca1ab1e-c0de-4a11-feed-0001".concat(affinity))
                               .build()
                           .build()}
 
@@ -52,9 +50,26 @@ connected
 
 write flush
 
-read await CLIENT_AWAITER_REGISTERED
-
-write '{"tools":[{"name":"get_weather"}]}'
+write '{"tools":'
+        '['
+          '{'
+            '"name":"list_repos",'
+            '"description":"List repositories",'
+            '"securitySchemes":[{"type":"oauth2","scopes":["read"]}]'
+          '}'
+          ','
+          '{'
+            '"name":"delete_repo",'
+            '"description":"Delete a repository",'
+            '"securitySchemes":[{"type":"oauth2","scopes":["admin"]}]'
+          '}'
+          ','
+          '{'
+            '"name":"get_status",'
+            '"description":"Get status"'
+          '}'
+        ']'
+      '}'
 write flush
 
 write close

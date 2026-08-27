@@ -36,14 +36,6 @@ read zilla:begin.ext ${mcp:matchBeginEx()
 
 read notify LIFECYCLE_INITIALIZED
 
-read advised zilla:flush ${mcp:matchFlushEx()
-                               .typeId(zilla:id("mcp"))
-                               .toolsListChanged()
-                                   .build()
-                               .build()}
-
-read notify TOOLS_LIST_CHANGED
-
 connect await LIFECYCLE_INITIALIZED
         "zilla://streams/app0"
         option zilla:window 8192
@@ -58,12 +50,11 @@ write zilla:begin.ext ${mcp:beginEx()
 
 connected
 
-read '{"tools":[{"name":"get_weather"}]}'
-read closed
+read aborted
 
-write close
+write notify RETRY_1
 
-connect await TOOLS_LIST_CHANGED
+connect await RETRY_1
         "zilla://streams/app0"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
@@ -77,7 +68,79 @@ write zilla:begin.ext ${mcp:beginEx()
 
 connected
 
-read '{"tools":[{"name":"get_weather"},{"name":"get_time"}]}'
+read aborted
+
+write notify RETRY_2
+
+connect await RETRY_2
+        "zilla://streams/app0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+
+write zilla:begin.ext ${mcp:beginEx()
+                           .typeId(zilla:id("mcp"))
+                           .toolsList()
+                               .sessionId("5ca1ab1e-c0de-4a11-feed-0001".concat(affinity))
+                               .build()
+                           .build()}
+
+connected
+
+read aborted
+
+write notify RETRY_3
+
+connect await RETRY_3
+        "zilla://streams/app0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+
+write zilla:begin.ext ${mcp:beginEx()
+                           .typeId(zilla:id("mcp"))
+                           .toolsList()
+                               .sessionId("5ca1ab1e-c0de-4a11-feed-0001".concat(affinity))
+                               .build()
+                           .build()}
+
+connected
+
+read aborted
+
+write notify RETRY_4
+
+connect await RETRY_4
+        "zilla://streams/app0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+
+write zilla:begin.ext ${mcp:beginEx()
+                           .typeId(zilla:id("mcp"))
+                           .toolsList()
+                               .sessionId("5ca1ab1e-c0de-4a11-feed-0001".concat(affinity))
+                               .build()
+                           .build()}
+
+connected
+
+read aborted
+
+write notify RETRY_5
+
+connect await RETRY_5
+        "zilla://streams/app0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+
+write zilla:begin.ext ${mcp:beginEx()
+                           .typeId(zilla:id("mcp"))
+                           .toolsList()
+                               .sessionId("5ca1ab1e-c0de-4a11-feed-0001".concat(affinity))
+                               .build()
+                           .build()}
+
+connected
+
+read '{"tools":[{"name":"get_weather"}]}'
 read closed
 
 write close

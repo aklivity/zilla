@@ -15,7 +15,7 @@
 
 property affinity "00000000"
 
-connect "zilla://streams/app0"
+connect "zilla://streams/app1"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
 
@@ -36,16 +36,8 @@ read zilla:begin.ext ${mcp:matchBeginEx()
 
 read notify LIFECYCLE_INITIALIZED
 
-read advised zilla:flush ${mcp:matchFlushEx()
-                               .typeId(zilla:id("mcp"))
-                               .toolsListChanged()
-                                   .build()
-                               .build()}
-
-read notify TOOLS_LIST_CHANGED
-
 connect await LIFECYCLE_INITIALIZED
-        "zilla://streams/app0"
+        "zilla://streams/app1"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
 
@@ -58,26 +50,24 @@ write zilla:begin.ext ${mcp:beginEx()
 
 connected
 
-read '{"tools":[{"name":"get_weather"}]}'
-read closed
-
-write close
-
-connect await TOOLS_LIST_CHANGED
-        "zilla://streams/app0"
-        option zilla:window 8192
-        option zilla:transmission "half-duplex"
-
-write zilla:begin.ext ${mcp:beginEx()
-                           .typeId(zilla:id("mcp"))
-                           .toolsList()
-                               .sessionId("5ca1ab1e-c0de-4a11-feed-0001".concat(affinity))
-                               .build()
-                           .build()}
-
-connected
-
-read '{"tools":[{"name":"get_weather"},{"name":"get_time"}]}'
+read  '{"tools":'
+        '['
+          '{'
+            '"name":"get_weather",'
+            '"title":"Weather Information Provider"'
+          '}'
+          ','
+          '{'
+            '"name":"delete_account",'
+            '"title":"Account Deletion"'
+          '}'
+          ','
+          '{'
+            '"name":"get_forecast",'
+            '"title":"Forecast Provider"'
+          '}'
+        ']'
+      '}'
 read closed
 
 write close

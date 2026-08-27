@@ -15,7 +15,7 @@
 
 property affinity "00000000"
 
-connect "zilla://streams/app0"
+connect "zilla://streams/app1"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
 
@@ -34,18 +34,10 @@ read zilla:begin.ext ${mcp:matchBeginEx()
                               .build()
                           .build()}
 
-read notify LIFECYCLE_INITIALIZED
+read notify APP1_LIFECYCLE
 
-read advised zilla:flush ${mcp:matchFlushEx()
-                               .typeId(zilla:id("mcp"))
-                               .toolsListChanged()
-                                   .build()
-                               .build()}
-
-read notify TOOLS_LIST_CHANGED
-
-connect await LIFECYCLE_INITIALIZED
-        "zilla://streams/app0"
+connect await APP1_LIFECYCLE
+        "zilla://streams/app1"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
 
@@ -58,13 +50,15 @@ write zilla:begin.ext ${mcp:beginEx()
 
 connected
 
-read '{"tools":[{"name":"get_weather"}]}'
+read  '{"tools":[{"name":"post"}]}'
 read closed
 
 write close
 
-connect await TOOLS_LIST_CHANGED
-        "zilla://streams/app0"
+read notify APP1_REFRESH_1
+
+connect await APP1_REFRESH_1
+        "zilla://streams/app1"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
 
@@ -77,7 +71,68 @@ write zilla:begin.ext ${mcp:beginEx()
 
 connected
 
-read '{"tools":[{"name":"get_weather"},{"name":"get_time"}]}'
+read  '{"tools":[{"name":"post"},{"name":"like"}]}'
 read closed
 
 write close
+
+read notify APP1_REFRESH_2
+
+connect await APP1_REFRESH_2
+        "zilla://streams/app2"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+
+write zilla:begin.ext ${mcp:beginEx()
+                           .typeId(zilla:id("mcp"))
+                           .lifecycle()
+                               .build()
+                           .build()}
+
+connected
+
+read zilla:begin.ext ${mcp:matchBeginEx()
+                          .typeId(zilla:id("mcp"))
+                          .lifecycle()
+                              .sessionId("5ca1ab1e-c0de-4a11-feed-0001".concat(affinity))
+                              .build()
+                          .build()}
+
+read notify APP2_LIFECYCLE
+
+connect await APP2_LIFECYCLE
+        "zilla://streams/app2"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+
+write zilla:begin.ext ${mcp:beginEx()
+                           .typeId(zilla:id("mcp"))
+                           .toolsList()
+                               .sessionId("5ca1ab1e-c0de-4a11-feed-0001".concat(affinity))
+                               .build()
+                           .build()}
+
+connected
+
+read  '{"tools":[{"name":"get_current_time"}]}'
+read closed
+
+write close
+
+read notify APP2_REFRESH_1
+
+connect await APP2_REFRESH_1
+        "zilla://streams/app2"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+
+write zilla:begin.ext ${mcp:beginEx()
+                           .typeId(zilla:id("mcp"))
+                           .toolsList()
+                               .sessionId("5ca1ab1e-c0de-4a11-feed-0001".concat(affinity))
+                               .build()
+                           .build()}
+
+connected
+
+read aborted

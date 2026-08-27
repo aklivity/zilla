@@ -33,3 +33,24 @@ read zilla:begin.ext ${mcp:matchBeginEx()
                               .sessionId("5ca1ab1e-c0de-4a11-b007-000100000000")
                               .build()
                           .build()}
+
+read notify LIFECYCLE_INITIALIZED
+
+connect await LIFECYCLE_INITIALIZED
+        "zilla://streams/app0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+
+write zilla:begin.ext ${mcp:beginEx()
+                           .typeId(zilla:id("mcp"))
+                           .toolsList()
+                               .sessionId("5ca1ab1e-c0de-4a11-b007-000100000000")
+                               .build()
+                           .build()}
+
+connected
+
+read  '{"tools":[{"name":"get_weather"}]}'
+read closed
+
+write close

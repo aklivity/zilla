@@ -13,11 +13,7 @@
 # specific language governing permissions and limitations under the License.
 #
 
-property affinity "00000000"
-
-property serverAddress "zilla://streams/app0"
-
-accept ${serverAddress}
+accept "zilla://streams/app1"
        option zilla:window 8192
        option zilla:transmission "half-duplex"
 
@@ -31,32 +27,13 @@ read zilla:begin.ext ${mcp:matchBeginEx()
 
 connected
 
-write zilla:begin.ext ${mcp:beginEx()
+write zilla:reset.ext ${mcp:resetEx()
                            .typeId(zilla:id("mcp"))
-                           .lifecycle()
-                               .sessionId("5ca1ab1e-c0de-4a11-b007-000100000000")
+                           .bearer()
+                               .realm("github")
+                               .scopes("repo")
+                               .error("INSUFFICIENT_SCOPE")
                                .build()
                            .build()}
-write flush
 
-accepted
-
-read zilla:begin.ext ${mcp:matchBeginEx()
-                          .typeId(zilla:id("mcp"))
-                          .toolsList()
-                              .sessionId("5ca1ab1e-c0de-4a11-b007-000100000000")
-                              .build()
-                          .build()}
-
-connected
-
-write flush
-
-read await CLIENT_AWAITER_REGISTERED
-
-write '{"tools":[{"name":"get_weather"}]}'
-write flush
-
-write close
-
-read closed
+read abort

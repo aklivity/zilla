@@ -45,18 +45,22 @@ read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .toolsCall()
                               .sessionId("5ca1ab1e-c0de-4a11-b007-0001".concat(affinity))
-                              .name("get_weather")
-                              .contentLength(59)
+                              .name("zilla__execute_tool")
+                              .contentLength(102)
                               .build()
                           .build()}
 
 connected
 
 read  '{'
-        '"name":"get_weather",'
+        '"name":"zilla__execute_tool",'
         '"arguments":'
         '{'
-          '"location": "New York"'
+          '"name":"get_weather",'
+          '"arguments":'
+          '{'
+            '"location": "New York"'
+          '}'
         '}'
       '}'
 
