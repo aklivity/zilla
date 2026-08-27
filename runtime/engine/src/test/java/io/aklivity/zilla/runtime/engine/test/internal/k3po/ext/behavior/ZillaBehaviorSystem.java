@@ -35,6 +35,7 @@ import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.Zill
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.CONFIG_RESET_EXT;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_ACK;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_FLAGS;
+import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_WINDOW;
 import static java.util.Collections.unmodifiableMap;
 import static java.util.stream.Collectors.toList;
 
@@ -95,6 +96,7 @@ import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.handler.
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.handler.ReadEndExtHandler;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.handler.ReadFlagsOptionHandler;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.handler.ReadNullDataHandler;
+import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.handler.ReadWindowOptionHandler;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.handler.WriteAbortedExtHandler;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.handler.WriteEmptyDataHandler;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.handler.WriteFlagsOptionHandler;
@@ -120,6 +122,7 @@ public class ZillaBehaviorSystem implements BehaviorSystemSpi
         Map<TypeInfo<?>, ReadOptionFactory> readOptionFactories = new LinkedHashMap<>();
         readOptionFactories.put(OPTION_FLAGS, ZillaBehaviorSystem::newReadFlagsHandler);
         readOptionFactories.put(OPTION_ACK, ZillaBehaviorSystem::newReadAckHandler);
+        readOptionFactories.put(OPTION_WINDOW, ZillaBehaviorSystem::newReadWindowHandler);
         this.readOptionFactories = unmodifiableMap(readOptionFactories);
 
         Map<TypeInfo<?>, WriteOptionFactory> writeOptionsFactories = new LinkedHashMap<>();
@@ -287,6 +290,16 @@ public class ZillaBehaviorSystem implements BehaviorSystemSpi
         AstValue<?> ackValue = node.getOptionValue();
         int value = ackValue.accept(new GenerateAckOptionValueVisitor(), null);
         ReadAckOptionHandler handler = new ReadAckOptionHandler(value);
+        handler.setRegionInfo(node.getRegionInfo());
+        return handler;
+    }
+
+    private static ChannelHandler newReadWindowHandler(
+            AstReadOptionNode node)
+    {
+        AstValue<?> windowValue = node.getOptionValue();
+        int value = windowValue.accept(new GenerateAckOptionValueVisitor(), null);
+        ReadWindowOptionHandler handler = new ReadWindowOptionHandler(value);
         handler.setRegionInfo(node.getRegionInfo());
         return handler;
     }
