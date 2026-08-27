@@ -1172,6 +1172,10 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             }
             else
             {
+                if (isSetWillFlag(sessionFlags))
+                {
+                    session.doKafkaBeginIfNecessary(traceId, authorization, affinity);
+                }
                 openMetaStreams(traceId, authorization);
             }
         }
@@ -1423,6 +1427,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                 }).build();
 
             doMqttBegin(traceId, authorization, 0, mqttBeginEx);
+            session.doKafkaEnd(traceId, authorization);
             session = new KafkaSessionStateProxy(routedId, resolvedId, this);
             session.doKafkaBeginIfNecessary(traceId, authorization, 0);
         }
@@ -4839,7 +4844,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             kafkaBeginExRW.wrap(writeBuffer, BeginFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())
                 .typeId(kafkaTypeId)
                 .merged(m ->
-                    m.capabilities(c -> c.set(KafkaCapabilities.FETCH_ONLY))
+                    m.capabilities(c -> c.set(KafkaCapabilities.PRODUCE_AND_FETCH))
                         .topic(topic)
                         .partitionsItem(p ->
                             p.partitionId(KafkaOffsetType.HISTORICAL.value())

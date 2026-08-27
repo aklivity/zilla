@@ -363,9 +363,10 @@ abstract class McpProxyListFactory implements BindingHandler
         }
 
         private void doClientBegin(
-            long traceId)
+            long traceId,
+            long authorization)
         {
-            lifecycle.doClientBegin(traceId);
+            lifecycle.doClientBegin(traceId, authorization);
             lifecycle.register(traceId, this);
         }
 
@@ -391,7 +392,7 @@ abstract class McpProxyListFactory implements BindingHandler
                     .build();
 
                 sender = newStream(this::onClientMessage, originId, routedId, initialId,
-                    initialSeq, initialAck, initialMax, traceId, lifecycle.authorization, server.affinity, beginEx);
+                    initialSeq, initialAck, initialMax, traceId, server.authorization, server.affinity, beginEx);
                 state = McpState.openingInitial(state);
             }
             else
@@ -409,7 +410,7 @@ abstract class McpProxyListFactory implements BindingHandler
                 if (McpState.initialOpening(state))
                 {
                     doEnd(sender, originId, routedId, initialId,
-                        initialSeq, initialAck, initialMax, traceId, lifecycle.authorization);
+                        initialSeq, initialAck, initialMax, traceId, server.authorization);
                 }
                 state = McpState.closedInitial(state);
             }
@@ -423,7 +424,7 @@ abstract class McpProxyListFactory implements BindingHandler
                 if (McpState.initialOpening(state))
                 {
                     doAbort(sender, originId, routedId, initialId,
-                        initialSeq, initialAck, initialMax, traceId, lifecycle.authorization);
+                        initialSeq, initialAck, initialMax, traceId, server.authorization);
                 }
                 state = McpState.closedInitial(state);
             }
@@ -437,7 +438,7 @@ abstract class McpProxyListFactory implements BindingHandler
                 if (McpState.initialOpening(state))
                 {
                     doReset(sender, originId, routedId, replyId,
-                        replySeq, replyAck, replyMax, traceId, lifecycle.authorization, emptyRO);
+                        replySeq, replyAck, replyMax, traceId, server.authorization, emptyRO);
                 }
                 state = McpState.closedReply(state);
             }
@@ -452,7 +453,7 @@ abstract class McpProxyListFactory implements BindingHandler
             {
                 state = McpState.openedReply(state);
                 doWindow(sender, originId, routedId, replyId,
-                    replySeq, replyAck, replyMax, traceId, lifecycle.authorization, budgetId, padding);
+                    replySeq, replyAck, replyMax, traceId, server.authorization, budgetId, padding);
             }
         }
 
@@ -592,6 +593,7 @@ abstract class McpProxyListFactory implements BindingHandler
             state = McpState.closedReply(state);
             cleanupClientSlot();
             doClientEnd(traceId);
+            server.anySucceeded = true;
             server.onClientClosed(traceId);
         }
 
@@ -730,7 +732,7 @@ abstract class McpProxyListFactory implements BindingHandler
             if (replySlot != NO_SLOT)
             {
                 final MutableDirectBufferEx slot = bufferPool.buffer(replySlot);
-                decode(traceId, lifecycle.authorization, 0L, 0, slot, 0, replySlotOffset);
+                decode(traceId, server.authorization, 0L, 0, slot, 0, replySlotOffset);
             }
         }
 
@@ -1545,6 +1547,8 @@ abstract class McpProxyListFactory implements BindingHandler
 
         private int state;
         private int itemsEmitted;
+        private boolean anySucceeded;
+        private boolean anyErrored;
         private McpListClient client;
 
         private int preludeProgress;
@@ -1784,8 +1788,21 @@ abstract class McpProxyListFactory implements BindingHandler
         private void onClientError(
             long traceId)
         {
-            remaining.clear();
-            doServerAbort(traceId);
+            anyErrored = true;
+            // a route erroring (Abort/Reset/buffer exhaustion) only fails the overall response
+            // when every route that was tried errored and none ever succeeded -- a sole failing
+            // route, or one among several, is otherwise excluded the same way an
+            // unauthorized/skipped route already is, converging to an empty list
+            if (hydration || remaining.isEmpty() && !anySucceeded)
+            {
+                remaining.clear();
+                doServerAbort(traceId);
+            }
+            else
+            {
+                client = null;
+                onNextClient(traceId);
+            }
         }
 
         private void onClientSkip(
@@ -1817,7 +1834,7 @@ abstract class McpProxyListFactory implements BindingHandler
                 ? name -> routeConfig.admits(kind, name)
                 : null;
             client = new McpListClient(this, route.resolvedId(), route.prefix(), admits, guard);
-            client.doClientBegin(traceId);
+            client.doClientBegin(traceId, authorization);
         }
 
         private boolean doEncodeFraming(

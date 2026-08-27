@@ -632,6 +632,24 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/lifecycle.shutdown.session.unknown/client",
+        "${net}/lifecycle.shutdown.session.unknown/server"})
+    public void shouldRejectLifecycleShutdownSessionUnknown() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/lifecycle.shutdown.session.missing/client",
+        "${net}/lifecycle.shutdown.session.missing/server"})
+    public void shouldRejectLifecycleShutdownSessionMissing() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/lifecycle.redirect.session/client",
         "${net}/lifecycle.redirect.session/server"})
     public void shouldRedirectLifecycleForRemoteSession() throws Exception

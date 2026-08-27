@@ -20,7 +20,6 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.types.McpCapabiliti
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.McpCapabilities.SERVER_RESOURCES_SUBSCRIBE;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_LIFECYCLE;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
-import static io.aklivity.zilla.runtime.engine.guard.GuardHandler.MASK_AUTHORIZED;
 
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
@@ -98,6 +97,10 @@ import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 
 public final class McpServerFactory implements McpStreamFactory
 {
+    private static final Runnable NOOP = () ->
+    {
+    };
+
     private static final String MCP_PROTOCOL_VERSION = "2025-11-25";
     private static final Set<String> SUPPORTED_PROTOCOL_VERSIONS = Set.of("2025-06-18", MCP_PROTOCOL_VERSION);
 
@@ -446,7 +449,7 @@ public final class McpServerFactory implements McpStreamFactory
                         routedId,
                         initialId,
                         resolvedAuthorization,
-                        authResult.owned(),
+                        authResult.deauthorize(),
                         resolvedId,
                         binding,
                         session,
@@ -462,6 +465,8 @@ public final class McpServerFactory implements McpStreamFactory
                     originId,
                     routedId,
                     initialId,
+                    resolvedAuthorization,
+                    authResult.deauthorize(),
                     binding,
                     session,
                     httpBeginEx,
@@ -471,14 +476,21 @@ public final class McpServerFactory implements McpStreamFactory
                     altSvc);
                 break;
             case "DELETE":
-                newStream = new McpShutdownHandler(
-                    sender,
-                    originId,
-                    routedId,
-                    initialId,
-                    resolvedId,
-                    session,
-                    altSvc)::onNetMessage;
+                if (session == null)
+                {
+                    newStream = new McpRejectHandler(sender, STATUS_400)::onNetBegin;
+                }
+                else
+                {
+                    newStream = new McpShutdownHandler(
+                        sender,
+                        originId,
+                        routedId,
+                        initialId,
+                        resolvedId,
+                        session,
+                        altSvc)::onNetMessage;
+                }
                 break;
             default:
                 newStream = new McpRejectHandler(sender, STATUS_405)::onNetBegin;
@@ -494,6 +506,8 @@ public final class McpServerFactory implements McpStreamFactory
         long originId,
         long routedId,
         long initialId,
+        long authorization,
+        Runnable deauthorize,
         McpBindingConfig binding,
         McpLifecycleStream session,
         HttpBeginExFW httpBeginEx,
@@ -521,14 +535,17 @@ public final class McpServerFactory implements McpStreamFactory
         }
         else if (!acceptIncludesEventStream(accept))
         {
+            deauthorize.run();
             newStream = new McpRejectHandler(sender, STATUS_406)::onNetBegin;
         }
         else if (session == null)
         {
+            deauthorize.run();
             newStream = new McpRejectHandler(sender, STATUS_400)::onNetBegin;
         }
         else if (session.eventsUnsupported)
         {
+            deauthorize.run();
             newStream = new McpRejectHandler(sender, STATUS_405)::onNetBegin;
         }
         else
@@ -556,6 +573,7 @@ public final class McpServerFactory implements McpStreamFactory
 
             if (lastEventIdPrefix != null && !lastEventIdPrefix.isEmpty() && resolvedRequest == null)
             {
+                deauthorize.run();
                 newStream = new McpRejectHandler(sender, STATUS_400)::onNetBegin;
             }
             else
@@ -565,6 +583,8 @@ public final class McpServerFactory implements McpStreamFactory
                     originId,
                     routedId,
                     initialId,
+                    authorization,
+                    deauthorize,
                     session,
                     resolvedRequest,
                     resumeEventId,
@@ -1464,10 +1484,8 @@ public final class McpServerFactory implements McpStreamFactory
         private final long initialId;
         private final long replyId;
         private final long authorization;
-        private final boolean guardSessionOwned;
+        private Runnable deauthorize;
         private final long resolvedId;
-
-        private boolean guardSessionDeauthorized;
 
         private McpLifecycleStream session;
 
@@ -1523,7 +1541,7 @@ public final class McpServerFactory implements McpStreamFactory
             long routedId,
             long initialId,
             long authorization,
-            boolean guardSessionOwned,
+            Runnable deauthorize,
             long resolvedId,
             McpBindingConfig binding,
             McpLifecycleStream session,
@@ -1538,7 +1556,7 @@ public final class McpServerFactory implements McpStreamFactory
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.authorization = authorization;
-            this.guardSessionOwned = guardSessionOwned;
+            this.deauthorize = deauthorize;
             this.resolvedId = resolvedId;
             this.binding = binding;
             this.session = session;
@@ -1934,7 +1952,7 @@ public final class McpServerFactory implements McpStreamFactory
             }
 
             cleanupEncodeSlot();
-            deauthorizeGuardSession();
+            onNetClosed();
         }
 
         private void doNetAbort(
@@ -1949,7 +1967,7 @@ public final class McpServerFactory implements McpStreamFactory
             }
 
             cleanupEncodeSlot();
-            deauthorizeGuardSession();
+            onNetClosed();
         }
 
         private void doNetWindow(
@@ -1983,17 +2001,13 @@ public final class McpServerFactory implements McpStreamFactory
                     initialSeq, initialAck, initialMax, traceId, authorization, extension);
             }
 
-            deauthorizeGuardSession();
+            onNetClosed();
         }
 
-        private void deauthorizeGuardSession()
+        private void onNetClosed()
         {
-            if (!guardSessionDeauthorized &&
-                guardSessionOwned && binding.guard != null && (authorization & MASK_AUTHORIZED) != 0L)
-            {
-                guardSessionDeauthorized = true;
-                binding.guard.deauthorize(authorization);
-            }
+            deauthorize.run();
+            deauthorize = NOOP;
         }
 
         private void flushNetWindow(
@@ -4235,6 +4249,8 @@ public final class McpServerFactory implements McpStreamFactory
         private final long routedId;
         private final long initialId;
         private final long replyId;
+        private final long authorization;
+        private Runnable deauthorize;
         private final McpLifecycleStream session;
 
         private long initialSeq;
@@ -4266,6 +4282,8 @@ public final class McpServerFactory implements McpStreamFactory
             long originId,
             long routedId,
             long initialId,
+            long authorization,
+            Runnable deauthorize,
             McpLifecycleStream session,
             McpRequestStream request,
             String lastEventId,
@@ -4276,6 +4294,8 @@ public final class McpServerFactory implements McpStreamFactory
             this.routedId = routedId;
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
+            this.authorization = authorization;
+            this.deauthorize = deauthorize;
             this.session = session;
             this.request = request;
             this.lastEventId = lastEventId;
@@ -4330,7 +4350,6 @@ public final class McpServerFactory implements McpStreamFactory
             final long sequence = begin.sequence();
             final long acknowledge = begin.acknowledge();
             final long traceId = begin.traceId();
-            final long authorization = begin.authorization();
 
             initialSeq = sequence;
             initialAck = acknowledge;
@@ -4446,7 +4465,7 @@ public final class McpServerFactory implements McpStreamFactory
 
             state = McpState.closedInitial(state);
 
-            notifySuspendedToSession(traceId, authorization);
+            notifySuspendedToSession(traceId);
 
             doNetAbort(traceId, authorization);
         }
@@ -4486,14 +4505,13 @@ public final class McpServerFactory implements McpStreamFactory
             final long traceId = reset.traceId();
             final long authorization = reset.authorization();
 
-            notifySuspendedToSession(traceId, authorization);
+            notifySuspendedToSession(traceId);
 
             cleanupNet(traceId, authorization);
         }
 
         private void notifySuspendedToSession(
-            long traceId,
-            long authorization)
+            long traceId)
         {
             if (request != null)
             {
@@ -4792,6 +4810,7 @@ public final class McpServerFactory implements McpStreamFactory
             }
 
             cleanupEncodeSlot();
+            onNetClosed();
         }
 
         private void doNetAbort(
@@ -4812,6 +4831,7 @@ public final class McpServerFactory implements McpStreamFactory
             }
 
             cleanupEncodeSlot();
+            onNetClosed();
         }
 
         private void doNetReset(
@@ -4824,6 +4844,8 @@ public final class McpServerFactory implements McpStreamFactory
                 doReset(net, originId, routedId, initialId,
                     initialSeq, initialAck, initialMax, traceId, authorization, emptyRO);
             }
+
+            onNetClosed();
         }
 
         private void doNetWindow(
@@ -4901,6 +4923,12 @@ public final class McpServerFactory implements McpStreamFactory
         {
             doNetReset(traceId, authorization);
             doNetAbort(traceId, authorization);
+        }
+
+        private void onNetClosed()
+        {
+            deauthorize.run();
+            deauthorize = NOOP;
         }
 
         private void injectAltSvc(
