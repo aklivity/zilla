@@ -56,6 +56,15 @@ public class ProxyCacheIT
 
     @Test
     @Specification({
+        "${app}/cache.hydrate.reset/client",
+        "${app}/cache.hydrate.reset/server" })
+    public void shouldHydrateReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/cache.hydrate.credentials/client",
         "${app}/cache.hydrate.credentials/server" })
     public void shouldHydrateWithCredentials() throws Exception

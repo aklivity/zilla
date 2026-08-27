@@ -20,26 +20,8 @@ connect "zilla://streams/app0"
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .lifecycle()
-                               .authCallback("http://localhost:8080/mcp/auth/callback")
                                .build()
                            .build()}
-
-write advised zilla:challenge ${mcp:matchChallengeEx()
-                                    .typeId(zilla:id("mcp"))
-                                    .elicitCreate()
-                                        .id("elicit-1")
-                                        .url("https://server.example.com/authorize?state=7f3a9b1c&redirect_uri=%s".formatted(http:encodeQuery("http://localhost:8080/mcp/auth/callback")))
-                                        .correlationId("3")
-                                        .build()
-                                    .build()}
-
-write advise zilla:flush ${mcp:flushEx()
-                              .typeId(zilla:id("mcp"))
-                              .elicitCallback()
-                                  .url("http://localhost:8080/mcp/auth/callback?code=xyz&state=7f3a9b1c")
-                                  .correlationId("3")
-                                  .build()
-                              .build()}
 
 connected
 
@@ -59,15 +41,18 @@ connect await LIFECYCLE_INITIALIZED
 
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
-                           .toolsCall()
+                           .toolsList()
                                .sessionId("5ca1ab1e-c0de-4a11-5e55-000100000000")
-                               .name("get_weather")
-                               .contentLength(59)
-                               .timeout(0)
                                .build()
                            .build()}
 
-# timeout is zero — the request is not held; the binding challenges then rejects
-# the request, the server emits -32042 to the connecting client out of band
+connected
 
-connect aborted
+read  '{"tools":'
+        '['
+          '{"name":"bluesky__get_weather"}'
+        ']'
+      '}'
+read closed
+
+write close

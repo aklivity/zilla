@@ -14,12 +14,10 @@
 #
 
 property affinity "00000000"
-property authorization 0L
 
 accept "zilla://streams/app1"
        option zilla:window 8192
        option zilla:transmission "half-duplex"
-       option zilla:authorization ${authorization}
 
 accepted
 
@@ -66,7 +64,6 @@ read closed
 accept "zilla://streams/app2"
        option zilla:window 8192
        option zilla:transmission "half-duplex"
-       option zilla:authorization ${authorization}
 
 accepted
 
@@ -97,15 +94,4 @@ read zilla:begin.ext ${mcp:matchBeginEx()
 
 connected
 
-write flush
-
-write '{"tools":'
-        '['
-          '{"name":"get_current_time"}'
-        ']'
-      '}'
-write flush
-
-write close
-
-read closed
+write abort
