@@ -216,6 +216,16 @@ public class McpClientIT
     }
 
     @Test
+    @Configuration("client.guarded.yaml")
+    @Specification({
+        "${app}/tools.call.concurrent.lifecycle.preauthorize/client",
+        "${net}/tools.call.concurrent.lifecycle.preauthorize/server"})
+    public void shouldCallToolConcurrentWithLifecyclePreauthorize() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("client.yaml")
     @Specification({
         "${app}/lifecycle.timeout.rejected/client",

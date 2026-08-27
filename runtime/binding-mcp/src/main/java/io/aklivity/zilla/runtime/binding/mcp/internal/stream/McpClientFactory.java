@@ -2517,7 +2517,9 @@ public final class McpClientFactory implements McpStreamFactory
 
             if ((sessionId & GuardHandler.MASK_AUTHORIZED) != 0L)
             {
-                pendingConnect = false;
+                // pendingConnect stays true until the south handshake actually finishes (see
+                // onNetEnd) -- the guard has decided, but this session is not yet ready to carry
+                // other south-bound traffic
                 credentials = guard.credentials(sessionId);
                 guardSessionId = sessionId;
                 resumeDeferredConnect(acquireTraceId, acquireAuthorization);
@@ -2550,16 +2552,19 @@ public final class McpClientFactory implements McpStreamFactory
                     .build();
                 doAppChallenge(acquireTraceId, acquireAuthorization, challengeEx);
 
+                // still pendingConnect: a request whose own proceedWithRequest observes this
+                // rejects rather than independently asking the same guard the same question
                 return;
             }
 
-            pendingConnect = false;
             if (!binding.needsCredentials)
             {
+                // pendingConnect stays true until the south handshake finishes -- see onNetEnd
                 resumeDeferredConnect(acquireTraceId, acquireAuthorization);
             }
             else
             {
+                pendingConnect = false;
                 doAppReset(acquireTraceId, acquireAuthorization);
                 doAppAbort(acquireTraceId, acquireAuthorization);
             }
@@ -2831,10 +2836,11 @@ public final class McpClientFactory implements McpStreamFactory
             {
                 deauthorizeGuardSession();
                 guardSessionId = sessionId;
+                credentials = binding.guard.credentials(sessionId);
 
                 if (pendingConnect)
                 {
-                    pendingConnect = false;
+                    // pendingConnect stays true until the south handshake finishes -- see onNetEnd
                     resumeDeferredConnect(acquireTraceId, acquireAuthorization);
                     return;
                 }
@@ -2902,6 +2908,10 @@ public final class McpClientFactory implements McpStreamFactory
                     .build());
                 touch();
                 scheduleKeepalive(traceId);
+
+                // the south handshake has now genuinely finished -- only now is this session
+                // actually ready to carry other south-bound traffic
+                pendingConnect = false;
             }
         }
 
@@ -3145,6 +3155,15 @@ public final class McpClientFactory implements McpStreamFactory
             long authorization,
             McpBeginExFW mcpBeginEx)
         {
+            // the session's own connect is already asking the guard this same question; a request
+            // landing here cannot be for a caller that legitimately learned this session id yet
+            if (session.pendingConnect)
+            {
+                doAppReset(traceId, authorization);
+                doAppAbort(traceId, authorization);
+                return false;
+            }
+
             doAppBegin(traceId, authorization, null);
 
             final GuardHandler guard = session.binding.guard;
@@ -3163,10 +3182,6 @@ public final class McpClientFactory implements McpStreamFactory
                 }
             }
 
-            // the asynchronous overload completes on a later turn in every case, whether the
-            // guard decides locally or has to reach an authorization server for an outbound
-            // token exchange, so there is one path here: hold the request and buffer its body
-            // until the decision arrives
             acquireTraceId = traceId;
             acquireAuthorization = authorization;
             guard.reauthorize(traceId, session.binding.id, authorization, null, acquireCompletion);
