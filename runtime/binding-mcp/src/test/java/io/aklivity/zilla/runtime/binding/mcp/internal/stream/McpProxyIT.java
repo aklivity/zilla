@@ -210,7 +210,7 @@ public class McpProxyIT
     @Specification({
         "${app}/tools.list.toolkit.multi.prefixed/client",
         "${app}/tools.list.toolkit.multi/server" })
-    @ScriptProperty("affinity \"0000003f\"")
+    @ScriptProperty({"affinity \"0000003f\"", "authorization 1L"})
     public void shouldListToolsWithToolkitMulti() throws Exception
     {
         k3po.finish();
@@ -307,6 +307,7 @@ public class McpProxyIT
 
     @Test
     @Configuration("proxy.toolkit.multi.yaml")
+    @ScriptProperty("authorization 1L")
     @Specification({
         "${app}/lifecycle.events.resume.aggregate.prefixed/client",
         "${app}/lifecycle.events.resume.aggregate/server" })

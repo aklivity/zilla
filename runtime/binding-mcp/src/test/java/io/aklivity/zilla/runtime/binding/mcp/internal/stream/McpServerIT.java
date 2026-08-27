@@ -750,7 +750,8 @@ public class McpServerIT
     }
 
     @Test
-    @Configuration("server.yaml")
+    @Configuration("server.guarded.yaml")
+    @ScriptProperty("authorization 1L")
     @Specification({
         "${net}/lifecycle.events.resume/client",
         "${app}/lifecycle.events.resume/server"})
