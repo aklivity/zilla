@@ -26,6 +26,7 @@ import java.util.function.LongFunction;
 import java.util.function.LongUnaryOperator;
 
 import org.agrona.collections.Long2ObjectHashMap;
+import org.agrona.collections.LongHashSet;
 
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpAggregateEventId;
@@ -219,6 +220,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
         private final boolean hydration;
         private final Long2ObjectHashMap<McpLifecycleClient> clients;
         private final Long2ObjectHashMap<String> eventIds;
+        private final LongHashSet interactiveAuthRoutes;
 
         private int state;
         private boolean resumePending;
@@ -263,12 +265,25 @@ final class McpProxyLifecycleFactory implements BindingHandler
             this.eventIds = binding.aggregateRoutes.length > 0
                 ? new Long2ObjectHashMap<>()
                 : null;
+            this.interactiveAuthRoutes = new LongHashSet();
         }
 
         McpLifecycleClient supplyClient(
             long routedId)
         {
             return clients.computeIfAbsent(routedId, id -> new McpLifecycleClient(this, id));
+        }
+
+        // true once this route's own south connect has settled without ever obtaining a
+        // session -- the only way that happens is a preauthorize challenge that only a real,
+        // interactive caller can answer, so a hydration retry would just repeat the same
+        // unanswerable challenge; tracked here rather than on McpLifecycleClient because that
+        // per-attempt object is discarded (removed from clients) as soon as its south connect
+        // closes, well before the next hydration retry gets a chance to ask
+        boolean needsInteractiveAuth(
+            long routedId)
+        {
+            return interactiveAuthRoutes.contains(routedId);
         }
 
         private boolean aggregating()
@@ -850,6 +865,11 @@ final class McpProxyLifecycleFactory implements BindingHandler
         private MessageConsumer sender;
         private int state;
         private boolean settled;
+        // true once an actual preauthorize challenge (elicitation) arrived on this south
+        // connect -- as opposed to settling without a session for some other, ordinary
+        // transient reason (a reset, a rejected concurrent request, a network hiccup), which
+        // stays retriable exactly as before this route existed
+        private boolean challenged;
         String sessionId;
         long authorization;
         private String resumeId;
@@ -1165,6 +1185,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
             final long authorization = challenge.authorization();
             final OctetsFW extension = challenge.extension();
 
+            challenged = true;
             settleLifecycle(traceId);
 
             server.doServerChallenge(traceId, authorization, prefixChallengeCorrelationId(extension));
@@ -1213,6 +1234,10 @@ final class McpProxyLifecycleFactory implements BindingHandler
             if (!settled)
             {
                 settled = true;
+                if (server.hydration && sessionId == null && challenged)
+                {
+                    server.interactiveAuthRoutes.add(routedId);
+                }
                 server.onClientLifecycleOpened(traceId);
             }
         }
@@ -1236,6 +1261,13 @@ final class McpProxyLifecycleFactory implements BindingHandler
             {
                 sessionId = beginEx.lifecycle().sessionId().asString();
                 server.binding.recordServerCapabilities(routedId, beginEx.lifecycle().capabilities());
+            }
+
+            if (sessionId != null)
+            {
+                // a session was obtained after all (e.g. a human completed the interactive
+                // auth this route previously needed) -- hydration retries can resume
+                server.interactiveAuthRoutes.remove(routedId);
             }
 
             doClientWindow(traceId, 0L, 0);

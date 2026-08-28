@@ -375,13 +375,26 @@ public final class McpProxyCacheHydrater
                 pending = routes.size();
                 for (McpRoutePrefix route : routes)
                 {
-                    final long authorization = binding.routeCacheAuthorization(traceId, route.resolvedId());
                     final List<String> routeScopes = flattenRoles(route.route().roles);
                     final McpListRouteSink sink = new McpListRouteSink(this, route.prefix().asString(), routeScopes);
                     sinks.add(sink);
-                    sink.server = listFactory.newHydrationList(
-                        handler.lifecycle, sink::onMessage, authorization,
-                        bufferPool.slotCapacity(), route, traceId);
+                    if (handler.lifecycle.needsInteractiveAuth(route.resolvedId()))
+                    {
+                        // this route's own south connect already settled without a session -- a
+                        // preauthorize challenge only a real, interactive caller can answer, so
+                        // dialing again would just repeat the same unanswerable challenge; treat
+                        // it as permanently empty for hydration instead
+                        sink.settled = true;
+                        sink.failed = true;
+                        onRouteSettled(sink, traceId);
+                    }
+                    else
+                    {
+                        final long authorization = binding.routeCacheAuthorization(traceId, route.resolvedId());
+                        sink.server = listFactory.newHydrationList(
+                            handler.lifecycle, sink::onMessage, authorization,
+                            bufferPool.slotCapacity(), route, traceId);
+                    }
                 }
             }
         }
