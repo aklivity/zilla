@@ -82,7 +82,7 @@ bindings:
       reject:
         - "You will never believe what happened next."
         - "I have a massive secret but I absolutely cannot tell anyone here."
-      threshold: 0.85
+      threshold: 0.94
 ```
 
 ## Teardown
