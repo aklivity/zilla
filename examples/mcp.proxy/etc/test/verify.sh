@@ -1079,12 +1079,20 @@ fi
 #       this example -- not the engine's `type: test` double specs/ITs use --
 #       proving mcp-kafka's kind:client composite generator (kafka_cache_client
 #       -> kafka_client -> tcp_client) talks to an actual broker end to end
+#
+# a key is required here, not just for realism: a compacted topic always
+# rejects a null-key record, and a rerun against a stack whose broker was left
+# over from an earlier verify.sh run can find "orders" already marked
+# compacted (e.g. by an earlier run's own kafka__alter_topic_configs call) --
+# a keyless produce that passed on a fresh topic then fails only on reuse,
+# which is exactly the kind of rerun-only failure this example's tests
+# should not depend on the topic's history to avoid
 call_kafka_produce() {
   KAFKA_PRODUCE_OUT=$(mcp_run \
       -e JWT_TOKEN="$JWT_FULL" \
       -e MCP_URL="http://zilla:$PORT/mcp" \
       -e CALL_TOOL="kafka__produce_message" \
-      -e CALL_ARGS='{"topic":"orders","value":"hello from mcp-kafka"}' \
+      -e CALL_ARGS='{"topic":"orders","key":"order-1","value":"hello from mcp-kafka"}' \
       tools-list-client 2>&1)
   echo "$KAFKA_PRODUCE_OUT" | grep -q 'Produced record to orders topic'
 }

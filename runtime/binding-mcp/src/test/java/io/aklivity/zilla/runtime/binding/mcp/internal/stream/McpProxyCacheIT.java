@@ -147,6 +147,25 @@ public class McpProxyCacheIT
         k3po.finish();
     }
 
+    // a hydration list registrant whose route's south connect never reaches Begin/End/Abort/Reset --
+    // only a real preauthorize elicitation CHALLENGE, which no human answers on hydration's behalf --
+    // must still settle (with no session) instead of waiting on it forever: nothing but
+    // onClientChallenge's own settleRequests() call can flush that registrant, since this route's
+    // connect never produces any of the other terminal events that flush it elsewhere. Before that
+    // fix, this route's own kind never reached pending == 0, so cache.populated never became true
+    // and every caller's own initialize blocked on it project-wide, not just this one route
+    @Test
+    @Configuration("proxy.cache.toolkit.multi.yaml")
+    @Specification({
+        "${app}/cache.hydrate.toolkit.multi.challenge.route/server",
+        "${app}/cache.hydrate.toolkit.multi.challenge.route/client" })
+    @ScriptProperty("affinity \"0000003f\"")
+    @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
+    public void shouldHydrateToolkitMultiSettlingChallengedRoute() throws Exception
+    {
+        k3po.finish();
+    }
+
     @Test
     @Configuration("proxy.cache.toolkit.multi.refresh.yaml")
     @Specification({

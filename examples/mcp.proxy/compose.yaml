@@ -247,9 +247,15 @@ services:
   # "kafkaconnect" toolkit -- talks to the same real Kafka broker as the
   # "kafka" toolkit above, storing its own config/offset/status state in
   # three internal compacted topics rather than a separate database.
-  # plugin.path points at the broker distribution's own libs/ directory,
-  # which bundles the FileStreamSource/FileStreamSinkConnector classes this
-  # example's test.sh exercises -- no separate connector plugin download.
+  # plugin.path is scoped to just connect-file-*.jar, copied out of the broker
+  # distribution's own libs/ directory, rather than pointing at that whole
+  # directory -- that jar alone bundles the FileStreamSource/FileStreamSinkConnector
+  # classes this example's test.sh exercises, so no separate connector plugin
+  # download is needed either way. But plugin.path's isolating classloader scans
+  # and isolates every jar it points at, one at a time, before the worker can
+  # start serving requests; pointed at the ~100-jar libs/ directory (the rest of
+  # Kafka's own runtime, not connector plugins), that scan measured ~140s on this
+  # example's stack before this fix, against ~10s scoped to just the one jar.
   kafka-connect:
     image: apache/kafka:4.1.1
     restart: unless-stopped
@@ -288,8 +294,10 @@ services:
         status.storage.replication.factor=1
         listeners=HTTP://0.0.0.0:8083
         rest.advertised.host.name=kafka-connect
-        plugin.path=/opt/kafka/libs
+        plugin.path=/tmp/connect-plugins
         EOF
+        mkdir -p /tmp/connect-plugins
+        cp /opt/kafka/libs/connect-file-*.jar /tmp/connect-plugins/
         echo 'hello from mcp-kafka-connect' > /tmp/kc-source.txt
         exec /opt/kafka/bin/connect-distributed.sh /tmp/connect-distributed.properties
 
