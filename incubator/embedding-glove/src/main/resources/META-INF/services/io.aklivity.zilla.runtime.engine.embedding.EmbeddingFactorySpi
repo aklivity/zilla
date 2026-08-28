@@ -1,1 +1,1 @@
-io.aklivity.zilla.runtime.embedding.djl.internal.DjlEmbeddingFactorySpi
+io.aklivity.zilla.runtime.embedding.glove.internal.GloveEmbeddingFactorySpi
