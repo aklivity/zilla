@@ -25,22 +25,39 @@
     <module>binding-pgsql-kafka.conf</module>
     <module>binding-risingwave.spec</module>
     <module>binding-risingwave.conf</module>
+    <module>embedding-djl.spec</module>
+    <module>embedding-djl.conf</module>
 
     <module>binding-amqp</module>
     <module>binding-pgsql</module>
     <module>binding-pgsql-kafka</module>
     <module>binding-risingwave</module>
+    <module>embedding-djl</module>
 
     <module>command-log</module>
     <module>command-dump</module>
     <module>command-tune</module>
   </modules>
 
+  <properties>
+    <djl.version>0.36.0</djl.version>
+  </properties>
+
   <dependencyManagement>
     <dependencies>
       <dependency>
         <groupId>io.aklivity.zilla</groupId>
         <artifactId>common-agrona</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>embedding-djl</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>embedding-djl.conf</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
