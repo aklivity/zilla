@@ -31,6 +31,7 @@
         <include>io/aklivity/zilla/common-*/**</include>
         <include>io/aklivity/zilla/binding-*/**</include>
         <include>io/aklivity/zilla/catalog-*/**</include>
+        <include>io/aklivity/zilla/embedding-*/**</include>
         <include>io/aklivity/zilla/exporter-*/**</include>
         <include>io/aklivity/zilla/filesystem-*/**</include>
         <include>io/aklivity/zilla/guard-*/**</include>

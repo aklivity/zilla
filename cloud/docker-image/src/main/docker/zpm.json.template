@@ -67,7 +67,7 @@
     "io.aklivity.zilla:command-stop",
     "io.aklivity.zilla:command-version",
     "io.aklivity.zilla:command-tune",
-    "io.aklivity.zilla:embedding-djl",
+    "io.aklivity.zilla:embedding-glove",
     "io.aklivity.zilla:engine",
     "io.aklivity.zilla:exporter-otlp",
     "io.aklivity.zilla:exporter-prometheus",
