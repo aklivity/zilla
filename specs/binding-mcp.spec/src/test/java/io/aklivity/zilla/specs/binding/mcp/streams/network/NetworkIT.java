@@ -353,6 +353,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/tools.call.concurrent.lifecycle.preauthorize/client",
+        "${net}/tools.call.concurrent.lifecycle.preauthorize/server"})
+    public void shouldCallToolConcurrentWithLifecyclePreauthorize() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/tools.call.identity/client",
         "${net}/tools.call.identity/server"})
     public void shouldCallToolWithIdentity() throws Exception
@@ -986,6 +995,15 @@ public class NetworkIT
         "${net}/tools.call.elicit.completed.proxied/client",
         "${net}/tools.call.elicit.completed.proxied/server"})
     public void shouldCallToolElicitCompletedProxied() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/tools.call.elicit.completed.proxied.string.id/client",
+        "${net}/tools.call.elicit.completed.proxied.string.id/server"})
+    public void shouldCallToolElicitCompletedProxiedStringId() throws Exception
     {
         k3po.finish();
     }

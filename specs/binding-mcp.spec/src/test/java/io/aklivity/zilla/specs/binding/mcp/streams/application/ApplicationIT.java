@@ -749,6 +749,24 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/lifecycle.hold.tools.call.after.authorize.toolkit.multi/client",
+        "${app}/lifecycle.hold.tools.call.after.authorize.toolkit.multi/server"})
+    public void shouldHoldToolCallOpenThroughOutstandingLifecycleChallenge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/lifecycle.hold.tools.call.after.authorize.toolkit.multi.prefixed/client",
+        "${app}/lifecycle.hold.tools.call.after.authorize.toolkit.multi.prefixed/server"})
+    public void shouldHoldToolCallOpenThroughOutstandingLifecycleChallengePrefixed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/lifecycle.suspend.events/client",
         "${app}/lifecycle.suspend.events/server"})
     public void shouldLifecycleSuspendEvents() throws Exception
@@ -902,9 +920,27 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/tools.call.elicit.completed.proxied.string.id/client",
+        "${app}/tools.call.elicit.completed.proxied.string.id/server"})
+    public void shouldCallToolElicitCompletedProxiedStringId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/tools.call.elicit.completed.preauthorized/client",
         "${app}/tools.call.elicit.completed.preauthorized/server"})
     public void shouldCallToolElicitCompletedPreauthorized() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/tools.call.concurrent.lifecycle.preauthorize/client",
+        "${app}/tools.call.concurrent.lifecycle.preauthorize/server"})
+    public void shouldCallToolConcurrentWithLifecyclePreauthorize() throws Exception
     {
         k3po.finish();
     }
