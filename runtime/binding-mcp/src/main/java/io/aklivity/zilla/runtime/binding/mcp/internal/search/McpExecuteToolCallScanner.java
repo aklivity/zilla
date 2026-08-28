@@ -56,11 +56,15 @@ public final class McpExecuteToolCallScanner
     private int captureStart;
     private boolean captureStartedThisWindow;
     private int captureStopThisWindow;
-    private boolean done;
 
     public String name;
     public int argumentsLength;
     public boolean malformed;
+    // true once the top-level object has closed (a complete request, whether or not name/arguments
+    // turned out valid) or a parse error was hit -- the caller's own signal that no further feed()
+    // can change the outcome, independent of any one frame's own flags or whether the caller has
+    // sent (or ever sends) an explicit end-of-stream
+    public boolean done;
 
     public McpExecuteToolCallScanner()
     {

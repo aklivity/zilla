@@ -693,6 +693,36 @@ public class McpProxyCacheIT
     }
 
     @Test
+    @Configuration("proxy.cache.tools.search.serve.yaml")
+    @Specification({
+        "${app}/cache.serve.execute.tool.10k/client",
+        "${app}/cache.serve.execute.tool.10k/server" })
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
+    @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
+    @Configure(name = MCP_SESSION_ID_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyCacheIT::sessionIdB007External")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    public void shouldServeExecuteToolWith10kParams() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.cache.tools.search.serve.yaml")
+    @Specification({
+        "${app}/cache.serve.execute.tool.100k/client",
+        "${app}/cache.serve.execute.tool.100k/server" })
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
+    @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
+    @Configure(name = MCP_SESSION_ID_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyCacheIT::sessionIdB007External")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    public void shouldServeExecuteToolWith100kParams() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.cache.tools.search.serve.unmatched.yaml")
     @Specification({
         "${app}/cache.serve.execute.tool.not.found/client" })

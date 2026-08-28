@@ -1762,6 +1762,9 @@ abstract class McpProxyItemFactory implements BindingHandler
         // on the same worker before settlement fires
         private final ExpandableDirectByteBufferEx pendingBody = new ExpandableDirectByteBufferEx();
         private int pendingBodyLength;
+        // how much of pendingBody has already been handed to the delegate -- driveDelegateData resumes
+        // from here each time the delegate's own client reports more of its real downstream window open
+        private int pendingBodySent;
 
         private McpServer delegate;
         private int state;
@@ -1921,16 +1924,31 @@ abstract class McpProxyItemFactory implements BindingHandler
             initialAck = begin.acknowledge();
             state = McpState.openingInitial(state);
 
-            flushServerWindow(traceId, 0L, 0, 0L, codecBuffer.capacity());
+            flushServerWindow(traceId, 0L, 0, 0L, maxServerWindow());
         }
 
+        // codecBuffer.capacity() is the whole writeBuffer slot, header included -- granting that much
+        // as a DATA window's own maximum leaves no room for a frame's own header once a sender fills
+        // it, overflowing the slot when it tries to write a payload that large in one frame; the same
+        // FIELD_OFFSET_PAYLOAD trim TcpServerFactory/TcpClientFactory use for their own read buffers
+        private int maxServerWindow()
+        {
+            return codecBuffer.capacity() - DataFW.FIELD_OFFSET_PAYLOAD;
+        }
+
+        // a caller's body can arrive as several DATA frames each carrying its own FIN (marking only
+        // that frame's own fragment complete, not the whole request), so this never treats a frame's
+        // own flags as "the request is done" -- it drives dispatch off scanner.done instead, which
+        // only turns true once the top-level object has actually closed (or a parse error was hit),
+        // whichever frame that happens to land on. A caller that never sends an explicit end (e.g. one
+        // going straight from its last write to reading the response) still gets a timely reply this
+        // way, and one that fragments the body across many frames still waits for all of them
         private void onServerData(
             DataFW data)
         {
             final long sequence = data.sequence();
             final long acknowledge = data.acknowledge();
             final long traceId = data.traceId();
-            final int flags = data.flags();
             final int reserved = data.reserved();
             final OctetsFW payload = data.payload();
 
@@ -1942,12 +1960,20 @@ abstract class McpProxyItemFactory implements BindingHandler
 
             assert initialAck <= initialSeq;
 
-            final boolean last = (flags & DATA_FLAG_FIN) != 0x00;
-            scanner.feed(payload.buffer(), payload.offset(), payload.sizeof(), last);
+            scanner.feed(payload.buffer(), payload.offset(), payload.sizeof(), false);
 
-            if (last)
+            if (scanner.done)
             {
                 onRequestReady(traceId);
+            }
+            else
+            {
+                // scanner.feed already copied out everything it needs from this frame, so every byte
+                // received so far can be acked immediately -- unlike McpServer's real proxy path, this
+                // buffering phase has no downstream client yet to propagate window credit back from,
+                // so without this the one-time grant from onServerBegin caps the entire request at
+                // maxServerWindow() bytes, which the target tool's own arguments are not bounded by
+                flushServerWindow(traceId, 0L, 0, 0L, maxServerWindow());
             }
         }
 
@@ -1959,6 +1985,11 @@ abstract class McpProxyItemFactory implements BindingHandler
             initialSeq = end.sequence();
             if (!ready)
             {
+                // the caller's stream ended without the scanned body ever completing on its own
+                // (a truncated request, most commonly) -- this last, empty, last-marked feed is what
+                // lets the parser decide a still-open value was genuinely cut short rather than merely
+                // starved for more input, finally turning scanner.done true so onRequestReady can run
+                scanner.feed(codecBuffer, 0, 0, true);
                 onRequestReady(traceId);
             }
             state = McpState.closedInitial(state);
@@ -2122,8 +2153,12 @@ abstract class McpProxyItemFactory implements BindingHandler
         }
 
         // drives the delegate's own initial-side DATA (the reconstructed body, chunked from the
-        // per-stream pendingBody snapshot) and END, resuming once the delegate's upstream lifecycle
-        // has settled
+        // per-stream pendingBody snapshot), resuming once the delegate's upstream lifecycle has
+        // settled and again each time the delegate's own client reports more of its real downstream
+        // window open -- pendingBodySent is what makes this resumable: a synthetic caller has no
+        // caller-side backpressure of its own to lean on (unlike a real one, which McpServer's own
+        // onClientWindow-derived grant already keeps from ever overrunning this same window), so this
+        // must track and respect that window itself rather than writing the whole body in one go
         private void driveDelegateData(
             long traceId)
         {
@@ -2133,21 +2168,30 @@ abstract class McpProxyItemFactory implements BindingHandler
             }
 
             final int bodyLength = pendingBodyLength;
-            int offset = 0;
-            while (offset < bodyLength)
+            final McpClient client = delegate.client;
+            final long clientLimit = client.initialAck + client.initialMax;
+            final int available = (int) Math.max(0L, clientLimit - pendingBodySent);
+            final int limit = Math.min(bodyLength, pendingBodySent + available);
+
+            int offset = pendingBodySent;
+            while (offset < limit)
             {
-                final int chunk = Math.min(bodyLength - offset, codecBuffer.capacity());
+                final int chunk = Math.min(limit - offset, maxServerWindow());
                 final boolean first = offset == 0;
                 final boolean last = offset + chunk >= bodyLength;
                 final int flags = (first ? DATA_FLAG_INIT : 0) | (last ? DATA_FLAG_FIN : 0);
 
-                // batches every reserved this outer request's own inbound DATA ever aggregated
-                // (initialSeq, the outer's own final total) onto the last synthetic chunk -- not
-                // each chunk, which would recount those same past reserves once per chunk -- so the
-                // delegate's own initialSeq lands exactly on the outer's already-final value once
-                // this loop completes, matching what the real caller's own frames (a later timeout
-                // abort, in particular) will always show from here on
-                final int chunkReserved = last ? (int) (initialSeq - offset) : 0;
+                // each chunk's own reserved must match its own byte count -- the delegate's client
+                // advances its own sequence by reserved each time it forwards a chunk onward
+                // (McpClient.doClientData), so a chunk reserved of 0 never advances that downstream
+                // sequence past 0, and every following chunk is forwarded on a stale, repeated
+                // sequence a real peer (or k3po) rejects as out of order. The last chunk still folds
+                // in whatever this outer request's own inbound DATA aggregated beyond pendingBody's
+                // own length (initialSeq - bodyLength, e.g. the caller's wrapper text this reconstructed
+                // body doesn't carry) so the delegate's own initialSeq still lands exactly on the
+                // outer's already-final value once this loop completes, matching what the real
+                // caller's own frames (a later timeout abort, in particular) will always show from here on
+                final int chunkReserved = last ? (int) (chunk + initialSeq - bodyLength) : chunk;
 
                 final DataFW syntheticData = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                     .originId(originId)
@@ -2168,12 +2212,20 @@ abstract class McpProxyItemFactory implements BindingHandler
 
                 offset += chunk;
             }
+            pendingBodySent = offset;
 
-            settled = true;
-
-            if (McpState.initialClosed(state))
+            if (pendingBodySent >= bodyLength)
             {
-                doDelegateEnd(traceId);
+                settled = true;
+
+                if (McpState.initialClosed(state))
+                {
+                    doDelegateEnd(traceId);
+                }
+            }
+            else
+            {
+                client.onWindowGrown = () -> driveDelegateData(traceId);
             }
         }
 
@@ -2330,6 +2382,12 @@ abstract class McpProxyItemFactory implements BindingHandler
         private long initialAck;
         private int initialMax;
         private int initialPad;
+
+        // set only by a synthetic caller (McpExecuteToolServer) that fed this client more initial-side
+        // DATA than its window at the time could accept and is waiting for more of it to open up --
+        // null for every real caller, which is already paced by its own server-side window grant
+        // (itself derived from this same client's onClientWindow) and so never overruns it to begin with
+        private Runnable onWindowGrown;
 
         private long replySeq;
         private long replyAck;
@@ -2686,6 +2744,13 @@ abstract class McpProxyItemFactory implements BindingHandler
 
             assert initialAck <= initialSeq;
             server.flushServerWindow(traceId, budgetId, padding, initialSeq - initialAck, initialMax);
+
+            if (onWindowGrown != null)
+            {
+                final Runnable resume = onWindowGrown;
+                onWindowGrown = null;
+                resume.run();
+            }
         }
 
         private void onClientReset(
