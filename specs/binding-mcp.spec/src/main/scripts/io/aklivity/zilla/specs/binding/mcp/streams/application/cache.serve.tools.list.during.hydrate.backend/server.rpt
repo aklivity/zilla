@@ -13,23 +13,50 @@
 # specific language governing permissions and limitations under the License.
 #
 
-connect "zilla://streams/app0"
-        option zilla:window 8192
-        option zilla:transmission "half-duplex"
+property affinity "00000000"
 
-write zilla:begin.ext ${mcp:beginEx()
-                           .typeId(zilla:id("mcp"))
-                           .lifecycle()
-                               .build()
-                           .build()}
+property serverAddress "zilla://streams/app0"
 
-connected
+accept ${serverAddress}
+       option zilla:window 8192
+       option zilla:transmission "half-duplex"
 
-write notify CLIENT_AWAITER_REGISTERED
+accepted
 
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .lifecycle()
+                              .build()
+                          .build()}
+
+connected
+
+write zilla:begin.ext ${mcp:beginEx()
+                           .typeId(zilla:id("mcp"))
+                           .lifecycle()
+                               .sessionId("5ca1ab1e-c0de-4a11-b007-000100000000")
+                               .build()
+                           .build()}
+write flush
+
+accepted
+
+read zilla:begin.ext ${mcp:matchBeginEx()
+                          .typeId(zilla:id("mcp"))
+                          .toolsList()
                               .sessionId("5ca1ab1e-c0de-4a11-b007-000100000000")
                               .build()
                           .build()}
+
+connected
+
+write flush
+
+read await CLIENT_AWAITER_REGISTERED
+
+write '{"tools":[{"name":"get_weather"}]}'
+write flush
+
+write close
+
+read closed
