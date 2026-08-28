@@ -49,10 +49,11 @@ public final class GloveEmbeddingHandler implements EmbeddingHandler, AutoClosea
     private final int dimensions;
 
     public GloveEmbeddingHandler(
-        EngineContext context)
+        EngineContext context,
+        Path cacheDirectory)
     {
         this.context = context;
-        this.vectors = loadVectors(VECTORS_URL, VECTORS_ENTRY);
+        this.vectors = loadVectors(VECTORS_URL, VECTORS_ENTRY, cacheDirectory);
         this.dimensions = vectors.values().stream()
             .findFirst()
             .map(vector -> vector.length)
@@ -112,11 +113,12 @@ public final class GloveEmbeddingHandler implements EmbeddingHandler, AutoClosea
 
     static Map<String, float[]> loadVectors(
         URI url,
-        String entry)
+        String entry,
+        Path cacheDirectory)
     {
         Map<String, float[]> vectors = new HashMap<>();
 
-        try (ZipInputStream zip = new ZipInputStream(Files.newInputStream(resolve(url))))
+        try (ZipInputStream zip = new ZipInputStream(Files.newInputStream(resolve(url, cacheDirectory))))
         {
             ZipEntry candidate;
             while ((candidate = zip.getNextEntry()) != null)
@@ -157,15 +159,18 @@ public final class GloveEmbeddingHandler implements EmbeddingHandler, AutoClosea
     }
 
     private static Path resolve(
-        URI url) throws IOException, InterruptedException
+        URI url,
+        Path cacheDirectory) throws IOException, InterruptedException
     {
-        return "file".equals(url.getScheme()) ? Path.of(url) : download(url);
+        return "file".equals(url.getScheme()) ? Path.of(url) : download(url, cacheDirectory);
     }
 
     private static Path download(
-        URI url) throws IOException, InterruptedException
+        URI url,
+        Path cacheDirectory) throws IOException, InterruptedException
     {
-        Path cache = Path.of(System.getProperty("java.io.tmpdir"), "zilla-embedding-glove.zip");
+        Files.createDirectories(cacheDirectory);
+        Path cache = cacheDirectory.resolve("zilla-embedding-glove.zip");
 
         if (Files.notExists(cache))
         {

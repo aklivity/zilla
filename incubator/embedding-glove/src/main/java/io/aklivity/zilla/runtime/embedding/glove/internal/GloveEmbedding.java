@@ -23,9 +23,12 @@ public class GloveEmbedding implements Embedding
 {
     public static final String NAME = "glove";
 
+    private final GloveEmbeddingConfiguration config;
+
     public GloveEmbedding(
         Configuration config)
     {
+        this.config = new GloveEmbeddingConfiguration(config);
     }
 
     @Override
@@ -38,6 +41,6 @@ public class GloveEmbedding implements Embedding
     public EmbeddingContext supply(
         EngineContext context)
     {
-        return new GloveEmbeddingContext(context);
+        return new GloveEmbeddingContext(context, config.cacheDirectory());
     }
 }

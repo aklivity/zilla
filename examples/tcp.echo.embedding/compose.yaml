@@ -16,7 +16,11 @@ services:
       ZILLA_INCUBATOR_ENABLED: "true"
     volumes:
       - ./etc:/etc/zilla
+      - glove-cache:/var/run/zilla/cache
     command: start -v -e
+
+volumes:
+  glove-cache:
 
 networks:
   default:

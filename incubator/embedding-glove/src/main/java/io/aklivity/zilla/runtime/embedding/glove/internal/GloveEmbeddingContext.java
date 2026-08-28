@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.embedding.glove.internal;
 
+import java.nio.file.Path;
+
 import org.agrona.collections.Long2ObjectHashMap;
 
 import io.aklivity.zilla.config.engine.EmbeddingConfig;
@@ -24,12 +26,15 @@ import io.aklivity.zilla.runtime.engine.embedding.EmbeddingHandler;
 public class GloveEmbeddingContext implements EmbeddingContext
 {
     private final EngineContext context;
+    private final Path cacheDirectory;
     private final Long2ObjectHashMap<GloveEmbeddingHandler> handlersById;
 
     public GloveEmbeddingContext(
-        EngineContext context)
+        EngineContext context,
+        Path cacheDirectory)
     {
         this.context = context;
+        this.cacheDirectory = cacheDirectory;
         this.handlersById = new Long2ObjectHashMap<>();
     }
 
@@ -37,7 +42,7 @@ public class GloveEmbeddingContext implements EmbeddingContext
     public EmbeddingHandler attach(
         EmbeddingConfig embedding)
     {
-        GloveEmbeddingHandler handler = new GloveEmbeddingHandler(context);
+        GloveEmbeddingHandler handler = new GloveEmbeddingHandler(context, cacheDirectory);
         handlersById.put(embedding.id, handler);
         return handler;
     }

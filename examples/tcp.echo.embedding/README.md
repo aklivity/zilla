@@ -11,8 +11,11 @@ The moderator uses [`embedding-glove`](../../incubator/embedding-glove), an
 OSS, non-vendor-locked `embeddings:` implementation that averages
 [GloVe](https://nlp.stanford.edu/projects/glove/) word vectors locally — no
 vendor API, no per-request network call, no ML runtime. The vectors download
-automatically the first time `moderator0` is used and are cached after that,
-so the very first message can take a while depending on network speed.
+automatically the first time `moderator0` is used, so the very first message
+can take a while depending on network speed. They're cached in a Docker
+volume (see [compose.yaml](compose.yaml)) that survives `docker compose
+down`/`up`, so only the very first run across the stack's lifetime pays the
+download cost — `docker compose down -v` clears the cache along with it.
 
 ## Requirements
 

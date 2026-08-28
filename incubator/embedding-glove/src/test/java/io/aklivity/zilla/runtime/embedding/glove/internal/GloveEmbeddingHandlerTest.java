@@ -37,7 +37,7 @@ public class GloveEmbeddingHandlerTest
         zip.toFile().deleteOnExit();
         writeVectors(zip, "vectors.txt", "hello 1.0 2.0\nworld 3.0 4.0\n");
 
-        Map<String, float[]> vectors = GloveEmbeddingHandler.loadVectors(zip.toUri(), "vectors.txt");
+        Map<String, float[]> vectors = GloveEmbeddingHandler.loadVectors(zip.toUri(), "vectors.txt", zip.getParent());
 
         assertThat(vectors.size(), equalTo(2));
         assertThat(vectors.get("hello"), equalTo(new float[] { 1.0f, 2.0f }));
@@ -51,7 +51,7 @@ public class GloveEmbeddingHandlerTest
         zip.toFile().deleteOnExit();
         writeVectors(zip, "other.txt", "hello 1.0 2.0\n");
 
-        Map<String, float[]> vectors = GloveEmbeddingHandler.loadVectors(zip.toUri(), "vectors.txt");
+        Map<String, float[]> vectors = GloveEmbeddingHandler.loadVectors(zip.toUri(), "vectors.txt", zip.getParent());
 
         assertThat(vectors.size(), equalTo(0));
     }
