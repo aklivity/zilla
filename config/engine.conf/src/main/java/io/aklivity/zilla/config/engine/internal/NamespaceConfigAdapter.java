@@ -16,6 +16,7 @@ package io.aklivity.zilla.config.engine.internal;
 
 import static io.aklivity.zilla.config.engine.NamespaceConfigBuilder.BINDINGS_DEFAULT;
 import static io.aklivity.zilla.config.engine.NamespaceConfigBuilder.CATALOGS_DEFAULT;
+import static io.aklivity.zilla.config.engine.NamespaceConfigBuilder.EMBEDDINGS_DEFAULT;
 import static io.aklivity.zilla.config.engine.NamespaceConfigBuilder.GUARDS_DEFAULT;
 import static io.aklivity.zilla.config.engine.NamespaceConfigBuilder.STORES_DEFAULT;
 import static io.aklivity.zilla.config.engine.NamespaceConfigBuilder.TELEMETRY_DEFAULT;
@@ -34,6 +35,8 @@ import io.aklivity.zilla.config.engine.BindingInfo;
 import io.aklivity.zilla.config.engine.CatalogConfig;
 import io.aklivity.zilla.config.engine.CatalogInfo;
 import io.aklivity.zilla.config.engine.ConfigAdapter;
+import io.aklivity.zilla.config.engine.EmbeddingConfig;
+import io.aklivity.zilla.config.engine.EmbeddingInfo;
 import io.aklivity.zilla.config.engine.EngineInfo;
 import io.aklivity.zilla.config.engine.GuardConfig;
 import io.aklivity.zilla.config.engine.GuardInfo;
@@ -51,6 +54,7 @@ public class NamespaceConfigAdapter extends ConfigAdapter<NamespaceConfig, JsonO
     private static final String TELEMETRY_NAME = "telemetry";
     private static final String BINDINGS_NAME = "bindings";
     private static final String CATALOGS_NAME = "catalogs";
+    private static final String EMBEDDINGS_NAME = "embeddings";
     private static final String GUARDS_NAME = "guards";
     private static final String VAULTS_NAME = "vaults";
     private static final String STORES_NAME = "stores";
@@ -60,6 +64,7 @@ public class NamespaceConfigAdapter extends ConfigAdapter<NamespaceConfig, JsonO
     private final Map<String, VaultConfigAdapter> vaultsByType;
     private final Map<String, GuardConfigAdapter> guardsByType;
     private final Map<String, CatalogConfigAdapter> catalogsByType;
+    private final Map<String, EmbeddingConfigAdapter> embeddingsByType;
     private final Map<String, StoreConfigAdapter> storesByType;
 
     public NamespaceConfigAdapter(
@@ -70,6 +75,7 @@ public class NamespaceConfigAdapter extends ConfigAdapter<NamespaceConfig, JsonO
         guardsByType = info.guards().stream().collect(toMap(GuardInfo::type, GuardConfigAdapter::new));
         vaultsByType = info.vaults().stream().collect(toMap(VaultInfo::type, VaultConfigAdapter::new));
         catalogsByType = info.catalogs().stream().collect(toMap(CatalogInfo::type, CatalogConfigAdapter::new));
+        embeddingsByType = info.embeddings().stream().collect(toMap(EmbeddingInfo::type, EmbeddingConfigAdapter::new));
         storesByType = info.stores().stream().collect(toMap(StoreInfo::type, StoreConfigAdapter::new));
     }
 
@@ -127,6 +133,18 @@ public class NamespaceConfigAdapter extends ConfigAdapter<NamespaceConfig, JsonO
                 catalogs.add(c.name, adapter.adaptToJson(c));
             }
             object.add(CATALOGS_NAME, catalogs);
+        }
+
+        if (!EMBEDDINGS_DEFAULT.equals(config.embeddings))
+        {
+            JsonObjectBuilder embeddings = Json.createObjectBuilder();
+            for (EmbeddingConfig e : config.embeddings)
+            {
+                EmbeddingConfigAdapter adapter = embeddingsByType.get(e.type);
+                assert adapter != null : "unrecognized embedding type: " + e.type;
+                embeddings.add(e.name, adapter.adaptToJson(e));
+            }
+            object.add(EMBEDDINGS_NAME, embeddings);
         }
 
         if (!STORES_DEFAULT.equals(config.stores))
@@ -222,6 +240,21 @@ public class NamespaceConfigAdapter extends ConfigAdapter<NamespaceConfig, JsonO
                 assert adapter != null : "unrecognized catalog type: " + type;
 
                 builder.catalog(adapter.adaptFromJson(namespace, name, value));
+            }
+        }
+
+        if (object.containsKey(EMBEDDINGS_NAME))
+        {
+            for (Map.Entry<String, JsonValue> entry : object.getJsonObject(EMBEDDINGS_NAME).entrySet())
+            {
+                String name = entry.getKey();
+                JsonObject value = entry.getValue().asJsonObject();
+
+                String type = value.getString(TYPE_NAME);
+                EmbeddingConfigAdapter adapter = embeddingsByType.get(type);
+                assert adapter != null : "unrecognized embedding type: " + type;
+
+                builder.embedding(adapter.adaptFromJson(namespace, name, value));
             }
         }
 

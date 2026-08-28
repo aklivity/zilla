@@ -20,6 +20,7 @@ module io.aklivity.zilla.runtime.engine
     exports io.aklivity.zilla.runtime.engine.binding;
     exports io.aklivity.zilla.runtime.engine.binding.function;
     exports io.aklivity.zilla.runtime.engine.catalog;
+    exports io.aklivity.zilla.runtime.engine.embedding;
     exports io.aklivity.zilla.runtime.engine.model;
     exports io.aklivity.zilla.runtime.engine.model.function;
     exports io.aklivity.zilla.runtime.engine.event;
@@ -65,6 +66,7 @@ module io.aklivity.zilla.runtime.engine
 
     uses io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi;
     uses io.aklivity.zilla.runtime.engine.catalog.CatalogFactorySpi;
+    uses io.aklivity.zilla.runtime.engine.embedding.EmbeddingFactorySpi;
     uses io.aklivity.zilla.runtime.engine.model.ModelFactorySpi;
     uses io.aklivity.zilla.runtime.engine.event.EventFormatterFactorySpi;
     uses io.aklivity.zilla.runtime.engine.exporter.ExporterFactorySpi;

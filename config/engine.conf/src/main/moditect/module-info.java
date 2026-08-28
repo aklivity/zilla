@@ -27,6 +27,7 @@ module io.aklivity.zilla.config.engine
 
     uses io.aklivity.zilla.config.engine.BindingInfo;
     uses io.aklivity.zilla.config.engine.CatalogInfo;
+    uses io.aklivity.zilla.config.engine.EmbeddingInfo;
     uses io.aklivity.zilla.config.engine.GuardInfo;
     uses io.aklivity.zilla.config.engine.VaultInfo;
     uses io.aklivity.zilla.config.engine.ExporterInfo;
