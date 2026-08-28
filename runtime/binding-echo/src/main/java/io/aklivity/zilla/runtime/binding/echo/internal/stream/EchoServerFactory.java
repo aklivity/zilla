@@ -40,6 +40,7 @@ import io.aklivity.zilla.runtime.binding.echo.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.common.vector.Vectors;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -429,7 +430,7 @@ public final class EchoServerFactory implements BindingHandler
             {
                 for (float[] rejectVector : rejectVectors)
                 {
-                    if (rejectVector != null && cosineSimilarity(vector, rejectVector) >= threshold)
+                    if (rejectVector != null && Vectors.similarity(vector, rejectVector) >= threshold)
                     {
                         matched = true;
                         break;
@@ -516,24 +517,6 @@ public final class EchoServerFactory implements BindingHandler
         buffer.getBytes(payload.offset(), bytes);
 
         return new String(bytes, UTF_8);
-    }
-
-    private static double cosineSimilarity(
-        float[] a,
-        float[] b)
-    {
-        double dot = 0.0;
-        double normA = 0.0;
-        double normB = 0.0;
-
-        for (int i = 0; i < a.length && i < b.length; i++)
-        {
-            dot += a[i] * b[i];
-            normA += a[i] * a[i];
-            normB += b[i] * b[i];
-        }
-
-        return normA == 0.0 || normB == 0.0 ? 0.0 : dot / (Math.sqrt(normA) * Math.sqrt(normB));
     }
 
     private void doBegin(
