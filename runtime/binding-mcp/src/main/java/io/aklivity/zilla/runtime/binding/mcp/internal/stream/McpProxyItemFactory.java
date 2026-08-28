@@ -2380,9 +2380,24 @@ abstract class McpProxyItemFactory implements BindingHandler
                     initialSeq, initialAck, initialMax, traceId, server.authorization, server.affinity, beginEx);
                 state = McpState.openingInitial(state);
             }
+            else if (lifecycle.resolved)
+            {
+                // resetting the initial side alone is a no-op once this request's own (small)
+                // body already arrived and closed it -- which is the common case -- so the
+                // caller would otherwise never learn this call failed; aborting the reply too
+                // closes the stream regardless of which side is still open
+                server.doServerReset(traceId);
+                server.doServerAbort(traceId);
+            }
             else
             {
-                server.doServerReset(traceId);
+                // this connect has only issued a preauthorize challenge so far, still awaiting
+                // an interactive answer -- and the caller of this very request may be the one
+                // about to provide it (the challenge is relayed to the same session), so wait
+                // for the real outcome instead of failing now; added directly rather than via
+                // register(), which would just re-fire onLifecycleSettled synchronously since
+                // settled is already latched true
+                lifecycle.awaitResolution(this);
             }
         }
 
