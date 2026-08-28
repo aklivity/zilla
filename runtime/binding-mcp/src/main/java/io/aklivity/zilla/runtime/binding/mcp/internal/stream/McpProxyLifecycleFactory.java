@@ -1205,8 +1205,31 @@ final class McpProxyLifecycleFactory implements BindingHandler
             final long authorization = challenge.authorization();
             final OctetsFW extension = challenge.extension();
 
-            challenged = true;
+            // only a real preauthorize elicitation means this route needs a human to answer --
+            // KIND_RESUME and KIND_SUSPENDED are the south client's own SSE transport resuming
+            // or suspending its long-poll stream, an ordinary occurrence on any healthy
+            // connection and unrelated to authorization, so must not be mistaken for one:
+            // doing so latches this route into interactiveAuthRoutes (via settleLifecycle
+            // below) the moment its stream first happens to suspend, well before any real
+            // elicitation, and hydration then gives up retrying a route that was never
+            // actually stuck on a human
+            final McpChallengeExFW challengeEx = extension.sizeof() > 0
+                ? mcpChallengeExRO.tryWrap(extension.buffer(), extension.offset(), extension.limit())
+                : null;
+            if (challengeEx != null && challengeEx.kind() == McpChallengeExFW.KIND_ELICIT_CREATE)
+            {
+                challenged = true;
+            }
             settleLifecycle(traceId);
+            // a registrant added via register() before this challenge arrived is still
+            // waiting in requests -- unlike onClientBegin/onClientEnd/onClientAbort/onClientReset,
+            // nothing else flushes it. Without this, a list-style registrant (hydration) on a
+            // route whose very first challenge is a real preauthorize elicitation never learns
+            // "no session yet, try again later": it simply waits forever, since no human will
+            // ever answer that elicitation on hydration's behalf. Safe to call unconditionally --
+            // by the time any OTHER challenge kind (RESUME/SUSPENDED) can occur, onClientBegin has
+            // already settled this connect and flushed requests, so this is a no-op then.
+            settleRequests(traceId);
 
             server.doServerChallenge(traceId, authorization, prefixChallengeCorrelationId(extension));
         }
