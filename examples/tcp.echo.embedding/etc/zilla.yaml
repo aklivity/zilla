@@ -2,7 +2,7 @@
 name: example
 embeddings:
   moderator0:
-    type: djl
+    type: glove
 bindings:
   north_tcp_server:
     type: tcp

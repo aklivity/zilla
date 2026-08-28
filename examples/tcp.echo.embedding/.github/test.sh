@@ -6,15 +6,15 @@ set -x
 EXIT=0
 PORT="12345"
 
-# The embedding model and its native engine download on first use, which can
-# take well past a normal request's timeout. Retry a throwaway message until
-# it echoes, so the assertions below aren't racing the one-time download/load.
-echo \# Warming up tcp.echo.embedding/ moderator0 \(first-use model download\)
+# The GloVe vectors download on first use, which can take well past a normal
+# request's timeout. Retry a throwaway message until it echoes, so the
+# assertions below aren't racing the one-time download/parse.
+echo \# Warming up tcp.echo.embedding/ moderator0 \(first-use vectors download\)
 warm_up() {
   OUTPUT=$(printf '%s\n' "warm up" | nc -w 20 localhost $PORT)
   [ "$OUTPUT" = "warm up" ]
 }
-retry_until 10 15 warm_up
+retry_until 20 15 warm_up
 echo RESULT=$?
 echo
 

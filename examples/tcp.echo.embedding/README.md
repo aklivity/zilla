@@ -7,13 +7,12 @@ comparing embedding vectors, not exact words, so a message can be rejected
 even when it shares no vocabulary at all with the configured `reject`
 phrases, as long as it means the same thing.
 
-The moderator uses [`embedding-djl`](../../incubator/embedding-djl), an
-OSS, non-vendor-locked `embeddings:` implementation that runs
-[sentence-transformers/all-MiniLM-L6-v2](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2)
-locally via [DJL](https://djl.ai) — no vendor API, no per-request network
-call. The model and its PyTorch engine both download automatically the
-first time `moderator0` is used, so the very first message may take a few
-seconds longer than the rest.
+The moderator uses [`embedding-glove`](../../incubator/embedding-glove), an
+OSS, non-vendor-locked `embeddings:` implementation that averages
+[GloVe](https://nlp.stanford.edu/projects/glove/) word vectors locally — no
+vendor API, no per-request network call, no ML runtime. The vectors download
+automatically the first time `moderator0` is used and are cached after that,
+so the very first message can take a while depending on network speed.
 
 ## Requirements
 
@@ -69,7 +68,7 @@ See [etc/zilla.yaml](etc/zilla.yaml):
 ```yaml
 embeddings:
   moderator0:
-    type: djl
+    type: glove
 
 bindings:
   north_echo_server:
