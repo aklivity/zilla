@@ -13,51 +13,46 @@
 # specific language governing permissions and limitations under the License.
 #
 
-property affinity "00000000"
-
-property serverAddress "zilla://streams/app0"
-
-accept ${serverAddress}
-       option zilla:window 8192
-       option zilla:transmission "half-duplex"
-
-accepted
-
-read zilla:begin.ext ${mcp:matchBeginEx()
-                          .typeId(zilla:id("mcp"))
-                          .lifecycle()
-                              .build()
-                          .build()}
-
-connected
+connect "zilla://streams/app1"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
 
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .lifecycle()
-                               .sessionId("5ca1ab1e-c0de-4a11-b007-0001".concat(affinity))
                                .build()
                            .build()}
-write flush
-
-accepted
-
-read zilla:begin.ext ${mcp:matchBeginEx()
-                          .typeId(zilla:id("mcp"))
-                          .toolsCall()
-                              .sessionId("5ca1ab1e-c0de-4a11-b007-0001".concat(affinity))
-                              .name("get_weather")
-                              .contentLength(52)
-                              .build()
-                          .build()}
 
 connected
 
-write zilla:reset.ext ${mcp:resetEx()
+read zilla:begin.ext ${mcp:matchBeginEx()
+                          .typeId(zilla:id("mcp"))
+                          .lifecycle()
+                              .sessionId("5ca1ab1e-c0de-4a11-5e55-000a00000000")
+                              .build()
+                          .build()}
+
+read notify APP1_LIFECYCLE
+
+connect await APP1_LIFECYCLE
+        "zilla://streams/app2"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+
+write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
-                           .error()
-                               .code(-32602)
-                               .message("Invalid params")
+                           .lifecycle()
                                .build()
                            .build()}
 
-read abort
+connected
+
+write advised zilla:challenge ${mcp:matchChallengeEx()
+                                    .typeId(zilla:id("mcp"))
+                                    .elicitCreate()
+                                        .id("1")
+                                        .url("https://server.example.com/authorize?state=7f3a9b1c&redirect_uri=%s".formatted(http:encodeQuery("https://replace.me/callback")))
+                                        .build()
+                                    .build()}
+
+write close

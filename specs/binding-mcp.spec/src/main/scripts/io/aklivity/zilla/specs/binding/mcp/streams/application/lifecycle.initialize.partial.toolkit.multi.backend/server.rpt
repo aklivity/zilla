@@ -13,11 +13,7 @@
 # specific language governing permissions and limitations under the License.
 #
 
-property affinity "00000000"
-
-property serverAddress "zilla://streams/app0"
-
-accept ${serverAddress}
+accept "zilla://streams/app1"
        option zilla:window 8192
        option zilla:transmission "half-duplex"
 
@@ -34,30 +30,31 @@ connected
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .lifecycle()
-                               .sessionId("5ca1ab1e-c0de-4a11-b007-0001".concat(affinity))
+                               .sessionId("5ca1ab1e-c0de-4a11-5e55-000a00000000")
                                .build()
                            .build()}
 write flush
+
+accept "zilla://streams/app2"
+       option zilla:window 8192
+       option zilla:transmission "half-duplex"
 
 accepted
 
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
-                          .toolsCall()
-                              .sessionId("5ca1ab1e-c0de-4a11-b007-0001".concat(affinity))
-                              .name("get_weather")
-                              .contentLength(52)
+                          .lifecycle()
                               .build()
                           .build()}
 
 connected
 
-write zilla:reset.ext ${mcp:resetEx()
-                           .typeId(zilla:id("mcp"))
-                           .error()
-                               .code(-32602)
-                               .message("Invalid params")
-                               .build()
-                           .build()}
+read advise zilla:challenge ${mcp:challengeEx()
+                                 .typeId(zilla:id("mcp"))
+                                 .elicitCreate()
+                                     .id("1")
+                                     .url("https://server.example.com/authorize?state=7f3a9b1c&redirect_uri=%s".formatted(http:encodeQuery("https://replace.me/callback")))
+                                     .build()
+                                 .build()}
 
-read abort
+read closed

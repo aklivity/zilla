@@ -15,9 +15,7 @@
 
 property affinity "00000000"
 
-property serverAddress "zilla://streams/app0"
-
-accept ${serverAddress}
+accept "zilla://streams/app1"
        option zilla:window 8192
        option zilla:transmission "half-duplex"
 
@@ -34,7 +32,7 @@ connected
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .lifecycle()
-                               .sessionId("5ca1ab1e-c0de-4a11-b007-0001".concat(affinity))
+                               .sessionId("5ca1ab1e-c0de-4a11-feed-0001".concat(affinity))
                                .build()
                            .build()}
 write flush
@@ -43,21 +41,35 @@ accepted
 
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
-                          .toolsCall()
-                              .sessionId("5ca1ab1e-c0de-4a11-b007-0001".concat(affinity))
-                              .name("get_weather")
-                              .contentLength(52)
+                          .toolsList()
+                              .sessionId("5ca1ab1e-c0de-4a11-feed-0001".concat(affinity))
                               .build()
                           .build()}
 
 connected
 
-write zilla:reset.ext ${mcp:resetEx()
-                           .typeId(zilla:id("mcp"))
-                           .error()
-                               .code(-32602)
-                               .message("Invalid params")
-                               .build()
-                           .build()}
+write flush
 
-read abort
+write '{"tools":'
+        '['
+          '{'
+            '"name":"get_weather",'
+            '"title":"Weather Information Provider"'
+          '}'
+          ','
+          '{'
+            '"name":"delete_account",'
+            '"title":"Account Deletion"'
+          '}'
+          ','
+          '{'
+            '"name":"get_forecast",'
+            '"title":"Forecast Provider"'
+          '}'
+        ']'
+      '}'
+write flush
+
+write close
+
+read closed

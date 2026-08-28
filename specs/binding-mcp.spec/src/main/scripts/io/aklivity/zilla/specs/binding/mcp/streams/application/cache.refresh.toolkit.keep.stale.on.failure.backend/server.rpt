@@ -32,7 +32,7 @@ connected
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .lifecycle()
-                               .sessionId("5ca1ab1e-c0de-4a11-5e55-000a".concat(affinity))
+                               .sessionId("5ca1ab1e-c0de-4a11-feed-0001".concat(affinity))
                                .build()
                            .build()}
 write flush
@@ -42,7 +42,7 @@ accepted
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .toolsList()
-                              .sessionId("5ca1ab1e-c0de-4a11-5e55-000a".concat(affinity))
+                              .sessionId("5ca1ab1e-c0de-4a11-feed-0001".concat(affinity))
                               .build()
                           .build()}
 
@@ -50,25 +50,19 @@ connected
 
 write flush
 
-write '{"tools":'
-        '['
-          '{"name":"get_weather"}'
-        ']'
-      '}'
+write '{"tools":[{"name":"post"}]}'
 write flush
 
 write close
 
 read closed
-
-write notify FIRST_LIST_DONE
 
 accepted
 
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .toolsList()
-                              .sessionId("5ca1ab1e-c0de-4a11-5e55-000a".concat(affinity))
+                              .sessionId("5ca1ab1e-c0de-4a11-feed-0001".concat(affinity))
                               .build()
                           .build()}
 
@@ -76,16 +70,14 @@ connected
 
 write flush
 
-write '{"tools":'
-        '['
-          '{"name":"get_weather"}'
-        ']'
-      '}'
+write '{"tools":[{"name":"post"},{"name":"like"}]}'
 write flush
 
 write close
 
 read closed
+
+write notify APP1_REFRESHED
 
 accept "zilla://streams/app2"
        option zilla:window 8192
@@ -101,37 +93,20 @@ read zilla:begin.ext ${mcp:matchBeginEx()
 
 connected
 
-read advise zilla:challenge ${mcp:challengeEx()
-                                 .typeId(zilla:id("mcp"))
-                                 .elicitCreate()
-                                     .id("1")
-                                     .url("https://server.example.com/authorize?state=7f3a9b1c&redirect_uri=%s".formatted(http:encodeQuery("https://replace.me/callback")))
-                                     .build()
-                                 .build()}
-
-write await FIRST_LIST_DONE
-
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .lifecycle()
-                               .sessionId("5ca1ab1e-c0de-4a11-5e55-000b".concat(affinity))
+                               .sessionId("5ca1ab1e-c0de-4a11-feed-0001".concat(affinity))
                                .build()
                            .build()}
 write flush
-
-write advise zilla:flush ${mcp:flushEx()
-                              .typeId(zilla:id("mcp"))
-                              .toolsListChanged()
-                                  .id("200")
-                                  .build()
-                              .build()}
 
 accepted
 
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .toolsList()
-                              .sessionId("5ca1ab1e-c0de-4a11-5e55-000b".concat(affinity))
+                              .sessionId("5ca1ab1e-c0de-4a11-feed-0001".concat(affinity))
                               .build()
                           .build()}
 
@@ -139,13 +114,26 @@ connected
 
 write flush
 
-write '{"tools":'
-        '['
-          '{"name":"get_current_time"}'
-        ']'
-      '}'
+write '{"tools":[{"name":"get_current_time"}]}'
 write flush
 
 write close
 
 read closed
+
+accepted
+
+read await APP1_REFRESHED
+
+read zilla:begin.ext ${mcp:matchBeginEx()
+                          .typeId(zilla:id("mcp"))
+                          .toolsList()
+                              .sessionId("5ca1ab1e-c0de-4a11-feed-0001".concat(affinity))
+                              .build()
+                          .build()}
+
+connected
+
+write abort
+
+write notify REFRESH_FAILED

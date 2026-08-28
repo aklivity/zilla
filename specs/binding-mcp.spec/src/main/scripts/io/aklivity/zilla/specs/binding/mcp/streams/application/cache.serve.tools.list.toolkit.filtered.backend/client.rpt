@@ -15,49 +15,59 @@
 
 property affinity "00000000"
 
-property serverAddress "zilla://streams/app0"
-
-accept ${serverAddress}
-       option zilla:window 8192
-       option zilla:transmission "half-duplex"
-
-accepted
-
-read zilla:begin.ext ${mcp:matchBeginEx()
-                          .typeId(zilla:id("mcp"))
-                          .lifecycle()
-                              .build()
-                          .build()}
-
-connected
+connect "zilla://streams/app1"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
 
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .lifecycle()
-                               .sessionId("5ca1ab1e-c0de-4a11-b007-0001".concat(affinity))
                                .build()
                            .build()}
-write flush
-
-accepted
-
-read zilla:begin.ext ${mcp:matchBeginEx()
-                          .typeId(zilla:id("mcp"))
-                          .toolsCall()
-                              .sessionId("5ca1ab1e-c0de-4a11-b007-0001".concat(affinity))
-                              .name("get_weather")
-                              .contentLength(52)
-                              .build()
-                          .build()}
 
 connected
 
-write zilla:reset.ext ${mcp:resetEx()
+read zilla:begin.ext ${mcp:matchBeginEx()
+                          .typeId(zilla:id("mcp"))
+                          .lifecycle()
+                              .sessionId("5ca1ab1e-c0de-4a11-feed-0001".concat(affinity))
+                              .build()
+                          .build()}
+
+read notify LIFECYCLE_INITIALIZED
+
+connect await LIFECYCLE_INITIALIZED
+        "zilla://streams/app1"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+
+write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
-                           .error()
-                               .code(-32602)
-                               .message("Invalid params")
+                           .toolsList()
+                               .sessionId("5ca1ab1e-c0de-4a11-feed-0001".concat(affinity))
                                .build()
                            .build()}
 
-read abort
+connected
+
+read  '{"tools":'
+        '['
+          '{'
+            '"name":"get_weather",'
+            '"title":"Weather Information Provider"'
+          '}'
+          ','
+          '{'
+            '"name":"delete_account",'
+            '"title":"Account Deletion"'
+          '}'
+          ','
+          '{'
+            '"name":"get_forecast",'
+            '"title":"Forecast Provider"'
+          '}'
+        ']'
+      '}'
+read closed
+
+write close
