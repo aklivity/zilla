@@ -227,7 +227,7 @@ Review the license text for the complete terms.
 [community-join]: https://www.aklivity.io/slack
 [artifact-hub-shield]: https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/zilla
 [artifact-hub]: https://artifacthub.io/packages/helm/zilla/zilla
-[release-latest-image]: https://img.shields.io/github/v/tag/aklivity/zilla?label=release
+[release-latest-image]: https://img.shields.io/github/v/release/aklivity/zilla?label=release&sort=semver
 [release-latest]: https://github.com/aklivity/zilla/pkgs/container/zilla
 [zilla-roadmap]: https://github.com/orgs/aklivity/projects/4/views/1
 

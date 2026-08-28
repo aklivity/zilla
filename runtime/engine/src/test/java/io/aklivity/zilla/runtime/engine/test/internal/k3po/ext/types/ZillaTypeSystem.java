@@ -125,6 +125,7 @@ public final class ZillaTypeSystem implements TypeSystemSpi
         Set<TypeInfo<?>> readOptions = new LinkedHashSet<>();
         readOptions.add(OPTION_FLAGS);
         readOptions.add(OPTION_ACK);
+        readOptions.add(OPTION_WINDOW);
         this.readOptions = unmodifiableSet(readOptions);
 
         Set<TypeInfo<?>> writeOptions = new LinkedHashSet<>();

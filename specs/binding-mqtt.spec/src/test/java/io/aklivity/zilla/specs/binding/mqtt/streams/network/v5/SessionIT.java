@@ -129,6 +129,51 @@ public class SessionIT
         k3po.finish();
     }
 
+    @Test
+    @Specification({
+        "${net}/session.will.message.32k/client",
+        "${net}/session.will.message.32k/server"})
+    public void shouldSendWillMessage32k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/session.will.message.end.without.disconnect/client",
+        "${net}/session.will.message.end.without.disconnect/server"})
+    public void shouldEndWithoutDisconnect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/session.will.message.abort.while.deferred/client",
+        "${net}/session.will.message.abort.while.deferred/server"})
+    public void shouldAbortWhileDeferred() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/session.will.message.zero.window.on.connect/client",
+        "${net}/session.will.message.zero.window.on.connect/server"})
+    public void shouldSendWillMessageWhenSessionWindowStartsAtZero() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/session.will.message.with.user.properties/client",
+        "${net}/session.will.message.with.user.properties/server"})
+    public void shouldSendWillMessageWithUserProperties() throws Exception
+    {
+        k3po.finish();
+    }
+
     // [MQTT-3.1.2-15]
     @Test
     @Specification({

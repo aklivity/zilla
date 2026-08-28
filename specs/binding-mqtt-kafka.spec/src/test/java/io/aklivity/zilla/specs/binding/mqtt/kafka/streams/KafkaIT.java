@@ -758,6 +758,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/session.will.message.qos2.abort.before.session.established/client",
+        "${kafka}/session.will.message.qos2.abort.before.session.established/server"})
+    public void shouldSendWillSignalOnQos2AbortBeforeSessionEstablished() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/session.will.message.cancel.delivery/client",
         "${kafka}/session.will.message.cancel.delivery/server"})
     public void shouldCancelWillDelivery() throws Exception

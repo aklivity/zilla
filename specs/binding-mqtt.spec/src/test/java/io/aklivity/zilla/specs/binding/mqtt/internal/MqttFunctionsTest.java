@@ -57,6 +57,14 @@ public class MqttFunctionsTest
     }
 
     @Test
+    public void shouldGenerateSeededBytes()
+    {
+        final byte[] bytes = MqttFunctions.seededBytes(16);
+        assertEquals(16, bytes.length);
+        assertArrayEquals(bytes, MqttFunctions.seededBytes(16));
+    }
+
+    @Test
     public void shouldEncodeMqttSessionBeginExt()
     {
         final byte[] array = MqttFunctions.beginEx()

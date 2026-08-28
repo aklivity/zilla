@@ -136,6 +136,18 @@ public class McpProxyCacheIT
     }
 
     @Test
+    @Configuration("proxy.cache.toolkit.multi.yaml")
+    @Specification({
+        "${app}/cache.hydrate.toolkit.multi.reset.route/server",
+        "${app}/cache.hydrate.toolkit.multi.reset.route/client" })
+    @ScriptProperty("affinity \"0000003f\"")
+    @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
+    public void shouldHydrateToolkitMultiSettlingResetRoute() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.cache.toolkit.multi.refresh.yaml")
     @Specification({
         "${app}/cache.refresh.toolkit.keep.stale.on.failure/server",

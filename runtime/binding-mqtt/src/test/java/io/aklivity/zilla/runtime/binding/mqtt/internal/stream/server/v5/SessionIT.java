@@ -190,6 +190,59 @@ public class SessionIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/session.will.message.32k/client",
+        "${app}/session.will.message.32k/server"})
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    public void shouldSendWillMessage32k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/session.will.message.zero.window.on.connect/client",
+        "${app}/session.will.message.zero.window.on.connect/server"})
+    public void shouldSendWillMessageWhenSessionWindowStartsAtZero() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/session.will.message.with.user.properties/client",
+        "${app}/session.will.message.with.user.properties/server"})
+    public void shouldSendWillMessageWithUserProperties() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/session.will.message.end.without.disconnect/client",
+        "${app}/session.will.message.end.without.disconnect/server"})
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    public void shouldAbortSessionOnEndWithoutDisconnect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/session.will.message.abort.while.deferred/client",
+        "${app}/session.will.message.abort.while.deferred/server"})
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "16384")
+    public void shouldAbortSessionOnNetworkAbortWhileDeferred() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/session.will.message.disconnect.with.will.message/client",
         "${app}/session.will.message.abort/server"})
     public void shouldCloseSessionDisconnectWithWill() throws Exception
