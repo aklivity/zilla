@@ -45,19 +45,39 @@ read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .toolsCall()
                               .sessionId("5ca1ab1e-c0de-4a11-b007-0001".concat(affinity))
-                              .name("get_weather")
-                              .contentLength(52)
+                              .name("zilla__execute_tool")
+                              .contentLength(102)
                               .build()
                           .build()}
 
 connected
 
-write zilla:reset.ext ${mcp:resetEx()
-                           .typeId(zilla:id("mcp"))
-                           .error()
-                               .code(-32602)
-                               .message("Invalid params")
-                               .build()
-                           .build()}
+read  '{'
+        '"name":"zilla__execute_tool",'
+        '"arguments":'
+        '{'
+          '"name":"get_weather",'
+          '"arguments":'
+          '{'
+            '"location": "New York"'
+          '}'
+        '}'
+      '}'
 
-read abort
+write flush
+
+write '{'
+        '"content":'
+        '['
+          '{'
+            '"type": "text",'
+            '"text": "Current weather in New York:\\nTemperature: 72°F\\nConditions: Partly cloudy"'
+          '}'
+        '],'
+        '"isError": false'
+      '}'
+write flush
+
+write close
+
+read closed

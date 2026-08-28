@@ -13,11 +13,7 @@
 # specific language governing permissions and limitations under the License.
 #
 
-property affinity "00000000"
-
-property serverAddress "zilla://streams/app0"
-
-accept ${serverAddress}
+accept "zilla://streams/app0"
        option zilla:window 8192
        option zilla:transmission "half-duplex"
 
@@ -31,10 +27,18 @@ read zilla:begin.ext ${mcp:matchBeginEx()
 
 connected
 
+read advise zilla:challenge ${mcp:challengeEx()
+                                 .typeId(zilla:id("mcp"))
+                                 .elicitCreate()
+                                     .id("1")
+                                     .url("https://server.example.com/authorize?state=7f3a9b1c&redirect_uri=%s".formatted(http:encodeQuery("https://replace.me/callback")))
+                                     .build()
+                                 .build()}
+
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .lifecycle()
-                               .sessionId("5ca1ab1e-c0de-4a11-b007-0001".concat(affinity))
+                               .sessionId("5ca1ab1e-c0de-4a11-5e55-000100000000")
                                .build()
                            .build()}
 write flush
@@ -44,20 +48,33 @@ accepted
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .toolsCall()
-                              .sessionId("5ca1ab1e-c0de-4a11-b007-0001".concat(affinity))
-                              .name("get_weather")
-                              .contentLength(52)
+                              .sessionId("5ca1ab1e-c0de-4a11-5e55-000100000000")
+                              .name("quartz__get_current_time")
+                              .contentLength(50)
                               .build()
                           .build()}
 
 connected
 
-write zilla:reset.ext ${mcp:resetEx()
-                           .typeId(zilla:id("mcp"))
-                           .error()
-                               .code(-32602)
-                               .message("Invalid params")
-                               .build()
-                           .build()}
+read  '{'
+        '"name":"quartz__get_current_time",'
+        '"arguments":{}'
+      '}'
 
-read abort
+write flush
+
+write '{'
+        '"content":'
+        '['
+          '{'
+            '"type": "text",'
+            '"text": "It is currently 12:00:00 UTC"'
+          '}'
+        '],'
+        '"isError": false'
+      '}'
+write flush
+
+write close
+
+read closed
