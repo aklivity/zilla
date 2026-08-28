@@ -119,6 +119,15 @@ public class ProxyCacheIT
 
     @Test
     @Specification({
+        "${app}/cache.hydrate.toolkit.multi.challenge.route.backend/client",
+        "${app}/cache.hydrate.toolkit.multi.challenge.route.backend/server" })
+    public void shouldHydrateToolkitMultiSettlingChallengedRoute() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/cache.serve.initialize/client",
         "${app}/cache.serve.initialize/server" })
     public void shouldServeInitialize() throws Exception
