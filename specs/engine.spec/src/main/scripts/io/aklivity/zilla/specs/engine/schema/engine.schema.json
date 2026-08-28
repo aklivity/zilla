@@ -96,6 +96,19 @@
             },
             "additionalProperties": false
         },
+        "embeddings":
+        {
+            "title": "Embeddings",
+            "type": "object",
+            "patternProperties":
+            {
+                "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                {
+                    "$ref": "#/$defs/embedding"
+                }
+            },
+            "additionalProperties": false
+        },
         "bindings":
         {
             "title": "Bindings",
@@ -282,6 +295,41 @@
             [
             ]
         },
+        "embedding":
+        {
+            "title": "Embedding",
+            "type": "object",
+            "properties":
+            {
+                "type":
+                {
+                    "title": "Type",
+                    "type": "string",
+                    "enum": []
+                },
+                "vault":
+                {
+                    "title": "Vault",
+                    "type": "string"
+                },
+                "options":
+                {
+                    "title": "Options",
+                    "type": "object"
+                }
+            },
+            "additionalProperties": false,
+            "required":
+            [
+                "type"
+            ],
+            "allOf":
+            [
+            ]
+        },
+        "embedding-ext":
+        {
+        },
         "cataloged":
         {
             "oneOf":
@@ -350,6 +398,9 @@
             {
             },
             "catalog":
+            {
+            },
+            "embedding":
             {
             }
         },

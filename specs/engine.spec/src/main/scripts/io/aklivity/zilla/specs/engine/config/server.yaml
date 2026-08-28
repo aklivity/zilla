@@ -19,6 +19,9 @@ name: test
 stores:
     test0:
         type: test
+embeddings:
+    test0:
+        type: test
 vaults:
     test0:
         type: test
@@ -54,6 +57,7 @@ bindings:
         kind: server
         options:
             store: test0
+            embedding: test0
             authorization:
                 test0:
                     credentials: TOKEN

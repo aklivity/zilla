@@ -57,6 +57,7 @@ import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
+import io.aklivity.zilla.runtime.engine.embedding.EmbeddingHandler;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler.LongCompletionCallback;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
@@ -152,6 +153,7 @@ final class TestBindingFactory implements BindingHandler
     private VaultAssertion vaultAssertion;
     private StoreHandler store;
     private List<StoreAssertion> storeAssertions;
+    private EmbeddingHandler embedding;
     private List<TestBindingOptionsConfig.EnvelopeValue> envelopeBootstrap;
     private List<TestBindingOptionsConfig.EnvelopeAssertion> envelopeAssertions;
     private final Map<String, String> heldLockTokens = new HashMap<>();
@@ -248,6 +250,44 @@ final class TestBindingFactory implements BindingHandler
                     {
                         // store contract: callback must fire strictly later than the call
                         throw new IllegalStateException("store contract violation: sync callback");
+                    }
+                }
+            }
+
+            if (options.embedding != null)
+            {
+                int embeddingId = context.supplyTypeId(options.embedding);
+                this.embedding = context.supplyEmbedding(NamespacedId.id(namespaceId, embeddingId));
+                if (this.embedding != null)
+                {
+                    final Thread dispatchThread = Thread.currentThread();
+                    final MutableBoolean callbackFired = new MutableBoolean();
+                    this.embedding.embed(0L, binding.id, 0L, "init", new EmbeddingHandler.CompletionCallback()
+                    {
+                        @Override
+                        public void completed(
+                            long contextId,
+                            float[] result)
+                        {
+                            if (Thread.currentThread() != dispatchThread || callbackFired.value)
+                            {
+                                throw new IllegalStateException("embedding contract violation");
+                            }
+                            callbackFired.value = true;
+                        }
+
+                        @Override
+                        public void failed(
+                            long contextId,
+                            Throwable ex)
+                        {
+                            throw new IllegalStateException("embedding contract violation", ex);
+                        }
+                    });
+                    if (callbackFired.value)
+                    {
+                        // embedding contract: callback must fire strictly later than the call
+                        throw new IllegalStateException("embedding contract violation: sync callback");
                     }
                 }
             }
