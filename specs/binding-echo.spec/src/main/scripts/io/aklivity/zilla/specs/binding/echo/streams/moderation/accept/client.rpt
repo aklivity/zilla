@@ -14,18 +14,11 @@
 # under the License.
 #
 
----
-name: test
-embeddings:
-    moderator0:
-        type: test
-bindings:
-    echo0:
-        type: echo
-        kind: server
-        options:
-            embedding: moderator0
-            reject:
-                - "You will never believe what happened next."
-                - "I have a massive secret but I absolutely cannot tell anyone here."
-            threshold: 0.85
+connect "zilla://streams/echo0"
+    option zilla:window 8192
+    option zilla:transmission "duplex"
+connected
+
+write "Something crazy just happened to me, a stray cat ran straight into my kitchen!"
+
+read "Something crazy just happened to me, a stray cat ran straight into my kitchen!"

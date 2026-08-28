@@ -15,10 +15,16 @@
  */
 package io.aklivity.zilla.runtime.binding.echo.internal.stream;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 
+import java.util.LinkedList;
+import java.util.List;
 import java.util.function.LongUnaryOperator;
 
+import org.agrona.collections.Long2ObjectHashMap;
+
+import io.aklivity.zilla.config.binding.echo.EchoOptionsConfig;
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.runtime.binding.echo.internal.EchoConfiguration;
 import io.aklivity.zilla.runtime.binding.echo.internal.EchoRouter;
@@ -33,12 +39,17 @@ import io.aklivity.zilla.runtime.binding.echo.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.echo.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.embedding.EmbeddingHandler;
+import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
 
 public final class EchoServerFactory implements BindingHandler
 {
+    private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBufferEx(new byte[0]), 0, 0);
+
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
     private final EndFW endRO = new EndFW();
@@ -61,8 +72,10 @@ public final class EchoServerFactory implements BindingHandler
 
     private final MutableDirectBufferEx writeBuffer;
     private final LongUnaryOperator supplyReplyId;
+    private final EngineContext context;
 
     private final EchoRouter router;
+    private final Long2ObjectHashMap<EchoModerator> moderators;
 
     public EchoServerFactory(
         EchoConfiguration config,
@@ -71,7 +84,15 @@ public final class EchoServerFactory implements BindingHandler
     {
         this.writeBuffer = requireNonNull(context.writeBuffer());
         this.supplyReplyId = context::supplyReplyId;
+        this.context = context;
         this.router = router;
+        this.moderators = new Long2ObjectHashMap<>();
+    }
+
+    public void detach(
+        long bindingId)
+    {
+        moderators.remove(bindingId);
     }
 
     @Override
@@ -93,13 +114,28 @@ public final class EchoServerFactory implements BindingHandler
         if (binding != null)
         {
             final long initialId = begin.streamId();
+            final EchoModerator moderator = binding.options instanceof EchoOptionsConfig options && options.embedding != null
+                ? moderators.computeIfAbsent(binding.id, id -> newModerator(binding.id, options))
+                : null;
 
             newStream = new EchoServer(
                     sender,
-                    initialId)::onMessage;
+                    initialId,
+                    moderator)::onMessage;
         }
 
         return newStream;
+    }
+
+    private EchoModerator newModerator(
+        long bindingId,
+        EchoOptionsConfig options)
+    {
+        final int namespaceId = NamespacedId.namespaceId(bindingId);
+        final int embeddingTypeId = context.supplyTypeId(options.embedding);
+        final EmbeddingHandler handler = context.supplyEmbedding(NamespacedId.id(namespaceId, embeddingTypeId));
+
+        return handler != null ? new EchoModerator(handler, options.reject, options.threshold) : null;
     }
 
     private final class EchoServer
@@ -107,14 +143,17 @@ public final class EchoServerFactory implements BindingHandler
         private final MessageConsumer receiver;
         private final long initialId;
         private final long replyId;
+        private final EchoModerator moderator;
 
         private EchoServer(
             MessageConsumer receiver,
-            long initialId)
+            long initialId,
+            EchoModerator moderator)
         {
             this.receiver = receiver;
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
+            this.moderator = moderator;
         }
 
         private void onMessage(
@@ -196,8 +235,17 @@ public final class EchoServerFactory implements BindingHandler
             final OctetsFW payload = data.payload();
             final OctetsFW extension = data.extension();
 
-            doData(receiver, originId, routedId, replyId, sequence, acknowledge, maximum, traceId,
-                    authorization, flags, budgetId, reserved, payload, extension);
+            if (moderator == null)
+            {
+                doData(receiver, originId, routedId, replyId, sequence, acknowledge, maximum, traceId,
+                        authorization, flags, budgetId, reserved, payload, extension);
+            }
+            else
+            {
+                final String text = asText(payload);
+                moderate(moderator, receiver, originId, routedId, replyId, sequence, acknowledge, maximum,
+                        traceId, authorization, flags, budgetId, reserved, text);
+            }
         }
 
         private void onFlush(
@@ -299,6 +347,195 @@ public final class EchoServerFactory implements BindingHandler
         }
     }
 
+    private final class EchoModerator
+    {
+        private final EmbeddingHandler handler;
+        private final float[][] rejectVectors;
+        private final double threshold;
+        private final List<Runnable> pending;
+
+        private boolean ready;
+        private int rejectVectorsReceived;
+
+        private EchoModerator(
+            EmbeddingHandler handler,
+            List<String> reject,
+            double threshold)
+        {
+            this.handler = handler;
+            this.rejectVectors = new float[reject.size()][];
+            this.threshold = threshold;
+            this.pending = new LinkedList<>();
+
+            for (int i = 0; i < reject.size(); i++)
+            {
+                final int index = i;
+                handler.embed(0L, 0L, 0L, reject.get(i), new EmbeddingHandler.CompletionCallback()
+                {
+                    @Override
+                    public void completed(
+                        long contextId,
+                        float[] result)
+                    {
+                        onRejectVectorEmbedded(index, result);
+                    }
+
+                    @Override
+                    public void failed(
+                        long contextId,
+                        Throwable ex)
+                    {
+                        onRejectVectorEmbedded(index, null);
+                    }
+                });
+            }
+        }
+
+        private void onRejectVectorEmbedded(
+            int index,
+            float[] vector)
+        {
+            rejectVectors[index] = vector;
+            rejectVectorsReceived++;
+
+            if (rejectVectorsReceived == rejectVectors.length)
+            {
+                ready = true;
+                final List<Runnable> drain = new LinkedList<>(pending);
+                pending.clear();
+                drain.forEach(Runnable::run);
+            }
+        }
+
+        private void whenReady(
+            Runnable task)
+        {
+            if (ready)
+            {
+                task.run();
+            }
+            else
+            {
+                pending.add(task);
+            }
+        }
+
+        private boolean matches(
+            float[] vector)
+        {
+            boolean matched = false;
+
+            if (vector != null)
+            {
+                for (float[] rejectVector : rejectVectors)
+                {
+                    if (rejectVector != null && cosineSimilarity(vector, rejectVector) >= threshold)
+                    {
+                        matched = true;
+                        break;
+                    }
+                }
+            }
+
+            return matched;
+        }
+    }
+
+    private void moderate(
+        EchoModerator moderator,
+        MessageConsumer receiver,
+        long originId,
+        long routedId,
+        long streamId,
+        long sequence,
+        long acknowledge,
+        int maximum,
+        long traceId,
+        long authorization,
+        int flags,
+        long budgetId,
+        int reserved,
+        String text)
+    {
+        moderator.whenReady(() -> embedAndForward(moderator, receiver, originId, routedId, streamId, sequence,
+                acknowledge, maximum, traceId, authorization, flags, budgetId, reserved, text));
+    }
+
+    private void embedAndForward(
+        EchoModerator moderator,
+        MessageConsumer receiver,
+        long originId,
+        long routedId,
+        long streamId,
+        long sequence,
+        long acknowledge,
+        int maximum,
+        long traceId,
+        long authorization,
+        int flags,
+        long budgetId,
+        int reserved,
+        String text)
+    {
+        moderator.handler.embed(traceId, routedId, 0L, text, new EmbeddingHandler.CompletionCallback()
+        {
+            @Override
+            public void completed(
+                long contextId,
+                float[] result)
+            {
+                if (moderator.matches(result))
+                {
+                    doEnd(receiver, originId, routedId, streamId, sequence, acknowledge, maximum, traceId,
+                            authorization, EMPTY_OCTETS);
+                }
+                else
+                {
+                    doData(receiver, originId, routedId, streamId, sequence, acknowledge, maximum, traceId,
+                            authorization, flags, budgetId, reserved, text, EMPTY_OCTETS);
+                }
+            }
+
+            @Override
+            public void failed(
+                long contextId,
+                Throwable ex)
+            {
+                doData(receiver, originId, routedId, streamId, sequence, acknowledge, maximum, traceId,
+                        authorization, flags, budgetId, reserved, text, EMPTY_OCTETS);
+            }
+        });
+    }
+
+    private static String asText(
+        OctetsFW payload)
+    {
+        final DirectBufferEx buffer = payload.buffer();
+        final int length = payload.sizeof();
+        final byte[] bytes = new byte[length];
+        buffer.getBytes(payload.offset(), bytes);
+
+        return new String(bytes, UTF_8);
+    }
+
+    private static double cosineSimilarity(
+        float[] a,
+        float[] b)
+    {
+        double dot = 0.0;
+        double normA = 0.0;
+        double normB = 0.0;
+
+        for (int i = 0; i < a.length && i < b.length; i++)
+        {
+            dot += a[i] * b[i];
+            normA += a[i] * a[i];
+            normB += b[i] * b[i];
+        }
+
+        return normA == 0.0 || normB == 0.0 ? 0.0 : dot / (Math.sqrt(normA) * Math.sqrt(normB));
+    }
+
     private void doBegin(
         final MessageConsumer receiver,
         final long originId,
@@ -357,6 +594,44 @@ public final class EchoServerFactory implements BindingHandler
                 .budgetId(budgetId)
                 .reserved(reserved)
                 .payload(payload)
+                .extension(extension)
+                .build();
+
+        receiver.accept(data.typeId(), data.buffer(), data.offset(), data.sizeof());
+    }
+
+    private void doData(
+        final MessageConsumer receiver,
+        final long originId,
+        final long routedId,
+        final long streamId,
+        final long sequence,
+        final long acknowledge,
+        final int maximum,
+        final long traceId,
+        final long authorization,
+        final int flags,
+        final long budgetId,
+        final int reserved,
+        final String text,
+        final OctetsFW extension)
+    {
+        final byte[] bytes = text.getBytes(UTF_8);
+        final DirectBufferEx payload = new UnsafeBufferEx(bytes);
+
+        final DataFW data = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+                .originId(originId)
+                .routedId(routedId)
+                .streamId(streamId)
+                .sequence(sequence)
+                .acknowledge(acknowledge)
+                .maximum(maximum)
+                .traceId(traceId)
+                .authorization(authorization)
+                .flags(flags)
+                .budgetId(budgetId)
+                .reserved(reserved)
+                .payload(payload, 0, bytes.length)
                 .extension(extension)
                 .build();
 

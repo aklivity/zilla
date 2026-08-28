@@ -33,7 +33,41 @@
                     },
                     "catalog": false,
                     "vault": false,
-                    "options": false,
+                    "options":
+                    {
+                        "properties":
+                        {
+                            "embedding":
+                            {
+                                "title": "Embedding",
+                                "type": "string"
+                            },
+                            "reject":
+                            {
+                                "title": "Reject",
+                                "type": "array",
+                                "items":
+                                {
+                                    "type": "string"
+                                },
+                                "minItems": 1
+                            },
+                            "threshold":
+                            {
+                                "title": "Threshold",
+                                "type": "number",
+                                "minimum": 0,
+                                "maximum": 1
+                            }
+                        },
+                        "additionalProperties": false,
+                        "dependentRequired":
+                        {
+                            "embedding": [ "reject", "threshold" ],
+                            "reject": [ "embedding", "threshold" ],
+                            "threshold": [ "embedding", "reject" ]
+                        }
+                    },
                     "routes": false,
                     "entry": false,
                     "exit": false

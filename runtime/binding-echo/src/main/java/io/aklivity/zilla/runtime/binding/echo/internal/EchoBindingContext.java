@@ -30,6 +30,7 @@ import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 final class EchoBindingContext implements BindingContext
 {
     private final EchoRouter router;
+    private final EchoServerFactory serverFactory;
     private final Map<KindConfig, BindingHandler> factories;
 
     EchoBindingContext(
@@ -37,7 +38,8 @@ final class EchoBindingContext implements BindingContext
         EngineContext context)
     {
         this.router = new EchoRouter();
-        this.factories = singletonMap(SERVER, new EchoServerFactory(config, context, router));
+        this.serverFactory = new EchoServerFactory(config, context, router);
+        this.factories = singletonMap(SERVER, serverFactory);
     }
 
     @Override
@@ -53,6 +55,7 @@ final class EchoBindingContext implements BindingContext
         BindingConfig binding)
     {
         router.detach(binding.id);
+        serverFactory.detach(binding.id);
     }
 
     @Override
