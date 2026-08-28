@@ -33,15 +33,6 @@ public final class TestEmbeddingHandler implements EmbeddingHandler
     }
 
     @Override
-    public float[] embed(
-        long traceId,
-        long bindingId,
-        String text)
-    {
-        return generate(text);
-    }
-
-    @Override
     public void embed(
         long traceId,
         long bindingId,
@@ -67,7 +58,7 @@ public final class TestEmbeddingHandler implements EmbeddingHandler
         }
     }
 
-    private static float[] generate(
+    static float[] generate(
         String text)
     {
         float[] vector = null;
