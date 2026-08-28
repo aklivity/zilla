@@ -870,6 +870,16 @@ final class McpProxyLifecycleFactory implements BindingHandler
         // transient reason (a reset, a rejected concurrent request, a network hiccup), which
         // stays retriable exactly as before this route existed
         private boolean challenged;
+        // true once this connect has reached a genuine conclusion -- a session obtained, or a
+        // real abort/reset -- as opposed to merely having issued a preauthorize challenge that
+        // is still awaiting an interactive answer. register()/settled still answer a mere
+        // challenge immediately (a list-style registrant wants that: skip this route for now,
+        // pick it up later via a toolsListChanged-style notification); a registrant for whom
+        // "no session yet" is not an acceptable answer -- e.g. a specific tool call that cannot
+        // partially succeed -- checks this field instead, to tell a challenge still awaiting its
+        // own caller's answer apart from a connect that has truly given up (see McpClient in
+        // McpProxyItemFactory)
+        boolean resolved;
         String sessionId;
         long authorization;
         private String resumeId;
@@ -995,6 +1005,16 @@ final class McpProxyLifecycleFactory implements BindingHandler
             {
                 requests.add(request);
             }
+        }
+
+        // re-queues a registrant that was told "settled" while this connect had merely
+        // issued a preauthorize challenge, not yet reached a real disposition -- added
+        // directly rather than through register(), since settled is already latched true
+        // and asking again there would just re-fire onLifecycleSettled synchronously
+        void awaitResolution(
+            McpRouteRequest request)
+        {
+            requests.add(request);
         }
 
         private void settleRequests(
@@ -1274,6 +1294,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
 
             state = McpState.openedReply(state);
 
+            resolved = true;
             settleLifecycle(traceId);
 
             if (resumeId != null || server.resumePending)
@@ -1325,6 +1346,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
             assert replyAck <= replySeq;
 
             state = McpState.closedReply(state);
+            resolved = true;
             settleRequests(traceId);
             doClientAbort(traceId);
             server.clients.remove(routedId, this);
@@ -1375,6 +1397,7 @@ final class McpProxyLifecycleFactory implements BindingHandler
             assert initialAck <= initialSeq;
 
             state = McpState.closedInitial(state);
+            resolved = true;
             settleRequests(traceId);
             doClientReset(traceId);
             server.clients.remove(routedId, this);
