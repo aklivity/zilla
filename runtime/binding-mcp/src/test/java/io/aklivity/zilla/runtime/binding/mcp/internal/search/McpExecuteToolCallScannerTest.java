@@ -129,6 +129,37 @@ public class McpExecuteToolCallScannerTest
         assertThat(argumentsAsString(scanner), equalTo("{\"location\":\"New York\"}"));
     }
 
+    @Test
+    public void shouldScanLargeArgumentsAcrossManyFrames()
+    {
+        StringBuilder blob = new StringBuilder(10_000);
+        for (int i = 0; i < 10_000; i++)
+        {
+            blob.append((char) ('a' + (i % 26)));
+        }
+        final String json =
+            "{\"name\":\"zilla__execute_tool\",\"arguments\":{\"name\":\"get_weather\"," +
+            "\"arguments\":{\"image\":\"" + blob + "\"}}}";
+        final byte[] bytes = json.getBytes(StandardCharsets.UTF_8);
+        final String expectedArgs = "{\"image\":\"" + blob + "\"}";
+
+        final McpExecuteToolCallScanner scanner = new McpExecuteToolCallScanner();
+        final UnsafeBufferEx buffer = new UnsafeBufferEx(bytes);
+        final int chunkSize = 512;
+        int offset = 0;
+        while (offset < bytes.length)
+        {
+            final int length = Math.min(chunkSize, bytes.length - offset);
+            offset += length;
+            scanner.feed(buffer, offset - length, length, offset == bytes.length);
+        }
+
+        assertThat(scanner.malformed, equalTo(false));
+        assertThat(scanner.name, equalTo("get_weather"));
+        assertThat(scanner.argumentsLength, equalTo(expectedArgs.length()));
+        assertThat(argumentsAsString(scanner), equalTo(expectedArgs));
+    }
+
     private static McpExecuteToolCallScanner scan(
         String json)
     {
