@@ -27,7 +27,7 @@ import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public final class EchoOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, JsonObject>
 {
-    private static final String MODEL_NAME = "model";
+    private static final String VALUE_NAME = "value";
 
     private final ModelConfigAdapter model = new ModelConfigAdapter();
 
@@ -39,10 +39,10 @@ public final class EchoOptionsConfigAdapter extends ConfigAdapter<OptionsConfig,
 
         JsonObjectBuilder object = Json.createObjectBuilder();
 
-        if (echoOptions.model != null)
+        if (echoOptions.value != null)
         {
-            model.adaptType(echoOptions.model.model);
-            object.add(MODEL_NAME, model.adaptToJson(echoOptions.model));
+            model.adaptType(echoOptions.value.model);
+            object.add(VALUE_NAME, model.adaptToJson(echoOptions.value));
         }
 
         return object.build();
@@ -54,10 +54,10 @@ public final class EchoOptionsConfigAdapter extends ConfigAdapter<OptionsConfig,
     {
         EchoOptionsConfigBuilder<EchoOptionsConfig> echoOptions = EchoOptionsConfig.builder();
 
-        if (object.containsKey(MODEL_NAME))
+        if (object.containsKey(VALUE_NAME))
         {
-            JsonValue modelJson = object.get(MODEL_NAME);
-            echoOptions.model(model.adaptFromJson(modelJson));
+            JsonValue valueJson = object.get(VALUE_NAME);
+            echoOptions.value(model.adaptFromJson(valueJson));
         }
 
         return echoOptions.build();

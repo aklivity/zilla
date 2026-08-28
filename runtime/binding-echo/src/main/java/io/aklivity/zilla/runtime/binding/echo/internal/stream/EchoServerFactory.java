@@ -123,8 +123,8 @@ public final class EchoServerFactory implements BindingHandler
         if (binding != null)
         {
             final long initialId = begin.streamId();
-            final ModelHandler model = binding.options instanceof EchoOptionsConfig options && options.model != null
-                ? models.computeIfAbsent(binding.id, id -> context.supplyModel(options.model))
+            final ModelHandler model = binding.options instanceof EchoOptionsConfig options && options.value != null
+                ? models.computeIfAbsent(binding.id, id -> context.supplyModel(options.value))
                 : null;
 
             newStream = new EchoServer(

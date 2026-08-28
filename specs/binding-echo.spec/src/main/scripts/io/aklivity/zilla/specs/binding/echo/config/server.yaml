@@ -21,7 +21,7 @@ bindings:
         type: echo
         kind: server
         options:
-            model:
+            value:
                 model: test
                 suspend: true
                 reject:

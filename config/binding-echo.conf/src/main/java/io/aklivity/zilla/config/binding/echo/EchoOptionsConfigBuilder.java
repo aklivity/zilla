@@ -24,7 +24,7 @@ public final class EchoOptionsConfigBuilder<T> extends ConfigBuilder<T, EchoOpti
 {
     private final Function<OptionsConfig, T> mapper;
 
-    private ModelConfig model;
+    private ModelConfig value;
 
     EchoOptionsConfigBuilder(
         Function<OptionsConfig, T> mapper)
@@ -39,16 +39,16 @@ public final class EchoOptionsConfigBuilder<T> extends ConfigBuilder<T, EchoOpti
         return (Class<EchoOptionsConfigBuilder<T>>) getClass();
     }
 
-    public EchoOptionsConfigBuilder<T> model(
-        ModelConfig model)
+    public EchoOptionsConfigBuilder<T> value(
+        ModelConfig value)
     {
-        this.model = model;
+        this.value = value;
         return this;
     }
 
     @Override
     public T build()
     {
-        return mapper.apply(new EchoOptionsConfig(model));
+        return mapper.apply(new EchoOptionsConfig(value));
     }
 }

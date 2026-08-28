@@ -25,7 +25,7 @@ import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public final class EchoOptionsConfig extends OptionsConfig
 {
-    public final ModelConfig model;
+    public final ModelConfig value;
 
     public static EchoOptionsConfigBuilder<EchoOptionsConfig> builder()
     {
@@ -39,15 +39,15 @@ public final class EchoOptionsConfig extends OptionsConfig
     }
 
     EchoOptionsConfig(
-        ModelConfig model)
+        ModelConfig value)
     {
-        super(resolveModels(model), emptyList());
-        this.model = model;
+        super(resolveModels(value), emptyList());
+        this.value = value;
     }
 
     private static List<ModelConfig> resolveModels(
-        ModelConfig model)
+        ModelConfig value)
     {
-        return model != null ? singletonList(model) : emptyList();
+        return value != null ? singletonList(value) : emptyList();
     }
 }

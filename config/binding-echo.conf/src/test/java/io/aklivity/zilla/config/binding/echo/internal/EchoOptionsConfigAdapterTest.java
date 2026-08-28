@@ -49,13 +49,13 @@ public class EchoOptionsConfigAdapterTest
     @Test
     public void shouldReadOptions()
     {
-        String yaml = "model: test";
+        String yaml = "value: test";
 
         EchoOptionsConfig options = jsonb.fromJson(yaml, EchoOptionsConfig.class);
 
         assertThat(options, not(nullValue()));
-        assertThat(options.model, instanceOf(TestModelConfig.class));
-        assertThat(options.model.model, equalTo("test"));
+        assertThat(options.value, instanceOf(TestModelConfig.class));
+        assertThat(options.value.model, equalTo("test"));
     }
 
     @Test
@@ -66,20 +66,20 @@ public class EchoOptionsConfigAdapterTest
         EchoOptionsConfig options = jsonb.fromJson(yaml, EchoOptionsConfig.class);
 
         assertThat(options, not(nullValue()));
-        assertThat(options.model, nullValue());
+        assertThat(options.value, nullValue());
     }
 
     @Test
     public void shouldWriteOptions()
     {
         EchoOptionsConfig options = EchoOptionsConfig.builder()
-            .model(TestModelConfig.builder().length(0).build())
+            .value(TestModelConfig.builder().length(0).build())
             .build();
 
         String yaml = jsonb.toJson(options);
 
         assertThat(yaml, not(nullValue()));
-        assertThat(yaml, equalTo("model: test\n"));
+        assertThat(yaml, equalTo("value: test\n"));
     }
 
     @Test

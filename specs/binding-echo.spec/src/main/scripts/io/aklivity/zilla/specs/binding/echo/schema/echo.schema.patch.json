@@ -37,7 +37,7 @@
                     {
                         "properties":
                         {
-                            "model":
+                            "value":
                             {
                                 "$ref": "#/$defs/models"
                             }

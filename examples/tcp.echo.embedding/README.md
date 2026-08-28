@@ -82,7 +82,7 @@ bindings:
     type: echo
     kind: server
     options:
-      model:
+      value:
         model: vector
         embedding: moderator0
         reject:
