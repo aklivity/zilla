@@ -171,6 +171,7 @@ public final class GloveEmbeddingHandler implements EmbeddingHandler, AutoClosea
         {
             HttpClient client = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(30))
+                .followRedirects(HttpClient.Redirect.NORMAL)
                 .build();
             HttpRequest request = HttpRequest.newBuilder(url)
                 .GET()
