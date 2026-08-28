@@ -21,7 +21,9 @@ import jakarta.json.JsonObject;
 import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.EmbeddingInfo;
 import io.aklivity.zilla.config.engine.OptionsConfig;
+import io.aklivity.zilla.runtime.common.feature.Incubating;
 
+@Incubating
 public final class DjlEmbeddingInfo implements EmbeddingInfo
 {
     public static final String TYPE = "djl";
