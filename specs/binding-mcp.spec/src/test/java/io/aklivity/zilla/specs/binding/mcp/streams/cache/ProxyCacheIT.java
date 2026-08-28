@@ -434,8 +434,8 @@ public class ProxyCacheIT
 
     @Test
     @Specification({
-        "${app}/cache.serve.tools.list.during.hydrate.backend/client",
-        "${app}/cache.serve.tools.list.during.hydrate.backend/server" })
+        "${app}/cache.serve.tools.list.during.hydrate/client",
+        "${app}/cache.serve.tools.list.during.hydrate/server" })
     public void shouldServeToolsListDuringHydrate() throws Exception
     {
         k3po.finish();
