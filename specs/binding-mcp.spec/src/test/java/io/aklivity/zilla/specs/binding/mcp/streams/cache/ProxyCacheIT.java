@@ -407,8 +407,8 @@ public class ProxyCacheIT
 
     @Test
     @Specification({
-        "${app}/cache.serve.execute.tool/client",
-        "${app}/cache.serve.execute.tool/server" })
+        "${app}/cache.serve.execute.tool.backend/client",
+        "${app}/cache.serve.execute.tool.backend/server" })
     public void shouldServeExecuteTool() throws Exception
     {
         k3po.finish();
