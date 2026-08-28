@@ -72,6 +72,9 @@
 - ci\(release\): move docker buildx registry cache off the zilla image package [\#2440](https://github.com/aklivity/zilla/pull/2440) ([jfallows](https://github.com/jfallows))
 - docs\(readme\): fix release badge to use GitHub releases, not raw tags [\#2441](https://github.com/aklivity/zilla/pull/2441) ([jfallows](https://github.com/jfallows))
 - fix\(binding-mcp\): resolve lifecycle preauthorize races between connect and requests [\#2443](https://github.com/aklivity/zilla/pull/2443) ([jfallows](https://github.com/jfallows))
+- fix\(binding-mcp\): flush hydration registrants queued before a real preauthorize challenge [\#2447](https://github.com/aklivity/zilla/pull/2447) ([jfallows](https://github.com/jfallows))
+- fix\(examples/mcp.proxy\): send a key with kafka\_\_produce\_message in verify.sh [\#2448](https://github.com/aklivity/zilla/pull/2448) ([jfallows](https://github.com/jfallows))
+- fix\(examples/mcp.proxy\): scope kafka-connect plugin.path to the one connector jar it needs [\#2450](https://github.com/aklivity/zilla/pull/2450) ([jfallows](https://github.com/jfallows))
 
 ## [2.3.0](https://github.com/aklivity/zilla/tree/2.3.0) (2026-08-14)
 

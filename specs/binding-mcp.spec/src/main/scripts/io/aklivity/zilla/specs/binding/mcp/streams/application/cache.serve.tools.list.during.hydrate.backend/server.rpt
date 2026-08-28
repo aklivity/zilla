@@ -34,7 +34,7 @@ connected
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .lifecycle()
-                               .sessionId("5ca1ab1e-c0de-4a11-b007-0001".concat(affinity))
+                               .sessionId("5ca1ab1e-c0de-4a11-b007-000100000000")
                                .build()
                            .build()}
 write flush
@@ -43,21 +43,20 @@ accepted
 
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
-                          .toolsCall()
-                              .sessionId("5ca1ab1e-c0de-4a11-b007-0001".concat(affinity))
-                              .name("get_weather")
-                              .contentLength(52)
+                          .toolsList()
+                              .sessionId("5ca1ab1e-c0de-4a11-b007-000100000000")
                               .build()
                           .build()}
 
 connected
 
-write zilla:reset.ext ${mcp:resetEx()
-                           .typeId(zilla:id("mcp"))
-                           .error()
-                               .code(-32602)
-                               .message("Invalid params")
-                               .build()
-                           .build()}
+write flush
 
-read abort
+read await CLIENT_AWAITER_REGISTERED
+
+write '{"tools":[{"name":"get_weather"}]}'
+write flush
+
+write close
+
+read closed

@@ -13,13 +13,14 @@
 # specific language governing permissions and limitations under the License.
 #
 
-property affinity "00000000"
+property authorization 1L
 
 property serverAddress "zilla://streams/app0"
 
 accept ${serverAddress}
        option zilla:window 8192
        option zilla:transmission "half-duplex"
+       option zilla:authorization ${authorization}
 
 accepted
 
@@ -34,30 +35,21 @@ connected
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .lifecycle()
-                               .sessionId("5ca1ab1e-c0de-4a11-b007-0001".concat(affinity))
+                               .sessionId("5ca1ab1e-c0de-4a11-5e55-000100000000")
                                .build()
                            .build()}
 write flush
 
-accepted
+write advised zilla:challenge ${mcp:matchChallengeEx()
+                                    .typeId(zilla:id("mcp"))
+                                    .resume()
+                                        .id("2=200;S=100")
+                                        .build()
+                                    .build()}
 
-read zilla:begin.ext ${mcp:matchBeginEx()
-                          .typeId(zilla:id("mcp"))
-                          .toolsCall()
-                              .sessionId("5ca1ab1e-c0de-4a11-b007-0001".concat(affinity))
-                              .name("get_weather")
-                              .contentLength(52)
-                              .build()
-                          .build()}
-
-connected
-
-write zilla:reset.ext ${mcp:resetEx()
-                           .typeId(zilla:id("mcp"))
-                           .error()
-                               .code(-32602)
-                               .message("Invalid params")
-                               .build()
-                           .build()}
-
-read abort
+write advise zilla:flush ${mcp:flushEx()
+                              .typeId(zilla:id("mcp"))
+                              .toolsListChanged()
+                                  .id("2=200;S=101")
+                                  .build()
+                              .build()}

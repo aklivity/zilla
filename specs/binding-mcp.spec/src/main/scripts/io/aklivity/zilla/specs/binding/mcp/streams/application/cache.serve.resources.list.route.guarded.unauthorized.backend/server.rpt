@@ -15,9 +15,12 @@
 
 property affinity "00000000"
 
+property authorization 1L
+
 accept "zilla://streams/app1"
        option zilla:window 8192
        option zilla:transmission "half-duplex"
+       option zilla:authorization ${authorization}
 
 accepted
 
@@ -32,17 +35,19 @@ connected
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .lifecycle()
-                               .sessionId("5ca1ab1e-c0de-4a11-5e55-000a".concat(affinity))
+                               .sessionId("5ca1ab1e-c0de-4a11-feed-0001".concat(affinity))
                                .build()
                            .build()}
 write flush
 
 accepted
 
+# hydrate.filter=resources also arms KIND_RESOURCES_TEMPLATES_LIST hydration on the same route,
+# and the engine hydrates that kind first -- respond empty, no templates under test here
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
-                          .toolsList()
-                              .sessionId("5ca1ab1e-c0de-4a11-5e55-000a".concat(affinity))
+                          .resourcesTemplatesList()
+                              .sessionId("5ca1ab1e-c0de-4a11-feed-0001".concat(affinity))
                               .build()
                           .build()}
 
@@ -50,25 +55,19 @@ connected
 
 write flush
 
-write '{"tools":'
-        '['
-          '{"name":"get_weather"}'
-        ']'
-      '}'
+write '{"resourceTemplates":[]}'
 write flush
 
 write close
 
 read closed
 
-write notify FIRST_LIST_DONE
-
 accepted
 
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
-                          .toolsList()
-                              .sessionId("5ca1ab1e-c0de-4a11-5e55-000a".concat(affinity))
+                          .resourcesList()
+                              .sessionId("5ca1ab1e-c0de-4a11-feed-0001".concat(affinity))
                               .build()
                           .build()}
 
@@ -76,9 +75,15 @@ connected
 
 write flush
 
-write '{"tools":'
+# no securitySchemes of its own, exactly like petstore's real featured_pets resource --
+# the route's own petstore:tools guard is the only thing that must exclude it
+write '{"resources":'
         '['
-          '{"name":"get_weather"}'
+          '{'
+            '"name":"featured_pets",'
+            '"uri":"/pets/featured",'
+            '"description":"Featured pets"'
+          '}'
         ']'
       '}'
 write flush
@@ -90,6 +95,7 @@ read closed
 accept "zilla://streams/app2"
        option zilla:window 8192
        option zilla:transmission "half-duplex"
+       option zilla:authorization ${authorization}
 
 accepted
 
@@ -101,37 +107,20 @@ read zilla:begin.ext ${mcp:matchBeginEx()
 
 connected
 
-read advise zilla:challenge ${mcp:challengeEx()
-                                 .typeId(zilla:id("mcp"))
-                                 .elicitCreate()
-                                     .id("1")
-                                     .url("https://server.example.com/authorize?state=7f3a9b1c&redirect_uri=%s".formatted(http:encodeQuery("https://replace.me/callback")))
-                                     .build()
-                                 .build()}
-
-write await FIRST_LIST_DONE
-
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .lifecycle()
-                               .sessionId("5ca1ab1e-c0de-4a11-5e55-000b".concat(affinity))
+                               .sessionId("5ca1ab1e-c0de-4a11-feed-0002".concat(affinity))
                                .build()
                            .build()}
 write flush
-
-write advise zilla:flush ${mcp:flushEx()
-                              .typeId(zilla:id("mcp"))
-                              .toolsListChanged()
-                                  .id("200")
-                                  .build()
-                              .build()}
 
 accepted
 
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
-                          .toolsList()
-                              .sessionId("5ca1ab1e-c0de-4a11-5e55-000b".concat(affinity))
+                          .resourcesTemplatesList()
+                              .sessionId("5ca1ab1e-c0de-4a11-feed-0002".concat(affinity))
                               .build()
                           .build()}
 
@@ -139,11 +128,27 @@ connected
 
 write flush
 
-write '{"tools":'
-        '['
-          '{"name":"get_current_time"}'
-        ']'
-      '}'
+write '{"resourceTemplates":[]}'
+write flush
+
+write close
+
+read closed
+
+accepted
+
+read zilla:begin.ext ${mcp:matchBeginEx()
+                          .typeId(zilla:id("mcp"))
+                          .resourcesList()
+                              .sessionId("5ca1ab1e-c0de-4a11-feed-0002".concat(affinity))
+                              .build()
+                          .build()}
+
+connected
+
+write flush
+
+write '{"resources":[{"name":"ping_doc","uri":"/ping"}]}'
 write flush
 
 write close
