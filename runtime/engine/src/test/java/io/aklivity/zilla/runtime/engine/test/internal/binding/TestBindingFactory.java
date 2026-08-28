@@ -543,6 +543,11 @@ final class TestBindingFactory implements BindingHandler
         private boolean replyStarted;
         private final TestModelEnvelope envelope;
         private DirectBufferEx replyEnvelopeExt;
+        private long suspendedTraceId;
+        private long suspendedAuthorization;
+        private boolean awaitingResume;
+        private long pendingEndTraceId = -1L;
+        private long pendingAbortTraceId = -1L;
 
         private TestSource(
             MessageConsumer source,
@@ -565,8 +570,38 @@ final class TestBindingFactory implements BindingHandler
             {
                 seedEnvelope(envelope);
             }
-            this.pipeline = valueModel != null ? valueModel.supplyEncoder(envelope, ModelTransform.NONE) : null;
+            this.pipeline = valueModel != null
+                ? valueModel.supplyEncoder(envelope, ModelTransform.NONE, this::onInitialResumed)
+                : null;
             this.initialBuffer = pipeline != null ? new UnsafeBufferEx(new byte[transformMax]) : null;
+        }
+
+        private void onInitialResumed()
+        {
+            transformInitial(suspendedTraceId, suspendedAuthorization, 0x00,
+                decodePool.buffer(decodeSlot), decodeSlotOffset);
+            flushInitialWindow(suspendedTraceId);
+
+            if (!awaitingResume)
+            {
+                if (pendingAbortTraceId != -1L)
+                {
+                    long traceId = pendingAbortTraceId;
+                    pendingAbortTraceId = -1L;
+                    target.doInitialAbort(traceId);
+                    cleanupDecodeSlot();
+                }
+                else if (pendingEndTraceId != -1L)
+                {
+                    long traceId = pendingEndTraceId;
+                    pendingEndTraceId = -1L;
+                    if (verifyReleased(traceId))
+                    {
+                        target.doInitialEnd(traceId);
+                    }
+                    cleanupDecodeSlot();
+                }
+            }
         }
 
         private void doAuthorize(
@@ -1240,6 +1275,16 @@ final class TestBindingFactory implements BindingHandler
                 }
             } while (status == ModelStatus.OK || status == ModelStatus.OVERFLOW);
 
+            if (status == ModelStatus.SUSPENDED)
+            {
+                suspendedTraceId = traceId;
+                suspendedAuthorization = authorization;
+                awaitingResume = true;
+                return;
+            }
+
+            awaitingResume = false;
+
             boolean truncated = status == ModelStatus.UNDERFLOW && (flags & FLAGS_FIN) != 0;
             if (status == ModelStatus.REJECTED || truncated)
             {
@@ -1274,12 +1319,19 @@ final class TestBindingFactory implements BindingHandler
 
             releaseSession();
 
-            if (verifyReleased(traceId))
+            if (awaitingResume)
             {
-                target.doInitialEnd(traceId);
+                pendingEndTraceId = traceId;
             }
+            else
+            {
+                if (verifyReleased(traceId))
+                {
+                    target.doInitialEnd(traceId);
+                }
 
-            cleanupDecodeSlot();
+                cleanupDecodeSlot();
+            }
         }
 
         private void onInitialAbort(
@@ -1289,12 +1341,19 @@ final class TestBindingFactory implements BindingHandler
 
             releaseSession();
 
-            if (verifyReleased(traceId))
+            if (awaitingResume)
             {
-                target.doInitialAbort(traceId);
+                pendingAbortTraceId = traceId;
             }
+            else
+            {
+                if (verifyReleased(traceId))
+                {
+                    target.doInitialAbort(traceId);
+                }
 
-            cleanupDecodeSlot();
+                cleanupDecodeSlot();
+            }
         }
 
         private void releaseSession()
@@ -1590,6 +1649,11 @@ final class TestBindingFactory implements BindingHandler
             private boolean initialStarted;
             private final TestModelEnvelope envelope;
             private DirectBufferEx initialEnvelopeExt;
+            private long suspendedTraceId;
+            private long suspendedAuthorization;
+            private boolean awaitingResume;
+            private long pendingEndTraceId = -1L;
+            private long pendingAbortTraceId = -1L;
 
             private TestTarget(
                 long originId,
@@ -1607,8 +1671,35 @@ final class TestBindingFactory implements BindingHandler
                 {
                     seedEnvelope(envelope);
                 }
-                this.pipeline = valueModel != null ? valueModel.supplyDecoder(envelope, ModelTransform.NONE) : null;
+                this.pipeline = valueModel != null
+                    ? valueModel.supplyDecoder(envelope, ModelTransform.NONE, this::onReplyResumed)
+                    : null;
                 this.replyBuffer = pipeline != null ? new UnsafeBufferEx(new byte[transformMax]) : null;
+            }
+
+            private void onReplyResumed()
+            {
+                transformReply(suspendedTraceId, suspendedAuthorization, 0x00,
+                    decodePool.buffer(decodeSlot), decodeSlotOffset);
+                flushReplyWindow(suspendedTraceId);
+
+                if (!awaitingResume)
+                {
+                    if (pendingAbortTraceId != -1L)
+                    {
+                        long traceId = pendingAbortTraceId;
+                        pendingAbortTraceId = -1L;
+                        source.doReplyAbort(traceId);
+                        cleanupDecodeSlot();
+                    }
+                    else if (pendingEndTraceId != -1L)
+                    {
+                        long traceId = pendingEndTraceId;
+                        pendingEndTraceId = -1L;
+                        source.doReplyEnd(traceId);
+                        cleanupDecodeSlot();
+                    }
+                }
             }
 
             private void onMessage(
@@ -1801,6 +1892,16 @@ final class TestBindingFactory implements BindingHandler
                     }
                 } while (status == ModelStatus.OK || status == ModelStatus.OVERFLOW);
 
+                if (status == ModelStatus.SUSPENDED)
+                {
+                    suspendedTraceId = traceId;
+                    suspendedAuthorization = authorization;
+                    awaitingResume = true;
+                    return;
+                }
+
+                awaitingResume = false;
+
                 boolean truncated = status == ModelStatus.UNDERFLOW && (flags & FLAGS_FIN) != 0;
                 if (status == ModelStatus.REJECTED || truncated)
                 {
@@ -1834,9 +1935,15 @@ final class TestBindingFactory implements BindingHandler
             {
                 long traceId = end.traceId();
 
-                source.doReplyEnd(traceId);
-
-                cleanupDecodeSlot();
+                if (awaitingResume)
+                {
+                    pendingEndTraceId = traceId;
+                }
+                else
+                {
+                    source.doReplyEnd(traceId);
+                    cleanupDecodeSlot();
+                }
             }
 
             private void onReplyAbort(
@@ -1844,9 +1951,15 @@ final class TestBindingFactory implements BindingHandler
             {
                 long traceId = abort.traceId();
 
-                source.doReplyAbort(traceId);
-
-                cleanupDecodeSlot();
+                if (awaitingResume)
+                {
+                    pendingAbortTraceId = traceId;
+                }
+                else
+                {
+                    source.doReplyAbort(traceId);
+                    cleanupDecodeSlot();
+                }
             }
 
             private void onReplyFlush(

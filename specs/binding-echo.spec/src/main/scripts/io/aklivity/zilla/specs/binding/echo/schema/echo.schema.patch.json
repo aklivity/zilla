@@ -37,36 +37,12 @@
                     {
                         "properties":
                         {
-                            "embedding":
+                            "model":
                             {
-                                "title": "Embedding",
-                                "type": "string"
-                            },
-                            "reject":
-                            {
-                                "title": "Reject",
-                                "type": "array",
-                                "items":
-                                {
-                                    "type": "string"
-                                },
-                                "minItems": 1
-                            },
-                            "threshold":
-                            {
-                                "title": "Threshold",
-                                "type": "number",
-                                "minimum": 0,
-                                "maximum": 1
+                                "$ref": "#/$defs/models"
                             }
                         },
-                        "additionalProperties": false,
-                        "dependentRequired":
-                        {
-                            "embedding": [ "reject", "threshold" ],
-                            "reject": [ "embedding", "threshold" ],
-                            "threshold": [ "embedding", "reject" ]
-                        }
+                        "additionalProperties": false
                     },
                     "routes": false,
                     "entry": false,

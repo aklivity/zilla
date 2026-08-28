@@ -35,6 +35,8 @@ public class TestModelConfigBuilder<T> extends ConfigBuilder<T, TestModelConfigB
     private List<String> fields;
     private ValidateConfig validate;
     private List<Long> transformAuthorizations;
+    private List<String> reject;
+    private boolean suspend;
 
     TestModelConfigBuilder(
         Function<ModelConfig, T> mapper)
@@ -115,10 +117,29 @@ public class TestModelConfigBuilder<T> extends ConfigBuilder<T, TestModelConfigB
         return this;
     }
 
+    public TestModelConfigBuilder<T> reject(
+        String reject)
+    {
+        if (this.reject == null)
+        {
+            this.reject = new LinkedList<>();
+        }
+        this.reject.add(reject);
+        return this;
+    }
+
+    public TestModelConfigBuilder<T> suspend(
+        boolean suspend)
+    {
+        this.suspend = suspend;
+        return this;
+    }
+
     @Override
     public T build()
     {
         return mapper.apply(
-            new TestModelConfig(length, catalogs, read, transformLength, fields, validate, transformAuthorizations));
+            new TestModelConfig(length, catalogs, read, transformLength, fields, validate, transformAuthorizations,
+                reject, suspend));
     }
 }

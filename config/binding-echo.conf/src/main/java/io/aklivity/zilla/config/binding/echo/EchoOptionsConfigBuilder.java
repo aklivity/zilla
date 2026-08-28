@@ -14,19 +14,17 @@
  */
 package io.aklivity.zilla.config.binding.echo;
 
-import java.util.List;
 import java.util.function.Function;
 
 import io.aklivity.zilla.config.engine.ConfigBuilder;
+import io.aklivity.zilla.config.engine.ModelConfig;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public final class EchoOptionsConfigBuilder<T> extends ConfigBuilder<T, EchoOptionsConfigBuilder<T>>
 {
     private final Function<OptionsConfig, T> mapper;
 
-    private String embedding;
-    private List<String> reject;
-    private double threshold;
+    private ModelConfig model;
 
     EchoOptionsConfigBuilder(
         Function<OptionsConfig, T> mapper)
@@ -41,30 +39,16 @@ public final class EchoOptionsConfigBuilder<T> extends ConfigBuilder<T, EchoOpti
         return (Class<EchoOptionsConfigBuilder<T>>) getClass();
     }
 
-    public EchoOptionsConfigBuilder<T> embedding(
-        String embedding)
+    public EchoOptionsConfigBuilder<T> model(
+        ModelConfig model)
     {
-        this.embedding = embedding;
-        return this;
-    }
-
-    public EchoOptionsConfigBuilder<T> reject(
-        List<String> reject)
-    {
-        this.reject = reject;
-        return this;
-    }
-
-    public EchoOptionsConfigBuilder<T> threshold(
-        double threshold)
-    {
-        this.threshold = threshold;
+        this.model = model;
         return this;
     }
 
     @Override
     public T build()
     {
-        return mapper.apply(new EchoOptionsConfig(embedding, reject, threshold));
+        return mapper.apply(new EchoOptionsConfig(model));
     }
 }

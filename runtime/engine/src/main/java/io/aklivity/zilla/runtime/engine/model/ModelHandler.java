@@ -35,6 +35,15 @@ package io.aklivity.zilla.runtime.engine.model;
  * {@link ModelTransform#NONE}, both of which an implementation is free to recognize and wire away
  * entirely.
  * </p>
+ * <p>
+ * A model whose pipeline may report {@link ModelStatus#SUSPENDED} is supplied via the 3-arg
+ * {@link #supplyDecoder(ModelEnvelope, ModelTransform, Runnable)} /
+ * {@link #supplyEncoder(ModelEnvelope, ModelTransform, Runnable)} overloads instead, registering a
+ * {@code resumed} callback once at pipeline-creation time; the pipeline invokes it when async work
+ * started during a suspended {@code transform} call completes, so the caller knows to call
+ * {@code transform} again rather than poll. The default implementations of these overloads forward to
+ * the 2-arg methods with a no-op callback, so a model that never suspends needs no changes.
+ * </p>
  *
  * @see ModelContext
  * @see ModelPipeline
@@ -77,4 +86,40 @@ public interface ModelHandler
     ModelPipeline supplyEncoder(
         ModelEnvelope envelope,
         ModelTransform transform);
+
+    /**
+     * Supplies a new read-direction {@link ModelPipeline} as {@link #supplyDecoder(ModelEnvelope, ModelTransform)}
+     * does, additionally registering a callback the pipeline invokes when async work started during a
+     * {@link ModelStatus#SUSPENDED} outcome completes.
+     *
+     * @param envelope   the metadata channel to bind the pipeline to
+     * @param transform  the per-field transform to wire into the pipeline
+     * @param resumed    invoked when a previously suspended value is ready to be resumed
+     * @return a new per-stream decode pipeline
+     */
+    default ModelPipeline supplyDecoder(
+        ModelEnvelope envelope,
+        ModelTransform transform,
+        Runnable resumed)
+    {
+        return supplyDecoder(envelope, transform);
+    }
+
+    /**
+     * Supplies a new write-direction {@link ModelPipeline} as {@link #supplyEncoder(ModelEnvelope, ModelTransform)}
+     * does, additionally registering a callback the pipeline invokes when async work started during a
+     * {@link ModelStatus#SUSPENDED} outcome completes.
+     *
+     * @param envelope   the metadata channel to bind the pipeline to
+     * @param transform  the per-field transform to wire into the pipeline
+     * @param resumed    invoked when a previously suspended value is ready to be resumed
+     * @return a new per-stream encode pipeline
+     */
+    default ModelPipeline supplyEncoder(
+        ModelEnvelope envelope,
+        ModelTransform transform,
+        Runnable resumed)
+    {
+        return supplyEncoder(envelope, transform);
+    }
 }

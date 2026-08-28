@@ -84,6 +84,7 @@
     "io.aklivity.zilla:model-core",
     "io.aklivity.zilla:model-json",
     "io.aklivity.zilla:model-protobuf",
+    "io.aklivity.zilla:model-vector",
     "io.aklivity.zilla:resolver-env",
     "io.aklivity.zilla:store-memory",
     "io.aklivity.zilla:vault-filesystem",

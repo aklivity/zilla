@@ -14,10 +14,9 @@
  */
 package io.aklivity.zilla.config.binding.echo.internal;
 
-import static java.util.Arrays.asList;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
@@ -29,6 +28,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.config.binding.echo.EchoOptionsConfig;
+import io.aklivity.zilla.config.engine.test.internal.model.config.TestModelConfig;
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 
 public class EchoOptionsConfigAdapterTest
@@ -49,39 +49,37 @@ public class EchoOptionsConfigAdapterTest
     @Test
     public void shouldReadOptions()
     {
-        String yaml =
-            "embedding: moderator0\n" +
-            "reject:\n" +
-            "  - \"reject phrase one\"\n" +
-            "  - \"reject phrase two\"\n" +
-            "threshold: 0.85";
+        String yaml = "model: test";
 
         EchoOptionsConfig options = jsonb.fromJson(yaml, EchoOptionsConfig.class);
 
         assertThat(options, not(nullValue()));
-        assertThat(options.embedding, equalTo("moderator0"));
-        assertThat(options.reject, contains("reject phrase one", "reject phrase two"));
-        assertThat(options.threshold, equalTo(0.85));
+        assertThat(options.model, instanceOf(TestModelConfig.class));
+        assertThat(options.model.model, equalTo("test"));
+    }
+
+    @Test
+    public void shouldReadOptionsWithNullFields()
+    {
+        String yaml = "{}";
+
+        EchoOptionsConfig options = jsonb.fromJson(yaml, EchoOptionsConfig.class);
+
+        assertThat(options, not(nullValue()));
+        assertThat(options.model, nullValue());
     }
 
     @Test
     public void shouldWriteOptions()
     {
         EchoOptionsConfig options = EchoOptionsConfig.builder()
-            .embedding("moderator0")
-            .reject(asList("reject phrase one", "reject phrase two"))
-            .threshold(0.85)
+            .model(TestModelConfig.builder().length(0).build())
             .build();
 
         String yaml = jsonb.toJson(options);
 
         assertThat(yaml, not(nullValue()));
-        assertThat(yaml, equalTo(
-            "embedding: moderator0\n" +
-            "reject:\n" +
-            "  - \"reject phrase one\"\n" +
-            "  - \"reject phrase two\"\n" +
-            "threshold: 0.85\n"));
+        assertThat(yaml, equalTo("model: test\n"));
     }
 
     @Test

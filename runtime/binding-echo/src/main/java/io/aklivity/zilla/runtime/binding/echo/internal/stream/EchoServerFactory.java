@@ -18,8 +18,8 @@ package io.aklivity.zilla.runtime.binding.echo.internal.stream;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 
-import java.util.LinkedList;
-import java.util.List;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.function.LongUnaryOperator;
 
 import org.agrona.collections.Long2ObjectHashMap;
@@ -40,16 +40,22 @@ import io.aklivity.zilla.runtime.binding.echo.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
-import io.aklivity.zilla.runtime.common.vector.Vectors;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
-import io.aklivity.zilla.runtime.engine.embedding.EmbeddingHandler;
-import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
+import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
+import io.aklivity.zilla.runtime.engine.model.ModelHandler;
+import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
+import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
+import io.aklivity.zilla.runtime.engine.model.ModelStatus;
+import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 
 public final class EchoServerFactory implements BindingHandler
 {
+    private static final int FLAGS_COMPLETE = 0x03;
+
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBufferEx(new byte[0]), 0, 0);
+    private static final DirectBufferEx EMPTY_SRC = new UnsafeBufferEx(new byte[0]);
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -72,11 +78,12 @@ public final class EchoServerFactory implements BindingHandler
     private final ChallengeFW.Builder challengeRW = new ChallengeFW.Builder();
 
     private final MutableDirectBufferEx writeBuffer;
+    private final MutableDirectBufferEx modelBuffer;
     private final LongUnaryOperator supplyReplyId;
     private final EngineContext context;
 
     private final EchoRouter router;
-    private final Long2ObjectHashMap<EchoModerator> moderators;
+    private final Long2ObjectHashMap<ModelHandler> models;
 
     public EchoServerFactory(
         EchoConfiguration config,
@@ -84,16 +91,17 @@ public final class EchoServerFactory implements BindingHandler
         EchoRouter router)
     {
         this.writeBuffer = requireNonNull(context.writeBuffer());
+        this.modelBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.supplyReplyId = context::supplyReplyId;
         this.context = context;
         this.router = router;
-        this.moderators = new Long2ObjectHashMap<>();
+        this.models = new Long2ObjectHashMap<>();
     }
 
     public void detach(
         long bindingId)
     {
-        moderators.remove(bindingId);
+        models.remove(bindingId);
     }
 
     @Override
@@ -115,28 +123,17 @@ public final class EchoServerFactory implements BindingHandler
         if (binding != null)
         {
             final long initialId = begin.streamId();
-            final EchoModerator moderator = binding.options instanceof EchoOptionsConfig options && options.embedding != null
-                ? moderators.computeIfAbsent(binding.id, id -> newModerator(binding.id, options))
+            final ModelHandler model = binding.options instanceof EchoOptionsConfig options && options.model != null
+                ? models.computeIfAbsent(binding.id, id -> context.supplyModel(options.model))
                 : null;
 
             newStream = new EchoServer(
                     sender,
                     initialId,
-                    moderator)::onMessage;
+                    model)::onMessage;
         }
 
         return newStream;
-    }
-
-    private EchoModerator newModerator(
-        long bindingId,
-        EchoOptionsConfig options)
-    {
-        final int namespaceId = NamespacedId.namespaceId(bindingId);
-        final int embeddingTypeId = context.supplyTypeId(options.embedding);
-        final EmbeddingHandler handler = context.supplyEmbedding(NamespacedId.id(namespaceId, embeddingTypeId));
-
-        return handler != null ? new EchoModerator(handler, options.reject, options.threshold) : null;
     }
 
     private final class EchoServer
@@ -144,17 +141,23 @@ public final class EchoServerFactory implements BindingHandler
         private final MessageConsumer receiver;
         private final long initialId;
         private final long replyId;
-        private final EchoModerator moderator;
+        private final ModelPipeline pipeline;
+        private final Deque<PendingEcho> pending;
+
+        private PendingEcho active;
 
         private EchoServer(
             MessageConsumer receiver,
             long initialId,
-            EchoModerator moderator)
+            ModelHandler model)
         {
             this.receiver = receiver;
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
-            this.moderator = moderator;
+            this.pipeline = model != null
+                ? model.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, this::onResumed)
+                : null;
+            this.pending = pipeline != null ? new ArrayDeque<>() : null;
         }
 
         private void onMessage(
@@ -236,7 +239,7 @@ public final class EchoServerFactory implements BindingHandler
             final OctetsFW payload = data.payload();
             final OctetsFW extension = data.extension();
 
-            if (moderator == null)
+            if (pipeline == null)
             {
                 doData(receiver, originId, routedId, replyId, sequence, acknowledge, maximum, traceId,
                         authorization, flags, budgetId, reserved, payload, extension);
@@ -244,8 +247,78 @@ public final class EchoServerFactory implements BindingHandler
             else
             {
                 final String text = asText(payload);
-                moderate(moderator, receiver, originId, routedId, replyId, sequence, acknowledge, maximum,
+                final PendingEcho message = new PendingEcho(originId, routedId, sequence, acknowledge, maximum,
                         traceId, authorization, flags, budgetId, reserved, text);
+
+                if (active != null)
+                {
+                    pending.add(message);
+                }
+                else
+                {
+                    process(message);
+                }
+            }
+        }
+
+        private void process(
+            PendingEcho message)
+        {
+            active = message;
+
+            final byte[] bytes = message.text.getBytes(UTF_8);
+            final DirectBufferEx src = new UnsafeBufferEx(bytes);
+
+            advance(pipeline.transform(message.traceId, message.routedId, message.authorization, FLAGS_COMPLETE,
+                    src, 0, bytes.length, modelBuffer, 0, modelBuffer.capacity()));
+        }
+
+        private void onResumed()
+        {
+            final PendingEcho message = active;
+
+            advance(pipeline.transform(message.traceId, message.routedId, message.authorization, 0x00,
+                    EMPTY_SRC, 0, 0, modelBuffer, 0, modelBuffer.capacity()));
+        }
+
+        private void advance(
+            ModelPipelineResult result)
+        {
+            final ModelStatus status = result.status();
+            final PendingEcho message = active;
+
+            if (status == ModelStatus.REJECTED)
+            {
+                pipeline.reset();
+                active = null;
+                doEnd(receiver, message.originId, message.routedId, replyId, message.sequence, message.acknowledge,
+                        message.maximum, message.traceId, message.authorization, EMPTY_OCTETS);
+                processNext();
+            }
+            else if (status == ModelStatus.COMPLETE)
+            {
+                pipeline.reset();
+                active = null;
+                doData(receiver, message.originId, message.routedId, replyId, message.sequence, message.acknowledge,
+                        message.maximum, message.traceId, message.authorization, message.flags, message.budgetId,
+                        message.reserved, message.text, EMPTY_OCTETS);
+                processNext();
+            }
+            else if (status == ModelStatus.OVERFLOW)
+            {
+                advance(pipeline.transform(message.traceId, message.routedId, message.authorization, 0x00,
+                        EMPTY_SRC, 0, 0, modelBuffer, 0, modelBuffer.capacity()));
+            }
+            // SUSPENDED and UNDERFLOW both wait: SUSPENDED resumes via the model's resume callback,
+            // UNDERFLOW never resolves since FLAGS_COMPLETE already offered every available byte
+        }
+
+        private void processNext()
+        {
+            final PendingEcho next = pending.poll();
+            if (next != null)
+            {
+                process(next);
             }
         }
 
@@ -348,164 +421,45 @@ public final class EchoServerFactory implements BindingHandler
         }
     }
 
-    private final class EchoModerator
+    private static final class PendingEcho
     {
-        private final EmbeddingHandler handler;
-        private final float[][] rejectVectors;
-        private final double threshold;
-        private final List<Runnable> pending;
+        private final long originId;
+        private final long routedId;
+        private final long sequence;
+        private final long acknowledge;
+        private final int maximum;
+        private final long traceId;
+        private final long authorization;
+        private final int flags;
+        private final long budgetId;
+        private final int reserved;
+        private final String text;
 
-        private boolean ready;
-        private int rejectVectorsReceived;
-
-        private EchoModerator(
-            EmbeddingHandler handler,
-            List<String> reject,
-            double threshold)
+        private PendingEcho(
+            long originId,
+            long routedId,
+            long sequence,
+            long acknowledge,
+            int maximum,
+            long traceId,
+            long authorization,
+            int flags,
+            long budgetId,
+            int reserved,
+            String text)
         {
-            this.handler = handler;
-            this.rejectVectors = new float[reject.size()][];
-            this.threshold = threshold;
-            this.pending = new LinkedList<>();
-
-            for (int i = 0; i < reject.size(); i++)
-            {
-                final int index = i;
-                handler.embed(0L, 0L, 0L, reject.get(i), new EmbeddingHandler.CompletionCallback()
-                {
-                    @Override
-                    public void completed(
-                        long contextId,
-                        float[] result)
-                    {
-                        onRejectVectorEmbedded(index, result);
-                    }
-
-                    @Override
-                    public void failed(
-                        long contextId,
-                        Throwable ex)
-                    {
-                        onRejectVectorEmbedded(index, null);
-                    }
-                });
-            }
+            this.originId = originId;
+            this.routedId = routedId;
+            this.sequence = sequence;
+            this.acknowledge = acknowledge;
+            this.maximum = maximum;
+            this.traceId = traceId;
+            this.authorization = authorization;
+            this.flags = flags;
+            this.budgetId = budgetId;
+            this.reserved = reserved;
+            this.text = text;
         }
-
-        private void onRejectVectorEmbedded(
-            int index,
-            float[] vector)
-        {
-            rejectVectors[index] = vector;
-            rejectVectorsReceived++;
-
-            if (rejectVectorsReceived == rejectVectors.length)
-            {
-                ready = true;
-                final List<Runnable> drain = new LinkedList<>(pending);
-                pending.clear();
-                drain.forEach(Runnable::run);
-            }
-        }
-
-        private void whenReady(
-            Runnable task)
-        {
-            if (ready)
-            {
-                task.run();
-            }
-            else
-            {
-                pending.add(task);
-            }
-        }
-
-        private boolean matches(
-            float[] vector)
-        {
-            boolean matched = false;
-
-            if (vector != null)
-            {
-                for (float[] rejectVector : rejectVectors)
-                {
-                    if (rejectVector != null && Vectors.similarity(vector, rejectVector) >= threshold)
-                    {
-                        matched = true;
-                        break;
-                    }
-                }
-            }
-
-            return matched;
-        }
-    }
-
-    private void moderate(
-        EchoModerator moderator,
-        MessageConsumer receiver,
-        long originId,
-        long routedId,
-        long streamId,
-        long sequence,
-        long acknowledge,
-        int maximum,
-        long traceId,
-        long authorization,
-        int flags,
-        long budgetId,
-        int reserved,
-        String text)
-    {
-        moderator.whenReady(() -> embedAndForward(moderator, receiver, originId, routedId, streamId, sequence,
-                acknowledge, maximum, traceId, authorization, flags, budgetId, reserved, text));
-    }
-
-    private void embedAndForward(
-        EchoModerator moderator,
-        MessageConsumer receiver,
-        long originId,
-        long routedId,
-        long streamId,
-        long sequence,
-        long acknowledge,
-        int maximum,
-        long traceId,
-        long authorization,
-        int flags,
-        long budgetId,
-        int reserved,
-        String text)
-    {
-        moderator.handler.embed(traceId, routedId, 0L, text, new EmbeddingHandler.CompletionCallback()
-        {
-            @Override
-            public void completed(
-                long contextId,
-                float[] result)
-            {
-                if (moderator.matches(result))
-                {
-                    doEnd(receiver, originId, routedId, streamId, sequence, acknowledge, maximum, traceId,
-                            authorization, EMPTY_OCTETS);
-                }
-                else
-                {
-                    doData(receiver, originId, routedId, streamId, sequence, acknowledge, maximum, traceId,
-                            authorization, flags, budgetId, reserved, text, EMPTY_OCTETS);
-                }
-            }
-
-            @Override
-            public void failed(
-                long contextId,
-                Throwable ex)
-            {
-                doData(receiver, originId, routedId, streamId, sequence, acknowledge, maximum, traceId,
-                        authorization, flags, budgetId, reserved, text, EMPTY_OCTETS);
-            }
-        });
     }
 
     private static String asText(

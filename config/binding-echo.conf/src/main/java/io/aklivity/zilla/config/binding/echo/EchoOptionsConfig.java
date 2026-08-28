@@ -14,16 +14,18 @@
  */
 package io.aklivity.zilla.config.binding.echo;
 
+import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
+
 import java.util.List;
 import java.util.function.Function;
 
+import io.aklivity.zilla.config.engine.ModelConfig;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public final class EchoOptionsConfig extends OptionsConfig
 {
-    public final String embedding;
-    public final List<String> reject;
-    public final double threshold;
+    public final ModelConfig model;
 
     public static EchoOptionsConfigBuilder<EchoOptionsConfig> builder()
     {
@@ -37,12 +39,15 @@ public final class EchoOptionsConfig extends OptionsConfig
     }
 
     EchoOptionsConfig(
-        String embedding,
-        List<String> reject,
-        double threshold)
+        ModelConfig model)
     {
-        this.embedding = embedding;
-        this.reject = reject;
-        this.threshold = threshold;
+        super(resolveModels(model), emptyList());
+        this.model = model;
+    }
+
+    private static List<ModelConfig> resolveModels(
+        ModelConfig model)
+    {
+        return model != null ? singletonList(model) : emptyList();
     }
 }

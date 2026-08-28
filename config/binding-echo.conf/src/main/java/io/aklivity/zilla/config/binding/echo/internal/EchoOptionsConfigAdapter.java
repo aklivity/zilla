@@ -14,25 +14,22 @@
  */
 package io.aklivity.zilla.config.binding.echo.internal;
 
-import java.util.List;
-
 import jakarta.json.Json;
-import jakarta.json.JsonArray;
-import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
 
 import io.aklivity.zilla.config.binding.echo.EchoOptionsConfig;
+import io.aklivity.zilla.config.binding.echo.EchoOptionsConfigBuilder;
 import io.aklivity.zilla.config.engine.ConfigAdapter;
+import io.aklivity.zilla.config.engine.ModelConfigAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public final class EchoOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, JsonObject>
 {
-    private static final String EMBEDDING_NAME = "embedding";
-    private static final String REJECT_NAME = "reject";
-    private static final String THRESHOLD_NAME = "threshold";
+    private static final String MODEL_NAME = "model";
+
+    private final ModelConfigAdapter model = new ModelConfigAdapter();
 
     @Override
     public JsonObject adaptToJson(
@@ -42,21 +39,10 @@ public final class EchoOptionsConfigAdapter extends ConfigAdapter<OptionsConfig,
 
         JsonObjectBuilder object = Json.createObjectBuilder();
 
-        if (echoOptions.embedding != null)
+        if (echoOptions.model != null)
         {
-            object.add(EMBEDDING_NAME, echoOptions.embedding);
-        }
-
-        if (echoOptions.reject != null)
-        {
-            JsonArrayBuilder reject = Json.createArrayBuilder();
-            echoOptions.reject.forEach(reject::add);
-            object.add(REJECT_NAME, reject);
-        }
-
-        if (echoOptions.embedding != null)
-        {
-            object.add(THRESHOLD_NAME, echoOptions.threshold);
+            model.adaptType(echoOptions.model.model);
+            object.add(MODEL_NAME, model.adaptToJson(echoOptions.model));
         }
 
         return object.build();
@@ -66,36 +52,14 @@ public final class EchoOptionsConfigAdapter extends ConfigAdapter<OptionsConfig,
     public OptionsConfig adaptFromJson(
         JsonObject object)
     {
-        String embedding = object.containsKey(EMBEDDING_NAME)
-            ? object.getString(EMBEDDING_NAME)
-            : null;
+        EchoOptionsConfigBuilder<EchoOptionsConfig> echoOptions = EchoOptionsConfig.builder();
 
-        List<String> reject = object.containsKey(REJECT_NAME)
-            ? asListString(object.getJsonArray(REJECT_NAME))
-            : null;
+        if (object.containsKey(MODEL_NAME))
+        {
+            JsonValue modelJson = object.get(MODEL_NAME);
+            echoOptions.model(model.adaptFromJson(modelJson));
+        }
 
-        double threshold = object.containsKey(THRESHOLD_NAME)
-            ? object.getJsonNumber(THRESHOLD_NAME).doubleValue()
-            : 0.0;
-
-        return EchoOptionsConfig.builder()
-            .embedding(embedding)
-            .reject(reject)
-            .threshold(threshold)
-            .build();
-    }
-
-    private static List<String> asListString(
-        JsonArray array)
-    {
-        return array.stream()
-            .map(EchoOptionsConfigAdapter::asString)
-            .toList();
-    }
-
-    private static String asString(
-        JsonValue value)
-    {
-        return ((JsonString) value).getString();
+        return echoOptions.build();
     }
 }

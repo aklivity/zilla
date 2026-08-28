@@ -16,16 +16,14 @@
 
 ---
 name: test
-embeddings:
-    moderator0:
-        type: test
 bindings:
     echo0:
         type: echo
         kind: server
         options:
-            embedding: moderator0
-            reject:
-                - "You will never believe what happened next."
-                - "I have a massive secret but I absolutely cannot tell anyone here."
-            threshold: 0.85
+            model:
+                model: test
+                suspend: true
+                reject:
+                    - "You will never believe what happened next."
+                    - "I have a massive secret but I absolutely cannot tell anyone here."

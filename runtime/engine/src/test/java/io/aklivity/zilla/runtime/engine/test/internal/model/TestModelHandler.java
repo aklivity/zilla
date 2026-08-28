@@ -21,6 +21,7 @@ import java.util.List;
 
 import io.aklivity.zilla.config.engine.ValidateMode;
 import io.aklivity.zilla.config.engine.test.internal.model.config.TestModelConfig;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
@@ -28,17 +29,31 @@ import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 
 public class TestModelHandler implements ModelHandler
 {
+    private static final Runnable NOOP = () ->
+    {
+    };
+
     private final int length;
     private final int transformLength;
     private final List<String> fields;
     private final boolean decodeLenient;
     private final boolean encodeLenient;
     private final List<Long> transformAuthorizations;
+    private final List<String> reject;
+    private final boolean suspend;
+    private final EngineContext context;
 
     private int transformAuthorizationIndex;
 
     public TestModelHandler(
         TestModelConfig config)
+    {
+        this(config, null);
+    }
+
+    public TestModelHandler(
+        TestModelConfig config,
+        EngineContext context)
     {
         this.length = config.length;
         this.transformLength = config.transformLength;
@@ -46,6 +61,9 @@ public class TestModelHandler implements ModelHandler
         this.decodeLenient = config.validate.decode == ValidateMode.LENIENT;
         this.encodeLenient = config.validate.encode == ValidateMode.LENIENT;
         this.transformAuthorizations = config.transformAuthorizations;
+        this.reject = config.reject;
+        this.suspend = config.suspend;
+        this.context = context;
     }
 
     @Override
@@ -53,7 +71,7 @@ public class TestModelHandler implements ModelHandler
         ModelEnvelope envelope,
         ModelTransform transform)
     {
-        return new TestModelPipeline(length, transformLength, fields, decodeLenient, envelope, transform, this);
+        return supplyDecoder(envelope, transform, NOOP);
     }
 
     @Override
@@ -61,7 +79,27 @@ public class TestModelHandler implements ModelHandler
         ModelEnvelope envelope,
         ModelTransform transform)
     {
-        return new TestModelPipeline(length, transformLength, fields, encodeLenient, envelope, transform, this);
+        return supplyEncoder(envelope, transform, NOOP);
+    }
+
+    @Override
+    public ModelPipeline supplyDecoder(
+        ModelEnvelope envelope,
+        ModelTransform transform,
+        Runnable resumed)
+    {
+        return new TestModelPipeline(length, transformLength, fields, decodeLenient, envelope, transform, this,
+            reject, suspend, resumed, context);
+    }
+
+    @Override
+    public ModelPipeline supplyEncoder(
+        ModelEnvelope envelope,
+        ModelTransform transform,
+        Runnable resumed)
+    {
+        return new TestModelPipeline(length, transformLength, fields, encodeLenient, envelope, transform, this,
+            reject, suspend, resumed, context);
     }
 
     Long nextTransformAuthorization()

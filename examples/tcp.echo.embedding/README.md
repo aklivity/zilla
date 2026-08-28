@@ -7,8 +7,12 @@ comparing embedding vectors, not exact words, so a message can be rejected
 even when it shares no vocabulary at all with the configured `reject`
 phrases, as long as it means the same thing.
 
-The moderator uses [`embedding-glove`](../../incubator/embedding-glove), an
-OSS, non-vendor-locked `embeddings:` implementation that averages
+The moderation itself is implemented by
+[`model-vector`](../../incubator/model-vector), a generic `model:` that
+rejects a value whose embedding is similar enough to a configured list of
+reject phrases — `echo` just references it like any binding-agnostic model,
+the same way a binding might reference `json` or `avro`. The embedding
+vectors come from [`embedding-glove`](../../incubator/embedding-glove), an
 [GloVe](https://nlp.stanford.edu/projects/glove/) word vectors locally — no
 vendor API, no per-request network call, no ML runtime. The vectors download
 automatically the first time `moderator0` is used, so the very first message
@@ -78,11 +82,13 @@ bindings:
     type: echo
     kind: server
     options:
-      embedding: moderator0
-      reject:
-        - "You will never believe what happened next."
-        - "I have a massive secret but I absolutely cannot tell anyone here."
-      threshold: 0.94
+      model:
+        model: vector
+        embedding: moderator0
+        reject:
+          - "You will never believe what happened next."
+          - "I have a massive secret but I absolutely cannot tell anyone here."
+        threshold: 0.94
 ```
 
 ## Teardown
