@@ -69,6 +69,9 @@
 - Expose schema root properties [\#2435](https://github.com/aklivity/zilla/pull/2435) ([ReguiguiMohamed](https://github.com/ReguiguiMohamed))
 - fix\(binding-mqtt\): preserve a deferred will payload across abort, decode error, and end [\#2436](https://github.com/aklivity/zilla/pull/2436) ([jfallows](https://github.com/jfallows))
 - fix\(guard-jwt\): resolve credentials\(\) for a session minted on a different worker [\#2437](https://github.com/aklivity/zilla/pull/2437) ([jfallows](https://github.com/jfallows))
+- ci\(release\): move docker buildx registry cache off the zilla image package [\#2440](https://github.com/aklivity/zilla/pull/2440) ([jfallows](https://github.com/jfallows))
+- docs\(readme\): fix release badge to use GitHub releases, not raw tags [\#2441](https://github.com/aklivity/zilla/pull/2441) ([jfallows](https://github.com/jfallows))
+- fix\(binding-mcp\): resolve lifecycle preauthorize races between connect and requests [\#2443](https://github.com/aklivity/zilla/pull/2443) ([jfallows](https://github.com/jfallows))
 
 ## [2.3.0](https://github.com/aklivity/zilla/tree/2.3.0) (2026-08-14)
 
