@@ -498,6 +498,9 @@ public final class McpProxyCacheHydrater
             case AbortFW.TYPE_ID:
                 onAbort(abortRO.wrap(buffer, index, index + length));
                 break;
+            case ResetFW.TYPE_ID:
+                onReset(resetRO.wrap(buffer, index, index + length));
+                break;
             default:
                 break;
             }
@@ -525,6 +528,16 @@ public final class McpProxyCacheHydrater
             AbortFW abort)
         {
             settle(abort.traceId(), true);
+        }
+
+        // a cancelled hydration fetch (e.g. the south server rejecting a concurrent
+        // request while another is already in flight on the same session) resets the
+        // initial side rather than ending or aborting the reply -- without this, the
+        // route never settles and the whole kind's cache never becomes ready
+        private void onReset(
+            ResetFW reset)
+        {
+            settle(reset.traceId(), true);
         }
 
         private void settle(
