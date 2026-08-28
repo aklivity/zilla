@@ -33,13 +33,11 @@ import io.aklivity.zilla.runtime.engine.embedding.EmbeddingHandler;
 public class TestEmbeddingHandlerTest
 {
     @Test
-    public void shouldEmbedDeterministicallySync()
+    public void shouldEmbedDeterministically()
     {
-        TestEmbeddingHandler handler = new TestEmbeddingHandler(Runnable::run);
-
-        float[] first = handler.embed(0L, 0L, "hello world");
-        float[] second = handler.embed(0L, 0L, "hello world");
-        float[] different = handler.embed(0L, 0L, "goodbye world");
+        float[] first = TestEmbeddingHandler.generate("hello world");
+        float[] second = TestEmbeddingHandler.generate("hello world");
+        float[] different = TestEmbeddingHandler.generate("goodbye world");
 
         assertNotNull(first);
         assertEquals(8, first.length);
@@ -54,7 +52,7 @@ public class TestEmbeddingHandlerTest
         Consumer<Runnable> dispatcher = deferred::addLast;
         TestEmbeddingHandler handler = new TestEmbeddingHandler(dispatcher);
 
-        float[] sync = handler.embed(0L, 0L, "hello world");
+        float[] expected = TestEmbeddingHandler.generate("hello world");
 
         boolean[] completed = new boolean[1];
         float[][] captured = new float[1][];
@@ -85,6 +83,6 @@ public class TestEmbeddingHandlerTest
         deferred.poll().run();
 
         assertTrue(completed[0]);
-        assertArrayEquals(sync, captured[0], 0.0f);
+        assertArrayEquals(expected, captured[0], 0.0f);
     }
 }
