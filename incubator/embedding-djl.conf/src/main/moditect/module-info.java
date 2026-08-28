@@ -16,6 +16,7 @@ module io.aklivity.zilla.config.embedding.djl
 {
     requires jakarta.json;
     requires io.aklivity.zilla.config.engine;
+    requires io.aklivity.zilla.runtime.common.feature;
 
     provides io.aklivity.zilla.config.engine.EmbeddingInfo
         with io.aklivity.zilla.config.embedding.djl.internal.DjlEmbeddingInfo;
