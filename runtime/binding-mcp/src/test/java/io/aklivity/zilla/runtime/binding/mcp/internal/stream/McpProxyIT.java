@@ -307,6 +307,17 @@ public class McpProxyIT
 
     @Test
     @Configuration("proxy.toolkit.multi.yaml")
+    @Specification({
+        "${app}/lifecycle.hold.tools.call.after.authorize.toolkit.multi.prefixed/client",
+        "${app}/lifecycle.hold.tools.call.after.authorize.toolkit.multi/server" })
+    @ScriptProperty("affinity \"0000003f\"")
+    public void shouldHoldToolCallOpenThroughOutstandingLifecycleChallenge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.toolkit.multi.yaml")
     @ScriptProperty("authorization 1L")
     @Specification({
         "${app}/lifecycle.events.resume.aggregate.prefixed/client",

@@ -1535,6 +1535,23 @@ public final class McpClientFactory implements McpStreamFactory
         return colon < 0 ? id : id.substring(colon + 1);
     }
 
+    // the JSON-RPC id decoder accepts either a string or number id but only keeps the token
+    // text, not which one it was; this re-derives it from the token's own shape so a reverse
+    // elicitation response can echo the id back as the same JSON type it originally arrived as
+    private static boolean isJsonRpcNumericId(
+        String id)
+    {
+        boolean numeric = id != null && !id.isEmpty();
+        for (int i = 0; numeric && i < id.length(); i++)
+        {
+            final char ch = id.charAt(i);
+            final boolean digit = ch >= '0' && ch <= '9';
+            final boolean sign = i == 0 && ch == '-' && id.length() > 1;
+            numeric = digit || sign;
+        }
+        return numeric;
+    }
+
     @Override
     public int originTypeId()
     {
@@ -2517,7 +2534,9 @@ public final class McpClientFactory implements McpStreamFactory
 
             if ((sessionId & GuardHandler.MASK_AUTHORIZED) != 0L)
             {
-                pendingConnect = false;
+                // pendingConnect stays true until the south handshake actually finishes (see
+                // onNetEnd) -- the guard has decided, but this session is not yet ready to carry
+                // other south-bound traffic
                 credentials = guard.credentials(sessionId);
                 guardSessionId = sessionId;
                 resumeDeferredConnect(acquireTraceId, acquireAuthorization);
@@ -2550,16 +2569,19 @@ public final class McpClientFactory implements McpStreamFactory
                     .build();
                 doAppChallenge(acquireTraceId, acquireAuthorization, challengeEx);
 
+                // still pendingConnect: a request whose own proceedWithRequest observes this
+                // rejects rather than independently asking the same guard the same question
                 return;
             }
 
-            pendingConnect = false;
             if (!binding.needsCredentials)
             {
+                // pendingConnect stays true until the south handshake finishes -- see onNetEnd
                 resumeDeferredConnect(acquireTraceId, acquireAuthorization);
             }
             else
             {
+                pendingConnect = false;
                 doAppReset(acquireTraceId, acquireAuthorization);
                 doAppAbort(acquireTraceId, acquireAuthorization);
             }
@@ -2831,10 +2853,11 @@ public final class McpClientFactory implements McpStreamFactory
             {
                 deauthorizeGuardSession();
                 guardSessionId = sessionId;
+                credentials = binding.guard.credentials(sessionId);
 
                 if (pendingConnect)
                 {
-                    pendingConnect = false;
+                    // pendingConnect stays true until the south handshake finishes -- see onNetEnd
                     resumeDeferredConnect(acquireTraceId, acquireAuthorization);
                     return;
                 }
@@ -2893,6 +2916,14 @@ public final class McpClientFactory implements McpStreamFactory
             {
                 final String sid = sessionId;
                 final int caps = serverCapabilities;
+
+                // the south handshake has now genuinely finished -- this session is ready to
+                // carry other south-bound traffic before its own reply is dispatched, since
+                // doAppBegin below can synchronously cascade into a request that was waiting
+                // on this exact connect to settle (e.g. the proxy layer's settleRequests(),
+                // called from the same reply it is about to receive)
+                pendingConnect = false;
+
                 doAppBegin(traceId, authorization, mcpBeginExRW
                     .wrap(codecBuffer, 0, codecBuffer.capacity())
                     .typeId(mcpTypeId)
@@ -3145,6 +3176,15 @@ public final class McpClientFactory implements McpStreamFactory
             long authorization,
             McpBeginExFW mcpBeginEx)
         {
+            // the session's own connect is already asking the guard this same question; a request
+            // landing here cannot be for a caller that legitimately learned this session id yet
+            if (session.pendingConnect)
+            {
+                doAppReset(traceId, authorization);
+                doAppAbort(traceId, authorization);
+                return false;
+            }
+
             doAppBegin(traceId, authorization, null);
 
             final GuardHandler guard = session.binding.guard;
@@ -3163,10 +3203,6 @@ public final class McpClientFactory implements McpStreamFactory
                 }
             }
 
-            // the asynchronous overload completes on a later turn in every case, whether the
-            // guard decides locally or has to reach an authorization server for an outbound
-            // token exchange, so there is one path here: hold the request and buffer its body
-            // until the decision arrives
             acquireTraceId = traceId;
             acquireAuthorization = authorization;
             guard.reauthorize(traceId, session.binding.id, authorization, null, acquireCompletion);
@@ -6344,6 +6380,7 @@ public final class McpClientFactory implements McpStreamFactory
         private final String sessionId;
         private final String protocolVersion;
         private final String requestId;
+        private final boolean numericRequestId;
         private final String action;
         private final McpBindingConfig binding;
         private final int contentLength;
@@ -6372,12 +6409,14 @@ public final class McpClientFactory implements McpStreamFactory
             this.sessionId = mcp.transportSessionId();
             this.protocolVersion = mcp.protocolVersion();
             this.requestId = requestId;
+            this.numericRequestId = isJsonRpcNumericId(requestId);
             this.action = action;
             this.originId = mcp.routedId;
             this.routedId = mcp.resolvedId;
             this.affinity = mcp.affinity;
             this.binding = mcp.binding();
-            this.contentLength = JSON_RPC_ELICIT_RESPONSE_PREFIX.length() + requestId.length() +
+            final int idQuotes = numericRequestId ? 0 : 2;
+            this.contentLength = JSON_RPC_ELICIT_RESPONSE_PREFIX.length() + idQuotes + requestId.length() +
                 JSON_RPC_ELICIT_RESPONSE_MIDDLE.length() + action.length() + JSON_RPC_ELICIT_RESPONSE_SUFFIX.length();
         }
 
@@ -6413,7 +6452,15 @@ public final class McpClientFactory implements McpStreamFactory
         {
             int codecLength = 0;
             codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, JSON_RPC_ELICIT_RESPONSE_PREFIX);
+            if (!numericRequestId)
+            {
+                codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, "\"");
+            }
             codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, requestId);
+            if (!numericRequestId)
+            {
+                codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, "\"");
+            }
             codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, JSON_RPC_ELICIT_RESPONSE_MIDDLE);
             codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, action);
             codecLength += codecBuffer.putStringWithoutLengthAscii(codecLength, JSON_RPC_ELICIT_RESPONSE_SUFFIX);
