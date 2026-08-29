@@ -21,6 +21,7 @@ import io.aklivity.zilla.config.binding.mcp.McpKeywordToolSearchIndexConfig;
 import io.aklivity.zilla.config.binding.mcp.McpToolSearchIndexConfig;
 import io.aklivity.zilla.runtime.binding.mcp.search.McpToolSearchIndex;
 import io.aklivity.zilla.runtime.binding.mcp.search.McpToolSearchIndexFactorySpi;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 
 public final class McpKeywordToolSearchIndexFactorySpi implements McpToolSearchIndexFactorySpi
 {
@@ -32,10 +33,11 @@ public final class McpKeywordToolSearchIndexFactorySpi implements McpToolSearchI
 
     @Override
     public McpToolSearchIndex create(
+        EngineContext context,
         McpToolSearchIndexConfig config,
         List<String> fields,
         Map<String, Double> weights)
     {
-        return new McpKeywordToolSearchIndex(fields, weights);
+        return new McpKeywordToolSearchIndex(context::dispatch, fields, weights);
     }
 }
