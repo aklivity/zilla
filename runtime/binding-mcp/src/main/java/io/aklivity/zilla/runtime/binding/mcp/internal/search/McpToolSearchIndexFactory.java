@@ -27,6 +27,7 @@ import io.aklivity.zilla.config.binding.mcp.McpCacheToolsSearchConfig;
 import io.aklivity.zilla.config.binding.mcp.McpToolSearchIndexConfig;
 import io.aklivity.zilla.runtime.binding.mcp.search.McpToolSearchIndex;
 import io.aklivity.zilla.runtime.binding.mcp.search.McpToolSearchIndexFactorySpi;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 
 /**
  * Builds the runtime {@link McpToolSearchIndex} for a configured
@@ -48,6 +49,7 @@ public final class McpToolSearchIndexFactory
     }
 
     public McpToolSearchIndex create(
+        EngineContext context,
         McpCacheToolsSearchConfig search)
     {
         McpToolSearchIndex result = null;
@@ -60,7 +62,7 @@ public final class McpToolSearchIndexFactory
                 McpToolSearchIndexFactorySpi factory = factoriesByType.get(config.type);
                 if (factory != null)
                 {
-                    indexes.add(factory.create(config, search.fields, search.weights));
+                    indexes.add(factory.create(context, config, search.fields, search.weights));
                 }
             }
 

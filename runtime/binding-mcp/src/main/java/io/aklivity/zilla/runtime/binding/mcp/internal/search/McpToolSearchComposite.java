@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.binding.mcp.internal.search;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 import io.aklivity.zilla.runtime.binding.mcp.search.McpToolSearchDocument;
@@ -26,6 +27,12 @@ import io.aklivity.zilla.runtime.binding.mcp.search.McpToolSearchMatch;
  * Composes any number of configured {@link McpToolSearchIndex} backends behind a single
  * {@link McpToolSearchIndex}, fusing their rankings with Reciprocal Rank Fusion. A single
  * backend is queried directly, with no fusion overhead.
+ * <p>
+ * Fans an {@link #index(Collection, CompletionCallback)} or {@link #query(String,
+ * CompletionCallback)} call out to every configured backend and joins once all have
+ * completed; the first failure reported by any backend is forwarded as the composite's own
+ * failure, discarding any results still outstanding from the others.
+ * </p>
  */
 public final class McpToolSearchComposite implements McpToolSearchIndex
 {
@@ -39,28 +46,92 @@ public final class McpToolSearchComposite implements McpToolSearchIndex
 
     @Override
     public void index(
-        Collection<McpToolSearchDocument> documents)
+        Collection<McpToolSearchDocument> documents,
+        CompletionCallback<Void> completed)
     {
-        indexes.forEach(index -> index.index(documents));
-    }
-
-    @Override
-    public List<McpToolSearchMatch> query(
-        String text)
-    {
-        List<McpToolSearchMatch> result;
-
         if (indexes.size() == 1)
         {
-            result = indexes.get(0).query(text);
+            indexes.get(0).index(documents, completed);
         }
         else
         {
-            List<List<McpToolSearchMatch>> rankings = new ArrayList<>(indexes.size());
-            indexes.forEach(index -> rankings.add(index.query(text)));
-            result = McpToolSearchRankFusion.fuse(rankings);
-        }
+            final int[] remaining = { indexes.size() };
+            final boolean[] settled = { false };
 
-        return result;
+            for (McpToolSearchIndex index : indexes)
+            {
+                index.index(documents, new CompletionCallback<>()
+                {
+                    @Override
+                    public void completed(
+                        Void result)
+                    {
+                        if (--remaining[0] == 0 && !settled[0])
+                        {
+                            settled[0] = true;
+                            completed.completed(null);
+                        }
+                    }
+
+                    @Override
+                    public void failed(
+                        Throwable ex)
+                    {
+                        if (!settled[0])
+                        {
+                            settled[0] = true;
+                            completed.failed(ex);
+                        }
+                    }
+                });
+            }
+        }
+    }
+
+    @Override
+    public void query(
+        String text,
+        CompletionCallback<List<McpToolSearchMatch>> completed)
+    {
+        if (indexes.size() == 1)
+        {
+            indexes.get(0).query(text, completed);
+        }
+        else
+        {
+            final List<List<McpToolSearchMatch>> rankings = new ArrayList<>(Collections.nCopies(indexes.size(), null));
+            final int[] remaining = { indexes.size() };
+            final boolean[] settled = { false };
+
+            for (int i = 0; i < indexes.size(); i++)
+            {
+                final int slot = i;
+                indexes.get(i).query(text, new CompletionCallback<>()
+                {
+                    @Override
+                    public void completed(
+                        List<McpToolSearchMatch> matches)
+                    {
+                        rankings.set(slot, matches);
+                        if (--remaining[0] == 0 && !settled[0])
+                        {
+                            settled[0] = true;
+                            completed.completed(McpToolSearchRankFusion.fuse(rankings));
+                        }
+                    }
+
+                    @Override
+                    public void failed(
+                        Throwable ex)
+                    {
+                        if (!settled[0])
+                        {
+                            settled[0] = true;
+                            completed.failed(ex);
+                        }
+                    }
+                });
+            }
+        }
     }
 }
