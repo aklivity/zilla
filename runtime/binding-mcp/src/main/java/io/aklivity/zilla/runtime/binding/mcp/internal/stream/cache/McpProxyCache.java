@@ -142,7 +142,7 @@ public final class McpProxyCache
         if (filter.test(KIND_TOOLS_LIST))
         {
             final McpToolSearchIndex searchIndex = cache.tools != null
-                ? new McpToolSearchIndexFactory().create(cache.tools.search)
+                ? new McpToolSearchIndexFactory().create(context, cache.tools.search)
                 : null;
             final List<String> searchFields = cache.tools != null && cache.tools.search != null
                 ? cache.tools.search.fields
@@ -545,12 +545,48 @@ public final class McpProxyCache
             {
                 final List<McpToolSearchDocument> documents = McpToolSearchDocumentScanner.scan(value, searchFields);
                 descriptionsByName = indexDescriptionsByName(documents);
-                searchIndex.index(documents);
                 toolsBytes = value.getBytes(StandardCharsets.UTF_8);
                 toolRangesByName = McpToolByteRangeScanner.scan(toolsBytes);
+                searchIndex.index(documents, settled(ex -> putToStore(value, changed, completion)));
             }
+            else
+            {
+                putToStore(value, changed, completion);
+            }
+        }
+
+        private void putToStore(
+            String value,
+            boolean changed,
+            Consumer<String> completion)
+        {
             store.put(storeKey, value, STORE_TTL_FOREVER, completion.andThen(this::checkPut)
                 .andThen(k -> onSettled.accept(kind, changed, value)));
+        }
+
+        // the only backend today (keyword) never fails to index, so both outcomes take the same
+        // action here; a backend that can genuinely fail (e.g. an unavailable embedding provider)
+        // still proceeds to store the tools list rather than blocking it on search availability --
+        // stale/incomplete search results until the next successful rebuild, not a lost cache write
+        private McpToolSearchIndex.CompletionCallback<Void> settled(
+            Consumer<Throwable> completion)
+        {
+            return new McpToolSearchIndex.CompletionCallback<>()
+            {
+                @Override
+                public void completed(
+                    Void result)
+                {
+                    completion.accept(null);
+                }
+
+                @Override
+                public void failed(
+                    Throwable ex)
+                {
+                    completion.accept(ex);
+                }
+            };
         }
 
         public void acquire(
@@ -593,28 +629,37 @@ public final class McpProxyCache
             String key,
             String value)
         {
-            final boolean changed;
             if (value != null)
             {
                 crc32.reset();
                 crc32.update(value.getBytes(StandardCharsets.UTF_8));
                 final long newChecksum = crc32.getValue();
-                changed = lastChecksum != -1L && lastChecksum != newChecksum;
+                final boolean changed = lastChecksum != -1L && lastChecksum != newChecksum;
                 lastChecksum = newChecksum;
                 scopesByName = indexScopesByName(value);
                 if (searchIndex != null)
                 {
                     final List<McpToolSearchDocument> documents = McpToolSearchDocumentScanner.scan(value, searchFields);
                     descriptionsByName = indexDescriptionsByName(documents);
-                    searchIndex.index(documents);
                     toolsBytes = value.getBytes(StandardCharsets.UTF_8);
                     toolRangesByName = McpToolByteRangeScanner.scan(toolsBytes);
+                    searchIndex.index(documents, settled(ex -> finishCheckGet(value, changed)));
+                }
+                else
+                {
+                    finishCheckGet(value, changed);
                 }
             }
             else
             {
-                changed = false;
+                finishCheckGet(null, false);
             }
+        }
+
+        private void finishCheckGet(
+            String value,
+            boolean changed)
+        {
             populated = value != null;
             checkReady();
             onSettled.accept(kind, changed, value);

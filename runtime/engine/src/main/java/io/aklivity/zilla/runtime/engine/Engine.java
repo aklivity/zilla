@@ -169,6 +169,11 @@ public final class Engine implements Collector, AutoCloseable
         bootstrapLabels(router);
         router.watchLabels(this::flushLabel);
 
+        // resolved once here, not per worker -- this instance's node identity is fixed for the
+        // lifetime of the engine, and Engine already owns both the router and each worker's
+        // construction, so it is the one place with standing to decide it and hand it down.
+        final byte nodeId = router.supplyNodeId(config.nodeInstanceId());
+
         Int2ObjectHashMap<ToIntFunction<KindConfig>> maxWorkersByBindingType = new Int2ObjectHashMap<>();
 
         // ensure parity with external labelIds
@@ -228,7 +233,7 @@ public final class Engine implements Collector, AutoCloseable
         {
             EngineWorker worker =
                 new EngineWorker(config, tasks, diagnoseOnError, tuning::affinity, bindings, exporters,
-                    guards, vaults, catalogs, models, metricGroups, stores, router, routerConfig, this,
+                    guards, vaults, catalogs, models, metricGroups, stores, router, nodeId, routerConfig, this,
                     this::supplyEventReader, eventFormatterFactory, workerIndex, readonly, this::process, boss);
             workers.add(worker);
         }
