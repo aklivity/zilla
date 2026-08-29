@@ -74,9 +74,63 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/lifecycle.initialize.anonymous/client",
+        "${app}/lifecycle.initialize.anonymous/server"})
+    public void shouldInitializeLifecycleAnonymously() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/lifecycle.initialize.guarded/client",
+        "${app}/lifecycle.initialize.guarded/server"})
+    public void shouldInitializeLifecycleGuarded() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/lifecycle.initialize.guarded.reauthorize.after.close/client",
+        "${app}/lifecycle.initialize.guarded.reauthorize.after.close/server"})
+    public void shouldReauthorizeLifecycleGuardedAfterClose() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/lifecycle.initialize.reject.bearer.resource.metadata/client",
         "${app}/lifecycle.initialize.reject.bearer.resource.metadata/server"})
     public void shouldRejectLifecycleInitializeOnUpstreamBearerChallengeResourceMetadata() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/lifecycle.initialize.skip.bearer.backend/client",
+        "${app}/lifecycle.initialize.skip.bearer.backend/server"})
+    public void shouldSkipLifecycleInitializeOnUpstreamBearerChallengeBackend() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/lifecycle.initialize.skip.bearer.toolkit.multi.backend/client",
+        "${app}/lifecycle.initialize.skip.bearer.toolkit.multi.backend/server"})
+    public void shouldSkipLifecycleInitializeOnUpstreamBearerChallengeToolkitMultiBackend() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/lifecycle.initialize.partial.toolkit.multi.backend/client",
+        "${app}/lifecycle.initialize.partial.toolkit.multi.backend/server"})
+    public void shouldInitializeLifecycleWithPartialToolkitMultiBackend() throws Exception
     {
         k3po.finish();
     }
@@ -113,6 +167,49 @@ public class ApplicationIT
         "${app}/cache.tools.call.no.schema/client",
         "${app}/cache.tools.call.no.schema/server"})
     public void shouldForwardToolsCallWithoutSchema() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/cache.tools.call.invalid.input/client",
+        "${app}/cache.tools.call.invalid.input/server"})
+    public void shouldRejectToolsCallWithInvalidInput() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/cache.tools.call.valid.input.10k/client",
+        "${app}/cache.tools.call.valid.input.10k/server"})
+    public void shouldProxyToolsCallWithValidInput10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/cache.tools.call.valid.input.100k/client",
+        "${app}/cache.tools.call.valid.input.100k/server"})
+    public void shouldProxyToolsCallWithValidInput100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // cache.tools.call.no.arguments has no peer-to-peer counterpart here: unlike
+    // cache.tools.call.invalid.input above (whose server script writes its own reset independently), its
+    // server script never produces the reset the client expects -- that reset is generated only by the
+    // engine's own schema validation defaulting the omitted "arguments" to "{}" and then rejecting it, so
+    // there is no client/server protocol exchange for a peer-to-peer run to verify -- only the binding IT
+    // (McpProxyCacheIT) exercises it.
+
+    @Test
+    @Specification({
+        "${app}/cache.tools.call.reuse.schema/client",
+        "${app}/cache.tools.call.reuse.schema/server"})
+    public void shouldValidateIndependentToolsCallsAgainstSharedCachedSchema() throws Exception
     {
         k3po.finish();
     }
@@ -569,6 +666,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/lifecycle.events.resume.aggregate.prefixed/client",
+        "${app}/lifecycle.events.resume.aggregate.prefixed/server"})
+    public void shouldResumeLifecycleEventsAggregatePrefixed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/lifecycle.events.resume.partial/client",
         "${app}/lifecycle.events.resume.partial/server"})
     public void shouldResumeLifecycleEventsPartial() throws Exception
@@ -617,6 +723,78 @@ public class ApplicationIT
         "${app}/lifecycle.notify.resources.updated.unknown.param/client",
         "${app}/lifecycle.notify.resources.updated.unknown.param/server"})
     public void shouldNotifyResourcesUpdatedUnknownParam() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/lifecycle.notify.resources.updated.toolkit.multi/client",
+        "${app}/lifecycle.notify.resources.updated.toolkit.multi/server"})
+    public void shouldNotifyResourcesUpdatedToolkitMulti() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/lifecycle.notify.resources.updated.toolkit.multi.prefixed/client",
+        "${app}/lifecycle.notify.resources.updated.toolkit.multi.prefixed/server"})
+    public void shouldNotifyResourcesUpdatedToolkitMultiPrefixed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/lifecycle.notify.tools.list.changed.toolkit.multi/client",
+        "${app}/lifecycle.notify.tools.list.changed.toolkit.multi/server"})
+    public void shouldNotifyToolsListChangedToolkitMulti() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/lifecycle.notify.tools.list.changed.toolkit.multi.prefixed/client",
+        "${app}/lifecycle.notify.tools.list.changed.toolkit.multi.prefixed/server"})
+    public void shouldNotifyToolsListChangedToolkitMultiPrefixed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/lifecycle.notify.tools.list.changed.after.authorize.toolkit.multi/client",
+        "${app}/lifecycle.notify.tools.list.changed.after.authorize.toolkit.multi/server"})
+    public void shouldNotifyToolsListChangedAfterAuthorizeToolkitMulti() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/lifecycle.notify.tools.list.changed.after.authorize.toolkit.multi.prefixed/client",
+        "${app}/lifecycle.notify.tools.list.changed.after.authorize.toolkit.multi.prefixed/server"})
+    public void shouldNotifyToolsListChangedAfterAuthorizeToolkitMultiPrefixed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/lifecycle.hold.tools.call.after.authorize.toolkit.multi/client",
+        "${app}/lifecycle.hold.tools.call.after.authorize.toolkit.multi/server"})
+    public void shouldHoldToolCallOpenThroughOutstandingLifecycleChallenge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/lifecycle.hold.tools.call.after.authorize.toolkit.multi.prefixed/client",
+        "${app}/lifecycle.hold.tools.call.after.authorize.toolkit.multi.prefixed/server"})
+    public void shouldHoldToolCallOpenThroughOutstandingLifecycleChallengePrefixed() throws Exception
     {
         k3po.finish();
     }
@@ -713,9 +891,45 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/lifecycle.elicit.toolkit.replay/client",
+        "${app}/lifecycle.elicit.toolkit.replay/server"})
+    public void shouldRejectReplayedLifecycleElicitToolkitCallback() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/lifecycle.elicit.completed/client",
         "${app}/lifecycle.elicit.completed/server"})
     public void shouldCompleteLifecycleElicit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/lifecycle.elicit.toolkit.multi.backend/client",
+        "${app}/lifecycle.elicit.toolkit.multi.backend/server"})
+    public void shouldRouteLifecycleElicitToolkitCallbackMultiBackend() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/lifecycle.elicit.cached.backend/client",
+        "${app}/lifecycle.elicit.cached.backend/server"})
+    public void shouldCompleteLifecycleElicitWhenCached() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/lifecycle.events.resume.partial.prefixed.backend/client",
+        "${app}/lifecycle.events.resume.partial.prefixed.backend/server"})
+    public void shouldResumeLifecycleEventsPartialPrefixed() throws Exception
     {
         k3po.finish();
     }
@@ -740,9 +954,27 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/tools.call.elicit.completed.proxied.string.id/client",
+        "${app}/tools.call.elicit.completed.proxied.string.id/server"})
+    public void shouldCallToolElicitCompletedProxiedStringId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/tools.call.elicit.completed.preauthorized/client",
         "${app}/tools.call.elicit.completed.preauthorized/server"})
     public void shouldCallToolElicitCompletedPreauthorized() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/tools.call.concurrent.lifecycle.preauthorize/client",
+        "${app}/tools.call.concurrent.lifecycle.preauthorize/server"})
+    public void shouldCallToolConcurrentWithLifecyclePreauthorize() throws Exception
     {
         k3po.finish();
     }
@@ -1118,9 +1350,27 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/tools.call.toolkit.reject.unauthorized/client",
+        "${app}/tools.call.toolkit.reject.unauthorized/server"})
+    public void shouldRejectToolsCallWithToolkitUnauthorized() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/tools.list.toolkit/client",
         "${app}/tools.list.toolkit/server"})
     public void shouldListToolsWithToolkit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/tools.list.toolkit.filtered.backend/client",
+        "${app}/tools.list.toolkit.filtered.backend/server"})
+    public void shouldListToolsWithToolkitFiltered() throws Exception
     {
         k3po.finish();
     }

@@ -46,7 +46,7 @@ read zilla:begin.ext ${mcp:matchBeginEx()
                           .toolsCall()
                               .sessionId("5ca1ab1e-c0de-4a11-b007-0001".concat(affinity))
                               .name("get_weather")
-                              .contentLength(59)
+                              .contentLength(62)
                               .build()
                           .build()}
 
@@ -56,8 +56,9 @@ read  '{'
         '"name":"get_weather",'
         '"arguments":'
         '{'
-          '"location": "New York"'
+          '"location":"New York"'
         '}'
+        '    '
       '}'
 
 write flush

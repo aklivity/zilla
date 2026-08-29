@@ -61,6 +61,8 @@ write close
 
 read closed
 
+write notify FIRST_LIST_DONE
+
 accepted
 
 read zilla:begin.ext ${mcp:matchBeginEx()
