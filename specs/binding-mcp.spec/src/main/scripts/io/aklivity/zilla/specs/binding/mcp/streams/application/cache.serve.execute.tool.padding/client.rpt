@@ -15,55 +15,59 @@
 
 property affinity "00000000"
 
-property serverAddress "zilla://streams/app0"
-
-accept ${serverAddress}
-       option zilla:window 8192
-       option zilla:transmission "half-duplex"
-
-accepted
-
-read zilla:begin.ext ${mcp:matchBeginEx()
-                          .typeId(zilla:id("mcp"))
-                          .lifecycle()
-                              .build()
-                          .build()}
-
-connected
+connect "zilla://streams/app0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
 
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .lifecycle()
-                               .sessionId("5ca1ab1e-c0de-4a11-b007-0001".concat(affinity))
                                .build()
                            .build()}
-write flush
-
-accepted
-
-read zilla:begin.ext ${mcp:matchBeginEx()
-                          .typeId(zilla:id("mcp"))
-                          .toolsCall()
-                              .sessionId("5ca1ab1e-c0de-4a11-b007-0001".concat(affinity))
-                              .name("get_weather")
-                              .contentLength(62)
-                              .build()
-                          .build()}
 
 connected
 
-read  '{'
-        '"name":"get_weather",'
-        '"arguments":'
-        '{'
-          '"location":"New York"'
-        '}'
-        '    '
-      '}'
+read zilla:begin.ext ${mcp:matchBeginEx()
+                          .typeId(zilla:id("mcp"))
+                          .lifecycle()
+                              .sessionId("5ca1ab1e-c0de-4a11-b007-0001".concat(affinity))
+                              .build()
+                          .build()}
 
-write flush
+read notify LIFECYCLE_INITIALIZED
+
+connect await LIFECYCLE_INITIALIZED
+        "zilla://streams/app0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+
+write zilla:begin.ext ${mcp:beginEx()
+                           .typeId(zilla:id("mcp"))
+                           .toolsCall()
+                               .sessionId("5ca1ab1e-c0de-4a11-b007-0001".concat(affinity))
+                               .name("zilla__execute_tool")
+                               .contentLength(133)
+                               .build()
+                           .build()}
+
+connected
 
 write '{'
+        '"name":"zilla__execute_tool",'
+        '"arguments":'
+        '{'
+          '"name":"get_weather",'
+          '"arguments":'
+          '{'
+            '"location":"New York"'
+          '}'
+          ',"note":"padding exercised here"'
+        '}'
+      '}'
+
+write close
+
+read  '{'
         '"content":'
         '['
           '{'
@@ -73,8 +77,4 @@ write '{'
         '],'
         '"isError": false'
       '}'
-write flush
-
-write close
-
 read closed

@@ -46,35 +46,10 @@ read zilla:begin.ext ${mcp:matchBeginEx()
                           .toolsCall()
                               .sessionId("5ca1ab1e-c0de-4a11-b007-0001".concat(affinity))
                               .name("get_weather")
-                              .contentLength(62)
+                              .contentLength(22)
                               .build()
                           .build()}
 
 connected
 
-read  '{'
-        '"name":"get_weather",'
-        '"arguments":'
-        '{'
-          '"location":"New York"'
-        '}'
-        '    '
-      '}'
-
-write flush
-
-write '{'
-        '"content":'
-        '['
-          '{'
-            '"type": "text",'
-            '"text": "Current weather in New York:\\nTemperature: 72°F\\nConditions: Partly cloudy"'
-          '}'
-        '],'
-        '"isError": false'
-      '}'
-write flush
-
-write close
-
-read closed
+read abort

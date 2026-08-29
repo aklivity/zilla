@@ -15,66 +15,51 @@
 
 property affinity "00000000"
 
-property serverAddress "zilla://streams/app0"
-
-accept ${serverAddress}
-       option zilla:window 8192
-       option zilla:transmission "half-duplex"
-
-accepted
-
-read zilla:begin.ext ${mcp:matchBeginEx()
-                          .typeId(zilla:id("mcp"))
-                          .lifecycle()
-                              .build()
-                          .build()}
-
-connected
+connect "zilla://streams/app0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
 
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .lifecycle()
-                               .sessionId("5ca1ab1e-c0de-4a11-b007-0001".concat(affinity))
                                .build()
                            .build()}
-write flush
-
-accepted
-
-read zilla:begin.ext ${mcp:matchBeginEx()
-                          .typeId(zilla:id("mcp"))
-                          .toolsCall()
-                              .sessionId("5ca1ab1e-c0de-4a11-b007-0001".concat(affinity))
-                              .name("get_weather")
-                              .contentLength(62)
-                              .build()
-                          .build()}
 
 connected
 
-read  '{'
-        '"name":"get_weather",'
-        '"arguments":'
-        '{'
-          '"location":"New York"'
-        '}'
-        '    '
-      '}'
+read zilla:begin.ext ${mcp:matchBeginEx()
+                          .typeId(zilla:id("mcp"))
+                          .lifecycle()
+                              .sessionId("5ca1ab1e-c0de-4a11-b007-0001".concat(affinity))
+                              .build()
+                          .build()}
 
-write flush
+read notify LIFECYCLE_INITIALIZED
 
-write '{'
-        '"content":'
-        '['
-          '{'
-            '"type": "text",'
-            '"text": "Current weather in New York:\\nTemperature: 72°F\\nConditions: Partly cloudy"'
-          '}'
-        '],'
-        '"isError": false'
-      '}'
-write flush
+connect await LIFECYCLE_INITIALIZED
+        "zilla://streams/app0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
 
-write close
+write zilla:begin.ext ${mcp:beginEx()
+                           .typeId(zilla:id("mcp"))
+                           .toolsCall()
+                               .sessionId("5ca1ab1e-c0de-4a11-b007-0001".concat(affinity))
+                               .name("get_weather")
+                               .contentLength(22)
+                               .build()
+                           .build()}
 
-read closed
+connected
+
+write '{"name":"get_weather"}'
+
+read zilla:reset.ext ${mcp:matchResetEx()
+                          .typeId(zilla:id("mcp"))
+                          .error()
+                              .code(-32602)
+                              .message("Invalid params")
+                              .build()
+                          .build()}
+
+write aborted
