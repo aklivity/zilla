@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
 
+import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_ID;
 
 import java.nio.charset.StandardCharsets;
@@ -30,7 +31,6 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpBindingConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpRouteConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.search.McpDescribeToolCallScanner;
-import io.aklivity.zilla.runtime.binding.mcp.internal.search.McpExecuteToolCallScanner;
 import io.aklivity.zilla.runtime.binding.mcp.internal.search.McpJsonStringEscaper;
 import io.aklivity.zilla.runtime.binding.mcp.internal.search.McpSearchToolCallScanner;
 import io.aklivity.zilla.runtime.binding.mcp.internal.search.McpToolByteRange;
@@ -56,9 +56,14 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableDirectByteBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.common.json.JsonEx;
+import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
+import io.aklivity.zilla.runtime.common.json.JsonPipeline;
+import io.aklivity.zilla.runtime.common.json.JsonPipelineResult;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 
 abstract class McpProxyItemFactory implements BindingHandler
@@ -135,11 +140,18 @@ abstract class McpProxyItemFactory implements BindingHandler
     private final ChallengeFW.Builder challengeRW = new ChallengeFW.Builder();
     private final McpBeginExFW.Builder mcpBeginExRW = new McpBeginExFW.Builder();
     private final McpResetExFW.Builder mcpResetExRW = new McpResetExFW.Builder();
-    private final DirectBufferEx executeDefaultArgumentsRO = new UnsafeBufferEx(EXECUTE_DEFAULT_ARGUMENTS);
 
     private final MutableDirectBufferEx writeBuffer;
     private final MutableDirectBufferEx codecBuffer;
     private final MutableDirectBufferEx extBuffer;
+    // separate BufferPool views over the same underlying storage -- BufferPool#buffer(slot) hands back a
+    // single reused scratch flyweight repositioned to the requested slot, valid for one-time use only
+    // (see BufferPool's own javadoc); holding a decode-slot buffer across a later encode-slot buffer()
+    // call on the very same BufferPool instance silently repositions -- and so invalidates -- the
+    // earlier reference. McpServerFactory/McpClientFactory duplicate() for exactly this reason wherever
+    // a decode slot and an encode slot are read or written in the same stretch of code
+    private final BufferPool decodePool;
+    private final BufferPool encodePool;
     private final BindingHandler streamFactory;
     private final LongBinaryOperator supplyInitialIdAffinity;
     private final LongUnaryOperator supplyReplyId;
@@ -154,9 +166,11 @@ abstract class McpProxyItemFactory implements BindingHandler
     // dedicated trimmed copy, since it is cached and drained over multiple WINDOW credits per stream
     private byte[] searchStructuredArray = new byte[0];
     private byte[] searchResponseArray = new byte[0];
-    // reusable, growable per-worker scratch array execute_tool assembles its reconstructed wire body
-    // into -- {"name":"<target>","arguments":<raw span>} -- reconfigured per request, never reallocated
-    private byte[] executeBodyArray = new byte[0];
+    // reusable, growable per-worker scratch array execute_tool assembles the fixed leading portion of
+    // its reconstructed wire body into -- {"name":"<target>","arguments": -- reconfigured per request,
+    // never reallocated; the target's own arguments value is streamed straight into the encode slot by
+    // McpExecuteArgsTransform rather than assembled here
+    private byte[] executeHeaderArray = new byte[0];
 
     McpProxyItemFactory(
         McpConfiguration config,
@@ -167,6 +181,8 @@ abstract class McpProxyItemFactory implements BindingHandler
         this.writeBuffer = context.writeBuffer();
         this.codecBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
         this.extBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
+        this.decodePool = context.bufferPool();
+        this.encodePool = decodePool.duplicate();
         this.streamFactory = context.streamFactory();
         this.supplyInitialIdAffinity = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
@@ -393,38 +409,30 @@ abstract class McpProxyItemFactory implements BindingHandler
         return produced;
     }
 
-    // reconstructs the exact wire body a direct tools/call for the resolved target would have carried:
-    // {"name":"<target>","arguments":<raw span>} -- the target name is escaped (it is a Java String,
-    // not raw source bytes), but the arguments span is spliced verbatim, never re-serialized
-    private int writeExecuteBody(
-        byte[] identifierBytes,
-        DirectBufferEx argumentsSource,
-        int argumentsLength)
+    // assembles the fixed leading portion of the reconstructed wire body a direct tools/call for the
+    // resolved target would have carried -- {"name":"<target>","arguments": -- into executeHeaderArray;
+    // the target name is escaped (it is a Java String, not raw source bytes), but the target's own
+    // arguments value itself is never assembled here -- it is streamed straight into the delegate's
+    // encode slot by McpExecuteArgsTransform, splicing the caller's own bytes verbatim
+    private int writeExecuteHeader(
+        byte[] identifierBytes)
     {
         final int capacity = EXECUTE_BODY_NAME_OPEN.length +
             McpJsonStringEscaper.maxEscapedLength(identifierBytes.length) +
-            EXECUTE_BODY_ARGUMENTS_KEY.length +
-            argumentsLength +
-            EXECUTE_BODY_CLOSE.length;
-        if (executeBodyArray.length < capacity)
+            EXECUTE_BODY_ARGUMENTS_KEY.length;
+        if (executeHeaderArray.length < capacity)
         {
-            executeBodyArray = new byte[capacity];
+            executeHeaderArray = new byte[capacity];
         }
 
         int produced = 0;
-        System.arraycopy(EXECUTE_BODY_NAME_OPEN, 0, executeBodyArray, produced, EXECUTE_BODY_NAME_OPEN.length);
+        System.arraycopy(EXECUTE_BODY_NAME_OPEN, 0, executeHeaderArray, produced, EXECUTE_BODY_NAME_OPEN.length);
         produced += EXECUTE_BODY_NAME_OPEN.length;
 
-        produced += McpJsonStringEscaper.escape(identifierBytes, 0, identifierBytes.length, executeBodyArray, produced);
+        produced += McpJsonStringEscaper.escape(identifierBytes, 0, identifierBytes.length, executeHeaderArray, produced);
 
-        System.arraycopy(EXECUTE_BODY_ARGUMENTS_KEY, 0, executeBodyArray, produced, EXECUTE_BODY_ARGUMENTS_KEY.length);
+        System.arraycopy(EXECUTE_BODY_ARGUMENTS_KEY, 0, executeHeaderArray, produced, EXECUTE_BODY_ARGUMENTS_KEY.length);
         produced += EXECUTE_BODY_ARGUMENTS_KEY.length;
-
-        argumentsSource.getBytes(0, executeBodyArray, produced, argumentsLength);
-        produced += argumentsLength;
-
-        System.arraycopy(EXECUTE_BODY_CLOSE, 0, executeBodyArray, produced, EXECUTE_BODY_CLOSE.length);
-        produced += EXECUTE_BODY_CLOSE.length;
 
         return produced;
     }
@@ -1734,15 +1742,22 @@ abstract class McpProxyItemFactory implements BindingHandler
     }
 
     // execute_tool dynamically invokes an arbitrary named tool through the identical route-resolution
-    // and dispatch path a direct tools/call for that name would take. It buffers the incoming request
-    // (its own initial side) exactly like McpDescribeToolServer/McpToolSearchServer, but instead of
-    // answering from cache it resolves a route for the target name and, once resolved, constructs a
-    // real McpServer -- the SAME inner class a genuine tools/call BEGIN would construct -- passing this
-    // stream's own sender/originId/routedId/initialId/affinity/authorization so the delegate's reply
-    // frames go straight to the real caller with no relay/copy object in between. The delegate is
-    // driven with synthetic BEGIN/DATA/END frames reconstructing the exact wire body a direct call
-    // would have carried; from that point this class is a thin pass-through, forwarding every
-    // subsequent frame on this stream straight into the delegate's own onServerMessage.
+    // and dispatch path a direct tools/call for that name would take. Unlike the pre-rewrite version,
+    // it never buffers the whole incoming request: McpExecuteArgsTransform pumps the request through a
+    // JsonPipeline one window at a time, capturing the target name and forwarding the target's own
+    // "arguments" value verbatim straight into the encode slot, byte-for-byte, as soon as it is known.
+    // Dispatch (route resolution + constructing the real McpServer delegate -- the SAME inner class a
+    // genuine tools/call BEGIN would construct, passing this stream's own
+    // sender/originId/routedId/initialId/affinity/authorization so the delegate's reply frames go
+    // straight to the real caller with no relay/copy object in between) happens the instant the target
+    // name and the shape of its own arguments are both known, which for the common (name-before-
+    // arguments) field order is before a single byte of the target's own arguments value has been
+    // forwarded. The delegate's declared contentLength is an upper bound computed from the caller's own
+    // outer contentLength (a strict superset of the nested arguments span); once the value's real length
+    // is known (its closing brace parsed), the gap is padded with trailing ASCII spaces -- valid per
+    // JSON's own whitespace grammar -- so the delegate always receives exactly the byte count it was
+    // promised. From that point this class is a thin pass-through, forwarding subsequent reply-direction
+    // frames on this stream straight into the delegate's own onServerMessage.
     private final class McpExecuteToolServer implements McpRouteRequest
     {
         private final McpBindingConfig binding;
@@ -1755,21 +1770,53 @@ abstract class McpProxyItemFactory implements BindingHandler
         private final long affinity;
         private final long authorization;
         private final long timeout;
-        private final McpExecuteToolCallScanner scanner;
-        // survives the async gap between registering for the delegate's upstream lifecycle to settle
-        // and that settlement actually happening -- unlike the factory's shared, per-worker scratch
-        // arrays, this body must not be clobbered by another stream's execute_tool request interleaving
-        // on the same worker before settlement fires
-        private final ExpandableDirectByteBufferEx pendingBody = new ExpandableDirectByteBufferEx();
-        private int pendingBodyLength;
-        // how much of pendingBody has already been handed to the delegate -- driveDelegateData resumes
-        // from here each time the delegate's own client reports more of its real downstream window open
-        private int pendingBodySent;
+
+        private final McpExecuteArgsTransform transform;
+        private final JsonGeneratorEx generator;
+        private final JsonPipeline pipeline;
+
+        private int decodeSlot = NO_SLOT;
+        private int decodeSlotOffset;
+
+        private int encodeSlot = NO_SLOT;
+        // bytes currently resident in the encode slot, not yet handed to the delegate; kept in lock-step
+        // with the generator's own wrap-base -- every direct (non-generator) write to the slot, and every
+        // reposition of the generator, updates this and the generator's wrap-base together, so reading
+        // this field plus generator.length() (folded in via syncEncodeSlotOffset before any direct write)
+        // always yields the true total produced so far, whether called mid-transform or between calls
+        private int encodeSlotOffset;
+        // cumulative bytes ever handed to the delegate for this body, across every drain
+        private int bodyBytesSent;
+        // fixed once finalizeBody computes it (header + real/padded arguments span + closing brace);
+        // -1 until then, since the exact total is not known until the target's own arguments value has
+        // either fully closed or is proven never to arrive
+        private int bodyLength = -1;
+        private int headerLength;
+        // outerContentLength - argsValueStreamOffset -- an upper bound on the target's own arguments
+        // value, immediately computable once the outer request's own contentLength and the target's own
+        // "arguments" key are both known, well before the value itself completes; -1 when the target
+        // never declares an "arguments" key at all (EXECUTE_DEFAULT_ARGUMENTS is used instead)
+        private long argsUpperBound = -1L;
+        // the target name is resolved (a route found and a delegate dispatched, no route found, or the
+        // request judged malformed) -- guards against re-entering dispatch once decided, and (mirroring
+        // the pre-rewrite ready flag) gates emitIfReady's not-found response
+        private boolean ready;
+        // set once the target name has been judged unresolvable (no route) or the request malformed --
+        // the response has already been produced, so any further incoming bytes are windowed and
+        // discarded rather than parsed
+        private boolean abandoned;
+        private boolean bodyFinalized;
+        private boolean settled;
+        // the most recent traceId seen on this stream's initial side, read by McpExecuteArgsTransform's
+        // progress callback -- which fires synchronously from inside a still-running JsonPipeline#transform
+        // call and so cannot receive a traceId as a parameter of its own
+        private long pendingTraceId;
+        // the last-window flag most recently fed to the pipeline -- replayed by onDelegateProgress when
+        // resuming decode from a purely-carried decodeSlot (no new bytes of its own to derive it from)
+        private boolean inputLast;
 
         private McpServer delegate;
         private int state;
-        private boolean ready;
-        private boolean settled;
         private DirectBufferEx cachedBuf;
         private int cachedLen;
         private int emitOffset;
@@ -1782,6 +1829,8 @@ abstract class McpProxyItemFactory implements BindingHandler
         private long replyAck;
         private int replyMax;
         private int replyPad;
+
+        private int outerContentLength = -1;
 
         private McpExecuteToolServer(
             McpBindingConfig binding,
@@ -1804,7 +1853,9 @@ abstract class McpProxyItemFactory implements BindingHandler
             this.affinity = affinity;
             this.authorization = authorization;
             this.timeout = timeout;
-            this.scanner = new McpExecuteToolCallScanner();
+            this.transform = new McpExecuteArgsTransform(this::onArgsProgress);
+            this.generator = JsonEx.createGenerator();
+            this.pipeline = JsonEx.stream(JsonEx.createParser()).transform(transform).lenient(false).into(generator);
         }
 
         private void onExecuteToolMessage(
@@ -1813,52 +1864,31 @@ abstract class McpProxyItemFactory implements BindingHandler
             int index,
             int length)
         {
-            if (delegate != null)
-            {
-                onDelegatedMessage(msgTypeId, buffer, index, length);
-            }
-            else
-            {
-                onBufferingMessage(msgTypeId, buffer, index, length);
-            }
-        }
-
-        // once delegated, the real caller's own initial-direction frames (BEGIN/DATA/END/ABORT/FLUSH)
-        // are absorbed rather than forwarded: this class already fully buffered and consumed the whole
-        // incoming request during the buffering phase (ready == true before delegate is ever
-        // constructed), and the delegate's own initial side is driven entirely by this class's
-        // synthetic BEGIN/DATA/END -- forwarding the real caller's trailing frames (its own closing
-        // END, most commonly) into the delegate would clobber that independently-driven synthetic
-        // lifecycle before it has a chance to settle. Only reply-direction frames -- the real caller
-        // flow-controlling or aborting the delegate's own replies -- belong to the delegate
-        private void onDelegatedMessage(
-            int msgTypeId,
-            DirectBufferEx buffer,
-            int index,
-            int length)
-        {
             switch (msgTypeId)
             {
-            case WindowFW.TYPE_ID:
-            case ResetFW.TYPE_ID:
-            case ChallengeFW.TYPE_ID:
-                delegate.onServerMessage(msgTypeId, buffer, index, length);
+            case BeginFW.TYPE_ID:
+                onServerBegin(beginRO.wrap(buffer, index, index + length));
+                break;
+            case DataFW.TYPE_ID:
+                onServerData(dataRO.wrap(buffer, index, index + length));
                 break;
             case EndFW.TYPE_ID:
-                // relayed rather than absorbed, so the delegate ends when the caller does; held
-                // back until the synthetic DATA has been driven, since the lifecycle it depends on
-                // settles asynchronously and an END arriving first would still clobber it
-                final EndFW end = endRO.wrap(buffer, index, index + length);
-                state = McpState.closedInitial(state);
-                if (settled)
-                {
-                    doDelegateEnd(end.traceId());
-                }
+                onServerEnd(endRO.wrap(buffer, index, index + length));
                 break;
             case AbortFW.TYPE_ID:
-                // the delegate now relies on the caller to terminate its initial side, so a caller
-                // that gives up must tear it down rather than leave it open
-                delegate.onServerMessage(msgTypeId, buffer, index, length);
+                onServerAbort(abortRO.wrap(buffer, index, index + length), buffer, index, length);
+                break;
+            case WindowFW.TYPE_ID:
+                onServerWindow(windowRO.wrap(buffer, index, index + length), buffer, index, length);
+                break;
+            case ResetFW.TYPE_ID:
+                onServerReset(resetRO.wrap(buffer, index, index + length), buffer, index, length);
+                break;
+            case ChallengeFW.TYPE_ID:
+                if (delegate != null)
+                {
+                    delegate.onServerMessage(msgTypeId, buffer, index, length);
+                }
                 break;
             default:
                 break;
@@ -1877,38 +1907,7 @@ abstract class McpProxyItemFactory implements BindingHandler
         public void onLifecycleSettled(
             long traceId)
         {
-            driveDelegateData(traceId);
-        }
-
-        private void onBufferingMessage(
-            int msgTypeId,
-            DirectBufferEx buffer,
-            int index,
-            int length)
-        {
-            switch (msgTypeId)
-            {
-            case BeginFW.TYPE_ID:
-                onServerBegin(beginRO.wrap(buffer, index, index + length));
-                break;
-            case DataFW.TYPE_ID:
-                onServerData(dataRO.wrap(buffer, index, index + length));
-                break;
-            case EndFW.TYPE_ID:
-                onServerEnd(endRO.wrap(buffer, index, index + length));
-                break;
-            case AbortFW.TYPE_ID:
-                onServerAbort(abortRO.wrap(buffer, index, index + length));
-                break;
-            case WindowFW.TYPE_ID:
-                onServerWindow(windowRO.wrap(buffer, index, index + length));
-                break;
-            case ResetFW.TYPE_ID:
-                onServerReset(resetRO.wrap(buffer, index, index + length));
-                break;
-            default:
-                break;
-            }
+            onDelegateProgress(traceId);
         }
 
         // grants initial window only -- mirrors the real McpServer's own onServerBegin, which also
@@ -1919,12 +1918,16 @@ abstract class McpProxyItemFactory implements BindingHandler
             BeginFW begin)
         {
             final long traceId = begin.traceId();
+            final OctetsFW extension = begin.extension();
 
             initialSeq = begin.sequence();
             initialAck = begin.acknowledge();
             state = McpState.openingInitial(state);
 
-            flushServerWindow(traceId, 0L, 0, 0L, maxServerWindow());
+            final McpBeginExFW beginEx = extension.get(mcpBeginExRO::tryWrap);
+            outerContentLength = beginEx != null ? contentLength(beginEx) : -1;
+
+            flushServerWindow(traceId, 0L, 0, 0L, decodeWindow());
         }
 
         // codecBuffer.capacity() is the whole writeBuffer slot, header included -- granting that much
@@ -1936,13 +1939,23 @@ abstract class McpProxyItemFactory implements BindingHandler
             return codecBuffer.capacity() - DataFW.FIELD_OFFSET_PAYLOAD;
         }
 
+        // the window advertised to the real caller must never promise more than the decode slot can
+        // physically hold at once -- maxServerWindow() alone is sized off the (typically much larger)
+        // writeBuffer/codecBuffer, unrelated to decodePool's own slot capacity, so a caller free to fill
+        // that whole window in one DATA frame would overrun decodeSlot the instant one arrives larger
+        // than a slot. The window only ever grows (flushServerWindow never lowers it), so this bound is
+        // applied once, up front, rather than shrunk later to account for whatever small amount of a
+        // fragmented token might already be carried
+        private int decodeWindow()
+        {
+            return Math.min(maxServerWindow(), decodePool.slotCapacity());
+        }
+
         // a caller's body can arrive as several DATA frames each carrying its own FIN (marking only
         // that frame's own fragment complete, not the whole request), so this never treats a frame's
-        // own flags as "the request is done" -- it drives dispatch off scanner.done instead, which
-        // only turns true once the top-level object has actually closed (or a parse error was hit),
-        // whichever frame that happens to land on. A caller that never sends an explicit end (e.g. one
-        // going straight from its last write to reading the response) still gets a timely reply this
-        // way, and one that fragments the body across many frames still waits for all of them
+        // own flags as "the request is done" -- it drives dispatch/completion off the transform's own
+        // done flag instead, which only turns true once the top-level object has actually closed (or a
+        // parse error was hit), whichever frame that happens to land on
         private void onServerData(
             DataFW data)
         {
@@ -1960,21 +1973,7 @@ abstract class McpProxyItemFactory implements BindingHandler
 
             assert initialAck <= initialSeq;
 
-            scanner.feed(payload.buffer(), payload.offset(), payload.sizeof(), false);
-
-            if (scanner.done)
-            {
-                onRequestReady(traceId);
-            }
-            else
-            {
-                // scanner.feed already copied out everything it needs from this frame, so every byte
-                // received so far can be acked immediately -- unlike McpServer's real proxy path, this
-                // buffering phase has no downstream client yet to propagate window credit back from,
-                // so without this the one-time grant from onServerBegin caps the entire request at
-                // maxServerWindow() bytes, which the target tool's own arguments are not bounded by
-                flushServerWindow(traceId, 0L, 0, 0L, maxServerWindow());
-            }
+            driveDecode(traceId, payload.buffer(), payload.offset(), payload.sizeof(), false);
         }
 
         private void onServerEnd(
@@ -1983,61 +1982,264 @@ abstract class McpProxyItemFactory implements BindingHandler
             final long traceId = end.traceId();
 
             initialSeq = end.sequence();
-            if (!ready)
+            if (!transform.done)
             {
-                // the caller's stream ended without the scanned body ever completing on its own
-                // (a truncated request, most commonly) -- this last, empty, last-marked feed is what
-                // lets the parser decide a still-open value was genuinely cut short rather than merely
-                // starved for more input, finally turning scanner.done true so onRequestReady can run
-                scanner.feed(codecBuffer, 0, 0, true);
-                onRequestReady(traceId);
+                // the caller's stream ended without the pipeline ever completing on its own (a
+                // truncated request, most commonly) -- this last, empty, last-marked feed is what lets
+                // the parser decide a still-open value was genuinely cut short rather than merely
+                // starved for more input
+                driveDecode(traceId, writeBuffer, 0, 0, true);
             }
             state = McpState.closedInitial(state);
+            if (delegate != null && settled)
+            {
+                doDelegateEnd(traceId);
+            }
         }
 
         private void onServerAbort(
-            AbortFW abort)
+            AbortFW abort,
+            DirectBufferEx buffer,
+            int index,
+            int length)
         {
             initialSeq = abort.sequence();
             state = McpState.closedInitial(state);
-            doServerAbort(abort.traceId());
-        }
-
-        private void onServerWindow(
-            WindowFW window)
-        {
-            replyAck = window.acknowledge();
-            replyMax = window.maximum();
-            replyPad = window.padding();
-            state = McpState.openedReply(state);
-            emitIfReady(window.traceId());
-        }
-
-        private void onServerReset(
-            ResetFW reset)
-        {
-            replyAck = reset.acknowledge();
-            state = McpState.closedReply(state);
-        }
-
-        private void onRequestReady(
-            long traceId)
-        {
-            final String targetName = scanner.name;
-            if (scanner.malformed || targetName == null || targetName.isEmpty())
+            cleanupDecodeSlot();
+            cleanupEncodeSlot();
+            if (delegate != null)
             {
-                final McpResetExFW resetEx = mcpResetExRW
-                    .wrap(extBuffer, 0, extBuffer.capacity())
-                    .typeId(mcpTypeId)
-                    .error(e -> e.code(ERROR_CODE_INVALID_PARAMS).message(ERROR_MESSAGE_INVALID_PARAMS))
-                    .build();
-                doServerReset(traceId, resetEx);
+                delegate.onServerMessage(AbortFW.TYPE_ID, buffer, index, length);
             }
             else
             {
-                resolveAndDispatch(traceId, targetName);
+                doServerAbort(abort.traceId());
             }
-            ready = true;
+        }
+
+        private void onServerWindow(
+            WindowFW window,
+            DirectBufferEx buffer,
+            int index,
+            int length)
+        {
+            if (delegate != null)
+            {
+                delegate.onServerMessage(WindowFW.TYPE_ID, buffer, index, length);
+            }
+            else
+            {
+                replyAck = window.acknowledge();
+                replyMax = window.maximum();
+                replyPad = window.padding();
+                state = McpState.openedReply(state);
+                emitIfReady(window.traceId());
+            }
+        }
+
+        private void onServerReset(
+            ResetFW reset,
+            DirectBufferEx buffer,
+            int index,
+            int length)
+        {
+            if (delegate != null)
+            {
+                delegate.onServerMessage(ResetFW.TYPE_ID, buffer, index, length);
+            }
+            else
+            {
+                replyAck = reset.acknowledge();
+                state = McpState.closedReply(state);
+            }
+        }
+
+        // drives the JsonPipeline over one input window, prepending any carried decodeSlot bytes first.
+        // SUSPENDED (the encode slot filled mid-forward) drains toward the delegate and retries the same
+        // window against a freshly-drained destination region; the loop stops once that drain makes no
+        // further room (delegate backpressure -- the whole window is carried to decodeSlot and the
+        // caller's own window re-grant is withheld, so real pushback reaches the caller), or once the
+        // pipeline reports STARVED (more input needed -- carry pipeline.remaining() and re-grant),
+        // COMPLETED (the whole request parsed) or REJECTED (malformed target arguments or truncated
+        // input)
+        private void driveDecode(
+            long traceId,
+            DirectBufferEx buffer,
+            int offset,
+            int length,
+            boolean last)
+        {
+            pendingTraceId = traceId;
+            inputLast = last;
+
+            if (abandoned || transform.done)
+            {
+                if (!abandoned)
+                {
+                    flushServerWindow(traceId, 0L, 0, 0L, decodeWindow());
+                }
+                return;
+            }
+
+            if (encodeSlot == NO_SLOT)
+            {
+                encodeSlot = encodePool.acquire(initialId);
+            }
+            if (encodeSlot == NO_SLOT)
+            {
+                cleanup(traceId);
+                return;
+            }
+
+            final DirectBufferEx srcBuf;
+            final int srcOffset;
+            final int srcLimit;
+
+            if (decodeSlot != NO_SLOT)
+            {
+                final MutableDirectBufferEx decodeBuf = decodePool.buffer(decodeSlot);
+                if (length > 0)
+                {
+                    decodeBuf.putBytes(decodeSlotOffset, buffer, offset, length);
+                    decodeSlotOffset += length;
+                }
+                srcBuf = decodeBuf;
+                srcOffset = 0;
+                srcLimit = decodeSlotOffset;
+            }
+            else
+            {
+                srcBuf = buffer;
+                srcOffset = offset;
+                srcLimit = offset + length;
+            }
+
+            JsonPipeline.Status status;
+            boolean blocked = false;
+            do
+            {
+                final MutableDirectBufferEx encodeBuf = encodePool.buffer(encodeSlot);
+                final JsonPipelineResult result = pipeline.transform(srcBuf, srcOffset, srcLimit, last,
+                    encodeBuf, encodeSlotOffset, encodePool.slotCapacity());
+                status = result.status();
+                encodeSlotOffset += result.produced();
+
+                if (status == JsonPipeline.Status.SUSPENDED)
+                {
+                    final int before = encodeSlotOffset;
+                    driveDelegateData(traceId);
+                    blocked = encodeSlotOffset == before;
+                }
+            }
+            while (status == JsonPipeline.Status.SUSPENDED && !blocked);
+
+            switch (status)
+            {
+            case STARVED:
+                carryDecodeSlot(srcBuf, srcLimit - pipeline.remaining(), pipeline.remaining(), traceId);
+                // give whatever just landed in encodeSlot a chance to drain before deciding whether the
+                // caller's ceiling can safely widen -- a settled delegate with real window open drains
+                // this immediately (a no-op otherwise: settled, no delegate yet, or still no window)
+                driveDelegateData(traceId);
+                // only ever widen the caller's ceiling once BOTH slots are fully drained -- decodeSlot
+                // empty (bound via minInitialNoAck, mirroring HttpServerFactory#flushNetWindow's
+                // decodable = decodeMax - decodeSlotOffset) is not enough on its own: bytes already
+                // forwarded to encodeSlot but not yet delivered to a still-settling/backpressured
+                // delegate are just as much outstanding backlog as anything still sitting in decodeSlot.
+                // Granting a fresh window while encodeSlotOffset > 0 lets the caller's ceiling advance
+                // by a full decodeWindow() on every STARVED beat even though there is no guarantee the
+                // encode side will have drained by the time that much new input actually arrives -- a
+                // monotonic-window regression waiting to happen the instant it doesn't. Withholding here
+                // costs nothing: once the delegate drains and onDelegateProgress resumes decode from the
+                // carried slot, any still-STARVED outcome re-enters this same case with encodeSlotOffset
+                // back at 0 and grants the deferred credit then
+                if (encodeSlotOffset == 0)
+                {
+                    flushServerWindow(traceId, 0L, 0, decodeSlotOffset, decodeWindow());
+                }
+                break;
+            case COMPLETED:
+                cleanupDecodeSlot();
+                onDocumentComplete(traceId);
+                break;
+            case REJECTED:
+                cleanupDecodeSlot();
+                respondInvalidParams(traceId);
+                break;
+            default:
+                // SUSPENDED but blocked on delegate backpressure: carry the whole (unconsumed) window
+                // and withhold the window re-grant above, so the real caller is throttled by the
+                // delegate's own window rather than a fixed one-shot cap
+                carryDecodeSlot(srcBuf, srcOffset, srcLimit - srcOffset, traceId);
+                break;
+            }
+        }
+
+        private void carryDecodeSlot(
+            DirectBufferEx srcBuf,
+            int from,
+            int carryLength,
+            long traceId)
+        {
+            if (carryLength > 0)
+            {
+                if (decodeSlot == NO_SLOT)
+                {
+                    decodeSlot = decodePool.acquire(initialId);
+                }
+                if (decodeSlot == NO_SLOT)
+                {
+                    cleanup(traceId);
+                    return;
+                }
+                final MutableDirectBufferEx decodeBuf = decodePool.buffer(decodeSlot);
+                decodeBuf.putBytes(0, srcBuf, from, carryLength);
+                decodeSlotOffset = carryLength;
+            }
+            else
+            {
+                cleanupDecodeSlot();
+            }
+        }
+
+        // fires once after every event the transform processes -- including from inside a still-running
+        // JsonPipeline#transform call -- so dispatch happens the instant enough is known (the target name
+        // plus either its own "arguments" key or proof none is coming), not only once the whole request
+        // has finished parsing
+        private void onArgsProgress()
+        {
+            if (!ready && !transform.malformed && transform.name != null &&
+                (transform.argsSeen || transform.wrapperClosed))
+            {
+                ready = true;
+                resolveAndDispatch(pendingTraceId, transform.name);
+            }
+            else if (ready && delegate != null && !bodyFinalized && transform.argsClosed)
+            {
+                finalizeBody(pendingTraceId);
+            }
+        }
+
+        // the request finished parsing (COMPLETED) without dispatch ever having fired inline -- only
+        // possible when the target's own "arguments" key never arrived at all (an empty-arguments
+        // dispatch, handled inside dispatchToDelegate, always fires inline the instant that is known) or
+        // when the target name itself is missing or the request malformed
+        private void onDocumentComplete(
+            long traceId)
+        {
+            if (!ready)
+            {
+                ready = true;
+                final String targetName = transform.name;
+                if (transform.malformed || targetName == null || targetName.isEmpty())
+                {
+                    respondInvalidParams(traceId);
+                }
+                else
+                {
+                    resolveAndDispatch(traceId, targetName);
+                }
+            }
         }
 
         // resolves the target tool's route through the exact same call a real tools/call BEGIN goes
@@ -2071,29 +2273,101 @@ abstract class McpProxyItemFactory implements BindingHandler
         private void respondNotFound(
             long traceId)
         {
+            abandoned = true;
+            cleanupDecodeSlot();
+            cleanupEncodeSlot();
             cachedBuf = new UnsafeBufferEx(EXECUTE_NOT_FOUND_RESPONSE);
             cachedLen = EXECUTE_NOT_FOUND_RESPONSE.length;
             doServerBegin(traceId);
             emitIfReady(traceId);
         }
 
+        private void respondInvalidParams(
+            long traceId)
+        {
+            abandoned = true;
+            final McpResetExFW resetEx = mcpResetExRW
+                .wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(mcpTypeId)
+                .error(e -> e.code(ERROR_CODE_INVALID_PARAMS).message(ERROR_MESSAGE_INVALID_PARAMS))
+                .build();
+            doServerReset(traceId, resetEx);
+            cleanupDecodeSlot();
+            cleanupEncodeSlot();
+            if (delegate != null)
+            {
+                delegate.client.doClientAbort(traceId);
+            }
+        }
+
+        // folds any bytes the generator has written since its own last wrap into encodeSlotOffset and
+        // repositions the generator at the new offset (length() back to zero), so a direct (non-generator)
+        // write that follows -- the reconstructed header, later the padding and closing brace -- always
+        // lands immediately after everything produced so far, whether this runs from inside a still-running
+        // JsonPipeline#transform call or between calls
+        private void syncEncodeSlotOffset(
+            MutableDirectBufferEx encodeBuf)
+        {
+            final int pending = generator.length();
+            if (pending != 0)
+            {
+                encodeSlotOffset += pending;
+                generator.wrap(encodeBuf, encodeSlotOffset, encodePool.slotCapacity());
+            }
+        }
+
+        // reconstructs the fixed leading portion of the wire body a direct tools/call for the resolved
+        // target would have carried -- {"name":"<target>","arguments": -- ahead of whatever the target's
+        // own arguments value has already produced (nothing, in the common name-before-arguments field
+        // order; the value's own already-forwarded bytes, shifted forward to make room, in the reverse
+        // order) -- then constructs and drives the real delegate with an upper-bound contentLength
         private void dispatchToDelegate(
             long traceId,
             McpRouteConfig route,
             String identifier,
             String prefix)
         {
-            final DirectBufferEx argumentsSource = scanner.argumentsLength > 0
-                ? scanner.arguments
-                : executeDefaultArgumentsRO;
-            final int argumentsLength = scanner.argumentsLength > 0
-                ? scanner.argumentsLength
-                : EXECUTE_DEFAULT_ARGUMENTS.length;
+            final MutableDirectBufferEx encodeBuf = encodePool.buffer(encodeSlot);
+            syncEncodeSlotOffset(encodeBuf);
 
             final byte[] identifierBytes = identifier.getBytes(StandardCharsets.UTF_8);
-            final int bodyLength = writeExecuteBody(identifierBytes, argumentsSource, argumentsLength);
-            pendingBody.putBytes(0, new UnsafeBufferEx(executeBodyArray), 0, bodyLength);
-            pendingBodyLength = bodyLength;
+            headerLength = writeExecuteHeader(identifierBytes);
+
+            final int alreadyProduced = encodeSlotOffset;
+            if (alreadyProduced > 0)
+            {
+                if (headerLength + alreadyProduced > encodePool.slotCapacity())
+                {
+                    // the reverse (arguments-before-name) field order defers the header until the whole
+                    // value has already streamed past with no room reserved for it; making room now would
+                    // overflow the slot -- a legitimate, bounded degradation for that field order, failed
+                    // loudly rather than silently truncating the delegate's body
+                    respondInvalidParams(traceId);
+                    return;
+                }
+                encodeBuf.putBytes(headerLength, encodeBuf, 0, alreadyProduced);
+            }
+            encodeBuf.putBytes(0, new UnsafeBufferEx(executeHeaderArray), 0, headerLength);
+            encodeSlotOffset = headerLength + alreadyProduced;
+
+            if (!transform.argsClosed)
+            {
+                generator.wrap(encodeBuf, encodeSlotOffset, encodePool.slotCapacity());
+            }
+
+            if (transform.argsSeen)
+            {
+                argsUpperBound = transform.argsClosed
+                    ? alreadyProduced
+                    : outerContentLength - transform.argsValueStreamOffset;
+            }
+            else
+            {
+                argsUpperBound = -1L;
+            }
+
+            final int argsLength = argsUpperBound >= 0L ? (int) argsUpperBound : EXECUTE_DEFAULT_ARGUMENTS.length;
+            final int declaredContentLength = headerLength + argsLength + EXECUTE_BODY_CLOSE.length;
 
             delegate = new McpServer(
                 binding,
@@ -2106,11 +2380,23 @@ abstract class McpProxyItemFactory implements BindingHandler
                 affinity,
                 authorization,
                 identifier,
-                prefix.length() + bodyLength,
+                prefix.length() + declaredContentLength,
                 timeout,
                 prefix);
 
             driveDelegateBegin(traceId);
+
+            if (!transform.argsSeen)
+            {
+                encodeBuf.putBytes(encodeSlotOffset, new UnsafeBufferEx(EXECUTE_DEFAULT_ARGUMENTS), 0,
+                    EXECUTE_DEFAULT_ARGUMENTS.length);
+                encodeSlotOffset += EXECUTE_DEFAULT_ARGUMENTS.length;
+                finalizeBody(traceId);
+            }
+            else if (transform.argsClosed)
+            {
+                finalizeBody(traceId);
+            }
         }
 
         // originates the delegate's own initial-side lifecycle with a synthetic, reused-builder BEGIN
@@ -2152,52 +2438,109 @@ abstract class McpProxyItemFactory implements BindingHandler
             delegate.client.lifecycle.register(traceId, this);
         }
 
-        // drives the delegate's own initial-side DATA (the reconstructed body, chunked from the
-        // per-stream pendingBody snapshot), resuming once the delegate's upstream lifecycle has
-        // settled and again each time the delegate's own client reports more of its real downstream
-        // window open -- pendingBodySent is what makes this resumable: a synthetic caller has no
-        // caller-side backpressure of its own to lean on (unlike a real one, which McpServer's own
-        // onClientWindow-derived grant already keeps from ever overrunning this same window), so this
-        // must track and respect that window itself rather than writing the whole body in one go
+        // the target's own arguments value has either fully closed (its real length now known exactly)
+        // or was never present at all (the default {} already written directly) -- computes the padding
+        // needed to make the resident body match the upper-bound contentLength already promised to the
+        // delegate, writes it plus the closing brace, fixes the body's total length, and starts draining
+        private void finalizeBody(
+            long traceId)
+        {
+            if (bodyFinalized)
+            {
+                return;
+            }
+            bodyFinalized = true;
+
+            final MutableDirectBufferEx encodeBuf = encodePool.buffer(encodeSlot);
+            syncEncodeSlotOffset(encodeBuf);
+
+            if (transform.argsSeen)
+            {
+                // bodyBytesSent + encodeSlotOffset is the cumulative total produced so far (everything
+                // already drained to the delegate, plus whatever is still resident); headerLength is
+                // subtracted exactly once regardless of how many drains have happened in between, since
+                // it was counted into bodyBytesSent (a drain) the first time this body's own header left
+                // the slot -- encodeSlotOffset alone only reflects bytes since the *last* drain and so
+                // undercounts (or goes negative) once the body has been drained more than once
+                final int argsBytesSent = bodyBytesSent + encodeSlotOffset - headerLength;
+                final int padding = (int) argsUpperBound - argsBytesSent;
+                if (padding < 0)
+                {
+                    // the byte-preserving delivery produced more bytes than the computed upper bound
+                    // allowed for -- the upper-bound invariant is violated; fail loudly rather than send
+                    // a corrupt, truncated body to the delegate
+                    respondInvalidParams(traceId);
+                    return;
+                }
+                for (int i = 0; i < padding; i++)
+                {
+                    encodeBuf.putByte(encodeSlotOffset + i, (byte) ' ');
+                }
+                encodeSlotOffset += padding;
+            }
+
+            encodeBuf.putBytes(encodeSlotOffset, new UnsafeBufferEx(EXECUTE_BODY_CLOSE), 0, EXECUTE_BODY_CLOSE.length);
+            encodeSlotOffset += EXECUTE_BODY_CLOSE.length;
+            bodyLength = bodyBytesSent + encodeSlotOffset;
+
+            driveDelegateData(traceId);
+        }
+
+        // drives the delegate's own initial-side DATA, chunked from whatever is currently resident in the
+        // encode slot, resuming once the delegate's upstream lifecycle has settled and again each time the
+        // delegate's own client reports more of its real downstream window open -- bodyBytesSent is what
+        // makes this resumable across however many production/drain cycles a large arguments value takes:
+        // a synthetic caller has no caller-side backpressure of its own to lean on (unlike a real one,
+        // which McpServer's own onClientWindow-derived grant already keeps from ever overrunning this same
+        // window), so this must track and respect that window itself
         private void driveDelegateData(
             long traceId)
         {
-            if (settled)
+            // the delegate's own McpClient only acquires a sender (and any real window) once its
+            // upstream lifecycle round trip actually completes; driveDecode's own SUSPENDED handling
+            // can reach here well before that -- a large arguments value can fill the encode slot long
+            // before a real network round trip settles. This deliberately does not check
+            // client.sender itself: before it is established, client.initialAck/initialMax are still
+            // their zero defaults, so windowAvailable below is naturally 0 and the loop simply does not
+            // run -- the same arithmetic a real (non-synthetic) caller's own driveDelegateData-equivalent
+            // path (McpServer#onServerDataWithPrefix -> McpClient#doClientData) already relies on to
+            // never call doData against a not-yet-connected sender
+            if (settled || delegate == null || encodeSlotOffset == 0)
             {
                 return;
             }
 
-            final int bodyLength = pendingBodyLength;
+            final MutableDirectBufferEx encodeBuf = encodePool.buffer(encodeSlot);
             final McpClient client = delegate.client;
             final long clientLimit = client.initialAck + client.initialMax;
-            final int available = (int) Math.max(0L, clientLimit - pendingBodySent);
-            final int limit = Math.min(bodyLength, pendingBodySent + available);
+            final int windowAvailable = (int) Math.max(0L, clientLimit - bodyBytesSent);
+            final int sendable = Math.min(encodeSlotOffset, windowAvailable);
 
-            int offset = pendingBodySent;
-            while (offset < limit)
+            int sent = 0;
+            while (sent < sendable)
             {
-                final int chunk = Math.min(limit - offset, maxServerWindow());
-                final boolean first = offset == 0;
-                final boolean last = offset + chunk >= bodyLength;
+                final int chunk = Math.min(sendable - sent, maxServerWindow());
+                final boolean first = bodyBytesSent == 0;
+                final boolean last = bodyFinalized && bodyBytesSent + chunk >= bodyLength;
                 final int flags = (first ? DATA_FLAG_INIT : 0) | (last ? DATA_FLAG_FIN : 0);
 
                 // each chunk's own reserved must match its own byte count -- the delegate's client
                 // advances its own sequence by reserved each time it forwards a chunk onward
                 // (McpClient.doClientData), so a chunk reserved of 0 never advances that downstream
-                // sequence past 0, and every following chunk is forwarded on a stale, repeated
-                // sequence a real peer (or k3po) rejects as out of order. The last chunk still folds
-                // in whatever this outer request's own inbound DATA aggregated beyond pendingBody's
-                // own length (initialSeq - bodyLength, e.g. the caller's wrapper text this reconstructed
-                // body doesn't carry) so the delegate's own initialSeq still lands exactly on the
-                // outer's already-final value once this loop completes, matching what the real
-                // caller's own frames (a later timeout abort, in particular) will always show from here on
+                // sequence past 0, and every following chunk is forwarded on a stale, repeated sequence
+                // a real peer (or k3po) rejects as out of order. The last chunk still folds in whatever
+                // this outer request's own inbound DATA aggregated beyond the reconstructed body's own
+                // length (initialSeq - bodyLength, e.g. the caller's own wrapper text this reconstructed
+                // body doesn't carry) so the delegate's own initialSeq still lands exactly on the outer's
+                // already-final value once this completes, matching what the real caller's own frames
+                // (a later timeout abort, in particular) will always show from here on
                 final int chunkReserved = last ? (int) (chunk + initialSeq - bodyLength) : chunk;
 
                 final DataFW syntheticData = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                     .originId(originId)
                     .routedId(routedId)
                     .streamId(initialId)
-                    .sequence((long) offset)
+                    .sequence((long) bodyBytesSent)
                     .acknowledge(0L)
                     .maximum(0)
                     .traceId(traceId)
@@ -2205,27 +2548,65 @@ abstract class McpProxyItemFactory implements BindingHandler
                     .flags(flags)
                     .budgetId(0L)
                     .reserved(chunkReserved)
-                    .payload(pendingBody, offset, chunk)
+                    .payload(encodeBuf, sent, chunk)
                     .build();
                 delegate.onServerMessage(DataFW.TYPE_ID, syntheticData.buffer(), syntheticData.offset(),
                     syntheticData.sizeof());
 
-                offset += chunk;
+                sent += chunk;
+                bodyBytesSent += chunk;
             }
-            pendingBodySent = offset;
 
-            if (pendingBodySent >= bodyLength)
+            if (sent > 0)
+            {
+                final int remaining = encodeSlotOffset - sent;
+                if (remaining > 0)
+                {
+                    encodeBuf.putBytes(0, encodeBuf, sent, remaining);
+                }
+                encodeSlotOffset = remaining;
+            }
+
+            if (bodyFinalized && bodyBytesSent >= bodyLength)
             {
                 settled = true;
+                cleanupEncodeSlot();
 
                 if (McpState.initialClosed(state))
                 {
                     doDelegateEnd(traceId);
                 }
             }
-            else
+            else if (encodeSlotOffset > 0)
             {
-                client.onWindowGrown = () -> driveDelegateData(traceId);
+                client.onWindowGrown = () -> onDelegateProgress(traceId);
+            }
+        }
+
+        // drains whatever the delegate's window (or, before its lifecycle has settled, simply having a
+        // sender at all) newly allows, then -- if that freed the encode slot and there is carried input
+        // still waiting in decodeSlot -- resumes decoding it. Production paused for either reason (lifecycle
+        // not yet settled, or the delegate's own window exhausted) resumes through this same path, since
+        // both leave decodeSlot holding whatever driveDecode could not yet hand off to the pipeline
+        private void onDelegateProgress(
+            long traceId)
+        {
+            driveDelegateData(traceId);
+            if (!settled && encodeSlotOffset == 0)
+            {
+                if (decodeSlot != NO_SLOT)
+                {
+                    driveDecode(traceId, writeBuffer, 0, 0, inputLast);
+                }
+                else if (!abandoned && !transform.done)
+                {
+                    // both slots are now drained with nothing carried to resume decoding -- driveDecode's
+                    // own STARVED case withholds the caller's window regrant for exactly this reason
+                    // (encodeSlotOffset was > 0 at the time), so nothing else will ever re-grant it once
+                    // the delegate's drain that just freed it happens off of a real, independent async
+                    // window from the delegate's own upstream, not from a new driveDecode call
+                    flushServerWindow(traceId, 0L, 0, 0L, decodeWindow());
+                }
             }
         }
 
@@ -2239,8 +2620,8 @@ abstract class McpProxyItemFactory implements BindingHandler
         {
             // driveDelegateData's own reserved accounting already brought the delegate's initialSeq up to
             // exactly this outer request's own final initialSeq, so this END's sequence just continues
-            // that same value -- not initialSeq + pendingBodyLength, which double-counts a value the DATA
-            // loop already folded in. From here on the delegate's counter matches exactly what the real
+            // that same value -- not initialSeq + bodyLength, which double-counts a value the DATA loop
+            // already folded in. From here on the delegate's counter matches exactly what the real
             // caller's own frames (a later timeout abort, in particular) will show, permanently, since
             // neither side advances further after this point
             final EndFW syntheticEnd = endRW.wrap(writeBuffer, 0, writeBuffer.capacity())
@@ -2278,6 +2659,39 @@ abstract class McpProxyItemFactory implements BindingHandler
             }
 
             doServerEnd(traceId);
+        }
+
+        private void cleanupDecodeSlot()
+        {
+            if (decodeSlot != NO_SLOT)
+            {
+                decodePool.release(decodeSlot);
+                decodeSlot = NO_SLOT;
+                decodeSlotOffset = 0;
+            }
+        }
+
+        private void cleanupEncodeSlot()
+        {
+            if (encodeSlot != NO_SLOT)
+            {
+                encodePool.release(encodeSlot);
+                encodeSlot = NO_SLOT;
+                encodeSlotOffset = 0;
+            }
+        }
+
+        private void cleanup(
+            long traceId)
+        {
+            abandoned = true;
+            cleanupDecodeSlot();
+            cleanupEncodeSlot();
+            doServerReset(traceId, emptyRO);
+            if (delegate != null)
+            {
+                delegate.client.doClientAbort(traceId);
+            }
         }
 
         private void doServerBegin(

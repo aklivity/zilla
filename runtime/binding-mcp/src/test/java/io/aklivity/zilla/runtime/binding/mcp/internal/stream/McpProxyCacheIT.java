@@ -695,6 +695,20 @@ public class McpProxyCacheIT
     @Test
     @Configuration("proxy.cache.tools.search.serve.yaml")
     @Specification({
+        "${app}/cache.serve.execute.tool.padding/client",
+        "${app}/cache.serve.execute.tool.padding/server" })
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
+    @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
+    @Configure(name = MCP_SESSION_ID_NAME,
+        value = "io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyCacheIT::sessionIdB007External")
+    public void shouldServeExecuteToolWithLoosePadding() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.cache.tools.search.serve.yaml")
+    @Specification({
         "${app}/cache.serve.execute.tool.10k/client",
         "${app}/cache.serve.execute.tool.10k/server" })
     @ScriptProperty({"serverAddress \"zilla://streams/app1\"", "affinity \"0000003f\""})
