@@ -34,30 +34,57 @@ connected
 write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .lifecycle()
-                               .sessionId("5ca1ab1e-c0de-4a11-b007-0001".concat(affinity))
+                               .sessionId("5ca1ab1e-c0de-4a11-feed-0001".concat(affinity))
                                .build()
                            .build()}
 write flush
+
+write await INITIAL_HYDRATED
+
+write advise zilla:flush ${mcp:flushEx()
+                              .typeId(zilla:id("mcp"))
+                              .toolsListChanged()
+                                  .build()
+                              .build()}
 
 accepted
 
 read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
-                          .toolsCall()
-                              .sessionId("5ca1ab1e-c0de-4a11-b007-0001".concat(affinity))
-                              .name("get_weather")
-                              .contentLength(52)
+                          .toolsList()
+                              .sessionId("5ca1ab1e-c0de-4a11-feed-0001".concat(affinity))
                               .build()
                           .build()}
 
 connected
 
-write zilla:reset.ext ${mcp:resetEx()
-                           .typeId(zilla:id("mcp"))
-                           .error()
-                               .code(-32602)
-                               .message("Invalid params")
-                               .build()
-                           .build()}
+write flush
 
-read abort
+write '{"tools":[{"name":"get_weather"}]}'
+write flush
+
+write notify INITIAL_HYDRATED
+
+write close
+
+read closed
+
+accepted
+
+read zilla:begin.ext ${mcp:matchBeginEx()
+                          .typeId(zilla:id("mcp"))
+                          .toolsList()
+                              .sessionId("5ca1ab1e-c0de-4a11-feed-0001".concat(affinity))
+                              .build()
+                          .build()}
+
+connected
+
+write flush
+
+write '{"tools":[{"name":"get_weather"},{"name":"get_time"}]}'
+write flush
+
+write close
+
+read closed
