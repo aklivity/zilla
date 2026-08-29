@@ -46,7 +46,7 @@ read zilla:begin.ext ${mcp:matchBeginEx()
                           .toolsCall()
                               .sessionId("5ca1ab1e-c0de-4a11-b007-0001".concat(affinity))
                               .name("get_weather")
-                              .contentLength(62)
+                              .contentLength(59)
                               .build()
                           .build()}
 
@@ -56,9 +56,8 @@ read  '{'
         '"name":"get_weather",'
         '"arguments":'
         '{'
-          '"location":"New York"'
+          '"location": "New York"'
         '}'
-        '    '
       '}'
 
 write flush
@@ -69,6 +68,45 @@ write '{'
           '{'
             '"type": "text",'
             '"text": "Current weather in New York:\\nTemperature: 72°F\\nConditions: Partly cloudy"'
+          '}'
+        '],'
+        '"isError": false'
+      '}'
+write flush
+
+write close
+
+read closed
+
+accepted
+
+read zilla:begin.ext ${mcp:matchBeginEx()
+                          .typeId(zilla:id("mcp"))
+                          .toolsCall()
+                              .sessionId("5ca1ab1e-c0de-4a11-b007-0001".concat(affinity))
+                              .name("get_weather")
+                              .contentLength(57)
+                              .build()
+                          .build()}
+
+connected
+
+read  '{'
+        '"name":"get_weather",'
+        '"arguments":'
+        '{'
+          '"location": "Boston"'
+        '}'
+      '}'
+
+write flush
+
+write '{'
+        '"content":'
+        '['
+          '{'
+            '"type": "text",'
+            '"text": "Current weather in Boston:\\nTemperature: 68°F\\nConditions: Cloudy"'
           '}'
         '],'
         '"isError": false'

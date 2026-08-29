@@ -26,13 +26,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import jakarta.json.Json;
-import jakarta.json.JsonObject;
 import jakarta.json.stream.JsonParser;
 
 import org.agrona.collections.Int2ObjectHashMap;
@@ -42,30 +39,20 @@ import org.agrona.collections.Object2ObjectHashMap;
 
 import io.aklivity.zilla.config.binding.mcp.McpOptionsConfig;
 import io.aklivity.zilla.config.engine.BindingConfig;
-import io.aklivity.zilla.config.engine.CatalogedConfig;
 import io.aklivity.zilla.config.engine.ModelConfig;
-import io.aklivity.zilla.config.engine.ModelConfigAdapter;
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.internal.stream.cache.McpProxyCache;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBearerError;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW;
-import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
-import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
+import io.aklivity.zilla.runtime.common.json.JsonSchema;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
-import io.aklivity.zilla.runtime.engine.model.ModelCache;
-import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
-import io.aklivity.zilla.runtime.engine.model.ModelHandler;
-import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
-import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
-import io.aklivity.zilla.runtime.engine.model.ModelStatus;
-import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 
 public final class McpBindingConfig
 {
@@ -82,13 +69,6 @@ public final class McpBindingConfig
     private static final int PORT_HTTP = 80;
     private static final int PORT_HTTPS = 443;
     private static final String PATH_ROOT = "/";
-
-    private static final String MODEL_NAME = "model";
-    private static final String CATALOG_NAME = "catalog";
-    private static final String SCHEMA_ID = "id";
-
-    private static final int FLAGS_INIT = 0x02;
-    private static final int FLAGS_FIN = 0x01;
 
     private static final Map<String, List<String>> EMPTY_ROLES = Map.of();
 
@@ -114,12 +94,8 @@ public final class McpBindingConfig
     private final CatalogHandler toolsCatalog;
     private final ModelConfig toolsModel;
     private final boolean validates;
-    private final ModelConfigAdapter modelConfig;
-    private final Function<ModelConfig, ModelHandler> supplyModel;
-    private final Int2ObjectHashMap<ModelPipeline> decodersBySchemaId;
+    private final Int2ObjectHashMap<JsonSchema> schemaById;
     private final Object2IntHashMap<String> toolSchemaIdsByName;
-    private final MutableDirectBufferEx scratch;
-    private final MutableDirectBufferEx argsScratch;
 
     public McpBindingConfig(
         BindingConfig binding,
@@ -190,12 +166,8 @@ public final class McpBindingConfig
         this.toolsCatalog = validates
             ? context.supplyCatalog(toolsModel.cataloged.get(0).id)
             : CatalogHandler.NONE;
-        this.modelConfig = new ModelConfigAdapter();
-        this.supplyModel = context::supplyModel;
-        this.decodersBySchemaId = new Int2ObjectHashMap<>();
+        this.schemaById = new Int2ObjectHashMap<>();
         this.toolSchemaIdsByName = new Object2IntHashMap<>(NO_SCHEMA_ID);
-        this.scratch = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
-        this.argsScratch = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
     }
 
     public boolean validatesTools()
@@ -222,52 +194,14 @@ public final class McpBindingConfig
         return schemaId != NO_SCHEMA_ID;
     }
 
-    public boolean validateToolArgs(
-        int schemaId,
-        long traceId,
-        long bindingId,
-        long authorization,
-        DirectBufferEx data,
-        int index,
-        int limit)
+    // compiled once per schema id and shared across every stream on this worker -- a JsonSchema is
+    // immutable and holds no per-call state (see JsonSchema's own javadoc), so unlike the ModelPipeline
+    // this replaces (a stateful decoder unsafe to share across concurrent streams), concurrent reuse of
+    // the same compiled schema by two independent streams is safe by construction
+    public JsonSchema toolSchema(
+        int schemaId)
     {
-        boolean valid = true;
-        final ModelPipeline decoder = schemaId != NO_SCHEMA_ID
-            ? decodersBySchemaId.computeIfAbsent(schemaId, this::newToolDecoder)
-            : null;
-        if (decoder != null)
-        {
-            int srcAt = index;
-            int produced = 0;
-            int flags = FLAGS_INIT | FLAGS_FIN;
-            boolean done = false;
-            while (!done)
-            {
-                final ModelPipelineResult result = decoder.transform(traceId, bindingId, authorization, flags,
-                    data, srcAt, limit, scratch, produced, scratch.capacity());
-                final ModelStatus status = result.status();
-                if (status == ModelStatus.REJECTED)
-                {
-                    valid = false;
-                    done = true;
-                }
-                else
-                {
-                    produced += result.produced();
-                    if (status == ModelStatus.COMPLETE)
-                    {
-                        done = true;
-                    }
-                    else
-                    {
-                        srcAt += result.consumed();
-                        flags = FLAGS_FIN;
-                    }
-                }
-            }
-            decoder.reset();
-        }
-        return valid;
+        return schemaById.computeIfAbsent(schemaId, id -> JsonSchema.of(toolsCatalog.resolve(id)));
     }
 
     public void rebuildToolSchemaIndex(
@@ -314,79 +248,6 @@ public final class McpBindingConfig
         String toolName)
     {
         return toolSchemaIdsByName.getValue(toolName);
-    }
-
-    public boolean validateToolCall(
-        int schemaId,
-        long traceId,
-        long bindingId,
-        long authorization,
-        DirectBufferEx params,
-        int index,
-        int limit)
-    {
-        boolean valid = false;
-        final String arguments = extractArguments(params, index, limit);
-        if (arguments != null)
-        {
-            final int length = argsScratch.putStringWithoutLengthUtf8(0, arguments);
-            valid = validateToolArgs(schemaId, traceId, bindingId, authorization, argsScratch, 0, length);
-        }
-        return valid;
-    }
-
-    private String extractArguments(
-        DirectBufferEx params,
-        int index,
-        int limit)
-    {
-        String arguments;
-        final JsonParserEx parser = JsonEx.createParser();
-        parser.wrap(params, index, limit);
-        try
-        {
-            arguments = scanArguments(parser);
-        }
-        catch (Exception ex)
-        {
-            arguments = null;
-        }
-        return arguments;
-    }
-
-    private String scanArguments(
-        JsonParserEx parser)
-    {
-        String arguments = "{}";
-        if (parser.hasNext() && parser.next() == JsonParser.Event.START_OBJECT)
-        {
-            int depth = 1;
-            while (depth > 0 && parser.hasNext())
-            {
-                final JsonParser.Event event = parser.next();
-                switch (event)
-                {
-                case START_OBJECT:
-                case START_ARRAY:
-                    depth++;
-                    break;
-                case END_OBJECT:
-                case END_ARRAY:
-                    depth--;
-                    break;
-                case KEY_NAME:
-                    if (depth == 1 && "arguments".contentEquals(parser.getStringView()))
-                    {
-                        parser.next();
-                        arguments = parser.getValue().toString();
-                    }
-                    break;
-                default:
-                    break;
-                }
-            }
-        }
-        return arguments;
     }
 
     private void scanToolsList(
@@ -492,22 +353,6 @@ public final class McpBindingConfig
         {
             schemasByName.put(name, inputSchema);
         }
-    }
-
-    private ModelPipeline newToolDecoder(
-        int schemaId)
-    {
-        final CatalogedConfig template = toolsModel.cataloged.get(0);
-        final JsonObject model = Json.createObjectBuilder()
-            .add(MODEL_NAME, toolsModel.model)
-            .add(CATALOG_NAME, Json.createObjectBuilder()
-                .add(template.name, Json.createArrayBuilder()
-                    .add(Json.createObjectBuilder().add(SCHEMA_ID, schemaId))))
-            .build();
-        final ModelConfig toolModel = modelConfig.adaptFromJson(model);
-        toolModel.cataloged.get(0).id = template.id;
-        final ModelHandler handler = supplyModel.apply(toolModel);
-        return handler != null ? handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE) : null;
     }
 
     public void injectHeaders(
