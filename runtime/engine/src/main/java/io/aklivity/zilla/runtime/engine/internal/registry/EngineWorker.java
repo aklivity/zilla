@@ -200,6 +200,7 @@ public class EngineWorker implements EngineContext, Agent
     private final WindowFW.Builder windowRW = new WindowFW.Builder();
 
     private final int localIndex;
+    private final byte selfNodeId;
     private final long affinity;
     private final EngineConfiguration config;
     private final String agentName;
@@ -305,6 +306,7 @@ public class EngineWorker implements EngineContext, Agent
         Collection<MetricGroup> metricGroups,
         Collection<Store> stores,
         Router router,
+        byte nodeId,
         RouterConfig routerConfig,
         Collector collector,
         Supplier<MessageReader> supplyEventReader,
@@ -315,7 +317,8 @@ public class EngineWorker implements EngineContext, Agent
         EngineBoss boss)
     {
         this.localIndex = index;
-        this.affinity = (((long) config.nodeId() & 0xffL) << 24) | (index & 0x00ff_ffffL);
+        this.selfNodeId = nodeId;
+        this.affinity = (((long) selfNodeId & 0xffL) << 24) | (index & 0x00ff_ffffL);
         this.config = config;
         this.configPath = Path.of(config.configURI());
         this.localConfigPath = Optional.ofNullable(config.localConfigURI()).map(Path::of);
@@ -405,7 +408,7 @@ public class EngineWorker implements EngineContext, Agent
 
         final BufferPool bufferPool = bufferPoolLayout.bufferPool();
 
-        final long initial = (((long) index) << SHIFT_SIZE) | ((config.nodeId() & 0xffL) << NODE_SHIFT_SIZE);
+        final long initial = (((long) index) << SHIFT_SIZE) | ((selfNodeId & 0xffL) << NODE_SHIFT_SIZE);
         final long mask = initial | (-1L >>> RESERVED_SIZE);
 
         this.mask = mask;
@@ -2228,7 +2231,7 @@ public class EngineWorker implements EngineContext, Agent
         long routedId,
         long affinityId)
     {
-        final boolean isLocalNode = ((affinityId >>> 24) & 0xffL) == ((long) config.nodeId() & 0xffL);
+        final boolean isLocalNode = ((affinityId >>> 24) & 0xffL) == ((long) selfNodeId & 0xffL);
         final int index = isLocalNode ? (int)(affinityId & 0x00ff_ffffL) : -1;
 
         return index >= 0 && index < config.workers() ? index : resolveRemoteIndex(routedId);
