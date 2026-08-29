@@ -119,6 +119,38 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/cache.tools.call.valid.input.10k/client",
+        "${app}/cache.tools.call.valid.input.10k/server"})
+    public void shouldProxyToolsCallWithValidInput10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/cache.tools.call.valid.input.100k/client",
+        "${app}/cache.tools.call.valid.input.100k/server"})
+    public void shouldProxyToolsCallWithValidInput100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // cache.tools.call.no.arguments has no peer-to-peer counterpart here, matching
+    // cache.tools.call.invalid.input above: the reset it expects is produced by the engine's own schema
+    // validation, not by anything the server script itself writes, so there is no client/server protocol
+    // exchange for a peer-to-peer run to verify -- only the binding IT (McpProxyCacheIT) exercises it.
+
+    @Test
+    @Specification({
+        "${app}/cache.tools.call.reuse.schema/client",
+        "${app}/cache.tools.call.reuse.schema/server"})
+    public void shouldValidateIndependentToolsCallsAgainstSharedCachedSchema() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/lifecycle.initialize.alt.svc/client",
         "${app}/lifecycle.initialize.alt.svc/server"})
     public void shouldInitializeLifecycleAltSvc() throws Exception

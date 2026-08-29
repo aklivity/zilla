@@ -56,10 +56,15 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableDirectByteBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.common.json.JsonController;
+import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
 import io.aklivity.zilla.runtime.common.json.JsonPipelineResult;
+import io.aklivity.zilla.runtime.common.json.JsonSchema;
+import io.aklivity.zilla.runtime.common.json.JsonSink;
+import io.aklivity.zilla.runtime.common.json.JsonSource;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -118,6 +123,31 @@ abstract class McpProxyItemFactory implements BindingHandler
     // the target tool's own arguments default to an empty object when the caller omits them, matching
     // the MCP convention that CallToolRequest.params.arguments is optional
     private static final byte[] EXECUTE_DEFAULT_ARGUMENTS = "{}".getBytes(StandardCharsets.US_ASCII);
+    // the same default a real tools/call's own params.arguments falls back to when the caller omits the
+    // member entirely -- fed to a one-shot fallback JsonPipeline when McpServer's own argsTransform never
+    // saw an "arguments" key arrive at all
+    private static final byte[] TOOLS_CALL_DEFAULT_ARGUMENTS = "{}".getBytes(StandardCharsets.US_ASCII);
+
+    // terminal JsonSink for a schema-validation-only pipeline: the verdict is carried entirely by the
+    // upstream JsonSchema validator's own Status (COMPLETED/REJECTED), so this sink only ever needs to
+    // report ADVANCED and never materializes or inspects the events it receives
+    private static final JsonSink DISCARD_SINK = new JsonSink()
+    {
+        @Override
+        public JsonPipeline.Status transform(
+            JsonController control,
+            JsonSource source,
+            JsonEvent event)
+        {
+            return JsonPipeline.Status.ADVANCED;
+        }
+
+        @Override
+        public boolean identity()
+        {
+            return true;
+        }
+    };
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -480,8 +510,18 @@ abstract class McpProxyItemFactory implements BindingHandler
         private final McpClient client;
 
         private final int toolSchemaId;
-        private ExpandableDirectByteBufferEx argsBuffer;
-        private int argsProgress;
+        // non-null only when toolSchemaId != NO_SCHEMA_ID -- driven alongside (never instead of) the
+        // unconditional forward to the delegate in forwardServerData, purely for its Status verdict
+        private final McpToolCallArgsTransform argsTransform;
+        private final JsonPipeline validator;
+        // one-shot, fed only when argsTransform.noArgumentsClosed fires (the caller omitted "arguments"
+        // entirely) -- validates the same default "{}" a direct DOM-based scan would have fallen back to
+        private final JsonPipeline fallbackValidator;
+        private int decodeSlot = NO_SLOT;
+        private int decodeSlotOffset;
+        // set once the schema-validation pipeline reaches a terminal COMPLETED or REJECTED verdict --
+        // guards onServerEnd's own safety-net feed against re-driving an already-settled validator
+        private boolean validatorDone;
 
         private int state;
 
@@ -526,6 +566,26 @@ abstract class McpProxyItemFactory implements BindingHandler
             this.toolSchemaId = kind == McpBeginExFW.KIND_TOOLS_CALL && binding.validatesTools()
                 ? binding.toolSchemaId(prefix + identifier)
                 : NO_SCHEMA_ID;
+            if (toolSchemaId != NO_SCHEMA_ID)
+            {
+                final JsonSchema schema = binding.toolSchema(toolSchemaId);
+                this.argsTransform = new McpToolCallArgsTransform();
+                this.validator = JsonEx.stream(JsonEx.createParser())
+                    .transform(argsTransform)
+                    .transform(schema.validator(false))
+                    .lenient(false)
+                    .into(DISCARD_SINK);
+                this.fallbackValidator = JsonEx.stream(JsonEx.createParser())
+                    .transform(schema.validator(false))
+                    .lenient(false)
+                    .into(DISCARD_SINK);
+            }
+            else
+            {
+                this.argsTransform = null;
+                this.validator = null;
+                this.fallbackValidator = null;
+            }
             this.client = new McpClient(this, resolvedId);
         }
 
@@ -594,8 +654,43 @@ abstract class McpProxyItemFactory implements BindingHandler
 
             client.doClientBegin(traceId, authorization);
 
-            final int minInitialMax = toolSchemaId != NO_SCHEMA_ID ? codecBuffer.capacity() : 0;
+            // a schema-validated call still gets an immediate floor grant here, matching this binding's
+            // pre-existing behavior -- confirmed empirically (see this file's own McpServer class notes)
+            // that always starting at 0 and waiting solely on McpClient#onClientWindow's own cascade can
+            // hang a caller forever: a delegate that rejects or ends the exchange before ever completing
+            // a normal round trip (e.g. an upstream bearer challenge, or any other immediate abort) may
+            // never grant a window back at all, so a caller gated on that alone could never even send the
+            // request this binding needs to see in order to validate and reject it. The cascade itself is
+            // untouched and still fires on every real WINDOW from the delegate (see onClientWindow), so a
+            // validated body larger than this floor still grows its window reactively as forwarding
+            // proceeds -- this floor only ever raises the initial minimum, it never replaces the cascade
+            // the original one-shot-window defect lacked entirely.
+            final int minInitialMax = toolSchemaId != NO_SCHEMA_ID ? decodeWindow() : 0;
             flushServerWindow(traceId, 0L, 0, 0L, minInitialMax);
+        }
+
+        // codecBuffer.capacity() is the whole writeBuffer slot, header included -- granting that much as a
+        // DATA window's own maximum leaves no room for a frame's own header once a sender fills it, the
+        // same FIELD_OFFSET_PAYLOAD trim TcpServerFactory/TcpClientFactory and McpExecuteToolServer's own
+        // maxServerWindow() already use for their own read buffers
+        private int maxServerWindow()
+        {
+            return codecBuffer.capacity() - DataFW.FIELD_OFFSET_PAYLOAD;
+        }
+
+        // the window ever advertised to the caller on a schema-validated stream must never promise more
+        // than decodeSlot can physically hold at once -- maxServerWindow() alone is sized off the
+        // (typically much larger) writeBuffer/codecBuffer, unrelated to decodePool's own slot capacity, so
+        // a caller free to fill that whole window in one DATA frame (or several, arriving faster than this
+        // stream's own decode slot drains) would overrun decodeSlot the instant the accumulated total
+        // exceeds one slot -- confirmed empirically (an IndexOutOfBoundsException parsing past a slot's own
+        // capacity) before this bound was added. Every window grant on a validated stream -- this initial
+        // floor and every later cascade from McpClient#onClientWindow alike -- funnels through
+        // flushServerWindow, so capping minInitialMax there (see below) covers both call sites from one
+        // place.
+        private int decodeWindow()
+        {
+            return Math.min(maxServerWindow(), decodePool.slotCapacity());
         }
 
         private void onServerData(
@@ -645,6 +740,16 @@ abstract class McpProxyItemFactory implements BindingHandler
             }
         }
 
+        // Streams every frame through the schema validator (when configured) unbounded, one window at a
+        // time -- never buffering a whole body -- but still withholds THIS frame's own bytes from the
+        // delegate when driving the validator over it just settled the call as invalid, so a violation
+        // confined to a single frame (the common case -- a bad type, a missing required property, the
+        // caller omitting "arguments" against a schema that requires it) never reaches a real backend
+        // tool, matching the guarantee the non-streaming implementation this replaces always provided.
+        // A violation only detectable in a later frame of a genuinely large, split body still leaves
+        // earlier (valid-so-far) frames already forwarded by the time it is found -- an unavoidable
+        // consequence of validating a value too large to buffer whole, and the documented emit-then-abort
+        // contract JsonSchema#validator() itself accepts at the single-event granularity.
         private void forwardServerData(
             long traceId,
             long budgetId,
@@ -654,15 +759,19 @@ abstract class McpProxyItemFactory implements BindingHandler
             int offset,
             int length)
         {
-            final int forwardFlags = !forwardedAny && length > 0 ? flags | DATA_FLAG_INIT : flags;
-            forwardedAny = forwardedAny || length > 0;
+            // never derive "last" from this frame's own FIN flag -- a caller's body can arrive as several
+            // DATA frames each independently carrying FIN on its own fragment (confirmed empirically: a
+            // caller that writes a body in several successive frames with no intervening flush can mark
+            // an early, non-final fragment's own frame with FIN), the same reason McpExecuteToolServer's
+            // driveDecode never trusts it either. Only onServerEnd's own safety-net feed (fired once the
+            // caller's stream has genuinely ended) ever drives this pipeline with last=true.
+            final boolean forward = toolSchemaId == NO_SCHEMA_ID ||
+                driveValidator(traceId, buffer, offset, length, false);
 
-            if (toolSchemaId != NO_SCHEMA_ID)
+            if (forward)
             {
-                bufferArgs(traceId, buffer, offset, length);
-            }
-            else
-            {
+                final int forwardFlags = !forwardedAny && length > 0 ? flags | DATA_FLAG_INIT : flags;
+                forwardedAny = forwardedAny || length > 0;
                 client.doClientData(traceId, budgetId, forwardFlags, reserved, buffer, offset, length);
             }
         }
@@ -722,46 +831,159 @@ abstract class McpProxyItemFactory implements BindingHandler
             return strippedLength;
         }
 
-        private void bufferArgs(
+        // drives the schema-validation JsonPipeline over one input window, prepending any carried
+        // decodeSlot bytes first. Returns whether this same frame's own bytes should still be forwarded
+        // to the delegate: true unless driving the validator over it just settled the call as invalid
+        // (REJECTED, or a synthetic COMPLETED -- see McpToolCallArgsTransform's own javadoc -- whose
+        // separate default-"{}" fallback then fails), in which case this frame is withheld and the
+        // caller reset + delegate aborted instead. STARVED (more input needed) and an ordinary ADVANCED
+        // carry no verdict yet, so the frame is forwarded and streaming continues -- a violation only
+        // detectable in a later frame of a genuinely large, split body still leaves earlier (valid-so-far)
+        // frames already forwarded by the time it is found, an unavoidable consequence of validating a
+        // value too large to buffer whole (see forwardServerData's own note)
+        private boolean driveValidator(
             long traceId,
             DirectBufferEx buffer,
             int offset,
-            int length)
+            int length,
+            boolean last)
         {
-            if (argsBuffer == null)
+            if (decodeSlot != NO_SLOT && decodeSlotOffset + length > decodePool.slotCapacity())
             {
-                argsBuffer = new ExpandableDirectByteBufferEx();
+                // the window cap in flushServerWindow keeps this from happening in the ordinary case --
+                // fail loudly rather than overrun the slot if it is ever violated (e.g. a caller ignoring
+                // its own granted window); release the slot first so a caller that can trigger this
+                // repeatedly can never leak decodePool slots shared by every other stream on this worker
+                cleanupDecodeSlot();
+                respondInvalidParams(traceId);
+                return false;
             }
-            argsBuffer.putBytes(argsProgress, buffer, offset, length);
-            argsProgress += length;
 
-            final int argsExpected = contentLength - prefix.length();
-            if (argsProgress >= argsExpected)
-            {
-                validateArgs(traceId);
-            }
-        }
+            final DirectBufferEx srcBuf;
+            final int srcOffset;
+            final int srcLimit;
 
-        private void validateArgs(
-            long traceId)
-        {
-            final boolean valid =
-                binding.validateToolCall(toolSchemaId, traceId, routedId, authorization, argsBuffer, 0, argsProgress);
-            if (valid)
+            if (decodeSlot != NO_SLOT)
             {
-                client.doClientData(traceId, 0L, DATA_FLAG_COMPLETE, argsProgress,
-                    argsBuffer, 0, argsProgress);
+                final MutableDirectBufferEx decodeBuf = decodePool.buffer(decodeSlot);
+                if (length > 0)
+                {
+                    decodeBuf.putBytes(decodeSlotOffset, buffer, offset, length);
+                    decodeSlotOffset += length;
+                }
+                srcBuf = decodeBuf;
+                srcOffset = 0;
+                srcLimit = decodeSlotOffset;
             }
             else
             {
-                final McpResetExFW resetEx = mcpResetExRW
-                    .wrap(extBuffer, 0, extBuffer.capacity())
-                    .typeId(mcpTypeId)
-                    .error(e -> e.code(ERROR_CODE_INVALID_PARAMS).message(ERROR_MESSAGE_INVALID_PARAMS))
-                    .build();
-                doServerReset(traceId, resetEx);
-                client.doClientAbort(traceId);
+                srcBuf = buffer;
+                srcOffset = offset;
+                srcLimit = offset + length;
             }
+
+            final JsonPipeline.Status status = validator.transform(srcBuf, srcOffset, srcLimit, last);
+
+            boolean forward = true;
+            switch (status)
+            {
+            case STARVED:
+                forward = carryDecodeSlot(srcBuf, srcLimit - validator.remaining(), validator.remaining(), traceId);
+                break;
+            case COMPLETED:
+                validatorDone = true;
+                cleanupDecodeSlot();
+                forward = onValidatorCompleted(traceId);
+                break;
+            case REJECTED:
+                validatorDone = true;
+                cleanupDecodeSlot();
+                respondInvalidParams(traceId);
+                forward = false;
+                break;
+            default:
+                break;
+            }
+            return forward;
+        }
+
+        private boolean carryDecodeSlot(
+            DirectBufferEx srcBuf,
+            int from,
+            int carryLength,
+            long traceId)
+        {
+            boolean carried = true;
+            if (carryLength > 0)
+            {
+                if (decodeSlot == NO_SLOT)
+                {
+                    decodeSlot = decodePool.acquire(initialId);
+                }
+                if (decodeSlot == NO_SLOT)
+                {
+                    respondInvalidParams(traceId);
+                    carried = false;
+                }
+                else
+                {
+                    final MutableDirectBufferEx decodeBuf = decodePool.buffer(decodeSlot);
+                    decodeBuf.putBytes(0, srcBuf, from, carryLength);
+                    decodeSlotOffset = carryLength;
+                }
+            }
+            else
+            {
+                cleanupDecodeSlot();
+            }
+            return carried;
+        }
+
+        private void cleanupDecodeSlot()
+        {
+            if (decodeSlot != NO_SLOT)
+            {
+                decodePool.release(decodeSlot);
+                decodeSlot = NO_SLOT;
+                decodeSlotOffset = 0;
+            }
+        }
+
+        // the validator's own COMPLETED is only a real schema verdict when argsTransform actually saw and
+        // forwarded an "arguments" value; argsTransform.noArgumentsClosed means the caller omitted the
+        // member entirely (a synthetic COMPLETED the transform raises purely to unblock the pipeline
+        // driver -- see McpToolCallArgsTransform's own javadoc), so the default "{}" a caller omitting
+        // arguments is entitled to is validated here, separately, against the same compiled schema
+        private boolean onValidatorCompleted(
+            long traceId)
+        {
+            final boolean valid = argsTransform.argsSeen || validateDefaultArguments();
+            if (!valid)
+            {
+                respondInvalidParams(traceId);
+            }
+            return valid;
+        }
+
+        private boolean validateDefaultArguments()
+        {
+            fallbackValidator.reset();
+            final DirectBufferEx defaultArgs = new UnsafeBufferEx(TOOLS_CALL_DEFAULT_ARGUMENTS);
+            final JsonPipeline.Status status =
+                fallbackValidator.transform(defaultArgs, 0, TOOLS_CALL_DEFAULT_ARGUMENTS.length, true);
+            return status == JsonPipeline.Status.COMPLETED;
+        }
+
+        private void respondInvalidParams(
+            long traceId)
+        {
+            final McpResetExFW resetEx = mcpResetExRW
+                .wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(mcpTypeId)
+                .error(e -> e.code(ERROR_CODE_INVALID_PARAMS).message(ERROR_MESSAGE_INVALID_PARAMS))
+                .build();
+            doServerReset(traceId, resetEx);
+            client.doClientAbort(traceId);
         }
 
         private int indexOfQuotedPrefix(
@@ -806,6 +1028,15 @@ abstract class McpProxyItemFactory implements BindingHandler
 
             assert initialAck <= initialSeq;
 
+            // a caller can end the stream without ever marking a DATA frame's own FIN -- this last,
+            // empty, last-marked feed lets the validator decide a still-open value was genuinely cut
+            // short (or, for the no-arguments-key case, that params truly has no more content coming)
+            // rather than merely starved for more input
+            if (toolSchemaId != NO_SCHEMA_ID && !validatorDone)
+            {
+                driveValidator(traceId, writeBuffer, 0, 0, true);
+            }
+
             state = McpState.closedInitial(state);
 
             client.doClientEnd(traceId);
@@ -825,6 +1056,8 @@ abstract class McpProxyItemFactory implements BindingHandler
             initialSeq = sequence;
 
             assert initialAck <= initialSeq;
+
+            cleanupDecodeSlot();
 
             state = McpState.closedInitial(state);
 
@@ -957,6 +1190,12 @@ abstract class McpProxyItemFactory implements BindingHandler
                 budgetId, padding);
         }
 
+        // every grant on a validated stream -- this call's own minInitialMax and whatever a cascaded grant
+        // from McpClient#onClientWindow already computed as the caller's own initialMax -- is capped to
+        // decodeWindow() here, the one place both paths funnel through, so decodeSlot (sized to exactly
+        // one decodePool slot) can never be asked to hold more than it physically can -- confirmed
+        // empirically (an IndexOutOfBoundsException parsing past a slot's own capacity) before this cap
+        // was added
         private void flushServerWindow(
             long traceId,
             long budgetId,
@@ -965,7 +1204,10 @@ abstract class McpProxyItemFactory implements BindingHandler
             int minInitialMax)
         {
             final long newInitialAck = Math.max(initialAck, initialSeq - minInitialNoAck);
-            final int newInitialMax = Math.max(initialMax, minInitialMax);
+            final int uncappedMax = Math.max(initialMax, minInitialMax);
+            final int newInitialMax = toolSchemaId != NO_SCHEMA_ID
+                ? Math.min(uncappedMax, decodeWindow())
+                : uncappedMax;
 
             if (newInitialAck > initialAck || newInitialMax > initialMax || !McpState.initialOpened(state))
             {
