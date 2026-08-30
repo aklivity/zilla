@@ -18,6 +18,7 @@ package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_SERVER_BOOTSTRAP;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_SERVER_RECONNECT_DELAY;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfigurationTest.KAFKA_CACHE_CLIENT_CLEANUP_DELAY_NAME;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfigurationTest.KAFKA_CACHE_CLIENT_TRAILERS_SIZE_MAX_NAME;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfigurationTest.KAFKA_CACHE_SERVER_RECONNECT_DELAY_NAME;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_BUFFER_SLOT_CAPACITY;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
@@ -383,6 +384,23 @@ public class CacheProduceIT
         "${app}/message.value.envelope/server"})
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldSendMessageValueEnvelope() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // proves a message whose envelope-collected trailer entries exceed the block claimed for them
+    // (cache.client.trailers.size.max, deliberately sized to fit only the first of two configured
+    // fields) drops the entry that overflows rather than corrupting or silently discarding everything
+    // set before it: the broker-side script still requires the first field's header ("$.trace"), proving
+    // KafkaCacheTrailerEnvelope kept what it already wrote once the second set() call exceeded the claim
+    @Test
+    @Configuration("cache.value.model.envelope.overflow.yaml")
+    @Specification({
+        "${app}/message.value.envelope.overflow/client",
+        "${app}/message.value.envelope.overflow/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @Configure(name = KAFKA_CACHE_CLIENT_TRAILERS_SIZE_MAX_NAME, value = "19")
+    public void shouldSendMessageValueEnvelopeOverflow() throws Exception
     {
         k3po.finish();
     }
