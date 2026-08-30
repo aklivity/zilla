@@ -396,6 +396,11 @@ public class ProduceIT
     // engine driving that model. The scenario is still fully covered by
     // CacheProduceIT#shouldSendMessageValueEnvelope, which drives it through a live engine instead.
 
+    // message.value.envelope.overflow has no peer-to-peer counterpart for the same reason as
+    // message.value.envelope above, and additionally depends on a non-default
+    // cache.client.trailers.size.max that only a live engine configuration can supply. The scenario is
+    // still fully covered by CacheProduceIT#shouldSendMessageValueEnvelopeOverflow.
+
     @Test
     @Specification({
         "${app}/message.value.rejected/client",

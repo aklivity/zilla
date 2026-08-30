@@ -725,6 +725,7 @@ public final class KafkaCachePartition
         MutableInteger entryMark,
         MutableInteger valueMark,
         MutableInteger valueLimit,
+        MutableInteger trailersClaimMark,
         long timestamp,
         long ownerId,
         long producerId,
@@ -839,6 +840,13 @@ public final class KafkaCachePartition
             logFile.writeBytes(trailersAt, EMPTY_TRAILERS); // needed for incomplete tryWrap
             logFile.writeInt(trailersAt + SIZEOF_EMPTY_TRAILERS, trailersSizeMax - SIZEOF_EMPTY_TRAILERS);
 
+            // a second, separate claim: a block for a composed transform's envelope.set() calls during
+            // encode, written directly rather than staged in a heap-resident arena; consumed via
+            // KafkaCacheTrailerEnvelope.writeHeaders(...) before the claim above is overwritten with the
+            // final merged trailers
+            trailersClaimMark.value = logFile.capacity();
+            logFile.advance(trailersClaimMark.value + trailersSizeMax);
+
             final long offsetDelta = (int)(progress - segment.baseOffset());
             final long indexEntry = (offsetDelta << 32) | entryMark.value;
             assert indexFile.available() >= Long.BYTES;
@@ -908,7 +916,8 @@ public final class KafkaCachePartition
         MutableInteger entryMark,
         MutableInteger valueLimit,
         long acknowledge,
-        Array32FW<KafkaHeaderFW> trailers)
+        Array32FW<KafkaHeaderFW> trailers,
+        boolean trailersOverflowed)
     {
         final KafkaCacheSegment segment = head.segment;
         assert segment != null;
@@ -931,7 +940,8 @@ public final class KafkaCachePartition
         valueLimit.value = trailersAt + trailersSizeMax;
 
         logFile.writeLong(entryMark.value + FIELD_OFFSET_ACKNOWLEDGE, acknowledge);
-        logFile.writeInt(entryMark.value + FIELD_OFFSET_FLAGS, CACHE_ENTRY_FLAGS_COMPLETED);
+        logFile.writeInt(entryMark.value + FIELD_OFFSET_FLAGS,
+            trailersOverflowed ? CACHE_ENTRY_FLAGS_ABORTED : CACHE_ENTRY_FLAGS_COMPLETED);
     }
 
     public long retainAt(
