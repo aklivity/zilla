@@ -38,6 +38,7 @@ import io.aklivity.zilla.config.engine.test.internal.model.config.TestModelConfi
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCachePartition.Node;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Array32FW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaAckMode;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaDeltaType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaHeaderFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaKeyFW;
@@ -235,6 +236,39 @@ public class KafkaCachePartitionTest
             .readBytes(entry.convertedPosition(), paddedValueRO::wrap);
         assertEquals(5, transformed.length());
         assertArrayEquals("hello".getBytes(UTF_8), bytes(transformed.value()));
+    }
+
+    @Test
+    public void shouldSizeConvertedReservationFromFullValueLengthNotFirstFragment() throws Exception
+    {
+        KafkaCachePartition partition = newPartition();
+        Node head = partition.append(10L);
+        MutableInteger entryMark = new MutableInteger(0);
+        MutableInteger valueMark = new MutableInteger(0);
+        MutableInteger valueLimit = new MutableInteger(0);
+        MutableInteger trailersClaimMark = new MutableInteger(0);
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[1024]);
+
+        KafkaKeyFW key = key(buffer, "k1");
+        Array32FW<KafkaHeaderFW> headers = noHeaders(buffer, key.limit());
+        OctetsFW firstFragment = value(buffer, headers.limit(), "he");
+        int valueLength = 5;
+
+        KafkaCacheTrailerEnvelope valueEnvelope = new KafkaCacheTrailerEnvelope();
+        KafkaCacheModel transformValue = KafkaCacheModel.writer(paddingHandler(), ModelTransform.NONE, valueEnvelope, scratch);
+
+        int transformed = partition.writeProduceEntryStart(1L, 1L, 0L, 11L, head, entryMark, valueMark, valueLimit,
+            trailersClaimMark, 0L, 1L, -1L, (short) 0, 0, KafkaAckMode.NONE, key, valueLength, headers, 256,
+            firstFragment, KafkaCacheModel.NONE, transformValue);
+
+        assertNotEquals(-1, transformed);
+
+        KafkaCacheEntryFW entry = head.segment().logFile().readBytes(entryMark.value, entryRO::wrap);
+        int convertedAt = entry.convertedPosition();
+        assertNotEquals(-1, convertedAt);
+
+        int convertedMaxLength = head.segment().convertedFile().readInt(convertedAt + Integer.BYTES);
+        assertEquals(valueLength + valueLength * 2, convertedMaxLength);
     }
 
     @Test
@@ -550,6 +584,31 @@ public class KafkaCachePartitionTest
         return handler(pathsAndValues);
     }
 
+    // a model whose declared framing padding scales with the length it is given, so a test can prove a
+    // reservation is sized from the full declared value length, not just the first DATA fragment
+    private static ModelHandler paddingHandler()
+    {
+        return new ModelHandler()
+        {
+            @Override
+            public ModelPipeline supplyDecoder(
+                ModelEnvelope envelope,
+                ModelTransform transform,
+                ModelCache cache)
+            {
+                return new PaddingPipeline();
+            }
+
+            @Override
+            public ModelPipeline supplyEncoder(
+                ModelEnvelope envelope,
+                ModelTransform transform)
+            {
+                return supplyDecoder(envelope, transform, ModelCache.NONE);
+            }
+        };
+    }
+
     private static ModelHandler handler(
         String[] pathsAndValues)
     {
@@ -663,6 +722,47 @@ public class KafkaCachePartitionTest
             bridge.end();
 
             return result.set(ModelStatus.COMPLETE, srcLength, srcLength);
+        }
+
+        @Override
+        public boolean identity()
+        {
+            return false;
+        }
+
+        @Override
+        public void reset()
+        {
+        }
+    }
+
+    // a pipeline whose declared padding scales with the length it is given, so a test can distinguish a
+    // reservation sized from the first DATA fragment's length from one sized from the full declared value
+    private static final class PaddingPipeline implements ModelPipeline
+    {
+        @Override
+        public ModelPipelineResult transform(
+            long traceId,
+            long bindingId,
+            long authorization,
+            int flags,
+            DirectBufferEx src,
+            int srcIndex,
+            int srcLimit,
+            MutableDirectBufferEx dst,
+            int dstIndex,
+            int dstLimit)
+        {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public int padding(
+            DirectBufferEx data,
+            int index,
+            int length)
+        {
+            return length * 2;
         }
 
         @Override

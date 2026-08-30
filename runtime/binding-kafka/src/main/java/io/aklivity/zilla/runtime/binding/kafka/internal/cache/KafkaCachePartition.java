@@ -422,7 +422,7 @@ public final class KafkaCachePartition
         int convertedPos = NO_CONVERTED_POSITION;
         if (valueLength != -1 && transformValue != KafkaCacheModel.NONE)
         {
-            int convertedPadding = transformValue.padding(payload.buffer(), payload.offset(), payload.sizeof());
+            int convertedPadding = transformValue.padding(payload.buffer(), payload.offset(), valueLength);
             int convertedMaxLength = valueMaxLength + convertedPadding;
 
             convertedPos = convertedFile.capacity();
@@ -782,7 +782,7 @@ public final class KafkaCachePartition
         int convertedPos = NO_CONVERTED_POSITION;
         if (valueLength != -1 && transformValue != KafkaCacheModel.NONE)
         {
-            int convertedPadding = transformValue.padding(payload.buffer(), payload.offset(), payload.sizeof());
+            int convertedPadding = transformValue.padding(payload.buffer(), payload.offset(), valueLength);
             int convertedMaxLength = valueMaxLength + convertedPadding;
 
             convertedPos = convertedFile.capacity();
