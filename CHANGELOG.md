@@ -7,6 +7,7 @@
 **Fixed bugs:**
 
 - common-protobuf JSON codec doesn't unwrap well-known wrapper types [\#2411](https://github.com/aklivity/zilla/issues/2411) ([jfallows](https://github.com/jfallows))
+- kafka cache\_server stops evicting segments permanently after all members disconnect [\#2446](https://github.com/aklivity/zilla/issues/2446) ([christophediprima](https://github.com/christophediprima))
 
 **Closed issues:**
 
@@ -20,6 +21,7 @@
 - binding-tls: TlsClientFactory reply-direction ProxyBeginEx cannot convey the underlying network address [\#2407](https://github.com/aklivity/zilla/issues/2407) ([jfallows](https://github.com/jfallows))
 - Retain and expose unrecognized schema-root properties, alongside existing field-level annotation retention [\#2415](https://github.com/aklivity/zilla/issues/2415) ([jfallows](https://github.com/jfallows))
 - Make wrapped key material self-sufficient for unwrap — drop the explicit key-name parameter from SecretKeyManager/VaultHandler.unwrap [\#2416](https://github.com/aklivity/zilla/issues/2416) ([jfallows](https://github.com/jfallows))
+- kafka cache storage: honor per-message authorization on the fetch path, not just at cache population [\#2423](https://github.com/aklivity/zilla/issues/2423) ([jfallows](https://github.com/jfallows))
 - MQTT CONNECT with a Will message crashes the whole engine \(JVM segfault\), not just the connection [\#2428](https://github.com/aklivity/zilla/issues/2428) ([sfr-oc](https://github.com/sfr-oc))
 
 **Merged pull requests:**
@@ -64,6 +66,7 @@
 - fix\(binding-mcp\): defer mcp\(client\) lifecycle connect until guard decides [\#2426](https://github.com/aklivity/zilla/pull/2426) ([jfallows](https://github.com/jfallows))
 - fix\(binding-mcp\): settle a still-establishing toolkit client on reset/abort [\#2427](https://github.com/aklivity/zilla/pull/2427) ([jfallows](https://github.com/jfallows))
 - feat\(engine\): let a Router own this instance's node identity [\#2430](https://github.com/aklivity/zilla/pull/2430) ([jfallows](https://github.com/jfallows))
+- fix\(binding-kafka\): honor per-message authorization on the cache fetch path [\#2431](https://github.com/aklivity/zilla/pull/2431) ([jfallows](https://github.com/jfallows))
 - fix\(binding-mcp\): keep serving other routes when one route errors during tools/prompts/resources list [\#2432](https://github.com/aklivity/zilla/pull/2432) ([jfallows](https://github.com/jfallows))
 - test\(binding-mcp\): model the mcp\(client\) lifecycle preauthorize challenge [\#2433](https://github.com/aklivity/zilla/pull/2433) ([jfallows](https://github.com/jfallows))
 - fix\(binding-mcp\): preserve request sequence on mcp\(client\) HttpStream end [\#2434](https://github.com/aklivity/zilla/pull/2434) ([jfallows](https://github.com/jfallows))
@@ -76,8 +79,11 @@
 - test\(binding-mcp.spec\): complete peer-to-peer coverage for application and network scenarios [\#2444](https://github.com/aklivity/zilla/pull/2444) ([jfallows](https://github.com/jfallows))
 - fix\(binding-mcp\): flush hydration registrants queued before a real preauthorize challenge [\#2447](https://github.com/aklivity/zilla/pull/2447) ([jfallows](https://github.com/jfallows))
 - fix\(examples/mcp.proxy\): send a key with kafka\_\_produce\_message in verify.sh [\#2448](https://github.com/aklivity/zilla/pull/2448) ([jfallows](https://github.com/jfallows))
+- fix\(binding-kafka\): decouple cache segment signals from stream identity [\#2449](https://github.com/aklivity/zilla/pull/2449) ([jfallows](https://github.com/jfallows))
 - fix\(examples/mcp.proxy\): scope kafka-connect plugin.path to the one connector jar it needs [\#2450](https://github.com/aklivity/zilla/pull/2450) ([jfallows](https://github.com/jfallows))
 - fix\(binding-mcp\): stream tool-call arguments, don't buffer them whole [\#2451](https://github.com/aklivity/zilla/pull/2451) ([jfallows](https://github.com/jfallows))
+- feat\(binding-mcp\): make McpToolSearchIndex async [\#2452](https://github.com/aklivity/zilla/pull/2452) ([jfallows](https://github.com/jfallows))
+- feat\(config-engine\): add BindingExtInfo, a nested-extension discovery mechanism for bindings [\#2453](https://github.com/aklivity/zilla/pull/2453) ([jfallows](https://github.com/jfallows))
 
 ## [2.3.0](https://github.com/aklivity/zilla/tree/2.3.0) (2026-08-14)
 

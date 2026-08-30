@@ -56,6 +56,7 @@ public class EngineRegistryTest
             type -> null,
             type -> null,
             type -> null,
+            type -> null,
             name -> null,
             type -> null,
             type -> null,

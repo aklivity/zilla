@@ -20,8 +20,10 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.util.List;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableArrayBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelFieldBridge;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
@@ -49,10 +51,25 @@ import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 // check to pipeline-construction order instead would miss exactly the bug this exists to catch: a single
 // pipeline instance shared across multiple producers only ever sees one expected value if it were fixed at
 // construction, even though it processes several messages, each with its own authorization.
+//
+// When the handler is configured with a `reject` list instead, the length check above is bypassed entirely:
+// the whole value is buffered and, at the tail fragment, matched verbatim against that list -- REJECTED on a
+// match, otherwise identity-accepted. When `suspend` is also set, the match is resolved asynchronously via
+// EngineContext#dispatch (mirroring an async model's CompletionCallback), returning SUSPENDED first and
+// resolving -- and invoking the caller's resume callback -- once dispatched; without `suspend` the same
+// decision resolves inline within the same transform() call.
+//
+// When the handler is configured with `discloseAuthorized`/`discloseRedacted`, a completed value is
+// disclosed rather than copied through verbatim: the real bytes pass through when the pipeline's own
+// `authorization` argument is in the configured set, otherwise the configured redacted bytes are
+// substituted. The cache-populate path always constructs its pipeline with both `null`, so it never
+// discloses; the per-consumer decode path passes the handler's real configured values, so only it can
+// ever reveal or redact.
 final class TestModelPipeline implements ModelPipeline
 {
     private static final int FLAGS_INIT = 0x02;
     private static final int FLAGS_FIN = 0x01;
+    private static final DirectBufferEx EMPTY_SRC = new UnsafeBufferEx(new byte[0]);
 
     private final DirectBufferEx extractedValue = new UnsafeBufferEx("1234".getBytes(UTF_8));
 
@@ -64,8 +81,19 @@ final class TestModelPipeline implements ModelPipeline
     private final ModelFieldBridge bridge;
     private final ModelPipelineResult result;
     private final TestModelHandler handler;
+    private final List<String> reject;
+    private final boolean suspend;
+    private final Runnable resumed;
+    private final EngineContext context;
+    private final ExpandableArrayBufferEx buffer;
+    private final List<Long> discloseAuthorized;
+    private final DirectBufferEx discloseRedacted;
 
     private int processed;
+    private int contentLength;
+    private int contentDrained;
+    private boolean awaiting;
+    private ModelStatus resolved;
 
     TestModelPipeline(
         int length,
@@ -74,7 +102,13 @@ final class TestModelPipeline implements ModelPipeline
         boolean lenient,
         ModelEnvelope envelope,
         ModelTransform transform,
-        TestModelHandler handler)
+        TestModelHandler handler,
+        List<String> reject,
+        boolean suspend,
+        Runnable resumed,
+        EngineContext context,
+        List<Long> discloseAuthorized,
+        DirectBufferEx discloseRedacted)
     {
         this.length = length;
         this.transformLength = transformLength;
@@ -84,10 +118,110 @@ final class TestModelPipeline implements ModelPipeline
         this.bridge = transform != ModelTransform.NONE ? new ModelFieldBridge(transform) : null;
         this.result = new ModelPipelineResult();
         this.handler = handler;
+        this.reject = reject;
+        this.suspend = suspend;
+        this.resumed = resumed;
+        this.context = context;
+        this.buffer = reject != null ? new ExpandableArrayBufferEx() : null;
+        this.discloseAuthorized = discloseAuthorized;
+        this.discloseRedacted = discloseRedacted;
     }
 
     @Override
     public ModelPipelineResult transform(
+        long traceId,
+        long bindingId,
+        long authorization,
+        int flags,
+        DirectBufferEx src,
+        int srcIndex,
+        int srcLimit,
+        MutableDirectBufferEx dst,
+        int dstIndex,
+        int dstLimit)
+    {
+        return reject != null
+            ? transformReject(src, srcIndex, srcLimit, dst, dstIndex, dstLimit, flags)
+            : transformLength(traceId, bindingId, authorization, flags, src, srcIndex, srcLimit, dst, dstIndex, dstLimit);
+    }
+
+    private ModelPipelineResult transformReject(
+        DirectBufferEx src,
+        int srcIndex,
+        int srcLimit,
+        MutableDirectBufferEx dst,
+        int dstIndex,
+        int dstLimit,
+        int flags)
+    {
+        ModelStatus status;
+        int consumed = 0;
+        int produced = 0;
+
+        if (resolved == ModelStatus.REJECTED)
+        {
+            status = ModelStatus.REJECTED;
+        }
+        else if (resolved == ModelStatus.OK)
+        {
+            int remaining = contentLength - contentDrained;
+            int available = Math.min(remaining, dstLimit - dstIndex);
+            dst.putBytes(dstIndex, buffer, contentDrained, available);
+            contentDrained += available;
+            produced = available;
+            status = contentDrained < contentLength ? ModelStatus.OVERFLOW : ModelStatus.COMPLETE;
+        }
+        else if (awaiting)
+        {
+            status = ModelStatus.SUSPENDED;
+        }
+        else
+        {
+            int available = srcLimit - srcIndex;
+            buffer.putBytes(contentLength, src, srcIndex, available);
+            contentLength += available;
+            consumed = available;
+
+            if ((flags & FLAGS_FIN) != 0)
+            {
+                String text = buffer.getStringWithoutLengthUtf8(0, contentLength);
+                boolean matched = reject.contains(text);
+
+                if (suspend)
+                {
+                    awaiting = true;
+                    context.dispatch(() ->
+                    {
+                        resolve(matched);
+                        resumed.run();
+                    });
+                    status = ModelStatus.SUSPENDED;
+                }
+                else
+                {
+                    resolve(matched);
+                    ModelPipelineResult inner = transformReject(EMPTY_SRC, 0, 0, dst, dstIndex, dstLimit, 0x00);
+                    status = inner.status();
+                    produced = inner.produced();
+                }
+            }
+            else
+            {
+                status = ModelStatus.UNDERFLOW;
+            }
+        }
+
+        return result.set(status, consumed, produced);
+    }
+
+    private void resolve(
+        boolean matched)
+    {
+        resolved = matched ? ModelStatus.REJECTED : ModelStatus.OK;
+        awaiting = false;
+    }
+
+    private ModelPipelineResult transformLength(
         long traceId,
         long bindingId,
         long authorization,
@@ -119,6 +253,21 @@ final class TestModelPipeline implements ModelPipeline
             status = ModelStatus.REJECTED;
             consumed = 0;
             produced = 0;
+        }
+        else if (lengthValid && tail && discloseAuthorized != null)
+        {
+            // whole-value disclosure: reveal the real bytes only when this pipeline's own authorization is
+            // in the configured set, otherwise substitute the configured redacted bytes
+            processed = total;
+            final boolean authorized = discloseAuthorized.contains(authorization);
+            final DirectBufferEx disclosed = authorized ? src : discloseRedacted;
+            final int disclosedIndex = authorized ? srcIndex : 0;
+            final int disclosedLength = authorized ? available : discloseRedacted.capacity();
+            dst.putBytes(dstIndex, disclosed, disclosedIndex, disclosedLength);
+            consumed = available;
+            produced = disclosedLength;
+            status = ModelStatus.COMPLETE;
+            visitExtracted(authorization);
         }
         else if (lengthValid && tail && transformLength >= 0)
         {
@@ -177,13 +326,17 @@ final class TestModelPipeline implements ModelPipeline
     @Override
     public boolean identity()
     {
-        return transformLength < 0;
+        return transformLength < 0 && discloseAuthorized == null;
     }
 
     @Override
     public void reset()
     {
         processed = 0;
+        contentLength = 0;
+        contentDrained = 0;
+        awaiting = false;
+        resolved = null;
     }
 
     private void visitExtracted(

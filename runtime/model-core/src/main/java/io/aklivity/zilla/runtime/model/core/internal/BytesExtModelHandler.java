@@ -18,12 +18,14 @@ import java.util.List;
 import java.util.function.Supplier;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.model.ModelCache;
 import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 import io.aklivity.zilla.runtime.model.core.ext.BytesModelExtHandler;
 import io.aklivity.zilla.runtime.model.core.ext.BytesTransform;
+import io.aklivity.zilla.runtime.model.core.ext.CoreCache;
 
 // Per-worker factory for a bytes model with at least one installed extension. Each direction is extended
 // independently, so an extension applying on only one of them leaves the other exactly as it would be with
@@ -59,21 +61,34 @@ final class BytesExtModelHandler implements ModelHandler
     @Override
     public ModelPipeline supplyDecoder(
         ModelEnvelope envelope,
-        ModelTransform transform)
+        ModelTransform transform,
+        ModelCache cache)
     {
         assert envelope != null;
 
+        CoreCache coreCache = extCache(cache);
         BytesTransformStream stream = new BytesTransformStream();
         for (BytesModelExtHandler handler : handlers)
         {
-            stream = handler.decode(stream);
+            stream = handler.decode(stream, coreCache);
         }
 
         List<BytesTransform> transforms = stream.transforms();
 
         return transforms.isEmpty()
-            ? plain.supplyDecoder(envelope, transform)
+            ? plain.supplyDecoder(envelope, transform, cache)
             : new BytesExtModelPipeline(plain, supplier.get(), decodeLenient, transforms, envelope, decodePadding);
+    }
+
+    private static CoreCache extCache(
+        ModelCache cache)
+    {
+        return switch (cache)
+        {
+        case WRITE -> CoreCache.WRITE;
+        case READ -> CoreCache.READ;
+        default -> CoreCache.NONE;
+        };
     }
 
     @Override

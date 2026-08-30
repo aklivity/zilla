@@ -30,6 +30,7 @@ import io.aklivity.zilla.runtime.common.avro.AvroTransformable;
 import io.aklivity.zilla.runtime.common.avro.AvroType;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.model.avro.ext.AvroCache;
 import io.aklivity.zilla.runtime.model.avro.ext.AvroModelExt;
 import io.aklivity.zilla.runtime.model.avro.ext.AvroModelExtContext;
 import io.aklivity.zilla.runtime.model.avro.ext.AvroModelExtFactorySpi;
@@ -62,7 +63,8 @@ public final class TestUppercaseAvroModelExtFactorySpi implements AvroModelExtFa
 
                     @Override
                     public <T extends AvroTransformable<T>> T decode(
-                        T transformable)
+                        T transformable,
+                        AvroCache cache)
                     {
                         return transformable.transform(transform);
                     }

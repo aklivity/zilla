@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.sse.internal.config;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.engine.model.ModelCache;
 import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
@@ -47,7 +48,7 @@ public final class SseModel
         MutableDirectBufferEx scratch)
     {
         return handler != null
-            ? new SseModel(handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE), scratch)
+            ? new SseModel(handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE), scratch)
             : NONE;
     }
 

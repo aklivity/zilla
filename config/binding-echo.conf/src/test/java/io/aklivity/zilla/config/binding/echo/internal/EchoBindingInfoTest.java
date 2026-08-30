@@ -38,8 +38,8 @@ public class EchoBindingInfoTest
     }
 
     @Test
-    public void shouldResolveNoOptionsAdapter()
+    public void shouldResolveOptionsAdapter()
     {
-        assertThat(info.options(), nullValue());
+        assertThat(info.options(), not(nullValue()));
     }
 }

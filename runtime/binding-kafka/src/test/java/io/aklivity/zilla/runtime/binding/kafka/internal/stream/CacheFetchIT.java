@@ -22,6 +22,7 @@ import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguratio
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_BUFFER_SLOT_CAPACITY;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.junit.Assert.assertEquals;
 import static org.junit.rules.RuleChain.outerRule;
 
 import org.junit.Before;
@@ -420,6 +421,35 @@ public class CacheFetchIT
         "${app}/message.value.distinct/server"})
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldReceiveMessageValueDistinct() throws Exception
+    {
+        partition.append(16L);
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.value.model.disclose.yaml")
+    @Specification({
+        "${app}/message.value.authorization.distinct/client",
+        "${app}/message.value.authorization.distinct/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldReceiveMessageValueAuthorizationDistinct() throws Exception
+    {
+        partition.append(16L);
+        k3po.finish();
+    }
+
+    // exercises the populate-then-fetch round trip through a real, format-converting model (avro +
+    // view: json) rather than TestModel's identity decode: the cache_server side (WRITE) decodes the raw
+    // avro wire bytes into cached json, and the cache_client side (READ) re-decodes that cached json for
+    // the fetching consumer -- this is the exact shape of the http.kafka.avro.json regression this
+    // pipeline's cache-context split (NONE/WRITE/READ) exists to fix
+    @Test
+    @Configuration("cache.value.model.avro.view.json.yaml")
+    @Specification({
+        "${app}/message.value.avro.view.json/client",
+        "${app}/message.value.avro.view.json/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldReceiveMessageValueAvroViewJson() throws Exception
     {
         partition.append(16L);
         k3po.finish();
@@ -990,5 +1020,43 @@ public class CacheFetchIT
     {
         partition.append(1L);
         k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.options.live.yaml")
+    @Specification({
+        "${app}/delete.segment.after.member.reconnect/client",
+        "${app}/delete.segment.after.member.reconnect/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @Configure(name = KafkaConfigurationTest.KAFKA_CACHE_RETENTION_MILLIS_MAX_NAME, value = "200")
+    @Configure(name = "zilla.binding.kafka.cache.segment.bytes", value = "200")
+    public void shouldDeleteSegmentAfterMemberReconnect() throws Exception
+    {
+        k3po.start();
+        Thread.sleep(250);
+        k3po.notifyBarrier("SEND_MESSAGE_2");
+        k3po.finish();
+
+        int segments = countSegments();
+        final long deadline = System.currentTimeMillis() + SECONDS.toMillis(5);
+        while (segments != 1 && System.currentTimeMillis() < deadline)
+        {
+            Thread.sleep(50);
+            segments = countSegments();
+        }
+
+        assertEquals(1, segments);
+    }
+
+    private int countSegments()
+    {
+        int segments = 0;
+        KafkaCachePartition.Node segmentNode = partition.sentinel().next();
+        while (!segmentNode.sentinel())
+        {
+            segments++;
+            segmentNode = segmentNode.next();
+        }
+        return segments;
     }
 }

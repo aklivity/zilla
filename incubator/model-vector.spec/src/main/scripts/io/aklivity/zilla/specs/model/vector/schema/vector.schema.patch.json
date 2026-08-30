@@ -1,0 +1,62 @@
+[
+    {
+        "op": "add",
+        "path": "/$defs/models/types/enum/-",
+        "value": "vector"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/models/model/allOf/-",
+        "value":
+        {
+            "if":
+            {
+                "properties":
+                {
+                    "model":
+                    {
+                        "const": "vector"
+                    }
+                }
+            },
+            "then":
+            {
+                "properties":
+                {
+                    "model":
+                    {
+                        "const": "vector"
+                    },
+                    "embedding":
+                    {
+                        "title": "Embedding",
+                        "type": "string"
+                    },
+                    "reject":
+                    {
+                        "title": "Reject",
+                        "type": "array",
+                        "items":
+                        {
+                            "type": "string"
+                        },
+                        "minItems": 1
+                    },
+                    "threshold":
+                    {
+                        "title": "Threshold",
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 1
+                    }
+                },
+                "required":
+                [
+                    "embedding",
+                    "reject",
+                    "threshold"
+                ]
+            }
+        }
+    }
+]

@@ -119,6 +119,9 @@ import io.aklivity.zilla.runtime.engine.catalog.Catalog;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
+import io.aklivity.zilla.runtime.engine.embedding.Embedding;
+import io.aklivity.zilla.runtime.engine.embedding.EmbeddingContext;
+import io.aklivity.zilla.runtime.engine.embedding.EmbeddingHandler;
 import io.aklivity.zilla.runtime.engine.event.EventFormatter;
 import io.aklivity.zilla.runtime.engine.event.EventFormatterFactory;
 import io.aklivity.zilla.runtime.engine.exporter.Exporter;
@@ -211,6 +214,7 @@ public class EngineWorker implements EngineContext, Agent
     private final Collection<Guard> guards;
     private final Collection<Vault> vaults;
     private final Collection<Catalog> catalogs;
+    private final Collection<Embedding> embeddings;
     private final Collection<Model> models;
     private final Collection<MetricGroup> metricGroups;
     private final Collection<Store> stores;
@@ -302,6 +306,7 @@ public class EngineWorker implements EngineContext, Agent
         Collection<Guard> guards,
         Collection<Vault> vaults,
         Collection<Catalog> catalogs,
+        Collection<Embedding> embeddings,
         Collection<Model> models,
         Collection<MetricGroup> metricGroups,
         Collection<Store> stores,
@@ -442,6 +447,7 @@ public class EngineWorker implements EngineContext, Agent
         this.guards = guards;
         this.vaults = vaults;
         this.catalogs = catalogs;
+        this.embeddings = embeddings;
         this.models = models;
         this.metricGroups = metricGroups;
         this.stores = stores;
@@ -844,6 +850,14 @@ public class EngineWorker implements EngineContext, Agent
     }
 
     @Override
+    public EmbeddingHandler supplyEmbedding(
+        long embeddingId)
+    {
+        EmbeddingRegistry embedding = registry.resolveEmbedding(embeddingId);
+        return embedding != null ? embedding.handler() : null;
+    }
+
+    @Override
     public ModelHandler supplyModel(
         ModelConfig config)
     {
@@ -1063,6 +1077,21 @@ public class EngineWorker implements EngineContext, Agent
             }
         }
 
+        Map<String, EmbeddingContext> embeddingsByType = new LinkedHashMap<>();
+        for (Embedding embedding : embeddings)
+        {
+            String type = embedding.name();
+            Set<String> aliases = embedding.aliases();
+
+            EmbeddingContext context = embedding.supply(this);
+
+            embeddingsByType.put(type, context);
+            for (String alias : aliases)
+            {
+                embeddingsByType.put(alias, context);
+            }
+        }
+
         Map<String, StoreContext> storesByType = stores.stream()
             .collect(toMap(Store::name, s -> s.supply(this), (a, b) -> a, LinkedHashMap::new));
 
@@ -1080,8 +1109,8 @@ public class EngineWorker implements EngineContext, Agent
         }
 
         this.registry = new EngineRegistry(
-                bindingsByType::get, guardsByType::get, vaultsByType::get, catalogsByType::get, metricsByName::get,
-                exportersByType::get, storesByType::get, router::supplyLabelId, this::onExporterAttached,
+                bindingsByType::get, guardsByType::get, vaultsByType::get, catalogsByType::get, embeddingsByType::get,
+                metricsByName::get, exportersByType::get, storesByType::get, router::supplyLabelId, this::onExporterAttached,
                 this::onExporterDetached, this::supplyMetricWriter, this::detachStreams, collector, process);
 
         if (!readonly)
