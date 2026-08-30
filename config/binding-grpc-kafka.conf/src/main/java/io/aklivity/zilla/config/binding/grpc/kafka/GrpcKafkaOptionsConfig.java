@@ -46,6 +46,7 @@ public final class GrpcKafkaOptionsConfig extends OptionsConfig
         GrpcKafkaIdempotencyConfig idempotency,
         GrpcKafkaCorrelationConfig correlation)
     {
+        super(null, null);
         this.reliability = reliability;
         this.idempotency = idempotency;
         this.correlation = correlation;

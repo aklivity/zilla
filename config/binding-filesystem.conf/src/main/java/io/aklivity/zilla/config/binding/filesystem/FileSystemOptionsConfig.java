@@ -43,6 +43,7 @@ public final class FileSystemOptionsConfig extends OptionsConfig
         URI location,
         FileSystemSymbolicLinksConfig symlinks)
     {
+        super(null, null);
         this.location = location;
         this.symlinks = symlinks;
     }

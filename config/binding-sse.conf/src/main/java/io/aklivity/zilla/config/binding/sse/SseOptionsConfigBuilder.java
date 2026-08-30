@@ -14,11 +14,13 @@
  */
 package io.aklivity.zilla.config.binding.sse;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Function;
 
 import io.aklivity.zilla.config.engine.ConfigBuilder;
+import io.aklivity.zilla.config.engine.NamedConfig;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public class SseOptionsConfigBuilder<T> extends ConfigBuilder<T, SseOptionsConfigBuilder<T>>
@@ -79,7 +81,14 @@ public class SseOptionsConfigBuilder<T> extends ConfigBuilder<T, SseOptionsConfi
     @Override
     public T build()
     {
-        return mapper.apply(new SseOptionsConfig(retry, requests));
+        List<NamedConfig> refs = new ArrayList<>();
+        if (requests != null)
+        {
+            for (SseRequestConfig request : requests)
+            {
+                refs.addAll(request.refs());
+            }
+        }
+        return mapper.apply(new SseOptionsConfig(retry, requests, refs));
     }
-
 }

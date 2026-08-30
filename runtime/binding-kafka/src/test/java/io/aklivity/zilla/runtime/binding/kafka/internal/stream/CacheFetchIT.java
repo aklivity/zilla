@@ -22,6 +22,7 @@ import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguratio
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_BUFFER_SLOT_CAPACITY;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.junit.Assert.assertEquals;
 import static org.junit.rules.RuleChain.outerRule;
 
 import org.junit.Before;
@@ -1050,5 +1051,43 @@ public class CacheFetchIT
     {
         partition.append(1L);
         k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.options.live.yaml")
+    @Specification({
+        "${app}/delete.segment.after.member.reconnect/client",
+        "${app}/delete.segment.after.member.reconnect/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @Configure(name = KafkaConfigurationTest.KAFKA_CACHE_RETENTION_MILLIS_MAX_NAME, value = "200")
+    @Configure(name = "zilla.binding.kafka.cache.segment.bytes", value = "200")
+    public void shouldDeleteSegmentAfterMemberReconnect() throws Exception
+    {
+        k3po.start();
+        Thread.sleep(250);
+        k3po.notifyBarrier("SEND_MESSAGE_2");
+        k3po.finish();
+
+        int segments = countSegments();
+        final long deadline = System.currentTimeMillis() + SECONDS.toMillis(5);
+        while (segments != 1 && System.currentTimeMillis() < deadline)
+        {
+            Thread.sleep(50);
+            segments = countSegments();
+        }
+
+        assertEquals(1, segments);
+    }
+
+    private int countSegments()
+    {
+        int segments = 0;
+        KafkaCachePartition.Node segmentNode = partition.sentinel().next();
+        while (!segmentNode.sentinel())
+        {
+            segments++;
+            segmentNode = segmentNode.next();
+        }
+        return segments;
     }
 }

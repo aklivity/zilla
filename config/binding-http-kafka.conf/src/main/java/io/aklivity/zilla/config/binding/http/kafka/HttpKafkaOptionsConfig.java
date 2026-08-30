@@ -32,6 +32,7 @@ public final class HttpKafkaOptionsConfig extends OptionsConfig
         HttpKafkaIdempotencyConfig idempotency,
         HttpKafkaCorrelationConfig correlation)
     {
+        super(null, null);
         this.idempotency = idempotency;
         this.correlation = correlation;
     }

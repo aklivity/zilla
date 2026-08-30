@@ -14,11 +14,13 @@
  */
 package io.aklivity.zilla.config.binding.kafka;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
 
 import io.aklivity.zilla.config.engine.Config;
 import io.aklivity.zilla.config.engine.ModelConfig;
+import io.aklivity.zilla.config.engine.NamedConfig;
 
 public class KafkaTopicConfig extends Config
 {
@@ -28,6 +30,7 @@ public class KafkaTopicConfig extends Config
     public final ModelConfig key;
     public final ModelConfig value;
     public final KafkaTopicTransformsConfig transforms;
+    private final List<NamedConfig> refs;
 
     public static KafkaTopicConfigBuilder<KafkaTopicConfig> builder()
     {
@@ -46,7 +49,8 @@ public class KafkaTopicConfig extends Config
         String deltaType,
         ModelConfig key,
         ModelConfig value,
-        KafkaTopicTransformsConfig transforms)
+        KafkaTopicTransformsConfig transforms,
+        List<NamedConfig> refs)
     {
         this.name = name;
         this.defaultOffset = defaultOffset;
@@ -54,6 +58,12 @@ public class KafkaTopicConfig extends Config
         this.key = key;
         this.value = value;
         this.transforms = transforms;
+        this.refs = refs;
+    }
+
+    public List<NamedConfig> refs()
+    {
+        return refs;
     }
 
     @Override

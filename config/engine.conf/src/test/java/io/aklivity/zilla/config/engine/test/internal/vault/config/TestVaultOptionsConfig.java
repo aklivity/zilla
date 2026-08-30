@@ -43,6 +43,7 @@ public final class TestVaultOptionsConfig extends OptionsConfig
         List<TestVaultEntryConfig> trust,
         List<TestVaultEntryConfig> wrap)
     {
+        super(null, null);
         this.keys = keys;
         this.signer = signer;
         this.trust = trust;

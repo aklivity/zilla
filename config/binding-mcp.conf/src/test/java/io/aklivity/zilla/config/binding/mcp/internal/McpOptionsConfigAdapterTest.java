@@ -34,6 +34,7 @@ import org.junit.Test;
 import io.aklivity.zilla.config.binding.mcp.McpCacheToolsEagerPolicy;
 import io.aklivity.zilla.config.binding.mcp.McpKeywordToolSearchIndexConfig;
 import io.aklivity.zilla.config.binding.mcp.McpOptionsConfig;
+import io.aklivity.zilla.config.binding.mcp.McpTestToolSearchIndexConfig;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 
@@ -45,7 +46,7 @@ public class McpOptionsConfigAdapterTest
     public void initJson()
     {
         JsonbConfig config = new JsonbConfig()
-                .withAdapters(new McpOptionsConfigAdapter());
+                .withAdapters(new McpOptionsConfigAdapter(List.of()));
         jsonb = JsonbBuilder.newBuilder()
                 .withProvider(YamlJson.provider())
                 .withConfig(config)
@@ -227,6 +228,33 @@ public class McpOptionsConfigAdapterTest
 
         assertThat(options.cache.tools.search.indexes, hasSize(1));
         assertThat(options.cache.tools.search.indexes.get(0).type, equalTo(McpKeywordToolSearchIndexConfig.NAME));
+    }
+
+    @Test
+    public void shouldReadOptionsWithCacheToolsSearchIndexFromExtension()
+    {
+        JsonbConfig config = new JsonbConfig()
+                .withAdapters(new McpBindingInfo().options());
+        Jsonb extendedJsonb = JsonbBuilder.newBuilder()
+                .withProvider(YamlJson.provider())
+                .withConfig(config)
+                .build();
+
+        String text =
+                """
+                cache:
+                  store: memory0
+                  tools:
+                    search:
+                      toolkit: zilla
+                      index:
+                        - type: test
+                """;
+
+        McpOptionsConfig options = (McpOptionsConfig) extendedJsonb.fromJson(text, OptionsConfig.class);
+
+        assertThat(options.cache.tools.search.indexes, hasSize(1));
+        assertThat(options.cache.tools.search.indexes.get(0).type, equalTo(McpTestToolSearchIndexConfig.NAME));
     }
 
     @Test

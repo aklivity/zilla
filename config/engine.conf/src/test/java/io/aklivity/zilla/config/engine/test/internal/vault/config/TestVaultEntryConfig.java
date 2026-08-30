@@ -38,6 +38,7 @@ public final class TestVaultEntryConfig extends OptionsConfig
         String alias,
         String entry)
     {
+        super(null, null);
         this.alias = alias;
         this.entry = entry;
     }
