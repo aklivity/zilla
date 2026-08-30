@@ -88,7 +88,7 @@ public class SseOptionsConfigBuilder<T> extends ConfigBuilder<T, SseOptionsConfi
     public T build()
     {
         List<ModelConfig> models = resolveModels(requests);
-        return mapper.apply(new SseOptionsConfig(retry, requests, models, refs(models)));
+        return mapper.apply(new SseOptionsConfig(retry, requests, models, refs(requests)));
     }
 
     private static List<ModelConfig> resolveModels(
@@ -104,12 +104,15 @@ public class SseOptionsConfigBuilder<T> extends ConfigBuilder<T, SseOptionsConfi
     }
 
     private static List<NamedConfig> refs(
-        List<ModelConfig> models)
+        List<SseRequestConfig> requests)
     {
         List<NamedConfig> refs = new ArrayList<>();
-        for (ModelConfig model : models)
+        if (requests != null)
         {
-            refs.addAll(model.refs());
+            for (SseRequestConfig request : requests)
+            {
+                refs.addAll(request.refs());
+            }
         }
         return refs;
     }

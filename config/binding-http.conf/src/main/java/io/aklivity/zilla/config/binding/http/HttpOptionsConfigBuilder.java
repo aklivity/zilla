@@ -134,7 +134,7 @@ public final class HttpOptionsConfigBuilder<T> extends ConfigBuilder<T, HttpOpti
     public T build()
     {
         List<ModelConfig> models = resolveModels(requests);
-        return mapper.apply(new HttpOptionsConfig(versions, overrides, access, authorization, requests, models, refs(models)));
+        return mapper.apply(new HttpOptionsConfig(versions, overrides, access, authorization, requests, models, refs(requests)));
     }
 
     private static List<ModelConfig> resolveModels(
@@ -173,12 +173,15 @@ public final class HttpOptionsConfigBuilder<T> extends ConfigBuilder<T, HttpOpti
     }
 
     private static List<NamedConfig> refs(
-        List<ModelConfig> models)
+        List<HttpRequestConfig> requests)
     {
         List<NamedConfig> refs = new ArrayList<>();
-        for (ModelConfig model : models)
+        if (requests != null)
         {
-            refs.addAll(model.refs());
+            for (HttpRequestConfig request : requests)
+            {
+                refs.addAll(request.refs());
+            }
         }
         return refs;
     }

@@ -16,20 +16,31 @@ package io.aklivity.zilla.config.binding.sse;
 
 import static java.util.function.Function.identity;
 
+import java.util.List;
+
 import io.aklivity.zilla.config.engine.Config;
 import io.aklivity.zilla.config.engine.ModelConfig;
+import io.aklivity.zilla.config.engine.NamedConfig;
 
 public class SseRequestConfig extends Config
 {
     public final String path;
     public final ModelConfig content;
+    private final List<NamedConfig> refs;
 
     SseRequestConfig(
         String path,
-        ModelConfig content)
+        ModelConfig content,
+        List<NamedConfig> refs)
     {
         this.path = path;
         this.content = content;
+        this.refs = refs;
+    }
+
+    public List<NamedConfig> refs()
+    {
+        return refs;
     }
 
     public static SsePathConfigBuilder<SseRequestConfig> builder()

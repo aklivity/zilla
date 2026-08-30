@@ -113,7 +113,7 @@ public final class KafkaOptionsConfigBuilder<T> extends ConfigBuilder<T, KafkaOp
     public T build()
     {
         List<ModelConfig> models = resolveModels(topics);
-        return mapper.apply(new KafkaOptionsConfig(bootstrap, topics, servers, authorization, models, refs(models)));
+        return mapper.apply(new KafkaOptionsConfig(bootstrap, topics, servers, authorization, models, refs(topics)));
     }
 
     private static List<ModelConfig> resolveModels(
@@ -128,12 +128,15 @@ public final class KafkaOptionsConfigBuilder<T> extends ConfigBuilder<T, KafkaOp
     }
 
     private static List<NamedConfig> refs(
-        List<ModelConfig> models)
+        List<KafkaTopicConfig> topics)
     {
         List<NamedConfig> refs = new ArrayList<>();
-        for (ModelConfig model : models)
+        if (topics != null)
         {
-            refs.addAll(model.refs());
+            for (KafkaTopicConfig topic : topics)
+            {
+                refs.addAll(topic.refs());
+            }
         }
         return refs;
     }

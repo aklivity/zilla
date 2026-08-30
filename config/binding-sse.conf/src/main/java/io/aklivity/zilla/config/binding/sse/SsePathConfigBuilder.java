@@ -14,10 +14,12 @@
  */
 package io.aklivity.zilla.config.binding.sse;
 
+import java.util.List;
 import java.util.function.Function;
 
 import io.aklivity.zilla.config.engine.ConfigBuilder;
 import io.aklivity.zilla.config.engine.ModelConfig;
+import io.aklivity.zilla.config.engine.NamedConfig;
 
 public class SsePathConfigBuilder<T> extends ConfigBuilder<T, SsePathConfigBuilder<T>>
 {
@@ -62,6 +64,7 @@ public class SsePathConfigBuilder<T> extends ConfigBuilder<T, SsePathConfigBuild
     @Override
     public T build()
     {
-        return mapper.apply(new SseRequestConfig(path, content));
+        List<NamedConfig> refs = content != null ? content.refs() : List.of();
+        return mapper.apply(new SseRequestConfig(path, content, refs));
     }
 }
