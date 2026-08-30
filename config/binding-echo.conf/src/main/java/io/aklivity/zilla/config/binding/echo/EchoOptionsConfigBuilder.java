@@ -14,10 +14,6 @@
  */
 package io.aklivity.zilla.config.binding.echo;
 
-import static java.util.Collections.emptyList;
-import static java.util.Collections.singletonList;
-
-import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
@@ -55,24 +51,7 @@ public final class EchoOptionsConfigBuilder<T> extends ConfigBuilder<T, EchoOpti
     @Override
     public T build()
     {
-        List<ModelConfig> models = resolveModels(value);
-        return mapper.apply(new EchoOptionsConfig(value, models, refs(models)));
-    }
-
-    private static List<ModelConfig> resolveModels(
-        ModelConfig value)
-    {
-        return value != null ? singletonList(value) : emptyList();
-    }
-
-    private static List<NamedConfig> refs(
-        List<ModelConfig> models)
-    {
-        List<NamedConfig> refs = new ArrayList<>();
-        for (ModelConfig model : models)
-        {
-            refs.addAll(model.refs());
-        }
-        return refs;
+        List<NamedConfig> refs = value != null ? value.refs() : List.of();
+        return mapper.apply(new EchoOptionsConfig(value, refs));
     }
 }

@@ -38,10 +38,9 @@ public final class EchoOptionsConfig extends OptionsConfig
 
     EchoOptionsConfig(
         ModelConfig value,
-        List<ModelConfig> models,
         List<NamedConfig> refs)
     {
-        super(models, List.of(), null, refs);
+        super(List.of(), null, refs);
         this.value = value;
     }
 }

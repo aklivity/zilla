@@ -20,6 +20,7 @@ import java.util.function.Function;
 
 import io.aklivity.zilla.config.engine.CatalogedConfig;
 import io.aklivity.zilla.config.engine.ModelConfig;
+import io.aklivity.zilla.config.engine.NamedConfig;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public final class TestBindingOptionsConfig extends OptionsConfig
@@ -64,9 +65,10 @@ public final class TestBindingOptionsConfig extends OptionsConfig
         List<StoreAssertions> storeAssertions,
         String embedding,
         List<EnvelopeValue> envelope,
-        List<EnvelopeAssertion> envelopeAssertions)
+        List<EnvelopeAssertion> envelopeAssertions,
+        List<NamedConfig> refs)
     {
-        super(value != null ? List.of(value) : List.of(), List.of());
+        super(List.of(), null, refs);
         this.value = value;
         this.mode = mode;
         this.schema = schema;
