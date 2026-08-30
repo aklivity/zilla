@@ -90,6 +90,34 @@
                             "type": "integer"
                         }
                     },
+                    "reject":
+                    {
+                        "type": "array",
+                        "items":
+                        {
+                            "type": "string"
+                        }
+                    },
+                    "suspend":
+                    {
+                        "type": "boolean"
+                    },
+                    "discloseAuthorized":
+                    {
+                        "type": "array",
+                        "items":
+                        {
+                            "type": "integer"
+                        }
+                    },
+                    "discloseRedacted":
+                    {
+                        "type": "string"
+                    },
+                    "envelopeDisclose":
+                    {
+                        "type": "string"
+                    },
                     "catalog":
                     {
                         "type": "object",

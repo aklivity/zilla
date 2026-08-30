@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.kafka.internal.cache;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.engine.model.ModelCache;
 import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
@@ -49,16 +50,47 @@ public final class KafkaCacheModel
         MutableDirectBufferEx scratch)
     {
         return handler != null
-            ? new KafkaCacheModel(handler.supplyDecoder(ModelEnvelope.NONE, transform), scratch)
+            ? new KafkaCacheModel(handler.supplyDecoder(ModelEnvelope.NONE, transform, ModelCache.NONE), scratch)
             : NONE;
     }
 
-    public static KafkaCacheModel encoder(
+    // populate time: decodes wire bytes ahead of any specific consumer's request, producing the value the
+    // local cache persists; envelope collects whatever metadata a composed transform writes -- e.g. the
+    // key model's own envelope recognizing the reserved ":key" pseudo-name to override the persisted key
+    public static KafkaCacheModel writer(
         ModelHandler handler,
+        ModelTransform transform,
+        ModelEnvelope envelope,
         MutableDirectBufferEx scratch)
     {
         return handler != null
-            ? new KafkaCacheModel(handler.supplyEncoder(ModelEnvelope.NONE, ModelTransform.NONE), scratch)
+            ? new KafkaCacheModel(handler.supplyDecoder(envelope, transform, ModelCache.WRITE), scratch)
+            : NONE;
+    }
+
+    // per-consumer fetch time: resolves a value already in the form a writer pipeline produced, for the
+    // consumer requesting it now; envelope is backed by the cached record's real headers so a composed
+    // transform can read metadata that was present on produce
+    public static KafkaCacheModel reader(
+        ModelHandler handler,
+        ModelTransform transform,
+        ModelEnvelope envelope,
+        MutableDirectBufferEx scratch)
+    {
+        return handler != null
+            ? new KafkaCacheModel(handler.supplyDecoder(envelope, transform, ModelCache.READ), scratch)
+            : NONE;
+    }
+
+    // producer encode time; envelope collects whatever metadata a composed transform writes, for the
+    // storage write path to materialize as real headers once encode completes
+    public static KafkaCacheModel encoder(
+        ModelHandler handler,
+        ModelEnvelope envelope,
+        MutableDirectBufferEx scratch)
+    {
+        return handler != null
+            ? new KafkaCacheModel(handler.supplyEncoder(envelope, ModelTransform.NONE), scratch)
             : NONE;
     }
 
@@ -150,5 +182,10 @@ public final class KafkaCacheModel
         {
             pipeline.reset();
         }
+    }
+
+    public boolean identity()
+    {
+        return pipeline == null || pipeline.identity();
     }
 }

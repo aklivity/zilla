@@ -19,24 +19,32 @@ import io.aklivity.zilla.runtime.common.avro.AvroTransformable;
 
 /**
  * Appends whatever stages this extension contributes to an in-progress avro pipeline, for one resolved
- * schema and configuration. A pipeline decoding the canonical value into the view delivered to a reader
- * and one encoding a caller's value into its canonical form are extended independently, so an extension
- * that only applies to one direction overrides that method alone; the default leaves the other direction
- * unchanged.
+ * schema and configuration. A pipeline decoding a value for a reader and one encoding a caller's value
+ * into its canonical form are extended independently, so an extension that only applies to one of these
+ * overrides that method alone; the default for each leaves the other unaffected.
  */
 public interface AvroModelExtHandler
 {
     /**
      * Appends this extension's own stage or stages to {@code transformable}, in data-flow order, for a
-     * pipeline decoding the canonical value into the view delivered to a reader. The default passes
-     * {@code transformable} through unchanged.
+     * pipeline decoding the canonical value into the view delivered to a reader, for the given
+     * {@link AvroCache} context. The default passes {@code transformable} through unchanged for every
+     * context.
+     * <p>
+     * {@code cache} distinguishes a caller's relationship to a local cache, if any, from who ultimately
+     * reads the transformed value -- see {@link AvroCache}. An extension with nothing reader-specific to
+     * withhold when persisting a value ahead of any specific reader's request needs no override at all;
+     * one that does distinguishes {@link AvroCache#WRITE} from the other two contexts itself.
+     * </p>
      *
      * @param <T>              the caller's own concrete stream type
      * @param transformable    the in-progress stream to extend
+     * @param cache            the caller's relationship to a local cache, if any
      * @return the extended stream, as the same concrete type supplied
      */
     default <T extends AvroTransformable<T>> T decode(
-        T transformable)
+        T transformable,
+        AvroCache cache)
     {
         return transformable;
     }

@@ -267,6 +267,21 @@ public class FetchIT
         k3po.finish();
     }
 
+    // message.value.avro.view.json has no peer-to-peer counterpart here: the server script writes the raw
+    // avro wire bytes a real Kafka broker would carry, and the client script expects the json view a
+    // model pipeline produces from them -- that conversion only happens inside a live Zilla engine, so a
+    // script-only run (no engine in between) can never make both sides agree, independent of any Zilla
+    // engine behavior. The scenario is still fully covered by
+    // CacheFetchIT#shouldReceiveMessageValueAvroViewJson, which drives it through a live engine instead.
+
+    // message.value.authorization.distinct has no peer-to-peer counterpart here: like
+    // message.values.authorization.distinct on the produce side (see ProduceIT), two consumer connects
+    // sharing one underlying cache fanout cannot be 1:1 correlated to a single accept address by k3po
+    // itself, independent of any Zilla engine behavior -- confirmed by the second fetch connect leaving
+    // the first accepted block's peer with a "write aborted" mismatch. The scenario is still fully
+    // covered by CacheFetchIT#shouldReceiveMessageValueAuthorizationDistinct, which drives it through a
+    // live engine instead.
+
     @Test
     @Specification({
         "${app}/message.header/client",
@@ -293,6 +308,22 @@ public class FetchIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/message.value.envelope.disclose/client",
+        "${app}/message.value.envelope.disclose/server"})
+    public void shouldReceiveMessageValueEnvelopeDisclose() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // message.value.envelope.redact has no peer-to-peer counterpart here: the client expects the
+    // redacted bytes ("REDACTED!!!!") while the server writes the raw wire bytes ("Hello, world") --
+    // reconciling the two is exactly what the engine's envelope-presence disclose transform does, so
+    // there is nothing for this pairing to verify without a live engine. The scenario is still fully
+    // covered by CacheFetchIT#shouldReceiveMessageValueEnvelopeRedact, which drives it through a live
+    // engine instead.
 
     @Test
     @Specification({

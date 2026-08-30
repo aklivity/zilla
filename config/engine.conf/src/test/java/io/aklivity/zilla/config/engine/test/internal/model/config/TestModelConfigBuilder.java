@@ -35,6 +35,11 @@ public class TestModelConfigBuilder<T> extends ConfigBuilder<T, TestModelConfigB
     private List<String> fields;
     private ValidateConfig validate;
     private List<Long> transformAuthorizations;
+    private List<String> reject;
+    private boolean suspend;
+    private List<Long> discloseAuthorized;
+    private String discloseRedacted;
+    private String envelopeDiscloseName;
 
     TestModelConfigBuilder(
         Function<ModelConfig, T> mapper)
@@ -81,6 +86,31 @@ public class TestModelConfigBuilder<T> extends ConfigBuilder<T, TestModelConfigB
         return this;
     }
 
+    public TestModelConfigBuilder<T> discloseAuthorized(
+        long discloseAuthorized)
+    {
+        if (this.discloseAuthorized == null)
+        {
+            this.discloseAuthorized = new LinkedList<>();
+        }
+        this.discloseAuthorized.add(discloseAuthorized);
+        return this;
+    }
+
+    public TestModelConfigBuilder<T> discloseRedacted(
+        String discloseRedacted)
+    {
+        this.discloseRedacted = discloseRedacted;
+        return this;
+    }
+
+    public TestModelConfigBuilder<T> envelopeDiscloseName(
+        String envelopeDiscloseName)
+    {
+        this.envelopeDiscloseName = envelopeDiscloseName;
+        return this;
+    }
+
     public TestModelConfigBuilder<T> field(
         String field)
     {
@@ -115,10 +145,29 @@ public class TestModelConfigBuilder<T> extends ConfigBuilder<T, TestModelConfigB
         return this;
     }
 
+    public TestModelConfigBuilder<T> reject(
+        String reject)
+    {
+        if (this.reject == null)
+        {
+            this.reject = new LinkedList<>();
+        }
+        this.reject.add(reject);
+        return this;
+    }
+
+    public TestModelConfigBuilder<T> suspend(
+        boolean suspend)
+    {
+        this.suspend = suspend;
+        return this;
+    }
+
     @Override
     public T build()
     {
         return mapper.apply(
-            new TestModelConfig(length, catalogs, read, transformLength, fields, validate, transformAuthorizations));
+            new TestModelConfig(length, catalogs, read, transformLength, fields, validate, transformAuthorizations,
+                reject, suspend, discloseAuthorized, discloseRedacted, envelopeDiscloseName));
     }
 }

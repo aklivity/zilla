@@ -390,6 +390,17 @@ public class ProduceIT
         k3po.finish();
     }
 
+    // message.value.envelope has no peer-to-peer counterpart here: the client writes no header at all,
+    // relying entirely on the engine's model to populate one from what a composed transform wrote to the
+    // envelope during encode -- there is nothing for a client/server pairing to verify without a live
+    // engine driving that model. The scenario is still fully covered by
+    // CacheProduceIT#shouldSendMessageValueEnvelope, which drives it through a live engine instead.
+
+    // message.value.envelope.overflow has no peer-to-peer counterpart for the same reason as
+    // message.value.envelope above, and additionally depends on a non-default
+    // cache.client.trailers.size.max that only a live engine configuration can supply. The scenario is
+    // still fully covered by CacheProduceIT#shouldSendMessageValueEnvelopeOverflow.
+
     @Test
     @Specification({
         "${app}/message.value.rejected/client",

@@ -42,6 +42,11 @@ public class TestModelConfigAdapter extends ConfigAdapter<ModelConfig, JsonValue
     private static final String READ = "read";
     private static final String CATALOG_NAME = "catalog";
     private static final String FIELDS = "fields";
+    private static final String REJECT = "reject";
+    private static final String SUSPEND = "suspend";
+    private static final String DISCLOSE_AUTHORIZED = "discloseAuthorized";
+    private static final String DISCLOSE_REDACTED = "discloseRedacted";
+    private static final String ENVELOPE_DISCLOSE = "envelopeDisclose";
 
     private final SchemaConfigAdapter schema = new SchemaConfigAdapter();
     private final ValidateConfigAdapter validate = new ValidateConfigAdapter();
@@ -109,8 +114,39 @@ public class TestModelConfigAdapter extends ConfigAdapter<ModelConfig, JsonValue
             }
         }
 
+        List<Long> discloseAuthorized = null;
+        if (object.containsKey(DISCLOSE_AUTHORIZED))
+        {
+            discloseAuthorized = new LinkedList<>();
+            for (JsonValue item : object.getJsonArray(DISCLOSE_AUTHORIZED))
+            {
+                discloseAuthorized.add(((JsonNumber) item).longValue());
+            }
+        }
+
+        String discloseRedacted = object.containsKey(DISCLOSE_REDACTED)
+            ? object.getString(DISCLOSE_REDACTED)
+            : null;
+
+        String envelopeDiscloseName = object.containsKey(ENVELOPE_DISCLOSE)
+            ? object.getString(ENVELOPE_DISCLOSE)
+            : null;
+
         ValidateConfig validateConfig = validate.adaptFromJsonObject(object);
 
-        return new TestModelConfig(length, catalogs, read, transformLength, fields, validateConfig, transformAuthorizations);
+        List<String> reject = null;
+        if (object.containsKey(REJECT))
+        {
+            reject = new LinkedList<>();
+            for (JsonValue item : object.getJsonArray(REJECT))
+            {
+                reject.add(((JsonString) item).getString());
+            }
+        }
+
+        boolean suspend = object.containsKey(SUSPEND) && object.getBoolean(SUSPEND);
+
+        return new TestModelConfig(length, catalogs, read, transformLength, fields, validateConfig, transformAuthorizations,
+            reject, suspend, discloseAuthorized, discloseRedacted, envelopeDiscloseName);
     }
 }

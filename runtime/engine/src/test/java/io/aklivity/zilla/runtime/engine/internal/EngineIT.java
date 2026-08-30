@@ -93,6 +93,16 @@ public class EngineIT
     }
 
     @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/handshake/client",
+        "${app}/handshake.authorized/server"})
+    public void shouldSupplyEmbedding() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("server.value.envelope.yaml")
     @Specification({
         "${net}/value.envelope/client",

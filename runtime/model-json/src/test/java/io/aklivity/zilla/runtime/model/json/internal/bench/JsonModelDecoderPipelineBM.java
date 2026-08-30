@@ -44,6 +44,7 @@ import io.aklivity.zilla.config.model.json.JsonModelConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.model.ModelCache;
 import io.aklivity.zilla.runtime.engine.model.ModelController;
 import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelEvent;
@@ -98,8 +99,8 @@ public class JsonModelDecoderPipelineBM
     public void init()
     {
         JsonModelHandlerImpl handler = newHandler();
-        plainPipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
-        extractingPipeline = handler.supplyDecoder(ModelEnvelope.NONE, fieldCounter());
+        plainPipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
+        extractingPipeline = handler.supplyDecoder(ModelEnvelope.NONE, fieldCounter(), ModelCache.NONE);
 
         byte[] validBytes = VALID_DOCUMENT.getBytes(UTF_8);
         validBuffer = new UnsafeBufferEx(validBytes);

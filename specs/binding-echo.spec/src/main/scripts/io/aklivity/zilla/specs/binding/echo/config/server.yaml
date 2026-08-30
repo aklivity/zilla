@@ -20,3 +20,10 @@ bindings:
     echo0:
         type: echo
         kind: server
+        options:
+            value:
+                model: test
+                suspend: true
+                reject:
+                    - "You will never believe what happened next."
+                    - "I have a massive secret but I absolutely cannot tell anyone here."

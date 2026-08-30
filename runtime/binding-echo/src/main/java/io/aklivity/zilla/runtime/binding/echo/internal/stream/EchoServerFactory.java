@@ -15,10 +15,16 @@
  */
 package io.aklivity.zilla.runtime.binding.echo.internal.stream;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.function.LongUnaryOperator;
 
+import org.agrona.collections.Long2ObjectHashMap;
+
+import io.aklivity.zilla.config.binding.echo.EchoOptionsConfig;
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.runtime.binding.echo.internal.EchoConfiguration;
 import io.aklivity.zilla.runtime.binding.echo.internal.EchoRouter;
@@ -33,12 +39,24 @@ import io.aklivity.zilla.runtime.binding.echo.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.echo.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
+import io.aklivity.zilla.runtime.engine.model.ModelHandler;
+import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
+import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
+import io.aklivity.zilla.runtime.engine.model.ModelStatus;
+import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 
 public final class EchoServerFactory implements BindingHandler
 {
+    private static final int FLAGS_COMPLETE = 0x03;
+
+    private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBufferEx(new byte[0]), 0, 0);
+    private static final DirectBufferEx EMPTY_SRC = new UnsafeBufferEx(new byte[0]);
+
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
     private final EndFW endRO = new EndFW();
@@ -60,9 +78,12 @@ public final class EchoServerFactory implements BindingHandler
     private final ChallengeFW.Builder challengeRW = new ChallengeFW.Builder();
 
     private final MutableDirectBufferEx writeBuffer;
+    private final MutableDirectBufferEx modelBuffer;
     private final LongUnaryOperator supplyReplyId;
+    private final EngineContext context;
 
     private final EchoRouter router;
+    private final Long2ObjectHashMap<ModelHandler> models;
 
     public EchoServerFactory(
         EchoConfiguration config,
@@ -70,8 +91,17 @@ public final class EchoServerFactory implements BindingHandler
         EchoRouter router)
     {
         this.writeBuffer = requireNonNull(context.writeBuffer());
+        this.modelBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.supplyReplyId = context::supplyReplyId;
+        this.context = context;
         this.router = router;
+        this.models = new Long2ObjectHashMap<>();
+    }
+
+    public void detach(
+        long bindingId)
+    {
+        models.remove(bindingId);
     }
 
     @Override
@@ -93,10 +123,14 @@ public final class EchoServerFactory implements BindingHandler
         if (binding != null)
         {
             final long initialId = begin.streamId();
+            final ModelHandler model = binding.options instanceof EchoOptionsConfig options && options.value != null
+                ? models.computeIfAbsent(binding.id, id -> context.supplyModel(options.value))
+                : null;
 
             newStream = new EchoServer(
                     sender,
-                    initialId)::onMessage;
+                    initialId,
+                    model)::onMessage;
         }
 
         return newStream;
@@ -107,14 +141,23 @@ public final class EchoServerFactory implements BindingHandler
         private final MessageConsumer receiver;
         private final long initialId;
         private final long replyId;
+        private final ModelPipeline pipeline;
+        private final Deque<PendingEcho> pending;
+
+        private PendingEcho active;
 
         private EchoServer(
             MessageConsumer receiver,
-            long initialId)
+            long initialId,
+            ModelHandler model)
         {
             this.receiver = receiver;
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
+            this.pipeline = model != null
+                ? model.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, this::onResumed)
+                : null;
+            this.pending = pipeline != null ? new ArrayDeque<>() : null;
         }
 
         private void onMessage(
@@ -196,8 +239,87 @@ public final class EchoServerFactory implements BindingHandler
             final OctetsFW payload = data.payload();
             final OctetsFW extension = data.extension();
 
-            doData(receiver, originId, routedId, replyId, sequence, acknowledge, maximum, traceId,
-                    authorization, flags, budgetId, reserved, payload, extension);
+            if (pipeline == null)
+            {
+                doData(receiver, originId, routedId, replyId, sequence, acknowledge, maximum, traceId,
+                        authorization, flags, budgetId, reserved, payload, extension);
+            }
+            else
+            {
+                final String text = asText(payload);
+                final PendingEcho message = new PendingEcho(originId, routedId, sequence, acknowledge, maximum,
+                        traceId, authorization, flags, budgetId, reserved, text);
+
+                if (active != null)
+                {
+                    pending.add(message);
+                }
+                else
+                {
+                    process(message);
+                }
+            }
+        }
+
+        private void process(
+            PendingEcho message)
+        {
+            active = message;
+
+            final byte[] bytes = message.text.getBytes(UTF_8);
+            final DirectBufferEx src = new UnsafeBufferEx(bytes);
+
+            advance(pipeline.transform(message.traceId, message.routedId, message.authorization, FLAGS_COMPLETE,
+                    src, 0, bytes.length, modelBuffer, 0, modelBuffer.capacity()));
+        }
+
+        private void onResumed()
+        {
+            final PendingEcho message = active;
+
+            advance(pipeline.transform(message.traceId, message.routedId, message.authorization, 0x00,
+                    EMPTY_SRC, 0, 0, modelBuffer, 0, modelBuffer.capacity()));
+        }
+
+        private void advance(
+            ModelPipelineResult result)
+        {
+            final ModelStatus status = result.status();
+            final PendingEcho message = active;
+
+            if (status == ModelStatus.REJECTED)
+            {
+                pipeline.reset();
+                active = null;
+                doEnd(receiver, message.originId, message.routedId, replyId, message.sequence, message.acknowledge,
+                        message.maximum, message.traceId, message.authorization, EMPTY_OCTETS);
+                processNext();
+            }
+            else if (status == ModelStatus.COMPLETE)
+            {
+                pipeline.reset();
+                active = null;
+                doData(receiver, message.originId, message.routedId, replyId, message.sequence, message.acknowledge,
+                        message.maximum, message.traceId, message.authorization, message.flags, message.budgetId,
+                        message.reserved, message.text, EMPTY_OCTETS);
+                processNext();
+            }
+            else if (status == ModelStatus.OVERFLOW)
+            {
+                advance(pipeline.transform(message.traceId, message.routedId, message.authorization, 0x00,
+                        EMPTY_SRC, 0, 0, modelBuffer, 0, modelBuffer.capacity()));
+            }
+            // SUSPENDED and UNDERFLOW both wait: SUSPENDED resumes via the model's resume callback,
+            // UNDERFLOW never resolves since FLAGS_COMPLETE already offered every available byte
+        }
+
+        private void processNext()
+        {
+            final PendingEcho next = pending.poll();
+            if (next != null)
+            {
+                process(next);
+            }
         }
 
         private void onFlush(
@@ -299,6 +421,58 @@ public final class EchoServerFactory implements BindingHandler
         }
     }
 
+    private static final class PendingEcho
+    {
+        private final long originId;
+        private final long routedId;
+        private final long sequence;
+        private final long acknowledge;
+        private final int maximum;
+        private final long traceId;
+        private final long authorization;
+        private final int flags;
+        private final long budgetId;
+        private final int reserved;
+        private final String text;
+
+        private PendingEcho(
+            long originId,
+            long routedId,
+            long sequence,
+            long acknowledge,
+            int maximum,
+            long traceId,
+            long authorization,
+            int flags,
+            long budgetId,
+            int reserved,
+            String text)
+        {
+            this.originId = originId;
+            this.routedId = routedId;
+            this.sequence = sequence;
+            this.acknowledge = acknowledge;
+            this.maximum = maximum;
+            this.traceId = traceId;
+            this.authorization = authorization;
+            this.flags = flags;
+            this.budgetId = budgetId;
+            this.reserved = reserved;
+            this.text = text;
+        }
+    }
+
+    private static String asText(
+        OctetsFW payload)
+    {
+        final DirectBufferEx buffer = payload.buffer();
+        final int length = payload.sizeof();
+        final byte[] bytes = new byte[length];
+        buffer.getBytes(payload.offset(), bytes);
+
+        return new String(bytes, UTF_8);
+    }
+
     private void doBegin(
         final MessageConsumer receiver,
         final long originId,
@@ -357,6 +531,44 @@ public final class EchoServerFactory implements BindingHandler
                 .budgetId(budgetId)
                 .reserved(reserved)
                 .payload(payload)
+                .extension(extension)
+                .build();
+
+        receiver.accept(data.typeId(), data.buffer(), data.offset(), data.sizeof());
+    }
+
+    private void doData(
+        final MessageConsumer receiver,
+        final long originId,
+        final long routedId,
+        final long streamId,
+        final long sequence,
+        final long acknowledge,
+        final int maximum,
+        final long traceId,
+        final long authorization,
+        final int flags,
+        final long budgetId,
+        final int reserved,
+        final String text,
+        final OctetsFW extension)
+    {
+        final byte[] bytes = text.getBytes(UTF_8);
+        final DirectBufferEx payload = new UnsafeBufferEx(bytes);
+
+        final DataFW data = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+                .originId(originId)
+                .routedId(routedId)
+                .streamId(streamId)
+                .sequence(sequence)
+                .acknowledge(acknowledge)
+                .maximum(maximum)
+                .traceId(traceId)
+                .authorization(authorization)
+                .flags(flags)
+                .budgetId(budgetId)
+                .reserved(reserved)
+                .payload(payload, 0, bytes.length)
                 .extension(extension)
                 .build();
 
