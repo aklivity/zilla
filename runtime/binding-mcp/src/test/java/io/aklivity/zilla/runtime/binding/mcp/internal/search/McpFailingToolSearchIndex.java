@@ -37,7 +37,7 @@ public final class McpFailingToolSearchIndex implements McpToolSearchIndex
         Collection<McpToolSearchDocument> documents,
         CompletionCallback<Void> completed)
     {
-        dispatcher.accept(() -> completed.failed(new IllegalStateException("embedding provider unavailable")));
+        dispatcher.accept(() -> completed.failed(new IllegalStateException("search index backend unavailable")));
     }
 
     @Override
@@ -45,6 +45,6 @@ public final class McpFailingToolSearchIndex implements McpToolSearchIndex
         String text,
         CompletionCallback<List<McpToolSearchMatch>> completed)
     {
-        dispatcher.accept(() -> completed.failed(new IllegalStateException("embedding provider unavailable")));
+        dispatcher.accept(() -> completed.failed(new IllegalStateException("search index backend unavailable")));
     }
 }

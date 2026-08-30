@@ -99,8 +99,8 @@ public class McpEventFormatterTest
     public void shouldFormatSearchIndexFailedEvent()
     {
         McpEventContext events = newEvents();
-        events.searchIndexFailed(0L, 0L, "embedding provider unavailable");
+        events.searchIndexFailed(0L, 0L, "search index backend unavailable");
 
-        assertEquals("MCP tool search index failed. embedding provider unavailable", format());
+        assertEquals("MCP tool search index failed. search index backend unavailable", format());
     }
 }

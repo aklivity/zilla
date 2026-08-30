@@ -286,10 +286,9 @@ public class McpProxyCacheTest
         assertThat(range.hasDescription(), equalTo(false));
     }
 
-    // a configured search-index backend that fails to index (e.g. an unavailable embedding
-    // provider) must not fail silently -- McpProxyCache still proceeds to store the tools list
-    // (see McpProxyCache.settled's own comment), but reports SEARCH_INDEX_FAILED so the failure
-    // is observable via zilla start -l
+    // a configured search-index backend that fails to index must not fail silently --
+    // McpProxyCache still proceeds to store the tools list (see McpProxyCache.settled's own
+    // comment), but reports SEARCH_INDEX_FAILED so the failure is observable via zilla start -l
     @Test
     public void shouldReportSearchIndexFailedEventWhenSearchIndexFailsToIndex()
     {
@@ -348,6 +347,6 @@ public class McpProxyCacheTest
 
         assertThat(eventFW.traceId(), equalTo(0L));
         assertThat(eventFW.namespacedId(), equalTo(1L));
-        assertThat(ex.reason().asString(), equalTo("embedding provider unavailable"));
+        assertThat(ex.reason().asString(), equalTo("search index backend unavailable"));
     }
 }

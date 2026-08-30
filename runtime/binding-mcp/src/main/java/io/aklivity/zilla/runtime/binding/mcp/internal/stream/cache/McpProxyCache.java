@@ -567,10 +567,10 @@ public final class McpProxyCache
                 .andThen(k -> onSettled.accept(kind, changed, value)));
         }
 
-        // a backend that can genuinely fail (e.g. an unavailable embedding provider) still proceeds
-        // to store the tools list rather than blocking it on search availability -- stale/incomplete
-        // search results until the next successful rebuild, not a lost cache write -- but the
-        // failure is reported via SEARCH_INDEX_FAILED so it is not silently invisible
+        // a backend that can genuinely fail still proceeds to store the tools list rather than
+        // blocking it on search availability -- stale/incomplete search results until the next
+        // successful rebuild, not a lost cache write -- but the failure is reported via
+        // SEARCH_INDEX_FAILED so it is not silently invisible
         private McpToolSearchIndex.CompletionCallback<Void> settled(
             Consumer<Throwable> completion)
         {
