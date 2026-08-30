@@ -18,6 +18,7 @@ import java.net.URL;
 
 import jakarta.json.JsonObject;
 
+import io.aklivity.zilla.config.engine.BindingExtInfo;
 import io.aklivity.zilla.config.engine.BindingInfo;
 import io.aklivity.zilla.config.engine.ConditionConfig;
 import io.aklivity.zilla.config.engine.ConfigAdapter;
@@ -43,7 +44,7 @@ public final class McpBindingInfo implements BindingInfo
     @Override
     public ConfigAdapter<OptionsConfig, JsonObject> options()
     {
-        return new McpOptionsConfigAdapter();
+        return new McpOptionsConfigAdapter(extensions().stream().map(BindingExtInfo::adapter).toList());
     }
 
     @Override

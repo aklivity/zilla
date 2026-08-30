@@ -14,41 +14,44 @@
  */
 package io.aklivity.zilla.config.binding.mcp.internal;
 
-import static java.util.function.Function.identity;
-import static java.util.stream.Collectors.toMap;
-
-import java.util.Map;
-import java.util.ServiceLoader;
-import java.util.function.Supplier;
+import java.util.List;
 
 import jakarta.json.JsonException;
 import jakarta.json.JsonObject;
 
+import io.aklivity.zilla.config.binding.mcp.McpKeywordToolSearchIndexConfig;
 import io.aklivity.zilla.config.binding.mcp.McpToolSearchIndexConfig;
-import io.aklivity.zilla.config.binding.mcp.McpToolSearchIndexConfigAdapterSpi;
+import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.config.engine.ConfigAdapter;
+import io.aklivity.zilla.config.engine.ConfigExtAdapter;
 
 public final class McpToolSearchIndexConfigAdapter extends ConfigAdapter<McpToolSearchIndexConfig, JsonObject>
 {
     private static final String TYPE_NAME = "type";
 
-    private final Map<String, McpToolSearchIndexConfigAdapterSpi> delegatesByType;
+    private final McpKeywordToolSearchIndexConfigAdapter keyword = new McpKeywordToolSearchIndexConfigAdapter();
+    private final List<ConfigExtAdapter<BindingConfig>> extensions;
 
-    public McpToolSearchIndexConfigAdapter()
+    public McpToolSearchIndexConfigAdapter(
+        List<ConfigExtAdapter<BindingConfig>> extensions)
     {
-        delegatesByType = ServiceLoader
-            .load(McpToolSearchIndexConfigAdapterSpi.class)
-            .stream()
-            .map(Supplier::get)
-            .collect(toMap(McpToolSearchIndexConfigAdapterSpi::type, identity()));
+        this.extensions = extensions;
     }
 
     @Override
     public JsonObject adaptToJson(
         McpToolSearchIndexConfig options)
     {
-        McpToolSearchIndexConfigAdapterSpi delegate = delegatesByType.get(options.type);
-        return delegate != null ? delegate.adaptToJson(options) : null;
+        JsonObject object = McpKeywordToolSearchIndexConfig.NAME.equals(options.type)
+            ? keyword.adaptToJson(options)
+            : null;
+
+        for (int i = 0; object == null && i < extensions.size(); i++)
+        {
+            object = extensions.get(i).adaptItemToJson(options.type, options);
+        }
+
+        return object;
     }
 
     @Override
@@ -56,11 +59,21 @@ public final class McpToolSearchIndexConfigAdapter extends ConfigAdapter<McpTool
         JsonObject object)
     {
         String type = object.getString(TYPE_NAME, null);
-        McpToolSearchIndexConfigAdapterSpi delegate = delegatesByType.get(type);
-        if (delegate == null)
+
+        McpToolSearchIndexConfig options = McpKeywordToolSearchIndexConfig.NAME.equals(type)
+            ? keyword.adaptFromJson(object)
+            : null;
+
+        for (int i = 0; options == null && i < extensions.size(); i++)
+        {
+            options = (McpToolSearchIndexConfig) extensions.get(i).adaptItemFromJson(type, object);
+        }
+
+        if (options == null)
         {
             throw new JsonException(String.format("Unrecognized tool search index type: %s", type));
         }
-        return delegate.adaptFromJson(object);
+
+        return options;
     }
 }
