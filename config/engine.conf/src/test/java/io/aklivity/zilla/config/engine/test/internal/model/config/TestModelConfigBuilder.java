@@ -37,6 +37,7 @@ public class TestModelConfigBuilder<T> extends ConfigBuilder<T, TestModelConfigB
     private List<Long> transformAuthorizations;
     private List<Long> discloseAuthorized;
     private String discloseRedacted;
+    private String envelopeDiscloseName;
 
     TestModelConfigBuilder(
         Function<ModelConfig, T> mapper)
@@ -101,6 +102,13 @@ public class TestModelConfigBuilder<T> extends ConfigBuilder<T, TestModelConfigB
         return this;
     }
 
+    public TestModelConfigBuilder<T> envelopeDiscloseName(
+        String envelopeDiscloseName)
+    {
+        this.envelopeDiscloseName = envelopeDiscloseName;
+        return this;
+    }
+
     public TestModelConfigBuilder<T> field(
         String field)
     {
@@ -140,6 +148,6 @@ public class TestModelConfigBuilder<T> extends ConfigBuilder<T, TestModelConfigB
     {
         return mapper.apply(
             new TestModelConfig(length, catalogs, read, transformLength, fields, validate, transformAuthorizations,
-                discloseAuthorized, discloseRedacted));
+                discloseAuthorized, discloseRedacted, envelopeDiscloseName));
     }
 }
