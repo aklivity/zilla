@@ -14,13 +14,11 @@
  */
 package io.aklivity.zilla.config.binding.echo;
 
-import static java.util.Collections.emptyList;
-import static java.util.Collections.singletonList;
-
 import java.util.List;
 import java.util.function.Function;
 
 import io.aklivity.zilla.config.engine.ModelConfig;
+import io.aklivity.zilla.config.engine.NamedConfig;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public final class EchoOptionsConfig extends OptionsConfig
@@ -39,15 +37,11 @@ public final class EchoOptionsConfig extends OptionsConfig
     }
 
     EchoOptionsConfig(
-        ModelConfig value)
+        ModelConfig value,
+        List<ModelConfig> models,
+        List<NamedConfig> refs)
     {
-        super(resolveModels(value), emptyList());
+        super(models, List.of(), null, refs);
         this.value = value;
-    }
-
-    private static List<ModelConfig> resolveModels(
-        ModelConfig value)
-    {
-        return value != null ? singletonList(value) : emptyList();
     }
 }

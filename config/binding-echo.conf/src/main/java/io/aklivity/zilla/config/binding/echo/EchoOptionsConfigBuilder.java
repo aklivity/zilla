@@ -14,10 +14,16 @@
  */
 package io.aklivity.zilla.config.binding.echo;
 
+import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
+
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Function;
 
 import io.aklivity.zilla.config.engine.ConfigBuilder;
 import io.aklivity.zilla.config.engine.ModelConfig;
+import io.aklivity.zilla.config.engine.NamedConfig;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public final class EchoOptionsConfigBuilder<T> extends ConfigBuilder<T, EchoOptionsConfigBuilder<T>>
@@ -49,6 +55,24 @@ public final class EchoOptionsConfigBuilder<T> extends ConfigBuilder<T, EchoOpti
     @Override
     public T build()
     {
-        return mapper.apply(new EchoOptionsConfig(value));
+        List<ModelConfig> models = resolveModels(value);
+        return mapper.apply(new EchoOptionsConfig(value, models, refs(models)));
+    }
+
+    private static List<ModelConfig> resolveModels(
+        ModelConfig value)
+    {
+        return value != null ? singletonList(value) : emptyList();
+    }
+
+    private static List<NamedConfig> refs(
+        List<ModelConfig> models)
+    {
+        List<NamedConfig> refs = new ArrayList<>();
+        for (ModelConfig model : models)
+        {
+            refs.addAll(model.refs());
+        }
+        return refs;
     }
 }
