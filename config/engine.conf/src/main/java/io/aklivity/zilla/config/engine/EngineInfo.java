@@ -60,6 +60,11 @@ public final class EngineInfo
     {
         List<URL> patches = new ArrayList<>();
         patches.addAll(bindings.values().stream().map(BindingInfo::schema).filter(Objects::nonNull).collect(toList()));
+        patches.addAll(bindings.values().stream()
+            .flatMap(binding -> binding.extensions().stream())
+            .map(BindingExtInfo::schema)
+            .filter(Objects::nonNull)
+            .collect(toList()));
         patches.addAll(catalogs.values().stream().map(CatalogInfo::schema).filter(Objects::nonNull).collect(toList()));
         patches.addAll(embeddings.values().stream().map(EmbeddingInfo::schema).filter(Objects::nonNull).collect(toList()));
         patches.addAll(guards.values().stream().map(GuardInfo::schema).filter(Objects::nonNull).collect(toList()));

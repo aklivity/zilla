@@ -15,47 +15,31 @@
 package io.aklivity.zilla.config.binding.mcp.internal;
 
 import java.net.URL;
+import java.util.Map;
 
-import jakarta.json.JsonObject;
-
+import io.aklivity.zilla.config.binding.mcp.McpTestToolSearchIndexConfig;
 import io.aklivity.zilla.config.engine.BindingExtInfo;
-import io.aklivity.zilla.config.engine.BindingInfo;
-import io.aklivity.zilla.config.engine.ConditionConfig;
-import io.aklivity.zilla.config.engine.ConfigAdapter;
+import io.aklivity.zilla.config.engine.ConfigExtAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfig;
-import io.aklivity.zilla.config.engine.WithConfig;
 
-public final class McpBindingInfo implements BindingInfo
+public final class McpTestToolSearchIndexExtInfo implements BindingExtInfo
 {
-    public static final String TYPE = "mcp";
-
     @Override
     public String type()
     {
-        return TYPE;
+        return McpBindingInfo.TYPE;
     }
 
     @Override
     public URL schema()
     {
-        return getClass().getResource("schema/mcp.schema.patch.json");
+        return null;
     }
 
     @Override
-    public ConfigAdapter<OptionsConfig, JsonObject> options()
+    public ConfigExtAdapter<OptionsConfig> options()
     {
-        return new McpOptionsConfigAdapter(extensions().stream().map(BindingExtInfo::options).toList());
-    }
-
-    @Override
-    public ConfigAdapter<ConditionConfig, JsonObject> condition()
-    {
-        return new McpConditionConfigAdapter();
-    }
-
-    @Override
-    public ConfigAdapter<WithConfig, JsonObject> with()
-    {
-        return new McpWithConfigAdapter();
+        return new ConfigExtAdapter<>(Map.of(), Map.of(),
+            Map.of(McpTestToolSearchIndexConfig.NAME, new McpTestToolSearchIndexConfigAdapter()));
     }
 }

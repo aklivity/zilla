@@ -12,15 +12,14 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-module io.aklivity.zilla.config.binding.mcp
+package io.aklivity.zilla.config.binding.mcp;
+
+public final class McpTestToolSearchIndexConfig extends McpToolSearchIndexConfig
 {
-    requires jakarta.json;
-    requires jakarta.json.bind;
-    requires io.aklivity.zilla.config.engine;
-    requires io.aklivity.zilla.runtime.common.json;
+    public static final String NAME = "test";
 
-    exports io.aklivity.zilla.config.binding.mcp;
-
-    provides io.aklivity.zilla.config.engine.BindingInfo
-        with io.aklivity.zilla.config.binding.mcp.internal.McpBindingInfo;
+    public McpTestToolSearchIndexConfig()
+    {
+        super(NAME);
+    }
 }

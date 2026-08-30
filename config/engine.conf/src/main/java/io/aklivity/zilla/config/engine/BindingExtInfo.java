@@ -12,15 +12,15 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-module io.aklivity.zilla.config.binding.mcp
+package io.aklivity.zilla.config.engine;
+
+import java.net.URL;
+
+public interface BindingExtInfo
 {
-    requires jakarta.json;
-    requires jakarta.json.bind;
-    requires io.aklivity.zilla.config.engine;
-    requires io.aklivity.zilla.runtime.common.json;
+    String type();
 
-    exports io.aklivity.zilla.config.binding.mcp;
+    URL schema();
 
-    provides io.aklivity.zilla.config.engine.BindingInfo
-        with io.aklivity.zilla.config.binding.mcp.internal.McpBindingInfo;
+    ConfigExtAdapter<OptionsConfig> options();
 }

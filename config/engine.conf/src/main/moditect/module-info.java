@@ -26,6 +26,7 @@ module io.aklivity.zilla.config.engine
     exports io.aklivity.zilla.config.engine.factory;
 
     uses io.aklivity.zilla.config.engine.BindingInfo;
+    uses io.aklivity.zilla.config.engine.BindingExtInfo;
     uses io.aklivity.zilla.config.engine.CatalogInfo;
     uses io.aklivity.zilla.config.engine.EmbeddingInfo;
     uses io.aklivity.zilla.config.engine.GuardInfo;
