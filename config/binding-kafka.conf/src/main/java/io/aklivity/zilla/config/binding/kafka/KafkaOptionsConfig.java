@@ -17,7 +17,6 @@ package io.aklivity.zilla.config.binding.kafka;
 import java.util.List;
 import java.util.function.Function;
 
-import io.aklivity.zilla.config.engine.ModelConfig;
 import io.aklivity.zilla.config.engine.NamedConfig;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
@@ -44,10 +43,9 @@ public final class KafkaOptionsConfig extends OptionsConfig
         List<KafkaTopicConfig> topics,
         List<KafkaServerConfig> servers,
         KafkaAuthorizationConfig authorization,
-        List<ModelConfig> models,
         List<NamedConfig> refs)
     {
-        super(models, List.of(), null, refs);
+        super(List.of(), null, refs);
         this.bootstrap = bootstrap;
         this.topics = topics;
         this.servers = servers;

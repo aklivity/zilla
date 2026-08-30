@@ -19,7 +19,6 @@ import java.util.Map;
 import java.util.SortedSet;
 import java.util.function.Function;
 
-import io.aklivity.zilla.config.engine.ModelConfig;
 import io.aklivity.zilla.config.engine.NamedConfig;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
@@ -48,10 +47,9 @@ public final class HttpOptionsConfig extends OptionsConfig
         HttpAccessControlConfig access,
         HttpAuthorizationConfig authorization,
         List<HttpRequestConfig> requests,
-        List<ModelConfig> models,
         List<NamedConfig> refs)
     {
-        super(models, List.of(), null, refs);
+        super(List.of(), null, refs);
         this.versions = versions;
         this.overrides = overrides;
         this.access = access;

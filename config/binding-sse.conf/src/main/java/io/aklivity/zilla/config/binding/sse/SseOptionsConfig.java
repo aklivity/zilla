@@ -17,7 +17,6 @@ package io.aklivity.zilla.config.binding.sse;
 import java.util.List;
 import java.util.function.Function;
 
-import io.aklivity.zilla.config.engine.ModelConfig;
 import io.aklivity.zilla.config.engine.NamedConfig;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
@@ -43,10 +42,9 @@ public final class SseOptionsConfig extends OptionsConfig
     SseOptionsConfig(
         int retry,
         List<SseRequestConfig> requests,
-        List<ModelConfig> models,
         List<NamedConfig> refs)
     {
-        super(models, List.of(), null, refs);
+        super(List.of(), null, refs);
         this.retry = retry;
         this.requests = requests;
     }

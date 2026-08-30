@@ -14,9 +14,6 @@
  */
 package io.aklivity.zilla.config.binding.mcp;
 
-import static java.util.Collections.emptyList;
-import static java.util.Collections.singletonList;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
@@ -102,23 +99,15 @@ public final class McpOptionsConfigBuilder<T> extends ConfigBuilder<T, McpOption
     @Override
     public T build()
     {
-        List<ModelConfig> models = resolveModels(tools);
-        return mapper.apply(new McpOptionsConfig(elicitation, authorization, cache, server, tools, models, refs(models)));
+        return mapper.apply(new McpOptionsConfig(elicitation, authorization, cache, server, tools, refs()));
     }
 
-    private static List<ModelConfig> resolveModels(
-        ModelConfig tools)
-    {
-        return tools != null ? singletonList(tools) : emptyList();
-    }
-
-    private List<NamedConfig> refs(
-        List<ModelConfig> models)
+    private List<NamedConfig> refs()
     {
         List<NamedConfig> refs = new ArrayList<>();
-        for (ModelConfig model : models)
+        if (tools != null)
         {
-            refs.addAll(model.refs());
+            refs.addAll(tools.refs());
         }
         if (cache != null && cache.tools != null && cache.tools.search != null && cache.tools.search.indexes != null)
         {
