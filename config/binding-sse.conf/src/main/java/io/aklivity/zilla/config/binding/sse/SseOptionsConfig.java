@@ -14,15 +14,10 @@
  */
 package io.aklivity.zilla.config.binding.sse;
 
-import static java.util.Collections.emptyList;
-
 import java.util.List;
-import java.util.Objects;
 import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
-import io.aklivity.zilla.config.engine.ModelConfig;
+import io.aklivity.zilla.config.engine.NamedConfig;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public final class SseOptionsConfig extends OptionsConfig
@@ -46,22 +41,11 @@ public final class SseOptionsConfig extends OptionsConfig
 
     SseOptionsConfig(
         int retry,
-        List<SseRequestConfig> requests)
+        List<SseRequestConfig> requests,
+        List<NamedConfig> refs)
     {
-        super(resolveModels(requests), List.of());
+        super(null, refs);
         this.retry = retry;
         this.requests = requests;
-    }
-
-    private static List<ModelConfig> resolveModels(
-        List<SseRequestConfig> requests)
-    {
-        return requests != null && !requests.isEmpty()
-            ? requests.stream()
-            .flatMap(path ->
-                Stream.of(path.content)
-                    .filter(Objects::nonNull))
-            .collect(Collectors.toList())
-            : emptyList();
     }
 }

@@ -84,6 +84,7 @@
 - fix\(binding-mcp\): stream tool-call arguments, don't buffer them whole [\#2451](https://github.com/aklivity/zilla/pull/2451) ([jfallows](https://github.com/jfallows))
 - feat\(binding-mcp\): make McpToolSearchIndex async [\#2452](https://github.com/aklivity/zilla/pull/2452) ([jfallows](https://github.com/jfallows))
 - feat\(config-engine\): add BindingExtInfo, a nested-extension discovery mechanism for bindings [\#2453](https://github.com/aklivity/zilla/pull/2453) ([jfallows](https://github.com/jfallows))
+- feat\(engine\): resolve OptionsConfig's own named references generically [\#2454](https://github.com/aklivity/zilla/pull/2454) ([jfallows](https://github.com/jfallows))
 
 ## [2.3.0](https://github.com/aklivity/zilla/tree/2.3.0) (2026-08-14)
 

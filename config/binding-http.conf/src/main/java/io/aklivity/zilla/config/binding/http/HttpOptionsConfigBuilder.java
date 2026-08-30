@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.config.binding.http;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -23,6 +24,7 @@ import java.util.TreeSet;
 import java.util.function.Function;
 
 import io.aklivity.zilla.config.engine.ConfigBuilder;
+import io.aklivity.zilla.config.engine.NamedConfig;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public final class HttpOptionsConfigBuilder<T> extends ConfigBuilder<T, HttpOptionsConfigBuilder<T>>
@@ -125,6 +127,14 @@ public final class HttpOptionsConfigBuilder<T> extends ConfigBuilder<T, HttpOpti
     @Override
     public T build()
     {
-        return mapper.apply(new HttpOptionsConfig(versions, overrides, access, authorization, requests));
+        List<NamedConfig> refs = new ArrayList<>();
+        if (requests != null)
+        {
+            for (HttpRequestConfig request : requests)
+            {
+                refs.addAll(request.refs());
+            }
+        }
+        return mapper.apply(new HttpOptionsConfig(versions, overrides, access, authorization, requests, refs));
     }
 }

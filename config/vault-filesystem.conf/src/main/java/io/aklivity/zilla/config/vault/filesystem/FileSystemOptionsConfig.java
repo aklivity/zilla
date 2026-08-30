@@ -46,7 +46,7 @@ public final class FileSystemOptionsConfig extends OptionsConfig
         FileSystemSecretsConfig secrets,
         String revocation)
     {
-        super(List.of(), resolveResources(keys, trust, secrets));
+        super(resolveResources(keys, trust, secrets), null, null);
         this.keys = keys;
         this.trust = trust;
         this.signers = signers;

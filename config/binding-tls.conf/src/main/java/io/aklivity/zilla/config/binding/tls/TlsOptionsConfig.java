@@ -53,6 +53,7 @@ public final class TlsOptionsConfig extends OptionsConfig
         Boolean trustcacerts,
         TlsAuthorizationConfig authorization)
     {
+        super(null, null);
         this.version = version;
         this.keys = keys;
         this.trust = trust;

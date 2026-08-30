@@ -14,12 +14,14 @@
  */
 package io.aklivity.zilla.config.binding.mqtt;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Function;
 
 import io.aklivity.zilla.config.engine.ConfigBuilder;
 import io.aklivity.zilla.config.engine.ModelConfig;
+import io.aklivity.zilla.config.engine.NamedConfig;
 
 public class MqttTopicConfigBuilder<T> extends ConfigBuilder<T, MqttTopicConfigBuilder<T>>
 {
@@ -92,6 +94,18 @@ public class MqttTopicConfigBuilder<T> extends ConfigBuilder<T, MqttTopicConfigB
     @Override
     public T build()
     {
-        return mapper.apply(new MqttTopicConfig(name, content, userProperties));
+        List<NamedConfig> refs = new ArrayList<>();
+        if (content != null)
+        {
+            refs.addAll(content.refs());
+        }
+        if (userProperties != null)
+        {
+            for (MqttUserPropertyConfig userProperty : userProperties)
+            {
+                refs.addAll(userProperty.refs());
+            }
+        }
+        return mapper.apply(new MqttTopicConfig(name, content, userProperties, refs));
     }
 }

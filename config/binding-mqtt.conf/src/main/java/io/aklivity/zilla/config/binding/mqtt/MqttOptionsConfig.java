@@ -14,17 +14,10 @@
  */
 package io.aklivity.zilla.config.binding.mqtt;
 
-import static java.util.Collections.emptyList;
-
-import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
 import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
-import io.aklivity.zilla.config.engine.ModelConfig;
+import io.aklivity.zilla.config.engine.NamedConfig;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public class MqttOptionsConfig extends OptionsConfig
@@ -51,28 +44,14 @@ public class MqttOptionsConfig extends OptionsConfig
         List<MqttTopicConfig> topics,
         List<MqttVersion> versions,
         String store,
-        String server)
+        String server,
+        List<NamedConfig> refs)
     {
-        super(resolveModels(topics), List.of());
+        super(null, refs);
         this.authorization = authorization;
         this.topics = topics;
         this.versions = versions;
         this.store = store;
         this.server = server;
-    }
-
-    private static List<ModelConfig> resolveModels(
-        List<MqttTopicConfig> topics)
-    {
-        return topics != null && !topics.isEmpty()
-            ? topics.stream()
-            .flatMap(topic -> Stream.concat(
-                    Stream.of(topic.content),
-                    Optional.ofNullable(topic.userProperties).orElseGet(Collections::emptyList).stream()
-                        .flatMap(p -> Stream.of(p.value))
-                        .filter(Objects::nonNull))
-                .filter(Objects::nonNull))
-            .collect(Collectors.toList())
-            : emptyList();
     }
 }

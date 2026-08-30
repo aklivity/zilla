@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.function.Function;
 
 import io.aklivity.zilla.config.engine.ModelConfig;
+import io.aklivity.zilla.config.engine.NamedConfig;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public final class McpOptionsConfig extends OptionsConfig
@@ -33,9 +34,10 @@ public final class McpOptionsConfig extends OptionsConfig
         McpAuthorizationConfig authorization,
         McpCacheConfig cache,
         String server,
-        ModelConfig tools)
+        ModelConfig tools,
+        List<NamedConfig> refs)
     {
-        super(tools != null ? List.of(tools) : List.of(), List.of());
+        super(null, refs);
         this.elicitation = elicitation;
         this.authorization = authorization;
         this.cache = cache;

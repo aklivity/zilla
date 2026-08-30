@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.function.Function;
 
 import io.aklivity.zilla.config.engine.ConfigBuilder;
+import io.aklivity.zilla.config.engine.NamedConfig;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public final class KafkaOptionsConfigBuilder<T> extends ConfigBuilder<T, KafkaOptionsConfigBuilder<T>>
@@ -105,6 +106,14 @@ public final class KafkaOptionsConfigBuilder<T> extends ConfigBuilder<T, KafkaOp
     @Override
     public T build()
     {
-        return mapper.apply(new KafkaOptionsConfig(bootstrap, topics, servers, authorization));
+        List<NamedConfig> refs = new ArrayList<>();
+        if (topics != null)
+        {
+            for (KafkaTopicConfig topic : topics)
+            {
+                refs.addAll(topic.refs());
+            }
+        }
+        return mapper.apply(new KafkaOptionsConfig(bootstrap, topics, servers, authorization, refs));
     }
 }

@@ -45,6 +45,7 @@ public class ApicurioOptionsConfig extends OptionsConfig
         String idEncoding,
         Duration maxAge)
     {
+        super(null, null);
         this.url = url;
         this.groupId = groupId;
         this.useId = useId;

@@ -20,29 +20,21 @@ import java.util.Map;
 
 public class OptionsConfig extends Config.Extensible
 {
-    public final List<ModelConfig> models;
     public final List<String> resources;
 
-    public OptionsConfig()
+    public OptionsConfig(
+        Map<String, Config> extensions,
+        List<NamedConfig> refs)
     {
-        this(Collections.emptyList(), Collections.emptyList());
+        this(Collections.emptyList(), extensions, refs);
     }
 
     public OptionsConfig(
-        List<ModelConfig> models,
-        List<String> resources)
-    {
-        this(models, resources, null, null);
-    }
-
-    public OptionsConfig(
-        List<ModelConfig> models,
         List<String> resources,
         Map<String, Config> extensions,
         List<NamedConfig> refs)
     {
         super(extensions, refs);
-        this.models = models;
         this.resources = resources;
     }
 }

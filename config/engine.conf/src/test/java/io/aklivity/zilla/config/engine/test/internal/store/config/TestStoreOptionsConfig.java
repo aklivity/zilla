@@ -37,6 +37,7 @@ public final class TestStoreOptionsConfig extends OptionsConfig
     TestStoreOptionsConfig(
         Map<String, String> entries)
     {
+        super(null, null);
         this.entries = entries;
     }
 }

@@ -14,10 +14,12 @@
  */
 package io.aklivity.zilla.config.binding.mqtt;
 
+import java.util.List;
 import java.util.function.Function;
 
 import io.aklivity.zilla.config.engine.ConfigBuilder;
 import io.aklivity.zilla.config.engine.ModelConfig;
+import io.aklivity.zilla.config.engine.NamedConfig;
 
 public class MqttUserPropertyConfigBuilder<T> extends ConfigBuilder<T, MqttUserPropertyConfigBuilder<T>>
 {
@@ -62,6 +64,7 @@ public class MqttUserPropertyConfigBuilder<T> extends ConfigBuilder<T, MqttUserP
     @Override
     public T build()
     {
-        return mapper.apply(new MqttUserPropertyConfig(name, value));
+        List<NamedConfig> refs = value != null ? value.refs() : List.of();
+        return mapper.apply(new MqttUserPropertyConfig(name, value, refs));
     }
 }
