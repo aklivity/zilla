@@ -40,5 +40,7 @@ public enum ModelStatus
     /** the current value completed and was accepted */
     COMPLETE,
     /** the current value was rejected; the stream should be reset */
-    REJECTED
+    REJECTED,
+    /** async work is in flight; call {@code transform} again once notified via the registered resume callback */
+    SUSPENDED
 }

@@ -299,6 +299,10 @@
                             {
                                 "type": "string"
                             },
+                            "embedding":
+                            {
+                                "type": "string"
+                            },
                             "envelope":
                             {
                                 "type": "array",

@@ -1,0 +1,28 @@
+---
+name: example
+embeddings:
+  moderator0:
+    type: glove
+bindings:
+  north_tcp_server:
+    type: tcp
+    kind: server
+    options:
+      host: 0.0.0.0
+      port: 12345
+    exit: north_echo_server
+  north_echo_server:
+    type: echo
+    kind: server
+    options:
+      value:
+        model: vector
+        embedding: moderator0
+        reject:
+          - "You will never believe what happened next."
+          - "I have a massive secret but I absolutely cannot tell anyone here."
+        threshold: 0.94
+telemetry:
+  exporters:
+    stdout_logs_exporter:
+      type: stdout

@@ -36,6 +36,7 @@ public final class TestBindingOptionsConfig extends OptionsConfig
     public final VaultAssertion vaultAssertion;
     public final String store;
     public final List<StoreAssertions> storeAssertions;
+    public final String embedding;
     public final List<EnvelopeValue> envelope;
     public final List<EnvelopeAssertion> envelopeAssertions;
 
@@ -62,6 +63,7 @@ public final class TestBindingOptionsConfig extends OptionsConfig
         VaultAssertion vaultAssertion,
         String store,
         List<StoreAssertions> storeAssertions,
+        String embedding,
         List<EnvelopeValue> envelope,
         List<EnvelopeAssertion> envelopeAssertions,
         List<NamedConfig> refs)
@@ -78,6 +80,7 @@ public final class TestBindingOptionsConfig extends OptionsConfig
         this.vaultAssertion = vaultAssertion;
         this.store = store;
         this.storeAssertions = storeAssertions;
+        this.embedding = embedding;
         this.envelope = envelope;
         this.envelopeAssertions = envelopeAssertions;
     }
