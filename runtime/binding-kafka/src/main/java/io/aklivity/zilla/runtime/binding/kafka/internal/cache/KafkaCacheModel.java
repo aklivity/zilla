@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.kafka.internal.cache;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.engine.model.ModelCache;
 import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
@@ -49,7 +50,31 @@ public final class KafkaCacheModel
         MutableDirectBufferEx scratch)
     {
         return handler != null
-            ? new KafkaCacheModel(handler.supplyDecoder(ModelEnvelope.NONE, transform), scratch)
+            ? new KafkaCacheModel(handler.supplyDecoder(ModelEnvelope.NONE, transform, ModelCache.NONE), scratch)
+            : NONE;
+    }
+
+    // populate time: decodes wire bytes ahead of any specific consumer's request, producing the value the
+    // local cache persists
+    public static KafkaCacheModel writer(
+        ModelHandler handler,
+        ModelTransform transform,
+        MutableDirectBufferEx scratch)
+    {
+        return handler != null
+            ? new KafkaCacheModel(handler.supplyDecoder(ModelEnvelope.NONE, transform, ModelCache.WRITE), scratch)
+            : NONE;
+    }
+
+    // per-consumer fetch time: resolves a value already in the form a writer pipeline produced, for the
+    // consumer requesting it now
+    public static KafkaCacheModel reader(
+        ModelHandler handler,
+        ModelTransform transform,
+        MutableDirectBufferEx scratch)
+    {
+        return handler != null
+            ? new KafkaCacheModel(handler.supplyDecoder(ModelEnvelope.NONE, transform, ModelCache.READ), scratch)
             : NONE;
     }
 
@@ -150,5 +175,10 @@ public final class KafkaCacheModel
         {
             pipeline.reset();
         }
+    }
+
+    public boolean identity()
+    {
+        return pipeline == null || pipeline.identity();
     }
 }

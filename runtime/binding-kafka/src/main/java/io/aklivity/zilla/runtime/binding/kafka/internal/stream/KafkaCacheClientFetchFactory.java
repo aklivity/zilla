@@ -44,11 +44,13 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCache;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheCursorFactory;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheCursorFactory.KafkaCacheCursor;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheCursorFactory.KafkaFilterCondition;
+import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheModel;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCachePartition;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCachePartition.Node;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheTopic;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaBindingConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaRouteConfig;
+import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaTopicType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.ArrayFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Flyweight;
@@ -89,6 +91,7 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
+import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 
 public final class KafkaCacheClientFetchFactory implements BindingHandler
 {
@@ -243,6 +246,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
                 fanout = newFanout;
             }
 
+            final KafkaTopicType topicType = binding.resolveTopicType(topicName);
             final KafkaFilterCondition condition = cursorFactory.asCondition(filters, evaluation);
             final long latestOffset = kafkaFetchBeginEx.partition().latestOffset();
             final KafkaOffsetType maximumOffset = KafkaOffsetType.valueOf((byte) latestOffset);
@@ -261,7 +265,8 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
                     condition,
                     maximumOffset,
                     deltaType,
-                    isolation)::onClientMessage;
+                    isolation,
+                    topicType)::onClientMessage;
         }
 
         return newStream;
@@ -608,6 +613,12 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             if (KafkaState.closed(state))
             {
                 state = 0;
+                initialSeq = 0;
+                initialAck = 0;
+                initialMax = 0;
+                replySeq = 0;
+                replyAck = 0;
+                replyMax = 0;
             }
 
             if (!KafkaState.initialOpening(state))
@@ -897,11 +908,15 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
         private final KafkaOffsetType maximumOffset;
         private final LongSupplier isolatedOffset;
         private final LongSupplier initialGroupIsolatedOffset;
+        private final KafkaCacheModel valueDecoder;
+        private final MutableDirectBufferEx transformBuffer;
+        private final OctetsFW decodedValueRO = new OctetsFW();
 
         private KafkaCacheCursor cursor;
         private KafkaCacheCursor nextCursor;
         private int state;
         private int flushFramesSent;
+        private int decodedLength;
 
         private long replyDebIndex = NO_DEBITOR_INDEX;
         private BudgetDebitor replyDeb;
@@ -936,7 +951,8 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             KafkaFilterCondition condition,
             KafkaOffsetType maximumOffset,
             KafkaDeltaType deltaType,
-            KafkaIsolation isolation)
+            KafkaIsolation isolation,
+            KafkaTopicType topicType)
         {
             this.group = group;
             this.sender = sender;
@@ -954,6 +970,8 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             this.isolatedOffset = isolation == READ_COMMITTED ? () -> group.stableOffset : () -> group.latestOffset;
             this.initialGroupIsolatedOffset = isolation ==
                     READ_COMMITTED ? () -> initialGroupStableOffset : () -> initialGroupLatestOffset;
+            this.transformBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
+            this.valueDecoder = KafkaCacheModel.reader(topicType.valueModel, ModelTransform.NONE, transformBuffer);
         }
 
         private void onClientMessage(
@@ -1265,7 +1283,15 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             final ArrayFW<KafkaHeaderFW> headers = nextEntry.headers();
             final ArrayFW<KafkaHeaderFW> trailers = nextEntry.trailers();
             final long ancestor = nextEntry.ancestor();
-            final OctetsFW value = nextEntry.value();
+            OctetsFW value = nextEntry.value();
+            if (!valueDecoder.identity() && value != null)
+            {
+                if (messageOffset == 0)
+                {
+                    decodeValue(traceId, value);
+                }
+                value = decodedValueRO.wrap(transformBuffer, 0, decodedLength);
+            }
             final int remaining = value != null ? value.sizeof() - messageOffset : 0;
             assert remaining >= 0;
             final int lengthMin = Math.min(remaining, 1024);
@@ -1365,6 +1391,34 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
                     cursor.advance(partitionOffset + 1);
                 }
             }
+        }
+
+        // resolves this consumer's own view of a cached value -- decrypted or redacted per this stream's
+        // live authorization -- from the cache's protected representation, once per message rather than
+        // once per fragment. A rejected value decodes to empty rather than falling back to the protected
+        // bytes, so a decode failure never leaks the still-protected form to this consumer.
+        private void decodeValue(
+            long traceId,
+            OctetsFW value)
+        {
+            decodedLength = 0;
+
+            final int decoded = valueDecoder.transform(traceId, routedId, authorization,
+                value.buffer(), value.offset(), value.limit(), this::onDecodedValueFragment);
+
+            if (decoded < 0)
+            {
+                decodedLength = 0;
+            }
+        }
+
+        private void onDecodedValueFragment(
+            DirectBufferEx buffer,
+            int index,
+            int length)
+        {
+            transformBuffer.putBytes(decodedLength, buffer, index, length);
+            decodedLength += length;
         }
 
         private void doClientReplyDataFull(

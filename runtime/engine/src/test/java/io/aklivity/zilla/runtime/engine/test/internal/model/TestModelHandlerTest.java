@@ -34,6 +34,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.model.ModelCache;
 import io.aklivity.zilla.runtime.engine.model.ModelController;
 import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelEvent;
@@ -107,7 +108,7 @@ public class TestModelHandlerTest
 
         byte[] bytes = {1, 2, 3};
 
-        ModelPipeline decoder = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
+        ModelPipeline decoder = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
         MutableDirectBufferEx decodeDst = new UnsafeBufferEx(new byte[16]);
         ModelPipelineResult decoded = decoder.transform(0L, 0L, 0L, FLAGS_COMPLETE,
             new UnsafeBufferEx(bytes), 0, bytes.length, decodeDst, 0, decodeDst.capacity());
@@ -223,7 +224,7 @@ public class TestModelHandlerTest
                 return true;
             }
         };
-        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, transform);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, transform, ModelCache.NONE);
 
         byte[] bytes = {1, 2, 3, 4};
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[16]);
@@ -251,7 +252,7 @@ public class TestModelHandlerTest
         ModelHandler handler = new TestModelContext(context).supplyHandler(config);
 
         Metadata envelope = new Metadata();
-        ModelPipeline pipeline = handler.supplyDecoder(envelope, ModelTransform.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(envelope, ModelTransform.NONE, ModelCache.NONE);
 
         byte[] bytes = {1, 2, 3, 4};
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[16]);
@@ -273,7 +274,7 @@ public class TestModelHandlerTest
         ModelHandler handler = new TestModelContext(context).supplyHandler(config);
 
         Metadata envelope = new Metadata();
-        ModelPipeline pipeline = handler.supplyDecoder(envelope, ModelTransform.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(envelope, ModelTransform.NONE, ModelCache.NONE);
 
         byte[] bytes = {1, 2, 3, 4};
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[16]);
@@ -304,7 +305,7 @@ public class TestModelHandlerTest
             .transformLength(8)
             .build();
         ModelHandler handler = new TestModelContext(context).supplyHandler(config);
-        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
 
         assertFalse(pipeline.identity());
     }
@@ -313,7 +314,7 @@ public class TestModelHandlerTest
         int length)
     {
         ModelHandler handler = new TestModelContext(context).supplyHandler(config(length));
-        return handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
+        return handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
     }
 
     private ModelPipeline writePipeline(
@@ -331,7 +332,7 @@ public class TestModelHandlerTest
             .validate(ValidateConfig.builder().decode(ValidateMode.LENIENT).encode(ValidateMode.LENIENT).build())
             .build();
         ModelHandler handler = new TestModelContext(context).supplyHandler(config);
-        return handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
+        return handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
     }
 
     private static TestModelConfig config(

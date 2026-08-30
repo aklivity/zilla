@@ -21,6 +21,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaTopicHeaderT
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaTopicTransformsType;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.engine.model.ModelCache;
 import io.aklivity.zilla.runtime.engine.model.ModelController;
 import io.aklivity.zilla.runtime.engine.model.ModelEvent;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
@@ -91,7 +92,34 @@ public final class KafkaPipeline
         return keyModel == null && valueModel == null
             ? NONE
             : new KafkaPipeline(keyModel, valueModel, extract(extractKey, extractHeaders),
-                extractKey != null, extractHeaders != null && !extractHeaders.isEmpty(), scratch);
+                extractKey != null, extractHeaders != null && !extractHeaders.isEmpty(), scratch, false);
+    }
+
+    /**
+     * Builds a pipeline intended for a caller that persists the transformed key and value ahead of any
+     * specific consumer's request, wiring each lane's model through {@link ModelCache#WRITE} rather than
+     * {@link ModelCache#NONE}. Otherwise identical to {@link #decoder}, including the same
+     * {@code extractKey} / {@code extractHeaders} lane transforms.
+     *
+     * @param keyModel   the key lane's model handler, or {@code null} if the key is not modeled
+     * @param valueModel the value lane's model handler, or {@code null} if the value is not modeled
+     * @param transforms the configured extractKey / extractHeaders transforms
+     * @param scratch    the shared scratch buffer each lane's model writes transformed output into
+     * @return a new pipeline suitable for transforming a message ahead of a specific consumer
+     */
+    public static KafkaPipeline writer(
+        ModelHandler keyModel,
+        ModelHandler valueModel,
+        KafkaTopicTransformsType transforms,
+        MutableDirectBufferEx scratch)
+    {
+        final String extractKey = transforms != null ? transforms.extractKey : null;
+        final List<KafkaTopicHeaderType> extractHeaders = transforms != null ? transforms.extractHeaders : null;
+
+        return keyModel == null && valueModel == null
+            ? NONE
+            : new KafkaPipeline(keyModel, valueModel, extract(extractKey, extractHeaders),
+                extractKey != null, extractHeaders != null && !extractHeaders.isEmpty(), scratch, true);
     }
 
     // visible for testing: a pipeline over an arbitrary stage chain, reaching the lane transitions the
@@ -103,7 +131,7 @@ public final class KafkaPipeline
         KafkaTransform transform,
         MutableDirectBufferEx scratch)
     {
-        return new KafkaPipeline(keyModel, valueModel, transform, true, true, scratch);
+        return new KafkaPipeline(keyModel, valueModel, transform, true, true, scratch, false);
     }
 
     private static KafkaTransform extract(
@@ -145,13 +173,14 @@ public final class KafkaPipeline
         KafkaTransform transform,
         boolean extractingKey,
         boolean extractingHeaders,
-        MutableDirectBufferEx scratch)
+        MutableDirectBufferEx scratch,
+        boolean cacheable)
     {
         this.transform = transform;
         this.guard = new KafkaLaneGuard();
         this.sink = ANNOUNCE;
-        this.key = model(keyModel, KafkaEvent.SWITCH_KEY, extractingKey, scratch);
-        this.value = model(valueModel, KafkaEvent.SWITCH_VALUE, extractingHeaders, scratch);
+        this.key = model(keyModel, KafkaEvent.SWITCH_KEY, extractingKey, scratch, cacheable);
+        this.value = model(valueModel, KafkaEvent.SWITCH_VALUE, extractingHeaders, scratch, cacheable);
     }
 
     /**
@@ -282,9 +311,13 @@ public final class KafkaPipeline
         ModelHandler handler,
         KafkaEvent lane,
         boolean extracting,
-        MutableDirectBufferEx scratch)
+        MutableDirectBufferEx scratch,
+        boolean cacheable)
     {
-        return KafkaCacheModel.decoder(handler, extracting ? new KafkaLane(lane) : ModelTransform.NONE, scratch);
+        final ModelTransform transform = extracting ? new KafkaLane(lane) : ModelTransform.NONE;
+        return cacheable
+            ? KafkaCacheModel.writer(handler, transform, scratch)
+            : KafkaCacheModel.decoder(handler, transform, scratch);
     }
 
     // Holds the transform chain to the lane transitions the cache entry's layout can honor. The vocabulary

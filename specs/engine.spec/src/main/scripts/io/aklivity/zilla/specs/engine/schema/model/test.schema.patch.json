@@ -90,6 +90,18 @@
                             "type": "integer"
                         }
                     },
+                    "discloseAuthorized":
+                    {
+                        "type": "array",
+                        "items":
+                        {
+                            "type": "integer"
+                        }
+                    },
+                    "discloseRedacted":
+                    {
+                        "type": "string"
+                    },
                     "catalog":
                     {
                         "type": "object",

@@ -28,6 +28,7 @@ import io.aklivity.zilla.config.model.core.BytesModelConfig;
 import io.aklivity.zilla.config.model.core.StringModelConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.model.ModelCache;
 import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
@@ -42,6 +43,7 @@ import io.aklivity.zilla.runtime.model.core.ext.BytesSink;
 import io.aklivity.zilla.runtime.model.core.ext.BytesSource;
 import io.aklivity.zilla.runtime.model.core.ext.BytesTransform;
 import io.aklivity.zilla.runtime.model.core.ext.BytesTransformable;
+import io.aklivity.zilla.runtime.model.core.ext.CoreCache;
 
 public class BytesModelContextTest
 {
@@ -55,7 +57,7 @@ public class BytesModelContextTest
 
         assertThat(handler, instanceOf(CoreModelHandler.class));
 
-        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
         byte[] bytes = { (byte) 0xDE, (byte) 0xAD, (byte) 0xBE, (byte) 0xEF };
         UnsafeBufferEx dst = new UnsafeBufferEx(new byte[16]);
 
@@ -80,7 +82,7 @@ public class BytesModelContextTest
 
         assertThat(handler, instanceOf(BytesExtModelHandler.class));
 
-        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
         byte[] bytes = "ignored".getBytes();
         UnsafeBufferEx dst = new UnsafeBufferEx(new byte[16]);
 
@@ -109,7 +111,7 @@ public class BytesModelContextTest
         byte[] bytes = "abc".getBytes();
         for (int i = 0; i < 3; i++)
         {
-            ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
+            ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
             UnsafeBufferEx dst = new UnsafeBufferEx(new byte[16]);
             pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
                 new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
@@ -135,7 +137,7 @@ public class BytesModelContextTest
         assertThat(bytesHandler, instanceOf(BytesExtModelHandler.class));
         assertThat(stringHandler, instanceOf(CoreModelHandler.class));
 
-        ModelPipeline stringPipeline = stringHandler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
+        ModelPipeline stringPipeline = stringHandler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
         byte[] bytes = "unaffected".getBytes();
         UnsafeBufferEx dst = new UnsafeBufferEx(new byte[32]);
 
@@ -153,7 +155,8 @@ public class BytesModelContextTest
         {
             @Override
             public <T extends BytesTransformable<T>> T decode(
-                T stream)
+                T stream,
+                CoreCache cache)
             {
                 return stream.transform(transform);
             }
@@ -175,7 +178,8 @@ public class BytesModelContextTest
         {
             @Override
             public <T extends BytesTransformable<T>> T decode(
-                T stream)
+                T stream,
+                CoreCache cache)
             {
                 return stream.transform(append);
             }

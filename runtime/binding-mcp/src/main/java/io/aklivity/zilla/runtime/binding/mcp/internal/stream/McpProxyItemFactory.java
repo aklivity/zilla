@@ -51,6 +51,7 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpResetExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.WindowFW;
+import io.aklivity.zilla.runtime.binding.mcp.search.McpToolSearchIndex;
 import io.aklivity.zilla.runtime.binding.mcp.search.McpToolSearchMatch;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableDirectByteBufferEx;
@@ -1376,12 +1377,35 @@ abstract class McpProxyItemFactory implements BindingHandler
             else
             {
                 final int limit = scanner.maxResults > 0 ? Math.min(scanner.maxResults, limitDefault) : limitDefault;
-                final byte[] bytes = buildResponse(query, limit);
-                cachedBuf = new UnsafeBufferEx(bytes);
-                cachedLen = bytes.length;
-                ready = true;
-                emitIfReady(traceId);
+                cache.searchIndex().query(query, new McpToolSearchIndex.CompletionCallback<>()
+                {
+                    @Override
+                    public void completed(
+                        List<McpToolSearchMatch> matches)
+                    {
+                        onQueryMatched(traceId, matches, limit);
+                    }
+
+                    @Override
+                    public void failed(
+                        Throwable ex)
+                    {
+                        onQueryMatched(traceId, List.of(), limit);
+                    }
+                });
             }
+        }
+
+        private void onQueryMatched(
+            long traceId,
+            List<McpToolSearchMatch> matches,
+            int limit)
+        {
+            final byte[] bytes = buildResponse(matches, limit);
+            cachedBuf = new UnsafeBufferEx(bytes);
+            cachedLen = bytes.length;
+            ready = true;
+            emitIfReady(traceId);
         }
 
         // MCP's CallToolResult.content only accepts text/image/audio/resource_link/resource blocks --
@@ -1392,13 +1416,12 @@ abstract class McpProxyItemFactory implements BindingHandler
         // as raw verbatim bytes straight out of cache.toolsBytes(), never a DOM rebuild; the full
         // definition (schema included) is resolved separately via describe_tool.
         private byte[] buildResponse(
-            String query,
+            List<McpToolSearchMatch> matches,
             int limit)
         {
             final Map<CharSequence, List<String>> scopesByName = cache.scopesByName();
             final Map<CharSequence, McpToolByteRange> rangesByName = cache.toolRangesByName();
             final byte[] toolsBytes = cache.toolsBytes();
-            final List<McpToolSearchMatch> matches = cache.searchIndex().query(query);
 
             final int structuredLength = writeStructuredContent(matches, scopesByName, rangesByName, toolsBytes, limit);
             final int responseLength = writeSearchFamilyResponse(structuredLength);

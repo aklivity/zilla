@@ -16,34 +16,27 @@ package io.aklivity.zilla.config.binding.mcp.internal;
 
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
+import jakarta.json.bind.adapter.JsonbAdapter;
 
-import io.aklivity.zilla.config.binding.mcp.McpKeywordToolSearchIndexConfig;
-import io.aklivity.zilla.config.binding.mcp.McpToolSearchIndexConfig;
-import io.aklivity.zilla.config.binding.mcp.McpToolSearchIndexConfigAdapterSpi;
+import io.aklivity.zilla.config.binding.mcp.McpTestToolSearchIndexConfig;
 
-public final class McpKeywordToolSearchIndexConfigAdapterSpi implements McpToolSearchIndexConfigAdapterSpi
+public final class McpTestToolSearchIndexConfigAdapter implements JsonbAdapter<McpTestToolSearchIndexConfig, JsonObject>
 {
     private static final String TYPE_NAME = "type";
 
     @Override
-    public String type()
-    {
-        return McpKeywordToolSearchIndexConfig.NAME;
-    }
-
-    @Override
     public JsonObject adaptToJson(
-        McpToolSearchIndexConfig options)
+        McpTestToolSearchIndexConfig config)
     {
         return Json.createObjectBuilder()
-            .add(TYPE_NAME, McpKeywordToolSearchIndexConfig.NAME)
+            .add(TYPE_NAME, McpTestToolSearchIndexConfig.NAME)
             .build();
     }
 
     @Override
-    public McpToolSearchIndexConfig adaptFromJson(
+    public McpTestToolSearchIndexConfig adaptFromJson(
         JsonObject object)
     {
-        return McpKeywordToolSearchIndexConfig.builder().build();
+        return new McpTestToolSearchIndexConfig();
     }
 }

@@ -22,6 +22,7 @@ import java.util.Collection;
 
 import org.junit.Test;
 
+import io.aklivity.zilla.config.engine.test.internal.binding.TestBindingExtInfo;
 import io.aklivity.zilla.config.engine.test.internal.model.TestModelExtInfo;
 
 public class EngineInfoTest
@@ -34,5 +35,15 @@ public class EngineInfoTest
         Collection<URL> patches = info.patches();
 
         assertThat(patches, hasItem(new TestModelExtInfo().schema()));
+    }
+
+    @Test
+    public void shouldIncludeBindingExtensionSchemaPatches()
+    {
+        EngineInfo info = new EngineInfo();
+
+        Collection<URL> patches = info.patches();
+
+        assertThat(patches, hasItem(new TestBindingExtInfo().schema()));
     }
 }
