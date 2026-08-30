@@ -142,6 +142,18 @@ public class KafkaCacheModelTest
     }
 
     @Test
+    public void shouldForwardEnvelopeToWriter()
+    {
+        CapturingHandler handler = new CapturingHandler();
+        ModelEnvelope envelope = new KafkaCacheHeadersEnvelope();
+
+        KafkaCacheModel.writer(handler, ModelTransform.NONE, envelope, new UnsafeBufferEx(new byte[256]));
+
+        assertSame(envelope, handler.decoderEnvelope);
+        assertSame(ModelCache.WRITE, handler.decoderCache);
+    }
+
+    @Test
     public void shouldForwardWhenNone()
     {
         int produced = KafkaCacheModel.NONE.transform(0L, 0L, 0L, value("passthrough"), 0, 11, sink);

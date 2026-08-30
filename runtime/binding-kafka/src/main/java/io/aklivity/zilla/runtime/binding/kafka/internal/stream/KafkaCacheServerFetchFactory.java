@@ -48,13 +48,17 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBinding;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCache;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheIndexFile;
+import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheKeyEnvelope;
+import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheModel;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCachePartition;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCachePartition.Node;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheSegment;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheTopic;
-import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaPipeline;
+import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheTrailerEnvelope;
+import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaExtractTransform;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaBindingConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaRouteConfig;
+import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaTopicHeaderType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaTopicType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.ArrayFW;
@@ -95,6 +99,8 @@ import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
+import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
+import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 
 public final class KafkaCacheServerFetchFactory implements BindingHandler
 {
@@ -171,6 +177,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
     private final EngineContext context;
     private final boolean verbose;
     private final long retentionMillisMaxLive;
+    private final int trailersSizeMax;
 
     public KafkaCacheServerFetchFactory(
         KafkaConfiguration config,
@@ -198,6 +205,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
         this.reconnectDelay = config.cacheServerReconnect();
         this.verbose = config.verbose();
         this.retentionMillisMaxLive = config.cacheRetentionMillisMax();
+        this.trailersSizeMax = config.cacheServerTrailersSizeMax();
     }
 
     @Override
@@ -489,7 +497,10 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
         private final KafkaOffsetType defaultOffset;
         private final long retentionMillisMax;
         private final List<KafkaCacheServerFetchStream> members;
-        private final KafkaPipeline pipeline;
+        private final KafkaCacheModel transformKey;
+        private final KafkaCacheModel transformValue;
+        private final KafkaCacheKeyEnvelope transformKeyEnvelope;
+        private final KafkaCacheTrailerEnvelope transformValueEnvelope;
         private final MutableInteger entryMark;
         private final MutableInteger valueMark;
 
@@ -539,8 +550,34 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
             this.retentionMillisMax = defaultOffset == LIVE ? retentionMillisMaxLive : Long.MAX_VALUE;
             this.members = new ArrayList<>();
             this.leaderId = leaderId;
-            this.pipeline = KafkaPipeline.writer(topicType.keyModel, topicType.valueModel,
-                topicType.transforms, transformBuffer);
+            this.transformKeyEnvelope = new KafkaCacheKeyEnvelope();
+            this.transformValueEnvelope = new KafkaCacheTrailerEnvelope();
+
+            final String extractKey = topicType.transforms != null ? topicType.transforms.extractKey : null;
+            final List<KafkaTopicHeaderType> extractHeaders =
+                topicType.transforms != null ? topicType.transforms.extractHeaders : null;
+
+            final ModelTransform keyTransform = extractKey != null
+                ? new KafkaExtractTransform(extractKey, KafkaCacheKeyEnvelope.NAME, transformKeyEnvelope)
+                : ModelTransform.NONE;
+
+            ModelTransform valueTransform = ModelTransform.NONE;
+            if (extractHeaders != null)
+            {
+                for (KafkaTopicHeaderType header : extractHeaders)
+                {
+                    valueTransform = valueTransform.andThen(
+                        new KafkaExtractTransform(header.path, header.name, transformValueEnvelope));
+                }
+            }
+
+            // ModelEnvelope.NONE here: the model's own decode-time envelope is a separate concern (a model
+            // disclosing its own metadata, as on the produce path) from extraction, which the composed
+            // KafkaExtractTransform stages above already handle by writing directly into transformKeyEnvelope /
+            // transformValueEnvelope regardless of what envelope the model itself was given
+            this.transformKey = KafkaCacheModel.writer(topicType.keyModel, keyTransform, ModelEnvelope.NONE, transformBuffer);
+            this.transformValue =
+                KafkaCacheModel.writer(topicType.valueModel, valueTransform, ModelEnvelope.NONE, transformBuffer);
             this.entryMark = new MutableInteger(0);
             this.valueMark = new MutableInteger(0);
         }
@@ -826,7 +863,8 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
 
                 partition.writeEntry(context, traceId, routedId, NO_AUTHORIZATION, partitionOffset, entryMark, valueMark,
                     timestamp, AUTHORITATIVE, producerId, EMPTY_KEY, EMPTY_HEADERS, EMPTY_OCTETS,
-                    entryFlags, KafkaDeltaType.NONE, pipeline, verbose);
+                    entryFlags, KafkaDeltaType.NONE, transformKey, transformValue, transformKeyEnvelope,
+                    transformValueEnvelope, trailersSizeMax, verbose);
 
                 if (result == KafkaTransactionResult.ABORT)
                 {
@@ -884,7 +922,14 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                 final int deferred = kafkaFetchDataEx.deferred();
                 final int partitionId = kafkaFetchDataEx.partition().partitionId();
                 final long partitionOffset = kafkaFetchDataEx.partition().partitionOffset();
-                final int headersSizeMax = Math.max(kafkaFetchDataEx.headers().sizeof(), kafkaFetchDataEx.headersSizeMax());
+                // reserves room for writeEntryFinish's trailers + paddingLen + padding fields, claimed up
+                // front as the scratch block a composed transform's envelope.set() calls write into (see
+                // KafkaCachePartition.writeEntryFinish) -- only when a value model is actually configured,
+                // matching writeEntryFinish's own transformValue != NONE guard, so a plain topic with no
+                // value model keeps its exact prior segment-capacity accounting
+                final int headersSizeMax =
+                    Math.max(kafkaFetchDataEx.headers().sizeof(), kafkaFetchDataEx.headersSizeMax()) +
+                    (transformValue != KafkaCacheModel.NONE ? trailersSizeMax + Integer.BYTES : 0);
                 final long timestamp = kafkaFetchDataEx.timestamp();
                 final KafkaTimestampType timestampType = kafkaFetchDataEx.timestampType().get();
                 final long producerId = kafkaFetchDataEx.producerId();
@@ -935,7 +980,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                     (timestampType == AUTHORITATIVE ? CACHE_ENTRY_FLAGS_AUTHORITATIVE : 0x00);
                 partition.writeEntryStart(context, traceId, routedId, NO_AUTHORIZATION, partitionOffset, entryMark, valueMark,
                     timestamp, timestampType, producerId, key, valueLength, findAncestor, entryFlags, deltaType, valueFragment,
-                    pipeline, verbose);
+                    transformKey, transformValue, transformKeyEnvelope, verbose);
             }
 
             if (valueFragment != null)
@@ -960,7 +1005,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                 assert partitionOffset >= this.partitionOffset;
 
                 partition.writeEntryFinish(headers, deltaType, context, traceId, routedId, NO_AUTHORIZATION, flags,
-                    partitionOffset, entryMark, valueMark, pipeline, verbose);
+                    partitionOffset, entryMark, valueMark, transformValue, transformValueEnvelope, trailersSizeMax, verbose);
 
                 this.partitionOffset = partitionOffset;
                 this.stableOffset = stableOffset;
