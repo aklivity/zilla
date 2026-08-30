@@ -14,6 +14,7 @@
 - Declare AvroModelExtFactorySpi and wire provider-supplied pipeline stages in avro model [\#1681](https://github.com/aklivity/zilla/issues/1681) ([jfallows](https://github.com/jfallows))
 - Declare JsonModelExtFactorySpi and wire provider-supplied pipeline stages in json model [\#1682](https://github.com/aklivity/zilla/issues/1682) ([jfallows](https://github.com/jfallows))
 - Declare ProtobufModelExtFactorySpi and wire provider-supplied pipeline stages in protobuf model [\#1683](https://github.com/aklivity/zilla/issues/1683) ([jfallows](https://github.com/jfallows))
+- Wire ModelEnvelope into kafka cache storage's read and write paths [\#1689](https://github.com/aklivity/zilla/issues/1689) ([jfallows](https://github.com/jfallows))
 - Apply schema overlay at catalog entry resolution [\#2318](https://github.com/aklivity/zilla/issues/2318) ([jfallows](https://github.com/jfallows))
 - engine: add ModelEnvelope for message metadata outside the value, exposed via ModelController [\#2384](https://github.com/aklivity/zilla/issues/2384) ([jfallows](https://github.com/jfallows))
 - engine: supply ModelEnvelope per message, and expose it to a model's format-native transform stages [\#2389](https://github.com/aklivity/zilla/issues/2389) ([jfallows](https://github.com/jfallows))
@@ -23,6 +24,7 @@
 - Make wrapped key material self-sufficient for unwrap — drop the explicit key-name parameter from SecretKeyManager/VaultHandler.unwrap [\#2416](https://github.com/aklivity/zilla/issues/2416) ([jfallows](https://github.com/jfallows))
 - kafka cache storage: honor per-message authorization on the fetch path, not just at cache population [\#2423](https://github.com/aklivity/zilla/issues/2423) ([jfallows](https://github.com/jfallows))
 - MQTT CONNECT with a Will message crashes the whole engine \(JVM segfault\), not just the connection [\#2428](https://github.com/aklivity/zilla/issues/2428) ([sfr-oc](https://github.com/sfr-oc))
+- binding-kafka: avoid per-stream heap accumulation buffer for produce-path trailer entries [\#2456](https://github.com/aklivity/zilla/issues/2456) ([jfallows](https://github.com/jfallows))
 
 **Merged pull requests:**
 
@@ -77,6 +79,7 @@
 - docs\(readme\): fix release badge to use GitHub releases, not raw tags [\#2441](https://github.com/aklivity/zilla/pull/2441) ([jfallows](https://github.com/jfallows))
 - fix\(binding-mcp\): resolve lifecycle preauthorize races between connect and requests [\#2443](https://github.com/aklivity/zilla/pull/2443) ([jfallows](https://github.com/jfallows))
 - test\(binding-mcp.spec\): complete peer-to-peer coverage for application and network scenarios [\#2444](https://github.com/aklivity/zilla/pull/2444) ([jfallows](https://github.com/jfallows))
+- refactor\(binding-echo\): extract semantic-reject into model-vector [\#2445](https://github.com/aklivity/zilla/pull/2445) ([jfallows](https://github.com/jfallows))
 - fix\(binding-mcp\): flush hydration registrants queued before a real preauthorize challenge [\#2447](https://github.com/aklivity/zilla/pull/2447) ([jfallows](https://github.com/jfallows))
 - fix\(examples/mcp.proxy\): send a key with kafka\_\_produce\_message in verify.sh [\#2448](https://github.com/aklivity/zilla/pull/2448) ([jfallows](https://github.com/jfallows))
 - fix\(binding-kafka\): decouple cache segment signals from stream identity [\#2449](https://github.com/aklivity/zilla/pull/2449) ([jfallows](https://github.com/jfallows))
@@ -85,6 +88,8 @@
 - feat\(binding-mcp\): make McpToolSearchIndex async [\#2452](https://github.com/aklivity/zilla/pull/2452) ([jfallows](https://github.com/jfallows))
 - feat\(config-engine\): add BindingExtInfo, a nested-extension discovery mechanism for bindings [\#2453](https://github.com/aklivity/zilla/pull/2453) ([jfallows](https://github.com/jfallows))
 - feat\(engine\): resolve OptionsConfig's own named references generically [\#2454](https://github.com/aklivity/zilla/pull/2454) ([jfallows](https://github.com/jfallows))
+- feat\(binding-kafka\): wire ModelEnvelope into kafka cache storage's read and write paths [\#2455](https://github.com/aklivity/zilla/pull/2455) ([jfallows](https://github.com/jfallows))
+- perf\(binding-kafka\): claim a block in the log file for produce-path trailer entries [\#2457](https://github.com/aklivity/zilla/pull/2457) ([jfallows](https://github.com/jfallows))
 
 ## [2.3.0](https://github.com/aklivity/zilla/tree/2.3.0) (2026-08-14)
 
