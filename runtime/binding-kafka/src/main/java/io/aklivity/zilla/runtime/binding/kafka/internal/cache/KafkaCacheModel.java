@@ -67,23 +67,28 @@ public final class KafkaCacheModel
     }
 
     // per-consumer fetch time: resolves a value already in the form a writer pipeline produced, for the
-    // consumer requesting it now
+    // consumer requesting it now; envelope is backed by the cached record's real headers so a composed
+    // transform can read metadata that was present on produce
     public static KafkaCacheModel reader(
         ModelHandler handler,
         ModelTransform transform,
+        ModelEnvelope envelope,
         MutableDirectBufferEx scratch)
     {
         return handler != null
-            ? new KafkaCacheModel(handler.supplyDecoder(ModelEnvelope.NONE, transform, ModelCache.READ), scratch)
+            ? new KafkaCacheModel(handler.supplyDecoder(envelope, transform, ModelCache.READ), scratch)
             : NONE;
     }
 
+    // producer encode time; envelope collects whatever metadata a composed transform writes, for the
+    // storage write path to materialize as real headers once encode completes
     public static KafkaCacheModel encoder(
         ModelHandler handler,
+        ModelEnvelope envelope,
         MutableDirectBufferEx scratch)
     {
         return handler != null
-            ? new KafkaCacheModel(handler.supplyEncoder(ModelEnvelope.NONE, ModelTransform.NONE), scratch)
+            ? new KafkaCacheModel(handler.supplyEncoder(envelope, ModelTransform.NONE), scratch)
             : NONE;
     }
 

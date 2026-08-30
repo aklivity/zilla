@@ -62,9 +62,15 @@ import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 // When the handler is configured with `discloseAuthorized`/`discloseRedacted`, a completed value is
 // disclosed rather than copied through verbatim: the real bytes pass through when the pipeline's own
 // `authorization` argument is in the configured set, otherwise the configured redacted bytes are
-// substituted. The cache-populate path always constructs its pipeline with both `null`, so it never
-// discloses; the per-consumer decode path passes the handler's real configured values, so only it can
-// ever reveal or redact.
+// substituted. The cache-populate path (`supplyDecoder` with `ModelCache.WRITE`) always constructs its
+// pipeline with both `null`, so it never discloses; the per-consumer decode path passes the handler's
+// real configured values, so only it can ever reveal or redact.
+//
+// When the handler is configured with `envelopeDisclose`/`discloseRedacted`, disclosure is instead gated
+// on the supplied envelope: the real bytes pass through when `envelope.count(envelopeDisclose)` is
+// non-zero (i.e. the envelope is backed by a real, non-`NONE` source that holds at least one value under
+// that name), otherwise the redacted bytes are substituted. Like `discloseAuthorized`, the cache-populate
+// path always constructs its pipeline with `null` here too.
 final class TestModelPipeline implements ModelPipeline
 {
     private static final int FLAGS_INIT = 0x02;
@@ -88,6 +94,7 @@ final class TestModelPipeline implements ModelPipeline
     private final ExpandableArrayBufferEx buffer;
     private final List<Long> discloseAuthorized;
     private final DirectBufferEx discloseRedacted;
+    private final String envelopeDiscloseName;
 
     private int processed;
     private int contentLength;
@@ -108,7 +115,8 @@ final class TestModelPipeline implements ModelPipeline
         Runnable resumed,
         EngineContext context,
         List<Long> discloseAuthorized,
-        DirectBufferEx discloseRedacted)
+        DirectBufferEx discloseRedacted,
+        String envelopeDiscloseName)
     {
         this.length = length;
         this.transformLength = transformLength;
@@ -125,6 +133,7 @@ final class TestModelPipeline implements ModelPipeline
         this.buffer = reject != null ? new ExpandableArrayBufferEx() : null;
         this.discloseAuthorized = discloseAuthorized;
         this.discloseRedacted = discloseRedacted;
+        this.envelopeDiscloseName = envelopeDiscloseName;
     }
 
     @Override
@@ -269,6 +278,23 @@ final class TestModelPipeline implements ModelPipeline
             status = ModelStatus.COMPLETE;
             visitExtracted(authorization);
         }
+        else if (lengthValid && tail && envelopeDiscloseName != null)
+        {
+            // whole-value disclosure: reveal the real bytes only when the envelope supplied to this
+            // pipeline holds at least one value under the configured name, otherwise substitute the
+            // configured redacted bytes -- proves a real, headers-backed envelope reached this transform
+            // rather than ModelEnvelope.NONE, which always reports a count of zero
+            processed = total;
+            final boolean disclosed = envelope.count(envelopeDiscloseName) > 0;
+            final DirectBufferEx source = disclosed ? src : discloseRedacted;
+            final int sourceIndex = disclosed ? srcIndex : 0;
+            final int sourceLength = disclosed ? available : discloseRedacted.capacity();
+            dst.putBytes(dstIndex, source, sourceIndex, sourceLength);
+            consumed = available;
+            produced = sourceLength;
+            status = ModelStatus.COMPLETE;
+            visitExtracted(authorization);
+        }
         else if (lengthValid && tail && transformLength >= 0)
         {
             // whole-value transform: truncate, or grow by stamping the original value repeatedly,
@@ -326,7 +352,7 @@ final class TestModelPipeline implements ModelPipeline
     @Override
     public boolean identity()
     {
-        return transformLength < 0 && discloseAuthorized == null;
+        return transformLength < 0 && discloseAuthorized == null && envelopeDiscloseName == null;
     }
 
     @Override

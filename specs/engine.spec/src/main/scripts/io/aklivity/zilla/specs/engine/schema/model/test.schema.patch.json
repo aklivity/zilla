@@ -114,6 +114,10 @@
                     {
                         "type": "string"
                     },
+                    "envelopeDisclose":
+                    {
+                        "type": "string"
+                    },
                     "catalog":
                     {
                         "type": "object",

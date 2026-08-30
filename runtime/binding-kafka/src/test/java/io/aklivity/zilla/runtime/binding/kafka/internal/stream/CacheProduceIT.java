@@ -372,6 +372,21 @@ public class CacheProduceIT
         k3po.finish();
     }
 
+    // proves the produce path's encode-direction ModelEnvelope actually reaches the storage write path:
+    // the client writes no header at all, so the "$.trace"="1234" header the broker-side script requires
+    // can only have come from TestModel's envelope.set("$.trace", ...) call during encode, materialized
+    // as a real Kafka header by KafkaCacheClientProduceFactory's trailers merge
+    @Test
+    @Configuration("cache.value.model.envelope.yaml")
+    @Specification({
+        "${app}/message.value.envelope/client",
+        "${app}/message.value.envelope/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldSendMessageValueEnvelope() throws Exception
+    {
+        k3po.finish();
+    }
+
     @Test
     @Configuration("cache.yaml")
     @Specification({
