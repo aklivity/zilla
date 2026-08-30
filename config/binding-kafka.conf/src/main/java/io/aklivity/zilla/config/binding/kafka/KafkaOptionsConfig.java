@@ -45,7 +45,7 @@ public final class KafkaOptionsConfig extends OptionsConfig
         KafkaAuthorizationConfig authorization,
         List<NamedConfig> refs)
     {
-        super(List.of(), null, refs);
+        super(null, refs);
         this.bootstrap = bootstrap;
         this.topics = topics;
         this.servers = servers;

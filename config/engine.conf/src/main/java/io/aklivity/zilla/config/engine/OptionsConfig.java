@@ -22,15 +22,11 @@ public class OptionsConfig extends Config.Extensible
 {
     public final List<String> resources;
 
-    public OptionsConfig()
-    {
-        this(Collections.emptyList());
-    }
-
     public OptionsConfig(
-        List<String> resources)
+        Map<String, Config> extensions,
+        List<NamedConfig> refs)
     {
-        this(resources, null, null);
+        this(Collections.emptyList(), extensions, refs);
     }
 
     public OptionsConfig(

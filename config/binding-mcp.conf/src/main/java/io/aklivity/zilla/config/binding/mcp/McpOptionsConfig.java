@@ -37,7 +37,7 @@ public final class McpOptionsConfig extends OptionsConfig
         ModelConfig tools,
         List<NamedConfig> refs)
     {
-        super(List.of(), null, refs);
+        super(null, refs);
         this.elicitation = elicitation;
         this.authorization = authorization;
         this.cache = cache;

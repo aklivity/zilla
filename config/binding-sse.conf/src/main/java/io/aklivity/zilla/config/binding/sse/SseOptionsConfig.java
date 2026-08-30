@@ -44,7 +44,7 @@ public final class SseOptionsConfig extends OptionsConfig
         List<SseRequestConfig> requests,
         List<NamedConfig> refs)
     {
-        super(List.of(), null, refs);
+        super(null, refs);
         this.retry = retry;
         this.requests = requests;
     }

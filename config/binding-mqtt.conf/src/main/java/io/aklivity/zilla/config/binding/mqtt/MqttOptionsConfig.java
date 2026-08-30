@@ -47,7 +47,7 @@ public class MqttOptionsConfig extends OptionsConfig
         String server,
         List<NamedConfig> refs)
     {
-        super(List.of(), null, refs);
+        super(null, refs);
         this.authorization = authorization;
         this.topics = topics;
         this.versions = versions;

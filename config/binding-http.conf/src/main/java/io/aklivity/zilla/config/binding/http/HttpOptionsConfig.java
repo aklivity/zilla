@@ -49,7 +49,7 @@ public final class HttpOptionsConfig extends OptionsConfig
         List<HttpRequestConfig> requests,
         List<NamedConfig> refs)
     {
-        super(List.of(), null, refs);
+        super(null, refs);
         this.versions = versions;
         this.overrides = overrides;
         this.access = access;

@@ -36,6 +36,7 @@ public final class McpSchemaRegistryOptionsConfig extends OptionsConfig
     McpSchemaRegistryOptionsConfig(
         String server)
     {
+        super(null, null);
         this.server = server;
     }
 }
