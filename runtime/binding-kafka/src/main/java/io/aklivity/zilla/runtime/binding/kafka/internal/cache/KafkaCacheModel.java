@@ -55,14 +55,16 @@ public final class KafkaCacheModel
     }
 
     // populate time: decodes wire bytes ahead of any specific consumer's request, producing the value the
-    // local cache persists
+    // local cache persists; envelope collects whatever metadata a composed transform writes -- e.g. the
+    // key model's own envelope recognizing the reserved ":key" pseudo-name to override the persisted key
     public static KafkaCacheModel writer(
         ModelHandler handler,
         ModelTransform transform,
+        ModelEnvelope envelope,
         MutableDirectBufferEx scratch)
     {
         return handler != null
-            ? new KafkaCacheModel(handler.supplyDecoder(ModelEnvelope.NONE, transform, ModelCache.WRITE), scratch)
+            ? new KafkaCacheModel(handler.supplyDecoder(envelope, transform, ModelCache.WRITE), scratch)
             : NONE;
     }
 

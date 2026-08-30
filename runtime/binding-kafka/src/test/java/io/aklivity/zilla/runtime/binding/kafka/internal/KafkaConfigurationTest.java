@@ -19,6 +19,7 @@ import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguratio
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_CLIENT_TRAILERS_SIZE_MAX;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_RETENTION_MILLIS_MAX;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_SERVER_RECONNECT_DELAY;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_SERVER_TRAILERS_SIZE_MAX;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CLIENT_API_VERSIONS;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CLIENT_CONNECTION_POOL_CLEANUP_MILLIS;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CLIENT_DESCRIBE_CONFIG_INCLUDE_SYNONYMS;
@@ -42,6 +43,8 @@ public class KafkaConfigurationTest
     public static final String KAFKA_CACHE_CLIENT_CLEANUP_DELAY_NAME = "zilla.binding.kafka.cache.client.cleanup.delay";
     public static final String KAFKA_CACHE_CLIENT_TRAILERS_SIZE_MAX_NAME =
         "zilla.binding.kafka.cache.client.trailers.size.max";
+    public static final String KAFKA_CACHE_SERVER_TRAILERS_SIZE_MAX_NAME =
+        "zilla.binding.kafka.cache.server.trailers.size.max";
     public static final String KAFKA_CLIENT_SASL_SCRAM_NONCE_NAME = "zilla.binding.kafka.client.sasl.scram.nonce";
     public static final String KAFKA_CLIENT_INSTANCE_ID_NAME = "zilla.binding.kafka.client.instance.id";
     public static final String KAFKA_CLIENT_DESCRIBE_CONFIG_INCLUDE_SYNONYMS_NAME =
@@ -61,6 +64,7 @@ public class KafkaConfigurationTest
         assertEquals(KAFKA_CACHE_SERVER_RECONNECT_DELAY.name(), KAFKA_CACHE_SERVER_RECONNECT_DELAY_NAME);
         assertEquals(KAFKA_CACHE_CLIENT_CLEANUP_DELAY.name(), KAFKA_CACHE_CLIENT_CLEANUP_DELAY_NAME);
         assertEquals(KAFKA_CACHE_CLIENT_TRAILERS_SIZE_MAX.name(), KAFKA_CACHE_CLIENT_TRAILERS_SIZE_MAX_NAME);
+        assertEquals(KAFKA_CACHE_SERVER_TRAILERS_SIZE_MAX.name(), KAFKA_CACHE_SERVER_TRAILERS_SIZE_MAX_NAME);
         assertEquals(KAFKA_CLIENT_SASL_SCRAM_NONCE.name(), KAFKA_CLIENT_SASL_SCRAM_NONCE_NAME);
         assertEquals(KAFKA_CLIENT_INSTANCE_ID.name(), KAFKA_CLIENT_INSTANCE_ID_NAME);
         assertEquals(KAFKA_CACHE_RETENTION_MILLIS_MAX.name(), KAFKA_CACHE_RETENTION_MILLIS_MAX_NAME);
