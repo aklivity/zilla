@@ -21,6 +21,7 @@ import io.aklivity.zilla.config.model.vector.VectorModelConfig;
 import io.aklivity.zilla.runtime.common.vector.Vectors;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.embedding.EmbeddingHandler;
+import io.aklivity.zilla.runtime.engine.model.ModelCache;
 import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
@@ -79,7 +80,8 @@ final class VectorModelHandlerImpl implements ModelHandler
     @Override
     public ModelPipeline supplyDecoder(
         ModelEnvelope envelope,
-        ModelTransform transform)
+        ModelTransform transform,
+        ModelCache cache)
     {
         return supplyDecoder(envelope, transform, NOOP);
     }

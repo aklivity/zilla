@@ -44,6 +44,7 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufSource;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufTransform;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufTransformable;
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.model.ModelCache;
 import io.aklivity.zilla.runtime.engine.model.ModelController;
 import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelEvent;
@@ -53,6 +54,7 @@ import io.aklivity.zilla.runtime.engine.model.ModelSource;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.TestCatalogHandler;
+import io.aklivity.zilla.runtime.model.protobuf.ext.ProtobufCache;
 import io.aklivity.zilla.runtime.model.protobuf.ext.ProtobufModelExtContext;
 import io.aklivity.zilla.runtime.model.protobuf.ext.ProtobufModelExtHandler;
 
@@ -89,7 +91,7 @@ public class ProtobufModelEnvelopeTest
         envelope.set("mark", buffer("two"));
 
         ProtobufModelHandlerImpl handler = newHandler(List.of(echoingExt("mark", "echo")));
-        ModelPipeline pipeline = handler.supplyDecoder(envelope, ModelTransform.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(envelope, ModelTransform.NONE, ModelCache.NONE);
 
         transform(pipeline);
 
@@ -122,7 +124,7 @@ public class ProtobufModelEnvelopeTest
         // both vocabularies observe one store
         Reading reading = new Reading(envelope, "mark");
         ProtobufModelHandlerImpl handler = newHandler(List.of(echoingExt("mark", "echo")));
-        ModelPipeline pipeline = handler.supplyDecoder(envelope, reading);
+        ModelPipeline pipeline = handler.supplyDecoder(envelope, reading, ModelCache.NONE);
 
         transform(pipeline);
 
@@ -137,7 +139,7 @@ public class ProtobufModelEnvelopeTest
         Observing observing = new Observing();
 
         ProtobufModelHandlerImpl handler = newHandler(List.of(observingExt(observing)));
-        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
 
         transform(pipeline);
 
@@ -199,7 +201,8 @@ public class ProtobufModelEnvelopeTest
 
             @Override
             public <T extends ProtobufTransformable<T>> T decode(
-                T transformable)
+                T transformable,
+                ProtobufCache cache)
             {
                 return transformable.transform(transform);
             }
@@ -223,7 +226,8 @@ public class ProtobufModelEnvelopeTest
 
             @Override
             public <T extends ProtobufTransformable<T>> T decode(
-                T transformable)
+                T transformable,
+                ProtobufCache cache)
             {
                 return transformable.transform(transform);
             }
@@ -244,7 +248,8 @@ public class ProtobufModelEnvelopeTest
         {
             @Override
             public <T extends ProtobufTransformable<T>> T decode(
-                T transformable)
+                T transformable,
+                ProtobufCache cache)
             {
                 return transformable.transform(observing);
             }

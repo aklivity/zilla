@@ -37,6 +37,8 @@ public class TestModelConfigBuilder<T> extends ConfigBuilder<T, TestModelConfigB
     private List<Long> transformAuthorizations;
     private List<String> reject;
     private boolean suspend;
+    private List<Long> discloseAuthorized;
+    private String discloseRedacted;
 
     TestModelConfigBuilder(
         Function<ModelConfig, T> mapper)
@@ -80,6 +82,24 @@ public class TestModelConfigBuilder<T> extends ConfigBuilder<T, TestModelConfigB
             transformAuthorizations = new LinkedList<>();
         }
         transformAuthorizations.add(transformAuthorization);
+        return this;
+    }
+
+    public TestModelConfigBuilder<T> discloseAuthorized(
+        long discloseAuthorized)
+    {
+        if (this.discloseAuthorized == null)
+        {
+            this.discloseAuthorized = new LinkedList<>();
+        }
+        this.discloseAuthorized.add(discloseAuthorized);
+        return this;
+    }
+
+    public TestModelConfigBuilder<T> discloseRedacted(
+        String discloseRedacted)
+    {
+        this.discloseRedacted = discloseRedacted;
         return this;
     }
 
@@ -140,6 +160,6 @@ public class TestModelConfigBuilder<T> extends ConfigBuilder<T, TestModelConfigB
     {
         return mapper.apply(
             new TestModelConfig(length, catalogs, read, transformLength, fields, validate, transformAuthorizations,
-                reject, suspend));
+                reject, suspend, discloseAuthorized, discloseRedacted));
     }
 }

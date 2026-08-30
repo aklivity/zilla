@@ -58,6 +58,13 @@ import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 // EngineContext#dispatch (mirroring an async model's CompletionCallback), returning SUSPENDED first and
 // resolving -- and invoking the caller's resume callback -- once dispatched; without `suspend` the same
 // decision resolves inline within the same transform() call.
+//
+// When the handler is configured with `discloseAuthorized`/`discloseRedacted`, a completed value is
+// disclosed rather than copied through verbatim: the real bytes pass through when the pipeline's own
+// `authorization` argument is in the configured set, otherwise the configured redacted bytes are
+// substituted. The cache-populate path always constructs its pipeline with both `null`, so it never
+// discloses; the per-consumer decode path passes the handler's real configured values, so only it can
+// ever reveal or redact.
 final class TestModelPipeline implements ModelPipeline
 {
     private static final int FLAGS_INIT = 0x02;
@@ -79,6 +86,8 @@ final class TestModelPipeline implements ModelPipeline
     private final Runnable resumed;
     private final EngineContext context;
     private final ExpandableArrayBufferEx buffer;
+    private final List<Long> discloseAuthorized;
+    private final DirectBufferEx discloseRedacted;
 
     private int processed;
     private int contentLength;
@@ -97,7 +106,9 @@ final class TestModelPipeline implements ModelPipeline
         List<String> reject,
         boolean suspend,
         Runnable resumed,
-        EngineContext context)
+        EngineContext context,
+        List<Long> discloseAuthorized,
+        DirectBufferEx discloseRedacted)
     {
         this.length = length;
         this.transformLength = transformLength;
@@ -112,6 +123,8 @@ final class TestModelPipeline implements ModelPipeline
         this.resumed = resumed;
         this.context = context;
         this.buffer = reject != null ? new ExpandableArrayBufferEx() : null;
+        this.discloseAuthorized = discloseAuthorized;
+        this.discloseRedacted = discloseRedacted;
     }
 
     @Override
@@ -241,6 +254,21 @@ final class TestModelPipeline implements ModelPipeline
             consumed = 0;
             produced = 0;
         }
+        else if (lengthValid && tail && discloseAuthorized != null)
+        {
+            // whole-value disclosure: reveal the real bytes only when this pipeline's own authorization is
+            // in the configured set, otherwise substitute the configured redacted bytes
+            processed = total;
+            final boolean authorized = discloseAuthorized.contains(authorization);
+            final DirectBufferEx disclosed = authorized ? src : discloseRedacted;
+            final int disclosedIndex = authorized ? srcIndex : 0;
+            final int disclosedLength = authorized ? available : discloseRedacted.capacity();
+            dst.putBytes(dstIndex, disclosed, disclosedIndex, disclosedLength);
+            consumed = available;
+            produced = disclosedLength;
+            status = ModelStatus.COMPLETE;
+            visitExtracted(authorization);
+        }
         else if (lengthValid && tail && transformLength >= 0)
         {
             // whole-value transform: truncate, or grow by stamping the original value repeatedly,
@@ -298,7 +326,7 @@ final class TestModelPipeline implements ModelPipeline
     @Override
     public boolean identity()
     {
-        return transformLength < 0;
+        return transformLength < 0 && discloseAuthorized == null;
     }
 
     @Override

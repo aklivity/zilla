@@ -44,6 +44,7 @@ import io.aklivity.zilla.runtime.common.json.JsonSource;
 import io.aklivity.zilla.runtime.common.json.JsonTransform;
 import io.aklivity.zilla.runtime.common.json.JsonTransformable;
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.model.ModelCache;
 import io.aklivity.zilla.runtime.engine.model.ModelController;
 import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelEvent;
@@ -53,6 +54,7 @@ import io.aklivity.zilla.runtime.engine.model.ModelSource;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.TestCatalogHandler;
+import io.aklivity.zilla.runtime.model.json.ext.JsonCache;
 import io.aklivity.zilla.runtime.model.json.ext.JsonModelExtContext;
 import io.aklivity.zilla.runtime.model.json.ext.JsonModelExtHandler;
 
@@ -88,7 +90,7 @@ public class JsonModelEnvelopeTest
         envelope.set("mark", buffer("two"));
 
         JsonModelHandlerImpl handler = newHandler(List.of(echoingExt("mark", "echo")));
-        ModelPipeline pipeline = handler.supplyDecoder(envelope, ModelTransform.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(envelope, ModelTransform.NONE, ModelCache.NONE);
 
         transform(pipeline);
 
@@ -121,7 +123,7 @@ public class JsonModelEnvelopeTest
         // both vocabularies observe one store
         Reading reading = new Reading(envelope, "mark");
         JsonModelHandlerImpl handler = newHandler(List.of(echoingExt("mark", "echo")));
-        ModelPipeline pipeline = handler.supplyDecoder(envelope, reading);
+        ModelPipeline pipeline = handler.supplyDecoder(envelope, reading, ModelCache.NONE);
 
         transform(pipeline);
 
@@ -136,7 +138,7 @@ public class JsonModelEnvelopeTest
         Observing observing = new Observing();
 
         JsonModelHandlerImpl handler = newHandler(List.of(observingExt(observing)));
-        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
 
         transform(pipeline);
 
@@ -190,7 +192,8 @@ public class JsonModelEnvelopeTest
 
             @Override
             public <T extends JsonTransformable<T>> T decode(
-                T transformable)
+                T transformable,
+                JsonCache cache)
             {
                 return transformable.transform(transform);
             }
@@ -214,7 +217,8 @@ public class JsonModelEnvelopeTest
 
             @Override
             public <T extends JsonTransformable<T>> T decode(
-                T transformable)
+                T transformable,
+                JsonCache cache)
             {
                 return transformable.transform(transform);
             }
@@ -235,7 +239,8 @@ public class JsonModelEnvelopeTest
         {
             @Override
             public <T extends JsonTransformable<T>> T decode(
-                T transformable)
+                T transformable,
+                JsonCache cache)
             {
                 return transformable.transform(observing);
             }

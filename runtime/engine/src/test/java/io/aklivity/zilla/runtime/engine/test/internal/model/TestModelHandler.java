@@ -15,13 +15,17 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.model;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.emptyList;
 
 import java.util.List;
 
 import io.aklivity.zilla.config.engine.ValidateMode;
 import io.aklivity.zilla.config.engine.test.internal.model.config.TestModelConfig;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.model.ModelCache;
 import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
@@ -42,6 +46,8 @@ public class TestModelHandler implements ModelHandler
     private final List<String> reject;
     private final boolean suspend;
     private final EngineContext context;
+    private final List<Long> discloseAuthorized;
+    private final DirectBufferEx discloseRedacted;
 
     private int transformAuthorizationIndex;
 
@@ -64,14 +70,19 @@ public class TestModelHandler implements ModelHandler
         this.reject = config.reject;
         this.suspend = config.suspend;
         this.context = context;
+        this.discloseAuthorized = config.discloseAuthorized;
+        this.discloseRedacted = config.discloseRedacted != null
+            ? new UnsafeBufferEx(config.discloseRedacted.getBytes(UTF_8))
+            : null;
     }
 
     @Override
     public ModelPipeline supplyDecoder(
         ModelEnvelope envelope,
-        ModelTransform transform)
+        ModelTransform transform,
+        ModelCache cache)
     {
-        return supplyDecoder(envelope, transform, NOOP);
+        return supplyDecoder(envelope, transform, NOOP, cache);
     }
 
     @Override
@@ -79,7 +90,8 @@ public class TestModelHandler implements ModelHandler
         ModelEnvelope envelope,
         ModelTransform transform)
     {
-        return supplyEncoder(envelope, transform, NOOP);
+        return new TestModelPipeline(length, transformLength, fields, encodeLenient, envelope, transform, this,
+            null, false, NOOP, null, null, null);
     }
 
     @Override
@@ -88,8 +100,7 @@ public class TestModelHandler implements ModelHandler
         ModelTransform transform,
         Runnable resumed)
     {
-        return new TestModelPipeline(length, transformLength, fields, decodeLenient, envelope, transform, this,
-            reject, suspend, resumed, context);
+        return supplyDecoder(envelope, transform, resumed, ModelCache.NONE);
     }
 
     @Override
@@ -99,7 +110,20 @@ public class TestModelHandler implements ModelHandler
         Runnable resumed)
     {
         return new TestModelPipeline(length, transformLength, fields, encodeLenient, envelope, transform, this,
-            reject, suspend, resumed, context);
+            reject, suspend, resumed, context, null, null);
+    }
+
+    private ModelPipeline supplyDecoder(
+        ModelEnvelope envelope,
+        ModelTransform transform,
+        Runnable resumed,
+        ModelCache cache)
+    {
+        return cache == ModelCache.WRITE
+            ? new TestModelPipeline(length, transformLength, fields, decodeLenient, envelope, transform, this,
+                null, false, resumed, context, null, null)
+            : new TestModelPipeline(length, transformLength, fields, decodeLenient, envelope, transform, this,
+                reject, suspend, resumed, context, discloseAuthorized, discloseRedacted);
     }
 
     Long nextTransformAuthorization()

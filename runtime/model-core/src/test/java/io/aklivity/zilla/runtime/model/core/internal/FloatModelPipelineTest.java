@@ -28,6 +28,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.model.ModelCache;
 import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
@@ -70,7 +71,7 @@ public class FloatModelPipelineTest
     public void shouldTransformNegativeSuffixedValue()
     {
         ModelHandler handler = handler(FloatModelConfig.builder().format("text").build());
-        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
 
         byte[] bytes = "-.1119f".getBytes();
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[32]);
@@ -84,7 +85,7 @@ public class FloatModelPipelineTest
     public void shouldRejectMultipleDecimalPoints()
     {
         ModelHandler handler = handler(FloatModelConfig.builder().format("text").build());
-        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
 
         byte[] bytes = "-.11.19f".getBytes();
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[32]);
@@ -98,7 +99,7 @@ public class FloatModelPipelineTest
     public void shouldTransformWithinMaxLimit()
     {
         ModelHandler handler = handler(FloatModelConfig.builder().format("text").max(99.99f).build());
-        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
 
         byte[] bytes = "99.99f".getBytes();
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[32]);
@@ -116,7 +117,7 @@ public class FloatModelPipelineTest
             .max(99.99f)
             .exclusiveMax(true)
             .build());
-        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
 
         byte[] bytes = "99.99f".getBytes();
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[32]);
@@ -134,7 +135,7 @@ public class FloatModelPipelineTest
             .min(10.0f)
             .exclusiveMin(true)
             .build());
-        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
 
         byte[] bytes = "10.0".getBytes();
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[32]);
@@ -148,7 +149,7 @@ public class FloatModelPipelineTest
     public void shouldRejectNotMultiple()
     {
         ModelHandler handler = handler(FloatModelConfig.builder().format("text").multiple(10.0f).build());
-        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
 
         byte[] bytes = "25".getBytes();
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[32]);
@@ -177,7 +178,7 @@ public class FloatModelPipelineTest
     public void shouldRejectBinaryTooLong()
     {
         ModelHandler handler = handler(FloatModelConfig.builder().format("binary").build());
-        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
 
         byte[] bytes = "Invalid Float".getBytes();
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[64]);
@@ -191,7 +192,7 @@ public class FloatModelPipelineTest
     public void shouldTransformBinaryFragmented()
     {
         ModelHandler handler = handler(FloatModelConfig.builder().format("binary").build());
-        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
 
         byte[] head = {62, -128};
         byte[] tail = {5, 8};
