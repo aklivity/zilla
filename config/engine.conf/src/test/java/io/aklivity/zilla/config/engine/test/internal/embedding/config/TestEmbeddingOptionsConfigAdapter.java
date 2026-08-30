@@ -33,6 +33,6 @@ public class TestEmbeddingOptionsConfigAdapter extends ConfigAdapter<OptionsConf
     public OptionsConfig adaptFromJson(
         JsonObject object)
     {
-        return new OptionsConfig();
+        return new OptionsConfig(null, null);
     }
 }

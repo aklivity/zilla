@@ -40,7 +40,7 @@ public final class EchoOptionsConfig extends OptionsConfig
         ModelConfig value,
         List<NamedConfig> refs)
     {
-        super(List.of(), null, refs);
+        super(null, refs);
         this.value = value;
     }
 }

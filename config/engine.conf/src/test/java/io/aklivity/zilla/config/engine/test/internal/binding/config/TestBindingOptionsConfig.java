@@ -68,7 +68,7 @@ public final class TestBindingOptionsConfig extends OptionsConfig
         List<EnvelopeAssertion> envelopeAssertions,
         List<NamedConfig> refs)
     {
-        super(List.of(), null, refs);
+        super(null, refs);
         this.value = value;
         this.mode = mode;
         this.schema = schema;
