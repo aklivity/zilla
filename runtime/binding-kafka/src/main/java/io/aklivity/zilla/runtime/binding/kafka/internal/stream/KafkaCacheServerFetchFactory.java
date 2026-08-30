@@ -35,6 +35,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.IntConsumer;
 import java.util.function.IntFunction;
 import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
@@ -85,7 +86,6 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaFetchF
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaFlushExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaResetExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ResetFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
@@ -133,7 +133,6 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
     private final FlushFW flushRO = new FlushFW();
     private final ResetFW resetRO = new ResetFW();
     private final WindowFW windowRO = new WindowFW();
-    private final SignalFW signalRO = new SignalFW();
     private final ExtensionFW extensionRO = new ExtensionFW();
     private final KafkaBeginExFW kafkaBeginExRO = new KafkaBeginExFW();
     private final KafkaDataExFW kafkaDataExRO = new KafkaDataExFW();
@@ -602,6 +601,12 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
             if (KafkaState.closed(state))
             {
                 state = 0;
+                initialSeq = 0;
+                initialAck = 0;
+                initialMax = 0;
+                replySeq = 0;
+                replyAck = 0;
+                replyMax = 0;
             }
 
             if (!KafkaState.initialOpening(state))
@@ -745,10 +750,6 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
             case WindowFW.TYPE_ID:
                 final WindowFW window = windowRO.wrap(buffer, index, index + length);
                 onServerFanoutInitialWindow(window);
-                break;
-            case SignalFW.TYPE_ID:
-                final SignalFW signal = signalRO.wrap(buffer, index, index + length);
-                onServerFanoutInitialSignal(signal);
                 break;
             default:
                 break;
@@ -915,14 +916,16 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                     assert retainId == NO_CANCEL_ID;
 
                     final long retainAt = partition.retainAt(nextHead.segment());
-                    this.retainId = doServerFanoutInitialSignalAt(retainAt, traceId, SIGNAL_SEGMENT_RETAIN);
+                    this.retainId = doServerFanoutSignalAt(retainAt, SIGNAL_SEGMENT_RETAIN,
+                        this::onServerFanoutInitialSignalSegmentRetain);
                 }
 
                 if (deleteId == NO_CANCEL_ID &&
                     partition.cleanupPolicy().delete())
                 {
                     final long deleteAt = partition.deleteAt(nextHead.segment(), retentionMillisMax);
-                    this.deleteId = doServerFanoutInitialSignalAt(deleteAt, traceId, SIGNAL_SEGMENT_DELETE);
+                    this.deleteId = doServerFanoutSignalAt(deleteAt, SIGNAL_SEGMENT_DELETE,
+                        this::onServerFanoutInitialSignalSegmentDelete);
                 }
 
                 IntFunction<KafkaCacheEntryFW> findAncestor =
@@ -996,7 +999,8 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                             if (compactId == NO_CANCEL_ID)
                             {
                                 this.compactAt = newCompactAt;
-                                this.compactId = doServerFanoutInitialSignalAt(newCompactAt, 0, SIGNAL_SEGMENT_COMPACT);
+                                this.compactId = doServerFanoutSignalAt(newCompactAt, SIGNAL_SEGMENT_COMPACT,
+                                    this::onServerFanoutInitialSignalSegmentCompact);
                             }
                         }
                     }
@@ -1038,8 +1042,8 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                                         if (compactId == NO_CANCEL_ID)
                                         {
                                             this.compactAt = newCompactAt;
-                                            this.compactId = doServerFanoutInitialSignalAt(newCompactAt, 0,
-                                                SIGNAL_SEGMENT_COMPACT);
+                                            this.compactId = doServerFanoutSignalAt(newCompactAt, SIGNAL_SEGMENT_COMPACT,
+                                                this::onServerFanoutInitialSignalSegmentCompact);
                                         }
                                     }
                                 }
@@ -1211,35 +1215,15 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
             doServerFanoutInitialBeginIfNecessary(traceId);
         }
 
-        private void onServerFanoutInitialSignal(
-            SignalFW signal)
-        {
-            final int signalId = signal.signalId();
-
-            switch (signalId)
-            {
-            case SIGNAL_SEGMENT_RETAIN:
-                onServerFanoutInitialSignalSegmentRetain(signal);
-                break;
-            case SIGNAL_SEGMENT_DELETE:
-                onServerFanoutInitialSignalSegmentDelete(signal);
-                break;
-            case SIGNAL_SEGMENT_COMPACT:
-                onServerFanoutInitialSignalSegmentCompact(signal);
-                break;
-            }
-        }
-
         private void onServerFanoutInitialSignalSegmentRetain(
-            SignalFW signal)
+            int signalId)
         {
             partition.append(partitionOffset + 1);
         }
 
         private void onServerFanoutInitialSignalSegmentDelete(
-            SignalFW signal)
+            int signalId)
         {
-            final long traceId = signal.traceId();
             final long now = currentTimeMillis();
 
             Node segmentNode = partition.sentinel().next();
@@ -1255,7 +1239,8 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
             if (segmentNode != partition.sentinel() && segmentNode != partition.head())
             {
                 final long deleteAt = partition.deleteAt(segmentNode.segment(), retentionMillisMax);
-                this.deleteId = doServerFanoutInitialSignalAt(deleteAt, traceId, SIGNAL_SEGMENT_DELETE);
+                this.deleteId = doServerFanoutSignalAt(deleteAt, SIGNAL_SEGMENT_DELETE,
+                    this::onServerFanoutInitialSignalSegmentDelete);
             }
             else
             {
@@ -1264,7 +1249,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
         }
 
         private void onServerFanoutInitialSignalSegmentCompact(
-            SignalFW signal)
+            int signalId)
         {
             final long now = currentTimeMillis();
 
@@ -1317,23 +1302,12 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
             }
         }
 
-        private long doServerFanoutInitialSignalAt(
+        private long doServerFanoutSignalAt(
             long timeMillis,
-            long traceId,
-            int signalId)
+            int signalId,
+            IntConsumer handler)
         {
-            long timerId = NO_CANCEL_ID;
-
-            if (timeMillis <= System.currentTimeMillis())
-            {
-                signaler.signalNow(originId, routedId, initialId, traceId, signalId, 0);
-            }
-            else
-            {
-                timerId = signaler.signalAt(timeMillis, originId, routedId, initialId, timerId, signalId, 0);
-            }
-
-            return timerId;
+            return signaler.signalAt(timeMillis, signalId, handler);
         }
     }
 

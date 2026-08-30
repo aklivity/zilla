@@ -608,6 +608,12 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             if (KafkaState.closed(state))
             {
                 state = 0;
+                initialSeq = 0;
+                initialAck = 0;
+                initialMax = 0;
+                replySeq = 0;
+                replyAck = 0;
+                replyMax = 0;
             }
 
             if (!KafkaState.initialOpening(state))
