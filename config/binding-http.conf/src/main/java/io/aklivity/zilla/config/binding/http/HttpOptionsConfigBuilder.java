@@ -127,12 +127,6 @@ public final class HttpOptionsConfigBuilder<T> extends ConfigBuilder<T, HttpOpti
     @Override
     public T build()
     {
-        return mapper.apply(new HttpOptionsConfig(versions, overrides, access, authorization, requests, refs(requests)));
-    }
-
-    private static List<NamedConfig> refs(
-        List<HttpRequestConfig> requests)
-    {
         List<NamedConfig> refs = new ArrayList<>();
         if (requests != null)
         {
@@ -141,6 +135,6 @@ public final class HttpOptionsConfigBuilder<T> extends ConfigBuilder<T, HttpOpti
                 refs.addAll(request.refs());
             }
         }
-        return refs;
+        return mapper.apply(new HttpOptionsConfig(versions, overrides, access, authorization, requests, refs));
     }
 }

@@ -81,12 +81,6 @@ public class SseOptionsConfigBuilder<T> extends ConfigBuilder<T, SseOptionsConfi
     @Override
     public T build()
     {
-        return mapper.apply(new SseOptionsConfig(retry, requests, refs(requests)));
-    }
-
-    private static List<NamedConfig> refs(
-        List<SseRequestConfig> requests)
-    {
         List<NamedConfig> refs = new ArrayList<>();
         if (requests != null)
         {
@@ -95,6 +89,6 @@ public class SseOptionsConfigBuilder<T> extends ConfigBuilder<T, SseOptionsConfi
                 refs.addAll(request.refs());
             }
         }
-        return refs;
+        return mapper.apply(new SseOptionsConfig(retry, requests, refs));
     }
 }

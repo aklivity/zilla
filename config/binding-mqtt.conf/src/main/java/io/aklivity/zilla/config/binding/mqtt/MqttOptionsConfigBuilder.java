@@ -125,12 +125,6 @@ public class MqttOptionsConfigBuilder<T> extends ConfigBuilder<T, MqttOptionsCon
     @Override
     public T build()
     {
-        return mapper.apply(new MqttOptionsConfig(authorization, topics, versions, store, server, refs(topics)));
-    }
-
-    private static List<NamedConfig> refs(
-        List<MqttTopicConfig> topics)
-    {
         List<NamedConfig> refs = new ArrayList<>();
         if (topics != null)
         {
@@ -139,6 +133,6 @@ public class MqttOptionsConfigBuilder<T> extends ConfigBuilder<T, MqttOptionsCon
                 refs.addAll(topic.refs());
             }
         }
-        return refs;
+        return mapper.apply(new MqttOptionsConfig(authorization, topics, versions, store, server, refs));
     }
 }

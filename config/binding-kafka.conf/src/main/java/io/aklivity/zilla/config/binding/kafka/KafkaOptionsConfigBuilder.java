@@ -106,12 +106,6 @@ public final class KafkaOptionsConfigBuilder<T> extends ConfigBuilder<T, KafkaOp
     @Override
     public T build()
     {
-        return mapper.apply(new KafkaOptionsConfig(bootstrap, topics, servers, authorization, refs(topics)));
-    }
-
-    private static List<NamedConfig> refs(
-        List<KafkaTopicConfig> topics)
-    {
         List<NamedConfig> refs = new ArrayList<>();
         if (topics != null)
         {
@@ -120,6 +114,6 @@ public final class KafkaOptionsConfigBuilder<T> extends ConfigBuilder<T, KafkaOp
                 refs.addAll(topic.refs());
             }
         }
-        return refs;
+        return mapper.apply(new KafkaOptionsConfig(bootstrap, topics, servers, authorization, refs));
     }
 }

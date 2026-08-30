@@ -195,9 +195,27 @@ public class HttpRequestConfigBuilder<T> extends ConfigBuilder<T, HttpRequestCon
         {
             refs.addAll(content.refs());
         }
-        refs(refs, headers);
-        refs(refs, pathParams);
-        refs(refs, queryParams);
+        if (headers != null)
+        {
+            for (HttpParamConfig header : headers)
+            {
+                refs.addAll(header.refs());
+            }
+        }
+        if (pathParams != null)
+        {
+            for (HttpParamConfig pathParam : pathParams)
+            {
+                refs.addAll(pathParam.refs());
+            }
+        }
+        if (queryParams != null)
+        {
+            for (HttpParamConfig queryParam : queryParams)
+            {
+                refs.addAll(queryParam.refs());
+            }
+        }
         if (responses != null)
         {
             for (HttpResponseConfig response : responses)
@@ -207,18 +225,5 @@ public class HttpRequestConfigBuilder<T> extends ConfigBuilder<T, HttpRequestCon
         }
         return mapper.apply(new HttpRequestConfig(path, method, contentTypes, headers, pathParams, queryParams, content,
             responses, refs));
-    }
-
-    private static void refs(
-        List<NamedConfig> refs,
-        List<HttpParamConfig> params)
-    {
-        if (params != null)
-        {
-            for (HttpParamConfig param : params)
-            {
-                refs.addAll(param.refs());
-            }
-        }
     }
 }

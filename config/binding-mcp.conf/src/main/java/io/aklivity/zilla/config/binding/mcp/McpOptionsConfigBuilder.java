@@ -99,11 +99,6 @@ public final class McpOptionsConfigBuilder<T> extends ConfigBuilder<T, McpOption
     @Override
     public T build()
     {
-        return mapper.apply(new McpOptionsConfig(elicitation, authorization, cache, server, tools, refs()));
-    }
-
-    private List<NamedConfig> refs()
-    {
         List<NamedConfig> refs = new ArrayList<>();
         if (tools != null)
         {
@@ -116,6 +111,6 @@ public final class McpOptionsConfigBuilder<T> extends ConfigBuilder<T, McpOption
                 refs.addAll(index.refs());
             }
         }
-        return refs;
+        return mapper.apply(new McpOptionsConfig(elicitation, authorization, cache, server, tools, refs));
     }
 }
