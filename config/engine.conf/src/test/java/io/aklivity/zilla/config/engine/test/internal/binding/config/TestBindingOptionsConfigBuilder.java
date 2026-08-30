@@ -22,6 +22,7 @@ import java.util.function.Function;
 import io.aklivity.zilla.config.engine.CatalogedConfig;
 import io.aklivity.zilla.config.engine.ConfigBuilder;
 import io.aklivity.zilla.config.engine.ModelConfig;
+import io.aklivity.zilla.config.engine.NamedConfig;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 import io.aklivity.zilla.config.engine.test.internal.binding.config.TestBindingOptionsConfig.VaultAssertion;
 
@@ -247,7 +248,9 @@ public final class TestBindingOptionsConfigBuilder<T> extends ConfigBuilder<T, T
     @Override
     public T build()
     {
+        List<NamedConfig> refs = value != null ? value.refs() : List.of();
         return mapper.apply(new TestBindingOptionsConfig(value, mode, schema, authorization, catalogs, events,
-                metrics, catalogAssertions, vaultAssertion, store, storeAssertions, envelope, envelopeAssertions));
+                metrics, catalogAssertions, vaultAssertion, store, storeAssertions, envelope, envelopeAssertions,
+                refs));
     }
 }

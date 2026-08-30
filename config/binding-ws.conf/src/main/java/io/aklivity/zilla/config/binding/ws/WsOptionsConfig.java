@@ -42,6 +42,7 @@ public final class WsOptionsConfig extends OptionsConfig
         String authority,
         String path)
     {
+        super(null, null);
         this.protocol = protocol;
         this.scheme = scheme;
         this.authority = authority;

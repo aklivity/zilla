@@ -33,5 +33,6 @@ public final class ProxyOptionsConfig extends OptionsConfig
 
     ProxyOptionsConfig()
     {
+        super(null, null);
     }
 }

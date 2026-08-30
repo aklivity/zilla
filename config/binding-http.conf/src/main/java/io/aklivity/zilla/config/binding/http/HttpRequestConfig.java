@@ -20,6 +20,7 @@ import java.util.List;
 
 import io.aklivity.zilla.config.engine.Config;
 import io.aklivity.zilla.config.engine.ModelConfig;
+import io.aklivity.zilla.config.engine.NamedConfig;
 
 public class HttpRequestConfig extends Config
 {
@@ -43,6 +44,7 @@ public class HttpRequestConfig extends Config
     public final List<HttpParamConfig> queryParams;
     public final ModelConfig content;
     public final List<HttpResponseConfig> responses;
+    private final List<NamedConfig> refs;
 
     HttpRequestConfig(
         String path,
@@ -52,7 +54,8 @@ public class HttpRequestConfig extends Config
         List<HttpParamConfig> pathParams,
         List<HttpParamConfig> queryParams,
         ModelConfig content,
-        List<HttpResponseConfig> responses)
+        List<HttpResponseConfig> responses,
+        List<NamedConfig> refs)
     {
         this.path = path;
         this.method = method;
@@ -62,6 +65,12 @@ public class HttpRequestConfig extends Config
         this.queryParams = queryParams;
         this.content = content;
         this.responses = responses;
+        this.refs = refs;
+    }
+
+    public List<NamedConfig> refs()
+    {
+        return refs;
     }
 
     public static HttpRequestConfigBuilder<HttpRequestConfig> builder()

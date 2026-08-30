@@ -37,6 +37,7 @@ public final class AsyncapiOptionsConfig extends OptionsConfig
     AsyncapiOptionsConfig(
         List<AsyncapiSpecificationConfig> specs)
     {
+        super(null, null);
         this.specs = specs;
     }
 }

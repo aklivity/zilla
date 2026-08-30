@@ -36,6 +36,7 @@ public class PrometheusOptionsConfig extends OptionsConfig
     PrometheusOptionsConfig(
         PrometheusEndpointConfig[] endpoints)
     {
+        super(null, null);
         this.endpoints = endpoints;
     }
 }

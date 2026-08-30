@@ -36,6 +36,7 @@ public final class OpenapiAsyncapiOptionsConfig extends OptionsConfig
     OpenapiAsyncapiOptionsConfig(
         OpenapiAsyncapiSpecConfig specs)
     {
+        super(null, null);
         this.specs = specs;
     }
 }

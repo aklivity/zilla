@@ -117,7 +117,9 @@ public class MqttOptionsConfigAdapterTest
                 new MqttUserPropertyConfig("user-property",
                     TestModelConfig.builder()
                         .length(0)
-                        .build()))));
+                        .build(),
+                    List.of())),
+            List.of()));
         List<MqttVersion> versions = new ArrayList<>();
         versions.add(MqttVersion.V3_1_1);
         versions.add(MqttVersion.V_5);
