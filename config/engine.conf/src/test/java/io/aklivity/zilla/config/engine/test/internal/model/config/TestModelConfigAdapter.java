@@ -44,6 +44,7 @@ public class TestModelConfigAdapter extends ConfigAdapter<ModelConfig, JsonValue
     private static final String FIELDS = "fields";
     private static final String DISCLOSE_AUTHORIZED = "discloseAuthorized";
     private static final String DISCLOSE_REDACTED = "discloseRedacted";
+    private static final String ENVELOPE_DISCLOSE = "envelopeDisclose";
 
     private final SchemaConfigAdapter schema = new SchemaConfigAdapter();
     private final ValidateConfigAdapter validate = new ValidateConfigAdapter();
@@ -125,9 +126,13 @@ public class TestModelConfigAdapter extends ConfigAdapter<ModelConfig, JsonValue
             ? object.getString(DISCLOSE_REDACTED)
             : null;
 
+        String envelopeDiscloseName = object.containsKey(ENVELOPE_DISCLOSE)
+            ? object.getString(ENVELOPE_DISCLOSE)
+            : null;
+
         ValidateConfig validateConfig = validate.adaptFromJsonObject(object);
 
         return new TestModelConfig(length, catalogs, read, transformLength, fields, validateConfig,
-            transformAuthorizations, discloseAuthorized, discloseRedacted);
+            transformAuthorizations, discloseAuthorized, discloseRedacted, envelopeDiscloseName);
     }
 }

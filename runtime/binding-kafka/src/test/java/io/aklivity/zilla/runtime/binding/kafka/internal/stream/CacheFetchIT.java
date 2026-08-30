@@ -437,6 +437,37 @@ public class CacheFetchIT
         k3po.finish();
     }
 
+    // proves the fetch path's decode-direction ModelEnvelope is backed by the fetched record's real
+    // Kafka headers rather than ModelEnvelope.NONE: the model discloses the real value only when
+    // envelope.count("trace") is non-zero, which is only possible if the envelope it was supplied
+    // actually reflects the "trace" header this record was populated with
+    @Test
+    @Configuration("cache.value.model.envelope.disclose.yaml")
+    @Specification({
+        "${app}/message.value.envelope.disclose/client",
+        "${app}/message.value.envelope.disclose/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldReceiveMessageValueEnvelopeDisclose() throws Exception
+    {
+        partition.append(30L);
+        k3po.finish();
+    }
+
+    // the same envelope wiring, but the record was populated with a different header name ("other")
+    // than the one configured to disclose ("trace") -- the envelope must report a zero count for the
+    // absent name, so the value is redacted rather than mistakenly disclosed
+    @Test
+    @Configuration("cache.value.model.envelope.disclose.yaml")
+    @Specification({
+        "${app}/message.value.envelope.redact/client",
+        "${app}/message.value.envelope.redact/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldReceiveMessageValueEnvelopeRedact() throws Exception
+    {
+        partition.append(31L);
+        k3po.finish();
+    }
+
     // exercises the populate-then-fetch round trip through a real, format-converting model (avro +
     // view: json) rather than TestModel's identity decode: the cache_server side (WRITE) decodes the raw
     // avro wire bytes into cached json, and the cache_client side (READ) re-decodes that cached json for

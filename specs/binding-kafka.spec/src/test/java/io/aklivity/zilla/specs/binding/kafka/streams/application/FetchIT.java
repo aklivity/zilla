@@ -311,6 +311,22 @@ public class FetchIT
 
     @Test
     @Specification({
+        "${app}/message.value.envelope.disclose/client",
+        "${app}/message.value.envelope.disclose/server"})
+    public void shouldReceiveMessageValueEnvelopeDisclose() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // message.value.envelope.redact has no peer-to-peer counterpart here: the client expects the
+    // redacted bytes ("REDACTED!!!!") while the server writes the raw wire bytes ("Hello, world") --
+    // reconciling the two is exactly what the engine's envelope-presence disclose transform does, so
+    // there is nothing for this pairing to verify without a live engine. The scenario is still fully
+    // covered by CacheFetchIT#shouldReceiveMessageValueEnvelopeRedact, which drives it through a live
+    // engine instead.
+
+    @Test
+    @Specification({
         "${app}/message.headers.repeated/client",
         "${app}/message.headers.repeated/server"})
     public void shouldReceiveMessageHeadersRepeated() throws Exception

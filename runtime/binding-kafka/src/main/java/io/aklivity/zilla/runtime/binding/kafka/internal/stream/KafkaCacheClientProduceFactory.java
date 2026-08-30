@@ -44,6 +44,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheCursorFa
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheModel;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCachePartition;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheTopic;
+import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheTrailerEnvelope;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaBindingConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaRouteConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaTopicType;
@@ -86,6 +87,7 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.budget.BudgetCreditor;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
+import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 
 public final class KafkaCacheClientProduceFactory implements BindingHandler
 {
@@ -151,6 +153,8 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
     private final KafkaDataExFW kafkaDataExRO = new KafkaDataExFW();
     private final KafkaResetExFW.Builder kafkaResetExRW = new KafkaResetExFW.Builder();
     private final KafkaFlushExFW.Builder kafkaFlushExRW = new KafkaFlushExFW.Builder();
+    private final Array32FW.Builder<KafkaHeaderFW.Builder, KafkaHeaderFW> mergedTrailersRW =
+        new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW());
 
     private final KafkaCacheEntryFW entryRO = new KafkaCacheEntryFW();
 
@@ -163,6 +167,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
     private final MutableDirectBufferEx writeBuffer;
     private final MutableDirectBufferEx extBuffer;
     private final MutableDirectBufferEx transformBuffer;
+    private final MutableDirectBufferEx trailersMergeBuffer;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final LongSupplier supplyTraceId;
@@ -193,6 +198,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
         this.writeBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
         this.extBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
         this.transformBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
+        this.trailersMergeBuffer = new UnsafeBufferEx(new byte[context.writeBuffer().capacity()]);
         this.bufferPool = context.bufferPool();
         this.creditor = context.creditor();
         this.signaler = context.signaler();
@@ -682,6 +688,8 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
             init:
             if ((flags & FLAGS_INIT) != 0x00)
             {
+                stream.transformValueEnvelope.reset();
+
                 final OctetsFW extension = data.extension();
                 final ExtensionFW dataEx = extension.get(extensionRO::tryWrap);
                 assert dataEx != null && dataEx.typeId() == kafkaTypeId;
@@ -757,6 +765,18 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                         final KafkaProduceDataExFW kafkaProduceDataExFW = kafkaDataEx.produce();
                         trailers = kafkaProduceDataExFW.headers();
                     }
+                }
+
+                if (!stream.transformValueEnvelope.isEmpty())
+                {
+                    final Array32FW.Builder<KafkaHeaderFW.Builder, KafkaHeaderFW> mergedTrailers =
+                        mergedTrailersRW.wrap(trailersMergeBuffer, 0, trailersMergeBuffer.capacity());
+                    trailers.forEach(t -> mergedTrailers.item(h -> h.nameLen(t.name().sizeof())
+                        .name(t.name().value(), 0, t.name().sizeof())
+                        .valueLen(t.value().sizeof())
+                        .value(t.value().value(), 0, t.value().sizeof())));
+                    stream.transformValueEnvelope.writeHeaders(mergedTrailers);
+                    trailers = mergedTrailers.build();
                 }
 
                 partition.writeProduceEntryFin(stream.segment, stream.entryMark, stream.valueLimit, stream.initialSeq, trailers);
@@ -1234,6 +1254,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
         private final long authorization;
         private final KafkaCacheModel transformKey;
         private final KafkaCacheModel transformValue;
+        private final KafkaCacheTrailerEnvelope transformValueEnvelope;
 
         private long partitionOffset = DEFAULT_LATEST_OFFSET;
 
@@ -1276,8 +1297,10 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.leaderId = leaderId;
             this.authorization = authorization;
-            this.transformKey = KafkaCacheModel.encoder(topicType.keyModel, transformBuffer);
-            this.transformValue = KafkaCacheModel.encoder(topicType.valueModel, transformBuffer);
+            this.transformValueEnvelope = new KafkaCacheTrailerEnvelope();
+            this.transformKey = KafkaCacheModel.encoder(topicType.keyModel, ModelEnvelope.NONE, transformBuffer);
+            this.transformValue =
+                KafkaCacheModel.encoder(topicType.valueModel, transformValueEnvelope, transformBuffer);
         }
 
         private void onClientMessage(

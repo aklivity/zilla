@@ -44,6 +44,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCache;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheCursorFactory;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheCursorFactory.KafkaCacheCursor;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheCursorFactory.KafkaFilterCondition;
+import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheHeadersEnvelope;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheModel;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCachePartition;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCachePartition.Node;
@@ -903,6 +904,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
         private final LongSupplier isolatedOffset;
         private final LongSupplier initialGroupIsolatedOffset;
         private final KafkaCacheModel valueDecoder;
+        private final KafkaCacheHeadersEnvelope valueEnvelope;
         private final MutableDirectBufferEx transformBuffer;
         private final OctetsFW decodedValueRO = new OctetsFW();
 
@@ -965,7 +967,9 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             this.initialGroupIsolatedOffset = isolation ==
                     READ_COMMITTED ? () -> initialGroupStableOffset : () -> initialGroupLatestOffset;
             this.transformBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
-            this.valueDecoder = KafkaCacheModel.reader(topicType.valueModel, ModelTransform.NONE, transformBuffer);
+            this.valueEnvelope = new KafkaCacheHeadersEnvelope();
+            this.valueDecoder =
+                KafkaCacheModel.reader(topicType.valueModel, ModelTransform.NONE, valueEnvelope, transformBuffer);
         }
 
         private void onClientMessage(
@@ -1282,6 +1286,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             {
                 if (messageOffset == 0)
                 {
+                    valueEnvelope.wrap(headers, trailers);
                     decodeValue(traceId, value);
                 }
                 value = decodedValueRO.wrap(transformBuffer, 0, decodedLength);

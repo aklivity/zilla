@@ -40,6 +40,7 @@ public class TestModelHandler implements ModelHandler
     private final List<Long> transformAuthorizations;
     private final List<Long> discloseAuthorized;
     private final DirectBufferEx discloseRedacted;
+    private final String envelopeDiscloseName;
 
     private int transformAuthorizationIndex;
 
@@ -56,6 +57,7 @@ public class TestModelHandler implements ModelHandler
         this.discloseRedacted = config.discloseRedacted != null
             ? new UnsafeBufferEx(config.discloseRedacted.getBytes(UTF_8))
             : null;
+        this.envelopeDiscloseName = config.envelopeDiscloseName;
     }
 
     @Override
@@ -66,9 +68,9 @@ public class TestModelHandler implements ModelHandler
     {
         return cache == ModelCache.WRITE
             ? new TestModelPipeline(length, transformLength, fields, decodeLenient, envelope, transform, this,
-                null, null)
+                null, null, null)
             : new TestModelPipeline(length, transformLength, fields, decodeLenient, envelope, transform, this,
-                discloseAuthorized, discloseRedacted);
+                discloseAuthorized, discloseRedacted, envelopeDiscloseName);
     }
 
     @Override
@@ -77,7 +79,7 @@ public class TestModelHandler implements ModelHandler
         ModelTransform transform)
     {
         return new TestModelPipeline(length, transformLength, fields, encodeLenient, envelope, transform, this,
-            null, null);
+            null, null, null);
     }
 
     Long nextTransformAuthorization()
