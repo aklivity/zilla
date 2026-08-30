@@ -24,14 +24,16 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 public final class ConfigExtAdapter<T extends Config.Extensible>
 {
     private static final Map<String, JsonbAdapter<? extends Config, JsonArray>> NO_ARRAY_ADAPTERS = Map.of();
+    private static final Map<String, JsonbAdapter<? extends Config, JsonObject>> NO_ITEM_ADAPTERS = Map.of();
 
     private final Map<String, JsonbAdapter<? extends Config, JsonObject>> adaptersByName;
     private final Map<String, JsonbAdapter<? extends Config, JsonArray>> arrayAdaptersByName;
+    private final Map<String, JsonbAdapter<? extends Config, JsonObject>> itemAdaptersByName;
 
     public ConfigExtAdapter(
         Map<String, JsonbAdapter<? extends Config, JsonObject>> adaptersByName)
     {
-        this(adaptersByName, NO_ARRAY_ADAPTERS);
+        this(adaptersByName, NO_ARRAY_ADAPTERS, NO_ITEM_ADAPTERS);
     }
 
     // an extension is usually keyed to a JSON object, but some extensions are naturally list-shaped in
@@ -42,8 +44,22 @@ public final class ConfigExtAdapter<T extends Config.Extensible>
         Map<String, JsonbAdapter<? extends Config, JsonObject>> adaptersByName,
         Map<String, JsonbAdapter<? extends Config, JsonArray>> arrayAdaptersByName)
     {
+        this(adaptersByName, arrayAdaptersByName, NO_ITEM_ADAPTERS);
+    }
+
+    // adaptersByName/arrayAdaptersByName bolt an optional named field onto the owner's own JSON object.
+    // itemAdaptersByName is a different shape: it registers one additional discriminated variant of a
+    // field the owner's own schema already declares as an array of type-selected items (e.g. binding-mcp's
+    // search index list) -- keyed by that item's own type value rather than by a field name, and consulted
+    // by the owner's own per-item adapter only for type values it does not already recognize itself
+    public ConfigExtAdapter(
+        Map<String, JsonbAdapter<? extends Config, JsonObject>> adaptersByName,
+        Map<String, JsonbAdapter<? extends Config, JsonArray>> arrayAdaptersByName,
+        Map<String, JsonbAdapter<? extends Config, JsonObject>> itemAdaptersByName)
+    {
         this.adaptersByName = adaptersByName;
         this.arrayAdaptersByName = arrayAdaptersByName;
+        this.itemAdaptersByName = itemAdaptersByName;
     }
 
     // config need only be Extensible, not specifically T: adaptFromJson below is already generic over any
@@ -125,6 +141,51 @@ public final class ConfigExtAdapter<T extends Config.Extensible>
         }
 
         return builder;
+    }
+
+    // dispatch for one discriminated array item this extension recognizes by its own type value;
+    // returns null when this extension does not handle that type, so the owner's per-item adapter
+    // can fall through to whichever other registered extension (or its own built-in types) does
+    @SuppressWarnings("unchecked")
+    public JsonObject adaptItemToJson(
+        String type,
+        Config item)
+    {
+        JsonbAdapter<? extends Config, JsonObject> adapter = itemAdaptersByName.get(type);
+        JsonObject adapted = null;
+        if (adapter != null)
+        {
+            try
+            {
+                adapted = ((JsonbAdapter<Config, JsonObject>) adapter).adaptToJson(item);
+            }
+            catch (Exception ex)
+            {
+                throw new IllegalArgumentException(ex);
+            }
+        }
+        return adapted;
+    }
+
+    @SuppressWarnings("unchecked")
+    public Config adaptItemFromJson(
+        String type,
+        JsonObject object)
+    {
+        JsonbAdapter<? extends Config, JsonObject> adapter = itemAdaptersByName.get(type);
+        Config adapted = null;
+        if (adapter != null)
+        {
+            try
+            {
+                adapted = ((JsonbAdapter<Config, JsonObject>) adapter).adaptFromJson(object);
+            }
+            catch (Exception ex)
+            {
+                throw new IllegalArgumentException(ex);
+            }
+        }
+        return adapted;
     }
 
     private static <B extends ConfigBuilder.Extensible<?, B>> B adaptRef(

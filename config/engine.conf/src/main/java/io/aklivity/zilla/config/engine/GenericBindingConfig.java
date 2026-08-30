@@ -15,6 +15,7 @@
 package io.aklivity.zilla.config.engine;
 
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 
 public final class GenericBindingConfig extends BindingConfig
@@ -59,5 +60,22 @@ public final class GenericBindingConfig extends BindingConfig
         TelemetryRefConfig telemetryRef)
     {
         super(namespace, name, type, kind, entry, vault, options, catalogs, routes, telemetryRef);
+    }
+
+    GenericBindingConfig(
+        String namespace,
+        String name,
+        String type,
+        KindConfig kind,
+        String entry,
+        String vault,
+        OptionsConfig options,
+        List<CatalogedConfig> catalogs,
+        List<RouteConfig> routes,
+        TelemetryRefConfig telemetryRef,
+        Map<String, Config> extensions,
+        List<NamedConfig> refs)
+    {
+        super(namespace, name, type, kind, entry, vault, options, catalogs, routes, telemetryRef, extensions, refs);
     }
 }

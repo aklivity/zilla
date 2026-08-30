@@ -38,6 +38,8 @@ import org.junit.Test;
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.config.engine.GenericBindingConfig;
 import io.aklivity.zilla.config.engine.RouteConfig;
+import io.aklivity.zilla.config.engine.test.internal.binding.TestBindingExtConfig;
+import io.aklivity.zilla.config.engine.test.internal.binding.TestBindingExtConfigBuilder;
 import io.aklivity.zilla.config.engine.test.internal.binding.TestBindingInfo;
 import io.aklivity.zilla.config.engine.test.internal.binding.config.TestBindingOptionsConfig;
 
@@ -445,5 +447,44 @@ public class BindingConfigAdapterTest
         assertThat(object, not(nullValue()));
         assertThat(object.toString(), equalTo("{\"type\":\"test\",\"kind\":\"remote_server\"," +
                 "\"entry\":\"test_entry\",\"exit\":\"test\"}"));
+    }
+
+    @Test
+    public void shouldReadBindingWithExtension() throws Exception
+    {
+        String text =
+                "{" +
+                    "\"type\": \"test\"," +
+                    "\"kind\": \"server\"," +
+                    "\"extra\":" +
+                    "{" +
+                        "\"value\": \"value0\"" +
+                    "}" +
+                "}";
+
+        JsonObject object = Json.createReader(new StringReader(text)).readObject();
+        BindingConfig binding = adapter.adaptFromJson("test", "test", object);
+
+        assertThat(binding, not(nullValue()));
+        assertThat(binding.ext("extra", TestBindingExtConfig.class).value, equalTo("value0"));
+    }
+
+    @Test
+    public void shouldWriteBindingWithExtension() throws Exception
+    {
+        BindingConfig binding = GenericBindingConfig.builder()
+            .namespace("test")
+            .name("test")
+            .type("test")
+            .kind(SERVER)
+            .ext(TestBindingExtConfigBuilder::new)
+                .value("value0")
+                .build()
+            .build();
+
+        JsonObject object = adapter.adaptToJson(binding);
+
+        assertThat(object, not(nullValue()));
+        assertThat(object.toString(), equalTo("{\"type\":\"test\",\"kind\":\"server\",\"extra\":{\"value\":\"value0\"}}"));
     }
 }

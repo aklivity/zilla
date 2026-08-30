@@ -17,9 +17,10 @@ package io.aklivity.zilla.config.engine;
 import static java.util.Objects.requireNonNull;
 
 import java.util.List;
+import java.util.Map;
 import java.util.function.ToLongFunction;
 
-public abstract class BindingConfig extends Config
+public abstract class BindingConfig extends Config.Extensible
 {
     public transient long id;
     public transient long entryId;
@@ -60,6 +61,24 @@ public abstract class BindingConfig extends Config
         List<RouteConfig> routes,
         TelemetryRefConfig telemetryRef)
     {
+        this(namespace, name, type, kind, entry, vault, options, catalogs, routes, telemetryRef, null, null);
+    }
+
+    protected BindingConfig(
+        String namespace,
+        String name,
+        String type,
+        KindConfig kind,
+        String entry,
+        String vault,
+        OptionsConfig options,
+        List<CatalogedConfig> catalogs,
+        List<RouteConfig> routes,
+        TelemetryRefConfig telemetryRef,
+        Map<String, Config> extensions,
+        List<NamedConfig> refs)
+    {
+        super(extensions, refs);
         this.namespace = requireNonNull(namespace);
         this.name = requireNonNull(name);
         this.qname = String.format("%s:%s", namespace, name);
