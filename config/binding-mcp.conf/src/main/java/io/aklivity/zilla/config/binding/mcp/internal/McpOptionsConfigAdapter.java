@@ -15,6 +15,7 @@
 package io.aklivity.zilla.config.binding.mcp.internal;
 
 import java.time.Duration;
+import java.util.List;
 
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
@@ -29,6 +30,7 @@ import io.aklivity.zilla.config.binding.mcp.McpElicitationConfigBuilder;
 import io.aklivity.zilla.config.binding.mcp.McpOptionsConfig;
 import io.aklivity.zilla.config.binding.mcp.McpOptionsConfigBuilder;
 import io.aklivity.zilla.config.engine.ConfigAdapter;
+import io.aklivity.zilla.config.engine.ConfigExtAdapter;
 import io.aklivity.zilla.config.engine.ModelConfig;
 import io.aklivity.zilla.config.engine.ModelConfigAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfig;
@@ -56,7 +58,13 @@ public final class McpOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, 
     private static final String TOOLS_NAME = "tools";
 
     private final ModelConfigAdapter model = new ModelConfigAdapter();
-    private final McpCacheToolsConfigAdapter cacheTools = new McpCacheToolsConfigAdapter();
+    private final McpCacheToolsConfigAdapter cacheTools;
+
+    public McpOptionsConfigAdapter(
+        List<ConfigExtAdapter<OptionsConfig>> extensions)
+    {
+        this.cacheTools = new McpCacheToolsConfigAdapter(extensions);
+    }
 
     @Override
     public JsonObject adaptToJson(

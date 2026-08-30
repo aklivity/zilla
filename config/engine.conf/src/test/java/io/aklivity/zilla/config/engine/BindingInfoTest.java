@@ -15,35 +15,26 @@
 package io.aklivity.zilla.config.engine;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasSize;
 
-import java.net.URL;
-import java.util.Collection;
+import java.util.List;
 
 import org.junit.Test;
 
 import io.aklivity.zilla.config.engine.test.internal.binding.TestBindingExtInfo;
-import io.aklivity.zilla.config.engine.test.internal.model.TestModelExtInfo;
+import io.aklivity.zilla.config.engine.test.internal.binding.TestBindingInfo;
 
-public class EngineInfoTest
+public class BindingInfoTest
 {
     @Test
-    public void shouldIncludeModelExtensionSchemaPatches()
+    public void shouldReturnOnlyMatchingExtensions()
     {
-        EngineInfo info = new EngineInfo();
+        BindingInfo info = new TestBindingInfo();
 
-        Collection<URL> patches = info.patches();
+        List<BindingExtInfo> extensions = info.extensions();
 
-        assertThat(patches, hasItem(new TestModelExtInfo().schema()));
-    }
-
-    @Test
-    public void shouldIncludeBindingExtensionSchemaPatches()
-    {
-        EngineInfo info = new EngineInfo();
-
-        Collection<URL> patches = info.patches();
-
-        assertThat(patches, hasItem(new TestBindingExtInfo().schema()));
+        assertThat(extensions, hasSize(1));
+        assertThat(extensions.get(0).type(), equalTo(TestBindingExtInfo.TYPE));
     }
 }
