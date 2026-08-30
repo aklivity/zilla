@@ -29,9 +29,6 @@ public abstract class McpToolSearchIndexConfig extends Config
         this.type = type;
     }
 
-    // overridden by an index type that itself references a named engine concept (e.g. an
-    // embeddings: entry), so the engine's generic resolver walk can pick it up alongside every
-    // other reference this binding's options contribute
     public List<NamedConfig> refs()
     {
         return List.of();

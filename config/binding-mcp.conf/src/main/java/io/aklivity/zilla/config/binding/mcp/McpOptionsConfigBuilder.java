@@ -102,9 +102,6 @@ public final class McpOptionsConfigBuilder<T> extends ConfigBuilder<T, McpOption
         return mapper.apply(new McpOptionsConfig(elicitation, authorization, cache, server, tools, refs()));
     }
 
-    // any configured tool search index (e.g. an externally-registered semantic backend) may itself
-    // reference a named engine concept (e.g. an embeddings: entry); fold those in here so
-    // McpOptionsConfig only ever needs the assembled list, not the cache shape it came from
     private List<NamedConfig> refs()
     {
         List<NamedConfig> refs = new ArrayList<>();

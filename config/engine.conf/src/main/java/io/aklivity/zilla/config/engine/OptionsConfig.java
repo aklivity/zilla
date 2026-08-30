@@ -47,9 +47,6 @@ public class OptionsConfig extends Config.Extensible
         this.resources = resources;
     }
 
-    // each model may itself carry refs (cataloged catalogs, schema overlays, or refs an
-    // installed extension contributed), so fold those in alongside this options' own,
-    // letting the engine resolve every name this options carries with one generic walk
     private static List<NamedConfig> withModels(
         List<ModelConfig> models,
         List<NamedConfig> refs)
