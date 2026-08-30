@@ -22,14 +22,18 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.List.of;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.Clock;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -40,9 +44,17 @@ import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.config.engine.GenericBindingConfig;
 import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
+import io.aklivity.zilla.runtime.binding.mcp.internal.search.McpFailingToolSearchIndexConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.search.McpToolByteRange;
 import io.aklivity.zilla.runtime.binding.mcp.internal.stream.cache.McpProxyCache.McpListCache;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.event.EventFW;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.event.McpEventExFW;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.event.McpSearchIndexFailedExFW;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 
@@ -272,5 +284,70 @@ public class McpProxyCacheTest
         McpToolByteRange range = ranges.get("no_description_tool");
 
         assertThat(range.hasDescription(), equalTo(false));
+    }
+
+    // a configured search-index backend that fails to index (e.g. an unavailable embedding
+    // provider) must not fail silently -- McpProxyCache still proceeds to store the tools list
+    // (see McpProxyCache.settled's own comment), but reports SEARCH_INDEX_FAILED so the failure
+    // is observable via zilla start -l
+    @Test
+    public void shouldReportSearchIndexFailedEventWhenSearchIndexFailsToIndex()
+    {
+        AtomicReference<DirectBufferEx> captured = new AtomicReference<>();
+        MessageConsumer eventWriter = (msgTypeId, buffer, index, length) ->
+        {
+            MutableDirectBufferEx copy = new UnsafeBufferEx(new byte[length]);
+            copy.putBytes(0, buffer, index, length);
+            captured.set(copy);
+        };
+
+        EngineContext context = mock(EngineContext.class);
+        when(context.supplyStore(anyLong())).thenReturn(mock(StoreHandler.class));
+        when(context.supplyGuard(anyLong())).thenReturn(guard);
+        when(context.clock()).thenReturn(Clock.systemUTC());
+        when(context.supplyEventWriter()).thenReturn(eventWriter);
+        doAnswer(invocation ->
+        {
+            ((Runnable) invocation.getArgument(0)).run();
+            return null;
+        }).when(context).dispatch(any());
+
+        BindingConfig binding = GenericBindingConfig.builder()
+            .namespace("test")
+            .name("app0")
+            .type("mcp")
+            .kind(KindConfig.PROXY)
+            .build();
+        binding.id = 1L;
+        binding.resolveId = name -> 1L;
+
+        McpCacheConfig cacheConfig = McpCacheConfig.builder()
+            .store("memory0")
+            .tools()
+                .search()
+                    .toolkit("zilla")
+                    .fields(of("name", "description"))
+                    .index(new McpFailingToolSearchIndexConfig())
+                    .build()
+                .build()
+            .build();
+
+        McpProxyCache searchCache = new McpProxyCache(binding, new McpConfiguration(), context, cacheConfig);
+        McpListCache tools = searchCache.cacheOf(KIND_TOOLS_LIST);
+
+        String value = """
+            {"tools":[{"name": "get_weather","description": "Get current weather"}]}""";
+
+        tools.put(value, completion -> {});
+
+        DirectBufferEx event = captured.get();
+        EventFW eventFW = new EventFW().wrap(event, 0, event.capacity());
+        McpEventExFW extension = new McpEventExFW()
+            .wrap(eventFW.extension().buffer(), eventFW.extension().offset(), eventFW.extension().limit());
+        McpSearchIndexFailedExFW ex = extension.searchIndexFailed();
+
+        assertThat(eventFW.traceId(), equalTo(0L));
+        assertThat(eventFW.namespacedId(), equalTo(1L));
+        assertThat(ex.reason().asString(), equalTo("embedding provider unavailable"));
     }
 }

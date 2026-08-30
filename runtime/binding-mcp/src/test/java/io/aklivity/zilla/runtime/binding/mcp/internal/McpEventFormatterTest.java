@@ -94,4 +94,13 @@ public class McpEventFormatterTest
 
         assertEquals("Elicitation (elicit-1) timed out for session (5ca1ab1e-c0de-4a11-5e55-000100000000).", format());
     }
+
+    @Test
+    public void shouldFormatSearchIndexFailedEvent()
+    {
+        McpEventContext events = newEvents();
+        events.searchIndexFailed(0L, 0L, "embedding provider unavailable");
+
+        assertEquals("MCP tool search index failed. embedding provider unavailable", format());
+    }
 }
