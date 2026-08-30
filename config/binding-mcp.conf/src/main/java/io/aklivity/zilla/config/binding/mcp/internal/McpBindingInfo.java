@@ -44,7 +44,7 @@ public final class McpBindingInfo implements BindingInfo
     @Override
     public ConfigAdapter<OptionsConfig, JsonObject> options()
     {
-        return new McpOptionsConfigAdapter(extensions().stream().map(BindingExtInfo::adapter).toList());
+        return new McpOptionsConfigAdapter(extensions().stream().map(BindingExtInfo::options).toList());
     }
 
     @Override

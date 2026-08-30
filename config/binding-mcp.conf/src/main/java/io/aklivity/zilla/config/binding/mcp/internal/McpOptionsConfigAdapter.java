@@ -29,7 +29,6 @@ import io.aklivity.zilla.config.binding.mcp.McpElicitationConfig;
 import io.aklivity.zilla.config.binding.mcp.McpElicitationConfigBuilder;
 import io.aklivity.zilla.config.binding.mcp.McpOptionsConfig;
 import io.aklivity.zilla.config.binding.mcp.McpOptionsConfigBuilder;
-import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.ConfigExtAdapter;
 import io.aklivity.zilla.config.engine.ModelConfig;
@@ -62,7 +61,7 @@ public final class McpOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, 
     private final McpCacheToolsConfigAdapter cacheTools;
 
     public McpOptionsConfigAdapter(
-        List<ConfigExtAdapter<BindingConfig>> extensions)
+        List<ConfigExtAdapter<OptionsConfig>> extensions)
     {
         this.cacheTools = new McpCacheToolsConfigAdapter(extensions);
     }

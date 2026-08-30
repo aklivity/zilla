@@ -14,6 +14,13 @@
  */
 package io.aklivity.zilla.config.engine;
 
-public interface BindingExtInfo extends ConfigExtInfo<BindingConfig>
+import java.net.URL;
+
+public interface BindingExtInfo
 {
+    String type();
+
+    URL schema();
+
+    ConfigExtAdapter<OptionsConfig> options();
 }

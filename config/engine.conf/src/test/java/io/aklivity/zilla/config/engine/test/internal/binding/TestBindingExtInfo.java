@@ -17,9 +17,9 @@ package io.aklivity.zilla.config.engine.test.internal.binding;
 import java.net.URL;
 import java.util.Map;
 
-import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.config.engine.BindingExtInfo;
 import io.aklivity.zilla.config.engine.ConfigExtAdapter;
+import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public final class TestBindingExtInfo implements BindingExtInfo
 {
@@ -38,8 +38,8 @@ public final class TestBindingExtInfo implements BindingExtInfo
     }
 
     @Override
-    public ConfigExtAdapter<BindingConfig> adapter()
+    public ConfigExtAdapter<OptionsConfig> options()
     {
-        return new ConfigExtAdapter<>(Map.of(TestBindingExtConfig.NAME, new TestBindingExtConfigAdapter()));
+        return new ConfigExtAdapter<>(Map.of());
     }
 }

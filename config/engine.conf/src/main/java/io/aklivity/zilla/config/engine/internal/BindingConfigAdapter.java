@@ -29,11 +29,9 @@ import jakarta.json.JsonValue;
 import org.agrona.collections.MutableInteger;
 
 import io.aklivity.zilla.config.engine.BindingConfig;
-import io.aklivity.zilla.config.engine.BindingExtInfo;
 import io.aklivity.zilla.config.engine.BindingInfo;
 import io.aklivity.zilla.config.engine.CatalogedConfig;
 import io.aklivity.zilla.config.engine.ConfigAdapter;
-import io.aklivity.zilla.config.engine.ConfigExtAdapter;
 import io.aklivity.zilla.config.engine.GenericBindingConfig;
 import io.aklivity.zilla.config.engine.GenericBindingConfigBuilder;
 import io.aklivity.zilla.config.engine.OptionsConfig;
@@ -59,7 +57,6 @@ public class BindingConfigAdapter
     private final RouteConfigAdapter route;
     private final SchemaConfigAdapter schema;
     private final TelemetryRefConfigAdapter telemetryRef;
-    private final List<ConfigExtAdapter<BindingConfig>> extensions;
 
     public BindingConfigAdapter(
         BindingInfo info)
@@ -70,7 +67,6 @@ public class BindingConfigAdapter
         this.route = new RouteConfigAdapter(info);
         this.schema = new SchemaConfigAdapter();
         this.telemetryRef = new TelemetryRefConfigAdapter();
-        this.extensions = info.extensions().stream().map(BindingExtInfo::adapter).toList();
     }
 
     public JsonObject adaptToJson(
@@ -148,8 +144,6 @@ public class BindingConfigAdapter
             item.add(TELEMETRY_NAME, telemetryRef0);
         }
 
-        extensions.forEach(extension -> extension.adaptToJson(binding, item));
-
         return item.build();
     }
 
@@ -214,11 +208,6 @@ public class BindingConfigAdapter
         if (value.containsKey(TELEMETRY_NAME))
         {
             builder.telemetry(telemetryRef.adaptFromJson(value.getJsonObject(TELEMETRY_NAME)));
-        }
-
-        for (ConfigExtAdapter<BindingConfig> extension : extensions)
-        {
-            builder = extension.adaptFromJson(value, builder);
         }
 
         return builder.build();

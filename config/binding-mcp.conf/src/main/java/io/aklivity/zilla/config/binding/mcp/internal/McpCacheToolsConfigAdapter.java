@@ -33,8 +33,8 @@ import io.aklivity.zilla.config.binding.mcp.McpCacheToolsSearchConfig;
 import io.aklivity.zilla.config.binding.mcp.McpCacheToolsSearchConfigBuilder;
 import io.aklivity.zilla.config.binding.mcp.McpKeywordToolSearchIndexConfig;
 import io.aklivity.zilla.config.binding.mcp.McpToolSearchIndexConfig;
-import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.config.engine.ConfigExtAdapter;
+import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public final class McpCacheToolsConfigAdapter
 {
@@ -56,7 +56,7 @@ public final class McpCacheToolsConfigAdapter
     private final McpToolSearchIndexConfigAdapter index;
 
     public McpCacheToolsConfigAdapter(
-        List<ConfigExtAdapter<BindingConfig>> extensions)
+        List<ConfigExtAdapter<OptionsConfig>> extensions)
     {
         this.index = new McpToolSearchIndexConfigAdapter(extensions);
     }

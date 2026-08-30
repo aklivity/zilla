@@ -21,19 +21,19 @@ import jakarta.json.JsonObject;
 
 import io.aklivity.zilla.config.binding.mcp.McpKeywordToolSearchIndexConfig;
 import io.aklivity.zilla.config.binding.mcp.McpToolSearchIndexConfig;
-import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.ConfigExtAdapter;
+import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public final class McpToolSearchIndexConfigAdapter extends ConfigAdapter<McpToolSearchIndexConfig, JsonObject>
 {
     private static final String TYPE_NAME = "type";
 
     private final McpKeywordToolSearchIndexConfigAdapter keyword = new McpKeywordToolSearchIndexConfigAdapter();
-    private final List<ConfigExtAdapter<BindingConfig>> extensions;
+    private final List<ConfigExtAdapter<OptionsConfig>> extensions;
 
     public McpToolSearchIndexConfigAdapter(
-        List<ConfigExtAdapter<BindingConfig>> extensions)
+        List<ConfigExtAdapter<OptionsConfig>> extensions)
     {
         this.extensions = extensions;
     }

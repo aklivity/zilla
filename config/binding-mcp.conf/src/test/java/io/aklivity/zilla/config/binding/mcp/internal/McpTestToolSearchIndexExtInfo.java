@@ -18,9 +18,9 @@ import java.net.URL;
 import java.util.Map;
 
 import io.aklivity.zilla.config.binding.mcp.McpTestToolSearchIndexConfig;
-import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.config.engine.BindingExtInfo;
 import io.aklivity.zilla.config.engine.ConfigExtAdapter;
+import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public final class McpTestToolSearchIndexExtInfo implements BindingExtInfo
 {
@@ -37,7 +37,7 @@ public final class McpTestToolSearchIndexExtInfo implements BindingExtInfo
     }
 
     @Override
-    public ConfigExtAdapter<BindingConfig> adapter()
+    public ConfigExtAdapter<OptionsConfig> options()
     {
         return new ConfigExtAdapter<>(Map.of(), Map.of(),
             Map.of(McpTestToolSearchIndexConfig.NAME, new McpTestToolSearchIndexConfigAdapter()));

@@ -18,7 +18,6 @@ import static java.util.Collections.emptyList;
 
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 
@@ -26,7 +25,7 @@ public abstract class BindingConfigBuilder<
     T,
     B extends BindingConfigBuilder<T, B, R>,
     R extends RouteConfigBuilder<B, R>>
-    extends ConfigBuilder.Extensible<T, B>
+    extends ConfigBuilder<T, B>
 {
     public static final List<RouteConfig> ROUTES_DEFAULT = emptyList();
     public static final List<CatalogedConfig> CATALOGS_DEFAULT = emptyList();
@@ -193,7 +192,7 @@ public abstract class BindingConfigBuilder<
                 .build();
         }
 
-        return mapper.apply(newExtensibleBinding(
+        return mapper.apply(newBinding(
             namespace,
             name,
             type,
@@ -203,9 +202,7 @@ public abstract class BindingConfigBuilder<
             options,
             Optional.ofNullable(catalogs).orElse(CATALOGS_DEFAULT),
             Optional.ofNullable(routes).orElse(ROUTES_DEFAULT),
-            telemetryRef,
-            extensions(),
-            refs()));
+            telemetryRef));
     }
 
     protected abstract BindingConfig newBinding(
@@ -219,24 +216,4 @@ public abstract class BindingConfigBuilder<
         List<CatalogedConfig> catalogs,
         List<RouteConfig> routes,
         TelemetryRefConfig telemetryRef);
-
-    // additive hook alongside newBinding above: a builder that needs to carry a bolted-on named
-    // extension field (see BindingExtInfo) into its built BindingConfig overrides this instead;
-    // every other binding keeps implementing only the plain newBinding above, unchanged
-    protected BindingConfig newExtensibleBinding(
-        String namespace,
-        String name,
-        String type,
-        KindConfig kind,
-        String entry,
-        String vault,
-        OptionsConfig options,
-        List<CatalogedConfig> catalogs,
-        List<RouteConfig> routes,
-        TelemetryRefConfig telemetryRef,
-        Map<String, Config> extensions,
-        List<NamedConfig> refs)
-    {
-        return newBinding(namespace, name, type, kind, entry, vault, options, catalogs, routes, telemetryRef);
-    }
 }
