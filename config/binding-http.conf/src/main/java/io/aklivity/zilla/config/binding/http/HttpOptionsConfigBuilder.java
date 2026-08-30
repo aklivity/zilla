@@ -14,15 +14,23 @@
  */
 package io.aklivity.zilla.config.binding.http;
 
+import static java.util.Collections.emptyList;
+
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import io.aklivity.zilla.config.engine.ConfigBuilder;
+import io.aklivity.zilla.config.engine.ModelConfig;
+import io.aklivity.zilla.config.engine.NamedConfig;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public final class HttpOptionsConfigBuilder<T> extends ConfigBuilder<T, HttpOptionsConfigBuilder<T>>
@@ -125,6 +133,53 @@ public final class HttpOptionsConfigBuilder<T> extends ConfigBuilder<T, HttpOpti
     @Override
     public T build()
     {
-        return mapper.apply(new HttpOptionsConfig(versions, overrides, access, authorization, requests));
+        List<ModelConfig> models = resolveModels(requests);
+        return mapper.apply(new HttpOptionsConfig(versions, overrides, access, authorization, requests, models, refs(models)));
+    }
+
+    private static List<ModelConfig> resolveModels(
+        List<HttpRequestConfig> requests)
+    {
+        return requests != null && !requests.isEmpty()
+            ? requests.stream()
+            .flatMap(request -> Stream.concat(
+                Stream.of(request.content),
+                Stream.concat(
+                    request.headers != null
+                        ? request.headers.stream().flatMap(header -> Stream.of(header != null ? header.model : null))
+                        : Stream.empty(),
+                    Stream.concat(
+                        request.pathParams != null
+                            ? request.pathParams.stream().flatMap(param -> Stream.of(param != null ? param.model : null))
+                            : Stream.empty(),
+                        Stream.concat(
+                            request.queryParams != null
+                                ? request.queryParams.stream().flatMap(param -> Stream.of(param != null ? param.model : null))
+                                : Stream.empty(),
+                            Stream.concat(request.responses != null
+                                ? request.responses.stream().flatMap(param -> Stream.of(param != null
+                                ? param.content
+                                : null))
+                                : Stream.empty(), request.responses != null
+                                ? request.responses.stream()
+                                .flatMap(response -> response.headers != null
+                                    ? response.headers.stream()
+                                    .flatMap(param -> Stream.of(param != null ? param.model : null))
+                                    : Stream.empty())
+                                : Stream.empty())
+                        )))).filter(Objects::nonNull))
+            .collect(Collectors.toList())
+            : emptyList();
+    }
+
+    private static List<NamedConfig> refs(
+        List<ModelConfig> models)
+    {
+        List<NamedConfig> refs = new ArrayList<>();
+        for (ModelConfig model : models)
+        {
+            refs.addAll(model.refs());
+        }
+        return refs;
     }
 }

@@ -35,9 +35,10 @@ public final class McpOptionsConfig extends OptionsConfig
         McpCacheConfig cache,
         String server,
         ModelConfig tools,
+        List<ModelConfig> models,
         List<NamedConfig> refs)
     {
-        super(tools != null ? List.of(tools) : List.of(), List.of(), null, refs);
+        super(models, List.of(), null, refs);
         this.elicitation = elicitation;
         this.authorization = authorization;
         this.cache = cache;

@@ -14,15 +14,11 @@
  */
 package io.aklivity.zilla.config.binding.kafka;
 
-import static java.util.Collections.emptyList;
-import static java.util.stream.Collectors.toList;
-
 import java.util.List;
-import java.util.Objects;
 import java.util.function.Function;
-import java.util.stream.Stream;
 
 import io.aklivity.zilla.config.engine.ModelConfig;
+import io.aklivity.zilla.config.engine.NamedConfig;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public final class KafkaOptionsConfig extends OptionsConfig
@@ -47,23 +43,14 @@ public final class KafkaOptionsConfig extends OptionsConfig
         List<String> bootstrap,
         List<KafkaTopicConfig> topics,
         List<KafkaServerConfig> servers,
-        KafkaAuthorizationConfig authorization)
+        KafkaAuthorizationConfig authorization,
+        List<ModelConfig> models,
+        List<NamedConfig> refs)
     {
-        super(resolveModels(topics), List.of());
+        super(models, List.of(), null, refs);
         this.bootstrap = bootstrap;
         this.topics = topics;
         this.servers = servers;
         this.authorization = authorization;
-    }
-
-    private static List<ModelConfig> resolveModels(
-        List<KafkaTopicConfig> topics)
-    {
-        return topics != null && !topics.isEmpty()
-            ? topics.stream()
-                .flatMap(t -> Stream.of(t.key, t.value))
-                .filter(Objects::nonNull)
-                .collect(toList())
-            : emptyList();
     }
 }

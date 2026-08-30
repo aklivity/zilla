@@ -14,11 +14,19 @@
  */
 package io.aklivity.zilla.config.binding.sse;
 
+import static java.util.Collections.emptyList;
+
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import io.aklivity.zilla.config.engine.ConfigBuilder;
+import io.aklivity.zilla.config.engine.ModelConfig;
+import io.aklivity.zilla.config.engine.NamedConfig;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public class SseOptionsConfigBuilder<T> extends ConfigBuilder<T, SseOptionsConfigBuilder<T>>
@@ -79,7 +87,30 @@ public class SseOptionsConfigBuilder<T> extends ConfigBuilder<T, SseOptionsConfi
     @Override
     public T build()
     {
-        return mapper.apply(new SseOptionsConfig(retry, requests));
+        List<ModelConfig> models = resolveModels(requests);
+        return mapper.apply(new SseOptionsConfig(retry, requests, models, refs(models)));
     }
 
+    private static List<ModelConfig> resolveModels(
+        List<SseRequestConfig> requests)
+    {
+        return requests != null && !requests.isEmpty()
+            ? requests.stream()
+            .flatMap(path ->
+                Stream.of(path.content)
+                    .filter(Objects::nonNull))
+            .collect(Collectors.toList())
+            : emptyList();
+    }
+
+    private static List<NamedConfig> refs(
+        List<ModelConfig> models)
+    {
+        List<NamedConfig> refs = new ArrayList<>();
+        for (ModelConfig model : models)
+        {
+            refs.addAll(model.refs());
+        }
+        return refs;
+    }
 }

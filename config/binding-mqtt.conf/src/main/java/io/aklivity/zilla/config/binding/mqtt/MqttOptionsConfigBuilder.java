@@ -14,11 +14,21 @@
  */
 package io.aklivity.zilla.config.binding.mqtt;
 
+import static java.util.Collections.emptyList;
+
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import io.aklivity.zilla.config.engine.ConfigBuilder;
+import io.aklivity.zilla.config.engine.ModelConfig;
+import io.aklivity.zilla.config.engine.NamedConfig;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public class MqttOptionsConfigBuilder<T> extends ConfigBuilder<T, MqttOptionsConfigBuilder<T>>
@@ -123,6 +133,33 @@ public class MqttOptionsConfigBuilder<T> extends ConfigBuilder<T, MqttOptionsCon
     @Override
     public T build()
     {
-        return mapper.apply(new MqttOptionsConfig(authorization, topics, versions, store, server));
+        List<ModelConfig> models = resolveModels(topics);
+        return mapper.apply(new MqttOptionsConfig(authorization, topics, versions, store, server, models, refs(models)));
+    }
+
+    private static List<ModelConfig> resolveModels(
+        List<MqttTopicConfig> topics)
+    {
+        return topics != null && !topics.isEmpty()
+            ? topics.stream()
+            .flatMap(topic -> Stream.concat(
+                    Stream.of(topic.content),
+                    Optional.ofNullable(topic.userProperties).orElseGet(Collections::emptyList).stream()
+                        .flatMap(p -> Stream.of(p.value))
+                        .filter(Objects::nonNull))
+                .filter(Objects::nonNull))
+            .collect(Collectors.toList())
+            : emptyList();
+    }
+
+    private static List<NamedConfig> refs(
+        List<ModelConfig> models)
+    {
+        List<NamedConfig> refs = new ArrayList<>();
+        for (ModelConfig model : models)
+        {
+            refs.addAll(model.refs());
+        }
+        return refs;
     }
 }

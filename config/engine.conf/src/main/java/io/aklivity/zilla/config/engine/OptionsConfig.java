@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.config.engine;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -42,27 +41,8 @@ public class OptionsConfig extends Config.Extensible
         Map<String, Config> extensions,
         List<NamedConfig> refs)
     {
-        super(extensions, withModels(models, refs));
+        super(extensions, refs);
         this.models = models;
         this.resources = resources;
-    }
-
-    private static List<NamedConfig> withModels(
-        List<ModelConfig> models,
-        List<NamedConfig> refs)
-    {
-        List<NamedConfig> all = new ArrayList<>();
-        if (models != null)
-        {
-            for (ModelConfig model : models)
-            {
-                all.addAll(model.refs());
-            }
-        }
-        if (refs != null)
-        {
-            all.addAll(refs);
-        }
-        return all;
     }
 }
