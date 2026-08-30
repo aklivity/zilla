@@ -14,10 +14,13 @@
  */
 package io.aklivity.zilla.config.binding.mcp;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Function;
 
 import io.aklivity.zilla.config.engine.ConfigBuilder;
 import io.aklivity.zilla.config.engine.ModelConfig;
+import io.aklivity.zilla.config.engine.NamedConfig;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public final class McpOptionsConfigBuilder<T> extends ConfigBuilder<T, McpOptionsConfigBuilder<T>>
@@ -96,6 +99,18 @@ public final class McpOptionsConfigBuilder<T> extends ConfigBuilder<T, McpOption
     @Override
     public T build()
     {
-        return mapper.apply(new McpOptionsConfig(elicitation, authorization, cache, server, tools));
+        List<NamedConfig> refs = new ArrayList<>();
+        if (tools != null)
+        {
+            refs.addAll(tools.refs());
+        }
+        if (cache != null && cache.tools != null && cache.tools.search != null && cache.tools.search.indexes != null)
+        {
+            for (McpToolSearchIndexConfig index : cache.tools.search.indexes)
+            {
+                refs.addAll(index.refs());
+            }
+        }
+        return mapper.apply(new McpOptionsConfig(elicitation, authorization, cache, server, tools, refs));
     }
 }

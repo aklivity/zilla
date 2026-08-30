@@ -37,6 +37,7 @@ public class InlineOptionsConfig extends OptionsConfig
     InlineOptionsConfig(
         List<InlineSchemaConfig> subjects)
     {
+        super(null, null);
         this.subjects = subjects;
     }
 }

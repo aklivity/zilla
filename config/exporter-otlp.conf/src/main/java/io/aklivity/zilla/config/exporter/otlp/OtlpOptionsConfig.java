@@ -57,6 +57,7 @@ public class OtlpOptionsConfig extends OptionsConfig
         boolean trustcacerts,
         String authorization)
     {
+        super(null, null);
         this.interval = interval;
         this.signals = signals;
         this.endpoint = endpoint;

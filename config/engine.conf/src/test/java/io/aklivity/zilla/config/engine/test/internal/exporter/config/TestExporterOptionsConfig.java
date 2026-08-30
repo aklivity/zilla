@@ -39,6 +39,7 @@ public final class TestExporterOptionsConfig extends OptionsConfig
         String mode,
         List<Event> events)
     {
+        super(null, null);
         this.mode = mode;
         this.events = events;
     }

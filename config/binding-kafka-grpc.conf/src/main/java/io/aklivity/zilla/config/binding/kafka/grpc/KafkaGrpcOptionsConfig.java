@@ -46,6 +46,7 @@ public final class KafkaGrpcOptionsConfig extends OptionsConfig
         KafkaGrpcIdempotencyConfig idempotency,
         KafkaGrpcCorrelationConfig correlation)
     {
+        super(null, null);
         this.acks = acks;
         this.idempotency = idempotency;
         this.correlation = correlation;

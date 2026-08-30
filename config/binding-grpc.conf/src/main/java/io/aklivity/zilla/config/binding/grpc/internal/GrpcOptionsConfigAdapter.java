@@ -33,6 +33,6 @@ public final class GrpcOptionsConfigAdapter extends ConfigAdapter<OptionsConfig,
     public OptionsConfig adaptFromJson(
         JsonObject object)
     {
-        return new OptionsConfig();
+        return new OptionsConfig(null, null);
     }
 }

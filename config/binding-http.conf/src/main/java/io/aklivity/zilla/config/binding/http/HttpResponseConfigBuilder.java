@@ -14,12 +14,14 @@
  */
 package io.aklivity.zilla.config.binding.http;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Function;
 
 import io.aklivity.zilla.config.engine.ConfigBuilder;
 import io.aklivity.zilla.config.engine.ModelConfig;
+import io.aklivity.zilla.config.engine.NamedConfig;
 
 public class HttpResponseConfigBuilder<T> extends ConfigBuilder<T, HttpResponseConfigBuilder<T>>
 {
@@ -105,6 +107,18 @@ public class HttpResponseConfigBuilder<T> extends ConfigBuilder<T, HttpResponseC
     @Override
     public T build()
     {
-        return mapper.apply(new HttpResponseConfig(status, contentType, headers, content));
+        List<NamedConfig> refs = new ArrayList<>();
+        if (content != null)
+        {
+            refs.addAll(content.refs());
+        }
+        if (headers != null)
+        {
+            for (HttpParamConfig header : headers)
+            {
+                refs.addAll(header.refs());
+            }
+        }
+        return mapper.apply(new HttpResponseConfig(status, contentType, headers, content, refs));
     }
 }

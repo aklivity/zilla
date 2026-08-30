@@ -33,5 +33,6 @@ public class StdoutOptionsConfig extends OptionsConfig
 
     StdoutOptionsConfig()
     {
+        super(null, null);
     }
 }

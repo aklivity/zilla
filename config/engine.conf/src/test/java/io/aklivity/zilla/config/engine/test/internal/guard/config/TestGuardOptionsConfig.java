@@ -56,6 +56,7 @@ public final class TestGuardOptionsConfig extends OptionsConfig
         boolean deferAcquire,
         int maxSessions)
     {
+        super(null, null);
         this.credentials = credentials;
         this.lifetime = Objects.requireNonNull(lifetime);
         this.challenge = Objects.requireNonNull(challenge);
