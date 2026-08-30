@@ -445,6 +445,11 @@ public class EngineManager
                         ref.id = resolver.resolve(ref.name);
                     }
                 }
+
+                for (NamedConfig ref : binding.options.refs())
+                {
+                    ref.id = resolver.resolve(ref.name);
+                }
             }
 
             for (RouteConfig route : binding.routes)

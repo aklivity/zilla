@@ -14,7 +14,10 @@
  */
 package io.aklivity.zilla.config.binding.mcp;
 
+import java.util.List;
+
 import io.aklivity.zilla.config.engine.Config;
+import io.aklivity.zilla.config.engine.NamedConfig;
 
 public abstract class McpToolSearchIndexConfig extends Config
 {
@@ -24,5 +27,13 @@ public abstract class McpToolSearchIndexConfig extends Config
         String type)
     {
         this.type = type;
+    }
+
+    // overridden by an index type that itself references a named engine concept (e.g. an
+    // embeddings: entry), so the engine's generic resolver walk can pick it up alongside every
+    // other reference this binding's options contribute
+    public List<NamedConfig> refs()
+    {
+        return List.of();
     }
 }

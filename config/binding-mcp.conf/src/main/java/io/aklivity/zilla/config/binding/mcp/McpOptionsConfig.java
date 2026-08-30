@@ -14,10 +14,14 @@
  */
 package io.aklivity.zilla.config.binding.mcp;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 
+import io.aklivity.zilla.config.engine.Config;
 import io.aklivity.zilla.config.engine.ModelConfig;
+import io.aklivity.zilla.config.engine.NamedConfig;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public final class McpOptionsConfig extends OptionsConfig
@@ -35,12 +39,46 @@ public final class McpOptionsConfig extends OptionsConfig
         String server,
         ModelConfig tools)
     {
-        super(tools != null ? List.of(tools) : List.of(), List.of());
+        this(elicitation, authorization, cache, server, tools, null, List.of());
+    }
+
+    McpOptionsConfig(
+        McpElicitationConfig elicitation,
+        McpAuthorizationConfig authorization,
+        McpCacheConfig cache,
+        String server,
+        ModelConfig tools,
+        Map<String, Config> extensions,
+        List<NamedConfig> refs)
+    {
+        super(tools != null ? List.of(tools) : List.of(), List.of(), extensions, withToolSearchRefs(cache, refs));
         this.elicitation = elicitation;
         this.authorization = authorization;
         this.cache = cache;
         this.server = server;
         this.tools = tools;
+    }
+
+    // any configured tool search index (e.g. an externally-registered semantic backend) may itself
+    // reference a named engine concept (e.g. an embeddings: entry) -- fold those refs in alongside
+    // this options' own, so the engine resolves them with one generic walk
+    private static List<NamedConfig> withToolSearchRefs(
+        McpCacheConfig cache,
+        List<NamedConfig> refs)
+    {
+        List<NamedConfig> all = new ArrayList<>();
+        if (refs != null)
+        {
+            all.addAll(refs);
+        }
+        if (cache != null && cache.tools != null && cache.tools.search != null && cache.tools.search.indexes != null)
+        {
+            for (McpToolSearchIndexConfig index : cache.tools.search.indexes)
+            {
+                all.addAll(index.refs());
+            }
+        }
+        return all;
     }
 
     public static McpOptionsConfigBuilder<McpOptionsConfig> builder()
