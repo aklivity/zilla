@@ -49,6 +49,13 @@ import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 // check to pipeline-construction order instead would miss exactly the bug this exists to catch: a single
 // pipeline instance shared across multiple producers only ever sees one expected value if it were fixed at
 // construction, even though it processes several messages, each with its own authorization.
+//
+// When the handler is configured with `discloseAuthorized`/`discloseRedacted`, a completed value is
+// disclosed rather than copied through verbatim: the real bytes pass through when the pipeline's own
+// `authorization` argument is in the configured set, otherwise the configured redacted bytes are
+// substituted. `supplyCacheable` always constructs its pipeline with both `null`, so the cache-populate
+// path never discloses; `supplyDecoder` passes the handler's real configured values, so only the
+// per-consumer decode path can ever reveal or redact.
 final class TestModelPipeline implements ModelPipeline
 {
     private static final int FLAGS_INIT = 0x02;
@@ -64,6 +71,8 @@ final class TestModelPipeline implements ModelPipeline
     private final ModelFieldBridge bridge;
     private final ModelPipelineResult result;
     private final TestModelHandler handler;
+    private final List<Long> discloseAuthorized;
+    private final DirectBufferEx discloseRedacted;
 
     private int processed;
 
@@ -74,7 +83,9 @@ final class TestModelPipeline implements ModelPipeline
         boolean lenient,
         ModelEnvelope envelope,
         ModelTransform transform,
-        TestModelHandler handler)
+        TestModelHandler handler,
+        List<Long> discloseAuthorized,
+        DirectBufferEx discloseRedacted)
     {
         this.length = length;
         this.transformLength = transformLength;
@@ -84,6 +95,8 @@ final class TestModelPipeline implements ModelPipeline
         this.bridge = transform != ModelTransform.NONE ? new ModelFieldBridge(transform) : null;
         this.result = new ModelPipelineResult();
         this.handler = handler;
+        this.discloseAuthorized = discloseAuthorized;
+        this.discloseRedacted = discloseRedacted;
     }
 
     @Override
@@ -119,6 +132,21 @@ final class TestModelPipeline implements ModelPipeline
             status = ModelStatus.REJECTED;
             consumed = 0;
             produced = 0;
+        }
+        else if (lengthValid && tail && discloseAuthorized != null)
+        {
+            // whole-value disclosure: reveal the real bytes only when this pipeline's own authorization is
+            // in the configured set, otherwise substitute the configured redacted bytes
+            processed = total;
+            final boolean authorized = discloseAuthorized.contains(authorization);
+            final DirectBufferEx disclosed = authorized ? src : discloseRedacted;
+            final int disclosedIndex = authorized ? srcIndex : 0;
+            final int disclosedLength = authorized ? available : discloseRedacted.capacity();
+            dst.putBytes(dstIndex, disclosed, disclosedIndex, disclosedLength);
+            consumed = available;
+            produced = disclosedLength;
+            status = ModelStatus.COMPLETE;
+            visitExtracted(authorization);
         }
         else if (lengthValid && tail && transformLength >= 0)
         {
@@ -177,7 +205,7 @@ final class TestModelPipeline implements ModelPipeline
     @Override
     public boolean identity()
     {
-        return transformLength < 0;
+        return transformLength < 0 && discloseAuthorized == null;
     }
 
     @Override

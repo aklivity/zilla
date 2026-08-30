@@ -35,6 +35,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.model.ModelCache;
 import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
@@ -49,6 +50,7 @@ import io.aklivity.zilla.runtime.model.core.ext.BytesSink;
 import io.aklivity.zilla.runtime.model.core.ext.BytesSource;
 import io.aklivity.zilla.runtime.model.core.ext.BytesTransform;
 import io.aklivity.zilla.runtime.model.core.ext.BytesTransformable;
+import io.aklivity.zilla.runtime.model.core.ext.CoreCache;
 import io.aklivity.zilla.runtime.model.core.ext.StringController;
 import io.aklivity.zilla.runtime.model.core.ext.StringEvent;
 import io.aklivity.zilla.runtime.model.core.ext.StringSink;
@@ -234,7 +236,8 @@ public class CoreExtModelPipelineTest
         {
             @Override
             public <T extends BytesTransformable<T>> T decode(
-                T stream)
+                T stream,
+                CoreCache cache)
             {
                 return stream.transform(new Appender('!'));
             }
@@ -261,7 +264,8 @@ public class CoreExtModelPipelineTest
         {
             @Override
             public <T extends BytesTransformable<T>> T decode(
-                T stream)
+                T stream,
+                CoreCache cache)
             {
                 return stream.transform(BytesTransform.NONE);
             }
@@ -269,7 +273,7 @@ public class CoreExtModelPipelineTest
 
         ModelHandler handler = handler(mock(EngineContext.class), ext);
 
-        assertTrue(handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE).identity());
+        assertTrue(handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE).identity());
         assertTrue(handler.supplyEncoder(ModelEnvelope.NONE, ModelTransform.NONE).identity());
     }
 
@@ -279,7 +283,7 @@ public class CoreExtModelPipelineTest
         ModelHandler handler = handler(mock(EngineContext.class), padded(4, 1), padded(6, 2));
         DirectBufferEx empty = new UnsafeBufferEx(new byte[0]);
 
-        assertEquals(10, handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE).padding(empty, 0, 0));
+        assertEquals(10, handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE).padding(empty, 0, 0));
         assertEquals(3, handler.supplyEncoder(ModelEnvelope.NONE, ModelTransform.NONE).padding(empty, 0, 0));
     }
 
@@ -289,7 +293,7 @@ public class CoreExtModelPipelineTest
         Envelopes envelopes = new Envelopes();
         ModelEnvelope envelope = new TestEnvelope();
         ModelHandler handler = handler(mock(EngineContext.class), stage(envelopes));
-        ModelPipeline pipeline = handler.supplyDecoder(envelope, ModelTransform.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(envelope, ModelTransform.NONE, ModelCache.NONE);
         UnsafeBufferEx dst = new UnsafeBufferEx(new byte[16]);
 
         pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE, buffer("abc"), 0, 3, dst, 0, dst.capacity());
@@ -302,7 +306,7 @@ public class CoreExtModelPipelineTest
     {
         Authorizations authorizations = new Authorizations();
         ModelHandler handler = handler(mock(EngineContext.class), stage(authorizations));
-        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
         UnsafeBufferEx dst = new UnsafeBufferEx(new byte[16]);
 
         pipeline.transform(0L, 0L, 42L, FLAGS_COMPLETE, buffer("abc"), 0, 3, dst, 0, dst.capacity());
@@ -320,7 +324,7 @@ public class CoreExtModelPipelineTest
         EngineContext context,
         BytesModelExtHandler... exts)
     {
-        return handler(context, exts).supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE);
+        return handler(context, exts).supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
     }
 
     private static ModelHandler handler(
@@ -344,7 +348,8 @@ public class CoreExtModelPipelineTest
         {
             @Override
             public <T extends BytesTransformable<T>> T decode(
-                T stream)
+                T stream,
+                CoreCache cache)
             {
                 return stream.transform(transform);
             }
@@ -359,7 +364,8 @@ public class CoreExtModelPipelineTest
         {
             @Override
             public <T extends BytesTransformable<T>> T decode(
-                T stream)
+                T stream,
+                CoreCache cache)
             {
                 return stream.transform(new Appender('.'));
             }

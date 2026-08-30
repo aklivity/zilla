@@ -427,6 +427,35 @@ public class CacheFetchIT
     }
 
     @Test
+    @Configuration("cache.value.model.disclose.yaml")
+    @Specification({
+        "${app}/message.value.authorization.distinct/client",
+        "${app}/message.value.authorization.distinct/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldReceiveMessageValueAuthorizationDistinct() throws Exception
+    {
+        partition.append(16L);
+        k3po.finish();
+    }
+
+    // exercises the populate-then-fetch round trip through a real, format-converting model (avro +
+    // view: json) rather than TestModel's identity decode: the cache_server side (WRITE) decodes the raw
+    // avro wire bytes into cached json, and the cache_client side (READ) re-decodes that cached json for
+    // the fetching consumer -- this is the exact shape of the http.kafka.avro.json regression this
+    // pipeline's cache-context split (NONE/WRITE/READ) exists to fix
+    @Test
+    @Configuration("cache.value.model.avro.view.json.yaml")
+    @Specification({
+        "${app}/message.value.avro.view.json/client",
+        "${app}/message.value.avro.view.json/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldReceiveMessageValueAvroViewJson() throws Exception
+    {
+        partition.append(16L);
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("cache.yaml")
     @Specification({
         "${app}/message.header/client",

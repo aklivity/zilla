@@ -35,11 +35,13 @@ import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
+import io.aklivity.zilla.runtime.engine.model.ModelCache;
 import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 import io.aklivity.zilla.runtime.engine.model.function.ValueConsumer;
+import io.aklivity.zilla.runtime.model.avro.ext.AvroCache;
 import io.aklivity.zilla.runtime.model.avro.ext.AvroModelExtContext;
 
 // Per-worker factory for an Avro model. One handler serves both directions: supplyDecoder vends a
@@ -69,9 +71,11 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
     @Override
     public ModelPipeline supplyDecoder(
         ModelEnvelope envelope,
-        ModelTransform transform)
+        ModelTransform transform,
+        ModelCache cache)
     {
-        return new AvroModelDecoderPipeline(this, AvroModelEnvelope.of(requireNonNull(envelope)), requireNonNull(transform));
+        return new AvroModelDecoderPipeline(this, AvroModelEnvelope.of(requireNonNull(envelope)), requireNonNull(transform),
+            cache);
     }
 
     @Override
@@ -161,13 +165,24 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
         return handler.encode(traceId, bindingId, schemaId, data, index, length, next, NONE_ENCODER);
     }
 
+    // the catalog framing bytes a WRITE decode injects ahead of its cached output, so a later READ can
+    // recover the exact schema id WRITE resolved directly from the cached bytes, rather than falling back
+    // to static config resolution -- the one case that matters is a per-message schema id (an encoded
+    // strategy), which a view-converting WRITE output would otherwise discard with no way to recover it
+    int framingPadding(
+        int length)
+    {
+        return handler.encodePadding(length);
+    }
+
     AvroPipeline newPipeline(
         int schemaId,
         boolean lenient,
         JsonGeneratorEx json,
         AvroTransform adapter,
         AvroReporter reporter,
-        AvroEnvelope envelope)
+        AvroEnvelope envelope,
+        ModelCache cache)
     {
         AvroSchema schema = supplySchema(schemaId);
         AvroPipeline pipeline = null;
@@ -178,7 +193,14 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
             AvroGenerator generator = VIEW_JSON.equals(view)
                 ? AvroJson.generator(schema, json, true)
                 : Avro.generator(schema, new UnsafeBufferEx(new byte[1]), 0);
-            pipeline = extendDecode(Avro.stream(Avro.parser(schema)), schema)
+            // READ resolves a value already in whatever form a WRITE pipeline produced -- when that form
+            // is a json view rather than avro wire bytes, the source must parse json to match, exactly as
+            // the encode-shaped pipeline's own json-view source does for a caller's json input
+            AvroStream source = cache == ModelCache.READ && VIEW_JSON.equals(view)
+                ? AvroJson.stream(schema, JsonEx.createParser(), true)
+                : Avro.stream(Avro.parser(schema));
+            AvroStream extended = extendDecode(source, schema, cache);
+            pipeline = extended
                 .transform(adapter)
                 .lenient(lenient)
                 .reporting(reporter)
@@ -217,17 +239,30 @@ public final class AvroModelHandlerImpl extends AvroModelHandler implements Mode
 
     // folds every installed avro model extension's own decode stage(s) into the stream, in discovery
     // order, ahead of this handler's own adapter stage: the canonical value being decoded into the view
-    // delivered to a reader
+    // delivered to a reader, for the given cache context
     private AvroStream extendDecode(
         AvroStream stream,
-        AvroSchema schema)
+        AvroSchema schema,
+        ModelCache cache)
     {
+        AvroCache avroCache = extCache(cache);
         AvroStream extended = stream;
         for (AvroModelExtContext ext : exts)
         {
-            extended = ext.supplyHandler(schema, options).decode(extended);
+            extended = ext.supplyHandler(schema, options).decode(extended, avroCache);
         }
         return extended;
+    }
+
+    private static AvroCache extCache(
+        ModelCache cache)
+    {
+        return switch (cache)
+        {
+        case WRITE -> AvroCache.WRITE;
+        case READ -> AvroCache.READ;
+        default -> AvroCache.NONE;
+        };
     }
 
     // folds every installed avro model extension's own encode stage(s) into the stream, in discovery

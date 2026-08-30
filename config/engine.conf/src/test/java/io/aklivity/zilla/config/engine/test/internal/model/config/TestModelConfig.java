@@ -28,6 +28,8 @@ public class TestModelConfig extends ModelConfig
     public final int transformLength;
     public final List<String> fields;
     public final List<Long> transformAuthorizations;
+    public final List<Long> discloseAuthorized;
+    public final String discloseRedacted;
 
     public TestModelConfig(
         int length,
@@ -76,12 +78,28 @@ public class TestModelConfig extends ModelConfig
         ValidateConfig validate,
         List<Long> transformAuthorizations)
     {
+        this(length, cataloged, read, transformLength, fields, validate, transformAuthorizations, null, null);
+    }
+
+    public TestModelConfig(
+        int length,
+        List<CatalogedConfig> cataloged,
+        boolean read,
+        int transformLength,
+        List<String> fields,
+        ValidateConfig validate,
+        List<Long> transformAuthorizations,
+        List<Long> discloseAuthorized,
+        String discloseRedacted)
+    {
         super("test", cataloged, validate);
         this.length = length;
         this.read = read;
         this.transformLength = transformLength;
         this.fields = fields;
         this.transformAuthorizations = transformAuthorizations;
+        this.discloseAuthorized = discloseAuthorized;
+        this.discloseRedacted = discloseRedacted;
     }
 
     public static <T> TestModelConfigBuilder<T> builder(

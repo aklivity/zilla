@@ -60,6 +60,7 @@ import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler.LongCompletionCallback;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
+import io.aklivity.zilla.runtime.engine.model.ModelCache;
 import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
@@ -1567,7 +1568,9 @@ final class TestBindingFactory implements BindingHandler
                 {
                     seedEnvelope(envelope);
                 }
-                this.pipeline = valueModel != null ? valueModel.supplyDecoder(envelope, ModelTransform.NONE) : null;
+                this.pipeline = valueModel != null
+                    ? valueModel.supplyDecoder(envelope, ModelTransform.NONE, ModelCache.NONE)
+                    : null;
                 this.replyBuffer = pipeline != null ? new UnsafeBufferEx(new byte[transformMax]) : null;
             }
 

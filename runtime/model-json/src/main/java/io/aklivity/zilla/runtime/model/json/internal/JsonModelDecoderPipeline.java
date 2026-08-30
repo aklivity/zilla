@@ -27,6 +27,7 @@ import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 import io.aklivity.zilla.runtime.common.json.JsonPipelineResult;
+import io.aklivity.zilla.runtime.engine.model.ModelCache;
 import io.aklivity.zilla.runtime.engine.model.ModelFieldBridge;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
@@ -50,6 +51,7 @@ final class JsonModelDecoderPipeline implements ModelPipeline
     private final Int2ObjectCache<JsonPipeline> pipelines;
     private final JsonEnvelope envelope;
     private final ModelPipelineResult result;
+    private final ModelCache cache;
 
     private JsonPipeline active;
     private String diagnostic;
@@ -61,7 +63,8 @@ final class JsonModelDecoderPipeline implements ModelPipeline
     JsonModelDecoderPipeline(
         JsonModelHandlerImpl handler,
         JsonEnvelope envelope,
-        ModelTransform transform)
+        ModelTransform transform,
+        ModelCache cache)
     {
         this.envelope = envelope;
         this.handler = handler;
@@ -71,6 +74,7 @@ final class JsonModelDecoderPipeline implements ModelPipeline
         this.extractor = transform != ModelTransform.NONE ? new JsonExtractor() : null;
         this.pipelines = new Int2ObjectCache<>(1, 16, p -> {});
         this.result = new ModelPipelineResult();
+        this.cache = cache;
     }
 
     @Override
@@ -177,7 +181,8 @@ final class JsonModelDecoderPipeline implements ModelPipeline
         int schemaId)
     {
         return pipelines.computeIfAbsent(schemaId,
-            id -> handler.newPipeline(id, handler.decodeLenient, generator, extractor, this::onRejected, envelope));
+            id -> handler.newPipeline(id, handler.decodeLenient, generator, extractor, this::onRejected, envelope,
+                cache));
     }
 
     private void onRejected(

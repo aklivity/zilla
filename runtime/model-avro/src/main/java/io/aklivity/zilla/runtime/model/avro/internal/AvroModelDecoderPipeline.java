@@ -28,6 +28,7 @@ import io.aklivity.zilla.runtime.common.avro.AvroPipelineResult;
 import io.aklivity.zilla.runtime.common.avro.AvroTransform;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
+import io.aklivity.zilla.runtime.engine.model.ModelCache;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
@@ -49,14 +50,18 @@ final class AvroModelDecoderPipeline implements ModelPipeline
     private final AvroEnvelope envelope;
     private final Int2ObjectCache<AvroPipeline> pipelines;
     private final ModelPipelineResult result;
+    private final ModelCache cache;
 
     private AvroPipeline active;
     private String diagnostic;
+    private MutableDirectBufferEx framingBuffer;
+    private int framingAt;
 
     AvroModelDecoderPipeline(
         AvroModelHandlerImpl handler,
         AvroEnvelope envelope,
-        ModelTransform transform)
+        ModelTransform transform,
+        ModelCache cache)
     {
         this.handler = handler;
         this.envelope = envelope;
@@ -64,6 +69,7 @@ final class AvroModelDecoderPipeline implements ModelPipeline
         this.adapter = AvroModelTransform.of(transform);
         this.pipelines = new Int2ObjectCache<>(1, 16, p -> {});
         this.result = new ModelPipelineResult();
+        this.cache = cache;
     }
 
     @Override
@@ -87,6 +93,7 @@ final class AvroModelDecoderPipeline implements ModelPipeline
         int srcLength = srcLimit - srcIndex;
         int dstLength = dstLimit - dstIndex;
         int prefix = 0;
+        int framing = 0;
         if ((flags & FLAGS_INIT) != 0)
         {
             // the catalog framing sits at the value start; strip it once on the first fragment and select
@@ -97,6 +104,14 @@ final class AvroModelDecoderPipeline implements ModelPipeline
             if (active != null)
             {
                 active.reset();
+                if (cache == ModelCache.WRITE)
+                {
+                    // WRITE persists the resolved schema id as catalog framing ahead of its cached output,
+                    // so a later READ of this cached value recovers it directly instead of falling back to
+                    // static config resolution -- the case that matters is a per-message schema id (an
+                    // encoded strategy), which a view-converting WRITE output would otherwise discard
+                    framing = writeFraming(traceId, bindingId, schemaId, src, srcIndex, srcLength, dst, dstIndex);
+                }
             }
             diagnostic = null;
         }
@@ -115,11 +130,11 @@ final class AvroModelDecoderPipeline implements ModelPipeline
         {
             active.authorization(authorization);
             boolean last = (flags & FLAGS_FIN) != 0;
-            AvroPipelineResult avro =
-                active.transform(src, srcIndex + prefix, srcIndex + srcLength, last, dst, dstIndex, dstIndex + dstLength);
+            AvroPipelineResult avro = active.transform(src, srcIndex + prefix, srcIndex + srcLength, last,
+                dst, dstIndex + framing, dstIndex + dstLength);
             status = map(avro.status());
             consumed = prefix + avro.consumed();
-            produced = avro.produced();
+            produced = framing + avro.produced();
             if (status == ModelStatus.REJECTED)
             {
                 handler.validationFailure(traceId, bindingId, diagnostic != null ? diagnostic : AvroModel.NAME);
@@ -140,7 +155,12 @@ final class AvroModelDecoderPipeline implements ModelPipeline
         int index,
         int length)
     {
-        return handler.decodePadding(data, index, length);
+        int padding = handler.decodePadding(data, index, length);
+        if (cache == ModelCache.WRITE)
+        {
+            padding += handler.framingPadding(length);
+        }
+        return padding;
     }
 
     @Override
@@ -158,7 +178,32 @@ final class AvroModelDecoderPipeline implements ModelPipeline
         int schemaId)
     {
         return pipelines.computeIfAbsent(schemaId,
-            id -> handler.newPipeline(id, handler.decodeLenient, generator, adapter, this::onRejected, envelope));
+            id -> handler.newPipeline(id, handler.decodeLenient, generator, adapter, this::onRejected, envelope, cache));
+    }
+
+    private int writeFraming(
+        long traceId,
+        long bindingId,
+        int schemaId,
+        DirectBufferEx src,
+        int srcIndex,
+        int srcLength,
+        MutableDirectBufferEx dst,
+        int dstIndex)
+    {
+        framingBuffer = dst;
+        framingAt = dstIndex;
+        handler.encodePrefix(traceId, bindingId, schemaId, src, srcIndex, srcLength, this::putFraming);
+        return framingAt - dstIndex;
+    }
+
+    private void putFraming(
+        DirectBufferEx buffer,
+        int index,
+        int length)
+    {
+        framingBuffer.putBytes(framingAt, buffer, index, length);
+        framingAt += length;
     }
 
     private void onRejected(
