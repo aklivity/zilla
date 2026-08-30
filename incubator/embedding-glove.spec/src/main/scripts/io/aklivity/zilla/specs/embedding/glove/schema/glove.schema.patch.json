@@ -1,0 +1,41 @@
+[
+    {
+        "op": "add",
+        "path": "/$defs/embedding/properties/type/enum/-",
+        "value": "glove"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/embedding/allOf/-",
+        "value":
+        {
+            "if":
+            {
+                "properties":
+                {
+                    "type":
+                    {
+                        "const": "glove"
+                    }
+                }
+            },
+            "then":
+            {
+                "properties":
+                {
+                    "type":
+                    {
+                        "const": "glove"
+                    },
+                    "vault": false,
+                    "options":
+                    {
+                        "type": "object",
+                        "additionalProperties": false
+                    }
+                },
+                "additionalProperties": false
+            }
+        }
+    }
+]

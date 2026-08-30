@@ -57,6 +57,7 @@ Make sure you have the `latest` version of Zilla by running the `docker pull ghc
 | [sse.proxy.jwt](sse.proxy.jwt)                                           | Proxies messages delivered by the SSE server, enforcing streaming security constraints    |
 | [sse.kafka.fanout](sse.kafka.fanout.jwt)                         | Streams messages published to a Kafka topic, applying conflation based on log compaction  |
 | [tcp.echo](tcp.echo)                                         | Echoes bytes sent to the TCP server                                                       |
+| [tcp.echo.embedding](tcp.echo.embedding)                     | Echoes bytes sent to the TCP server, unless they semantically match a rejected phrase     |
 | [tcp.reflect](tcp.reflect)                                   | Echoes bytes sent to the TCP server, broadcasting to all TCP clients                      |
 | [tls.echo](tls.echo)                                         | Echoes encrypted bytes sent to the TLS server                                             |
 | [tls.reflect](tls.reflect)                                   | Echoes encrypted bytes sent to the TLS server, broadcasting to all TLS clients            |

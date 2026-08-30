@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>cloud</artifactId>
-    <version>2.4.0-rc25</version>
+    <version>2.4.0-rc26</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -274,6 +274,18 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>catalog-schema-registry</artifactId>
+      <version>${project.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>embedding-glove</artifactId>
+      <version>${project.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>model-vector</artifactId>
       <version>${project.version}</version>
       <scope>runtime</scope>
     </dependency>

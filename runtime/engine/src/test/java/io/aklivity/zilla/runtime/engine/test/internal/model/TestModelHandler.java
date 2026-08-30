@@ -24,6 +24,7 @@ import io.aklivity.zilla.config.engine.ValidateMode;
 import io.aklivity.zilla.config.engine.test.internal.model.config.TestModelConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.ModelCache;
 import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
@@ -32,19 +33,34 @@ import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 
 public class TestModelHandler implements ModelHandler
 {
+    private static final Runnable NOOP = () ->
+    {
+    };
+
     private final int length;
     private final int transformLength;
     private final List<String> fields;
     private final boolean decodeLenient;
     private final boolean encodeLenient;
     private final List<Long> transformAuthorizations;
+    private final List<String> reject;
+    private final boolean suspend;
+    private final EngineContext context;
     private final List<Long> discloseAuthorized;
     private final DirectBufferEx discloseRedacted;
+    private final String envelopeDiscloseName;
 
     private int transformAuthorizationIndex;
 
     public TestModelHandler(
         TestModelConfig config)
+    {
+        this(config, null);
+    }
+
+    public TestModelHandler(
+        TestModelConfig config,
+        EngineContext context)
     {
         this.length = config.length;
         this.transformLength = config.transformLength;
@@ -52,10 +68,14 @@ public class TestModelHandler implements ModelHandler
         this.decodeLenient = config.validate.decode == ValidateMode.LENIENT;
         this.encodeLenient = config.validate.encode == ValidateMode.LENIENT;
         this.transformAuthorizations = config.transformAuthorizations;
+        this.reject = config.reject;
+        this.suspend = config.suspend;
+        this.context = context;
         this.discloseAuthorized = config.discloseAuthorized;
         this.discloseRedacted = config.discloseRedacted != null
             ? new UnsafeBufferEx(config.discloseRedacted.getBytes(UTF_8))
             : null;
+        this.envelopeDiscloseName = config.envelopeDiscloseName;
     }
 
     @Override
@@ -64,11 +84,7 @@ public class TestModelHandler implements ModelHandler
         ModelTransform transform,
         ModelCache cache)
     {
-        return cache == ModelCache.WRITE
-            ? new TestModelPipeline(length, transformLength, fields, decodeLenient, envelope, transform, this,
-                null, null)
-            : new TestModelPipeline(length, transformLength, fields, decodeLenient, envelope, transform, this,
-                discloseAuthorized, discloseRedacted);
+        return supplyDecoder(envelope, transform, NOOP, cache);
     }
 
     @Override
@@ -77,7 +93,39 @@ public class TestModelHandler implements ModelHandler
         ModelTransform transform)
     {
         return new TestModelPipeline(length, transformLength, fields, encodeLenient, envelope, transform, this,
-            null, null);
+            null, false, NOOP, null, null, null, null);
+    }
+
+    @Override
+    public ModelPipeline supplyDecoder(
+        ModelEnvelope envelope,
+        ModelTransform transform,
+        Runnable resumed)
+    {
+        return supplyDecoder(envelope, transform, resumed, ModelCache.NONE);
+    }
+
+    @Override
+    public ModelPipeline supplyEncoder(
+        ModelEnvelope envelope,
+        ModelTransform transform,
+        Runnable resumed)
+    {
+        return new TestModelPipeline(length, transformLength, fields, encodeLenient, envelope, transform, this,
+            reject, suspend, resumed, context, null, null, null);
+    }
+
+    private ModelPipeline supplyDecoder(
+        ModelEnvelope envelope,
+        ModelTransform transform,
+        Runnable resumed,
+        ModelCache cache)
+    {
+        return cache == ModelCache.WRITE
+            ? new TestModelPipeline(length, transformLength, fields, decodeLenient, envelope, transform, this,
+                null, false, resumed, context, null, null, null)
+            : new TestModelPipeline(length, transformLength, fields, decodeLenient, envelope, transform, this,
+                reject, suspend, resumed, context, discloseAuthorized, discloseRedacted, envelopeDiscloseName);
     }
 
     Long nextTransformAuthorization()

@@ -110,12 +110,35 @@ public class KafkaCacheModelTest
     @Test
     public void shouldEncodeWholeValue()
     {
-        KafkaCacheModel model = KafkaCacheModel.encoder(handler(3), new UnsafeBufferEx(new byte[256]));
+        KafkaCacheModel model = KafkaCacheModel.encoder(handler(3), ModelEnvelope.NONE, new UnsafeBufferEx(new byte[256]));
 
         int produced = model.transform(0L, 0L, 0L, value("abc"), 0, 3, sink);
 
         assertEquals(3, produced);
         assertOutput("abc");
+    }
+
+    @Test
+    public void shouldForwardEnvelopeToEncoder()
+    {
+        CapturingHandler handler = new CapturingHandler();
+        ModelEnvelope envelope = new KafkaCacheTrailerEnvelope();
+
+        KafkaCacheModel.encoder(handler, envelope, new UnsafeBufferEx(new byte[256]));
+
+        assertSame(envelope, handler.encoderEnvelope);
+    }
+
+    @Test
+    public void shouldForwardEnvelopeToReader()
+    {
+        CapturingHandler handler = new CapturingHandler();
+        ModelEnvelope envelope = new KafkaCacheHeadersEnvelope();
+
+        KafkaCacheModel.reader(handler, ModelTransform.NONE, envelope, new UnsafeBufferEx(new byte[256]));
+
+        assertSame(envelope, handler.decoderEnvelope);
+        assertSame(ModelCache.READ, handler.decoderCache);
     }
 
     @Test
@@ -131,7 +154,8 @@ public class KafkaCacheModelTest
     public void shouldReportNoneAsDefaults()
     {
         assertSame(KafkaCacheModel.NONE, KafkaCacheModel.decoder(null, ModelTransform.NONE, new UnsafeBufferEx(new byte[8])));
-        assertSame(KafkaCacheModel.NONE, KafkaCacheModel.encoder(null, new UnsafeBufferEx(new byte[8])));
+        assertSame(KafkaCacheModel.NONE,
+            KafkaCacheModel.encoder(null, ModelEnvelope.NONE, new UnsafeBufferEx(new byte[8])));
         assertEquals(0, KafkaCacheModel.NONE.padding(value("x"), 0, 1));
 
         KafkaCacheModel.NONE.reset();
@@ -224,6 +248,35 @@ public class KafkaCacheModelTest
         byte[] actual = new byte[outputLength.value];
         output.getBytes(0, actual);
         assertArrayEquals(expected.getBytes(UTF_8), actual);
+    }
+
+    // a handler that records the envelope (and, for supplyDecoder, the cache mode) it was last
+    // supplied with, so a caller can assert on exactly what KafkaCacheModel forwarded
+    private static final class CapturingHandler implements ModelHandler
+    {
+        private ModelEnvelope encoderEnvelope;
+        private ModelEnvelope decoderEnvelope;
+        private ModelCache decoderCache;
+
+        @Override
+        public ModelPipeline supplyDecoder(
+            ModelEnvelope envelope,
+            ModelTransform transform,
+            ModelCache cache)
+        {
+            this.decoderEnvelope = envelope;
+            this.decoderCache = cache;
+            return null;
+        }
+
+        @Override
+        public ModelPipeline supplyEncoder(
+            ModelEnvelope envelope,
+            ModelTransform transform)
+        {
+            this.encoderEnvelope = envelope;
+            return null;
+        }
     }
 
     private static final class RejectingPipeline implements ModelPipeline

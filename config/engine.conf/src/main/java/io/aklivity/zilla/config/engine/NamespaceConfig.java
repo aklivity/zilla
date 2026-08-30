@@ -36,6 +36,7 @@ public class NamespaceConfig extends Config
     public final List<GuardConfig> guards;
     public final List<VaultConfig> vaults;
     public final List<CatalogConfig> catalogs;
+    public final List<EmbeddingConfig> embeddings;
     public final List<StoreConfig> stores;
     public final List<String> resources;
 
@@ -51,6 +52,7 @@ public class NamespaceConfig extends Config
         List<GuardConfig> guards,
         List<VaultConfig> vaults,
         List<CatalogConfig> catalogs,
+        List<EmbeddingConfig> embeddings,
         List<StoreConfig> stores)
     {
         this.name = requireNonNull(name);
@@ -59,8 +61,9 @@ public class NamespaceConfig extends Config
         this.guards = requireNonNull(guards);
         this.vaults = requireNonNull(vaults);
         this.catalogs = requireNonNull(catalogs);
+        this.embeddings = requireNonNull(embeddings);
         this.stores = requireNonNull(stores);
-        this.resources = resolveResources(this, telemetry, bindings, guards, vaults, catalogs, stores);
+        this.resources = resolveResources(this, telemetry, bindings, guards, vaults, catalogs, embeddings, stores);
     }
 
     private static List<String> resolveResources(
@@ -70,6 +73,7 @@ public class NamespaceConfig extends Config
         List<GuardConfig> guards,
         List<VaultConfig> vaults,
         List<CatalogConfig> catalogs,
+        List<EmbeddingConfig> embeddings,
         List<StoreConfig> stores)
     {
         List<OptionsConfig> options = new LinkedList<>();
@@ -100,6 +104,11 @@ public class NamespaceConfig extends Config
         catalogs.stream()
             .filter(c -> c.options != null)
             .map(c -> c.options)
+            .forEach(options::add);
+
+        embeddings.stream()
+            .filter(e -> e.options != null)
+            .map(e -> e.options)
             .forEach(options::add);
 
         stores.stream()

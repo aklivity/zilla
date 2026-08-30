@@ -77,6 +77,7 @@ public final class TestBindingOptionsConfigAdapter extends ConfigAdapter<Options
     private static final String STORE_VALUE_NAME = "value";
     private static final String STORE_TTL_NAME = "ttl";
     private static final String STORE_EXPECT_NAME = "expect";
+    private static final String EMBEDDING_NAME = "embedding";
     private static final String ENVELOPE_NAME = "envelope";
     private static final String ENVELOPE_VALUE_NAME = "value";
     private static final String ENVELOPE_BYTES_NAME = "bytes";
@@ -190,6 +191,11 @@ public final class TestBindingOptionsConfigAdapter extends ConfigAdapter<Options
         if (testOptions.store != null)
         {
             object.add(STORE_NAME, testOptions.store);
+        }
+
+        if (testOptions.embedding != null)
+        {
+            object.add(EMBEDDING_NAME, testOptions.embedding);
         }
 
         return object.build();
@@ -448,6 +454,11 @@ public final class TestBindingOptionsConfigAdapter extends ConfigAdapter<Options
             if (object.containsKey(STORE_NAME))
             {
                 testOptions.store(object.getString(STORE_NAME));
+            }
+
+            if (object.containsKey(EMBEDDING_NAME))
+            {
+                testOptions.embedding(object.getString(EMBEDDING_NAME));
             }
         }
 

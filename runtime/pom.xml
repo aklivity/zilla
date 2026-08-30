@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>zilla</artifactId>
-    <version>2.4.0-rc25</version>
+    <version>2.4.0-rc26</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -58,6 +58,7 @@
     <module>common-lang</module>
     <module>common-openapi</module>
     <module>common-protobuf</module>
+    <module>common-vector</module>
     <module>common-x509</module>
     <module>common-yaml</module>
     <module>command</module>
@@ -491,6 +492,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>common-protobuf</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>common-vector</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

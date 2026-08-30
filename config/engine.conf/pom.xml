@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>config</artifactId>
-    <version>2.4.0-rc25</version>
+    <version>2.4.0-rc26</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -154,6 +154,7 @@
                 io/aklivity/zilla/specs/engine/schema/guard/test.schema.patch.json,
                 io/aklivity/zilla/specs/engine/schema/metrics/test.schema.patch.json,
                 io/aklivity/zilla/specs/engine/schema/catalog/test.schema.patch.json,
+                io/aklivity/zilla/specs/engine/schema/embedding/test.schema.patch.json,
                 io/aklivity/zilla/specs/engine/schema/model/test.schema.patch.json,
                 io/aklivity/zilla/specs/engine/schema/store/test.schema.patch.json,
                 io/aklivity/zilla/specs/engine/schema/vault/test.schema.patch.json
@@ -193,6 +194,7 @@
                 <include>io/aklivity/zilla/config/engine/test/internal/**/*.schema.patch.json</include>
                 <include>io/aklivity/zilla/config/engine/test/internal/binding/**/*.class</include>
                 <include>io/aklivity/zilla/config/engine/test/internal/catalog/**/*.class</include>
+                <include>io/aklivity/zilla/config/engine/test/internal/embedding/**/*.class</include>
                 <include>io/aklivity/zilla/config/engine/test/internal/exporter/**/*.class</include>
                 <include>io/aklivity/zilla/config/engine/test/internal/guard/**/*.class</include>
                 <include>io/aklivity/zilla/config/engine/test/internal/metrics/**/*.class</include>
