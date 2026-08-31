@@ -138,6 +138,40 @@ class ProtobufPipelineTransformTest
     }
 
     @Test
+    void shouldCompleteOnEmptyFinalWindowAfterWholeMessageConsumed()
+    {
+        ProtobufPipeline pipeline = Protobuf.stream(Protobuf.parser()).into(Protobuf.generator());
+        pipeline.reset();
+
+        // the whole message arrives in the first, non-final window; the caller's own FIN still arrives as a
+        // separate, empty final window (the real produce/populate mapping always sends one), reproducing
+        // zilla#2461's INIT-empty/payload/FIN-empty split
+        byte[] whole = wire(w ->
+        {
+            w.writeTag(1, ProtobufWireType.VARINT);
+            w.writeVarint64(5);
+            w.writeTag(2, ProtobufWireType.LEN);
+            w.writeBytes("hi".getBytes(UTF_8));
+        });
+        byte[] empty = { };
+        int dstCap = 64;
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[DST_OFFSET + dstCap]);
+        ByteArrayOutputStream drained = new ByteArrayOutputStream();
+
+        ProtobufPipelineResult first = pipeline.transform(srcOf(whole), SRC_OFFSET, SRC_OFFSET + whole.length, false,
+            dst, DST_OFFSET, DST_OFFSET + dstCap);
+        assertEquals(Status.STARVED, first.status());
+        drainChunk(dst, first.produced(), drained);
+
+        ProtobufPipelineResult second = pipeline.transform(srcOf(empty), SRC_OFFSET, SRC_OFFSET + empty.length, true,
+            dst, DST_OFFSET, DST_OFFSET + dstCap);
+        assertEquals(Status.COMPLETED, second.status());
+        drainChunk(dst, second.produced(), drained);
+
+        assertArrayEquals(whole, drained.toByteArray());
+    }
+
+    @Test
     void shouldReportIdentityForWirePipeline()
     {
         ProtobufSchema schema = newSchema();

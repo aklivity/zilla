@@ -138,6 +138,32 @@ public class AvroModelDecoderPipelineTest
         assertEquals(JSON, outA.toString(UTF_8));
     }
 
+    // regression coverage for zilla#2461's INIT-empty/payload/FIN-empty produce/populate fragmentation
+    // pattern: an INIT-flagged fragment carrying the whole value (declaring its length via zero remaining
+    // bytes upstream, not modeled here since the decoder itself is oblivious to deferred()), followed by a
+    // truly empty FIN-flagged fragment -- the real mapping always sends one, even when nothing is left
+    @Test
+    public void shouldCompleteOnEmptyFinAfterWholeValueConsumed()
+    {
+        AvroModelHandlerImpl handler = newHandler();
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
+
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
+        ByteArrayOutputStream drained = new ByteArrayOutputStream();
+
+        ModelPipelineResult first = pipeline.transform(0L, 0L, 0L, FLAGS_INIT,
+            new UnsafeBufferEx(AVRO), 0, AVRO.length, dst, 0, dst.capacity());
+        drain(dst, first.produced(), drained);
+
+        byte[] empty = { };
+        ModelPipelineResult second = pipeline.transform(0L, 0L, 0L, FLAGS_FIN,
+            new UnsafeBufferEx(empty), 0, empty.length, dst, 0, dst.capacity());
+        assertEquals(ModelStatus.COMPLETE, second.status());
+        drain(dst, second.produced(), drained);
+
+        assertEquals(JSON, drained.toString(UTF_8));
+    }
+
     @Test
     public void shouldExtractField()
     {

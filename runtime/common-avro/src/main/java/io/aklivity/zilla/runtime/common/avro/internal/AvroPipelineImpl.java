@@ -65,6 +65,7 @@ final class AvroPipelineImpl implements AvroPipeline
 
     private boolean suspended;
     private AvroEvent suspendedEvent;
+    private boolean completed;
 
     AvroPipelineImpl(
         AvroParser parser,
@@ -91,6 +92,7 @@ final class AvroPipelineImpl implements AvroPipeline
         parser.reset();
         root.reset();
         suspended = false;
+        completed = false;
         diagnostic.message = null;
     }
 
@@ -120,6 +122,15 @@ final class AvroPipelineImpl implements AvroPipeline
         int limit,
         boolean last)
     {
+        if (completed && offset == limit)
+        {
+            // the datum already finished on an earlier call (root reported COMPLETED before this window
+            // arrived) and the parser was left at Phase.DONE rather than reset -- this window is the
+            // caller's own separate, empty trailing confirmation for the same datum (e.g. a FIN-flagged
+            // fragment carrying no further bytes), not the start of a new one, so report COMPLETED again
+            // without re-driving the parser rather than letting it fall through to STARVED
+            return COMPLETED;
+        }
         Status status = ADVANCED;
         AvroEvent event = null;
         try
@@ -172,6 +183,7 @@ final class AvroPipelineImpl implements AvroPipeline
             reporter.rejected(diagnostic);
         }
         suspended = status == SUSPENDED;
+        completed = status == COMPLETED;
         // the pump remembers which event suspended (so the sink keeps no resume state); a re-suspend on
         // resume leaves event null, keeping the prior suspendedEvent
         if (suspended && event != null)
