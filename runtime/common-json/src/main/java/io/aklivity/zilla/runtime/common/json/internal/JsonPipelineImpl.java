@@ -57,6 +57,7 @@ public final class JsonPipelineImpl implements JsonPipeline
     private final boolean lenient;
 
     private boolean suspended;
+    private boolean completed;
     // the value event in flight across a suspend, handed to root.resume() so no stage stores it
     private JsonEvent resumeEvent;
 
@@ -86,6 +87,7 @@ public final class JsonPipelineImpl implements JsonPipeline
         parser.reset();
         root.reset();
         suspended = false;
+        completed = false;
         diagnostic.message = null;
         resumeEvent = null;
     }
@@ -116,6 +118,15 @@ public final class JsonPipelineImpl implements JsonPipeline
         int limit,
         boolean last)
     {
+        if (completed && offset == limit)
+        {
+            // the document already finished on an earlier call (self-delimited by its closing token, before
+            // this window arrived) and the parser was left at end-of-document rather than reset -- this
+            // window is the caller's own separate, empty trailing confirmation for the same document (e.g. a
+            // FIN-flagged fragment carrying no further bytes), not the start of a new one, so report
+            // COMPLETED again without re-driving the parser rather than letting it fall through to REJECTED
+            return Status.COMPLETED;
+        }
         Status status = Status.ADVANCED;
         try
         {
@@ -202,6 +213,7 @@ public final class JsonPipelineImpl implements JsonPipeline
             reporter.rejected(diagnostic);
         }
         suspended = status == Status.SUSPENDED;
+        completed = status == Status.COMPLETED;
         return status;
     }
 

@@ -1267,7 +1267,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
                     final KafkaKeyFW key = nextEntry.paddedKey().key();
                     final ArrayFW<KafkaHeaderFW> headers = nextEntry.headers();
                     final ArrayFW<KafkaHeaderFW> trailers = nextEntry.trailers();
-                    final OctetsFW value = nextEntry.value();
+                    final OctetsFW value = nextEntry.paddedValue().value();
                     final int remaining = value != null ? value.sizeof() - messageOffset : 0;
                     assert remaining >= 0;
                     final int initialPad = fan.initialPad;

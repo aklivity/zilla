@@ -27,7 +27,7 @@ import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 // A write-collecting ModelEnvelope for the producer-encode path: every set() call is appended, in
 // call order, directly into a block already claimed for this message in the partition's log file --
 // the same claim-per-message approach the log file already uses for a transformed value's own output
-// (see KafkaCachePartition's convertedFile handling), rather than staging entries in a heap-resident
+// (see KafkaCachePartition's paddedValue reservation), rather than staging entries in a heap-resident
 // arena first. Repeated names simply add further entries, so writeHeaders() below reproduces them as
 // that many repeated Kafka headers, in the same order they were set. claim() is called once per
 // message, right after its block is reserved; reset() clears tracking so one instance is reused

@@ -388,6 +388,22 @@ public class CacheProduceIT
         k3po.finish();
     }
 
+    // regression coverage for zilla#2461: a real protobuf value model, encoding the client's raw
+    // protobuf bytes with an INIT-flagged fragment carrying no bytes yet (declaring the full length
+    // via deferred()) followed by a FIN-flagged fragment carrying every byte -- the split the real
+    // HTTP-to-Kafka produce mapping uses, and the shape that exposed writeProduceEntryContinue
+    // re-deriving valuePaddingMax from a disk position the catalog framing had already overwritten
+    @Test
+    @Configuration("cache.value.model.protobuf.yaml")
+    @Specification({
+        "${app}/message.value.protobuf.fragmented/client",
+        "${app}/message.value.protobuf.fragmented/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldSendMessageValueProtobufFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
     // proves a message whose envelope-collected trailer entries exceed the block claimed for them
     // (cache.client.trailers.size.max, deliberately sized to fit only the first of two configured
     // fields) drops the entry that overflows rather than corrupting or silently discarding everything
