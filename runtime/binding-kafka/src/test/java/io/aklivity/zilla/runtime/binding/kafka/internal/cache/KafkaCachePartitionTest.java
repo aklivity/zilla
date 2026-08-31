@@ -67,7 +67,7 @@ public class KafkaCachePartitionTest
     @Rule
     public TemporaryFolder tempFolder = new TemporaryFolder();
 
-    private final MutableDirectBufferEx scratch = new UnsafeBufferEx(new byte[8192]);
+    private final MutableDirectBufferEx transformBuffer = new UnsafeBufferEx(new byte[8192]);
     private final KafkaCacheEntryFW entryRO = new KafkaCacheEntryFW();
     private final KafkaCachePaddedValueFW paddedValueRO = new KafkaCachePaddedValueFW();
 
@@ -290,7 +290,7 @@ public class KafkaCachePartitionTest
         OctetsFW value = value(buffer, headers.limit(), "hello");
 
         UppercasingPipeline pipeline = new UppercasingPipeline();
-        KafkaCacheModel transformValue = new KafkaCacheModel(pipeline, scratch);
+        KafkaCacheModel transformValue = new KafkaCacheModel(pipeline, transformBuffer);
 
         int transformed = partition.writeProduceEntryStart(1L, 1L, 0L, 11L, head, entryMark, valueMark, valueLimit,
             trailersClaimMark, 0L, 1L, -1L, (short) 0, 0, KafkaAckMode.NONE, key, 5, 4, headers, 256,
@@ -329,7 +329,7 @@ public class KafkaCachePartitionTest
         OctetsFW secondFragment = value(buffer, headers.limit() + 3, "lo");
 
         UppercasingPipeline pipeline = new UppercasingPipeline();
-        KafkaCacheModel transformValue = new KafkaCacheModel(pipeline, scratch);
+        KafkaCacheModel transformValue = new KafkaCacheModel(pipeline, transformBuffer);
 
         int transformed = partition.writeProduceEntryStart(1L, 1L, 0L, 11L, head, entryMark, valueMark, valueLimit,
             trailersClaimMark, 0L, 1L, -1L, (short) 0, 0, KafkaAckMode.NONE, key, 5, 4, headers, 256,
@@ -364,7 +364,7 @@ public class KafkaCachePartitionTest
         OctetsFW value = value(buffer, headers.limit(), "hello");
 
         UppercasingPipeline pipeline = new UppercasingPipeline();
-        KafkaCacheModel transformValue = new KafkaCacheModel(pipeline, scratch);
+        KafkaCacheModel transformValue = new KafkaCacheModel(pipeline, transformBuffer);
 
         partition.writeProduceEntryStart(1L, 1L, 0L, 11L, head, entryMark, valueMark, valueLimit,
             trailersClaimMark, 0L, 1L, -1L, (short) 0, 0, KafkaAckMode.NONE, key, 5, 0, headers, 256,
@@ -395,7 +395,7 @@ public class KafkaCachePartitionTest
         OctetsFW payload = value(buffer, headers.limit(), "hello");
 
         DoublingPipeline pipeline = new DoublingPipeline();
-        KafkaCacheModel transformValue = new KafkaCacheModel(pipeline, scratch);
+        KafkaCacheModel transformValue = new KafkaCacheModel(pipeline, transformBuffer);
 
         final int valuePaddingMax = 8;
         partition.writeProduceEntryStart(1L, 1L, 0L, 11L, head, entryMark, valueMark, valueLimit,
@@ -446,7 +446,7 @@ public class KafkaCachePartitionTest
         OctetsFW payload = value(buffer, headers.limit(), "hello");
 
         DoublingPipeline pipeline = new DoublingPipeline();
-        KafkaCacheModel transformValue = new KafkaCacheModel(pipeline, scratch);
+        KafkaCacheModel transformValue = new KafkaCacheModel(pipeline, transformBuffer);
         KafkaCacheTrailerEnvelope valueEnvelope = new KafkaCacheTrailerEnvelope();
 
         final int valuePaddingMax = 8;
@@ -614,7 +614,7 @@ public class KafkaCachePartitionTest
         OctetsFW value = value(buffer, headers.limit(), "hello");
 
         KafkaCacheTrailerEnvelope valueEnvelope = new KafkaCacheTrailerEnvelope();
-        KafkaCacheModel transformValue = KafkaCacheModel.writer(handler(5), ModelTransform.NONE, valueEnvelope, scratch);
+        KafkaCacheModel transformValue = KafkaCacheModel.writer(handler(5), ModelTransform.NONE, valueEnvelope, transformBuffer);
 
         partition.writeEntry(null, 1L, 1L, 0L, 11L, entryMark, valueMark, 0L, KafkaTimestampType.ADVISORY, -1L,
             key, headers, value, 0x00, KafkaDeltaType.NONE, KafkaCacheModel.NONE, transformValue,
@@ -641,7 +641,7 @@ public class KafkaCachePartitionTest
         OctetsFW value = value(buffer, headers.limit(), "hello");
 
         UppercasingPipeline pipeline = new UppercasingPipeline();
-        KafkaCacheModel transformValue = new KafkaCacheModel(pipeline, scratch);
+        KafkaCacheModel transformValue = new KafkaCacheModel(pipeline, transformBuffer);
         KafkaCacheTrailerEnvelope valueEnvelope = new KafkaCacheTrailerEnvelope();
 
         partition.writeEntryStart(null, 1L, 1L, 0L, 11L, entryMark, valueMark, valueLimit, headersMark, 0L,
@@ -680,7 +680,7 @@ public class KafkaCachePartitionTest
         OctetsFW secondFragment = value(buffer, headers.limit() + 3, "lo");
 
         UppercasingPipeline pipeline = new UppercasingPipeline();
-        KafkaCacheModel transformValue = new KafkaCacheModel(pipeline, scratch);
+        KafkaCacheModel transformValue = new KafkaCacheModel(pipeline, transformBuffer);
         KafkaCacheTrailerEnvelope valueEnvelope = new KafkaCacheTrailerEnvelope();
 
         partition.writeEntryStart(null, 1L, 1L, 0L, 11L, entryMark, valueMark, valueLimit, headersMark, 0L,
@@ -716,7 +716,7 @@ public class KafkaCachePartitionTest
         OctetsFW value = value(buffer, headers.limit(), "hello");
 
         UppercasingPipeline pipeline = new UppercasingPipeline();
-        KafkaCacheModel transformValue = new KafkaCacheModel(pipeline, scratch);
+        KafkaCacheModel transformValue = new KafkaCacheModel(pipeline, transformBuffer);
         KafkaCacheTrailerEnvelope valueEnvelope = new KafkaCacheTrailerEnvelope();
 
         partition.writeEntryStart(null, 1L, 1L, 0L, 11L, entryMark, valueMark, valueLimit, headersMark, 0L,
@@ -754,7 +754,8 @@ public class KafkaCachePartitionTest
         int valueLength = 5;
 
         KafkaCacheTrailerEnvelope valueEnvelope = new KafkaCacheTrailerEnvelope();
-        KafkaCacheModel transformValue = KafkaCacheModel.writer(paddingHandler(), ModelTransform.NONE, valueEnvelope, scratch);
+        KafkaCacheModel transformValue =
+            KafkaCacheModel.writer(paddingHandler(), ModelTransform.NONE, valueEnvelope, transformBuffer);
 
         int valuePaddingMax = transformValue.padding(firstFragment.buffer(), firstFragment.offset(), valueLength);
 
@@ -781,7 +782,7 @@ public class KafkaCachePartitionTest
         OctetsFW value = value(buffer, headers.limit(), "hello");
 
         KafkaCacheTrailerEnvelope valueEnvelope = new KafkaCacheTrailerEnvelope();
-        KafkaCacheModel transformValue = KafkaCacheModel.writer(handler(99), ModelTransform.NONE, valueEnvelope, scratch);
+        KafkaCacheModel transformValue = KafkaCacheModel.writer(handler(99), ModelTransform.NONE, valueEnvelope, transformBuffer);
 
         partition.writeEntry(null, 1L, 1L, 0L, 11L, entryMark, valueMark, 0L, KafkaTimestampType.ADVISORY, -1L,
             key, headers, value, 0x00, KafkaDeltaType.NONE, KafkaCacheModel.NONE, transformValue,
@@ -810,9 +811,9 @@ public class KafkaCachePartitionTest
         ModelTransform keyTransform = new KafkaExtractTransform("$.key", KafkaCacheKeyEnvelope.NAME, keyEnvelope);
         ModelTransform valueTransform = new KafkaExtractTransform("$.region", "region", valueEnvelope);
         KafkaCacheModel transformKey =
-            KafkaCacheModel.writer(extractingHandler("$.key"), keyTransform, keyEnvelope, scratch);
+            KafkaCacheModel.writer(extractingHandler("$.key"), keyTransform, keyEnvelope, transformBuffer);
         KafkaCacheModel transformValue =
-            KafkaCacheModel.writer(extractingHandler("$.region"), valueTransform, valueEnvelope, scratch);
+            KafkaCacheModel.writer(extractingHandler("$.region"), valueTransform, valueEnvelope, transformBuffer);
 
         partition.writeEntry(null, 1L, 1L, 0L, 11L, entryMark, valueMark, 0L, KafkaTimestampType.ADVISORY, -1L,
             key, headers, value, 0x00, KafkaDeltaType.NONE, transformKey, transformValue, keyEnvelope, valueEnvelope,
@@ -845,7 +846,7 @@ public class KafkaCachePartitionTest
         KafkaCacheTrailerEnvelope valueEnvelope = new KafkaCacheTrailerEnvelope();
         ModelTransform valueTransform = new KafkaExtractTransform("$.region", "region", valueEnvelope);
         KafkaCacheModel transformValue =
-            KafkaCacheModel.writer(extractingHandler("$.region"), valueTransform, valueEnvelope, scratch);
+            KafkaCacheModel.writer(extractingHandler("$.region"), valueTransform, valueEnvelope, transformBuffer);
 
         KafkaKeyFW key1 = key(buffer, "k1");
         Array32FW<KafkaHeaderFW> headers1 = noHeaders(buffer, key1.limit());
@@ -884,7 +885,8 @@ public class KafkaCachePartitionTest
         KafkaCacheKeyEnvelope keyEnvelope = new KafkaCacheKeyEnvelope();
         ModelTransform keyTransform = new KafkaExtractTransform("$.id", KafkaCacheKeyEnvelope.NAME, keyEnvelope);
         KafkaCacheModel transformKey = KafkaCacheModel.writer(
-            fieldsHandler("$.id", "this-override-is-much-longer-than-the-original-key"), keyTransform, keyEnvelope, scratch);
+            fieldsHandler("$.id", "this-override-is-much-longer-than-the-original-key"), keyTransform, keyEnvelope,
+            transformBuffer);
 
         partition.writeEntry(null, 1L, 1L, 0L, 11L, entryMark, valueMark, 0L, KafkaTimestampType.ADVISORY, -1L,
             key, headers, value, 0x00, KafkaDeltaType.NONE, transformKey, KafkaCacheModel.NONE, keyEnvelope,
@@ -911,7 +913,7 @@ public class KafkaCachePartitionTest
         KafkaCacheTrailerEnvelope valueEnvelope = new KafkaCacheTrailerEnvelope();
         ModelTransform valueTransform = new KafkaExtractTransform("$.region", "region", valueEnvelope);
         KafkaCacheModel transformValue =
-            KafkaCacheModel.writer(extractingHandler("$.region"), valueTransform, valueEnvelope, scratch);
+            KafkaCacheModel.writer(extractingHandler("$.region"), valueTransform, valueEnvelope, transformBuffer);
 
         partition.writeEntry(null, 1L, 1L, 0L, 11L, entryMark, valueMark, 0L, KafkaTimestampType.ADVISORY, -1L,
             key, headers, value, 0x00, KafkaDeltaType.NONE, KafkaCacheModel.NONE, transformValue,
@@ -945,7 +947,7 @@ public class KafkaCachePartitionTest
         KafkaCacheTrailerEnvelope valueEnvelope = new KafkaCacheTrailerEnvelope();
         ModelTransform valueTransform = new KafkaExtractTransform("$.region", "region", valueEnvelope);
         KafkaCacheModel transformValue =
-            KafkaCacheModel.writer(extractingHandler("$.region"), valueTransform, valueEnvelope, scratch);
+            KafkaCacheModel.writer(extractingHandler("$.region"), valueTransform, valueEnvelope, transformBuffer);
 
         KafkaKeyFW nullKey = new OctetsFW().wrap(new UnsafeBufferEx(new byte[] { 0x00 }), 0, 1)
             .get(new KafkaKeyFW()::wrap);
@@ -990,7 +992,7 @@ public class KafkaCachePartitionTest
         // the key's model surfaces the extracted field between two others, so the entry key is only right
         // if the fields the traversal merely surfaces stay out of the key lane
         KafkaCacheModel transformKey = KafkaCacheModel.writer(
-            fieldsHandler("$.tenant", "tenantA", "$.id", "id42", "$.zone", "euw1"), keyTransform, keyEnvelope, scratch);
+            fieldsHandler("$.tenant", "tenantA", "$.id", "id42", "$.zone", "euw1"), keyTransform, keyEnvelope, transformBuffer);
 
         partition.writeEntry(null, 1L, 1L, 0L, 11L, entryMark, valueMark, 0L, KafkaTimestampType.ADVISORY, -1L,
             key, headers, value, 0x00, KafkaDeltaType.NONE, transformKey, KafkaCacheModel.NONE, keyEnvelope,
@@ -1013,9 +1015,9 @@ public class KafkaCachePartitionTest
         KafkaCacheTrailerEnvelope envelopeA = new KafkaCacheTrailerEnvelope();
         KafkaCacheTrailerEnvelope envelopeB = new KafkaCacheTrailerEnvelope();
         KafkaCacheModel transformValueA = KafkaCacheModel.writer(extractingHandler("$.region"),
-            new KafkaExtractTransform("$.region", "region", envelopeA), envelopeA, scratch);
+            new KafkaExtractTransform("$.region", "region", envelopeA), envelopeA, transformBuffer);
         KafkaCacheModel transformValueB = KafkaCacheModel.writer(extractingHandler("$.region"),
-            new KafkaExtractTransform("$.region", "region", envelopeB), envelopeB, scratch);
+            new KafkaExtractTransform("$.region", "region", envelopeB), envelopeB, transformBuffer);
 
         assertEquals("AAA", writeAndReadTrailer(partition, head, entryMark, valueMark, buffer, 11L, "AAA",
             transformValueA, envelopeA));

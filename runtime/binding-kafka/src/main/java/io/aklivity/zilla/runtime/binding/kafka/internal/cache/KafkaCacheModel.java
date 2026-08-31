@@ -79,7 +79,7 @@ public final class KafkaCacheModel
     }
 
     private final ModelPipeline pipeline;
-    private final MutableDirectBufferEx scratch;
+    private final MutableDirectBufferEx transformBuffer;
     private final ExpandableArrayBufferEx carry;
     private final Result result;
 
@@ -89,10 +89,10 @@ public final class KafkaCacheModel
     public static KafkaCacheModel decoder(
         ModelHandler handler,
         ModelTransform transform,
-        MutableDirectBufferEx scratch)
+        MutableDirectBufferEx transformBuffer)
     {
         return handler != null
-            ? new KafkaCacheModel(handler.supplyDecoder(ModelEnvelope.NONE, transform, ModelCache.NONE), scratch)
+            ? new KafkaCacheModel(handler.supplyDecoder(ModelEnvelope.NONE, transform, ModelCache.NONE), transformBuffer)
             : NONE;
     }
 
@@ -103,10 +103,10 @@ public final class KafkaCacheModel
         ModelHandler handler,
         ModelTransform transform,
         ModelEnvelope envelope,
-        MutableDirectBufferEx scratch)
+        MutableDirectBufferEx transformBuffer)
     {
         return handler != null
-            ? new KafkaCacheModel(handler.supplyDecoder(envelope, transform, ModelCache.WRITE), scratch)
+            ? new KafkaCacheModel(handler.supplyDecoder(envelope, transform, ModelCache.WRITE), transformBuffer)
             : NONE;
     }
 
@@ -117,10 +117,10 @@ public final class KafkaCacheModel
         ModelHandler handler,
         ModelTransform transform,
         ModelEnvelope envelope,
-        MutableDirectBufferEx scratch)
+        MutableDirectBufferEx transformBuffer)
     {
         return handler != null
-            ? new KafkaCacheModel(handler.supplyDecoder(envelope, transform, ModelCache.READ), scratch)
+            ? new KafkaCacheModel(handler.supplyDecoder(envelope, transform, ModelCache.READ), transformBuffer)
             : NONE;
     }
 
@@ -129,27 +129,27 @@ public final class KafkaCacheModel
     public static KafkaCacheModel encoder(
         ModelHandler handler,
         ModelEnvelope envelope,
-        MutableDirectBufferEx scratch)
+        MutableDirectBufferEx transformBuffer)
     {
         return handler != null
-            ? new KafkaCacheModel(handler.supplyEncoder(envelope, ModelTransform.NONE), scratch)
+            ? new KafkaCacheModel(handler.supplyEncoder(envelope, ModelTransform.NONE), transformBuffer)
             : NONE;
     }
 
     private KafkaCacheModel()
     {
         this.pipeline = null;
-        this.scratch = null;
+        this.transformBuffer = null;
         this.carry = new ExpandableArrayBufferEx();
         this.result = new Result();
     }
 
     KafkaCacheModel(
         ModelPipeline pipeline,
-        MutableDirectBufferEx scratch)
+        MutableDirectBufferEx transformBuffer)
     {
         this.pipeline = pipeline;
-        this.scratch = scratch;
+        this.transformBuffer = transformBuffer;
         this.carry = new ExpandableArrayBufferEx();
         this.result = new Result();
     }
@@ -230,14 +230,14 @@ public final class KafkaCacheModel
             while (finalStatus == null)
             {
                 final ModelPipelineResult step = pipeline.transform(traceId, bindingId, authorization, callFlags,
-                    src, srcAt, srcLimit, scratch, 0, scratch.capacity());
+                    src, srcAt, srcLimit, transformBuffer, 0, transformBuffer.capacity());
                 final ModelStatus status = step.status();
                 final int consumed = step.consumed();
                 final int produced = step.produced();
 
                 if (produced > 0)
                 {
-                    next.accept(scratch, 0, produced);
+                    next.accept(transformBuffer, 0, produced);
                     total += produced;
                 }
 
