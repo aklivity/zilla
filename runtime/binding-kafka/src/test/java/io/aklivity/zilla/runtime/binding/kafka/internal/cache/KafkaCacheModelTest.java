@@ -294,6 +294,32 @@ public class KafkaCacheModelTest
         assertEquals(1, pipeline.resetCount);
     }
 
+    // regression coverage for zilla#2461: a self-delimiting format (e.g. a JSON-view protobuf
+    // encode) can recognize its own input is complete from content alone, before the caller's own
+    // FIN fragment arrives -- the real HTTP-to-Kafka produce mapping still always follows with a
+    // trailing FIN-flagged fragment carrying no further bytes, which must be absorbed as this
+    // value's true completion rather than treated as the start of a new, invalid empty value
+    @Test
+    public void shouldAbsorbTrailingEmptyFinAfterEarlyCompletion()
+    {
+        SelfDelimitingPipeline pipeline = new SelfDelimitingPipeline();
+        KafkaCacheModel model = new KafkaCacheModel(pipeline, new UnsafeBufferEx(new byte[256]));
+
+        KafkaCacheModel.Result first = model.transform(0L, 0L, 0L, FLAGS_INIT, value(""), 0, 0, sink);
+        assertEquals(ModelStatus.UNDERFLOW, first.status());
+
+        KafkaCacheModel.Result second = model.transform(0L, 0L, 0L, 0x00, value("hello"), 0, 5, sink);
+        assertEquals(ModelStatus.UNDERFLOW, second.status());
+        assertOutput("hello");
+
+        KafkaCacheModel.Result third = model.transform(0L, 0L, 0L, FLAGS_FIN, value(""), 0, 0, sink);
+        assertEquals(ModelStatus.COMPLETE, third.status());
+        assertEquals(0, third.produced());
+
+        assertEquals(2, pipeline.transformCount);
+        assertEquals(1, pipeline.resetCount);
+    }
+
     private static TestModelHandler handler(
         int length)
     {
@@ -488,6 +514,48 @@ public class KafkaCacheModelTest
             dst.putBytes(dstIndex, src, srcIndex, consumed);
             final ModelStatus status = fin ? ModelStatus.COMPLETE : ModelStatus.UNDERFLOW;
             return result.set(status, consumed, consumed);
+        }
+
+        @Override
+        public boolean identity()
+        {
+            return true;
+        }
+
+        @Override
+        public void reset()
+        {
+            resetCount++;
+        }
+    }
+
+    // a pipeline that completes as soon as it sees a non-empty fragment, independent of the
+    // caller's own FIN bit -- stands in for a self-delimiting format (e.g. JSON) whose own content
+    // tells it the value is done
+    private static final class SelfDelimitingPipeline implements ModelPipeline
+    {
+        private final ModelPipelineResult result = new ModelPipelineResult();
+        private int resetCount;
+        private int transformCount;
+
+        @Override
+        public ModelPipelineResult transform(
+            long traceId,
+            long bindingId,
+            long authorization,
+            int flags,
+            DirectBufferEx src,
+            int srcIndex,
+            int srcLimit,
+            MutableDirectBufferEx dst,
+            int dstIndex,
+            int dstLimit)
+        {
+            transformCount++;
+            final int length = srcLimit - srcIndex;
+            dst.putBytes(dstIndex, src, srcIndex, length);
+            final ModelStatus status = length > 0 ? ModelStatus.COMPLETE : ModelStatus.UNDERFLOW;
+            return result.set(status, length, length);
         }
 
         @Override

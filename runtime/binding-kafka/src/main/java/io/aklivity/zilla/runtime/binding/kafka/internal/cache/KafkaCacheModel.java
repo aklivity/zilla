@@ -85,6 +85,7 @@ public final class KafkaCacheModel
 
     private boolean started;
     private int carried;
+    private boolean completedEarly;
 
     public static KafkaCacheModel decoder(
         ModelHandler handler,
@@ -227,6 +228,23 @@ public final class KafkaCacheModel
             int callFlags = (started ? 0 : FLAGS_INIT) | (flags & FLAGS_FIN);
             started = true;
             ModelStatus finalStatus = null;
+            if (completedEarly)
+            {
+                // a self-delimiting pipeline already finished on an earlier, non-FIN call (see the
+                // COMPLETE branch below) -- absorb this fragment without re-invoking the pipeline,
+                // since it has nothing left to produce, and only report COMPLETE once the caller's
+                // own FIN fragment actually arrives
+                if ((callFlags & FLAGS_FIN) != 0)
+                {
+                    completedEarly = false;
+                    started = false;
+                    finalStatus = ModelStatus.COMPLETE;
+                }
+                else
+                {
+                    finalStatus = ModelStatus.UNDERFLOW;
+                }
+            }
             while (finalStatus == null)
             {
                 final ModelPipelineResult step = pipeline.transform(traceId, bindingId, authorization, callFlags,
@@ -247,11 +265,21 @@ public final class KafkaCacheModel
                     started = false;
                     finalStatus = ModelStatus.REJECTED;
                 }
-                else if (status == ModelStatus.COMPLETE)
+                else if (status == ModelStatus.COMPLETE && (callFlags & FLAGS_FIN) != 0)
                 {
                     pipeline.reset();
                     started = false;
                     finalStatus = ModelStatus.COMPLETE;
+                }
+                else if (status == ModelStatus.COMPLETE)
+                {
+                    // a self-delimiting format (e.g. a JSON-view protobuf encode) can recognize its
+                    // own input is complete before the caller's own FIN fragment arrives -- remember
+                    // that and report UNDERFLOW so the caller keeps driving fragments; the eventual
+                    // FIN-flagged call is absorbed above without re-invoking the pipeline
+                    pipeline.reset();
+                    completedEarly = true;
+                    finalStatus = ModelStatus.UNDERFLOW;
                 }
                 else if (status == ModelStatus.UNDERFLOW && (callFlags & FLAGS_FIN) != 0)
                 {
@@ -301,6 +329,7 @@ public final class KafkaCacheModel
         }
         started = false;
         carried = 0;
+        completedEarly = false;
     }
 
     public boolean identity()
