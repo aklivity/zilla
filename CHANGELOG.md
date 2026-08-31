@@ -90,6 +90,8 @@
 - feat\(engine\): resolve OptionsConfig's own named references generically [\#2454](https://github.com/aklivity/zilla/pull/2454) ([jfallows](https://github.com/jfallows))
 - feat\(binding-kafka\): wire ModelEnvelope into kafka cache storage's read and write paths [\#2455](https://github.com/aklivity/zilla/pull/2455) ([jfallows](https://github.com/jfallows))
 - perf\(binding-kafka\): claim a block in the log file for produce-path trailer entries [\#2457](https://github.com/aklivity/zilla/pull/2457) ([jfallows](https://github.com/jfallows))
+- refactor\(binding-kafka\): replace KafkaPipeline with ModelEnvelope-backed extraction [\#2458](https://github.com/aklivity/zilla/pull/2458) ([jfallows](https://github.com/jfallows))
+- feat\(binding-mcp\): report SEARCH\_INDEX\_FAILED event when tool search index fails [\#2460](https://github.com/aklivity/zilla/pull/2460) ([jfallows](https://github.com/jfallows))
 
 ## [2.3.0](https://github.com/aklivity/zilla/tree/2.3.0) (2026-08-14)
 
