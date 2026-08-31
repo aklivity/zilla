@@ -15,111 +15,54 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.cache;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.engine.model.ModelController;
+import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
+import io.aklivity.zilla.runtime.engine.model.ModelEvent;
+import io.aklivity.zilla.runtime.engine.model.ModelSink;
+import io.aklivity.zilla.runtime.engine.model.ModelSource;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
+import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 
-// One stage per extractKey / extractHeaders config entry. It watches the lane its configured path is
-// rooted in and, on a match, switches to the target lane, appends the matched content there, and switches
-// back — all within the call that surfaced the match, so nothing is captured for a later replay. The
-// matched event then flows on to its own destination untouched: extraction only ever adds to the key or
-// headers, never mutates the value.
-final class KafkaExtractTransform implements KafkaTransform
+// One stage per extractKey / extractHeaders config entry: on the field at path, copies its value into
+// envelope under name -- ":key" for extractKey, so KafkaCachePartition can read the override back off the
+// key model's own envelope in place of the persisted key; the configured header name for extractHeaders,
+// read back off the value model's trailers envelope. Purely observing -- the field itself flows on to the
+// sink untouched -- so this stage is always identity, and multiple entries compose the same way any
+// ModelTransform chain does, via andThen.
+public final class KafkaExtractTransform implements ModelTransform
 {
-    private final KafkaEvent origin;
-    private final KafkaEvent target;
     private final String path;
-    private final Extracted extracted;
+    private final String name;
+    private final ModelEnvelope envelope;
 
-    private KafkaEvent lane;
-
-    KafkaExtractTransform(
-        KafkaEvent origin,
-        KafkaEvent target,
+    public KafkaExtractTransform(
         String path,
-        String name)
+        String name,
+        ModelEnvelope envelope)
     {
-        this.origin = origin;
-        this.target = target;
         this.path = path;
-        this.extracted = new Extracted(name);
+        this.name = name;
+        this.envelope = envelope;
     }
 
     @Override
     public ModelStatus transform(
-        KafkaController control,
-        KafkaSource source,
-        KafkaEvent event,
-        KafkaSink sink)
+        ModelController control,
+        ModelSource source,
+        ModelEvent event,
+        ModelSink sink)
     {
-        ModelStatus status = ModelStatus.OK;
-
-        if (event != KafkaEvent.FIELD)
+        if (event == ModelEvent.FIELD && path.equals(source.getPath()))
         {
-            // a lane switch raised by any stage, including one upstream of this one
-            lane = event;
-        }
-        else if (lane == origin && path.equals(source.getPath()))
-        {
-            status = append(control, source, sink);
+            envelope.set(name, source.getValue());
         }
 
-        return status == ModelStatus.REJECTED
-            ? status
-            : sink.transform(control, source, event);
+        return sink.transform(control, source, event);
     }
 
     @Override
-    public void reset()
+    public boolean identity()
     {
-        lane = null;
-    }
-
-    private ModelStatus append(
-        KafkaController control,
-        KafkaSource source,
-        KafkaSink sink)
-    {
-        extracted.value = source.getValue();
-
-        ModelStatus status = sink.transform(control, source, target);
-
-        if (status != ModelStatus.REJECTED)
-        {
-            status = sink.transform(control, extracted, KafkaEvent.FIELD);
-        }
-
-        if (status != ModelStatus.REJECTED)
-        {
-            status = sink.transform(control, source, origin);
-        }
-
-        return status;
-    }
-
-    // the view handed to the target lane: the matched bytes under the name that lane knows them by, a
-    // header name for the headers lane and the source path for the key lane, which has no name of its own
-    private static final class Extracted implements KafkaSource
-    {
-        private final String name;
-
-        private DirectBufferEx value;
-
-        private Extracted(
-            String name)
-        {
-            this.name = name;
-        }
-
-        @Override
-        public String getPath()
-        {
-            return name;
-        }
-
-        @Override
-        public DirectBufferEx getValue()
-        {
-            return value;
-        }
+        return true;
     }
 }

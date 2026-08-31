@@ -45,6 +45,7 @@ import io.aklivity.zilla.config.binding.mcp.McpCacheToolsEagerConfig;
 import io.aklivity.zilla.config.binding.mcp.McpCacheToolsEagerPolicy;
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
+import io.aklivity.zilla.runtime.binding.mcp.internal.McpEventContext;
 import io.aklivity.zilla.runtime.binding.mcp.internal.search.McpSearchToolDescriptor;
 import io.aklivity.zilla.runtime.binding.mcp.internal.search.McpToolByteRange;
 import io.aklivity.zilla.runtime.binding.mcp.internal.search.McpToolByteRangeScanner;
@@ -97,6 +98,7 @@ public final class McpProxyCache
     public long authorization;
 
     private final StoreHandler store;
+    private final McpEventContext events;
     private final Int2ObjectHashMap<McpListCache> caches;
     private final Long2LongHashMap routeAuthorizations;
     private final List<Runnable> awaiters;
@@ -122,6 +124,7 @@ public final class McpProxyCache
     {
         this.bindingId = binding.id;
         this.store = context.supplyStore(binding.resolveId.applyAsLong(cache.store));
+        this.events = new McpEventContext(context);
         this.guard = Optional.ofNullable(cache.authorization)
             .map(a -> a.name)
             .map(binding.resolveId::applyAsLong)
@@ -564,10 +567,10 @@ public final class McpProxyCache
                 .andThen(k -> onSettled.accept(kind, changed, value)));
         }
 
-        // the only backend today (keyword) never fails to index, so both outcomes take the same
-        // action here; a backend that can genuinely fail (e.g. an unavailable embedding provider)
-        // still proceeds to store the tools list rather than blocking it on search availability --
-        // stale/incomplete search results until the next successful rebuild, not a lost cache write
+        // a backend that can genuinely fail still proceeds to store the tools list rather than
+        // blocking it on search availability -- stale/incomplete search results until the next
+        // successful rebuild, not a lost cache write -- but the failure is reported via
+        // SEARCH_INDEX_FAILED so it is not silently invisible
         private McpToolSearchIndex.CompletionCallback<Void> settled(
             Consumer<Throwable> completion)
         {
@@ -584,6 +587,7 @@ public final class McpProxyCache
                 public void failed(
                     Throwable ex)
                 {
+                    events.searchIndexFailed(0L, bindingId, ex.getMessage());
                     completion.accept(ex);
                 }
             };

@@ -19,6 +19,7 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.types.event.EventFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.event.McpAuthorizationFailedExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.event.McpElicitationTimeoutExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.event.McpEventExFW;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.event.McpSearchIndexFailedExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.event.McpSessionClosedExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.event.McpSessionEstablishedExFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
@@ -75,6 +76,13 @@ public final class McpEventFormatter implements EventFormatterSpi
             result = String.format("Elicitation (%s) timed out for session (%s).",
                     asString(ex.elicitationId()),
                     asString(ex.sessionId()));
+            break;
+        }
+        case SEARCH_INDEX_FAILED:
+        {
+            McpSearchIndexFailedExFW ex = extension.searchIndexFailed();
+            result = String.format("MCP tool search index failed. %s",
+                    asString(ex.reason()));
             break;
         }
         }
