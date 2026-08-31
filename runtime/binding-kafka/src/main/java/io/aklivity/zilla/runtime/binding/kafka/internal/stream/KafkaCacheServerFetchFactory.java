@@ -504,6 +504,8 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
         private final MutableInteger entryMark;
         private final MutableInteger valueMark;
         private final MutableInteger valueLimit;
+        private final MutableInteger headersMark;
+        private int headersMax;
 
         private long leaderId;
         private long initialId;
@@ -582,6 +584,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
             this.entryMark = new MutableInteger(0);
             this.valueMark = new MutableInteger(0);
             this.valueLimit = new MutableInteger(0);
+            this.headersMark = new MutableInteger(0);
         }
 
         private void onServerFanoutMemberOpening(
@@ -924,13 +927,16 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                 final int deferred = kafkaFetchDataEx.deferred();
                 final int partitionId = kafkaFetchDataEx.partition().partitionId();
                 final long partitionOffset = kafkaFetchDataEx.partition().partitionOffset();
-                // reserves room for writeEntryFinish's trailers + paddingLen + padding fields, claimed up
-                // front as the scratch block a composed transform's envelope.set() calls write into (see
-                // KafkaCachePartition.writeEntryFinish) -- only when a value model is actually configured,
-                // matching writeEntryFinish's own transformValue != NONE guard, so a plain topic with no
-                // value model keeps its exact prior segment-capacity accounting
-                final int headersSizeMax =
-                    Math.max(kafkaFetchDataEx.headers().sizeof(), kafkaFetchDataEx.headersSizeMax()) +
+                // headersMax bounds the entry's real headers, unknown until writeEntryFinish. When a value
+                // model is configured, headersSizeMax additionally reserves room for writeEntryStart's
+                // combined headers/trailers/scratch claim (see KafkaCachePartition.writeEntryStart) --
+                // trailersSizeMax is reused for both the composed transform's envelope scratch during the
+                // value drive and the entry's own final trailers, so only one trailersSizeMax-sized share
+                // is required, not two. A plain topic with no value model keeps its exact prior
+                // segment-capacity accounting
+                final int headersMax = Math.max(kafkaFetchDataEx.headers().sizeof(), kafkaFetchDataEx.headersSizeMax());
+                this.headersMax = headersMax;
+                final int headersSizeMax = headersMax +
                     (transformValue != KafkaCacheModel.NONE ? trailersSizeMax + Integer.BYTES : 0);
                 final long timestamp = kafkaFetchDataEx.timestamp();
                 final KafkaTimestampType timestampType = kafkaFetchDataEx.timestampType().get();
@@ -984,13 +990,15 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                     ((flags & FLAGS_SKIP) != 0x00 ? CACHE_ENTRY_FLAGS_ABORTED : 0x00) |
                     (timestampType == AUTHORITATIVE ? CACHE_ENTRY_FLAGS_AUTHORITATIVE : 0x00);
                 partition.writeEntryStart(context, traceId, routedId, NO_AUTHORIZATION, partitionOffset, entryMark, valueMark,
-                    valueLimit, timestamp, timestampType, producerId, key, valueLength, valuePaddingMax, findAncestor,
-                    entryFlags, deltaType, valueFragment, transformKey, transformValue, transformKeyEnvelope, verbose);
+                    valueLimit, headersMark, timestamp, timestampType, producerId, key, valueLength, valuePaddingMax,
+                    headersMax, trailersSizeMax, findAncestor, entryFlags, deltaType, valueFragment, transformKey,
+                    transformValue, transformKeyEnvelope, transformValueEnvelope, verbose);
             }
 
             if (valueFragment != null)
             {
-                partition.writeEntryContinue(valueLimit, valueFragment);
+                partition.writeEntryContinue(traceId, routedId, NO_AUTHORIZATION, flags, entryMark, valueMark, valueLimit,
+                    valueFragment, transformValue);
             }
 
             if ((flags & FLAGS_FIN) != 0x00)
@@ -1009,8 +1017,8 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                 assert partitionId == partition.id();
                 assert partitionOffset >= this.partitionOffset;
 
-                partition.writeEntryFinish(headers, deltaType, context, traceId, routedId, NO_AUTHORIZATION, flags,
-                    partitionOffset, entryMark, valueMark, transformValue, transformValueEnvelope, trailersSizeMax, verbose);
+                partition.writeEntryFinish(headers, deltaType, entryMark, valueMark, headersMark, headersMax, transformValue,
+                    transformValueEnvelope, trailersSizeMax);
 
                 this.partitionOffset = partitionOffset;
                 this.stableOffset = stableOffset;
