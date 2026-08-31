@@ -38,7 +38,6 @@ scope internal
             int64 ancestor;
             int64 descendant;
             int32 flags = 0;  // see KafkCacheEntryFlags
-            int32 convertedPosition = -1;
             int32 deltaPosition = -1;
             int16 ackMode = -1;
             internal::cache::KafkaCachePaddedKey paddedKey;

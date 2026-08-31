@@ -23,7 +23,6 @@ import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaDeltaT
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW.FIELD_OFFSET_ACKNOWLEDGE;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW.FIELD_OFFSET_ACK_MODE;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW.FIELD_OFFSET_ANCESTOR;
-import static io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW.FIELD_OFFSET_CONVERTED_POSITION;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW.FIELD_OFFSET_DELTA_POSITION;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW.FIELD_OFFSET_DESCENDANT;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW.FIELD_OFFSET_FLAGS;
@@ -96,7 +95,6 @@ public final class KafkaCachePartition
     private static final long NO_DESCENDANT_OFFSET = -1L;
     private static final int NO_SEQUENCE = -1;
     private static final int NO_ACKNOWLEDGE = 0;
-    private static final int NO_CONVERTED_POSITION = -1;
     private static final int NO_DELTA_POSITION = -1;
 
     private static final String FORMAT_FETCH_PARTITION_DIRECTORY = "%s-%d";
@@ -438,11 +436,6 @@ public final class KafkaCachePartition
 
         logFile.mark();
 
-        // a value transform's output now streams directly into this entry's own paddedValue
-        // reservation below (see writeEntryContinue), so this entry never has convertedFile
-        // content -- convertedPosition stays NO_CONVERTED_POSITION regardless of transformValue
-        final int convertedPos = NO_CONVERTED_POSITION;
-
         entryMark.value = logFile.capacity();
 
         entryInfo.putLong(FIELD_OFFSET_OFFSET, progress);
@@ -453,7 +446,6 @@ public final class KafkaCachePartition
         entryInfo.putLong(FIELD_OFFSET_ANCESTOR, NO_ANCESTOR_OFFSET);
         entryInfo.putLong(FIELD_OFFSET_DESCENDANT, NO_DESCENDANT_OFFSET);
         entryInfo.putInt(FIELD_OFFSET_FLAGS, entryFlags);
-        entryInfo.putInt(FIELD_OFFSET_CONVERTED_POSITION, convertedPos);
         entryInfo.putInt(FIELD_OFFSET_DELTA_POSITION, NO_DELTA_POSITION);
         entryInfo.putShort(FIELD_OFFSET_ACK_MODE, KafkaAckMode.NONE.value());
 
@@ -829,11 +821,6 @@ public final class KafkaCachePartition
 
         final int valueMaxLength = valueLength == -1 ? 0 : valueLength;
 
-        // a value transform's output now streams directly into this entry's own paddedValue
-        // reservation below (see writeProduceEntryContinue), so this entry never has convertedFile
-        // content -- convertedPosition stays NO_CONVERTED_POSITION regardless of transformValue
-        final int convertedPos = NO_CONVERTED_POSITION;
-
         entryMark.value = logFile.capacity();
 
         entryInfo.putLong(FIELD_OFFSET_OFFSET, progress);
@@ -846,7 +833,6 @@ public final class KafkaCachePartition
         entryInfo.putLong(FIELD_OFFSET_ANCESTOR, NO_ANCESTOR_OFFSET);
         entryInfo.putLong(FIELD_OFFSET_DESCENDANT, NO_DESCENDANT_OFFSET);
         entryInfo.putInt(FIELD_OFFSET_FLAGS, 0x00);
-        entryInfo.putInt(FIELD_OFFSET_CONVERTED_POSITION, convertedPos);
         entryInfo.putInt(FIELD_OFFSET_DELTA_POSITION, NO_DELTA_POSITION);
         entryInfo.putShort(FIELD_OFFSET_ACK_MODE, ackMode.value());
 

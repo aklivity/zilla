@@ -304,7 +304,6 @@ public class KafkaCachePartitionTest
         partition.writeProduceEntryFin(head, entryMark, valueLimit, 0L, noHeaders(buffer, 0), false);
 
         KafkaCacheEntryFW entry = head.segment().logFile().readBytes(entryMark.value, entryRO::wrap);
-        assertEquals(-1, entry.convertedPosition());
         assertEquals(7, entry.paddedValue().length());
         assertArrayEquals("HELLO!!".getBytes(UTF_8), bytes(entry.paddedValue().value()));
         assertEquals(1, pipeline.resetCount);
@@ -480,7 +479,6 @@ public class KafkaCachePartitionTest
             new KafkaCacheKeyEnvelope(), valueEnvelope, 256, false);
 
         KafkaCacheEntryFW entry = head.segment().logFile().readBytes(entryMark.value, entryRO::wrap);
-        assertEquals(-1, entry.convertedPosition());
         assertEquals(5, entry.paddedValue().length());
         assertArrayEquals("hello".getBytes(UTF_8), bytes(entry.paddedValue().value()));
     }
@@ -515,7 +513,6 @@ public class KafkaCachePartitionTest
             transformValue, valueEnvelope, 256);
 
         KafkaCacheEntryFW entry = head.segment().logFile().readBytes(entryMark.value, entryRO::wrap);
-        assertEquals(-1, entry.convertedPosition());
         assertEquals(7, entry.paddedValue().length());
         assertArrayEquals("HELLO!!".getBytes(UTF_8), bytes(entry.paddedValue().value()));
         assertEquals(1, pipeline.resetCount);
