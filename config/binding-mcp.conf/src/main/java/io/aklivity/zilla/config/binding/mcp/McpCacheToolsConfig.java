@@ -16,11 +16,14 @@ package io.aklivity.zilla.config.binding.mcp;
 
 import static java.util.function.Function.identity;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Function;
 
 import io.aklivity.zilla.config.engine.Config;
+import io.aklivity.zilla.config.engine.NamedConfig;
 
-public final class McpCacheToolsConfig extends Config
+public final class McpCacheToolsConfig extends Config.Extensible
 {
     public final McpCacheToolsSearchConfig search;
     public final McpCacheToolsEagerConfig eager;
@@ -29,8 +32,27 @@ public final class McpCacheToolsConfig extends Config
         McpCacheToolsSearchConfig search,
         McpCacheToolsEagerConfig eager)
     {
+        super(null, withSearchAndEager(search, eager));
         this.search = search;
         this.eager = eager;
+    }
+
+    // search and eager may each contribute their own named references; folding both in here lets
+    // McpCacheConfig discover every name under tools generically via tools.refs()
+    private static List<NamedConfig> withSearchAndEager(
+        McpCacheToolsSearchConfig search,
+        McpCacheToolsEagerConfig eager)
+    {
+        List<NamedConfig> all = new ArrayList<>();
+        if (search != null)
+        {
+            all.addAll(search.refs());
+        }
+        if (eager != null)
+        {
+            all.addAll(eager.refs());
+        }
+        return all;
     }
 
     public static McpCacheToolsConfigBuilder<McpCacheToolsConfig> builder()

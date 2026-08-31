@@ -21,7 +21,7 @@ import java.util.function.Function;
 
 import io.aklivity.zilla.config.engine.Config;
 
-public final class McpCacheConfig extends Config
+public final class McpCacheConfig extends Config.Extensible
 {
     public final String store;
     public final Duration ttl;
@@ -34,6 +34,7 @@ public final class McpCacheConfig extends Config
         McpAuthorizationConfig authorization,
         McpCacheToolsConfig tools)
     {
+        super(null, tools != null ? tools.refs() : null);
         this.store = store;
         this.ttl = ttl;
         this.authorization = authorization;
