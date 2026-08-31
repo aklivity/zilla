@@ -506,6 +506,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
         private final MutableInteger valueLimit;
         private final MutableInteger headersMark;
         private int headersMax;
+        private int valuePaddingMax;
 
         private long leaderId;
         private long initialId;
@@ -944,7 +945,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                 final KafkaKeyFW key = kafkaFetchDataEx.key();
                 final KafkaDeltaFW delta = kafkaFetchDataEx.delta();
                 final int valueLength = valueFragment != null ? valueFragment.sizeof() + deferred : -1;
-                final int valuePaddingMax = valueLength != -1 && transformValue != KafkaCacheModel.NONE
+                this.valuePaddingMax = valueLength != -1 && transformValue != KafkaCacheModel.NONE
                     ? transformValue.padding(valueFragment.buffer(), valueFragment.offset(), valueLength)
                     : 0;
 
@@ -998,7 +999,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
             if (valueFragment != null)
             {
                 partition.writeEntryContinue(traceId, routedId, NO_AUTHORIZATION, flags, entryMark, valueMark, valueLimit,
-                    valueFragment, transformValue);
+                    valueFragment, transformValue, valuePaddingMax);
             }
 
             if ((flags & FLAGS_FIN) != 0x00)

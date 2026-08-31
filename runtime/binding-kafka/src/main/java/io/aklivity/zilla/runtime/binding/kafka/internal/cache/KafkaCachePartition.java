@@ -381,7 +381,7 @@ public final class KafkaCachePartition
         if (value != null)
         {
             writeEntryContinue(traceId, bindingId, authorization, FLAGS_COMPLETE, entryMark, valueMark, entryValueLimit,
-                value, transformValue);
+                value, transformValue, valuePaddingMax);
         }
         writeEntryFinish(headers, deltaType, entryMark, valueMark, entryHeadersMark, headersMax, transformValue,
             valueEnvelope, trailersSizeMax);
@@ -574,7 +574,8 @@ public final class KafkaCachePartition
         MutableInteger valueMark,
         MutableInteger valueLimit,
         OctetsFW payload,
-        KafkaCacheModel transformValue)
+        KafkaCacheModel transformValue,
+        int valuePaddingMax)
     {
         final Node head = sentinel.previous;
         assert head != sentinel;
@@ -593,13 +594,14 @@ public final class KafkaCachePartition
             }
             else
             {
-                // re-derives the reservation's total capacity from the placeholder length/paddingLen
-                // fields writeEntryStart already wrote -- both still hold their original, provisional
-                // values until the COMPLETE branch below finalizes them, so this is stable across every
-                // fragment of the same value
+                // valueMaxLength re-derives the reservation's raw-value bound from the placeholder length
+                // field writeEntryStart already wrote -- that field sits before the value region so it is
+                // never touched by value writes until the COMPLETE branch below finalizes it, so this stays
+                // stable across every fragment of the same value. valuePaddingMax, in contrast, must come in
+                // as a parameter rather than being re-read from its on-disk marker: a growing transform's
+                // output can legitimately write past valueMaxLength bytes into that marker's position, so a
+                // later fragment in the same value would read back corrupted data
                 final int valueMaxLength = Math.max(logFile.readInt(valueMark.value - SIZE_OF_INT), 0);
-                final int paddingLenAt = valueMark.value + valueMaxLength;
-                final int valuePaddingMax = logFile.readInt(paddingLenAt);
                 final int reservedMax = valueMaxLength + valuePaddingMax;
 
                 final KafkaCacheModel.Output consumeTransformed = (buffer, index, length) ->
@@ -922,7 +924,8 @@ public final class KafkaCachePartition
         MutableInteger valueMark,
         MutableInteger valueLimit,
         OctetsFW payload,
-        KafkaCacheModel transformValue)
+        KafkaCacheModel transformValue,
+        int valuePaddingMax)
     {
         final KafkaCacheSegment segment = head.segment;
         assert segment != null;
@@ -938,13 +941,14 @@ public final class KafkaCachePartition
             }
             else
             {
-                // re-derives the reservation's total capacity from the placeholder length/paddingLen
-                // fields writeProduceEntryStart already wrote -- both still hold their original,
-                // provisional values until the COMPLETE branch below finalizes them, so this is stable
-                // across every fragment of the same value
+                // valueMaxLength re-derives the reservation's raw-value bound from the placeholder length
+                // field writeProduceEntryStart already wrote -- that field sits before the value region so
+                // it is never touched by value writes until the COMPLETE branch below finalizes it, so this
+                // stays stable across every fragment of the same value. valuePaddingMax, in contrast, must
+                // come in as a parameter rather than being re-read from its on-disk marker: a growing
+                // transform's output can legitimately write past valueMaxLength bytes into that marker's
+                // position, so a later fragment in the same value would read back corrupted data
                 final int valueMaxLength = Math.max(logFile.readInt(valueMark.value - SIZE_OF_INT), 0);
-                final int paddingLenAt = valueMark.value + valueMaxLength;
-                final int valuePaddingMax = logFile.readInt(paddingLenAt);
                 final int reservedMax = valueMaxLength + valuePaddingMax;
 
                 final KafkaCacheModel.Output consumeTransformed = (buffer, index, length) ->

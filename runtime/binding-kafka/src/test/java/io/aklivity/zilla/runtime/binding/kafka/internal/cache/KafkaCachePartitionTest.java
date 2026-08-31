@@ -298,7 +298,7 @@ public class KafkaCachePartitionTest
         assertNotEquals(-1, transformed);
 
         int continued = partition.writeProduceEntryContinue(1L, 1L, 0L, 0x03, head, entryMark, valueMark, valueLimit,
-            value, transformValue);
+            value, transformValue, 4);
         assertNotEquals(-1, continued);
 
         partition.writeProduceEntryFin(head, entryMark, valueLimit, 0L, noHeaders(buffer, 0), false);
@@ -337,9 +337,9 @@ public class KafkaCachePartitionTest
         assertNotEquals(-1, transformed);
 
         assertNotEquals(-1, partition.writeProduceEntryContinue(1L, 1L, 0L, 0x02, head, entryMark, valueMark, valueLimit,
-            firstFragment, transformValue));
+            firstFragment, transformValue, 4));
         assertNotEquals(-1, partition.writeProduceEntryContinue(1L, 1L, 0L, 0x01, head, entryMark, valueMark, valueLimit,
-            secondFragment, transformValue));
+            secondFragment, transformValue, 4));
 
         partition.writeProduceEntryFin(head, entryMark, valueLimit, 0L, noHeaders(buffer, 0), false);
 
@@ -371,11 +371,105 @@ public class KafkaCachePartitionTest
             value, KafkaCacheModel.NONE, transformValue);
 
         partition.writeProduceEntryContinue(1L, 1L, 0L, 0x03, head, entryMark, valueMark, valueLimit,
-            value, transformValue);
+            value, transformValue, 0);
 
         int flags = head.segment().logFile().readInt(entryMark.value + KafkaCacheEntryFW.FIELD_OFFSET_FLAGS);
         assertEquals(KafkaCachePartition.CACHE_ENTRY_FLAGS_ABORTED,
             flags & KafkaCachePartition.CACHE_ENTRY_FLAGS_ABORTED);
+    }
+
+    @Test
+    public void shouldPersistValuePaddingMaxAcrossInitEmptyAndFinEmptyFragmentsForProduce() throws Exception
+    {
+        KafkaCachePartition partition = newPartition();
+        Node head = partition.append(10L);
+        MutableInteger entryMark = new MutableInteger(0);
+        MutableInteger valueMark = new MutableInteger(0);
+        MutableInteger valueLimit = new MutableInteger(0);
+        MutableInteger trailersClaimMark = new MutableInteger(0);
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[1024]);
+
+        KafkaKeyFW key = key(buffer, "k1");
+        Array32FW<KafkaHeaderFW> headers = noHeaders(buffer, key.limit());
+        OctetsFW emptyValue = value(buffer, headers.limit(), "");
+        OctetsFW payload = value(buffer, headers.limit(), "hello");
+
+        DoublingPipeline pipeline = new DoublingPipeline();
+        KafkaCacheModel transformValue = new KafkaCacheModel(pipeline, scratch);
+
+        final int valuePaddingMax = 8;
+        partition.writeProduceEntryStart(1L, 1L, 0L, 11L, head, entryMark, valueMark, valueLimit,
+            trailersClaimMark, 0L, 1L, -1L, (short) 0, 0, KafkaAckMode.NONE, key, 5, valuePaddingMax, headers, 256,
+            emptyValue, KafkaCacheModel.NONE, transformValue);
+
+        // the real HTTP-to-Kafka produce path splits a value across an INIT-flagged fragment with an
+        // empty payload, one or more fragments carrying the real bytes, and a FIN-flagged fragment with
+        // an empty payload -- reproduce that split here
+        assertNotEquals(-1, partition.writeProduceEntryContinue(1L, 1L, 0L, 0x02, head, entryMark, valueMark, valueLimit,
+            emptyValue, transformValue, valuePaddingMax));
+
+        // this fragment's doubled output (10 bytes) writes past the 5-byte raw-value reservation, into
+        // the on-disk valuePaddingMax marker's own position -- corrupting it if a later fragment
+        // re-derived valuePaddingMax from disk instead of being handed it directly
+        assertNotEquals(-1, partition.writeProduceEntryContinue(1L, 1L, 0L, 0x00, head, entryMark, valueMark, valueLimit,
+            payload, transformValue, valuePaddingMax));
+
+        assertNotEquals(-1, partition.writeProduceEntryContinue(1L, 1L, 0L, 0x01, head, entryMark, valueMark, valueLimit,
+            emptyValue, transformValue, valuePaddingMax));
+
+        partition.writeProduceEntryFin(head, entryMark, valueLimit, 0L, noHeaders(buffer, 0), false);
+
+        final int actualLength = 10;
+        final int finalPaddingLenAt = valueMark.value + actualLength;
+        final int finalPaddingLen = head.segment().logFile().readInt(finalPaddingLenAt);
+        assertEquals(5 + valuePaddingMax - actualLength, finalPaddingLen);
+
+        KafkaCacheEntryFW entry = head.segment().logFile().readBytes(entryMark.value, entryRO::wrap);
+        assertEquals(actualLength, entry.paddedValue().length());
+        assertArrayEquals("hheelllloo".getBytes(UTF_8), bytes(entry.paddedValue().value()));
+    }
+
+    @Test
+    public void shouldPersistValuePaddingMaxAcrossInitEmptyAndFinEmptyFragmentsForPopulate() throws Exception
+    {
+        KafkaCachePartition partition = newPartition();
+        Node head = partition.append(10L);
+        MutableInteger entryMark = new MutableInteger(0);
+        MutableInteger valueMark = new MutableInteger(0);
+        MutableInteger valueLimit = new MutableInteger(0);
+        MutableInteger headersMark = new MutableInteger(0);
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[1024]);
+
+        KafkaKeyFW key = key(buffer, "k1");
+        Array32FW<KafkaHeaderFW> headers = noHeaders(buffer, key.limit());
+        OctetsFW emptyValue = value(buffer, headers.limit(), "");
+        OctetsFW payload = value(buffer, headers.limit(), "hello");
+
+        DoublingPipeline pipeline = new DoublingPipeline();
+        KafkaCacheModel transformValue = new KafkaCacheModel(pipeline, scratch);
+        KafkaCacheTrailerEnvelope valueEnvelope = new KafkaCacheTrailerEnvelope();
+
+        final int valuePaddingMax = 8;
+        partition.writeEntryStart(null, 1L, 1L, 0L, 11L, entryMark, valueMark, valueLimit, headersMark, 0L,
+            KafkaTimestampType.ADVISORY, -1L, key, 5, valuePaddingMax, headers.sizeof(), 256, null, 0x00,
+            KafkaDeltaType.NONE, emptyValue, KafkaCacheModel.NONE, transformValue, new KafkaCacheKeyEnvelope(),
+            valueEnvelope, false);
+
+        assertNotEquals(-1, partition.writeEntryContinue(1L, 1L, 0L, 0x02, entryMark, valueMark, valueLimit,
+            emptyValue, transformValue, valuePaddingMax));
+        assertNotEquals(-1, partition.writeEntryContinue(1L, 1L, 0L, 0x00, entryMark, valueMark, valueLimit,
+            payload, transformValue, valuePaddingMax));
+        assertNotEquals(-1, partition.writeEntryContinue(1L, 1L, 0L, 0x01, entryMark, valueMark, valueLimit,
+            emptyValue, transformValue, valuePaddingMax));
+
+        partition.writeEntryFinish(headers, KafkaDeltaType.NONE, entryMark, valueMark, headersMark, headers.sizeof(),
+            transformValue, valueEnvelope, 256);
+
+        KafkaCacheEntryFW entry = head.segment().logFile().readBytes(entryMark.value, entryRO::wrap);
+        assertEquals(10, entry.paddedValue().length());
+        assertArrayEquals("hheelllloo".getBytes(UTF_8), bytes(entry.paddedValue().value()));
+        assertEquals(0, entry.headers().fieldCount());
+        assertEquals(0, entry.trailers().fieldCount());
     }
 
     private static boolean containsBytes(
@@ -458,6 +552,54 @@ public class KafkaCachePartitionTest
         }
     }
 
+    // doubles every input byte, so a fragment's output can exceed the raw-value reservation entirely
+    // within that one fragment -- a test can then split an empty INIT fragment, this fragment, and an
+    // empty FIN fragment across three separate calls to prove valuePaddingMax survives the split
+    private static final class DoublingPipeline implements ModelPipeline
+    {
+        private static final int FLAGS_FIN = 0x01;
+
+        private final ModelPipelineResult result = new ModelPipelineResult();
+
+        @Override
+        public ModelPipelineResult transform(
+            long traceId,
+            long bindingId,
+            long authorization,
+            int flags,
+            DirectBufferEx src,
+            int srcIndex,
+            int srcLimit,
+            MutableDirectBufferEx dst,
+            int dstIndex,
+            int dstLimit)
+        {
+            final int length = srcLimit - srcIndex;
+            for (int i = 0; i < length; i++)
+            {
+                byte value = src.getByte(srcIndex + i);
+                dst.putByte(dstIndex + i * 2, value);
+                dst.putByte(dstIndex + i * 2 + 1, value);
+            }
+
+            final int produced = length * 2;
+            final boolean fin = (flags & FLAGS_FIN) != 0;
+            final ModelStatus status = fin ? ModelStatus.COMPLETE : ModelStatus.UNDERFLOW;
+            return result.set(status, length, produced);
+        }
+
+        @Override
+        public boolean identity()
+        {
+            return false;
+        }
+
+        @Override
+        public void reset()
+        {
+        }
+    }
+
     @Test
     public void shouldTransformValueWithDecodeModel() throws Exception
     {
@@ -507,7 +649,7 @@ public class KafkaCachePartitionTest
             value, KafkaCacheModel.NONE, transformValue, new KafkaCacheKeyEnvelope(), valueEnvelope, false);
 
         assertNotEquals(-1, partition.writeEntryContinue(1L, 1L, 0L, 0x03, entryMark, valueMark, valueLimit,
-            value, transformValue));
+            value, transformValue, 4));
 
         partition.writeEntryFinish(headers, KafkaDeltaType.NONE, entryMark, valueMark, headersMark, headers.sizeof(),
             transformValue, valueEnvelope, 256);
@@ -546,9 +688,9 @@ public class KafkaCachePartitionTest
             firstFragment, KafkaCacheModel.NONE, transformValue, new KafkaCacheKeyEnvelope(), valueEnvelope, false);
 
         assertNotEquals(-1, partition.writeEntryContinue(1L, 1L, 0L, 0x02, entryMark, valueMark, valueLimit,
-            firstFragment, transformValue));
+            firstFragment, transformValue, 4));
         assertNotEquals(-1, partition.writeEntryContinue(1L, 1L, 0L, 0x01, entryMark, valueMark, valueLimit,
-            secondFragment, transformValue));
+            secondFragment, transformValue, 4));
 
         partition.writeEntryFinish(headers, KafkaDeltaType.NONE, entryMark, valueMark, headersMark, headers.sizeof(),
             transformValue, valueEnvelope, 256);
@@ -581,7 +723,7 @@ public class KafkaCachePartitionTest
             KafkaTimestampType.ADVISORY, -1L, key, 5, 0, headers.sizeof(), 256, null, 0x00, KafkaDeltaType.NONE,
             value, KafkaCacheModel.NONE, transformValue, new KafkaCacheKeyEnvelope(), valueEnvelope, false);
 
-        partition.writeEntryContinue(1L, 1L, 0L, 0x03, entryMark, valueMark, valueLimit, value, transformValue);
+        partition.writeEntryContinue(1L, 1L, 0L, 0x03, entryMark, valueMark, valueLimit, value, transformValue, 0);
 
         partition.writeEntryFinish(headers, KafkaDeltaType.NONE, entryMark, valueMark, headersMark, headers.sizeof(),
             transformValue, valueEnvelope, 256);

@@ -717,11 +717,11 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                     break init;
                 }
 
-                final int valuePaddingMax = valueLength != -1 && stream.transformValue != KafkaCacheModel.NONE
+                stream.valuePaddingMax = valueLength != -1 && stream.transformValue != KafkaCacheModel.NONE
                     ? stream.transformValue.padding(valueFragment.buffer(), valueFragment.offset(), valueLength)
                     : 0;
 
-                stream.segment = partition.newHeadIfNecessary(partitionOffset, key, valueLength, valuePaddingMax,
+                stream.segment = partition.newHeadIfNecessary(partitionOffset, key, valueLength, stream.valuePaddingMax,
                     headersSizeMax);
 
                 if (stream.segment != null)
@@ -733,7 +733,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                     if (partition.writeProduceEntryStart(traceId, routedId, stream.authorization, partitionOffset,
                         stream.segment, stream.entryMark, stream.valueMark, stream.valueLimit, stream.trailersClaimMark,
                         timestamp, stream.initialId,
-                        producerId, producerEpoch, sequence, ackMode, key, valueLength, valuePaddingMax,
+                        producerId, producerEpoch, sequence, ackMode, key, valueLength, stream.valuePaddingMax,
                         headers, trailersSizeMax, valueFragment, stream.transformKey, stream.transformValue) == -1)
                     {
                         error = ERROR_INVALID_RECORD;
@@ -754,7 +754,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
             {
                 if (partition.writeProduceEntryContinue(traceId, routedId, stream.authorization, flags, stream.segment,
                         stream.entryMark, stream.valueMark, stream.valueLimit,
-                        valueFragment, stream.transformValue) == -1)
+                        valueFragment, stream.transformValue, stream.valuePaddingMax) == -1)
                 {
                     error = ERROR_INVALID_RECORD;
                 }
@@ -1281,6 +1281,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
         private KafkaCachePartition.Node segment;
 
         private int dataFlags = FLAGS_FIN;
+        private int valuePaddingMax;
 
         private int state;
 
