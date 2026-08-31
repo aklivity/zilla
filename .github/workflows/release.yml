@@ -104,7 +104,7 @@ jobs:
         git flow release start ${{ inputs.version }} ${{ github.ref_name }}
 
     - name: Setup JDK
-      uses: actions/setup-java@v5
+      uses: actions/setup-java@v6
       with:
         java-version: 25
         distribution: zulu
@@ -167,7 +167,7 @@ jobs:
         fi
 
     - name: Setup JDK
-      uses: actions/setup-java@v5
+      uses: actions/setup-java@v6
       with:
         java-version: 25
         distribution: zulu
