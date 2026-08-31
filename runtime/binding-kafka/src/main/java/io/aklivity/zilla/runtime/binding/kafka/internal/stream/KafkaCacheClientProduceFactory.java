@@ -1666,6 +1666,11 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
             long traceId,
             Flyweight extension)
         {
+            // a value already mid-transform (INIT seen, no FIN yet) is abandoned here -- reset so this
+            // stream's model instances never retain state from a torn-down value
+            transformKey.reset();
+            transformValue.reset();
+
             doClientInitialResetIfNecessary(traceId, extension);
             doClientReplyAbortIfNecessary(traceId);
         }

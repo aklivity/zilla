@@ -1131,6 +1131,12 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
 
             state = KafkaState.closedReply(state);
 
+            // any value already mid-transform (INIT seen, no FIN yet) is abandoned here, whether or not
+            // a reconnect follows -- reset so a value fetched after reconnecting doesn't get its first
+            // fragment treated as a continuation of the abandoned one
+            transformKey.reset();
+            transformValue.reset();
+
             doServerFanoutInitialEndIfNecessary(traceId);
 
             if (reconnectDelay != 0 && !members.isEmpty())
@@ -1167,6 +1173,10 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
             final long traceId = abort.traceId();
 
             state = KafkaState.closedReply(state);
+
+            // see onServerFanoutReplyEnd
+            transformKey.reset();
+            transformValue.reset();
 
             doServerFanoutInitialAbortIfNecessary(traceId);
 
@@ -1205,6 +1215,10 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
             final OctetsFW extension = reset.extension();
 
             state = KafkaState.closedInitial(state);
+
+            // see onServerFanoutReplyEnd
+            transformKey.reset();
+            transformValue.reset();
 
             doServerFanoutReplyResetIfNecessary(traceId);
 
