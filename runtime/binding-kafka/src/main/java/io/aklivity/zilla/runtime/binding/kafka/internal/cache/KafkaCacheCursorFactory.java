@@ -251,7 +251,7 @@ public final class KafkaCacheCursorFactory
         {
             final long ancestorOffset = nextEntry.ancestor();
 
-            if (nextEntry.valueLen() == -1)
+            if (nextEntry.paddedValue().length() == -1)
             {
                 deltaKeyOffsets.remove(ancestorOffset);
             }
@@ -281,6 +281,8 @@ public final class KafkaCacheCursorFactory
                         writeLimit += Integer.BYTES;
                         writeBuffer.putBytes(writeLimit, delta.buffer(), delta.offset(), delta.sizeof());
                         writeLimit += delta.sizeof();
+                        writeBuffer.putInt(writeLimit, 0);
+                        writeLimit += Integer.BYTES;
                         writeBuffer.putBytes(writeLimit, headers.buffer(), headers.offset(), headers.sizeof());
                         writeLimit += headers.sizeof();
                         writeBuffer.putBytes(writeLimit, trailers.buffer(), trailers.offset(), trailers.sizeof());
@@ -332,6 +334,8 @@ public final class KafkaCacheCursorFactory
             writeLimit += Integer.BYTES;
             writeBuffer.putBytes(writeLimit, convertedValue.buffer(), convertedValue.offset(), convertedValue.sizeof());
             writeLimit += convertedValue.sizeof();
+            writeBuffer.putInt(writeLimit, 0);
+            writeLimit += Integer.BYTES;
             writeBuffer.putBytes(writeLimit, headers.buffer(), headers.offset(), headers.sizeof());
             writeLimit += headers.sizeof();
             writeBuffer.putBytes(writeLimit, trailers.buffer(), trailers.offset(), trailers.sizeof());

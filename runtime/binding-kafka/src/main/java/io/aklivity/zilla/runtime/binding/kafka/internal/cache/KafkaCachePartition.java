@@ -121,6 +121,7 @@ public final class KafkaCachePartition
 
     private final MutableDirectBufferEx entryInfo = new UnsafeBufferEx(new byte[FIELD_OFFSET_PADDED_KEY]);
     private final MutableDirectBufferEx valueInfo = new UnsafeBufferEx(new byte[Integer.BYTES]);
+    private final MutableInteger entryValueLimit = new MutableInteger(0);
 
     private final Varint32FW varintRO = new Varint32FW();
     private final KafkaCachePaddedKeyFW.Builder paddedKeyRW = new KafkaCachePaddedKeyFW.Builder()
@@ -301,6 +302,7 @@ public final class KafkaCachePartition
         long offset,
         KafkaKeyFW key,
         int valueLength,
+        int valuePaddingMax,
         int headersSizeMax)
     {
         Node head = sentinel.previous;
@@ -312,7 +314,7 @@ public final class KafkaCachePartition
         else
         {
             final int logRequired = entryInfo.capacity() + key.sizeof() + valueInfo.capacity() +
-                    Math.max(valueLength, 0) + headersSizeMax;
+                    Math.max(valueLength, 0) + SIZEOF_PADDING_LENGTH + valuePaddingMax + headersSizeMax;
             final int hashKeyRequired = key.length() != -1 ? 1 : 0;
             final int hashHeaderRequiredMax = headersSizeMax >> 2;
             final int hashRequiredMax = (hashKeyRequired + hashHeaderRequiredMax) * SIZEOF_INDEX_RECORD;
@@ -367,10 +369,17 @@ public final class KafkaCachePartition
         boolean verbose)
     {
         final int valueLength = value != null ? value.sizeof() : -1;
-        writeEntryStart(context, traceId, bindingId, authorization, offset, entryMark, valueMark, timestamp, timestampType,
-            producerId, key, valueLength, null, entryFlags, deltaType, value, transformKey, transformValue, keyEnvelope,
-            verbose);
-        writeEntryContinue(value);
+        final int valuePaddingMax = valueLength != -1 && transformValue != KafkaCacheModel.NONE
+            ? transformValue.padding(value.buffer(), value.offset(), valueLength)
+            : 0;
+        entryValueLimit.value = 0;
+        writeEntryStart(context, traceId, bindingId, authorization, offset, entryMark, valueMark, entryValueLimit, timestamp,
+            timestampType, producerId, key, valueLength, valuePaddingMax, null, entryFlags, deltaType, value, transformKey,
+            transformValue, keyEnvelope, verbose);
+        if (value != null)
+        {
+            writeEntryContinue(entryValueLimit, value);
+        }
         writeEntryFinish(headers, deltaType, context, traceId, bindingId, authorization, FLAGS_COMPLETE, offset, entryMark,
             valueMark, transformValue, valueEnvelope, trailersSizeMax, verbose);
     }
@@ -383,11 +392,13 @@ public final class KafkaCachePartition
         long offset,
         MutableInteger entryMark,
         MutableInteger valueMark,
+        MutableInteger valueLimit,
         long timestamp,
         KafkaTimestampType timestampType,
         long producerId,
         KafkaKeyFW key,
         int valueLength,
+        int valuePaddingMax,
         IntFunction<KafkaCacheEntryFW> findAncestor,
         int entryFlags,
         KafkaDeltaType deltaType,
@@ -422,8 +433,7 @@ public final class KafkaCachePartition
         int convertedPos = NO_CONVERTED_POSITION;
         if (valueLength != -1 && transformValue != KafkaCacheModel.NONE)
         {
-            int convertedPadding = transformValue.padding(payload.buffer(), payload.offset(), valueLength);
-            int convertedMaxLength = valueMaxLength + convertedPadding;
+            int convertedMaxLength = valueMaxLength + valuePaddingMax;
 
             convertedPos = convertedFile.capacity();
             convertedFile.advance(convertedPos + convertedMaxLength + SIZE_OF_INT * 2);
@@ -507,6 +517,11 @@ public final class KafkaCachePartition
         logFile.appendInt(valueLength);
 
         valueMark.value = logFile.capacity();
+        valueLimit.value = valueMark.value;
+
+        final int paddingLenAt = valueMark.value + valueMaxLength;
+        logFile.advance(paddingLenAt + SIZEOF_PADDING_LENGTH + valuePaddingMax);
+        logFile.writeInt(paddingLenAt, valuePaddingMax);
 
         final long keyHash = computeHash(logFile.readBytes(keyAt, keyRO::wrap));
 
@@ -514,7 +529,7 @@ public final class KafkaCachePartition
 
         final long ancestorOffset = ancestor != null ? ancestor.offset$() : NO_ANCESTOR_OFFSET;
         final int deltaPosition = deltaType == JSON_PATCH &&
-                                  ancestor != null && ancestor.valueLen() != -1 &&
+                                  ancestor != null && ancestor.paddedValue().length() != -1 &&
                                   valueLength != -1
                     ? deltaFile.capacity()
                     : NO_DELTA_POSITION;
@@ -541,6 +556,7 @@ public final class KafkaCachePartition
     }
 
     public void writeEntryContinue(
+        MutableInteger valueLimit,
         OctetsFW payload)
     {
         final Node head = sentinel.previous;
@@ -551,11 +567,7 @@ public final class KafkaCachePartition
 
         final KafkaCacheFile logFile = headSegment.logFile();
 
-        final int logAvailable = logFile.available();
-        final int logRequired = payload.sizeof();
-        assert logAvailable >= logRequired;
-
-        logFile.appendBytes(payload.buffer(), payload.offset(), payload.sizeof());
+        valueLimit.value += logFile.writeBytes(valueLimit.value, payload);
     }
 
     public void writeEntryFinish(
@@ -587,7 +599,9 @@ public final class KafkaCachePartition
         final KafkaCacheFile convertedFile = headSegment.convertedFile();
 
         final int valueLength = logFile.readInt(valueMark.value - SIZE_OF_INT);
-        assert logFile.capacity() - valueMark.value == Math.max(valueLength, 0);
+        final int paddingLenAt = valueMark.value + Math.max(valueLength, 0);
+        final int valuePaddingMax = logFile.readInt(paddingLenAt);
+        assert logFile.capacity() == paddingLenAt + SIZEOF_PADDING_LENGTH + valuePaddingMax;
 
         final int logAvailable = logFile.available();
         final int logRequired = headers.sizeof();
@@ -708,11 +722,11 @@ public final class KafkaCachePartition
         final KafkaCacheEntryFW headEntry = logFile.readBytes(logFile.markValue(), headEntryRO::wrap);
 
         if (deltaType == JSON_PATCH &&
-            ancestorEntry != null && ancestorEntry.valueLen() != -1 &&
-            headEntry.valueLen() != -1)
+            ancestorEntry != null && ancestorEntry.paddedValue().length() != -1 &&
+            headEntry.paddedValue().length() != -1)
         {
-            final OctetsFW ancestorValue = ancestorEntry.value();
-            final OctetsFW headValue = headEntry.value();
+            final OctetsFW ancestorValue = ancestorEntry.paddedValue().value();
+            final OctetsFW headValue = headEntry.paddedValue().value();
             assert headEntry.offset$() == progress;
 
             final JsonProvider json = JsonProvider.provider();
@@ -761,6 +775,7 @@ public final class KafkaCachePartition
         KafkaAckMode ackMode,
         KafkaKeyFW key,
         int valueLength,
+        int valuePaddingMax,
         ArrayFW<KafkaHeaderFW> headers,
         int trailersSizeMax,
         OctetsFW payload,
@@ -782,8 +797,7 @@ public final class KafkaCachePartition
         int convertedPos = NO_CONVERTED_POSITION;
         if (valueLength != -1 && transformValue != KafkaCacheModel.NONE)
         {
-            int convertedPadding = transformValue.padding(payload.buffer(), payload.offset(), valueLength);
-            int convertedMaxLength = valueMaxLength + convertedPadding;
+            int convertedMaxLength = valueMaxLength + valuePaddingMax;
 
             convertedPos = convertedFile.capacity();
             convertedFile.advance(convertedPos + convertedMaxLength + SIZE_OF_INT * 2);
@@ -856,10 +870,12 @@ public final class KafkaCachePartition
             valueMark.value = logFile.capacity();
             valueLimit.value = valueMark.value;
 
-            final int logAvailable = logFile.available() - valueMaxLength;
+            final int paddingLenAt = valueMark.value + valueMaxLength;
+            final int logAvailable = logFile.available() - valueMaxLength - SIZEOF_PADDING_LENGTH - valuePaddingMax;
             final int logRequired = headers.sizeof();
             assert logAvailable >= logRequired : String.format("%s %d >= %d", segment, logAvailable, logRequired);
-            logFile.advance(valueMark.value + valueMaxLength);
+            logFile.advance(paddingLenAt + SIZEOF_PADDING_LENGTH + valuePaddingMax);
+            logFile.writeInt(paddingLenAt, valuePaddingMax);
             logFile.appendBytes(headers);
 
             final int trailersAt = logFile.capacity();
@@ -950,6 +966,9 @@ public final class KafkaCachePartition
         assert segment != null;
 
         final KafkaCacheFile logFile = segment.logFile();
+
+        final int valuePaddingMax = logFile.readInt(valueLimit.value);
+        valueLimit.value += SIZEOF_PADDING_LENGTH + valuePaddingMax;
 
         final  Array32FW<KafkaHeaderFW> headers = logFile.readBytes(valueLimit.value, headersRO::wrap);
         valueLimit.value += headers.sizeof();

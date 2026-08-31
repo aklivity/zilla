@@ -1287,7 +1287,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             final ArrayFW<KafkaHeaderFW> headers = nextEntry.headers();
             final ArrayFW<KafkaHeaderFW> trailers = nextEntry.trailers();
             final long ancestor = nextEntry.ancestor();
-            OctetsFW value = nextEntry.value();
+            OctetsFW value = nextEntry.paddedValue().value();
             if (!valueDecoder.identity() && value != null)
             {
                 if (messageOffset == 0)

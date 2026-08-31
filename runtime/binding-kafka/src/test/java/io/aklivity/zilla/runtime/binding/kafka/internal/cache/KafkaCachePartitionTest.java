@@ -210,6 +210,69 @@ public class KafkaCachePartitionTest
     }
 
     @Test
+    public void shouldRoundTripPaddedValueWithHeadersAndTrailersIntact() throws Exception
+    {
+        KafkaCachePartition partition = newPartition();
+        Node head = partition.append(10L);
+        MutableInteger entryMark = new MutableInteger(0);
+        MutableInteger valueMark = new MutableInteger(0);
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[1024]);
+
+        KafkaKeyFW key = key(buffer, "k1");
+        Array32FW<KafkaHeaderFW> headers = noHeaders(buffer, key.limit());
+        OctetsFW value = value(buffer, headers.limit(), "hello");
+
+        partition.writeEntry(null, 1L, 1L, 0L, 11L, entryMark, valueMark, 0L, KafkaTimestampType.ADVISORY, -1L,
+            key, headers, value, 0x00, KafkaDeltaType.NONE, KafkaCacheModel.NONE, KafkaCacheModel.NONE,
+            new KafkaCacheKeyEnvelope(), new KafkaCacheTrailerEnvelope(), 256, false);
+
+        KafkaCacheEntryFW entry = head.segment().logFile().readBytes(entryMark.value, entryRO::wrap);
+
+        assertEquals(5, entry.paddedValue().length());
+        assertArrayEquals("hello".getBytes(UTF_8), bytes(entry.paddedValue().value()));
+        assertEquals(0, entry.headers().fieldCount());
+        assertEquals(0, entry.trailers().fieldCount());
+    }
+
+    @Test
+    public void shouldRoundTripNullPaddedValue() throws Exception
+    {
+        KafkaCachePartition partition = newPartition();
+        Node head = partition.append(10L);
+        MutableInteger entryMark = new MutableInteger(0);
+        MutableInteger valueMark = new MutableInteger(0);
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[1024]);
+
+        KafkaKeyFW key = key(buffer, "k1");
+        Array32FW<KafkaHeaderFW> headers = noHeaders(buffer, key.limit());
+
+        partition.writeEntry(null, 1L, 1L, 0L, 11L, entryMark, valueMark, 0L, KafkaTimestampType.ADVISORY, -1L,
+            key, headers, null, 0x00, KafkaDeltaType.NONE, KafkaCacheModel.NONE, KafkaCacheModel.NONE,
+            new KafkaCacheKeyEnvelope(), new KafkaCacheTrailerEnvelope(), 256, false);
+
+        KafkaCacheEntryFW entry = head.segment().logFile().readBytes(entryMark.value, entryRO::wrap);
+
+        assertEquals(-1, entry.paddedValue().length());
+    }
+
+    @Test
+    public void shouldNotInflateHashReservationFromValuePaddingMax() throws Exception
+    {
+        Path location = tempFolder.newFolder().toPath();
+        KafkaCacheTopicConfig config = new KafkaCacheTopicConfig(new KafkaConfiguration());
+        config.segmentIndexBytes = 256;
+        KafkaCachePartition partition = new KafkaCachePartition(location, config, "cache", "test", 0, 65536, long[]::new);
+
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[64]);
+        KafkaKeyFW key = key(buffer, "k");
+
+        Node first = partition.newHeadIfNecessary(10L, key, 10, 0, 0);
+        Node second = partition.newHeadIfNecessary(11L, key, 10, 1_000_000, 0);
+
+        assertSame(first, second);
+    }
+
+    @Test
     public void shouldTransformValueWithDecodeModel() throws Exception
     {
         KafkaCachePartition partition = newPartition();
@@ -257,8 +320,10 @@ public class KafkaCachePartitionTest
         KafkaCacheTrailerEnvelope valueEnvelope = new KafkaCacheTrailerEnvelope();
         KafkaCacheModel transformValue = KafkaCacheModel.writer(paddingHandler(), ModelTransform.NONE, valueEnvelope, scratch);
 
+        int valuePaddingMax = transformValue.padding(firstFragment.buffer(), firstFragment.offset(), valueLength);
+
         int transformed = partition.writeProduceEntryStart(1L, 1L, 0L, 11L, head, entryMark, valueMark, valueLimit,
-            trailersClaimMark, 0L, 1L, -1L, (short) 0, 0, KafkaAckMode.NONE, key, valueLength, headers, 256,
+            trailersClaimMark, 0L, 1L, -1L, (short) 0, 0, KafkaAckMode.NONE, key, valueLength, valuePaddingMax, headers, 256,
             firstFragment, KafkaCacheModel.NONE, transformValue);
 
         assertNotEquals(-1, transformed);

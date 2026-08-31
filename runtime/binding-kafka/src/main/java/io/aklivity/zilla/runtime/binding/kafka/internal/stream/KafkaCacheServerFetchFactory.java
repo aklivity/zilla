@@ -503,6 +503,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
         private final KafkaCacheTrailerEnvelope transformValueEnvelope;
         private final MutableInteger entryMark;
         private final MutableInteger valueMark;
+        private final MutableInteger valueLimit;
 
         private long leaderId;
         private long initialId;
@@ -580,6 +581,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                 KafkaCacheModel.writer(topicType.valueModel, valueTransform, ModelEnvelope.NONE, transformBuffer);
             this.entryMark = new MutableInteger(0);
             this.valueMark = new MutableInteger(0);
+            this.valueLimit = new MutableInteger(0);
         }
 
         private void onServerFanoutMemberOpening(
@@ -936,6 +938,9 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                 final KafkaKeyFW key = kafkaFetchDataEx.key();
                 final KafkaDeltaFW delta = kafkaFetchDataEx.delta();
                 final int valueLength = valueFragment != null ? valueFragment.sizeof() + deferred : -1;
+                final int valuePaddingMax = valueLength != -1 && transformValue != KafkaCacheModel.NONE
+                    ? transformValue.padding(valueFragment.buffer(), valueFragment.offset(), valueLength)
+                    : 0;
 
                 assert delta.type().get() == KafkaDeltaType.NONE;
                 assert delta.ancestorOffset() == -1L;
@@ -944,7 +949,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
 
                 final KafkaCachePartition.Node head = partition.head();
                 final KafkaCachePartition.Node nextHead =
-                        partition.newHeadIfNecessary(partitionOffset, key, valueLength, headersSizeMax);
+                        partition.newHeadIfNecessary(partitionOffset, key, valueLength, valuePaddingMax, headersSizeMax);
 
                 final long nextOffset = partition.nextOffset(defaultOffset);
                 assert partitionOffset >= 0 && partitionOffset >= nextOffset
@@ -979,13 +984,13 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                     ((flags & FLAGS_SKIP) != 0x00 ? CACHE_ENTRY_FLAGS_ABORTED : 0x00) |
                     (timestampType == AUTHORITATIVE ? CACHE_ENTRY_FLAGS_AUTHORITATIVE : 0x00);
                 partition.writeEntryStart(context, traceId, routedId, NO_AUTHORIZATION, partitionOffset, entryMark, valueMark,
-                    timestamp, timestampType, producerId, key, valueLength, findAncestor, entryFlags, deltaType, valueFragment,
-                    transformKey, transformValue, transformKeyEnvelope, verbose);
+                    valueLimit, timestamp, timestampType, producerId, key, valueLength, valuePaddingMax, findAncestor,
+                    entryFlags, deltaType, valueFragment, transformKey, transformValue, transformKeyEnvelope, verbose);
             }
 
             if (valueFragment != null)
             {
-                partition.writeEntryContinue(valueFragment);
+                partition.writeEntryContinue(valueLimit, valueFragment);
             }
 
             if ((flags & FLAGS_FIN) != 0x00)
