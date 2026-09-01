@@ -3026,13 +3026,15 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             int limit,
             Flyweight extension)
         {
+            if (kafka != null)
+            {
+                doData(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                    traceId, authorization, budgetId, flags, reserved, buffer, offset, limit, extension);
 
-            doData(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                traceId, authorization, budgetId, flags, reserved, buffer, offset, limit, extension);
+                initialSeq += reserved;
 
-            initialSeq += reserved;
-
-            assert initialSeq - padding <= initialAck + initialMax;
+                assert initialSeq - padding <= initialAck + initialMax;
+            }
         }
 
         protected final void doKafkaData(
@@ -3044,12 +3046,15 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             OctetsFW payload,
             Flyweight extension)
         {
-            doData(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                traceId, authorization, budgetId, flags, reserved, payload, extension);
+            if (kafka != null)
+            {
+                doData(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                    traceId, authorization, budgetId, flags, reserved, payload, extension);
 
-            initialSeq += reserved;
+                initialSeq += reserved;
 
-            assert initialSeq <= initialAck + initialMax;
+                assert initialSeq <= initialAck + initialMax;
+            }
         }
 
         protected void doKafkaData(
@@ -3062,17 +3067,20 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             Flyweight payload,
             Flyweight extension)
         {
-            final DirectBufferEx buffer = payload.buffer();
-            final int offset = payload.offset();
-            final int limit = payload.limit();
-            final int length = limit - offset;
+            if (kafka != null)
+            {
+                final DirectBufferEx buffer = payload.buffer();
+                final int offset = payload.offset();
+                final int limit = payload.limit();
+                final int length = limit - offset;
 
-            doData(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                traceId, authorization, budgetId, flags, reserved, buffer, offset, length, extension);
+                doData(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                    traceId, authorization, budgetId, flags, reserved, buffer, offset, length, extension);
 
-            initialSeq += reserved;
+                initialSeq += reserved;
 
-            assert initialSeq - padding <= initialAck + initialMax;
+                assert initialSeq - padding <= initialAck + initialMax;
+            }
         }
 
         private void doKafkaFlush(
