@@ -31,10 +31,13 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.aklivity.zilla.config.binding.mcp.McpCacheToolsEagerPolicy;
+import io.aklivity.zilla.config.binding.mcp.McpAllToolsEagerConfig;
+import io.aklivity.zilla.config.binding.mcp.McpExplicitToolsEagerConfig;
 import io.aklivity.zilla.config.binding.mcp.McpKeywordToolSearchIndexConfig;
+import io.aklivity.zilla.config.binding.mcp.McpNoneToolsEagerConfig;
 import io.aklivity.zilla.config.binding.mcp.McpOptionsConfig;
 import io.aklivity.zilla.config.binding.mcp.McpTestToolSearchIndexConfig;
+import io.aklivity.zilla.config.binding.mcp.McpTestToolsEagerConfig;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
 
@@ -294,7 +297,30 @@ public class McpOptionsConfigAdapterTest
     }
 
     @Test
-    public void shouldReadOptionsWithCacheToolsEagerExplicitMatch()
+    public void shouldReadOptionsWithCacheToolsEagerArray()
+    {
+        String text =
+                """
+                cache:
+                  store: memory0
+                  tools:
+                    eager:
+                      - type: none
+                      - type: explicit
+                        match:
+                          - github__*
+                """;
+
+        McpOptionsConfig options = (McpOptionsConfig) jsonb.fromJson(text, OptionsConfig.class);
+
+        assertThat(options.cache.tools.eager, hasSize(2));
+        assertThat(options.cache.tools.eager.get(0).type, equalTo(McpNoneToolsEagerConfig.NAME));
+        assertThat(options.cache.tools.eager.get(1).type, equalTo(McpExplicitToolsEagerConfig.NAME));
+        assertThat(((McpExplicitToolsEagerConfig) options.cache.tools.eager.get(1)).match, contains("github__*"));
+    }
+
+    @Test
+    public void shouldReadOptionsWithCacheToolsEagerLegacySingleObjectPolicyKey()
     {
         String text =
                 """
@@ -309,40 +335,80 @@ public class McpOptionsConfigAdapterTest
 
         McpOptionsConfig options = (McpOptionsConfig) jsonb.fromJson(text, OptionsConfig.class);
 
-        assertThat(options.cache.tools.eager, not(nullValue()));
-        assertThat(options.cache.tools.eager.policy, equalTo(McpCacheToolsEagerPolicy.EXPLICIT));
-        assertThat(options.cache.tools.eager.match, contains("github__*"));
+        assertThat(options.cache.tools.eager, hasSize(1));
+        assertThat(options.cache.tools.eager.get(0).type, equalTo(McpExplicitToolsEagerConfig.NAME));
+        assertThat(((McpExplicitToolsEagerConfig) options.cache.tools.eager.get(0)).match, contains("github__*"));
     }
 
     @Test
-    public void shouldReadOptionsWithCacheToolsEagerDefaultPolicy()
+    public void shouldReadOptionsWithCacheToolsEagerLegacySingleObjectTypeKey()
     {
         String text =
                 """
                 cache:
                   store: memory0
                   tools:
-                    eager: {}
+                    eager:
+                      type: all
                 """;
 
         McpOptionsConfig options = (McpOptionsConfig) jsonb.fromJson(text, OptionsConfig.class);
 
-        assertThat(options.cache.tools.eager, not(nullValue()));
-        assertThat(options.cache.tools.eager.policy, equalTo(McpCacheToolsEagerPolicy.NONE));
-        assertThat(options.cache.tools.eager.match, nullValue());
+        assertThat(options.cache.tools.eager, hasSize(1));
+        assertThat(options.cache.tools.eager.get(0).type, equalTo(McpAllToolsEagerConfig.NAME));
     }
 
     @Test
-    public void shouldWriteOptionsWithCacheToolsEager()
+    public void shouldReadOptionsWithCacheToolsEagerAbsent()
+    {
+        String text =
+                """
+                cache:
+                  store: memory0
+                  tools: {}
+                """;
+
+        McpOptionsConfig options = (McpOptionsConfig) jsonb.fromJson(text, OptionsConfig.class);
+
+        assertThat(options.cache.tools.eager, nullValue());
+    }
+
+    @Test
+    public void shouldReadOptionsWithCacheToolsEagerFromExtension()
+    {
+        JsonbConfig config = new JsonbConfig()
+                .withAdapters(new McpBindingInfo().options());
+        Jsonb extendedJsonb = JsonbBuilder.newBuilder()
+                .withProvider(YamlJson.provider())
+                .withConfig(config)
+                .build();
+
+        String text =
+                """
+                cache:
+                  store: memory0
+                  tools:
+                    eager:
+                      - type: test-eager
+                """;
+
+        McpOptionsConfig options = (McpOptionsConfig) extendedJsonb.fromJson(text, OptionsConfig.class);
+
+        assertThat(options.cache.tools.eager, hasSize(1));
+        assertThat(options.cache.tools.eager.get(0).type, equalTo(McpTestToolsEagerConfig.NAME));
+    }
+
+    @Test
+    public void shouldWriteOptionsWithCacheToolsEagerArray()
     {
         McpOptionsConfig options = McpOptionsConfig.builder()
                 .cache()
                     .store("memory0")
                     .tools()
-                        .eager()
-                            .policy(McpCacheToolsEagerPolicy.ALL)
+                        .eager(McpAllToolsEagerConfig.builder().build())
+                        .eager(McpExplicitToolsEagerConfig.builder()
                             .match(List.of("github__*"))
-                            .build()
+                            .build())
                         .build()
                     .build()
                 .build();
@@ -356,9 +422,10 @@ public class McpOptionsConfigAdapterTest
                   store: memory0
                   tools:
                     eager:
-                      policy: all
-                      match:
-                        - "github__*"
+                      - type: all
+                      - type: explicit
+                        match:
+                          - "github__*"
                 """));
     }
 }

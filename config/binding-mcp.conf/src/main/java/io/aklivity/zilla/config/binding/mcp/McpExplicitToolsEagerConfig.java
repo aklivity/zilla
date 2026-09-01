@@ -14,35 +14,30 @@
  */
 package io.aklivity.zilla.config.binding.mcp;
 
-import static java.util.function.Function.identity;
-
 import java.util.List;
 import java.util.function.Function;
 
-import io.aklivity.zilla.config.engine.Config;
-
-public final class McpCacheToolsEagerConfig extends Config.Extensible
+public final class McpExplicitToolsEagerConfig extends McpToolsEagerConfig
 {
-    public final McpCacheToolsEagerPolicy policy;
+    public static final String NAME = "explicit";
+
     public final List<String> match;
 
-    McpCacheToolsEagerConfig(
-        McpCacheToolsEagerPolicy policy,
+    public static McpExplicitToolsEagerConfigBuilder<McpExplicitToolsEagerConfig> builder()
+    {
+        return new McpExplicitToolsEagerConfigBuilder<>(McpExplicitToolsEagerConfig.class::cast);
+    }
+
+    public static <T> McpExplicitToolsEagerConfigBuilder<T> builder(
+        Function<McpExplicitToolsEagerConfig, T> mapper)
+    {
+        return new McpExplicitToolsEagerConfigBuilder<>(mapper);
+    }
+
+    McpExplicitToolsEagerConfig(
         List<String> match)
     {
-        super(null, null);
-        this.policy = policy;
+        super(NAME);
         this.match = match;
-    }
-
-    public static McpCacheToolsEagerConfigBuilder<McpCacheToolsEagerConfig> builder()
-    {
-        return new McpCacheToolsEagerConfigBuilder<>(identity());
-    }
-
-    public static <T> McpCacheToolsEagerConfigBuilder<T> builder(
-        Function<McpCacheToolsEagerConfig, T> mapper)
-    {
-        return new McpCacheToolsEagerConfigBuilder<>(mapper);
     }
 }

@@ -347,46 +347,15 @@
                                                         "eager":
                                                         {
                                                             "title": "Eager",
-                                                            "type": "object",
-                                                            "properties":
-                                                            {
-                                                                "policy":
+                                                            "oneOf":
+                                                            [
+                                                                { "$ref": "#/$defs/binding-ext/mcp/eagers" },
                                                                 {
-                                                                    "title": "Policy",
-                                                                    "enum": [ "none", "all", "explicit" ],
-                                                                    "default": "none"
-                                                                },
-                                                                "match":
-                                                                {
-                                                                    "title": "Match",
                                                                     "type": "array",
-                                                                    "items":
-                                                                    {
-                                                                        "type": "string"
-                                                                    },
+                                                                    "items": { "$ref": "#/$defs/binding-ext/mcp/eagers" },
                                                                     "minItems": 1
                                                                 }
-                                                            },
-                                                            "if":
-                                                            {
-                                                                "required": [ "policy" ],
-                                                                "properties":
-                                                                {
-                                                                    "policy":
-                                                                    {
-                                                                        "const": "explicit"
-                                                                    }
-                                                                }
-                                                            },
-                                                            "then":
-                                                            {
-                                                                "required": [ "match" ]
-                                                            },
-                                                            "else":
-                                                            {
-                                                                "not": { "required": [ "match" ] }
-                                                            },
-                                                            "additionalProperties": false
+                                                            ]
                                                         }
                                                     },
                                                     "additionalProperties": false
@@ -541,6 +510,135 @@
                     "type": "string",
                     "enum": [ "keyword" ]
                 }
+            },
+            "eagers":
+            {
+                "type": "object",
+                "properties":
+                {
+                    "type":
+                    {
+                        "title": "Type",
+                        "type": "string",
+                        "enum": [ "none", "all", "explicit" ]
+                    },
+                    "policy":
+                    {
+                        "title": "Policy",
+                        "type": "string",
+                        "enum": [ "none", "all", "explicit" ]
+                    },
+                    "match":
+                    {
+                        "title": "Match",
+                        "type": "array",
+                        "items":
+                        {
+                            "type": "string"
+                        },
+                        "minItems": 1
+                    }
+                },
+                "anyOf":
+                [
+                    { "required": [ "type" ] },
+                    { "required": [ "policy" ] }
+                ],
+                "allOf":
+                [
+                    {
+                        "if":
+                        {
+                            "required": [ "type" ],
+                            "properties": { "type": { "const": "none" } }
+                        },
+                        "then":
+                        {
+                            "properties": { "type": { "const": "none" } },
+                            "additionalProperties": false
+                        }
+                    },
+                    {
+                        "if":
+                        {
+                            "required": [ "policy" ],
+                            "properties": { "policy": { "const": "none" } }
+                        },
+                        "then":
+                        {
+                            "properties": { "policy": { "const": "none" } },
+                            "additionalProperties": false
+                        }
+                    },
+                    {
+                        "if":
+                        {
+                            "required": [ "type" ],
+                            "properties": { "type": { "const": "all" } }
+                        },
+                        "then":
+                        {
+                            "properties": { "type": { "const": "all" } },
+                            "additionalProperties": false
+                        }
+                    },
+                    {
+                        "if":
+                        {
+                            "required": [ "policy" ],
+                            "properties": { "policy": { "const": "all" } }
+                        },
+                        "then":
+                        {
+                            "properties": { "policy": { "const": "all" } },
+                            "additionalProperties": false
+                        }
+                    },
+                    {
+                        "if":
+                        {
+                            "required": [ "type" ],
+                            "properties": { "type": { "const": "explicit" } }
+                        },
+                        "then":
+                        {
+                            "properties":
+                            {
+                                "type": { "const": "explicit" },
+                                "match":
+                                {
+                                    "type": "array",
+                                    "items": { "type": "string" },
+                                    "minItems": 1
+                                }
+                            },
+                            "required": [ "type", "match" ],
+                            "additionalProperties": false
+                        }
+                    },
+                    {
+                        "if":
+                        {
+                            "required": [ "policy" ],
+                            "properties": { "policy": { "const": "explicit" } }
+                        },
+                        "then":
+                        {
+                            "properties":
+                            {
+                                "policy": { "const": "explicit" },
+                                "match":
+                                {
+                                    "type": "array",
+                                    "items": { "type": "string" },
+                                    "minItems": 1
+                                }
+                            },
+                            "required": [ "policy", "match" ],
+                            "additionalProperties": false
+                        }
+                    }
+                ]
             }
         }
     }

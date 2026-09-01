@@ -26,11 +26,11 @@ import io.aklivity.zilla.config.engine.NamedConfig;
 public final class McpCacheToolsConfig extends Config.Extensible
 {
     public final McpCacheToolsSearchConfig search;
-    public final McpCacheToolsEagerConfig eager;
+    public final List<McpToolsEagerConfig> eager;
 
     McpCacheToolsConfig(
         McpCacheToolsSearchConfig search,
-        McpCacheToolsEagerConfig eager)
+        List<McpToolsEagerConfig> eager)
     {
         super(null, withSearchAndEager(search, eager));
         this.search = search;
@@ -41,7 +41,7 @@ public final class McpCacheToolsConfig extends Config.Extensible
     // McpCacheConfig discover every name under tools generically via tools.refs()
     private static List<NamedConfig> withSearchAndEager(
         McpCacheToolsSearchConfig search,
-        McpCacheToolsEagerConfig eager)
+        List<McpToolsEagerConfig> eager)
     {
         List<NamedConfig> all = new ArrayList<>();
         if (search != null)
@@ -50,7 +50,10 @@ public final class McpCacheToolsConfig extends Config.Extensible
         }
         if (eager != null)
         {
-            all.addAll(eager.refs());
+            for (McpToolsEagerConfig each : eager)
+            {
+                all.addAll(each.refs());
+            }
         }
         return all;
     }
