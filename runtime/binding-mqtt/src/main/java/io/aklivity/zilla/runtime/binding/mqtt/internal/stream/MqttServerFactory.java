@@ -1574,24 +1574,29 @@ public final class MqttServerFactory implements MqttStreamFactory
                 }
             }
 
-            if (ready && reasonCode == SUCCESS)
+            final int initialBudget = publisher.initialBudget();
+            final int lengthMax = Math.min(available, server.decodeablePublishPayloadBytes);
+
+            // a frame reserves its payload plus the padding, so the window must hold both; when it
+            // cannot hold even the padding this is negative, and reserving the padding regardless
+            // would advance initialSeq past the window the publish stream has been granted
+            final int sizeMax = Math.min(lengthMax, initialBudget - publisher.initialPad);
+
+            final int maximum = sizeMax + publisher.initialPad;
+            final int minimum = Math.min(maximum, Math.max(publisher.initialMin, 1024) + publisher.initialPad);
+
+            int valueClaimed = maximum;
+
+            if (ready && reasonCode == SUCCESS && sizeMax >= 0 &&
+                canPublish && publisher.debit != null && lengthMax != 0)
             {
-                int initialBudget = publisher.initialBudget();
-                int lengthMax = Math.min(available, server.decodeablePublishPayloadBytes);
-                int reservedMax = Math.max(publisher.initialPad, Math.min(lengthMax + publisher.initialPad, initialBudget));
+                valueClaimed = publisher.debit.claim(traceId, minimum, maximum);
+            }
 
-                final int maximum = reservedMax;
-                final int minimum = Math.min(maximum, Math.max(publisher.initialMin, 1024) + publisher.initialPad);
+            final int sizeClaimed = valueClaimed - publisher.initialPad;
 
-                int valueClaimed = maximum;
-
-                if (canPublish && publisher.debit != null && lengthMax != 0)
-                {
-                    valueClaimed = publisher.debit.claim(traceId, minimum, maximum);
-                }
-
-                int sizeClaimed = valueClaimed - publisher.initialPad;
-
+            if (ready && reasonCode == SUCCESS && sizeClaimed >= 0)
+            {
                 final OctetsFW payload = payloadRO
                     .wrap(payloadBuffer, payloadOffset, payloadOffset + sizeClaimed);
 
