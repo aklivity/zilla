@@ -97,6 +97,7 @@
 - feat\(binding-mcp\): report SEARCH\_INDEX\_FAILED event when tool search index fails [\#2460](https://github.com/aklivity/zilla/pull/2460) ([jfallows](https://github.com/jfallows))
 - feat\(binding-kafka\): stream value transforms directly into the cache, delete convertedFile [\#2461](https://github.com/aklivity/zilla/pull/2461) ([jfallows](https://github.com/jfallows))
 - fix\(binding-mcp\): fold NamedConfig refs\(\) generically through options.cache [\#2463](https://github.com/aklivity/zilla/pull/2463) ([jfallows](https://github.com/jfallows))
+- feat\(binding-mcp\): pluggable, composable cache.tools.eager policies [\#2464](https://github.com/aklivity/zilla/pull/2464) ([jfallows](https://github.com/jfallows))
 
 ## [2.3.0](https://github.com/aklivity/zilla/tree/2.3.0) (2026-08-14)
 
