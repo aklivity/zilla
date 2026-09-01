@@ -335,6 +335,15 @@ public class ProxyCacheIT
 
     @Test
     @Specification({
+        "${app}/cache.serve.tools.list.eager.explicit.chain/client",
+        "${app}/cache.serve.tools.list.eager.explicit.chain/server" })
+    public void shouldServeToolsListEagerExplicitChain() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/cache.serve.tools.list.eager.explicit.search/client",
         "${app}/cache.serve.tools.list.eager.explicit.search/server" })
     public void shouldServeToolsListEagerExplicitWithSearch() throws Exception

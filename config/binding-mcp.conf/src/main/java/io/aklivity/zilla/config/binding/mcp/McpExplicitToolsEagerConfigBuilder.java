@@ -19,34 +19,27 @@ import java.util.function.Function;
 
 import io.aklivity.zilla.config.engine.ConfigBuilder;
 
-public final class McpCacheToolsEagerConfigBuilder<T> extends ConfigBuilder<T, McpCacheToolsEagerConfigBuilder<T>>
+public final class McpExplicitToolsEagerConfigBuilder<T> extends
+    ConfigBuilder<T, McpExplicitToolsEagerConfigBuilder<T>>
 {
-    private final Function<McpCacheToolsEagerConfig, T> mapper;
+    private final Function<McpExplicitToolsEagerConfig, T> mapper;
 
-    private McpCacheToolsEagerPolicy policy = McpCacheToolsEagerPolicy.NONE;
     private List<String> match;
 
-    McpCacheToolsEagerConfigBuilder(
-        Function<McpCacheToolsEagerConfig, T> mapper)
+    McpExplicitToolsEagerConfigBuilder(
+        Function<McpExplicitToolsEagerConfig, T> mapper)
     {
         this.mapper = mapper;
     }
 
     @Override
     @SuppressWarnings("unchecked")
-    protected Class<McpCacheToolsEagerConfigBuilder<T>> thisType()
+    protected Class<McpExplicitToolsEagerConfigBuilder<T>> thisType()
     {
-        return (Class<McpCacheToolsEagerConfigBuilder<T>>) getClass();
+        return (Class<McpExplicitToolsEagerConfigBuilder<T>>) getClass();
     }
 
-    public McpCacheToolsEagerConfigBuilder<T> policy(
-        McpCacheToolsEagerPolicy policy)
-    {
-        this.policy = policy;
-        return this;
-    }
-
-    public McpCacheToolsEagerConfigBuilder<T> match(
+    public McpExplicitToolsEagerConfigBuilder<T> match(
         List<String> match)
     {
         this.match = match;
@@ -56,6 +49,6 @@ public final class McpCacheToolsEagerConfigBuilder<T> extends ConfigBuilder<T, M
     @Override
     public T build()
     {
-        return mapper.apply(new McpCacheToolsEagerConfig(policy, match));
+        return mapper.apply(new McpExplicitToolsEagerConfig(match));
     }
 }

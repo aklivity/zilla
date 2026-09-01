@@ -14,9 +14,25 @@
  */
 package io.aklivity.zilla.config.binding.mcp;
 
-public enum McpCacheToolsEagerPolicy
+import java.util.function.Function;
+
+public final class McpAllToolsEagerConfig extends McpToolsEagerConfig
 {
-    NONE,
-    ALL,
-    EXPLICIT
+    public static final String NAME = "all";
+
+    public static McpAllToolsEagerConfigBuilder<McpAllToolsEagerConfig> builder()
+    {
+        return new McpAllToolsEagerConfigBuilder<>(McpAllToolsEagerConfig.class::cast);
+    }
+
+    public static <T> McpAllToolsEagerConfigBuilder<T> builder(
+        Function<McpAllToolsEagerConfig, T> mapper)
+    {
+        return new McpAllToolsEagerConfigBuilder<>(mapper);
+    }
+
+    McpAllToolsEagerConfig()
+    {
+        super(NAME);
+    }
 }

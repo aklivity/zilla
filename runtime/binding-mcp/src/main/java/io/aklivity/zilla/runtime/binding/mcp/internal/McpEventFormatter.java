@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.mcp.internal;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.StringFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.event.EventFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.event.McpAuthorizationFailedExFW;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.event.McpEagerIndexFailedExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.event.McpElicitationTimeoutExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.event.McpEventExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.event.McpSearchIndexFailedExFW;
@@ -82,6 +83,13 @@ public final class McpEventFormatter implements EventFormatterSpi
         {
             McpSearchIndexFailedExFW ex = extension.searchIndexFailed();
             result = String.format("MCP tool search index failed. %s",
+                    asString(ex.reason()));
+            break;
+        }
+        case EAGER_INDEX_FAILED:
+        {
+            McpEagerIndexFailedExFW ex = extension.eagerIndexFailed();
+            result = String.format("MCP tool eager index failed. %s",
                     asString(ex.reason()));
             break;
         }

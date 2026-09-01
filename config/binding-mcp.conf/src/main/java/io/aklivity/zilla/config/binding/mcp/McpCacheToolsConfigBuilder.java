@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.config.binding.mcp;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Function;
 
 import io.aklivity.zilla.config.engine.ConfigBuilder;
@@ -23,7 +25,7 @@ public final class McpCacheToolsConfigBuilder<T> extends ConfigBuilder<T, McpCac
     private final Function<McpCacheToolsConfig, T> mapper;
 
     private McpCacheToolsSearchConfig search;
-    private McpCacheToolsEagerConfig eager;
+    private List<McpToolsEagerConfig> eager;
 
     McpCacheToolsConfigBuilder(
         Function<McpCacheToolsConfig, T> mapper)
@@ -51,15 +53,14 @@ public final class McpCacheToolsConfigBuilder<T> extends ConfigBuilder<T, McpCac
     }
 
     public McpCacheToolsConfigBuilder<T> eager(
-        McpCacheToolsEagerConfig eager)
+        McpToolsEagerConfig eager)
     {
-        this.eager = eager;
+        if (this.eager == null)
+        {
+            this.eager = new ArrayList<>();
+        }
+        this.eager.add(eager);
         return this;
-    }
-
-    public McpCacheToolsEagerConfigBuilder<McpCacheToolsConfigBuilder<T>> eager()
-    {
-        return McpCacheToolsEagerConfig.builder(this::eager);
     }
 
     @Override

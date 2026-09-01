@@ -14,8 +14,8 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.internal.search;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.TreeMap;
 
 import jakarta.json.stream.JsonParser;
 
@@ -43,7 +43,7 @@ public final class McpToolByteRangeScanner
     public static Map<CharSequence, McpToolByteRange> scan(
         byte[] bytes)
     {
-        final Map<CharSequence, McpToolByteRange> ranges = new TreeMap<>(CharSequence::compare);
+        final Map<CharSequence, McpToolByteRange> ranges = new LinkedHashMap<>();
 
         if (bytes != null)
         {

@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.binding.mcp.internal;
 
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.event.McpEventType.AUTHORIZATION_FAILED;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.event.McpEventType.EAGER_INDEX_FAILED;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.event.McpEventType.ELICITATION_TIMEOUT;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.event.McpEventType.SEARCH_INDEX_FAILED;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.event.McpEventType.SESSION_CLOSED;
@@ -45,6 +46,7 @@ public final class McpEventContext
     private final int authorizationFailedEventId;
     private final int elicitationTimeoutEventId;
     private final int searchIndexFailedEventId;
+    private final int eagerIndexFailedEventId;
     private final MessageConsumer eventWriter;
     private final Clock clock;
 
@@ -57,6 +59,7 @@ public final class McpEventContext
         this.authorizationFailedEventId = context.supplyEventId("binding.mcp.authorization.failed");
         this.elicitationTimeoutEventId = context.supplyEventId("binding.mcp.elicitation.timeout");
         this.searchIndexFailedEventId = context.supplyEventId("binding.mcp.search.index.failed");
+        this.eagerIndexFailedEventId = context.supplyEventId("binding.mcp.eager.index.failed");
         this.eventWriter = context.supplyEventWriter();
         this.clock = context.clock();
     }
@@ -173,6 +176,28 @@ public final class McpEventContext
         EventFW event = eventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
             .id(searchIndexFailedEventId)
+            .timestamp(clock.millis())
+            .traceId(traceId)
+            .namespacedId(bindingId)
+            .extension(extension.buffer(), extension.offset(), extension.limit())
+            .build();
+        eventWriter.accept(mcpTypeId, event.buffer(), event.offset(), event.limit());
+    }
+
+    public void eagerIndexFailed(
+        long traceId,
+        long bindingId,
+        String reason)
+    {
+        McpEventExFW extension = mcpEventExRW
+            .wrap(extensionBuffer, 0, extensionBuffer.capacity())
+            .eagerIndexFailed(e -> e
+                .typeId(EAGER_INDEX_FAILED.value())
+                .reason(reason))
+            .build();
+        EventFW event = eventRW
+            .wrap(eventBuffer, 0, eventBuffer.capacity())
+            .id(eagerIndexFailedEventId)
             .timestamp(clock.millis())
             .traceId(traceId)
             .namespacedId(bindingId)
