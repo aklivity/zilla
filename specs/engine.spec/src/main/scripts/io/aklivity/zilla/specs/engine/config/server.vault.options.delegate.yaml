@@ -53,5 +53,6 @@ bindings:
         vault: vaultB
         exit: app1
         options:
-            vault:
-                trust: cert0
+            assertions:
+                vault:
+                    trust: cert0
