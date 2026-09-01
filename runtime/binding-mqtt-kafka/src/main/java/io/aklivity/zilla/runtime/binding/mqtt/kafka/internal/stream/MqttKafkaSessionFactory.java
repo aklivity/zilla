@@ -1707,7 +1707,9 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                 flushEx != null && flushEx.typeId() == kafkaTypeId ? extension.get(kafkaFlushExRO::tryWrap) : null;
             final KafkaMergedFlushExFW kafkaMergedFlushEx =
                 kafkaFlushEx != null && kafkaFlushEx.kind() == KafkaDataExFW.KIND_MERGED ? kafkaFlushEx.merged() : null;
-            final Array32FW<KafkaOffsetFW> progress = kafkaMergedFlushEx != null ? kafkaMergedFlushEx.fetch().progress() : null;
+            final Array32FW<KafkaOffsetFW> progress =
+                kafkaMergedFlushEx != null && kafkaMergedFlushEx.kind() == KafkaMergedFlushExFW.KIND_FETCH ?
+                    kafkaMergedFlushEx.fetch().progress() : null;
 
             if (progress != null)
             {
