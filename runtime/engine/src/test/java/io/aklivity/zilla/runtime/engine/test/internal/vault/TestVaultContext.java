@@ -21,16 +21,19 @@ import io.aklivity.zilla.runtime.engine.vault.VaultContext;
 
 public final class TestVaultContext implements VaultContext
 {
+    private final EngineContext context;
+
     public TestVaultContext(
         EngineContext context)
     {
+        this.context = context;
     }
 
     @Override
     public TestVaultHandler attach(
         VaultConfig vault)
     {
-        return new TestVaultHandler(vault);
+        return new TestVaultHandler(vault, context);
     }
 
     @Override

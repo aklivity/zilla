@@ -1,0 +1,57 @@
+#
+# Copyright 2021-2026 Aklivity Inc.
+#
+# Aklivity licenses this file to you under the Apache License,
+# version 2.0 (the "License"); you may not use this file except in compliance
+# with the License. You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+#
+
+---
+name: test
+vaults:
+    vaultA:
+        type: test
+        options:
+            trust:
+                alias: cert0
+                entry: |
+                    -----BEGIN CERTIFICATE-----
+                    MIIDKTCCAhGgAwIBAgIUf7Bc/rhG6QMDfvhU0eOSmWXCCLMwDQYJKoZIhvcNAQEL
+                    BQAwJDEiMCAGA1UEAwwZemlsbGEtdGVzdC12YXVsdC1kZWxlZ2F0ZTAeFw0yNjA5
+                    MDEyMjQ0MTFaFw0zNjA4MjkyMjQ0MTFaMCQxIjAgBgNVBAMMGXppbGxhLXRlc3Qt
+                    dmF1bHQtZGVsZWdhdGUwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQDk
+                    Afd2gxwcAS9rpIyIlRQxNEQ2IGYTD9YUij77nUj1Z7LRqALKSaRHAGn+DzjOV5kZ
+                    5+3606Sx5DB3gsGCyEvPiZCagfocu8vk6DWRcAuBaTwTubcHiJVNs/5Zwcnafqz+
+                    YZoSyJ8f56+eLuH0GjNqmqa8NLDWmKNQXoEDGVC8cTojRwtc6BvVQHaQQ/83E6ta
+                    lANxQIlZy//+UDFPnFspmnk91IJS63DWWddWs4yPfOhUeKYs96iOC9Sn9dDuPe4t
+                    sGcdGtt/cTSeMrIrnp6Ti9KeXYN9tGsE96XUU1jDbe9NSD9LHjdYZxrQQkVh/p5S
+                    KI1p/L8EDjkBz5VpwT9XAgMBAAGjUzBRMB0GA1UdDgQWBBRhI2myjzMnYZ4g1Ert
+                    /XmehaMgODAfBgNVHSMEGDAWgBRhI2myjzMnYZ4g1Ert/XmehaMgODAPBgNVHRMB
+                    Af8EBTADAQH/MA0GCSqGSIb3DQEBCwUAA4IBAQBVk4/lkcj0pD8B9iRs1aEeKSqp
+                    ba9Tzk50x3hPDANO1mZUxXza2arYTz+VwzmBZ19cCiPigInizDv1Puv/n217CLJ9
+                    +FXgG2EW9X0jq0jF3UjNfHGB9OtR+Tgu/FrcpsESwEjjKsIq/ntWNWYBfXn4OLzu
+                    Vlvde8qInQs5MDL72ZTvf3JPRLGoQk9IoO1sCtPHqQkkY8WGbsx/bmFT4NSbl+Bn
+                    AKctnsj0ts6JaoRz/Yl3zGwjKK18xbU0ahqpzkH+EMP69D13k3F3WUTGRj/EdZ7U
+                    KJwdVS3israPX8TTT4Qhtv2CKfmza5sAeIChwbglOoY9bNnel3RAYhkThop/
+                    -----END CERTIFICATE-----
+    vaultB:
+        type: test
+        options:
+            vault: vaultA
+bindings:
+    net1:
+        type: test
+        kind: server
+        vault: vaultB
+        exit: app1
+        options:
+            vault:
+                trust: cert0
