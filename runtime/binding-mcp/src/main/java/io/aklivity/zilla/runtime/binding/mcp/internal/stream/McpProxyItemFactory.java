@@ -2529,9 +2529,25 @@ abstract class McpProxyItemFactory implements BindingHandler
             }
             else
             {
+                recordToolCall(targetName);
                 final String identifier = route.strip(targetBeginEx);
                 final String prefix = route.prefix(targetBeginEx);
                 dispatchToDelegate(traceId, route, identifier, prefix);
+            }
+        }
+
+        // by-usage-style eager policies rank by recent call frequency; this is their only write
+        // side, firing once per resolved tools/call dispatch, after authorization has already
+        // admitted the call
+        private void recordToolCall(
+            String targetName)
+        {
+            final McpProxyCache.McpListCache listCache = binding.cache != null
+                ? binding.cache.cacheOf(McpBeginExFW.KIND_TOOLS_LIST)
+                : null;
+            if (listCache != null && listCache.eagerConfigured())
+            {
+                listCache.mcpToolsEager().recorder().record(authorization, targetName);
             }
         }
 

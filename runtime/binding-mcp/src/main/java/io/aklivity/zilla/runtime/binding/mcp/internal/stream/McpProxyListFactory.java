@@ -20,8 +20,10 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.BiPredicate;
 import java.util.function.LongBinaryOperator;
 import java.util.function.LongFunction;
@@ -38,6 +40,8 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpBindingConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpRouteConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.config.McpRoutePrefix;
 import io.aklivity.zilla.runtime.binding.mcp.internal.search.McpSearchToolInjector;
+import io.aklivity.zilla.runtime.binding.mcp.internal.search.McpToolByteRange;
+import io.aklivity.zilla.runtime.binding.mcp.internal.search.McpToolByteRangeScanner;
 import io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyLifecycleFactory.McpLifecycleClient;
 import io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyLifecycleFactory.McpLifecycleServer;
 import io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyLifecycleFactory.McpRouteRequest;
@@ -2248,7 +2252,19 @@ abstract class McpProxyListFactory implements BindingHandler
             byte[] output = json;
             if (cache.eagerConfigured())
             {
-                eagerFilter.init(arrayKey(), cache::eager, cache.searchToolsBytes() != null);
+                final Map<CharSequence, McpToolByteRange> ranges = McpToolByteRangeScanner.scan(json);
+                final List<CharSequence> names = new ArrayList<>(ranges.keySet());
+                final List<CharSequence> eagerNames = cache.mcpToolsEager().select(authorization, names);
+                // eagerFilter re-tests each name against a live JsonSource#getStringView() -- a reused,
+                // parser-owned CharSequence whose hashCode()/equals() are not guaranteed to agree with
+                // String's, so membership is normalized to String on both sides rather than trusted to
+                // CharSequence identity/hashCode in a Set
+                final Set<String> eagerSet = new HashSet<>();
+                for (CharSequence eagerName : eagerNames)
+                {
+                    eagerSet.add(eagerName.toString());
+                }
+                eagerFilter.init(arrayKey(), name -> eagerSet.contains(name.toString()), cache.searchToolsBytes() != null);
 
                 // annotating cold items can grow the output; a cold item's added "defer_loading":true member
                 // is a small, fixed cost against the item's own JSON, so doubling the source is ample headroom

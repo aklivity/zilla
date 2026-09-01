@@ -375,6 +375,18 @@ public class McpProxyCacheIT
         k3po.finish();
     }
 
+    // [explicit, none] -- none is a pure pass-through, so this must produce the exact same
+    // eager/cold partition as plain explicit alone, proving select() threads correctly across stages
+    @Test
+    @Configuration("proxy.cache.tools.eager.serve.explicit.chain.yaml")
+    @Specification({
+        "${app}/cache.serve.tools.list.eager.explicit.chain/client" })
+    @Configure(name = MCP_HYDRATE_FILTER_NAME, value = "tools")
+    public void shouldServeToolsListEagerExplicitChain() throws Exception
+    {
+        k3po.finish();
+    }
+
     @Test
     @Configuration("proxy.cache.tools.eager.serve.explicit.search.yaml")
     @Specification({

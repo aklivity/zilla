@@ -271,7 +271,8 @@ scope mcp
             SESSION_CLOSED (2),
             AUTHORIZATION_FAILED (3),
             ELICITATION_TIMEOUT (4),
-            SEARCH_INDEX_FAILED (5)
+            SEARCH_INDEX_FAILED (5),
+            EAGER_INDEX_FAILED (6)
         }
 
         struct McpSessionEstablishedEx extends core::stream::Extension
@@ -311,6 +312,11 @@ scope mcp
             string16 reason = null;
         }
 
+        struct McpEagerIndexFailedEx extends core::stream::Extension
+        {
+            string16 reason = null;
+        }
+
         union McpEventEx switch (McpEventType)
         {
             case SESSION_ESTABLISHED: McpSessionEstablishedEx sessionEstablished;
@@ -318,6 +324,7 @@ scope mcp
             case AUTHORIZATION_FAILED: McpAuthorizationFailedEx authorizationFailed;
             case ELICITATION_TIMEOUT: McpElicitationTimeoutEx elicitationTimeout;
             case SEARCH_INDEX_FAILED: McpSearchIndexFailedEx searchIndexFailed;
+            case EAGER_INDEX_FAILED: McpEagerIndexFailedEx eagerIndexFailed;
         }
     }
 }

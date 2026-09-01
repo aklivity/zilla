@@ -52,9 +52,21 @@ public class McpConfigTest
     @Test
     public void shouldDefaultCacheToolsEagerRefsToEmpty()
     {
-        McpCacheToolsEagerConfig eager = McpCacheToolsEagerConfig.builder().build();
+        McpToolsEagerConfig eager = McpNoneToolsEagerConfig.builder().build();
 
         assertThat(eager.refs(), empty());
+    }
+
+    @Test
+    public void shouldForwardRefFromToolsEagerThroughCacheTools()
+    {
+        VaultedConfig vaulted = VaultedConfig.builder().name("vault0").build();
+
+        McpCacheToolsConfig tools = McpCacheToolsConfig.builder()
+            .eager(new McpRefTestToolsEagerConfig(vaulted))
+            .build();
+
+        assertThat(tools.refs(), hasItem(vaulted));
     }
 
     @Test
@@ -132,6 +144,24 @@ public class McpConfigTest
         private final List<NamedConfig> refs;
 
         McpRefTestToolSearchIndexConfig(
+            NamedConfig ref)
+        {
+            super("test");
+            this.refs = List.of(ref);
+        }
+
+        @Override
+        public List<NamedConfig> refs()
+        {
+            return refs;
+        }
+    }
+
+    private static final class McpRefTestToolsEagerConfig extends McpToolsEagerConfig
+    {
+        private final List<NamedConfig> refs;
+
+        McpRefTestToolsEagerConfig(
             NamedConfig ref)
         {
             super("test");

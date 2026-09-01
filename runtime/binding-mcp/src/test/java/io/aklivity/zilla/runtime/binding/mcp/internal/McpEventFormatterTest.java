@@ -103,4 +103,13 @@ public class McpEventFormatterTest
 
         assertEquals("MCP tool search index failed. search index backend unavailable", format());
     }
+
+    @Test
+    public void shouldFormatEagerIndexFailedEvent()
+    {
+        McpEventContext events = newEvents();
+        events.eagerIndexFailed(0L, 0L, "eager index backend unavailable");
+
+        assertEquals("MCP tool eager index failed. eager index backend unavailable", format());
+    }
 }
