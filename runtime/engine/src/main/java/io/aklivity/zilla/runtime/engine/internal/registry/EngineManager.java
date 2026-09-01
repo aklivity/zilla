@@ -381,6 +381,14 @@ public class EngineManager
         for (VaultConfig vault : namespace.vaults)
         {
             vault.id = resolver.resolve(vault.name);
+
+            if (vault.options != null)
+            {
+                for (NamedConfig ref : vault.options.refs())
+                {
+                    ref.id = resolver.resolve(ref.name);
+                }
+            }
         }
 
         for (CatalogConfig catalog : namespace.catalogs)

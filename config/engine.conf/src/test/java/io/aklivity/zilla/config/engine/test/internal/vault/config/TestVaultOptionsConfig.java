@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.function.Function;
 
 import io.aklivity.zilla.config.engine.OptionsConfig;
+import io.aklivity.zilla.config.engine.VaultedConfig;
 
 public final class TestVaultOptionsConfig extends OptionsConfig
 {
@@ -25,6 +26,7 @@ public final class TestVaultOptionsConfig extends OptionsConfig
     public final TestVaultEntryConfig signer;
     public final List<TestVaultEntryConfig> trust;
     public final List<TestVaultEntryConfig> wrap;
+    public final VaultedConfig vault;
 
     public static TestVaultOptionsConfigBuilder<TestVaultOptionsConfig> builder()
     {
@@ -41,12 +43,14 @@ public final class TestVaultOptionsConfig extends OptionsConfig
         List<TestVaultEntryConfig> keys,
         TestVaultEntryConfig signer,
         List<TestVaultEntryConfig> trust,
-        List<TestVaultEntryConfig> wrap)
+        List<TestVaultEntryConfig> wrap,
+        VaultedConfig vault)
     {
-        super(null, null);
+        super(null, vault != null ? List.of(vault) : null);
         this.keys = keys;
         this.signer = signer;
         this.trust = trust;
         this.wrap = wrap;
+        this.vault = vault;
     }
 }

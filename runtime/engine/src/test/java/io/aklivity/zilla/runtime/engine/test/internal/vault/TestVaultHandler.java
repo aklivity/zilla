@@ -49,10 +49,12 @@ import javax.net.ssl.TrustManagerFactory;
 import org.agrona.LangUtil;
 
 import io.aklivity.zilla.config.engine.VaultConfig;
+import io.aklivity.zilla.config.engine.VaultedConfig;
 import io.aklivity.zilla.config.engine.test.internal.vault.config.TestVaultEntryConfig;
 import io.aklivity.zilla.config.engine.test.internal.vault.config.TestVaultOptionsConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.vault.SecretKeyManager;
 import io.aklivity.zilla.runtime.engine.vault.SecretKeyManagerFactory;
 import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
@@ -78,15 +80,36 @@ public final class TestVaultHandler implements VaultHandler
     private final TestVaultEntryConfig signer;
     private final List<TestVaultEntryConfig> trust;
     private final Map<String, SecretKey> wraps;
+    private final VaultHandler delegate;
 
     public TestVaultHandler(
         VaultConfig vault)
+    {
+        this(vault, null);
+    }
+
+    // when options.vault names another vault in the same namespace, the engine resolves it to
+    // options.vault.id before attach (see EngineManager); any key/trust/wrap alias this handler
+    // cannot itself satisfy falls through to that referenced vault, so a vault with no material of
+    // its own can still front one that does
+    public TestVaultHandler(
+        VaultConfig vault,
+        EngineContext context)
     {
         TestVaultOptionsConfig options = (TestVaultOptionsConfig) vault.options;
         this.keys = options != null ? options.keys : null;
         this.signer = options != null ? options.signer : null;
         this.trust = options != null ? options.trust : null;
         this.wraps = options != null ? newWraps(options.wrap) : null;
+        this.delegate = delegate(options, context);
+    }
+
+    private static VaultHandler delegate(
+        TestVaultOptionsConfig options,
+        EngineContext context)
+    {
+        VaultedConfig ref = options != null ? options.vault : null;
+        return ref != null && context != null ? context.supplyVault(ref.id) : null;
     }
 
     private static Map<String, SecretKey> newWraps(
@@ -221,7 +244,11 @@ public final class TestVaultHandler implements VaultHandler
 
         List<TestVaultEntryConfig> matched = matchedKeys(aliases);
 
-        if (!matched.isEmpty())
+        if (matched.isEmpty())
+        {
+            factory = delegate != null ? delegate.initKeys(aliases) : null;
+        }
+        else
         {
             try
             {
@@ -347,7 +374,11 @@ public final class TestVaultHandler implements VaultHandler
 
         List<TestVaultEntryConfig> matched = matchedTrust(certAliases);
 
-        if (!matched.isEmpty() || cacerts != null)
+        if (matched.isEmpty() && cacerts == null)
+        {
+            factory = delegate != null ? delegate.initTrust(certAliases, cacerts) : null;
+        }
+        else
         {
             try
             {
@@ -416,7 +447,9 @@ public final class TestVaultHandler implements VaultHandler
     {
         Map<String, SecretKey> matched = matchedWraps(aliases);
         SecretKeyManager manager = !matched.isEmpty() ? new TestSecretKeyManager(matched) : null;
-        return manager != null ? () -> manager : null;
+        return manager != null
+            ? () -> manager
+            : delegate != null ? delegate.initSecretKeys(aliases) : null;
     }
 
     private Map<String, SecretKey> matchedWraps(

@@ -20,6 +20,7 @@ import java.util.function.Function;
 
 import io.aklivity.zilla.config.engine.ConfigBuilder;
 import io.aklivity.zilla.config.engine.OptionsConfig;
+import io.aklivity.zilla.config.engine.VaultedConfig;
 
 public final class TestVaultOptionsConfigBuilder<T> extends ConfigBuilder<T, TestVaultOptionsConfigBuilder<T>>
 {
@@ -29,6 +30,7 @@ public final class TestVaultOptionsConfigBuilder<T> extends ConfigBuilder<T, Tes
     private TestVaultEntryConfig signer;
     private List<TestVaultEntryConfig> trust;
     private List<TestVaultEntryConfig> wrap;
+    private VaultedConfig vault;
 
     TestVaultOptionsConfigBuilder(
         Function<OptionsConfig, T> mapper)
@@ -87,9 +89,16 @@ public final class TestVaultOptionsConfigBuilder<T> extends ConfigBuilder<T, Tes
         return this;
     }
 
+    public TestVaultOptionsConfigBuilder<T> vault(
+        String name)
+    {
+        this.vault = VaultedConfig.builder().name(name).build();
+        return this;
+    }
+
     @Override
     public T build()
     {
-        return mapper.apply(new TestVaultOptionsConfig(keys, signer, trust, wrap));
+        return mapper.apply(new TestVaultOptionsConfig(keys, signer, trust, wrap, vault));
     }
 }
