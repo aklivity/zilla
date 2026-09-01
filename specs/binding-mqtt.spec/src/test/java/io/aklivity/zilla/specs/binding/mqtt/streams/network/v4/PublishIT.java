@@ -48,6 +48,15 @@ public class PublishIT
 
     @Test
     @Specification({
+        "${net}/publish.many.messages/client",
+        "${net}/publish.many.messages/server"})
+    public void shouldSendManyMessages() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/publish.multiple.messages.disconnect/client",
         "${net}/publish.multiple.messages.disconnect/server"})
     public void shouldPublishMultipleMessagesAndDisconnect() throws Exception
