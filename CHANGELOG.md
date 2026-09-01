@@ -14,6 +14,7 @@
 - Declare AvroModelExtFactorySpi and wire provider-supplied pipeline stages in avro model [\#1681](https://github.com/aklivity/zilla/issues/1681) ([jfallows](https://github.com/jfallows))
 - Declare JsonModelExtFactorySpi and wire provider-supplied pipeline stages in json model [\#1682](https://github.com/aklivity/zilla/issues/1682) ([jfallows](https://github.com/jfallows))
 - Declare ProtobufModelExtFactorySpi and wire provider-supplied pipeline stages in protobuf model [\#1683](https://github.com/aklivity/zilla/issues/1683) ([jfallows](https://github.com/jfallows))
+- Support length-changing model transforms in kafka cache storage's produce path [\#1688](https://github.com/aklivity/zilla/issues/1688) ([jfallows](https://github.com/jfallows))
 - Wire ModelEnvelope into kafka cache storage's read and write paths [\#1689](https://github.com/aklivity/zilla/issues/1689) ([jfallows](https://github.com/jfallows))
 - Apply schema overlay at catalog entry resolution [\#2318](https://github.com/aklivity/zilla/issues/2318) ([jfallows](https://github.com/jfallows))
 - engine: add ModelEnvelope for message metadata outside the value, exposed via ModelController [\#2384](https://github.com/aklivity/zilla/issues/2384) ([jfallows](https://github.com/jfallows))
@@ -25,6 +26,7 @@
 - kafka cache storage: honor per-message authorization on the fetch path, not just at cache population [\#2423](https://github.com/aklivity/zilla/issues/2423) ([jfallows](https://github.com/jfallows))
 - MQTT CONNECT with a Will message crashes the whole engine \(JVM segfault\), not just the connection [\#2428](https://github.com/aklivity/zilla/issues/2428) ([sfr-oc](https://github.com/sfr-oc))
 - binding-kafka: avoid per-stream heap accumulation buffer for produce-path trailer entries [\#2456](https://github.com/aklivity/zilla/issues/2456) ([jfallows](https://github.com/jfallows))
+- fix\(binding-mcp\): options.cache config tree doesn't fold NamedConfig refs\(\) generically [\#2462](https://github.com/aklivity/zilla/issues/2462) ([jfallows](https://github.com/jfallows))
 
 **Merged pull requests:**
 
@@ -91,7 +93,10 @@
 - feat\(binding-kafka\): wire ModelEnvelope into kafka cache storage's read and write paths [\#2455](https://github.com/aklivity/zilla/pull/2455) ([jfallows](https://github.com/jfallows))
 - perf\(binding-kafka\): claim a block in the log file for produce-path trailer entries [\#2457](https://github.com/aklivity/zilla/pull/2457) ([jfallows](https://github.com/jfallows))
 - refactor\(binding-kafka\): replace KafkaPipeline with ModelEnvelope-backed extraction [\#2458](https://github.com/aklivity/zilla/pull/2458) ([jfallows](https://github.com/jfallows))
+- feat\(vault-filesystem\): graduate secrets options out of incubating [\#2459](https://github.com/aklivity/zilla/pull/2459) ([jfallows](https://github.com/jfallows))
 - feat\(binding-mcp\): report SEARCH\_INDEX\_FAILED event when tool search index fails [\#2460](https://github.com/aklivity/zilla/pull/2460) ([jfallows](https://github.com/jfallows))
+- feat\(binding-kafka\): stream value transforms directly into the cache, delete convertedFile [\#2461](https://github.com/aklivity/zilla/pull/2461) ([jfallows](https://github.com/jfallows))
+- fix\(binding-mcp\): fold NamedConfig refs\(\) generically through options.cache [\#2463](https://github.com/aklivity/zilla/pull/2463) ([jfallows](https://github.com/jfallows))
 
 ## [2.3.0](https://github.com/aklivity/zilla/tree/2.3.0) (2026-08-14)
 
