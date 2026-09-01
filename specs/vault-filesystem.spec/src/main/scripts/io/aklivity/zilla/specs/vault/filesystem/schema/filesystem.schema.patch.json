@@ -127,7 +127,6 @@
                             "secrets":
                             {
                                 "title": "Secrets",
-                                "x-incubating": true,
                                 "type": "object",
                                 "properties":
                                 {

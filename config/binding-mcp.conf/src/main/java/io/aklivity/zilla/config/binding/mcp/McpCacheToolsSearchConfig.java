@@ -16,13 +16,15 @@ package io.aklivity.zilla.config.binding.mcp;
 
 import static java.util.function.Function.identity;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
 import io.aklivity.zilla.config.engine.Config;
+import io.aklivity.zilla.config.engine.NamedConfig;
 
-public final class McpCacheToolsSearchConfig extends Config
+public final class McpCacheToolsSearchConfig extends Config.Extensible
 {
     public final String toolkit;
     public final int limit;
@@ -37,11 +39,28 @@ public final class McpCacheToolsSearchConfig extends Config
         Map<String, Double> weights,
         List<McpToolSearchIndexConfig> indexes)
     {
+        super(null, withIndexes(indexes));
         this.toolkit = toolkit;
         this.limit = limit;
         this.fields = fields;
         this.weights = weights;
         this.indexes = indexes;
+    }
+
+    // each configured index may itself contribute named references (e.g. an embedding vault); folding
+    // them in here lets McpCacheToolsConfig discover every name under search generically via search.refs()
+    private static List<NamedConfig> withIndexes(
+        List<McpToolSearchIndexConfig> indexes)
+    {
+        List<NamedConfig> all = new ArrayList<>();
+        if (indexes != null)
+        {
+            for (McpToolSearchIndexConfig index : indexes)
+            {
+                all.addAll(index.refs());
+            }
+        }
+        return all;
     }
 
     public static McpCacheToolsSearchConfigBuilder<McpCacheToolsSearchConfig> builder()

@@ -21,7 +21,7 @@ import java.util.function.Function;
 
 import io.aklivity.zilla.config.engine.Config;
 
-public final class McpCacheToolsEagerConfig extends Config
+public final class McpCacheToolsEagerConfig extends Config.Extensible
 {
     public final McpCacheToolsEagerPolicy policy;
     public final List<String> match;
@@ -30,6 +30,7 @@ public final class McpCacheToolsEagerConfig extends Config
         McpCacheToolsEagerPolicy policy,
         List<String> match)
     {
+        super(null, null);
         this.policy = policy;
         this.match = match;
     }

@@ -104,12 +104,9 @@ public final class McpOptionsConfigBuilder<T> extends ConfigBuilder<T, McpOption
         {
             refs.addAll(tools.refs());
         }
-        if (cache != null && cache.tools != null && cache.tools.search != null && cache.tools.search.indexes != null)
+        if (cache != null)
         {
-            for (McpToolSearchIndexConfig index : cache.tools.search.indexes)
-            {
-                refs.addAll(index.refs());
-            }
+            refs.addAll(cache.refs());
         }
         return mapper.apply(new McpOptionsConfig(elicitation, authorization, cache, server, tools, refs));
     }

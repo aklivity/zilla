@@ -196,6 +196,22 @@ private void onNetworkData(
   `cleanupDecodeSlotIfNecessary`) — name methods for what they do (`doEnd`,
   `cleanupDecodeSlot`); internal conditionality based on stream state or slot
   value is an implementation detail that does not belong in the name
+- Name fields, parameters, and locals for the role they play in production,
+  not for how they feel to write. Avoid names that read as placeholder or
+  debug scaffolding (`scratch`, `tmp`, `foo`, `data2`) — even a reusable
+  buffer with no domain meaning of its own needs a name describing its role
+  (e.g. `transformBuffer`, not `scratch`). Equally, avoid names so verbose
+  they restate the type or the enclosing class (`kafkaCacheModelTransformer`
+  inside `KafkaCacheModel`, `httpServerFactoryFlyweightBuffer` as a field on
+  `HttpServerFactory`) — once the surrounding type and class already carry
+  that meaning, repeating it in the name is noise, not clarity. A short,
+  precise name beats both extremes
+- Prefer self-describing code — clear names and small, well-named methods —
+  over comments that explain what the code does. Default to no comment; add
+  one only when removing it would lose a non-obvious WHY that the code itself
+  cannot express (a hidden constraint, a workaround for a specific bug, a
+  subtle invariant). The license header is the only comment every file
+  requires
 - Java 21; no preview features
 - No Lombok
 - Use `jakarta.json` APIs (e.g., `JsonObject`, `JsonReader`, `JsonParser`)

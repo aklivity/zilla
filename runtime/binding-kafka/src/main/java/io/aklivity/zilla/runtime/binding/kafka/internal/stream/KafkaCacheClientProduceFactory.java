@@ -717,7 +717,12 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                     break init;
                 }
 
-                stream.segment = partition.newHeadIfNecessary(partitionOffset, key, valueLength, headersSizeMax);
+                stream.valuePaddingMax = valueLength != -1 && stream.transformValue != KafkaCacheModel.NONE
+                    ? stream.transformValue.padding(valueFragment.buffer(), valueFragment.offset(), valueLength)
+                    : 0;
+
+                stream.segment = partition.newHeadIfNecessary(partitionOffset, key, valueLength, stream.valuePaddingMax,
+                    headersSizeMax);
 
                 if (stream.segment != null)
                 {
@@ -728,7 +733,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                     if (partition.writeProduceEntryStart(traceId, routedId, stream.authorization, partitionOffset,
                         stream.segment, stream.entryMark, stream.valueMark, stream.valueLimit, stream.trailersClaimMark,
                         timestamp, stream.initialId,
-                        producerId, producerEpoch, sequence, ackMode, key, valueLength,
+                        producerId, producerEpoch, sequence, ackMode, key, valueLength, stream.valuePaddingMax,
                         headers, trailersSizeMax, valueFragment, stream.transformKey, stream.transformValue) == -1)
                     {
                         error = ERROR_INVALID_RECORD;
@@ -749,7 +754,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
             {
                 if (partition.writeProduceEntryContinue(traceId, routedId, stream.authorization, flags, stream.segment,
                         stream.entryMark, stream.valueMark, stream.valueLimit,
-                        valueFragment, stream.transformValue) == -1)
+                        valueFragment, stream.transformValue, stream.valuePaddingMax) == -1)
                 {
                     error = ERROR_INVALID_RECORD;
                 }
@@ -812,7 +817,11 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
             final long traceId = flush.traceId();
             final int reserved = flush.reserved();
 
-            stream.segment = partition.newHeadIfNecessary(partitionOffset, EMPTY_KEY, 0, 0);
+            final int valuePaddingMax = stream.transformValue != KafkaCacheModel.NONE
+                ? stream.transformValue.padding(EMPTY_OCTETS.buffer(), EMPTY_OCTETS.offset(), 0)
+                : 0;
+
+            stream.segment = partition.newHeadIfNecessary(partitionOffset, EMPTY_KEY, 0, valuePaddingMax, 0);
 
             int error = NO_ERROR;
             if (stream.segment != null)
@@ -825,7 +834,8 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                     stream.entryMark, stream.valueMark, stream.valueLimit, stream.trailersClaimMark, now().toEpochMilli(),
                     stream.initialId,
                     PRODUCE_FLUSH_PRODUCER_ID, PRODUCE_FLUSH_PRODUCER_EPOCH, PRODUCE_FLUSH_SEQUENCE, KafkaAckMode.LEADER_ONLY,
-                    EMPTY_KEY, 0, EMPTY_TRAILERS, trailersSizeMax, EMPTY_OCTETS, stream.transformKey, stream.transformValue);
+                    EMPTY_KEY, 0, valuePaddingMax, EMPTY_TRAILERS, trailersSizeMax, EMPTY_OCTETS, stream.transformKey,
+                    stream.transformValue);
                 stream.partitionOffset = partitionOffset;
                 partitionOffset++;
 
@@ -1271,6 +1281,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
         private KafkaCachePartition.Node segment;
 
         private int dataFlags = FLAGS_FIN;
+        private int valuePaddingMax;
 
         private int state;
 
@@ -1656,6 +1667,11 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
             long traceId,
             Flyweight extension)
         {
+            // a value already mid-transform (INIT seen, no FIN yet) is abandoned here -- reset so this
+            // stream's model instances never retain state from a torn-down value
+            transformKey.reset();
+            transformValue.reset();
+
             doClientInitialResetIfNecessary(traceId, extension);
             doClientReplyAbortIfNecessary(traceId);
         }

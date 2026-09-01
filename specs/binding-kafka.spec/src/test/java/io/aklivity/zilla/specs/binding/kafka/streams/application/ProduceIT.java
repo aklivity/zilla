@@ -401,6 +401,12 @@ public class ProduceIT
     // cache.client.trailers.size.max that only a live engine configuration can supply. The scenario is
     // still fully covered by CacheProduceIT#shouldSendMessageValueEnvelopeOverflow.
 
+    // message.value.protobuf.fragmented has no peer-to-peer counterpart here: the server script expects
+    // the catalog-framed protobuf bytes a real protobuf value model produces during encode, which only
+    // happens inside a live Zilla engine -- there is nothing for a client/server pairing to verify
+    // without one. The scenario is still fully covered by
+    // CacheProduceIT#shouldSendMessageValueProtobufFragmented, which drives it through a live engine.
+
     @Test
     @Specification({
         "${app}/message.value.rejected/client",

@@ -16,10 +16,13 @@
 package io.aklivity.zilla.runtime.binding.kafka.internal.cache;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 
 import java.nio.ByteBuffer;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.stream.Stream;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -58,6 +61,11 @@ public class KafkaCacheSegmentTest
             assertEquals(head.hashFile().capacity(), tail.hashFile().capacity());
             assertNotEquals(head.keysFile().location(), tail.keysFile().location());
             assertEquals(head.keysFile().capacity(), tail.keysFile().capacity());
+
+            try (Stream<Path> files = Files.list(location))
+            {
+                assertFalse(files.anyMatch(p -> p.getFileName().toString().endsWith(".converted")));
+            }
         }
     }
 

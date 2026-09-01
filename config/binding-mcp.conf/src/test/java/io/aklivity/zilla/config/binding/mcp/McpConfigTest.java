@@ -15,14 +15,136 @@
 package io.aklivity.zilla.config.binding.mcp;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasItem;
 
 import java.time.Duration;
+import java.util.List;
 
 import org.junit.Test;
 
+import io.aklivity.zilla.config.engine.NamedConfig;
+import io.aklivity.zilla.config.engine.VaultedConfig;
+
 public class McpConfigTest
 {
+    @Test
+    public void shouldForwardRefFromToolSearchIndexThroughCacheToolsSearch()
+    {
+        VaultedConfig vaulted = VaultedConfig.builder().name("vault0").build();
+
+        McpCacheToolsSearchConfig search = McpCacheToolsSearchConfig.builder()
+            .index(new McpRefTestToolSearchIndexConfig(vaulted))
+            .build();
+
+        assertThat(search.refs(), hasItem(vaulted));
+    }
+
+    @Test
+    public void shouldDefaultCacheToolsSearchRefsToEmpty()
+    {
+        McpCacheToolsSearchConfig search = McpCacheToolsSearchConfig.builder().build();
+
+        assertThat(search.refs(), empty());
+    }
+
+    @Test
+    public void shouldDefaultCacheToolsEagerRefsToEmpty()
+    {
+        McpCacheToolsEagerConfig eager = McpCacheToolsEagerConfig.builder().build();
+
+        assertThat(eager.refs(), empty());
+    }
+
+    @Test
+    public void shouldForwardRefFromCacheToolsSearchThroughCacheTools()
+    {
+        VaultedConfig vaulted = VaultedConfig.builder().name("vault0").build();
+        McpCacheToolsSearchConfig search = McpCacheToolsSearchConfig.builder()
+            .index(new McpRefTestToolSearchIndexConfig(vaulted))
+            .build();
+
+        McpCacheToolsConfig tools = McpCacheToolsConfig.builder()
+            .search(search)
+            .build();
+
+        assertThat(tools.refs(), hasItem(vaulted));
+    }
+
+    @Test
+    public void shouldDefaultCacheToolsRefsToEmpty()
+    {
+        McpCacheToolsConfig tools = McpCacheToolsConfig.builder().build();
+
+        assertThat(tools.refs(), empty());
+    }
+
+    @Test
+    public void shouldForwardRefFromCacheToolsThroughCache()
+    {
+        VaultedConfig vaulted = VaultedConfig.builder().name("vault0").build();
+        McpCacheToolsSearchConfig search = McpCacheToolsSearchConfig.builder()
+            .index(new McpRefTestToolSearchIndexConfig(vaulted))
+            .build();
+        McpCacheToolsConfig tools = McpCacheToolsConfig.builder()
+            .search(search)
+            .build();
+
+        McpCacheConfig cache = McpCacheConfig.builder()
+            .tools(tools)
+            .build();
+
+        assertThat(cache.refs(), hasItem(vaulted));
+    }
+
+    @Test
+    public void shouldDefaultCacheRefsToEmpty()
+    {
+        McpCacheConfig cache = McpCacheConfig.builder().build();
+
+        assertThat(cache.refs(), empty());
+    }
+
+    @Test
+    public void shouldForwardRefFromCacheThroughOptions()
+    {
+        VaultedConfig vaulted = VaultedConfig.builder().name("vault0").build();
+        McpCacheToolsSearchConfig search = McpCacheToolsSearchConfig.builder()
+            .index(new McpRefTestToolSearchIndexConfig(vaulted))
+            .build();
+        McpCacheToolsConfig tools = McpCacheToolsConfig.builder()
+            .search(search)
+            .build();
+        McpCacheConfig cache = McpCacheConfig.builder()
+            .tools(tools)
+            .build();
+
+        McpOptionsConfig options = (McpOptionsConfig) McpOptionsConfig.builder()
+            .cache(cache)
+            .build();
+
+        assertThat(options.refs(), hasItem(vaulted));
+    }
+
+    private static final class McpRefTestToolSearchIndexConfig extends McpToolSearchIndexConfig
+    {
+        private final List<NamedConfig> refs;
+
+        McpRefTestToolSearchIndexConfig(
+            NamedConfig ref)
+        {
+            super("test");
+            this.refs = List.of(ref);
+        }
+
+        @Override
+        public List<NamedConfig> refs()
+        {
+            return refs;
+        }
+    }
+
     @Test
     public void shouldBuildElicitationWithDefaultCallback()
     {
