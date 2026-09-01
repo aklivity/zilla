@@ -224,6 +224,16 @@ public class MqttKafkaSessionProxyIT
     @Configuration("proxy.yaml")
     @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
     @Specification({
+        "${kafka}/session.ignore.non.fetch.signal.stream.flush/server"})
+    public void shouldIgnoreNonFetchSignalStreamFlush() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Specification({
         "${mqtt}/session.will.message.normal.disconnect/client",
         "${kafka}/session.will.message.normal.disconnect/server"})
     public void shouldNotSendWillMessageOnNormalDisconnect() throws Exception
