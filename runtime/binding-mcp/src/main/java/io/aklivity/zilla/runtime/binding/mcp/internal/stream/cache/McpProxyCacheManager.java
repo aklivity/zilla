@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.internal.stream.cache;
 
-import static io.aklivity.zilla.runtime.binding.mcp.internal.types.event.McpHydrateError.ROUTE_FAILED;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_PROMPTS_LIST;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_LIST;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_TEMPLATES_LIST;
@@ -24,17 +23,20 @@ import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import java.io.Closeable;
 import java.time.Instant;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.function.BiConsumer;
 
 import org.agrona.CloseHelper;
 
 import io.aklivity.zilla.runtime.binding.mcp.internal.stream.McpProxyCacheHydrater;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.event.McpHydrateError;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 
 public final class McpProxyCacheManager implements McpProxyCacheListener
 {
     private static final int KIND_SLOTS = KIND_RESOURCES_TEMPLATES_LIST + 1;
     private static final BiConsumer<String, String> NO_OP = (k, v) -> {};
+    private static final Runnable NO_SETTLE = () -> {};
 
     private final McpProxyCacheHydrater hydrater;
     private final McpProxyCache cache;
@@ -128,20 +130,19 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
         Arrays.fill(hydrateBackoffMs, 0L);
         sessionBackoffMs = 0L;
         scheduleLifecycleRenew();
-        for (int kind : cache.caches().keySet())
-        {
-            handler.hydrate(kind);
-        }
+        hydrateSequence(cache.caches().keySet().iterator());
     }
 
     @Override
     public void onError(
-        int kind)
+        int kind,
+        String toolkit,
+        McpHydrateError reason)
     {
         if (!stopped)
         {
             final long retryAt = scheduleHydrateRetry(kind);
-            cache.events.hydrateFailed(0L, cache.bindingId, kindName(kind), ROUTE_FAILED, retryAt);
+            cache.events.hydrateFailed(0L, cache.bindingId, kindName(kind), toolkit, reason, retryAt);
         }
     }
 
@@ -155,7 +156,21 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
         }
         hydrateBackoffMs[kind] = 0L;
         cancelRefresh();
-        handler.hydrate(kind);
+        handler.hydrate(kind, NO_SETTLE);
+    }
+
+    // hydrates one kind at a time over the shared lifecycle session, starting the next kind only
+    // once the previous one settles -- south servers that reject a concurrent request on the same
+    // session (many reference/demo MCP servers do) would otherwise reset every kind but the first
+    private void hydrateSequence(
+        Iterator<Integer> kinds)
+    {
+        if (stopped || handler == null || !kinds.hasNext())
+        {
+            return;
+        }
+        final int kind = kinds.next();
+        handler.hydrate(kind, () -> hydrateSequence(kinds));
     }
 
     @Override
@@ -248,10 +263,7 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
         {
             return;
         }
-        for (int kind : cache.caches().keySet())
-        {
-            handler.hydrate(kind);
-        }
+        hydrateSequence(cache.caches().keySet().iterator());
     }
 
     // retries forever, backoff capped at leaseTtl -- a route that never recovers just keeps retrying at
@@ -291,7 +303,7 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
         {
             return;
         }
-        handler.hydrate(kind);
+        handler.hydrate(kind, NO_SETTLE);
     }
 
     private void scheduleReconnect()

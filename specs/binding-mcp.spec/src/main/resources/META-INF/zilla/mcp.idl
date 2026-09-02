@@ -320,14 +320,15 @@ scope mcp
 
         enum McpHydrateError (uint8)
         {
-            PARSE_ERROR(0),
-            INVALID_RESPONSE(1),
-            ROUTE_FAILED(2)
+            ROUTE_FAILED(0),
+            AUTHORIZATION_REQUIRED(1),
+            LOCK_CONTENDED(2)
         }
 
         struct McpHydrateFailedEx extends core::stream::Extension
         {
             string16 kind;
+            string16 toolkit = null;
             McpHydrateError error;
             int64 retryAt = -1;
         }

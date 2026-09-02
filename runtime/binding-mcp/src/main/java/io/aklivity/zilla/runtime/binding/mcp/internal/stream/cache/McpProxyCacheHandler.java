@@ -21,7 +21,8 @@ public interface McpProxyCacheHandler
     void stop();
 
     void hydrate(
-        int kind);
+        int kind,
+        Runnable onSettled);
 
     void onChanged(
         int kind);
