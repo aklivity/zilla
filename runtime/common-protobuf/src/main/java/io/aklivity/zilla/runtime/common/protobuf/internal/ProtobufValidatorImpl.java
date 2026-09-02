@@ -20,7 +20,6 @@ import java.util.List;
 
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufController;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufEvent;
-import io.aklivity.zilla.runtime.common.protobuf.ProtobufException;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufField;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufMessage;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufPipeline;
@@ -28,15 +27,16 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufSchema;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSink;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSource;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufTransform;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufValidationException;
 
 /**
  * A {@link ProtobufTransform} that validates the event stream against the descriptor while forwarding
  * every event unchanged. The driver already rejects malformed wire and wire-type/declared-type
  * mismatches; this stage adds descriptor-level semantic validation — proto2 {@code required}-field
  * presence per message scope — and reports failure at the message boundary, after the events are
- * forwarded (emit-then-abort). It throws a descriptive {@link ProtobufException} at the point of detection
- * so the pipeline maps it to {@link ProtobufPipeline.Status#REJECTED} and pushes the named missing field to
- * the reporter, rather than rejecting structurally with no message.
+ * forwarded (emit-then-abort). It throws a descriptive {@link ProtobufValidationException} at the point of
+ * detection so the pipeline maps it to {@link ProtobufPipeline.Status#REJECTED} and pushes the named missing
+ * field to the reporter, rather than rejecting structurally with no message.
  */
 public final class ProtobufValidatorImpl implements ProtobufTransform
 {
@@ -85,7 +85,7 @@ public final class ProtobufValidatorImpl implements ProtobufTransform
             {
                 // the validator knows precisely which required field is missing — describe it at the point of
                 // detection so the pipeline pushes a descriptive diagnostic, not a generic structural reject
-                throw new ProtobufException(scope(depth).describe());
+                throw new ProtobufValidationException(scope(depth).describe());
             }
             depth--;
             break;

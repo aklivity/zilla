@@ -275,4 +275,20 @@ public final class JsonModelHandlerImpl extends JsonModelHandler implements Mode
     {
         event.validationFailure(traceId, bindingId, diagnostic);
     }
+
+    void parsingFailure(
+        long traceId,
+        long bindingId,
+        String diagnostic)
+    {
+        event.parsingFailure(traceId, bindingId, diagnostic);
+    }
+
+    void transformFailure(
+        long traceId,
+        long bindingId,
+        String diagnostic)
+    {
+        event.transformFailure(traceId, bindingId, diagnostic);
+    }
 }

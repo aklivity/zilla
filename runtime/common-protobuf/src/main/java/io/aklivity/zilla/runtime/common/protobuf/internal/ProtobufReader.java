@@ -17,7 +17,7 @@ package io.aklivity.zilla.runtime.common.protobuf.internal;
 import java.nio.ByteOrder;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
-import io.aklivity.zilla.runtime.common.protobuf.ProtobufException;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufParsingException;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
 
 /**
@@ -26,9 +26,9 @@ import io.aklivity.zilla.runtime.common.protobuf.ProtobufWireType;
  * The cursor separates two bounds: {@link #limit()} is the end of the bytes currently <em>available</em>
  * (refillable across windows), while a higher layer tracks each scope's semantic end via the swap-safe
  * {@link #position()} counter. A read that would cross {@link #limit()} resolves by the {@code last} flag:
- * when {@code last} (the whole-buffer contract) it raises a {@link ProtobufException} — truncated input is
- * rejected — otherwise it sets {@link #starved()} and returns without reading out of bounds, so the caller
- * can {@link #rewind()} to the last {@link #mark()} (a committed unit boundary) and report starvation.
+ * when {@code last} (the whole-buffer contract) it raises a {@link ProtobufParsingException} — truncated
+ * input is rejected — otherwise it sets {@link #starved()} and returns without reading out of bounds, so the
+ * caller can {@link #rewind()} to the last {@link #mark()} (a committed unit boundary) and report starvation.
  * <p>
  * The cursor never copies or retains bytes: it reads directly from the window it is given. Whatever the
  * driver has not yet consumed (everything at or after {@link #position()}) is the driver's to retain and
@@ -157,7 +157,7 @@ public final class ProtobufReader
             {
                 if (last)
                 {
-                    throw new ProtobufException("truncated varint");
+                    throw new ProtobufParsingException("truncated varint");
                 }
                 starved = true;
                 break;
@@ -173,7 +173,7 @@ public final class ProtobufReader
         }
         if (!complete && !starved)
         {
-            throw new ProtobufException("malformed varint");
+            throw new ProtobufParsingException("malformed varint");
         }
         return value;
     }
@@ -219,7 +219,7 @@ public final class ProtobufReader
         {
             if (length < 0)
             {
-                throw new ProtobufException("negative length " + length);
+                throw new ProtobufParsingException("negative length " + length);
             }
             require(length);
         }
@@ -258,7 +258,7 @@ public final class ProtobufReader
             skip(4);
             break;
         default:
-            throw new ProtobufException("cannot skip wire type " + wireType);
+            throw new ProtobufParsingException("cannot skip wire type " + wireType);
         }
     }
 
@@ -292,7 +292,7 @@ public final class ProtobufReader
             {
                 if (last)
                 {
-                    throw new ProtobufException("unterminated group " + number);
+                    throw new ProtobufParsingException("unterminated group " + number);
                 }
                 starved = true;
                 end = progress;
@@ -311,7 +311,7 @@ public final class ProtobufReader
             {
                 if (fieldNumber != number)
                 {
-                    throw new ProtobufException("mismatched group end " + fieldNumber + " for " + number);
+                    throw new ProtobufParsingException("mismatched group end " + fieldNumber + " for " + number);
                 }
                 end = tagOffset;
             }
@@ -336,7 +336,7 @@ public final class ProtobufReader
         {
             if (last)
             {
-                throw new ProtobufException("truncated field: need " + length + " bytes");
+                throw new ProtobufParsingException("truncated field: need " + length + " bytes");
             }
             starved = true;
         }

@@ -23,6 +23,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayOutputStream;
+import java.time.Clock;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -37,8 +38,17 @@ import io.aklivity.zilla.config.model.protobuf.ProtobufModelConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufController;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufEvent;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufException;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufPipeline;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSchema;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufSink;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufSource;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufTransform;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufTransformable;
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.model.ModelCache;
 import io.aklivity.zilla.runtime.engine.model.ModelController;
 import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
@@ -50,8 +60,12 @@ import io.aklivity.zilla.runtime.engine.model.ModelSource;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.TestCatalogHandler;
+import io.aklivity.zilla.runtime.model.protobuf.ext.ProtobufCache;
 import io.aklivity.zilla.runtime.model.protobuf.ext.ProtobufModelExtContext;
 import io.aklivity.zilla.runtime.model.protobuf.ext.ProtobufModelExtHandler;
+import io.aklivity.zilla.runtime.model.protobuf.internal.types.event.EventFW;
+import io.aklivity.zilla.runtime.model.protobuf.internal.types.event.ProtobufModelEventExFW;
+import io.aklivity.zilla.runtime.model.protobuf.internal.types.event.ProtobufModelEventType;
 
 public class ProtobufModelDecoderPipelineTest
 {
@@ -397,6 +411,90 @@ public class ProtobufModelDecoderPipelineTest
             .padding(new UnsafeBufferEx(WIRE), 0, WIRE.length);
 
         assertEquals(basePadding + 64, extPadding);
+    }
+
+    @Test
+    public void shouldReportParsingFailureEvent()
+    {
+        ProtobufModelEventType[] kind = new ProtobufModelEventType[1];
+        when(context.clock()).thenReturn(Clock.systemUTC());
+        when(context.supplyEventWriter()).thenReturn(capturingKind(kind));
+        ProtobufModelHandlerImpl handler = newHandler(null);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
+
+        // message index 0 followed by an unterminated variable-length integer (continuation bit set, no
+        // terminating byte) -- malformed wire bytes the parser cannot decode at all, not a schema violation
+        byte[] malformed = {0x00, (byte) 0xFF};
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+            new UnsafeBufferEx(malformed), 0, malformed.length, dst, 0, dst.capacity());
+
+        assertEquals(ModelStatus.REJECTED, result.status());
+        assertEquals(ProtobufModelEventType.PARSING_FAILED, kind[0]);
+    }
+
+    @Test
+    public void shouldReportTransformFailureEvent()
+    {
+        ProtobufModelEventType[] kind = new ProtobufModelEventType[1];
+        when(context.clock()).thenReturn(Clock.systemUTC());
+        when(context.supplyEventWriter()).thenReturn(capturingKind(kind));
+        List<ProtobufModelExtContext> exts = List.of(failing());
+        ProtobufModelHandlerImpl handler = newHandler(null, exts);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
+
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+            new UnsafeBufferEx(WIRE), 0, WIRE.length, dst, 0, dst.capacity());
+
+        assertEquals(ModelStatus.REJECTED, result.status());
+        assertEquals(ProtobufModelEventType.TRANSFORM_FAILED, kind[0]);
+    }
+
+    // decodes each emitted event's extension kind into the given single-element array, mirroring the
+    // production ProtobufModelEventFormatter's own wrap-and-switch, so a test can assert which event fired
+    // without depending on supplyEventId's (unstubbed, indistinguishable) mocked return value
+    private static MessageConsumer capturingKind(
+        ProtobufModelEventType[] kind)
+    {
+        EventFW eventRO = new EventFW();
+        ProtobufModelEventExFW extensionRO = new ProtobufModelEventExFW();
+        return (msgTypeId, buffer, index, length) ->
+        {
+            EventFW event = eventRO.wrap(buffer, index, index + length);
+            ProtobufModelEventExFW extension = extensionRO
+                .wrap(event.extension().buffer(), event.extension().offset(), event.extension().limit());
+            kind[0] = extension.kind();
+        };
+    }
+
+    // A stage's own exception (not a parsing nor a validation exception) standing in for an extension's
+    // internal failure during its own transform logic.
+    private static ProtobufModelExtContext failing()
+    {
+        return (schema, config) -> new ProtobufModelExtHandler()
+        {
+            @Override
+            public <T extends ProtobufTransformable<T>> T decode(
+                T transformable,
+                ProtobufCache cache)
+            {
+                return transformable.transform(new Failing());
+            }
+        };
+    }
+
+    private static final class Failing implements ProtobufTransform
+    {
+        @Override
+        public ProtobufPipeline.Status transform(
+            ProtobufController control,
+            ProtobufSource source,
+            ProtobufEvent event,
+            ProtobufSink sink)
+        {
+            throw new ProtobufException("extension failure");
+        }
     }
 
     private ProtobufModelHandlerImpl newHandler(

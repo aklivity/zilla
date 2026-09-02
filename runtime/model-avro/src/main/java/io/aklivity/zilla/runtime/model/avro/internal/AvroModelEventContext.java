@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.model.avro.internal;
 
+import static io.aklivity.zilla.runtime.model.avro.internal.types.event.AvroModelEventType.PARSING_FAILED;
+import static io.aklivity.zilla.runtime.model.avro.internal.types.event.AvroModelEventType.TRANSFORM_FAILED;
 import static io.aklivity.zilla.runtime.model.avro.internal.types.event.AvroModelEventType.VALIDATION_FAILED;
 
 import java.nio.ByteBuffer;
@@ -36,6 +38,8 @@ public class AvroModelEventContext
     private final AvroModelEventExFW.Builder avroModelEventExRW = new AvroModelEventExFW.Builder();
     private final int avroModelTypeId;
     private final int validationFailedEventId;
+    private final int parsingFailedEventId;
+    private final int transformFailedEventId;
     private final MessageConsumer eventWriter;
     private final Clock clock;
 
@@ -44,6 +48,8 @@ public class AvroModelEventContext
     {
         this.avroModelTypeId = context.supplyTypeId(AvroModel.NAME);
         this.validationFailedEventId = context.supplyEventId("model.avro.validation.failed");
+        this.parsingFailedEventId = context.supplyEventId("model.avro.parsing.failed");
+        this.transformFailedEventId = context.supplyEventId("model.avro.transform.failed");
         this.eventWriter = context.supplyEventWriter();
         this.clock = context.clock();
     }
@@ -63,6 +69,52 @@ public class AvroModelEventContext
         EventFW event = eventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
             .id(validationFailedEventId)
+            .timestamp(clock.millis())
+            .traceId(traceId)
+            .namespacedId(bindingId)
+            .extension(extension.buffer(), extension.offset(), extension.limit())
+            .build();
+        eventWriter.accept(avroModelTypeId, event.buffer(), event.offset(), event.limit());
+    }
+
+    public void parsingFailure(
+        long traceId,
+        long bindingId,
+        String error)
+    {
+        AvroModelEventExFW extension = avroModelEventExRW
+            .wrap(extensionBuffer, 0, extensionBuffer.capacity())
+            .parsingFailed(e -> e
+                .typeId(PARSING_FAILED.value())
+                .error(error)
+            )
+            .build();
+        EventFW event = eventRW
+            .wrap(eventBuffer, 0, eventBuffer.capacity())
+            .id(parsingFailedEventId)
+            .timestamp(clock.millis())
+            .traceId(traceId)
+            .namespacedId(bindingId)
+            .extension(extension.buffer(), extension.offset(), extension.limit())
+            .build();
+        eventWriter.accept(avroModelTypeId, event.buffer(), event.offset(), event.limit());
+    }
+
+    public void transformFailure(
+        long traceId,
+        long bindingId,
+        String error)
+    {
+        AvroModelEventExFW extension = avroModelEventExRW
+            .wrap(extensionBuffer, 0, extensionBuffer.capacity())
+            .transformFailed(e -> e
+                .typeId(TRANSFORM_FAILED.value())
+                .error(error)
+            )
+            .build();
+        EventFW event = eventRW
+            .wrap(eventBuffer, 0, eventBuffer.capacity())
+            .id(transformFailedEventId)
             .timestamp(clock.millis())
             .traceId(traceId)
             .namespacedId(bindingId)

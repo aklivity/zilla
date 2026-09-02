@@ -89,6 +89,7 @@ public final class JsonPipelineImpl implements JsonPipeline
         suspended = false;
         completed = false;
         diagnostic.message = null;
+        diagnostic.category = null;
         resumeEvent = null;
     }
 
@@ -193,6 +194,7 @@ public final class JsonPipelineImpl implements JsonPipeline
         catch (JsonValidationException ex)
         {
             diagnostic.message = ex.getMessage();
+            diagnostic.category = JsonDiagnostic.Category.VALIDATION;
             reporter.rejected(diagnostic);
             status = lenient ? Status.COMPLETED : Status.REJECTED;
         }
@@ -200,11 +202,13 @@ public final class JsonPipelineImpl implements JsonPipeline
         {
             status = Status.REJECTED;
             diagnostic.message = ex.getMessage();
+            diagnostic.category = JsonDiagnostic.Category.PARSING;
         }
         catch (JsonException ex)
         {
             status = Status.REJECTED;
             diagnostic.message = ex.getMessage();
+            diagnostic.category = JsonDiagnostic.Category.TRANSFORM;
         }
         if (status == Status.REJECTED)
         {
@@ -396,11 +400,18 @@ public final class JsonPipelineImpl implements JsonPipeline
     private static final class Diagnostic implements JsonDiagnostic
     {
         private String message;
+        private Category category;
 
         @Override
         public String message()
         {
             return message;
+        }
+
+        @Override
+        public Category category()
+        {
+            return category;
         }
     }
 }
