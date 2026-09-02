@@ -24,6 +24,7 @@ import static org.junit.Assert.assertTrue;
 import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.Deque;
+import java.util.List;
 import java.util.function.Consumer;
 
 import org.junit.Test;
@@ -55,17 +56,17 @@ public class TestEmbeddingHandlerTest
         float[] expected = TestEmbeddingHandler.generate("hello world");
 
         boolean[] completed = new boolean[1];
-        float[][] captured = new float[1][];
-        handler.embed(0L, 0L, 42L, "hello world", new EmbeddingHandler.CompletionCallback()
+        float[][][] captured = new float[1][][];
+        handler.embed(0L, 0L, 42L, List.of("hello world"), new EmbeddingHandler.CompletionCallback()
         {
             @Override
             public void completed(
                 long contextId,
-                float[] result)
+                float[][] results)
             {
                 assertEquals(42L, contextId);
                 completed[0] = true;
-                captured[0] = result;
+                captured[0] = results;
             }
 
             @Override
@@ -83,6 +84,7 @@ public class TestEmbeddingHandlerTest
         deferred.poll().run();
 
         assertTrue(completed[0]);
-        assertArrayEquals(expected, captured[0], 0.0f);
+        assertEquals(1, captured[0].length);
+        assertArrayEquals(expected, captured[0][0], 0.0f);
     }
 }
