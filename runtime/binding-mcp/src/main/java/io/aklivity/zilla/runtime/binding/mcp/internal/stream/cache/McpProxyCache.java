@@ -98,7 +98,7 @@ public final class McpProxyCache
     public long authorization;
 
     private final StoreHandler store;
-    private final McpEventContext events;
+    final McpEventContext events;
     private final Int2ObjectHashMap<McpListCache> caches;
     private final Long2LongHashMap routeAuthorizations;
     private final List<Runnable> awaiters;
