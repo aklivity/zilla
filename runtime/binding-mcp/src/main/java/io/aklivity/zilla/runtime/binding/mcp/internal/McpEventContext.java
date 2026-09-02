@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.mcp.internal;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.event.McpEventType.AUTHORIZATION_FAILED;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.event.McpEventType.EAGER_INDEX_FAILED;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.event.McpEventType.ELICITATION_TIMEOUT;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.event.McpEventType.HYDRATE_FAILED;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.event.McpEventType.SEARCH_INDEX_FAILED;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.event.McpEventType.SESSION_CLOSED;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.event.McpEventType.SESSION_ESTABLISHED;
@@ -27,6 +28,7 @@ import java.time.Clock;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.event.EventFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.event.McpAuthorizationError;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.event.McpEventExFW;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.event.McpHydrateError;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -47,6 +49,7 @@ public final class McpEventContext
     private final int elicitationTimeoutEventId;
     private final int searchIndexFailedEventId;
     private final int eagerIndexFailedEventId;
+    private final int hydrateFailedEventId;
     private final MessageConsumer eventWriter;
     private final Clock clock;
 
@@ -60,6 +63,7 @@ public final class McpEventContext
         this.elicitationTimeoutEventId = context.supplyEventId("binding.mcp.elicitation.timeout");
         this.searchIndexFailedEventId = context.supplyEventId("binding.mcp.search.index.failed");
         this.eagerIndexFailedEventId = context.supplyEventId("binding.mcp.eager.index.failed");
+        this.hydrateFailedEventId = context.supplyEventId("binding.mcp.hydrate.failed");
         this.eventWriter = context.supplyEventWriter();
         this.clock = context.clock();
     }
@@ -198,6 +202,32 @@ public final class McpEventContext
         EventFW event = eventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
             .id(eagerIndexFailedEventId)
+            .timestamp(clock.millis())
+            .traceId(traceId)
+            .namespacedId(bindingId)
+            .extension(extension.buffer(), extension.offset(), extension.limit())
+            .build();
+        eventWriter.accept(mcpTypeId, event.buffer(), event.offset(), event.limit());
+    }
+
+    public void hydrateFailed(
+        long traceId,
+        long bindingId,
+        String kind,
+        McpHydrateError error,
+        long retryAt)
+    {
+        McpEventExFW extension = mcpEventExRW
+            .wrap(extensionBuffer, 0, extensionBuffer.capacity())
+            .hydrateFailed(e -> e
+                .typeId(HYDRATE_FAILED.value())
+                .kind(kind)
+                .error(s -> s.set(error))
+                .retryAt(retryAt))
+            .build();
+        EventFW event = eventRW
+            .wrap(eventBuffer, 0, eventBuffer.capacity())
+            .id(hydrateFailedEventId)
             .timestamp(clock.millis())
             .traceId(traceId)
             .namespacedId(bindingId)
