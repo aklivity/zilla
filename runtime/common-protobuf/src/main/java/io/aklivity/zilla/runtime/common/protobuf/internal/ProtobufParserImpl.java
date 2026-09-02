@@ -20,11 +20,11 @@ import java.util.List;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufEvent;
-import io.aklivity.zilla.runtime.common.protobuf.ProtobufException;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufField;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufLocation;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufMessage;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufParser;
+import io.aklivity.zilla.runtime.common.protobuf.ProtobufParsingException;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSchema;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufSource;
 import io.aklivity.zilla.runtime.common.protobuf.ProtobufType;
@@ -347,7 +347,7 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
             }
             else if (len < 0)
             {
-                throw new ProtobufException("negative length " + len);
+                throw new ProtobufParsingException("negative length " + len);
             }
             else if (len <= reader.available())
             {
@@ -364,7 +364,7 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
             }
             else if (reader.last())
             {
-                throw new ProtobufException("truncated field: need " + len + " bytes");
+                throw new ProtobufParsingException("truncated field: need " + len + " bytes");
             }
             else
             {
@@ -445,7 +445,7 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
         ProtobufMessage root = schema != null ? schema.message(messageName) : null;
         if (schema != null && root == null)
         {
-            throw new ProtobufException("unknown message " + messageName);
+            throw new ProtobufParsingException("unknown message " + messageName);
         }
         depth = 0;
         Frame frame = frame(0);
@@ -477,7 +477,7 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
                 }
                 else if (reader.last())
                 {
-                    throw new ProtobufException("truncated field");
+                    throw new ProtobufParsingException("truncated field");
                 }
                 else
                 {
@@ -514,7 +514,7 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
                 }
                 else
                 {
-                    throw new ProtobufException(frame.group
+                    throw new ProtobufParsingException(frame.group
                         ? "unterminated group " + frame.groupNumber
                         : "truncated message");
                 }
@@ -551,7 +551,7 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
             {
                 if (!frame.group || number != frame.groupNumber)
                 {
-                    throw new ProtobufException("unexpected group end " + number);
+                    throw new ProtobufParsingException("unexpected group end " + number);
                 }
                 event = endFrame();
             }
@@ -589,7 +589,7 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
             {
                 if (len < 0)
                 {
-                    throw new ProtobufException("negative length " + len);
+                    throw new ProtobufParsingException("negative length " + len);
                 }
                 skipRemaining = len;
             }
@@ -640,7 +640,7 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
         {
             if (wt != ProtobufWireType.SGROUP)
             {
-                throw new ProtobufException("field " + number + " expected group");
+                throw new ProtobufParsingException("field " + number + " expected group");
             }
             regionOffset = reader.offset();
             regionLength = -1;
@@ -649,7 +649,7 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
         {
             if (wt != ProtobufWireType.LEN)
             {
-                throw new ProtobufException("field " + number + " expected length-delimited message");
+                throw new ProtobufParsingException("field " + number + " expected length-delimited message");
             }
             regionLength = reader.readLength();
             regionOffset = reader.offset();
@@ -684,12 +684,12 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
             depth++;
             if (depth >= MAX_DEPTH)
             {
-                throw new ProtobufException("message nesting exceeds " + MAX_DEPTH);
+                throw new ProtobufParsingException("message nesting exceeds " + MAX_DEPTH);
             }
             ProtobufMessage nested = compositeField.message();
             if (nested == null)
             {
-                throw new ProtobufException("unresolved message type " + compositeField.typeName());
+                throw new ProtobufParsingException("unresolved message type " + compositeField.typeName());
             }
             boolean group = compositeField.type() == ProtobufType.GROUP;
             phase = PHASE_NONE;
@@ -720,7 +720,7 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
         if (reader.starved())
         {
             // M1: a composite segment must be fully buffered; streaming segments arrive in M2
-            throw new ProtobufException("segment exceeds available window");
+            throw new ProtobufParsingException("segment exceeds available window");
         }
         phase = PHASE_NONE;
         field = compositeField;
@@ -788,7 +788,7 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
             floatValue = Float.intBitsToFloat(reader.readFixed32());
             break;
         default:
-            throw new ProtobufException("unsupported scalar type " + field.type());
+            throw new ProtobufParsingException("unsupported scalar type " + field.type());
         }
     }
 
@@ -819,7 +819,7 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
             slice(reader.buffer(), bodyStart, bodyEnd - bodyStart);
             break;
         default:
-            throw new ProtobufException("unexpected wire type " + wireType);
+            throw new ProtobufParsingException("unexpected wire type " + wireType);
         }
     }
 
@@ -830,7 +830,7 @@ public final class ProtobufParserImpl implements ProtobufParser, ProtobufSource
         boolean packed = field.repeated() && field.type().packable() && wireType == ProtobufWireType.LEN;
         if (!packed && wireType != field.type().wireType())
         {
-            throw new ProtobufException("field " + field.number() + " wire type " + wireType +
+            throw new ProtobufParsingException("field " + field.number() + " wire type " + wireType +
                 " incompatible with " + field.type());
         }
     }

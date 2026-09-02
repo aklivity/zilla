@@ -94,6 +94,7 @@ final class AvroPipelineImpl implements AvroPipeline
         suspended = false;
         completed = false;
         diagnostic.message = null;
+        diagnostic.category = null;
     }
 
     @Override
@@ -163,6 +164,7 @@ final class AvroPipelineImpl implements AvroPipeline
         {
             // inert today — no stage throws this yet; wired for when semantic validation lands
             diagnostic.message = ex.getMessage();
+            diagnostic.category = AvroDiagnostic.Category.VALIDATION;
             reporter.rejected(diagnostic);
             status = lenient ? COMPLETED : REJECTED;
         }
@@ -170,11 +172,13 @@ final class AvroPipelineImpl implements AvroPipeline
         {
             status = REJECTED;
             diagnostic.message = ex.getMessage();
+            diagnostic.category = AvroDiagnostic.Category.PARSING;
         }
         catch (AvroException ex)
         {
             status = REJECTED;
             diagnostic.message = ex.getMessage();
+            diagnostic.category = AvroDiagnostic.Category.TRANSFORM;
         }
         if (status == REJECTED)
         {
@@ -363,11 +367,18 @@ final class AvroPipelineImpl implements AvroPipeline
     private static final class Diagnostic implements AvroDiagnostic
     {
         private String message;
+        private Category category;
 
         @Override
         public String message()
         {
             return message;
+        }
+
+        @Override
+        public Category category()
+        {
+            return category;
         }
     }
 }

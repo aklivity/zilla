@@ -23,6 +23,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayOutputStream;
+import java.time.Clock;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -37,9 +38,18 @@ import io.aklivity.zilla.config.model.avro.AvroModelConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.common.avro.AvroController;
+import io.aklivity.zilla.runtime.common.avro.AvroEvent;
+import io.aklivity.zilla.runtime.common.avro.AvroException;
+import io.aklivity.zilla.runtime.common.avro.AvroPipeline;
 import io.aklivity.zilla.runtime.common.avro.AvroSchema;
+import io.aklivity.zilla.runtime.common.avro.AvroSink;
+import io.aklivity.zilla.runtime.common.avro.AvroSource;
+import io.aklivity.zilla.runtime.common.avro.AvroTransform;
+import io.aklivity.zilla.runtime.common.avro.AvroTransformable;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.model.ModelCache;
 import io.aklivity.zilla.runtime.engine.model.ModelController;
 import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
@@ -51,8 +61,12 @@ import io.aklivity.zilla.runtime.engine.model.ModelSource;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 import io.aklivity.zilla.runtime.engine.test.internal.catalog.TestCatalogHandler;
+import io.aklivity.zilla.runtime.model.avro.ext.AvroCache;
 import io.aklivity.zilla.runtime.model.avro.ext.AvroModelExtContext;
 import io.aklivity.zilla.runtime.model.avro.ext.AvroModelExtHandler;
+import io.aklivity.zilla.runtime.model.avro.internal.types.event.AvroModelEventExFW;
+import io.aklivity.zilla.runtime.model.avro.internal.types.event.AvroModelEventType;
+import io.aklivity.zilla.runtime.model.avro.internal.types.event.EventFW;
 
 public class AvroModelDecoderPipelineTest
 {
@@ -365,6 +379,90 @@ public class AvroModelDecoderPipelineTest
 
         assertEquals(ModelStatus.COMPLETE, read.status());
         assertEquals(JSON, text(dst, read.produced()));
+    }
+
+    @Test
+    public void shouldReportParsingFailureEvent()
+    {
+        AvroModelEventType[] kind = new AvroModelEventType[1];
+        when(context.clock()).thenReturn(Clock.systemUTC());
+        when(context.supplyEventWriter()).thenReturn(capturingKind(kind));
+        AvroModelHandlerImpl handler = newHandler();
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
+
+        // an unterminated variable-length integer (continuation bit set, no terminating byte) is malformed
+        // binary the parser cannot decode at all -- a parse failure, not a schema violation
+        byte[] malformed = { (byte) 0xFF };
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+            new UnsafeBufferEx(malformed), 0, malformed.length, dst, 0, dst.capacity());
+
+        assertEquals(ModelStatus.REJECTED, result.status());
+        assertEquals(AvroModelEventType.PARSING_FAILED, kind[0]);
+    }
+
+    @Test
+    public void shouldReportTransformFailureEvent()
+    {
+        AvroModelEventType[] kind = new AvroModelEventType[1];
+        when(context.clock()).thenReturn(Clock.systemUTC());
+        when(context.supplyEventWriter()).thenReturn(capturingKind(kind));
+        List<AvroModelExtContext> exts = List.of(failing());
+        AvroModelHandlerImpl handler = newHandler(SCHEMA, "json", exts);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
+
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+            new UnsafeBufferEx(AVRO), 0, AVRO.length, dst, 0, dst.capacity());
+
+        assertEquals(ModelStatus.REJECTED, result.status());
+        assertEquals(AvroModelEventType.TRANSFORM_FAILED, kind[0]);
+    }
+
+    // decodes each emitted event's extension kind into the given single-element array, mirroring the
+    // production AvroModelEventFormatter's own wrap-and-switch, so a test can assert which event fired
+    // without depending on supplyEventId's (unstubbed, indistinguishable) mocked return value
+    private static MessageConsumer capturingKind(
+        AvroModelEventType[] kind)
+    {
+        EventFW eventRO = new EventFW();
+        AvroModelEventExFW extensionRO = new AvroModelEventExFW();
+        return (msgTypeId, buffer, index, length) ->
+        {
+            EventFW event = eventRO.wrap(buffer, index, index + length);
+            AvroModelEventExFW extension = extensionRO
+                .wrap(event.extension().buffer(), event.extension().offset(), event.extension().limit());
+            kind[0] = extension.kind();
+        };
+    }
+
+    // A stage's own exception (not a parsing nor a validation exception) standing in for an extension's
+    // internal failure during its own transform logic.
+    private static AvroModelExtContext failing()
+    {
+        return (schema, config) -> new AvroModelExtHandler()
+        {
+            @Override
+            public <T extends AvroTransformable<T>> T decode(
+                T transformable,
+                AvroCache cache)
+            {
+                return transformable.transform(new Failing());
+            }
+        };
+    }
+
+    private static final class Failing implements AvroTransform
+    {
+        @Override
+        public AvroPipeline.Status transform(
+            AvroController control,
+            AvroSource source,
+            AvroEvent event,
+            AvroSink sink)
+        {
+            throw new AvroException("extension failure");
+        }
     }
 
     private AvroModelHandlerImpl newHandler()

@@ -15,12 +15,12 @@
 package io.aklivity.zilla.runtime.common.protobuf;
 
 /**
- * Reserved for a structurally-valid value that violates a semantic rule beyond the descriptor's structure —
- * for example a data contract or a constraint not expressible in the descriptor itself. A failure to produce
- * a valid value at all — malformed bytes or structural descriptor non-conformance — is a
- * {@link ProtobufParsingException} instead; both share the {@link ProtobufException} base so a pipeline
- * rejects either with a single catch. Currently unused: there is no semantic-validation stage yet, so
- * nothing throws this; it is the seam where data-contract enforcement will live.
+ * Thrown by the descriptor-level semantic validation stage — currently, proto2 {@code required}-field
+ * presence per message scope — for a value the core parser already decoded structurally but that violates
+ * a rule beyond the wire-level descriptor structure. A failure to produce a valid value at all — malformed
+ * bytes or a wire-type/declared-type mismatch — is a {@link ProtobufParsingException} instead; both share
+ * the {@link ProtobufException} base so a pipeline rejects either with a single catch. This is also the
+ * seam where broader data-contract enforcement will live.
  */
 public class ProtobufValidationException extends ProtobufException
 {

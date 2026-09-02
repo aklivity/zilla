@@ -54,6 +54,7 @@ final class AvroModelDecoderPipeline implements ModelPipeline
 
     private AvroPipeline active;
     private String diagnostic;
+    private AvroDiagnostic.Category category;
     private MutableDirectBufferEx framingBuffer;
     private int framingAt;
 
@@ -114,6 +115,7 @@ final class AvroModelDecoderPipeline implements ModelPipeline
                 }
             }
             diagnostic = null;
+            category = null;
         }
 
         ModelStatus status;
@@ -137,7 +139,24 @@ final class AvroModelDecoderPipeline implements ModelPipeline
             produced = framing + avro.produced();
             if (status == ModelStatus.REJECTED)
             {
-                handler.validationFailure(traceId, bindingId, diagnostic != null ? diagnostic : AvroModel.NAME);
+                String reason = diagnostic != null ? diagnostic : AvroModel.NAME;
+                switch (category)
+                {
+                case PARSING:
+                    handler.parsingFailure(traceId, bindingId, reason);
+                    break;
+                case TRANSFORM:
+                    handler.transformFailure(traceId, bindingId, reason);
+                    break;
+                // a stage that rejects by returning Status.REJECTED directly, without throwing, never
+                // populates a category -- treat that the same as a schema-constraint violation, matching
+                // prior behavior
+                case null:
+                case VALIDATION:
+                default:
+                    handler.validationFailure(traceId, bindingId, reason);
+                    break;
+                }
             }
         }
         return result.set(status, consumed, produced);
@@ -172,6 +191,7 @@ final class AvroModelDecoderPipeline implements ModelPipeline
         }
         active = null;
         diagnostic = null;
+        category = null;
     }
 
     private AvroPipeline supplyPipeline(
@@ -210,6 +230,7 @@ final class AvroModelDecoderPipeline implements ModelPipeline
         AvroDiagnostic diagnostic)
     {
         this.diagnostic = diagnostic.message();
+        this.category = diagnostic.category();
     }
 
     private static ModelStatus map(
