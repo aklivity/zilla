@@ -19,22 +19,31 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
+import jakarta.json.JsonException;
+
 import org.junit.jupiter.api.Test;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.common.json.JsonDiagnostic.Category;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 import io.aklivity.zilla.runtime.common.json.JsonReporter;
 import io.aklivity.zilla.runtime.common.json.JsonSchema;
+import io.aklivity.zilla.runtime.common.json.JsonTransform;
 
 class JsonPipelineRejectTest
 {
     // captures the call-scoped diagnostic the pipeline pushes on a terminal REJECTED, copying the message out
     private final String[] reason = new String[1];
-    private final JsonReporter reporter = d -> reason[0] = d.message();
+    private final Category[] category = new Category[1];
+    private final JsonReporter reporter = d ->
+    {
+        reason[0] = d.message();
+        category[0] = d.category();
+    };
 
     // Malformed JSON is a rejection of the value, surfaced as the terminal REJECTED status rather than
     // an exception escaping feed() — mirroring how the protobuf pipeline maps a decode failure.
@@ -69,6 +78,7 @@ class JsonPipelineRejectTest
 
         assertEquals(Status.REJECTED, pipeline.transform(new UnsafeBufferEx(bytes), 0, bytes.length));
         assertNotNull(reason[0]);
+        assertEquals(Category.PARSING, category[0]);
     }
 
     // A schema violation is well-formed JSON the validator rejects; the validator throws a descriptive
@@ -91,6 +101,7 @@ class JsonPipelineRejectTest
 
         assertEquals(Status.REJECTED, pipeline.transform(new UnsafeBufferEx(bytes), 0, bytes.length));
         assertEquals("[1,11][/id] expected string but was number", reason[0]);
+        assertEquals(Category.VALIDATION, category[0]);
     }
 
     @Test
@@ -110,6 +121,32 @@ class JsonPipelineRejectTest
 
         assertEquals(Status.REJECTED, pipeline.transform(new UnsafeBufferEx(bytes), 0, bytes.length));
         assertEquals("[2,12][/id] expected string but was number", reason[0]);
+        assertEquals(Category.VALIDATION, category[0]);
+    }
+
+    // A stage's own exception (not a JsonParsingException nor a JsonValidationException) is any extension's
+    // internal failure — distinct from the value itself being invalid — and lands in the generic catch-all.
+    @Test
+    void shouldReportTransformFailure()
+    {
+        JsonTransform failing = (control, source, event, sink) ->
+        {
+            throw new JsonException("extension failure");
+        };
+        JsonGeneratorEx generator = JsonEx.createGenerator();
+        MutableDirectBufferEx output = new UnsafeBufferEx(new byte[128]);
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
+            .transform(failing)
+            .reporting(reporter)
+            .into(JsonEx.createSink(generator));
+
+        byte[] bytes = "[1,2]".getBytes(UTF_8);
+        generator.wrap(output, 0, output.capacity());
+        pipeline.reset();
+
+        assertEquals(Status.REJECTED, pipeline.transform(new UnsafeBufferEx(bytes), 0, bytes.length));
+        assertEquals("extension failure", reason[0]);
+        assertEquals(Category.TRANSFORM, category[0]);
     }
 
     @Test
@@ -127,5 +164,6 @@ class JsonPipelineRejectTest
 
         assertEquals(Status.COMPLETED, pipeline.transform(new UnsafeBufferEx(bytes), 0, bytes.length));
         assertNull(reason[0]);
+        assertNull(category[0]);
     }
 }

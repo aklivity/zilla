@@ -55,6 +55,7 @@ final class ProtobufModelDecoderPipeline implements ModelPipeline
 
     private ProtobufPipeline active;
     private String diagnostic;
+    private ProtobufDiagnostic.Category category;
     private MutableDirectBufferEx framingBuffer;
     private int framingAt;
 
@@ -122,6 +123,7 @@ final class ProtobufModelDecoderPipeline implements ModelPipeline
                 }
             }
             diagnostic = null;
+            category = null;
         }
 
         ModelStatus status;
@@ -149,7 +151,24 @@ final class ProtobufModelDecoderPipeline implements ModelPipeline
             }
             else if (status == ModelStatus.REJECTED)
             {
-                handler.validationFailure(traceId, bindingId, diagnostic != null ? diagnostic : ProtobufModel.NAME);
+                String reason = diagnostic != null ? diagnostic : ProtobufModel.NAME;
+                switch (category)
+                {
+                case PARSING:
+                    handler.parsingFailure(traceId, bindingId, reason);
+                    break;
+                case TRANSFORM:
+                    handler.transformFailure(traceId, bindingId, reason);
+                    break;
+                // a stage that rejects by returning Status.REJECTED directly, without throwing, never
+                // populates a category -- treat that the same as a schema-constraint violation, matching
+                // prior behavior
+                case null:
+                case VALIDATION:
+                default:
+                    handler.validationFailure(traceId, bindingId, reason);
+                    break;
+                }
             }
         }
         return result.set(status, consumed, produced);
@@ -184,6 +203,7 @@ final class ProtobufModelDecoderPipeline implements ModelPipeline
         }
         active = null;
         diagnostic = null;
+        category = null;
     }
 
     private void visitExtracted(
@@ -219,6 +239,7 @@ final class ProtobufModelDecoderPipeline implements ModelPipeline
         ProtobufDiagnostic diagnostic)
     {
         this.diagnostic = diagnostic.message();
+        this.category = diagnostic.category();
     }
 
     private int writeFraming(

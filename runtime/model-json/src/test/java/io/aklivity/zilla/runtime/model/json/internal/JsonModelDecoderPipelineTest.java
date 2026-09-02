@@ -27,6 +27,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import jakarta.json.JsonException;
+
 import org.junit.Before;
 import org.junit.Test;
 
@@ -61,6 +63,9 @@ import io.aklivity.zilla.runtime.engine.test.internal.catalog.TestCatalogHandler
 import io.aklivity.zilla.runtime.model.json.ext.JsonCache;
 import io.aklivity.zilla.runtime.model.json.ext.JsonModelExtContext;
 import io.aklivity.zilla.runtime.model.json.ext.JsonModelExtHandler;
+import io.aklivity.zilla.runtime.model.json.internal.types.event.EventFW;
+import io.aklivity.zilla.runtime.model.json.internal.types.event.JsonModelEventExFW;
+import io.aklivity.zilla.runtime.model.json.internal.types.event.JsonModelEventType;
 
 public class JsonModelDecoderPipelineTest
 {
@@ -314,6 +319,106 @@ public class JsonModelDecoderPipelineTest
             .padding(new UnsafeBufferEx(in), 0, in.length);
 
         assertEquals(basePadding + 64, extPadding);
+    }
+
+    @Test
+    public void shouldReportValidationFailureEvent()
+    {
+        JsonModelEventType[] kind = new JsonModelEventType[1];
+        when(context.supplyEventWriter()).thenReturn(capturingKind(kind));
+        JsonModelHandlerImpl handler = newHandler(OBJECT_SCHEMA);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
+
+        // "id" must be a string per OBJECT_SCHEMA -- a schema-constraint violation
+        byte[] in = "{\"id\":123,\"status\":\"OK\"}".getBytes(UTF_8);
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+            new UnsafeBufferEx(in), 0, in.length, dst, 0, dst.capacity());
+
+        assertEquals(ModelStatus.REJECTED, result.status());
+        assertEquals(JsonModelEventType.VALIDATION_FAILED, kind[0]);
+    }
+
+    @Test
+    public void shouldReportParsingFailureEvent()
+    {
+        JsonModelEventType[] kind = new JsonModelEventType[1];
+        when(context.supplyEventWriter()).thenReturn(capturingKind(kind));
+        JsonModelHandlerImpl handler = newHandler();
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
+
+        // missing comma between members -- malformed syntax, not a schema violation
+        byte[] in = "{\"id\":\"123\" \"status\":\"OK\"}".getBytes(UTF_8);
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+            new UnsafeBufferEx(in), 0, in.length, dst, 0, dst.capacity());
+
+        assertEquals(ModelStatus.REJECTED, result.status());
+        assertEquals(JsonModelEventType.PARSING_FAILED, kind[0]);
+    }
+
+    @Test
+    public void shouldReportTransformFailureEvent()
+    {
+        JsonModelEventType[] kind = new JsonModelEventType[1];
+        when(context.supplyEventWriter()).thenReturn(capturingKind(kind));
+        List<JsonModelExtContext> exts = List.of(failing());
+        JsonModelHandlerImpl handler = newHandler(OBJECT_SCHEMA, exts);
+        ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
+
+        byte[] in = "{\"id\":\"123\",\"status\":\"OK\"}".getBytes(UTF_8);
+        MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+            new UnsafeBufferEx(in), 0, in.length, dst, 0, dst.capacity());
+
+        assertEquals(ModelStatus.REJECTED, result.status());
+        assertEquals(JsonModelEventType.TRANSFORM_FAILED, kind[0]);
+    }
+
+    // decodes each emitted event's extension kind into the given single-element array, mirroring the
+    // production JsonModelEventFormatter's own wrap-and-switch, so a test can assert which event fired
+    // without depending on supplyEventId's (unstubbed, indistinguishable) mocked return value
+    private static MessageConsumer capturingKind(
+        JsonModelEventType[] kind)
+    {
+        EventFW eventRO = new EventFW();
+        JsonModelEventExFW extensionRO = new JsonModelEventExFW();
+        return (msgTypeId, buffer, index, length) ->
+        {
+            EventFW event = eventRO.wrap(buffer, index, index + length);
+            JsonModelEventExFW extension = extensionRO
+                .wrap(event.extension().buffer(), event.extension().offset(), event.extension().limit());
+            kind[0] = extension.kind();
+        };
+    }
+
+    // A stage's own exception (not a schema violation nor malformed syntax) standing in for an
+    // extension's internal failure during its own transform logic.
+    private static JsonModelExtContext failing()
+    {
+        return (schema, config) -> new JsonModelExtHandler()
+        {
+            @Override
+            public <T extends JsonTransformable<T>> T decode(
+                T stream,
+                JsonCache cache)
+            {
+                return stream.transform(new Failing());
+            }
+        };
+    }
+
+    private static final class Failing implements JsonTransform
+    {
+        @Override
+        public Status transform(
+            JsonController control,
+            JsonSource source,
+            JsonEvent event,
+            JsonSink sink)
+        {
+            throw new JsonException("extension failure");
+        }
     }
 
     private static JsonModelExtContext dropping(

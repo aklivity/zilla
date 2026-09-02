@@ -99,6 +99,7 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
         suspended = false;
         starved = false;
         diagnostic.message = null;
+        diagnostic.category = null;
         resumeEvent = null;
     }
 
@@ -171,6 +172,7 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
         {
             // inert today — no stage throws this yet; wired for when semantic validation lands
             diagnostic.message = ex.getMessage();
+            diagnostic.category = ProtobufDiagnostic.Category.VALIDATION;
             reporter.rejected(diagnostic);
             status = lenient ? Status.COMPLETED : Status.REJECTED;
             suspended = false;
@@ -180,11 +182,13 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
         {
             status = Status.REJECTED;
             diagnostic.message = ex.getMessage();
+            diagnostic.category = ProtobufDiagnostic.Category.PARSING;
         }
         catch (ProtobufException ex)
         {
             status = Status.REJECTED;
             diagnostic.message = ex.getMessage();
+            diagnostic.category = ProtobufDiagnostic.Category.TRANSFORM;
         }
         if (status == Status.REJECTED)
         {
@@ -381,11 +385,18 @@ public final class ProtobufPipelineImpl implements ProtobufPipeline
     private static final class Diagnostic implements ProtobufDiagnostic
     {
         private String message;
+        private Category category;
 
         @Override
         public String message()
         {
             return message;
+        }
+
+        @Override
+        public Category category()
+        {
+            return category;
         }
     }
 }

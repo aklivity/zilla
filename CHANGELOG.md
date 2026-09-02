@@ -19,6 +19,7 @@
 - Apply schema overlay at catalog entry resolution [\#2318](https://github.com/aklivity/zilla/issues/2318) ([jfallows](https://github.com/jfallows))
 - engine: add ModelEnvelope for message metadata outside the value, exposed via ModelController [\#2384](https://github.com/aklivity/zilla/issues/2384) ([jfallows](https://github.com/jfallows))
 - engine: supply ModelEnvelope per message, and expose it to a model's format-native transform stages [\#2389](https://github.com/aklivity/zilla/issues/2389) ([jfallows](https://github.com/jfallows))
+- binding-mcp: add telemetry event for south-route cache-hydration failure [\#2391](https://github.com/aklivity/zilla/issues/2391) ([jfallows](https://github.com/jfallows))
 - model-core: align bytes/string extension stages with the streaming stage design, and make them bidirectional [\#2393](https://github.com/aklivity/zilla/issues/2393) ([jfallows](https://github.com/jfallows))
 - binding-tls: TlsClientFactory reply-direction ProxyBeginEx cannot convey the underlying network address [\#2407](https://github.com/aklivity/zilla/issues/2407) ([jfallows](https://github.com/jfallows))
 - Retain and expose unrecognized schema-root properties, alongside existing field-level annotation retention [\#2415](https://github.com/aklivity/zilla/issues/2415) ([jfallows](https://github.com/jfallows))
@@ -27,6 +28,7 @@
 - MQTT CONNECT with a Will message crashes the whole engine \(JVM segfault\), not just the connection [\#2428](https://github.com/aklivity/zilla/issues/2428) ([sfr-oc](https://github.com/sfr-oc))
 - binding-kafka: avoid per-stream heap accumulation buffer for produce-path trailer entries [\#2456](https://github.com/aklivity/zilla/issues/2456) ([jfallows](https://github.com/jfallows))
 - fix\(binding-mcp\): options.cache config tree doesn't fold NamedConfig refs\(\) generically [\#2462](https://github.com/aklivity/zilla/issues/2462) ([jfallows](https://github.com/jfallows))
+- model pipelines: XxxDiagnostic can't distinguish parse, validation, and transform failures [\#2465](https://github.com/aklivity/zilla/issues/2465) ([jfallows](https://github.com/jfallows))
 
 **Merged pull requests:**
 
@@ -99,6 +101,8 @@
 - fix\(binding-mcp\): fold NamedConfig refs\(\) generically through options.cache [\#2463](https://github.com/aklivity/zilla/pull/2463) ([jfallows](https://github.com/jfallows))
 - feat\(binding-mcp\): pluggable, composable cache.tools.eager policies [\#2464](https://github.com/aklivity/zilla/pull/2464) ([jfallows](https://github.com/jfallows))
 - feat\(engine\): resolve named vault references inside a vault's own options [\#2466](https://github.com/aklivity/zilla/pull/2466) ([jfallows](https://github.com/jfallows))
+- model pipelines: categorize rejections as parse, validation, or transform failures [\#2467](https://github.com/aklivity/zilla/pull/2467) ([jfallows](https://github.com/jfallows))
+- feat\(binding-mcp\): add HYDRATE\_FAILED telemetry event for route-settle failures [\#2468](https://github.com/aklivity/zilla/pull/2468) ([jfallows](https://github.com/jfallows))
 
 ## [2.3.0](https://github.com/aklivity/zilla/tree/2.3.0) (2026-08-14)
 

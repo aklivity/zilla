@@ -393,4 +393,20 @@ public final class ProtobufModelHandlerImpl extends ProtobufModelHandler impleme
     {
         event.validationFailure(traceId, bindingId, diagnostic);
     }
+
+    void parsingFailure(
+        long traceId,
+        long bindingId,
+        String diagnostic)
+    {
+        event.parsingFailure(traceId, bindingId, diagnostic);
+    }
+
+    void transformFailure(
+        long traceId,
+        long bindingId,
+        String diagnostic)
+    {
+        event.transformFailure(traceId, bindingId, diagnostic);
+    }
 }

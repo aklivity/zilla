@@ -24,6 +24,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.event.McpAuthorizationError;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.event.McpHydrateError;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
@@ -111,5 +112,14 @@ public class McpEventFormatterTest
         events.eagerIndexFailed(0L, 0L, "eager index backend unavailable");
 
         assertEquals("MCP tool eager index failed. eager index backend unavailable", format());
+    }
+
+    @Test
+    public void shouldFormatHydrateFailedEvent()
+    {
+        McpEventContext events = newEvents();
+        events.hydrateFailed(0L, 0L, "tools", McpHydrateError.ROUTE_FAILED, 1000L);
+
+        assertEquals("MCP cache hydration failed for tools (ROUTE_FAILED).", format());
     }
 }

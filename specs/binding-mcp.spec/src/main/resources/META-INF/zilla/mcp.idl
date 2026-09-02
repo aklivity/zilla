@@ -272,7 +272,8 @@ scope mcp
             AUTHORIZATION_FAILED (3),
             ELICITATION_TIMEOUT (4),
             SEARCH_INDEX_FAILED (5),
-            EAGER_INDEX_FAILED (6)
+            EAGER_INDEX_FAILED (6),
+            HYDRATE_FAILED (7)
         }
 
         struct McpSessionEstablishedEx extends core::stream::Extension
@@ -317,6 +318,20 @@ scope mcp
             string16 reason = null;
         }
 
+        enum McpHydrateError (uint8)
+        {
+            PARSE_ERROR(0),
+            INVALID_RESPONSE(1),
+            ROUTE_FAILED(2)
+        }
+
+        struct McpHydrateFailedEx extends core::stream::Extension
+        {
+            string16 kind;
+            McpHydrateError error;
+            int64 retryAt = -1;
+        }
+
         union McpEventEx switch (McpEventType)
         {
             case SESSION_ESTABLISHED: McpSessionEstablishedEx sessionEstablished;
@@ -325,6 +340,7 @@ scope mcp
             case ELICITATION_TIMEOUT: McpElicitationTimeoutEx elicitationTimeout;
             case SEARCH_INDEX_FAILED: McpSearchIndexFailedEx searchIndexFailed;
             case EAGER_INDEX_FAILED: McpEagerIndexFailedEx eagerIndexFailed;
+            case HYDRATE_FAILED: McpHydrateFailedEx hydrateFailed;
         }
     }
 }

@@ -59,4 +59,58 @@ public class ProtobufModelEventFormatterTest
 
         assertEquals("A message payload failed validation. boom.", formatted);
     }
+
+    @Test
+    public void shouldFormatParsingFailedEvent()
+    {
+        EngineContext context = mock(EngineContext.class);
+        when(context.clock()).thenReturn(Clock.systemUTC());
+
+        AtomicReference<DirectBufferEx> captured = new AtomicReference<>();
+        MessageConsumer writer = (msgTypeId, buffer, index, length) ->
+        {
+            MutableDirectBufferEx copy = new UnsafeBufferEx(new byte[length]);
+            copy.putBytes(0, buffer, index, length);
+            captured.set(copy);
+        };
+        when(context.supplyEventWriter()).thenReturn(writer);
+
+        ProtobufModelEventContext events = new ProtobufModelEventContext(context);
+        events.parsingFailure(0L, 0L, "boom");
+
+        ProtobufModelEventFormatterFactory factory = new ProtobufModelEventFormatterFactory();
+        ProtobufModelEventFormatter formatter = factory.create(new Configuration());
+
+        DirectBufferEx event = captured.get();
+        String formatted = formatter.format(event, 0, event.capacity());
+
+        assertEquals("A message payload could not be parsed. boom.", formatted);
+    }
+
+    @Test
+    public void shouldFormatTransformFailedEvent()
+    {
+        EngineContext context = mock(EngineContext.class);
+        when(context.clock()).thenReturn(Clock.systemUTC());
+
+        AtomicReference<DirectBufferEx> captured = new AtomicReference<>();
+        MessageConsumer writer = (msgTypeId, buffer, index, length) ->
+        {
+            MutableDirectBufferEx copy = new UnsafeBufferEx(new byte[length]);
+            copy.putBytes(0, buffer, index, length);
+            captured.set(copy);
+        };
+        when(context.supplyEventWriter()).thenReturn(writer);
+
+        ProtobufModelEventContext events = new ProtobufModelEventContext(context);
+        events.transformFailure(0L, 0L, "boom");
+
+        ProtobufModelEventFormatterFactory factory = new ProtobufModelEventFormatterFactory();
+        ProtobufModelEventFormatter formatter = factory.create(new Configuration());
+
+        DirectBufferEx event = captured.get();
+        String formatted = formatter.format(event, 0, event.capacity());
+
+        assertEquals("A message payload failed to transform. boom.", formatted);
+    }
 }

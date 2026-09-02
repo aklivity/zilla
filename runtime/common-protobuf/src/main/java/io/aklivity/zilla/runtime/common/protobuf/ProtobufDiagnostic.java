@@ -23,8 +23,8 @@ package io.aklivity.zilla.runtime.common.protobuf;
  * {@link ProtobufReporter#rejected(ProtobufDiagnostic)} callback. A reporter that needs to retain any of
  * it must copy the value out immediately, before returning.
  * <p>
- * Starts with {@link #message()}; structured accessors (byte offset, field number, category) may be added
- * without changing the pipeline's {@code Status} contract.
+ * Starts with {@link #message()}; structured accessors (byte offset, field number) may be added without
+ * changing the pipeline's {@code Status} contract.
  */
 public interface ProtobufDiagnostic
 {
@@ -34,4 +34,37 @@ public interface ProtobufDiagnostic
      * no message.
      */
     String message();
+
+    /**
+     * The category of failure this rejection stems from.
+     */
+    Category category();
+
+    /**
+     * Distinguishes a genuinely invalid or malformed value from any other rejection reason, so a reporter
+     * need not assume every rejection is a validation failure.
+     */
+    enum Category
+    {
+        /**
+         * No valid value could be produced at all — whether because the bytes are malformed on the wire,
+         * or because they are structurally non-conformant to the descriptor (e.g. an unknown message, an
+         * unknown field, an unknown enum value, or an unsupported scalar type). See
+         * {@link ProtobufParsingException}.
+         */
+        PARSING,
+
+        /**
+         * A structurally-valid value that violates a semantic rule beyond the descriptor's structure — e.g.
+         * a data contract or a constraint not expressible in the descriptor itself. See
+         * {@link ProtobufValidationException}.
+         */
+        VALIDATION,
+
+        /**
+         * The rejection stems from some other cause — e.g. an exception thrown by an extension's own
+         * transform logic — rather than the value itself being invalid.
+         */
+        TRANSFORM
+    }
 }

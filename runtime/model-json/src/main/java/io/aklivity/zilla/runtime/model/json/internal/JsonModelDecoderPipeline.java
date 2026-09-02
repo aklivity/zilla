@@ -188,10 +188,26 @@ final class JsonModelDecoderPipeline implements ModelPipeline
     private void onRejected(
         JsonDiagnostic diagnostic)
     {
-        // fires once per parse or schema-validation failure, at the value boundary, in both STRICT and
-        // LENIENT — so the validation-failed event is always emitted even when LENIENT tolerates the value
+        // fires once per rejection, at the value boundary, in both STRICT and LENIENT — so the event is
+        // always emitted even when LENIENT tolerates the value
         this.diagnostic = diagnostic.message();
-        handler.validationFailure(traceId, bindingId, this.diagnostic != null ? this.diagnostic : JsonModel.NAME);
+        String reason = this.diagnostic != null ? this.diagnostic : JsonModel.NAME;
+        switch (diagnostic.category())
+        {
+        case PARSING:
+            handler.parsingFailure(traceId, bindingId, reason);
+            break;
+        case TRANSFORM:
+            handler.transformFailure(traceId, bindingId, reason);
+            break;
+        // a stage that rejects by returning Status.REJECTED directly, without throwing, never populates a
+        // category -- treat that the same as a schema-constraint violation, matching prior behavior
+        case null:
+        case VALIDATION:
+        default:
+            handler.validationFailure(traceId, bindingId, reason);
+            break;
+        }
     }
 
     private static ModelStatus map(

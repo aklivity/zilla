@@ -14,7 +14,11 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.internal.stream.cache;
 
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.event.McpHydrateError.ROUTE_FAILED;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_PROMPTS_LIST;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_LIST;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_TEMPLATES_LIST;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_LIST;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 
 import java.io.Closeable;
@@ -136,7 +140,8 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
     {
         if (!stopped)
         {
-            scheduleHydrateRetry(kind);
+            final long retryAt = scheduleHydrateRetry(kind);
+            cache.events.hydrateFailed(0L, cache.bindingId, kindName(kind), ROUTE_FAILED, retryAt);
         }
     }
 
@@ -253,15 +258,29 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
     // that steady-state interval rather than permanently giving up; McpProxyCache.markAttempted (called
     // from McpProxyCacheHydrater after this cycle's failure) already lets checkReady()/register() unblock
     // a new session's initialize without needing hydration to ever succeed or stop trying
-    private void scheduleHydrateRetry(
+    private long scheduleHydrateRetry(
         int kind)
     {
         cancelHydrateRetry(kind);
         long delay = hydrateBackoffMs[kind];
         delay = delay == 0L ? cache.leaseRetry.toMillis() : Math.min(delay * 2L, cache.leaseTtl.toMillis());
         hydrateBackoffMs[kind] = delay;
-        hydrateRetryIds[kind] = signaler.signalAt(
-            Instant.now().plusMillis(delay), kind, this::onHydrateRetry);
+        final Instant retryAt = Instant.now().plusMillis(delay);
+        hydrateRetryIds[kind] = signaler.signalAt(retryAt, kind, this::onHydrateRetry);
+        return retryAt.toEpochMilli();
+    }
+
+    private static String kindName(
+        int kind)
+    {
+        return switch (kind)
+        {
+        case KIND_TOOLS_LIST -> "tools";
+        case KIND_PROMPTS_LIST -> "prompts";
+        case KIND_RESOURCES_LIST -> "resources";
+        case KIND_RESOURCES_TEMPLATES_LIST -> "resources/templates";
+        default -> "unknown";
+        };
     }
 
     private void onHydrateRetry(

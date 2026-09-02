@@ -20,6 +20,7 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.types.event.McpAuthorizati
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.event.McpEagerIndexFailedExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.event.McpElicitationTimeoutExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.event.McpEventExFW;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.event.McpHydrateFailedExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.event.McpSearchIndexFailedExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.event.McpSessionClosedExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.event.McpSessionEstablishedExFW;
@@ -91,6 +92,14 @@ public final class McpEventFormatter implements EventFormatterSpi
             McpEagerIndexFailedExFW ex = extension.eagerIndexFailed();
             result = String.format("MCP tool eager index failed. %s",
                     asString(ex.reason()));
+            break;
+        }
+        case HYDRATE_FAILED:
+        {
+            McpHydrateFailedExFW ex = extension.hydrateFailed();
+            result = String.format("MCP cache hydration failed for %s (%s).",
+                    asString(ex.kind()),
+                    ex.error().get());
             break;
         }
         }
