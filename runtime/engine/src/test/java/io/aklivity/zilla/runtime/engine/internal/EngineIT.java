@@ -241,4 +241,14 @@ public class EngineIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.vault.options.delegate.yaml")
+    @Specification({
+        "${net}/vault.options.delegate/client",
+        "${app}/vault.options.delegate/server"})
+    public void shouldResolveVaultReferencedByAnotherVaultsOptions() throws Exception
+    {
+        k3po.finish();
+    }
 }
