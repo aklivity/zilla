@@ -103,6 +103,7 @@
 - feat\(engine\): resolve named vault references inside a vault's own options [\#2466](https://github.com/aklivity/zilla/pull/2466) ([jfallows](https://github.com/jfallows))
 - model pipelines: categorize rejections as parse, validation, or transform failures [\#2467](https://github.com/aklivity/zilla/pull/2467) ([jfallows](https://github.com/jfallows))
 - feat\(binding-mcp\): add HYDRATE\_FAILED telemetry event for route-settle failures [\#2468](https://github.com/aklivity/zilla/pull/2468) ([jfallows](https://github.com/jfallows))
+- fix\(engine\): join the worker thread before releasing its buffers on close [\#2469](https://github.com/aklivity/zilla/pull/2469) ([jfallows](https://github.com/jfallows))
 
 ## [2.3.0](https://github.com/aklivity/zilla/tree/2.3.0) (2026-08-14)
 
