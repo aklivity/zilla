@@ -807,7 +807,10 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 onClientFanMemberClosed(traceId, stream);
             }
 
-            creditor.credit(traceId, partitionIndex, reserved);
+            if (partitionIndex != NO_CREDITOR_INDEX)
+            {
+                creditor.credit(traceId, partitionIndex, reserved);
+            }
         }
 
         private void onClientInitialFlush(
@@ -858,7 +861,11 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 stream.cleanupClient(traceId, error);
                 onClientFanMemberClosed(traceId, stream);
             }
-            creditor.credit(traceId, partitionIndex, reserved);
+
+            if (partitionIndex != NO_CREDITOR_INDEX)
+            {
+                creditor.credit(traceId, partitionIndex, reserved);
+            }
         }
 
         private void flushClientFanInitialIfNecessary(
@@ -1450,7 +1457,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                     doClientReplyAbortIfNecessary(traceId);
                     fan.onClientFanMemberClosed(traceId, this);
                 }
-                else
+                else if (!KafkaState.initialClosed(state))
                 {
                     fan.onClientInitialFlush(this, flush);
                 }
