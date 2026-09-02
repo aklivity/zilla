@@ -15,7 +15,7 @@
 package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.event.McpHydrateError.AUTHORIZATION_REQUIRED;
-import static io.aklivity.zilla.runtime.binding.mcp.internal.types.event.McpHydrateError.LOCK_CONTENDED;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.event.McpHydrateError.PEER_OWNER_ACTIVE;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.event.McpHydrateError.ROUTE_FAILED;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_PROMPTS_LIST;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_LIST;
@@ -365,7 +365,11 @@ public final class McpProxyCacheHydrater
                 }
                 else
                 {
-                    handler.listener.onError(kind, null, LOCK_CONTENDED);
+                    // this worker already elected itself the lifecycle owner, so a contended
+                    // cache lock here means a peer's lease from a recent failover handoff hasn't
+                    // expired yet (or, rarely, a genuine split-brain) -- either way it self-resolves
+                    // via the existing retry/backoff once that peer's lease lapses
+                    handler.listener.onError(kind, null, PEER_OWNER_ACTIVE);
                     onSettled.run();
                 }
             }

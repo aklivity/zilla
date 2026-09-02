@@ -322,7 +322,7 @@ scope mcp
         {
             ROUTE_FAILED(0),
             AUTHORIZATION_REQUIRED(1),
-            LOCK_CONTENDED(2)
+            PEER_OWNER_ACTIVE(2)
         }
 
         struct McpHydrateFailedEx extends core::stream::Extension

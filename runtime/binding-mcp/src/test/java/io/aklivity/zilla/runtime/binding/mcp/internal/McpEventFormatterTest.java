@@ -142,11 +142,11 @@ public class McpEventFormatterTest
     }
 
     @Test
-    public void shouldFormatHydrateFailedEventWithLockContended()
+    public void shouldFormatHydrateFailedEventWithPeerOwnerActive()
     {
         McpEventContext events = newEvents();
-        events.hydrateFailed(0L, 0L, "tools", null, McpHydrateError.LOCK_CONTENDED, 1000L);
+        events.hydrateFailed(0L, 0L, "tools", null, McpHydrateError.PEER_OWNER_ACTIVE, 1000L);
 
-        assertEquals("MCP cache hydration failed for tools (LOCK_CONTENDED).", format());
+        assertEquals("MCP cache hydration failed for tools (PEER_OWNER_ACTIVE).", format());
     }
 }

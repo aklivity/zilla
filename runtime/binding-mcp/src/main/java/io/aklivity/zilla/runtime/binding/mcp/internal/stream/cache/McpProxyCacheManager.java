@@ -156,6 +156,10 @@ public final class McpProxyCacheManager implements McpProxyCacheListener
         }
         hydrateBackoffMs[kind] = 0L;
         cancelRefresh();
+        // supersede this kind's own pending retry rather than leaving it scheduled -- otherwise a
+        // list-changed notification races the retry timer for the same kind, both call hydrate(kind)
+        // for this same worker, and the second attempt contends on its own first attempt's cache lock
+        cancelHydrateRetry(kind);
         handler.hydrate(kind, NO_SETTLE);
     }
 
