@@ -148,6 +148,10 @@ final class AvroModelDecoderPipeline implements ModelPipeline
                 case TRANSFORM:
                     handler.transformFailure(traceId, bindingId, reason);
                     break;
+                // a stage that rejects by returning Status.REJECTED directly, without throwing, never
+                // populates a category -- treat that the same as a schema-constraint violation, matching
+                // prior behavior
+                case null:
                 case VALIDATION:
                 default:
                     handler.validationFailure(traceId, bindingId, reason);
