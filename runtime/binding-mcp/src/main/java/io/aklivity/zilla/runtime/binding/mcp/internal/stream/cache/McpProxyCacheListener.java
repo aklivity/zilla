@@ -14,12 +14,16 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.internal.stream.cache;
 
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.event.McpHydrateError;
+
 public interface McpProxyCacheListener
 {
     void onOpened();
 
     void onError(
-        int kind);
+        int kind,
+        String toolkit,
+        McpHydrateError reason);
 
     void onChanged(
         int kind);

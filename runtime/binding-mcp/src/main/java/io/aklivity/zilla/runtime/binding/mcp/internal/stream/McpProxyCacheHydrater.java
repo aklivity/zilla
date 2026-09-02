@@ -14,6 +14,9 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
 
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.event.McpHydrateError.AUTHORIZATION_REQUIRED;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.event.McpHydrateError.PEER_OWNER_ACTIVE;
+import static io.aklivity.zilla.runtime.binding.mcp.internal.types.event.McpHydrateError.ROUTE_FAILED;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_PROMPTS_LIST;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_LIST;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_RESOURCES_TEMPLATES_LIST;
@@ -51,6 +54,7 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.stream.cache.McpProxyCache
 import io.aklivity.zilla.runtime.binding.mcp.internal.stream.cache.McpProxyCacheHandler;
 import io.aklivity.zilla.runtime.binding.mcp.internal.stream.cache.McpProxyCacheListener;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.OctetsFW;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.event.McpHydrateError;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.DataFW;
@@ -151,11 +155,16 @@ public final class McpProxyCacheHydrater
 
         @Override
         public void hydrate(
-            int kind)
+            int kind,
+            Runnable onSettled)
         {
             if (!stopped && lifecycle != null && lifecycleOpened)
             {
-                new McpListKindHydrater(this, kind).start();
+                new McpListKindHydrater(this, kind, onSettled).start();
+            }
+            else
+            {
+                onSettled.run();
             }
         }
 
@@ -296,19 +305,24 @@ public final class McpProxyCacheHydrater
     {
         private final HandlerImpl handler;
         private final int kind;
+        private final Runnable onSettled;
         private final List<String> prefixes;
         private final Map<String, String> toolkitsByPrefix;
         private final List<McpListRouteSink> sinks;
 
         private int pending;
         private boolean failedAny;
+        private String failedToolkit;
+        private McpHydrateError failedReason;
 
         private McpListKindHydrater(
             HandlerImpl handler,
-            int kind)
+            int kind,
+            Runnable onSettled)
         {
             this.handler = handler;
             this.kind = kind;
+            this.onSettled = onSettled;
             this.prefixes = new ArrayList<>();
             this.toolkitsByPrefix = new HashMap<>();
             this.sinks = new ArrayList<>();
@@ -334,6 +348,10 @@ public final class McpProxyCacheHydrater
             {
                 handler.cache.cacheOf(kind).acquire(this::onAcquireComplete);
             }
+            else
+            {
+                onSettled.run();
+            }
         }
 
         private void onAcquireComplete(
@@ -347,8 +365,17 @@ public final class McpProxyCacheHydrater
                 }
                 else
                 {
-                    handler.listener.onError(kind);
+                    // this worker already elected itself the lifecycle owner, so a contended
+                    // cache lock here means a peer's lease from a recent failover handoff hasn't
+                    // expired yet (or, rarely, a genuine split-brain) -- either way it self-resolves
+                    // via the existing retry/backoff once that peer's lease lapses
+                    handler.listener.onError(kind, null, PEER_OWNER_ACTIVE);
+                    onSettled.run();
                 }
+            }
+            else
+            {
+                onSettled.run();
             }
         }
 
@@ -376,7 +403,8 @@ public final class McpProxyCacheHydrater
                 for (McpRoutePrefix route : routes)
                 {
                     final List<String> routeScopes = flattenRoles(route.route().roles);
-                    final McpListRouteSink sink = new McpListRouteSink(this, route.prefix().asString(), routeScopes);
+                    final McpListRouteSink sink = new McpListRouteSink(
+                        this, route.prefix().asString(), route.route().toolkit(), routeScopes);
                     sinks.add(sink);
                     if (handler.lifecycle.needsInteractiveAuth(route.resolvedId()))
                     {
@@ -386,6 +414,7 @@ public final class McpProxyCacheHydrater
                         // it as permanently empty for hydration instead
                         sink.settled = true;
                         sink.failed = true;
+                        sink.reason = AUTHORIZATION_REQUIRED;
                         onRouteSettled(sink, traceId);
                     }
                     else
@@ -407,6 +436,11 @@ public final class McpProxyCacheHydrater
             if (sink.failed)
             {
                 failedAny = true;
+                if (failedReason == null)
+                {
+                    failedToolkit = sink.toolkit;
+                    failedReason = sink.reason;
+                }
             }
             else
             {
@@ -446,8 +480,10 @@ public final class McpProxyCacheHydrater
             handler.cache.markAttempted(kind);
             if (failed && !handler.stopped)
             {
-                handler.listener.onError(kind);
+                final McpHydrateError reason = failedReason != null ? failedReason : ROUTE_FAILED;
+                handler.listener.onError(kind, failedToolkit, reason);
             }
+            onSettled.run();
         }
     }
 
@@ -472,6 +508,7 @@ public final class McpProxyCacheHydrater
     {
         private final McpListKindHydrater kind;
         private final String prefix;
+        private final String toolkit;
         private final List<String> routeScopes;
         private final ExpandableArrayBufferEx bodyBuffer;
 
@@ -479,14 +516,17 @@ public final class McpProxyCacheHydrater
         private int bodyLen;
         private boolean failed;
         private boolean settled;
+        private McpHydrateError reason;
 
         private McpListRouteSink(
             McpListKindHydrater kind,
             String prefix,
+            String toolkit,
             List<String> routeScopes)
         {
             this.kind = kind;
             this.prefix = prefix;
+            this.toolkit = toolkit;
             this.routeScopes = routeScopes;
             this.bodyBuffer = new ExpandableArrayBufferEx();
         }
@@ -534,13 +574,13 @@ public final class McpProxyCacheHydrater
         private void onEnd(
             EndFW end)
         {
-            settle(end.traceId(), false);
+            settle(end.traceId(), false, null);
         }
 
         private void onAbort(
             AbortFW abort)
         {
-            settle(abort.traceId(), true);
+            settle(abort.traceId(), true, ROUTE_FAILED);
         }
 
         // a cancelled hydration fetch (e.g. the south server rejecting a concurrent
@@ -550,17 +590,19 @@ public final class McpProxyCacheHydrater
         private void onReset(
             ResetFW reset)
         {
-            settle(reset.traceId(), true);
+            settle(reset.traceId(), true, ROUTE_FAILED);
         }
 
         private void settle(
             long traceId,
-            boolean failed)
+            boolean failed,
+            McpHydrateError reason)
         {
             if (!settled)
             {
                 settled = true;
                 this.failed = failed;
+                this.reason = reason;
                 kind.onRouteSettled(this, traceId);
             }
         }

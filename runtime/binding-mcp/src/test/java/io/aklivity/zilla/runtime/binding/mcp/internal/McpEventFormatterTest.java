@@ -118,8 +118,35 @@ public class McpEventFormatterTest
     public void shouldFormatHydrateFailedEvent()
     {
         McpEventContext events = newEvents();
-        events.hydrateFailed(0L, 0L, "tools", McpHydrateError.ROUTE_FAILED, 1000L);
+        events.hydrateFailed(0L, 0L, "tools", null, McpHydrateError.ROUTE_FAILED, 1000L);
 
         assertEquals("MCP cache hydration failed for tools (ROUTE_FAILED).", format());
+    }
+
+    @Test
+    public void shouldFormatHydrateFailedEventWithToolkit()
+    {
+        McpEventContext events = newEvents();
+        events.hydrateFailed(0L, 0L, "tools", "crm", McpHydrateError.ROUTE_FAILED, 1000L);
+
+        assertEquals("MCP cache hydration failed for tools toolkit crm (ROUTE_FAILED).", format());
+    }
+
+    @Test
+    public void shouldFormatHydrateFailedEventWithAuthorizationRequired()
+    {
+        McpEventContext events = newEvents();
+        events.hydrateFailed(0L, 0L, "tools", "crm", McpHydrateError.AUTHORIZATION_REQUIRED, 1000L);
+
+        assertEquals("MCP cache hydration failed for tools toolkit crm (AUTHORIZATION_REQUIRED).", format());
+    }
+
+    @Test
+    public void shouldFormatHydrateFailedEventWithPeerOwnerActive()
+    {
+        McpEventContext events = newEvents();
+        events.hydrateFailed(0L, 0L, "tools", null, McpHydrateError.PEER_OWNER_ACTIVE, 1000L);
+
+        assertEquals("MCP cache hydration failed for tools (PEER_OWNER_ACTIVE).", format());
     }
 }
