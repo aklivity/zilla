@@ -952,6 +952,7 @@ public class EngineWorker implements EngineContext, Agent
 
     public void doClose()
     {
+        Thread closing = thread;
         try
         {
             Consumer<Thread> timeout = t -> rethrowUnchecked(new IllegalStateException("close timeout"));
@@ -959,6 +960,8 @@ public class EngineWorker implements EngineContext, Agent
         }
         finally
         {
+            awaitTermination(closing);
+
             targetsByIndex.forEach((k, v) -> quietClose(v));
             quietClose(streamsLayout);
             quietClose(bufferPoolLayout);
@@ -966,6 +969,23 @@ public class EngineWorker implements EngineContext, Agent
             quietClose(creditor);
             quietClose(eventWriter);
             thread = null;
+        }
+    }
+
+    private static void awaitTermination(
+        Thread thread)
+    {
+        while (thread != null && thread.isAlive())
+        {
+            try
+            {
+                thread.join(SECONDS.toMillis(5L));
+            }
+            catch (InterruptedException ex)
+            {
+                Thread.currentThread().interrupt();
+                break;
+            }
         }
     }
 
