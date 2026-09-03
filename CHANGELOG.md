@@ -29,9 +29,14 @@
 - binding-kafka: avoid per-stream heap accumulation buffer for produce-path trailer entries [\#2456](https://github.com/aklivity/zilla/issues/2456) ([jfallows](https://github.com/jfallows))
 - fix\(binding-mcp\): options.cache config tree doesn't fold NamedConfig refs\(\) generically [\#2462](https://github.com/aklivity/zilla/issues/2462) ([jfallows](https://github.com/jfallows))
 - model pipelines: XxxDiagnostic can't distinguish parse, validation, and transform failures [\#2465](https://github.com/aklivity/zilla/issues/2465) ([jfallows](https://github.com/jfallows))
+- binding-mcp: kind: client should require exit \(or a route exit\) [\#2506](https://github.com/aklivity/zilla/issues/2506) ([jfallows](https://github.com/jfallows))
+- binding-mcp: cache hydration failures are not diagnosable from binding.mcp.hydrate.failed alone [\#2508](https://github.com/aklivity/zilla/issues/2508) ([jfallows](https://github.com/jfallows))
 
 **Merged pull requests:**
 
+- build\(deps\): bump hono from 4.12.26 to 4.13.1 in /examples/mcp.proxy/url-elicit [\#2338](https://github.com/aklivity/zilla/pull/2338) ([dependabot[bot]](https://github.com/apps/dependabot))
+- build\(deps\): bump ip-address from 10.2.0 to 10.5.0 in /examples/mcp.proxy/url-elicit [\#2354](https://github.com/aklivity/zilla/pull/2354) ([dependabot[bot]](https://github.com/apps/dependabot))
+- build\(deps\): bump @hono/node-server from 1.19.14 to 1.19.17 in /examples/mcp.proxy/tools-list-client [\#2364](https://github.com/aklivity/zilla/pull/2364) ([dependabot[bot]](https://github.com/apps/dependabot))
 - feat\(common-json,model-json,model-protobuf,model-avro\): schema overlay support [\#2375](https://github.com/aklivity/zilla/pull/2375) ([jfallows](https://github.com/jfallows))
 - feat\(model-avro\): add AvroModelExt SPI for provider-supplied pipeline stages [\#2376](https://github.com/aklivity/zilla/pull/2376) ([jfallows](https://github.com/jfallows))
 - fix\(model-avro,binding-kafka\): reserve enough Kafka cache capacity for values that expand during decode [\#2377](https://github.com/aklivity/zilla/pull/2377) ([jfallows](https://github.com/jfallows))
@@ -42,6 +47,7 @@
 - feat\(model-core\): add bytes/string models and ModelExtFactorySpi composition [\#2382](https://github.com/aklivity/zilla/pull/2382) ([jfallows](https://github.com/jfallows))
 - fix\(model-avro\): fold installed extensions into the encoder pipeline too [\#2383](https://github.com/aklivity/zilla/pull/2383) ([jfallows](https://github.com/jfallows))
 - feat\(model-json\): add JsonModelExtFactorySpi for provider-supplied pipeline stages [\#2385](https://github.com/aklivity/zilla/pull/2385) ([jfallows](https://github.com/jfallows))
+- build\(deps\): bump @hono/node-server from 1.19.14 to 1.19.17 in /examples/mcp.proxy/url-elicit [\#2386](https://github.com/aklivity/zilla/pull/2386) ([dependabot[bot]](https://github.com/apps/dependabot))
 - test\(model-avro\): drop unneeded ENGINE\_BUFFER\_SLOT\_CAPACITY override in AvroModelIT [\#2387](https://github.com/aklivity/zilla/pull/2387) ([jfallows](https://github.com/jfallows))
 - fix\(engine\): emit terminal frame for a completed test-binding transform with zero produced bytes [\#2388](https://github.com/aklivity/zilla/pull/2388) ([jfallows](https://github.com/jfallows))
 - feat\(engine\): add ModelEnvelope, bound to a pipeline at supply time [\#2390](https://github.com/aklivity/zilla/pull/2390) ([jfallows](https://github.com/jfallows))
@@ -104,6 +110,12 @@
 - model pipelines: categorize rejections as parse, validation, or transform failures [\#2467](https://github.com/aklivity/zilla/pull/2467) ([jfallows](https://github.com/jfallows))
 - feat\(binding-mcp\): add HYDRATE\_FAILED telemetry event for route-settle failures [\#2468](https://github.com/aklivity/zilla/pull/2468) ([jfallows](https://github.com/jfallows))
 - fix\(engine\): join the worker thread before releasing its buffers on close [\#2469](https://github.com/aklivity/zilla/pull/2469) ([jfallows](https://github.com/jfallows))
+- build\(deps\): Bump fast-uri from 3.1.3 to 3.1.7 in /examples/mcp.proxy/tools-list-client [\#2504](https://github.com/aklivity/zilla/pull/2504) ([dependabot[bot]](https://github.com/apps/dependabot))
+- fix\(binding-mcp\): require exit for kind: client [\#2507](https://github.com/aklivity/zilla/pull/2507) ([jfallows](https://github.com/jfallows))
+- fix\(binding-mcp\): attribute hydrate failures to a route and a real reason [\#2509](https://github.com/aklivity/zilla/pull/2509) ([jfallows](https://github.com/jfallows))
+- build\(deps\): Bump fast-uri from 3.1.4 to 3.1.7 in /examples/mcp.proxy/resource-subscribe-client [\#2510](https://github.com/aklivity/zilla/pull/2510) ([dependabot[bot]](https://github.com/apps/dependabot))
+- build\(deps\): Bump fast-uri from 3.1.2 to 3.1.7 in /examples/mcp.proxy/url-elicit [\#2511](https://github.com/aklivity/zilla/pull/2511) ([dependabot[bot]](https://github.com/apps/dependabot))
+- feat\(engine\): batch EmbeddingHandler.embed\(\), fix\(binding-mcp\): tolerate a failing search backend [\#2512](https://github.com/aklivity/zilla/pull/2512) ([jfallows](https://github.com/jfallows))
 
 ## [2.3.0](https://github.com/aklivity/zilla/tree/2.3.0) (2026-08-14)
 
