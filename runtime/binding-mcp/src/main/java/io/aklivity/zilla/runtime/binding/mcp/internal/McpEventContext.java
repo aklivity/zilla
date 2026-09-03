@@ -214,6 +214,7 @@ public final class McpEventContext
         long traceId,
         long bindingId,
         String kind,
+        String toolkit,
         McpHydrateError error,
         long retryAt)
     {
@@ -222,6 +223,7 @@ public final class McpEventContext
             .hydrateFailed(e -> e
                 .typeId(HYDRATE_FAILED.value())
                 .kind(kind)
+                .toolkit(toolkit)
                 .error(s -> s.set(error))
                 .retryAt(retryAt))
             .build();

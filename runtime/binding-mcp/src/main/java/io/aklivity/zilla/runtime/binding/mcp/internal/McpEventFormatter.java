@@ -97,8 +97,11 @@ public final class McpEventFormatter implements EventFormatterSpi
         case HYDRATE_FAILED:
         {
             McpHydrateFailedExFW ex = extension.hydrateFailed();
-            result = String.format("MCP cache hydration failed for %s (%s).",
+            String toolkit = asString(ex.toolkit());
+            String toolkitSuffix = toolkit.isEmpty() ? "" : " toolkit " + toolkit;
+            result = String.format("MCP cache hydration failed for %s%s (%s).",
                     asString(ex.kind()),
+                    toolkitSuffix,
                     ex.error().get());
             break;
         }

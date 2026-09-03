@@ -217,7 +217,26 @@
                                     }
                                 }
                             },
-                            "required": [ "options" ]
+                            "required": [ "options" ],
+                            "anyOf":
+                            [
+                                {
+                                    "required": [ "exit" ]
+                                },
+                                {
+                                    "required": [ "routes" ],
+                                    "properties":
+                                    {
+                                        "routes":
+                                        {
+                                            "contains":
+                                            {
+                                                "required": [ "exit" ]
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     {

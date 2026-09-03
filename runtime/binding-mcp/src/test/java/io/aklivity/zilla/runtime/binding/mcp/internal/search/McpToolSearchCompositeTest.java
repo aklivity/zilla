@@ -100,12 +100,110 @@ public class McpToolSearchCompositeTest
     }
 
     @Test
-    public void shouldForwardFirstFailureExactlyOnce()
+    public void shouldCompleteIndexWhenOneBackendFails()
+    {
+        FakeIndex first = new FakeIndex();
+        FakeIndex second = new FakeIndex();
+        McpToolSearchComposite composite = new McpToolSearchComposite(List.of(first, second));
+        int[] completions = { 0 };
+
+        composite.index(List.of(), new McpToolSearchIndex.CompletionCallback<Void>()
+        {
+            @Override
+            public void completed(
+                Void result)
+            {
+                completions[0]++;
+            }
+
+            @Override
+            public void failed(
+                Throwable ex)
+            {
+                throw new AssertionError(ex);
+            }
+        });
+
+        first.failIndex(new RuntimeException("embedding provider unavailable"));
+        second.completeIndex();
+
+        assertThat(completions[0], equalTo(1));
+    }
+
+    @Test
+    public void shouldFailIndexOnlyWhenEveryBackendFails()
+    {
+        FakeIndex first = new FakeIndex();
+        FakeIndex second = new FakeIndex();
+        McpToolSearchComposite composite = new McpToolSearchComposite(List.of(first, second));
+        RuntimeException firstFailure = new RuntimeException("embedding provider unavailable");
+        RuntimeException secondFailure = new RuntimeException("keyword index not ready");
+        int[] failures = { 0 };
+
+        composite.index(List.of(), new McpToolSearchIndex.CompletionCallback<Void>()
+        {
+            @Override
+            public void completed(
+                Void result)
+            {
+                throw new AssertionError("expected failure");
+            }
+
+            @Override
+            public void failed(
+                Throwable ex)
+            {
+                assertThat(ex, sameInstance(secondFailure));
+                failures[0]++;
+            }
+        });
+
+        first.failIndex(firstFailure);
+        second.failIndex(secondFailure);
+
+        assertThat(failures[0], equalTo(1));
+    }
+
+    @Test
+    public void shouldFuseSuccessfulResultsWhenOneBackendFails()
     {
         FakeIndex first = new FakeIndex();
         FakeIndex second = new FakeIndex();
         McpToolSearchComposite composite = new McpToolSearchComposite(List.of(first, second));
         RuntimeException failure = new RuntimeException("embedding provider unavailable");
+        List<McpToolSearchMatch>[] fused = new List[1];
+
+        composite.query("kafka", new McpToolSearchIndex.CompletionCallback<List<McpToolSearchMatch>>()
+        {
+            @Override
+            public void completed(
+                List<McpToolSearchMatch> matches)
+            {
+                fused[0] = matches;
+            }
+
+            @Override
+            public void failed(
+                Throwable ex)
+            {
+                throw new AssertionError(ex);
+            }
+        });
+
+        first.failQuery(failure);
+        second.completeQuery(List.of(new McpToolSearchMatch("b", 9.0)));
+
+        assertThat(names(fused[0]), contains("b"));
+    }
+
+    @Test
+    public void shouldFailOnlyWhenEveryBackendFails()
+    {
+        FakeIndex first = new FakeIndex();
+        FakeIndex second = new FakeIndex();
+        McpToolSearchComposite composite = new McpToolSearchComposite(List.of(first, second));
+        RuntimeException firstFailure = new RuntimeException("embedding provider unavailable");
+        RuntimeException secondFailure = new RuntimeException("keyword index not ready");
         int[] failures = { 0 };
 
         composite.query("kafka", new McpToolSearchIndex.CompletionCallback<List<McpToolSearchMatch>>()
@@ -121,13 +219,13 @@ public class McpToolSearchCompositeTest
             public void failed(
                 Throwable ex)
             {
-                assertThat(ex, sameInstance(failure));
+                assertThat(ex, sameInstance(secondFailure));
                 failures[0]++;
             }
         });
 
-        first.failQuery(failure);
-        second.completeQuery(List.of());
+        first.failQuery(firstFailure);
+        second.failQuery(secondFailure);
 
         assertThat(failures[0], equalTo(1));
     }
@@ -200,6 +298,12 @@ public class McpToolSearchCompositeTest
             Throwable ex)
         {
             queryCallback.failed(ex);
+        }
+
+        private void failIndex(
+            Throwable ex)
+        {
+            indexCallback.failed(ex);
         }
     }
 }

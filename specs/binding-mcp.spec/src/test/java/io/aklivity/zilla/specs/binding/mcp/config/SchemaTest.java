@@ -132,6 +132,18 @@ public class SchemaTest
     }
 
     @Test(expected = JsonException.class)
+    public void shouldRejectClientWithoutExit()
+    {
+        schema.validate("client.exit.missing.invalid.yaml");
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectClientWithRoutesMissingExit()
+    {
+        schema.validate("client.routes.exit.missing.invalid.yaml");
+    }
+
+    @Test(expected = JsonException.class)
     public void shouldRejectClientWithElicitation()
     {
         schema.validate("client.elicitation.invalid.yaml");

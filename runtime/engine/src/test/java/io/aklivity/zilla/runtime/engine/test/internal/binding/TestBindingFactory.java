@@ -262,12 +262,12 @@ final class TestBindingFactory implements BindingHandler
                 {
                     final Thread dispatchThread = Thread.currentThread();
                     final MutableBoolean callbackFired = new MutableBoolean();
-                    this.embedding.embed(0L, binding.id, 0L, "init", new EmbeddingHandler.CompletionCallback()
+                    this.embedding.embed(0L, binding.id, 0L, List.of("init"), new EmbeddingHandler.CompletionCallback()
                     {
                         @Override
                         public void completed(
                             long contextId,
-                            float[] result)
+                            float[][] results)
                         {
                             if (Thread.currentThread() != dispatchThread || callbackFired.value)
                             {
