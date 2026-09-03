@@ -75,7 +75,8 @@ public final class McpKafkaToolAlterConfigsSource implements JsonSink, Source, S
     {
         ROOT,
         ARGUMENTS,
-        CONFIGS
+        CONFIGS,
+        IGNORED
     }
 
     private final Deque<Context> stack = new ArrayDeque<>();
@@ -219,7 +220,9 @@ public final class McpKafkaToolAlterConfigsSource implements JsonSink, Source, S
         }
         else
         {
-            next = null;
+            // ArrayDeque forbids null elements, so an unrecognized object (e.g. a JSON-RPC "_meta"
+            // sibling of "arguments") pushes IGNORED rather than null to keep the stack depth correct.
+            next = Context.IGNORED;
         }
         stack.push(next);
     }

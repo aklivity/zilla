@@ -19,87 +19,76 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.binding.kafka.api.KafkaDescribeConfigsRequest;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 
-public class McpKafkaToolDescribeConfigsSourceTest
+public class McpKafkaToolDeleteTopicsSourceTest
 {
     @Test
-    public void shouldParseTopicResource()
+    public void shouldParseTopics()
     {
-        McpKafkaToolDescribeConfigsSource source =
-            new McpKafkaToolDescribeConfigsSource(KafkaDescribeConfigsRequest.RESOURCE_TYPE_TOPIC);
+        McpKafkaToolDeleteTopicsSource source = new McpKafkaToolDeleteTopicsSource(30000);
 
-        Status status = parse(source, "{\"arguments\":{\"topic\":\"events\"}}");
+        Status status = parse(source, "{\"arguments\":{\"topics\":[\"events\",\"snapshots\"]}}");
 
         assertEquals(Status.COMPLETED, status);
         assertTrue(source.completed());
-        assertEquals(KafkaDescribeConfigsRequest.RESOURCE_TYPE_TOPIC, source.type());
-        assertEquals("events", source.name());
-        assertEquals(KafkaDescribeConfigsRequest.ALL_CONFIGS, source.configCount());
+        assertEquals(2, source.topicCount());
+
+        List<String> topics = new ArrayList<>();
+        source.forEach(topics::add);
+        assertEquals("events", topics.get(0));
+        assertEquals("snapshots", topics.get(1));
     }
 
     @Test
-    public void shouldParseBrokerResource()
+    public void shouldIgnoreMetaSiblingOfArguments()
     {
-        McpKafkaToolDescribeConfigsSource source =
-            new McpKafkaToolDescribeConfigsSource(KafkaDescribeConfigsRequest.RESOURCE_TYPE_BROKER);
+        McpKafkaToolDeleteTopicsSource source = new McpKafkaToolDeleteTopicsSource(30000);
 
-        Status status = parse(source, "{\"arguments\":{\"broker_id\":0}}");
+        Status status = parse(source,
+            "{\"name\":\"delete_topics\",\"arguments\":{\"topics\":[\"events\"]}," +
+            "\"_meta\":{\"progressToken\":1}}");
 
         assertEquals(Status.COMPLETED, status);
-        assertEquals(KafkaDescribeConfigsRequest.RESOURCE_TYPE_BROKER, source.type());
-        assertEquals("0", source.name());
+        assertEquals(1, source.topicCount());
     }
 
     @Test
-    public void shouldRejectMissingResourceName()
+    public void shouldRejectEmptyTopicsArray()
     {
-        McpKafkaToolDescribeConfigsSource source =
-            new McpKafkaToolDescribeConfigsSource(KafkaDescribeConfigsRequest.RESOURCE_TYPE_TOPIC);
+        McpKafkaToolDeleteTopicsSource source = new McpKafkaToolDeleteTopicsSource(30000);
 
-        Status status = parse(source, "{\"arguments\":{}}");
+        Status status = parse(source, "{\"arguments\":{\"topics\":[]}}");
 
         assertEquals(Status.REJECTED, status);
         assertFalse(source.completed());
     }
 
     @Test
-    public void shouldIgnoreMetaSiblingOfArguments()
-    {
-        McpKafkaToolDescribeConfigsSource source =
-            new McpKafkaToolDescribeConfigsSource(KafkaDescribeConfigsRequest.RESOURCE_TYPE_TOPIC);
-
-        Status status = parse(source,
-            "{\"name\":\"describe_topic_configs\",\"arguments\":{\"topic\":\"events\"}," +
-            "\"_meta\":{\"progressToken\":1}}");
-
-        assertEquals(Status.COMPLETED, status);
-        assertEquals("events", source.name());
-    }
-
-    @Test
     public void shouldResetBetweenCalls()
     {
-        McpKafkaToolDescribeConfigsSource source =
-            new McpKafkaToolDescribeConfigsSource(KafkaDescribeConfigsRequest.RESOURCE_TYPE_TOPIC);
+        McpKafkaToolDeleteTopicsSource source = new McpKafkaToolDeleteTopicsSource(30000);
 
-        parse(source, "{\"arguments\":{\"topic\":\"events\"}}");
+        parse(source, "{\"arguments\":{\"topics\":[\"events\"]}}");
         assertTrue(source.completed());
 
         source.reset();
 
         assertFalse(source.completed());
+        assertEquals(0, source.topicCount());
     }
 
     private static Status parse(
-        McpKafkaToolDescribeConfigsSource source,
+        McpKafkaToolDeleteTopicsSource source,
         String json)
     {
         final JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser()).into(source);
