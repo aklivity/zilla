@@ -232,9 +232,8 @@ public final class McpHttpProxyFactory implements BindingHandler
 
             if (kind == KIND_LIFECYCLE)
             {
-                final int capabilities = beginEx.lifecycle().capabilities();
                 final String sessionId = newSessionId();
-                newStream = new McpSession(sessionId, capabilities,
+                newStream = new McpSession(sessionId, binding.serverCapabilities(),
                     sender, originId, routedId, initialId, authorization, affinity)::onMcpMessage;
             }
             else
@@ -2279,6 +2278,9 @@ public final class McpHttpProxyFactory implements BindingHandler
         {
             if (!McpHttpState.replyOpened(state))
             {
+                // capabilities is this binding's own declared real capabilities (McpHttpBindingConfig.
+                // serverCapabilities, computed from its configured tools/resources), not an echo of
+                // whatever the connecting north forwarded for its own client's elicitation support
                 final McpBeginExFW lifecycleEx = mcpBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
                     .typeId(mcpTypeId)
                     .lifecycle(l -> l
