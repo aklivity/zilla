@@ -130,6 +130,7 @@ public final class McpServerFactory implements McpStreamFactory
     private static final String STATUS_400 = "400";
     private static final String STATUS_401 = "401";
     private static final String STATUS_403 = "403";
+    private static final String STATUS_404 = "404";
     private static final String STATUS_405 = "405";
     private static final String STATUS_406 = "406";
     private static final String STATUS_410 = "410";
@@ -478,7 +479,7 @@ public final class McpServerFactory implements McpStreamFactory
             case "DELETE":
                 if (session == null)
                 {
-                    newStream = new McpRejectHandler(sender, STATUS_400)::onNetBegin;
+                    newStream = new McpRejectHandler(sender, STATUS_404)::onNetBegin;
                 }
                 else
                 {
@@ -541,7 +542,7 @@ public final class McpServerFactory implements McpStreamFactory
         else if (session == null)
         {
             deauthorize.run();
-            newStream = new McpRejectHandler(sender, STATUS_400)::onNetBegin;
+            newStream = new McpRejectHandler(sender, STATUS_404)::onNetBegin;
         }
         else if (session.eventsUnsupported)
         {
@@ -1008,7 +1009,7 @@ public final class McpServerFactory implements McpStreamFactory
             {
                 if (server.session == null)
                 {
-                    server.onDecodeInvalidRequest(traceId, authorization);
+                    server.onDecodeSessionNotFound(traceId, authorization);
                     server.decoder = decodeIgnore;
                     break decode;
                 }
@@ -2552,6 +2553,19 @@ public final class McpServerFactory implements McpStreamFactory
                     .build(),
                 -32600,
                 "Invalid request");
+        }
+
+        private void onDecodeSessionNotFound(
+            long traceId,
+            long authorization)
+        {
+            doNetBegin(traceId, authorization,
+                httpBeginExRW.wrap(codecBuffer, 0, codecBuffer.capacity())
+                    .typeId(httpTypeId)
+                    .headersItem(h -> h.name(HTTP_HEADER_STATUS).value(STATUS_404))
+                    .inject(this::injectAltSvc)
+                    .build());
+            doNetEnd(traceId, authorization);
         }
 
         private void onDecodeMethodNotFound(
