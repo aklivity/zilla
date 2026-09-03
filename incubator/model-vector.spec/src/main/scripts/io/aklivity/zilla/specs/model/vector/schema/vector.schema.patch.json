@@ -59,7 +59,8 @@
                 [
                     "embedding",
                     "reject",
-                    "threshold"
+                    "threshold",
+                    "store"
                 ]
             }
         }

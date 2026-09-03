@@ -28,6 +28,7 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.embedding.EmbeddingHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelContext;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
+import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 
 public class VectorModelContextTest
 {
@@ -36,12 +37,14 @@ public class VectorModelContextTest
     {
         EngineContext engine = mock(EngineContext.class);
         when(engine.supplyEmbedding(anyLong())).thenReturn(mock(EmbeddingHandler.class));
+        when(engine.supplyStore(anyLong())).thenReturn(mock(StoreHandler.class));
 
         ModelContext context = new VectorModelContext(engine);
         ModelConfig config = VectorModelConfig.builder()
             .embedding("moderator0")
             .reject("reject phrase")
             .threshold(0.85)
+            .store("cache0")
             .build();
 
         ModelHandler handler = context.supplyHandler(config);

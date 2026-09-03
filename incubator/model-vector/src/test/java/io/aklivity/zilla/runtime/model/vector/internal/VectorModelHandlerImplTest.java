@@ -169,30 +169,6 @@ public class VectorModelHandlerImplTest
         assertThat(isRejected(retried, tasks2, "reject this message"), equalTo(true));
     }
 
-    @Test
-    public void shouldEmbedIndependentlyWithoutAConfiguredStore()
-    {
-        // GIVEN
-        VectorModelConfig noStore = VectorModelConfig.builder()
-            .embedding("moderator0")
-            .reject("reject this message")
-            .threshold(0.99)
-            .build();
-
-        // WHEN
-        Queue<Runnable> tasks1 = new ArrayDeque<>();
-        Queue<Runnable> tasks2 = new ArrayDeque<>();
-        VectorModelHandlerImpl first = new VectorModelHandlerImpl(newWorkerContext(tasks1), noStore);
-        VectorModelHandlerImpl second = new VectorModelHandlerImpl(newWorkerContext(tasks2), noStore);
-        drain(tasks1);
-        drain(tasks2);
-
-        // THEN -- each worker embeds for itself, exactly as before a store was ever configured
-        assertThat(embedCalls.get(), equalTo(2));
-        assertThat(isRejected(first, tasks1, "reject this message"), equalTo(true));
-        assertThat(isRejected(second, tasks2, "reject this message"), equalTo(true));
-    }
-
     private EngineContext newWorkerContext(
         Queue<Runnable> tasks)
     {

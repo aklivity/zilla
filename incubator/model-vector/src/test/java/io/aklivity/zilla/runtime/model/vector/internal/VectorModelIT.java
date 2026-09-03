@@ -67,26 +67,4 @@ public class VectorModelIT
     {
         k3po.finish();
     }
-
-    @Test
-    @Configuration("reject.store.yaml")
-    @Specification({
-        "${net}/client.sent.text.accepted/client",
-        "${app}/client.sent.text.accepted/server"
-    })
-    public void shouldForwardAcceptedTextWithStoreConfigured() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("reject.store.yaml")
-    @Specification({
-        "${net}/client.sent.text.rejected/client",
-        "${app}/client.sent.text.rejected/server"
-    })
-    public void shouldAbortRejectedTextWithStoreConfigured() throws Exception
-    {
-        k3po.finish();
-    }
 }

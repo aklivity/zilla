@@ -56,7 +56,8 @@ public class VectorModelConfigAdapterTest
                     "reject phrase one",
                     "reject phrase two"
                 ],
-                "threshold": 0.85
+                "threshold": 0.85,
+                "store": "cache0"
             }""";
 
         // WHEN
@@ -68,36 +69,14 @@ public class VectorModelConfigAdapterTest
         assertThat(config.embedding.name, equalTo("moderator0"));
         assertThat(config.reject, contains("reject phrase one", "reject phrase two"));
         assertThat(config.threshold, equalTo(0.85));
-    }
-
-    @Test
-    public void shouldReadVectorModelWithStore()
-    {
-        // GIVEN
-        String json = """
-            {
-                "model": "vector",
-                "embedding": "moderator0",
-                "reject":
-                [
-                    "reject phrase one"
-                ],
-                "threshold": 0.85,
-                "store": "cache0"
-            }""";
-
-        // WHEN
-        VectorModelConfig config = jsonb.fromJson(json, VectorModelConfig.class);
-
-        // THEN
-        assertThat(config, not(nullValue()));
         assertThat(config.store.name, equalTo("cache0"));
     }
 
     @Test
-    public void shouldDefaultStoreToNull()
+    public void shouldDefaultStoreToNullWhenAbsent()
     {
-        // GIVEN
+        // GIVEN -- the store property is required by the vector model's own JSON schema, but the
+        // adapter itself stays defensive about a config built or parsed without going through it
         String json = """
             {
                 "model": "vector",
@@ -117,36 +96,6 @@ public class VectorModelConfigAdapterTest
     }
 
     @Test
-    public void shouldWriteVectorModelWithStore()
-    {
-        // GIVEN
-        String expectedJson =
-            "{" +
-                "\"model\":\"vector\"," +
-                "\"embedding\":\"moderator0\"," +
-                "\"reject\":" +
-                "[" +
-                    "\"reject phrase one\"" +
-                "]," +
-                "\"threshold\":0.85," +
-                "\"store\":\"cache0\"" +
-            "}";
-        VectorModelConfig config = VectorModelConfig.builder()
-            .embedding("moderator0")
-            .reject("reject phrase one")
-            .threshold(0.85)
-            .store("cache0")
-            .build();
-
-        // WHEN
-        String json = jsonb.toJson(config);
-
-        // THEN
-        assertThat(json, not(nullValue()));
-        assertThat(json, equalTo(expectedJson));
-    }
-
-    @Test
     public void shouldWriteVectorModel()
     {
         // GIVEN
@@ -159,13 +108,15 @@ public class VectorModelConfigAdapterTest
                     "\"reject phrase one\"," +
                     "\"reject phrase two\"" +
                 "]," +
-                "\"threshold\":0.85" +
+                "\"threshold\":0.85," +
+                "\"store\":\"cache0\"" +
             "}";
         VectorModelConfig config = VectorModelConfig.builder()
             .embedding("moderator0")
             .reject("reject phrase one")
             .reject("reject phrase two")
             .threshold(0.85)
+            .store("cache0")
             .build();
 
         // WHEN

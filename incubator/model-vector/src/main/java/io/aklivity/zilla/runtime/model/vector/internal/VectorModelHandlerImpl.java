@@ -37,12 +37,13 @@ import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 // configured reject phrases once, then vending a fresh per-stream VectorModelPipeline that reuses
 // this handler's resolved embedding and reject vectors on every supplyDecoder/supplyEncoder call.
 //
-// Without a referenced store, every worker (and, with a distributed store, every replica) embeds
+// Every namespace binding is replicated to and attached independently on every EngineWorker, so
+// without deduplication every worker (and, with a distributed store, every replica) would embed
 // the same reject phrases independently -- a redundant N-way burst against whatever embedding
-// provider is configured, fired all at once at attach time. With one configured, only the worker
-// that wins a short-lived lock does the real embed call; every other worker polls the cache with
-// capped backoff until the winner's result appears, including after the lock owner fails without
-// writing one (the lock simply expires and the next poll wins it instead).
+// provider is configured, fired all at once at attach time. The required store instead lets only
+// the worker that wins a short-lived lock do the real embed call; every other worker polls the
+// cache with capped backoff until the winner's result appears, including after the lock owner
+// fails without writing one (the lock simply expires and the next poll wins it instead).
 final class VectorModelHandlerImpl implements ModelHandler
 {
     private static final Runnable NOOP = () ->
@@ -80,19 +81,12 @@ final class VectorModelHandlerImpl implements ModelHandler
         this.threshold = config.threshold;
         this.pending = new LinkedList<>();
         this.rejectVectors = new float[config.reject.size()][];
-        this.store = config.store != null ? context.supplyStore(config.store.id) : null;
+        this.store = context.supplyStore(config.store.id);
         this.signaler = context.signaler();
         this.cacheKey = "model.vector.reject." + digest(config.reject);
         this.lockKey = cacheKey + ".lock";
 
-        if (store != null)
-        {
-            store.get(cacheKey, this::onCacheGet);
-        }
-        else
-        {
-            embedRejectPhrases();
-        }
+        store.get(cacheKey, this::onCacheGet);
     }
 
     @Override
@@ -197,10 +191,7 @@ final class VectorModelHandlerImpl implements ModelHandler
     private void onEmbedComplete(
         float[][] results)
     {
-        if (store != null)
-        {
-            store.put(cacheKey, encode(results), null, ignored -> unlock());
-        }
+        store.put(cacheKey, encode(results), null, ignored -> unlock());
 
         for (int i = 0; i < results.length; i++)
         {

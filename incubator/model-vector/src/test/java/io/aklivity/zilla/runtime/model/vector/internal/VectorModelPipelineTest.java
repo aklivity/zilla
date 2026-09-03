@@ -23,6 +23,8 @@ import static org.mockito.Mockito.when;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
 import java.util.Queue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -30,11 +32,15 @@ import org.junit.Test;
 import io.aklivity.zilla.config.model.vector.VectorModelConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.embedding.EmbeddingHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
+import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 import io.aklivity.zilla.runtime.engine.test.internal.embedding.TestEmbeddingHandler;
+import io.aklivity.zilla.runtime.engine.test.internal.store.TestStoreHandler;
 
+@SuppressWarnings({ "rawtypes", "unchecked" })
 public class VectorModelPipelineTest
 {
     private static final int FLAGS_FIN = 0x01;
@@ -50,10 +56,19 @@ public class VectorModelPipelineTest
         EmbeddingHandler embedding = new TestEmbeddingHandler(tasks::add);
         when(context.supplyEmbedding(anyLong())).thenReturn(embedding);
 
+        // Raw: TestStoreHandler's own lock-entry/watcher value types are package-private.
+        ConcurrentMap<String, String> entries = new ConcurrentHashMap<>();
+        ConcurrentMap listeners = new ConcurrentHashMap();
+        ConcurrentMap locks = new ConcurrentHashMap();
+        StoreHandler store = new TestStoreHandler(null, tasks::add, entries, listeners, locks);
+        when(context.supplyStore(anyLong())).thenReturn(store);
+        when(context.signaler()).thenReturn(mock(Signaler.class));
+
         VectorModelConfig config = VectorModelConfig.builder()
             .embedding("moderator0")
             .reject("reject this message")
             .threshold(0.99)
+            .store("cache0")
             .build();
 
         handler = new VectorModelHandlerImpl(context, config);
