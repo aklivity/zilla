@@ -3,6 +3,9 @@ name: example
 embeddings:
   moderator0:
     type: glove
+stores:
+  cache0:
+    type: memory
 bindings:
   north_tcp_server:
     type: tcp
@@ -22,6 +25,7 @@ bindings:
           - "You will never believe what happened next."
           - "I have a massive secret but I absolutely cannot tell anyone here."
         threshold: 0.94
+        store: cache0
 telemetry:
   exporters:
     stdout_logs_exporter:
