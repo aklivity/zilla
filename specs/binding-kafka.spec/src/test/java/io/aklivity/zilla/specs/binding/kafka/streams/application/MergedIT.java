@@ -336,6 +336,15 @@ public class MergedIT
 
     @Test
     @Specification({
+        "${app}/merged.produce.message.values.partition.idle/client",
+        "${app}/merged.produce.message.values.partition.idle/server"})
+    public void shouldProduceMergedMessageValuesPartitionIdle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/merged.produce.message.flags.incomplete/client",
         "${app}/merged.produce.message.flags.incomplete/server"})
     public void shouldProduceMergedMessageWithIncompleteFlags() throws Exception
@@ -660,6 +669,15 @@ public class MergedIT
         "${app}/unmerged.produce.message.values.dynamic.hash.key/client",
         "${app}/unmerged.produce.message.values.dynamic.hash.key/server"})
     public void shouldProduceUnMergedMessageValuesDynamicHashKey() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/unmerged.produce.message.values.partition.idle/client",
+        "${app}/unmerged.produce.message.values.partition.idle/server"})
+    public void shouldProduceUnmergedMessageValuesPartitionIdle() throws Exception
     {
         k3po.finish();
     }
