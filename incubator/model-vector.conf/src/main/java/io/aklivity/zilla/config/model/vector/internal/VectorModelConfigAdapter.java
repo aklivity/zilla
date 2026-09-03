@@ -37,6 +37,7 @@ public final class VectorModelConfigAdapter extends ConfigAdapter.Extensible<Mod
     private static final String EMBEDDING_NAME = "embedding";
     private static final String REJECT_NAME = "reject";
     private static final String THRESHOLD_NAME = "threshold";
+    private static final String STORE_NAME = "store";
 
     public VectorModelConfigAdapter(
         List<ConfigExtAdapter<ModelConfig>> extensions)
@@ -66,6 +67,11 @@ public final class VectorModelConfigAdapter extends ConfigAdapter.Extensible<Mod
 
         builder.add(THRESHOLD_NAME, model.threshold);
 
+        if (model.store != null)
+        {
+            builder.add(STORE_NAME, model.store.name);
+        }
+
         injectExtensions(model, builder);
 
         return builder.build();
@@ -89,10 +95,15 @@ public final class VectorModelConfigAdapter extends ConfigAdapter.Extensible<Mod
             ? object.getJsonNumber(THRESHOLD_NAME).doubleValue()
             : 0.0;
 
+        String store = object.containsKey(STORE_NAME)
+            ? object.getString(STORE_NAME)
+            : null;
+
         VectorModelConfigBuilder<VectorModelConfig> builder = VectorModelConfig.builder()
             .embedding(embedding)
             .reject(reject)
-            .threshold(threshold);
+            .threshold(threshold)
+            .store(store);
 
         injectExtensions(object, builder);
 

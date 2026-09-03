@@ -71,6 +71,82 @@ public class VectorModelConfigAdapterTest
     }
 
     @Test
+    public void shouldReadVectorModelWithStore()
+    {
+        // GIVEN
+        String json = """
+            {
+                "model": "vector",
+                "embedding": "moderator0",
+                "reject":
+                [
+                    "reject phrase one"
+                ],
+                "threshold": 0.85,
+                "store": "cache0"
+            }""";
+
+        // WHEN
+        VectorModelConfig config = jsonb.fromJson(json, VectorModelConfig.class);
+
+        // THEN
+        assertThat(config, not(nullValue()));
+        assertThat(config.store.name, equalTo("cache0"));
+    }
+
+    @Test
+    public void shouldDefaultStoreToNull()
+    {
+        // GIVEN
+        String json = """
+            {
+                "model": "vector",
+                "embedding": "moderator0",
+                "reject":
+                [
+                    "reject phrase one"
+                ],
+                "threshold": 0.85
+            }""";
+
+        // WHEN
+        VectorModelConfig config = jsonb.fromJson(json, VectorModelConfig.class);
+
+        // THEN
+        assertThat(config.store, nullValue());
+    }
+
+    @Test
+    public void shouldWriteVectorModelWithStore()
+    {
+        // GIVEN
+        String expectedJson =
+            "{" +
+                "\"model\":\"vector\"," +
+                "\"embedding\":\"moderator0\"," +
+                "\"reject\":" +
+                "[" +
+                    "\"reject phrase one\"" +
+                "]," +
+                "\"threshold\":0.85," +
+                "\"store\":\"cache0\"" +
+            "}";
+        VectorModelConfig config = VectorModelConfig.builder()
+            .embedding("moderator0")
+            .reject("reject phrase one")
+            .threshold(0.85)
+            .store("cache0")
+            .build();
+
+        // WHEN
+        String json = jsonb.toJson(config);
+
+        // THEN
+        assertThat(json, not(nullValue()));
+        assertThat(json, equalTo(expectedJson));
+    }
+
+    @Test
     public void shouldWriteVectorModel()
     {
         // GIVEN
