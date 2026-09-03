@@ -18,6 +18,9 @@ name: test
 embeddings:
   embedding0:
     type: test
+stores:
+  cache0:
+    type: test
 bindings:
   net0:
     type: test
@@ -29,4 +32,5 @@ bindings:
         reject:
           - "reject this message"
         threshold: 0.99
+        store: cache0
     exit: app0

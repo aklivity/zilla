@@ -116,6 +116,7 @@
 - build\(deps\): Bump fast-uri from 3.1.4 to 3.1.7 in /examples/mcp.proxy/resource-subscribe-client [\#2510](https://github.com/aklivity/zilla/pull/2510) ([dependabot[bot]](https://github.com/apps/dependabot))
 - build\(deps\): Bump fast-uri from 3.1.2 to 3.1.7 in /examples/mcp.proxy/url-elicit [\#2511](https://github.com/aklivity/zilla/pull/2511) ([dependabot[bot]](https://github.com/apps/dependabot))
 - feat\(engine\): batch EmbeddingHandler.embed\(\), fix\(binding-mcp\): tolerate a failing search backend [\#2512](https://github.com/aklivity/zilla/pull/2512) ([jfallows](https://github.com/jfallows))
+- feat\(model-vector\): dedupe reject-phrase embedding across workers via a required store [\#2514](https://github.com/aklivity/zilla/pull/2514) ([jfallows](https://github.com/jfallows))
 - fix\(binding-mcp-kafka\): avoid NPE on unrecognized JSON in tool call arguments [\#2515](https://github.com/aklivity/zilla/pull/2515) ([jfallows](https://github.com/jfallows))
 
 ## [2.3.0](https://github.com/aklivity/zilla/tree/2.3.0) (2026-08-14)

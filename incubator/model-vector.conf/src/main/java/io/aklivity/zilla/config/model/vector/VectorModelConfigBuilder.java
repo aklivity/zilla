@@ -20,6 +20,7 @@ import java.util.function.Function;
 
 import io.aklivity.zilla.config.engine.ConfigBuilder;
 import io.aklivity.zilla.config.engine.EmbeddedConfig;
+import io.aklivity.zilla.config.engine.StoredConfig;
 
 public class VectorModelConfigBuilder<T> extends ConfigBuilder.Extensible<T, VectorModelConfigBuilder<T>>
 {
@@ -28,6 +29,7 @@ public class VectorModelConfigBuilder<T> extends ConfigBuilder.Extensible<T, Vec
     private EmbeddedConfig embedding;
     private List<String> reject;
     private double threshold;
+    private StoredConfig store;
 
     VectorModelConfigBuilder(
         Function<VectorModelConfig, T> mapper)
@@ -74,9 +76,16 @@ public class VectorModelConfigBuilder<T> extends ConfigBuilder.Extensible<T, Vec
         return this;
     }
 
+    public VectorModelConfigBuilder<T> store(
+        String store)
+    {
+        this.store = store != null ? StoredConfig.builder().name(store).build() : null;
+        return this;
+    }
+
     @Override
     public T build()
     {
-        return mapper.apply(new VectorModelConfig(embedding, reject, threshold, extensions(), refs()));
+        return mapper.apply(new VectorModelConfig(embedding, reject, threshold, store, extensions(), refs()));
     }
 }

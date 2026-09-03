@@ -23,24 +23,28 @@ import io.aklivity.zilla.config.engine.Config;
 import io.aklivity.zilla.config.engine.EmbeddedConfig;
 import io.aklivity.zilla.config.engine.ModelConfig;
 import io.aklivity.zilla.config.engine.NamedConfig;
+import io.aklivity.zilla.config.engine.StoredConfig;
 
 public final class VectorModelConfig extends ModelConfig
 {
     public final EmbeddedConfig embedding;
     public final List<String> reject;
     public final double threshold;
+    public final StoredConfig store;
 
     VectorModelConfig(
         EmbeddedConfig embedding,
         List<String> reject,
         double threshold,
+        StoredConfig store,
         Map<String, Config> extensions,
         List<NamedConfig> refs)
     {
-        super("vector", null, null, extensions, withEmbedding(embedding, refs));
+        super("vector", null, null, extensions, withRefs(embedding, store, refs));
         this.embedding = embedding;
         this.reject = reject;
         this.threshold = threshold;
+        this.store = store;
     }
 
     public static <T> VectorModelConfigBuilder<T> builder(
@@ -54,14 +58,19 @@ public final class VectorModelConfig extends ModelConfig
         return new VectorModelConfigBuilder<>(VectorModelConfig.class::cast);
     }
 
-    private static List<NamedConfig> withEmbedding(
+    private static List<NamedConfig> withRefs(
         EmbeddedConfig embedding,
+        StoredConfig store,
         List<NamedConfig> refs)
     {
         List<NamedConfig> all = new ArrayList<>();
         if (embedding != null)
         {
             all.add(embedding);
+        }
+        if (store != null)
+        {
+            all.add(store);
         }
         if (refs != null)
         {
