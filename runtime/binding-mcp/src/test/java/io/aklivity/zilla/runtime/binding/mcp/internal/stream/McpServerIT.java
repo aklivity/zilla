@@ -872,6 +872,24 @@ public class McpServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/reject.request.session.unknown/client"})
+    public void shouldRejectRequestSessionUnknown() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/reject.request.session.missing/client"})
+    public void shouldRejectRequestSessionMissing() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/lifecycle.initialize.reject.capabilities.invalid/client"})
     public void shouldRejectLifecycleInitializeCapabilitiesInvalid() throws Exception
     {
