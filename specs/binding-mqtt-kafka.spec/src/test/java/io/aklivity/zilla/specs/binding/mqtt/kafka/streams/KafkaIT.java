@@ -173,6 +173,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/publish.many.messages.retain.available/client",
+        "${kafka}/publish.many.messages.retain.available/server"})
+    public void shouldPublishManyMessagesRetainAvailable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/publish.multiple.messages/client",
         "${kafka}/publish.multiple.messages/server"})
     public void shouldSendMultipleMessages() throws Exception

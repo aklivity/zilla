@@ -182,6 +182,15 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/publish.many.messages.retain.available/client",
+        "${mqtt}/publish.many.messages.retain.available/server"})
+    public void shouldPublishManyMessagesRetainAvailable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/publish.with.user.properties.distinct/client",
         "${mqtt}/publish.with.user.properties.distinct/server"})
     public void shouldSendWithDistinctUserProperties() throws Exception
