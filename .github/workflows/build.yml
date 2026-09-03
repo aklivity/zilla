@@ -37,6 +37,12 @@ jobs:
           !~/.m2/repository/io/aklivity/zilla
         key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
         restore-keys: ${{ runner.os }}-m2
+    - name: Cache Maven wrapper distribution
+      uses: actions/cache@v6
+      with:
+        path: ~/.m2/wrapper
+        key: ${{ runner.os }}-m2-wrapper-${{ hashFiles('**/maven-wrapper.properties') }}
+        restore-keys: ${{ runner.os }}-m2-wrapper-
     - name: Cache ZPM test artifacts
       uses: actions/cache@v6
       with:
