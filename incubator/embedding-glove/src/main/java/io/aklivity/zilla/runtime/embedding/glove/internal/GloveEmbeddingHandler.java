@@ -28,6 +28,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.time.Duration;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Pattern;
@@ -65,11 +66,15 @@ public final class GloveEmbeddingHandler implements EmbeddingHandler, AutoClosea
         long traceId,
         long bindingId,
         long contextId,
-        String text,
+        List<String> texts,
         CompletionCallback completion)
     {
-        float[] embedding = embed(text);
-        context.dispatch(() -> completion.completed(contextId, embedding));
+        float[][] results = new float[texts.size()][];
+        for (int i = 0; i < texts.size(); i++)
+        {
+            results[i] = embed(texts.get(i));
+        }
+        context.dispatch(() -> completion.completed(contextId, results));
     }
 
     @Override

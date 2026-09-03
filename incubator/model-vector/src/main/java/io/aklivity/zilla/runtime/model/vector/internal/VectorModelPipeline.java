@@ -136,9 +136,9 @@ final class VectorModelPipeline implements ModelPipeline
             @Override
             public void completed(
                 long contextId,
-                float[] vector)
+                float[][] results)
             {
-                onEmbedded(expectedGeneration, handler.matches(vector));
+                onEmbedded(expectedGeneration, handler.matches(results[0]));
             }
 
             @Override
