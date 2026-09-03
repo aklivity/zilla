@@ -1798,16 +1798,21 @@ public final class KafkaMergedFactory implements BindingHandler
                 initialMaxRW.value = Integer.MAX_VALUE;
                 produceStreams.forEach(p -> initialNoAckRW.value = Math.max(p.initialNoAck(), initialNoAckRW.value));
                 produceStreams.forEach(p -> initialPadRW.value = Math.max(p.initialPad, initialPadRW.value));
-                produceStreams.forEach(p -> initialMaxRW.value = Math.min(p.initialMax, initialMaxRW.value));
-
-                if (producer != null)
-                {
-                    initialMaxRW.value = Math.max(producer.initialMax, initialMaxRW.value);
-                }
+                // a partition carrying the traffic holds its acknowledge and grows its maximum, while
+                // idle partitions keep the maximum they started with, so minimizing the maximum here
+                // would pair the busiest partition's unacknowledged bytes with an idle partition's
+                // maximum and shrink this window to nothing; minimize the budget each one offers
+                produceStreams.forEach(p -> initialMaxRW.value =
+                    Math.min(p.initialMax - p.initialNoAck(), initialMaxRW.value));
 
                 maxInitialNoAck = initialNoAckRW.value;
                 maxInitialPad = initialPadRW.value;
-                minInitialMax = initialMaxRW.value;
+                minInitialMax = initialMaxRW.value + maxInitialNoAck;
+
+                if (producer != null)
+                {
+                    minInitialMax = Math.max(producer.initialMax, minInitialMax);
+                }
             }
 
             final long newInitialAck = Math.max(initialSeq - maxInitialNoAck, initialAck);
