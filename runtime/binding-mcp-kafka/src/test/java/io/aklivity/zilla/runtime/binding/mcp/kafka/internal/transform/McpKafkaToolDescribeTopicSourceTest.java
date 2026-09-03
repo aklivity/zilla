@@ -19,50 +19,40 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.binding.kafka.api.KafkaDescribeConfigsRequest;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 
-public class McpKafkaToolDescribeConfigsSourceTest
+public class McpKafkaToolDescribeTopicSourceTest
 {
     @Test
-    public void shouldParseTopicResource()
+    public void shouldParseTopic()
     {
-        McpKafkaToolDescribeConfigsSource source =
-            new McpKafkaToolDescribeConfigsSource(KafkaDescribeConfigsRequest.RESOURCE_TYPE_TOPIC);
+        McpKafkaToolDescribeTopicSource source = new McpKafkaToolDescribeTopicSource();
 
         Status status = parse(source, "{\"arguments\":{\"topic\":\"events\"}}");
 
         assertEquals(Status.COMPLETED, status);
         assertTrue(source.completed());
-        assertEquals(KafkaDescribeConfigsRequest.RESOURCE_TYPE_TOPIC, source.type());
-        assertEquals("events", source.name());
-        assertEquals(KafkaDescribeConfigsRequest.ALL_CONFIGS, source.configCount());
+        assertFalse(source.allTopics());
+        assertEquals(1, source.topicCount());
+
+        List<String> topics = new ArrayList<>();
+        source.forEach(topics::add);
+        assertEquals("events", topics.get(0));
     }
 
     @Test
-    public void shouldParseBrokerResource()
+    public void shouldRejectMissingTopic()
     {
-        McpKafkaToolDescribeConfigsSource source =
-            new McpKafkaToolDescribeConfigsSource(KafkaDescribeConfigsRequest.RESOURCE_TYPE_BROKER);
-
-        Status status = parse(source, "{\"arguments\":{\"broker_id\":0}}");
-
-        assertEquals(Status.COMPLETED, status);
-        assertEquals(KafkaDescribeConfigsRequest.RESOURCE_TYPE_BROKER, source.type());
-        assertEquals("0", source.name());
-    }
-
-    @Test
-    public void shouldRejectMissingResourceName()
-    {
-        McpKafkaToolDescribeConfigsSource source =
-            new McpKafkaToolDescribeConfigsSource(KafkaDescribeConfigsRequest.RESOURCE_TYPE_TOPIC);
+        McpKafkaToolDescribeTopicSource source = new McpKafkaToolDescribeTopicSource();
 
         Status status = parse(source, "{\"arguments\":{}}");
 
@@ -73,22 +63,20 @@ public class McpKafkaToolDescribeConfigsSourceTest
     @Test
     public void shouldIgnoreMetaSiblingOfArguments()
     {
-        McpKafkaToolDescribeConfigsSource source =
-            new McpKafkaToolDescribeConfigsSource(KafkaDescribeConfigsRequest.RESOURCE_TYPE_TOPIC);
+        McpKafkaToolDescribeTopicSource source = new McpKafkaToolDescribeTopicSource();
 
         Status status = parse(source,
-            "{\"name\":\"describe_topic_configs\",\"arguments\":{\"topic\":\"events\"}," +
+            "{\"name\":\"describe_topic\",\"arguments\":{\"topic\":\"events\"}," +
             "\"_meta\":{\"progressToken\":1}}");
 
         assertEquals(Status.COMPLETED, status);
-        assertEquals("events", source.name());
+        assertEquals(1, source.topicCount());
     }
 
     @Test
     public void shouldResetBetweenCalls()
     {
-        McpKafkaToolDescribeConfigsSource source =
-            new McpKafkaToolDescribeConfigsSource(KafkaDescribeConfigsRequest.RESOURCE_TYPE_TOPIC);
+        McpKafkaToolDescribeTopicSource source = new McpKafkaToolDescribeTopicSource();
 
         parse(source, "{\"arguments\":{\"topic\":\"events\"}}");
         assertTrue(source.completed());
@@ -96,10 +84,11 @@ public class McpKafkaToolDescribeConfigsSourceTest
         source.reset();
 
         assertFalse(source.completed());
+        assertEquals(0, source.topicCount());
     }
 
     private static Status parse(
-        McpKafkaToolDescribeConfigsSource source,
+        McpKafkaToolDescribeTopicSource source,
         String json)
     {
         final JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser()).into(source);
