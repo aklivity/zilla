@@ -279,6 +279,18 @@ public final class McpRouteConfig
         };
     }
 
+    static int capabilityBit(
+        String capability)
+    {
+        return switch (capability)
+        {
+        case CAPABILITY_TOOLS -> SERVER_TOOLS.value();
+        case CAPABILITY_PROMPTS -> SERVER_PROMPTS.value();
+        case CAPABILITY_RESOURCES -> SERVER_RESOURCES.value();
+        default -> 0;
+        };
+    }
+
     static String identifierOf(
         McpBeginExFW beginEx)
     {
