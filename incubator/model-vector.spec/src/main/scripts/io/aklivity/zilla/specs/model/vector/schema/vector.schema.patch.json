@@ -48,13 +48,19 @@
                         "type": "number",
                         "minimum": 0,
                         "maximum": 1
+                    },
+                    "store":
+                    {
+                        "title": "Store",
+                        "type": "string"
                     }
                 },
                 "required":
                 [
                     "embedding",
                     "reject",
-                    "threshold"
+                    "threshold",
+                    "store"
                 ]
             }
         }

@@ -26,4 +26,5 @@ bindings:
         reject:
           - "You will never believe what happened next."
         threshold: 0.85
+        store: cache0
     exit: test
