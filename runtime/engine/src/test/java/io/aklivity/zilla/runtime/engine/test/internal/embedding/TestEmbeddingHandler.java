@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.embedding;
 
+import java.util.List;
 import java.util.function.Consumer;
 
 import io.aklivity.zilla.runtime.engine.embedding.EmbeddingHandler;
@@ -37,20 +38,25 @@ public final class TestEmbeddingHandler implements EmbeddingHandler
         long traceId,
         long bindingId,
         long contextId,
-        String text,
+        List<String> texts,
         CompletionCallback completion)
     {
-        dispatcher.accept(() -> complete(contextId, text, completion));
+        dispatcher.accept(() -> complete(contextId, texts, completion));
     }
 
     private void complete(
         long contextId,
-        String text,
+        List<String> texts,
         CompletionCallback completion)
     {
         try
         {
-            completion.completed(contextId, generate(text));
+            float[][] results = new float[texts.size()][];
+            for (int i = 0; i < texts.size(); i++)
+            {
+                results[i] = generate(texts.get(i));
+            }
+            completion.completed(contextId, results);
         }
         catch (Throwable ex)
         {

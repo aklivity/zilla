@@ -15,6 +15,8 @@
  */
 package io.aklivity.zilla.runtime.engine.embedding;
 
+import java.util.List;
+
 /**
  * Produces embedding vectors for a specific embedding configuration.
  * <p>
@@ -34,13 +36,22 @@ package io.aklivity.zilla.runtime.engine.embedding;
  * the caller observes "callback runs on my thread, later", and never has to handle a
  * reentrant completion.
  * </p>
+ * <p>
+ * <b>Always batched.</b> {@link #embed} takes a list of texts, not a single text, so a
+ * caller resolving many embeddings at once (for example, indexing a corpus of documents)
+ * can hand them to a single call rather than issuing one call per text. A provider whose
+ * remote API accepts multiple texts per request can then satisfy the whole batch in as few
+ * underlying requests as its API allows, rather than one request per text — the difference
+ * between one request and dozens against a rate-limited API. A caller with exactly one text
+ * to embed (for example, a single search query) passes a single-element list.
+ * </p>
  *
  * @see EmbeddingContext
  */
 public interface EmbeddingHandler
 {
     /**
-     * Resolves an embedding for {@code text}, asynchronously.
+     * Resolves an embedding for each of {@code texts}, in order, asynchronously.
      * <p>
      * The {@code contextId} supplied at the call site is echoed back through the callback
      * so a single shared {@link CompletionCallback} instance can route results to the
@@ -51,23 +62,25 @@ public interface EmbeddingHandler
      * @param traceId     the trace identifier for diagnostics
      * @param bindingId   the binding identifier requesting the embedding
      * @param contextId   a context identifier (e.g., stream id), echoed back to {@code completion}
-     * @param text        the text to embed
-     * @param completion  callback invoked with the embedding vector on success ({@code null}
-     *                    result if no embedding could be produced), or
+     * @param texts       the texts to embed, in order
+     * @param completion  callback invoked with one embedding vector per text, in the same
+     *                    order, on success (an individual vector is {@code null} if no
+     *                    embedding could be produced for that text), or
      *                    {@link CompletionCallback#failed} if the attempt failed
      */
     void embed(
         long traceId,
         long bindingId,
         long contextId,
-        String text,
+        List<String> texts,
         CompletionCallback completion);
 
     /**
-     * Completion handler for the async {@link #embed(long, long, long, String, CompletionCallback)}
-     * operation, modelled after {@code GuardHandler.CompletionCallback}. The {@code contextId}
-     * supplied by the caller is echoed back to both methods so a single shared callback instance
-     * can dispatch results to the originating stream without per-call lambda capture.
+     * Completion handler for the async
+     * {@link #embed(long, long, long, List, CompletionCallback)} operation, modelled after
+     * {@code GuardHandler.CompletionCallback}. The {@code contextId} supplied by the caller
+     * is echoed back to both methods so a single shared callback instance can dispatch
+     * results to the originating stream without per-call lambda capture.
      */
     interface CompletionCallback
     {
@@ -75,11 +88,13 @@ public interface EmbeddingHandler
          * Invoked when the operation completes successfully.
          *
          * @param contextId  the {@code contextId} supplied to the originating call
-         * @param result     the embedding vector, or {@code null} if no embedding could be produced
+         * @param results    one embedding vector per requested text, in the same order;
+         *                    an individual vector is {@code null} if no embedding could be
+         *                    produced for that text
          */
         void completed(
             long contextId,
-            float[] result);
+            float[][] results);
 
         /**
          * Invoked when the operation fails.

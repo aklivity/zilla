@@ -30,8 +30,9 @@ import io.aklivity.zilla.runtime.binding.mcp.search.McpToolSearchMatch;
  * <p>
  * Fans an {@link #index(Collection, CompletionCallback)} or {@link #query(String,
  * CompletionCallback)} call out to every configured backend and joins once all have
- * completed; the first failure reported by any backend is forwarded as the composite's own
- * failure, discarding any results still outstanding from the others.
+ * completed. A backend that fails contributes no results rather than failing the
+ * composite; the composite itself fails only once every backend has failed, forwarding
+ * the last-reported failure.
  * </p>
  */
 public final class McpToolSearchComposite implements McpToolSearchIndex
@@ -56,7 +57,8 @@ public final class McpToolSearchComposite implements McpToolSearchIndex
         else
         {
             final int[] remaining = { indexes.size() };
-            final boolean[] settled = { false };
+            final int[] failures = { 0 };
+            final Throwable[] lastFailure = { null };
 
             for (McpToolSearchIndex index : indexes)
             {
@@ -66,21 +68,30 @@ public final class McpToolSearchComposite implements McpToolSearchIndex
                     public void completed(
                         Void result)
                     {
-                        if (--remaining[0] == 0 && !settled[0])
-                        {
-                            settled[0] = true;
-                            completed.completed(null);
-                        }
+                        onSettled();
                     }
 
                     @Override
                     public void failed(
                         Throwable ex)
                     {
-                        if (!settled[0])
+                        failures[0]++;
+                        lastFailure[0] = ex;
+                        onSettled();
+                    }
+
+                    private void onSettled()
+                    {
+                        if (--remaining[0] == 0)
                         {
-                            settled[0] = true;
-                            completed.failed(ex);
+                            if (failures[0] == indexes.size())
+                            {
+                                completed.failed(lastFailure[0]);
+                            }
+                            else
+                            {
+                                completed.completed(null);
+                            }
                         }
                     }
                 });
@@ -99,9 +110,10 @@ public final class McpToolSearchComposite implements McpToolSearchIndex
         }
         else
         {
-            final List<List<McpToolSearchMatch>> rankings = new ArrayList<>(Collections.nCopies(indexes.size(), null));
+            final List<List<McpToolSearchMatch>> rankings = new ArrayList<>(Collections.nCopies(indexes.size(), List.of()));
             final int[] remaining = { indexes.size() };
-            final boolean[] settled = { false };
+            final int[] failures = { 0 };
+            final Throwable[] lastFailure = { null };
 
             for (int i = 0; i < indexes.size(); i++)
             {
@@ -113,21 +125,30 @@ public final class McpToolSearchComposite implements McpToolSearchIndex
                         List<McpToolSearchMatch> matches)
                     {
                         rankings.set(slot, matches);
-                        if (--remaining[0] == 0 && !settled[0])
-                        {
-                            settled[0] = true;
-                            completed.completed(McpToolSearchRankFusion.fuse(rankings));
-                        }
+                        onSettled();
                     }
 
                     @Override
                     public void failed(
                         Throwable ex)
                     {
-                        if (!settled[0])
+                        failures[0]++;
+                        lastFailure[0] = ex;
+                        onSettled();
+                    }
+
+                    private void onSettled()
+                    {
+                        if (--remaining[0] == 0)
                         {
-                            settled[0] = true;
-                            completed.failed(ex);
+                            if (failures[0] == indexes.size())
+                            {
+                                completed.failed(lastFailure[0]);
+                            }
+                            else
+                            {
+                                completed.completed(McpToolSearchRankFusion.fuse(rankings));
+                            }
                         }
                     }
                 });

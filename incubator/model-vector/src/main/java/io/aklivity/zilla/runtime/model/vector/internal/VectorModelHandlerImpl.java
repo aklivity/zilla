@@ -53,28 +53,30 @@ final class VectorModelHandlerImpl implements ModelHandler
         this.pending = new LinkedList<>();
         this.rejectVectors = new float[config.reject.size()][];
 
-        for (int i = 0; i < config.reject.size(); i++)
+        handler.embed(0L, 0L, 0L, config.reject, new EmbeddingHandler.CompletionCallback()
         {
-            final int index = i;
-            handler.embed(0L, 0L, 0L, config.reject.get(i), new EmbeddingHandler.CompletionCallback()
+            @Override
+            public void completed(
+                long contextId,
+                float[][] results)
             {
-                @Override
-                public void completed(
-                    long contextId,
-                    float[] result)
+                for (int i = 0; i < results.length; i++)
                 {
-                    onRejectVectorEmbedded(index, result);
+                    onRejectVectorEmbedded(i, results[i]);
                 }
+            }
 
-                @Override
-                public void failed(
-                    long contextId,
-                    Throwable ex)
+            @Override
+            public void failed(
+                long contextId,
+                Throwable ex)
+            {
+                for (int i = 0; i < rejectVectors.length; i++)
                 {
-                    onRejectVectorEmbedded(index, null);
+                    onRejectVectorEmbedded(i, null);
                 }
-            });
-        }
+            }
+        });
     }
 
     @Override
@@ -118,7 +120,7 @@ final class VectorModelHandlerImpl implements ModelHandler
         String text,
         EmbeddingHandler.CompletionCallback callback)
     {
-        handler.embed(traceId, bindingId, 0L, text, callback);
+        handler.embed(traceId, bindingId, 0L, List.of(text), callback);
     }
 
     void whenReady(
