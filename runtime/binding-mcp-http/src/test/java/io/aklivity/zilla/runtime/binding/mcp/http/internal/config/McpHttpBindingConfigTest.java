@@ -15,6 +15,8 @@
 package io.aklivity.zilla.runtime.binding.mcp.http.internal.config;
 
 import static io.aklivity.zilla.runtime.binding.mcp.http.internal.config.McpHttpBindingConfig.argPathValid;
+import static io.aklivity.zilla.runtime.binding.mcp.http.internal.types.McpCapabilities.SERVER_RESOURCES;
+import static io.aklivity.zilla.runtime.binding.mcp.http.internal.types.McpCapabilities.SERVER_TOOLS;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
@@ -29,6 +31,9 @@ import java.util.List;
 import org.junit.Test;
 
 import io.aklivity.zilla.config.binding.mcp.http.McpHttpConditionConfig;
+import io.aklivity.zilla.config.binding.mcp.http.McpHttpOptionsConfig;
+import io.aklivity.zilla.config.binding.mcp.http.McpHttpResourceConfig;
+import io.aklivity.zilla.config.binding.mcp.http.McpHttpToolConfig;
 import io.aklivity.zilla.config.binding.mcp.http.McpHttpWithConfig;
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.config.engine.GenericBindingConfig;
@@ -74,6 +79,20 @@ public class McpHttpBindingConfigTest
             .type("mcp-http")
             .kind(KindConfig.PROXY)
             .routes(routes)
+            .build();
+        return new McpHttpBindingConfig(config, null, "sys:http_client");
+    }
+
+    private static McpHttpBindingConfig bindingWithOptions(
+        McpHttpOptionsConfig options)
+    {
+        BindingConfig config = GenericBindingConfig.builder()
+            .namespace("test")
+            .name("app0")
+            .type("mcp-http")
+            .kind(KindConfig.PROXY)
+            .options(options)
+            .routes(List.of())
             .build();
         return new McpHttpBindingConfig(config, null, "sys:http_client");
     }
@@ -310,5 +329,47 @@ public class McpHttpBindingConfigTest
     public void shouldAcceptWhenSchemaMalformed()
     {
         assertTrue(argPathValid("{ not json", "owner"));
+    }
+
+    @Test
+    public void shouldDeclareToolsCapabilityWhenOnlyToolsConfigured()
+    {
+        McpHttpOptionsConfig options = McpHttpOptionsConfig.builder()
+            .tools(List.of(McpHttpToolConfig.builder().name("create_pr").build()))
+            .build();
+        McpHttpBindingConfig binding = bindingWithOptions(options);
+
+        assertThat(binding.serverCapabilities(), equalTo(SERVER_TOOLS.value()));
+    }
+
+    @Test
+    public void shouldDeclareResourcesCapabilityWhenOnlyResourcesConfigured()
+    {
+        McpHttpOptionsConfig options = McpHttpOptionsConfig.builder()
+            .resources(List.of(McpHttpResourceConfig.builder().name("order").uri("/orders/{id}").build()))
+            .build();
+        McpHttpBindingConfig binding = bindingWithOptions(options);
+
+        assertThat(binding.serverCapabilities(), equalTo(SERVER_RESOURCES.value()));
+    }
+
+    @Test
+    public void shouldDeclareBothCapabilitiesWhenToolsAndResourcesConfigured()
+    {
+        McpHttpOptionsConfig options = McpHttpOptionsConfig.builder()
+            .tools(List.of(McpHttpToolConfig.builder().name("create_pr").build()))
+            .resources(List.of(McpHttpResourceConfig.builder().name("order").uri("/orders/{id}").build()))
+            .build();
+        McpHttpBindingConfig binding = bindingWithOptions(options);
+
+        assertThat(binding.serverCapabilities(), equalTo(SERVER_TOOLS.value() | SERVER_RESOURCES.value()));
+    }
+
+    @Test
+    public void shouldDeclareNoCapabilitiesWhenNeitherToolsNorResourcesConfigured()
+    {
+        McpHttpBindingConfig binding = binding(List.of());
+
+        assertThat(binding.serverCapabilities(), equalTo(0));
     }
 }

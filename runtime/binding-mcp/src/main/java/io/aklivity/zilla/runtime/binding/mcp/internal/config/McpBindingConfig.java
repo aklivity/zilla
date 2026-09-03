@@ -42,6 +42,7 @@ import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.config.engine.ModelConfig;
 import io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.internal.stream.cache.McpProxyCache;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.McpCapabilities;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBearerError;
@@ -71,6 +72,10 @@ public final class McpBindingConfig
     private static final String PATH_ROOT = "/";
 
     private static final Map<String, List<String>> EMPTY_ROLES = Map.of();
+
+    private static final int SERVER_CAPABILITIES_MASK = McpCapabilities.SERVER_TOOLS.value()
+        | McpCapabilities.SERVER_PROMPTS.value()
+        | McpCapabilities.SERVER_RESOURCES.value();
 
     public static final String CREDENTIALS_PLACEHOLDER = "{credentials}";
 
@@ -494,6 +499,28 @@ public final class McpBindingConfig
         }
     }
 
+    // a route's static when:-derived capability set (McpRouteConfig.serves) treats an
+    // unrestricted condition as serving every capability, regardless of what the south
+    // exit it routes to can actually serve. Once that south exit's own KIND_LIFECYCLE
+    // handshake has recorded its real capabilities, narrow the static set down to what
+    // south actually declared; before that handshake completes, realCapabilitiesByRoute
+    // holds no bits yet for this route and the static set is used as-is.
+    private boolean routeServes(
+        McpRouteConfig route,
+        String capability)
+    {
+        boolean serves = route.serves(capability);
+        if (serves)
+        {
+            final long realCapabilities = realCapabilitiesByRoute.get(route.id) & SERVER_CAPABILITIES_MASK;
+            if (realCapabilities != 0L)
+            {
+                serves = (realCapabilities & McpRouteConfig.capabilityBit(capability)) != 0L;
+            }
+        }
+        return serves;
+    }
+
     public McpRouteConfig resolve(
         McpBeginExFW beginEx,
         long authorization)
@@ -522,7 +549,7 @@ public final class McpBindingConfig
         {
             for (McpRouteConfig route : routes)
             {
-                if (route.authorized(authorization) && route.serves(capability))
+                if (route.authorized(authorization) && routeServes(route, capability))
                 {
                     resolved = route;
                     break;
@@ -611,7 +638,7 @@ public final class McpBindingConfig
             for (McpRouteConfig route : routes)
             {
                 final long authorization = routeCacheAuthorization(traceId, route.id);
-                if (route.authorized(authorization) && route.serves(capability))
+                if (route.authorized(authorization) && routeServes(route, capability))
                 {
                     result.add(new McpRoutePrefix(route.id, new String8FW(route.prefix(kind)), route));
                 }
@@ -634,7 +661,7 @@ public final class McpBindingConfig
         {
             for (McpRouteConfig route : routes)
             {
-                if (route.authorized(authorization) && route.serves(capability))
+                if (route.authorized(authorization) && routeServes(route, capability))
                 {
                     result.add(route);
                 }

@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.binding.mcp.http.internal.config;
 
+import static io.aklivity.zilla.runtime.binding.mcp.http.internal.types.McpCapabilities.SERVER_RESOURCES;
+import static io.aklivity.zilla.runtime.binding.mcp.http.internal.types.McpCapabilities.SERVER_TOOLS;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 
@@ -232,6 +234,24 @@ public final class McpHttpBindingConfig
     public Collection<McpHttpResourceConfig> resources()
     {
         return resourcesByName.values();
+    }
+
+    // real, declared capabilities -- this binding is configured with whichever of tools/resources
+    // its own routes actually resolve to (McpOpenapiCompositeGenerator only ever emits one or the
+    // other, or both), never prompts, so this reflects real config rather than echoing back
+    // whatever a connecting north forwarded for its own client's elicitation support
+    public int serverCapabilities()
+    {
+        int bits = 0;
+        if (!toolsByName.isEmpty())
+        {
+            bits |= SERVER_TOOLS.value();
+        }
+        if (!resourcesByName.isEmpty())
+        {
+            bits |= SERVER_RESOURCES.value();
+        }
+        return bits;
     }
 
     public byte[] toolsListJson()

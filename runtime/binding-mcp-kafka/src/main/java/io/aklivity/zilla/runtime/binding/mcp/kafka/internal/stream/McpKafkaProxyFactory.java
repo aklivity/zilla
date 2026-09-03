@@ -468,9 +468,8 @@ public class McpKafkaProxyFactory implements BindingHandler
                 {
                 case KIND_LIFECYCLE:
                 {
-                    final int capabilities = mcpBeginEx.lifecycle().capabilities();
                     final McpLifecycleProxy lifecycle = new McpLifecycleProxy(
-                        sender, originId, routedId, initialId, authorization, affinity, capabilities);
+                        sender, originId, routedId, initialId, authorization, affinity);
                     newStream = lifecycle::onMcpMessage;
                     break;
                 }
@@ -2083,7 +2082,6 @@ public class McpKafkaProxyFactory implements BindingHandler
         private final long replyId;
         private final long authorization;
         private final long affinity;
-        private final int capabilities;
 
         private int state;
 
@@ -2093,8 +2091,7 @@ public class McpKafkaProxyFactory implements BindingHandler
             long routedId,
             long initialId,
             long authorization,
-            long affinity,
-            int capabilities)
+            long affinity)
         {
             this.mcp = mcp;
             this.originId = originId;
@@ -2103,7 +2100,6 @@ public class McpKafkaProxyFactory implements BindingHandler
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.authorization = authorization;
             this.affinity = affinity;
-            this.capabilities = capabilities;
         }
 
         private void onMcpMessage(
@@ -2166,11 +2162,14 @@ public class McpKafkaProxyFactory implements BindingHandler
             long traceId)
         {
             final String sessionId = supplySessionId.get();
+            // this binding type is tools-only by construction (its route condition schema
+            // rejects prompt:/resource: selectors), so it always declares CAPABILITIES_TOOLS
+            // here rather than echoing whatever capabilities the connecting north forwarded
             final McpBeginExFW lifecycleEx = mcpBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(mcpTypeId)
                 .lifecycle(l -> l
                     .sessionId(sessionId)
-                    .capabilities(capabilities != 0 ? capabilities : CAPABILITIES_TOOLS))
+                    .capabilities(CAPABILITIES_TOOLS))
                 .build();
 
             doBegin(mcp, originId, routedId, replyId, traceId, authorization, affinity, lifecycleEx);
