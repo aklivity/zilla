@@ -102,6 +102,19 @@ public class McpKafkaToolDeleteAclsSourceTest
     }
 
     @Test
+    public void shouldIgnoreMetaSiblingOfArguments()
+    {
+        McpKafkaToolDeleteAclsSource source = new McpKafkaToolDeleteAclsSource();
+
+        Status status = parse(source,
+            "{\"name\":\"delete_acls\",\"arguments\":{\"acls\":[{\"resource_type\":\"topic\"}]}," +
+            "\"_meta\":{\"progressToken\":1}}");
+
+        assertEquals(Status.COMPLETED, status);
+        assertEquals(1, source.filterCount());
+    }
+
+    @Test
     public void shouldResetBetweenCalls()
     {
         McpKafkaToolDeleteAclsSource source = new McpKafkaToolDeleteAclsSource();

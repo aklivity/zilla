@@ -74,6 +74,20 @@ public class McpKafkaToolAlterConfigsSourceTest
     }
 
     @Test
+    public void shouldIgnoreMetaSiblingOfArguments()
+    {
+        McpKafkaToolAlterConfigsSource source =
+            new McpKafkaToolAlterConfigsSource(KafkaAlterConfigsRequest.RESOURCE_TYPE_TOPIC);
+
+        Status status = parse(source,
+            "{\"name\":\"alter_topic_configs\",\"arguments\":{\"topic\":\"events\"," +
+            "\"configs\":{\"cleanup.policy\":\"delete\"}},\"_meta\":{\"progressToken\":1}}");
+
+        assertEquals(Status.COMPLETED, status);
+        assertEquals("events", source.name());
+    }
+
+    @Test
     public void shouldResetBetweenCalls()
     {
         McpKafkaToolAlterConfigsSource source =

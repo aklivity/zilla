@@ -118,6 +118,20 @@ public class McpKafkaToolCreateAclsSourceTest
     }
 
     @Test
+    public void shouldIgnoreMetaSiblingOfArguments()
+    {
+        McpKafkaToolCreateAclsSource source = new McpKafkaToolCreateAclsSource();
+
+        Status status = parse(source,
+            "{\"name\":\"create_acls\",\"arguments\":{\"acls\":[{\"resource_type\":\"topic\"," +
+            "\"resource_name\":\"events\",\"principal\":\"User:alice\",\"operation\":\"read\"," +
+            "\"permission_type\":\"allow\"}]},\"_meta\":{\"progressToken\":1}}");
+
+        assertEquals(Status.COMPLETED, status);
+        assertEquals(1, source.creationCount());
+    }
+
+    @Test
     public void shouldResetBetweenCalls()
     {
         McpKafkaToolCreateAclsSource source = new McpKafkaToolCreateAclsSource();

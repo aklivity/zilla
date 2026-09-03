@@ -44,7 +44,8 @@ public final class McpKafkaToolAllTopicsSource implements JsonSink, Source
     private enum Context
     {
         ROOT,
-        ARGUMENTS
+        ARGUMENTS,
+        IGNORED
     }
 
     private final Deque<Context> stack = new ArrayDeque<>();
@@ -106,7 +107,9 @@ public final class McpKafkaToolAllTopicsSource implements JsonSink, Source
             status = onEndObject();
             break;
         case START_ARRAY:
-            stack.push(null);
+            // ArrayDeque forbids null elements, so IGNORED stands in for null to keep the stack
+            // depth correct while still ignoring any array content, including under "arguments".
+            stack.push(Context.IGNORED);
             break;
         case END_ARRAY:
             stack.pop();
@@ -140,7 +143,9 @@ public final class McpKafkaToolAllTopicsSource implements JsonSink, Source
         }
         else
         {
-            next = null;
+            // ArrayDeque forbids null elements, so an unrecognized object (e.g. a JSON-RPC "_meta"
+            // sibling of "arguments") pushes IGNORED rather than null to keep the stack depth correct.
+            next = Context.IGNORED;
         }
         stack.push(next);
     }

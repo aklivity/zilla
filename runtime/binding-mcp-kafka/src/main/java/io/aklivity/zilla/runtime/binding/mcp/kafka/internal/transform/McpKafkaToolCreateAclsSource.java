@@ -67,7 +67,8 @@ public final class McpKafkaToolCreateAclsSource implements JsonSink, Source
         ROOT,
         ARGUMENTS,
         ACLS,
-        ACL
+        ACL,
+        IGNORED
     }
 
     private final Deque<Context> stack = new ArrayDeque<>();
@@ -191,7 +192,9 @@ public final class McpKafkaToolCreateAclsSource implements JsonSink, Source
         }
         else
         {
-            next = null;
+            // ArrayDeque forbids null elements, so an unrecognized object (e.g. a JSON-RPC "_meta"
+            // sibling of "arguments") pushes IGNORED rather than null to keep the stack depth correct.
+            next = Context.IGNORED;
         }
         stack.push(next);
     }
@@ -206,7 +209,7 @@ public final class McpKafkaToolCreateAclsSource implements JsonSink, Source
         }
         else
         {
-            next = null;
+            next = Context.IGNORED;
         }
         stack.push(next);
     }
