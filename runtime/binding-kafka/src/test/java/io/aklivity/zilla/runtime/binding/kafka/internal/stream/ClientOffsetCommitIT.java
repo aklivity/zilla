@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
+import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfigurationTest.KAFKA_CLIENT_API_VERSIONS_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -28,6 +29,7 @@ import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
+import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
 public class ClientOffsetCommitIT
 {
@@ -126,6 +128,22 @@ public class ClientOffsetCommitIT
         "${app}/find.coordinator.only/client",
         "${net}/find.coordinator.only/server"})
     public void shouldFindCoordinatorOnly() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // Same chaining as shouldChainFindCoordinatorThenDescribeGroups, but with api.versions
+    // negotiation enabled (the production default). Every other test in this class disables
+    // api.versions, so none of them exercise doEncodeRequest's apiVersionRangeByApiKey-driven
+    // branch for the second pooled request once apiVersionRangeByApiKey is already populated
+    // from the leading ApiVersions exchange - reproduces https://github.com/aklivity/zilla/issues/2532.
+    @Test
+    @Configuration("client.yaml")
+    @Configure(name = KAFKA_CLIENT_API_VERSIONS_NAME, value = "true")
+    @Specification({
+        "${app}/find.then.describe/client",
+        "${net}/find.then.describe.negotiated/server"})
+    public void shouldChainFindCoordinatorThenDescribeGroupsWithApiVersionsNegotiated() throws Exception
     {
         k3po.finish();
     }

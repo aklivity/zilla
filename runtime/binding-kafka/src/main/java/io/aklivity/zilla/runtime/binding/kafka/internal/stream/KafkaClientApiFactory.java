@@ -809,7 +809,7 @@ public final class KafkaClientApiFactory implements BindingHandler
             this.replyMax = maximum;
             this.replyPad = padding;
 
-            state = KafkaState.openedReply(state);
+            state = KafkaState.openReply(state);
 
             assert replyAck <= replySeq;
 
