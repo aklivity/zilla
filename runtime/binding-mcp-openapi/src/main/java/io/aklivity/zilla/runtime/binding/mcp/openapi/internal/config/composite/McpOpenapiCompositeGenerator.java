@@ -1067,12 +1067,13 @@ public final class McpOpenapiCompositeGenerator
         return result;
     }
 
-    // MCP's tool outputSchema (and the structuredContent it describes) must be a JSON object; an OpenAPI
-    // response whose own schema is array- or primitive-typed is wrapped as {"result": <schema>} instead
-    // of advertised as-is -- see wrapAsObjectSchema and McpHttpResultWrap, which wraps the real response
-    // body the same way so structuredContent still matches the advertised schema. A resource's own output
-    // schema has no such constraint (it is never advertised, only used to project the read body), so this
-    // check and the wrapping it drives applies to tools only
+    // MCP's structuredContent field must always be a JSON object on the wire, regardless of whether the
+    // OpenAPI operation declares a response schema at all -- an undeclared-schema response can still be a
+    // bare array or scalar at runtime, so a response whose own declared (or entirely absent) schema is not
+    // object-typed is wrapped as {"result": <value>} instead of passed through as-is -- see wrapAsObjectSchema
+    // and McpHttpResultWrap, which wraps the real response body the same way so structuredContent still
+    // conforms. A resource's own output schema has no such constraint (it is never advertised, only used to
+    // project the read body), so this check and the wrapping it drives applies to tools only
     private static boolean hasObjectOutputSchema(
         OpenapiOperationView operation)
     {

@@ -43,16 +43,22 @@ write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .toolsCall()
                                .sessionId("5ca1ab1e-c0de-4a11-5e55-000100000000")
-                               .name("delete_subject")
-                               .contentLength(81)
+                               .name("get_dashboard")
+                               .contentLength(39)
                                .build()
                            .build()}
 
 connected
 
-write '{"name":"delete_subject","arguments":{"subject":"orders-value","permanent":true}}'
+write '{"name":"get_dashboard","arguments":{}}'
 
-read  '{"structuredContent":{"result":[1,2]},"content":[{"type":"text","text":"Deleted versions: [1,2]"}],"isError":false}'
+# tool has no output schema, so the raw upstream body streams through unprojected. tool.summary
+# references ${result.data} (an object nested under a key, re-serialized as compact JSON by
+# McpHttpResults' container capture, including a quote character that must round-trip through
+# JSON escaping) alongside three top-level scalar leaf references -- ${result.active} (true),
+# ${result.disabled} (false), and ${result.flag} (null) -- covering every scalar/container
+# combination captureContainer and the leaf VALUE_TRUE/VALUE_FALSE/VALUE_NULL branches handle
+read  '{"structuredContent":{"active":true,"disabled":false,"flag":null,"data":{"name":"Ops \\"Team\\"","count":3,"verified":true,"archived":false,"note":null,"tags":["a","b"]}},"content":[{"type":"text","text":"Dashboard: {\\"name\\":\\"Ops \\\\\\"Team\\\\\\"\\",\\"count\\":3,\\"verified\\":true,\\"archived\\":false,\\"note\\":null,\\"tags\\":[\\"a\\",\\"b\\"]} active=true disabled=false flag=null"}],"isError":false}'
 read closed
 
 write close

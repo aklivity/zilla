@@ -13,7 +13,7 @@
         "/connectors": {
             "get": {
                 "operationId": "list_connectors",
-                "summary": "Listed connectors",
+                "summary": "Connectors: ${result}",
                 "responses": {
                     "200": {
                         "description": "ok"
@@ -305,7 +305,7 @@
         "/connectors/{connector}/tasks": {
             "get": {
                 "operationId": "list_connector_tasks",
-                "summary": "Listed connector tasks",
+                "summary": "Tasks: ${result}",
                 "parameters": [
                     {
                         "name": "connector",
@@ -447,7 +447,7 @@
         "/connector-plugins": {
             "get": {
                 "operationId": "list_connector_plugins",
-                "summary": "Listed connector plugins",
+                "summary": "Plugins: ${result}",
                 "responses": {
                     "200": {
                         "description": "ok"

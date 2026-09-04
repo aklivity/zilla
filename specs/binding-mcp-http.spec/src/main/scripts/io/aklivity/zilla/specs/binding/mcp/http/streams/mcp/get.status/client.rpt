@@ -43,16 +43,23 @@ write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .toolsCall()
                                .sessionId("5ca1ab1e-c0de-4a11-5e55-000100000000")
-                               .name("delete_subject")
-                               .contentLength(81)
+                               .name("get_status")
+                               .contentLength(36)
                                .build()
                            .build()}
 
 connected
 
-write '{"name":"delete_subject","arguments":{"subject":"orders-value","permanent":true}}'
+write '{"name":"get_status","arguments":{}}'
 
-read  '{"structuredContent":{"result":[1,2]},"content":[{"type":"text","text":"Deleted versions: [1,2]"}],"isError":false}'
+# tool has no output schema, so the raw upstream body (a bare JSON string, not an object) streams
+# through unprojected; tool.summary's bare ${result} reference (no path) binds to that whole root
+# scalar value, proving the reference works with no wrapping key to match against
+read  '{'
+        '"structuredContent":"healthy",'
+        '"content":[{"type":"text","text":"Status: healthy"}],'
+        '"isError":false'
+      '}'
 read closed
 
 write close

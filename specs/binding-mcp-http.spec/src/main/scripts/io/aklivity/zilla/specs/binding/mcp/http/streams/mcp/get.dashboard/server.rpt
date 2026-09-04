@@ -43,18 +43,18 @@ read zilla:begin.ext ${mcp:matchBeginEx()
                           .typeId(zilla:id("mcp"))
                           .toolsCall()
                               .sessionId("5ca1ab1e-c0de-4a11-5e55-000100000000")
-                              .name("delete_subject")
-                              .contentLength(81)
+                              .name("get_dashboard")
+                              .contentLength(39)
                               .build()
                           .build()}
 
 connected
 
-read  '{"name":"delete_subject","arguments":{"subject":"orders-value","permanent":true}}'
+read  '{"name":"get_dashboard","arguments":{}}'
 
 write flush
 
-write '{"structuredContent":{"result":[1,2]},"content":[{"type":"text","text":"Deleted versions: [1,2]"}],"isError":false}'
+write '{"structuredContent":{"active":true,"disabled":false,"flag":null,"data":{"name":"Ops \\"Team\\"","count":3,"verified":true,"archived":false,"note":null,"tags":["a","b"]}},"content":[{"type":"text","text":"Dashboard: {\\"name\\":\\"Ops \\\\\\"Team\\\\\\"\\",\\"count\\":3,\\"verified\\":true,\\"archived\\":false,\\"note\\":null,\\"tags\\":[\\"a\\",\\"b\\"]} active=true disabled=false flag=null"}],"isError":false}'
 write flush
 
 write close
