@@ -489,6 +489,7 @@ final class ZillaTarget implements AutoCloseable
         final long authorization = channel.targetAuth();
         final int maximum = channel.targetMax();
         final long budgetId = channel.debitorId();
+        final int reservedBytes = channel.reservedBytes(0);
 
         final ChannelBuffer writeExt = channel.writeExtBuffer(FLUSH, true);
         final int writableExtBytes = writeExt.readableBytes();
@@ -505,10 +506,13 @@ final class ZillaTarget implements AutoCloseable
                 .traceId(supplyTraceId.getAsLong())
                 .authorization(authorization)
                 .budgetId(budgetId)
+                .reserved(reservedBytes)
                 .extension(ex -> ex.set(writeExtCopy))
                 .build();
 
         streamsBuffer.write(flush.typeId(), flush.buffer(), flush.offset(), flush.sizeof());
+
+        channel.writtenBytes(0, reservedBytes);
 
         writeExt.skipBytes(writableExtBytes);
         writeExt.discardReadBytes();
