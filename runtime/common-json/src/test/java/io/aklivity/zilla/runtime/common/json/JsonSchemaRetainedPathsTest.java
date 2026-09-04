@@ -77,6 +77,28 @@ class JsonSchemaRetainedPathsTest
     }
 
     @Test
+    void shouldCollectRejectedPathForFalseProperty()
+    {
+        assertEquals(List.of("/b"), rejected("{\"properties\":{\"a\":true,\"b\":false}}"));
+    }
+
+    @Test
+    void shouldCollectRejectedPathAlongsideAdditionalPropertiesWildcard()
+    {
+        JsonSchema schema = JsonSchema.of(
+            "{\"type\":\"object\",\"properties\":{\"connector.class\":{\"type\":\"string\"}," +
+            "\"connector\":false},\"additionalProperties\":true}");
+        assertEquals(List.of("/connector.class", "/*"), schema.retainedPaths());
+        assertEquals(List.of("/connector"), schema.rejectedPaths());
+    }
+
+    @Test
+    void shouldHaveNoRejectedPathsWhenNoPropertyIsDenied()
+    {
+        assertEquals(List.of(), rejected("{\"properties\":{\"a\":{\"type\":\"integer\"}}}"));
+    }
+
+    @Test
     void shouldTreatStructurelessObjectAsRetainedLeaf()
     {
         assertEquals(List.of("/meta"),
@@ -170,9 +192,39 @@ class JsonSchemaRetainedPathsTest
             new String(out, UTF_8));
     }
 
+    @Test
+    void shouldDriveProjectorEndToEndRejectingNamedPropertyOverWildcard()
+    {
+        // "connector" shares the same object as connector.class and the open-ended config fields (the
+        // shape of a tools/call arguments object carrying both a path parameter and a generic body), and
+        // must stay excluded even though additionalProperties would otherwise keep it via the wildcard
+        JsonGeneratorEx gen = JsonEx.createGenerator();
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[1024]);
+        gen.wrap(buffer, 0, buffer.capacity());
+        JsonSchema schema = JsonSchema.of(
+            "{\"type\":\"object\",\"properties\":{\"connector.class\":{\"type\":\"string\"}," +
+            "\"connector\":false},\"additionalProperties\":true}");
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
+            .transform(JsonTransforms.projector(schema))
+            .into(JsonEx.createSink(gen));
+        pipeline.reset();
+        byte[] bytes = ("{\"connector\":\"connector1\",\"connector.class\":\"FileStreamSource\"," +
+            "\"topic\":\"t\"} ").getBytes(UTF_8);
+        pipeline.transform(new UnsafeBufferEx(bytes), 0, bytes.length);
+        byte[] out = new byte[gen.length()];
+        buffer.getBytes(0, out);
+        assertEquals("{\"connector.class\":\"FileStreamSource\",\"topic\":\"t\"} ", new String(out, UTF_8));
+    }
+
     private static List<String> retained(
         String schema)
     {
         return JsonSchema.of(schema).retainedPaths();
+    }
+
+    private static List<String> rejected(
+        String schema)
+    {
+        return JsonSchema.of(schema).rejectedPaths();
     }
 }

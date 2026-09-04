@@ -143,6 +143,17 @@ public interface JsonSchema
     List<String> retainedPaths();
 
     /**
+     * Returns the RFC 6901 JSON Pointers explicitly denied ({@code false}, or an equivalent
+     * always-fails sub-schema) when projecting an instance of this schema — the union of such paths
+     * declared across all branches. A path here always wins over the same path being retained
+     * elsewhere (e.g. a structured schema's own named property denied while its sibling {@code
+     * additionalProperties} would otherwise keep it): {@link JsonTransforms#projector(JsonSchema)}
+     * feeds both lists to the same projector, and a rejected path is excluded even where a broader
+     * wildcard from {@link #retainedPaths()} would otherwise retain it.
+     */
+    List<String> rejectedPaths();
+
+    /**
      * The compiled sub-schema declared for object property {@code name} under this schema's {@code
      * properties} keyword, or {@code null} when this schema declares no such property.
      */

@@ -106,7 +106,14 @@ public final class JsonProjectorImpl implements JsonTransform
     public JsonProjectorImpl(
         List<String> pointers)
     {
-        this.root = compile(pointers);
+        this(pointers, List.of());
+    }
+
+    public JsonProjectorImpl(
+        List<String> retained,
+        List<String> rejected)
+    {
+        this.root = compile(retained, rejected);
     }
 
     @Override
@@ -622,6 +629,14 @@ public final class JsonProjectorImpl implements JsonTransform
         {
             result = Decision.SKIP;
         }
+        else if (node.rejected)
+        {
+            // an explicit reject always wins, even over this same node's own keepAll -- a pointer can
+            // only ever land in one of retained/rejected (JsonSchemaImpl's retainedPaths/rejectedPaths
+            // partition every leaf by its own deny flag), but a caller combining pointer lists by hand
+            // should still get the safer, deny-wins outcome on an accidental overlap
+            result = Decision.SKIP;
+        }
         else if (node.keepAll)
         {
             result = Decision.KEEP_ALL;
@@ -735,10 +750,11 @@ public final class JsonProjectorImpl implements JsonTransform
     }
 
     private static Node compile(
-        List<String> pointers)
+        List<String> retained,
+        List<String> rejected)
     {
         NodeBuilder builder = new NodeBuilder();
-        for (String pointer : pointers)
+        for (String pointer : retained)
         {
             NodeBuilder node = builder;
             for (String segment : segments(pointer))
@@ -746,6 +762,15 @@ public final class JsonProjectorImpl implements JsonTransform
                 node = node.child(segment);
             }
             node.keepAll = true;
+        }
+        for (String pointer : rejected)
+        {
+            NodeBuilder node = builder;
+            for (String segment : segments(pointer))
+            {
+                node = node.child(segment);
+            }
+            node.rejected = true;
         }
         return builder.build();
     }
@@ -771,23 +796,28 @@ public final class JsonProjectorImpl implements JsonTransform
     }
 
     // An immutable trie node: children are parallel key/node arrays scanned linearly (a handful of children
-    // per node), keepAll marks a node where a retained pointer terminates, and maxKeyLength is the longest
-    // of this node's own children's keys — the bound onKey declines a fragmenting child key against.
+    // per node), keepAll marks a node where a retained pointer terminates, rejected marks a node where a
+    // rejected pointer terminates (and always wins over this same node's own keepAll, see decide()), and
+    // maxKeyLength is the longest of this node's own children's keys — the bound onKey declines a
+    // fragmenting child key against.
     private static final class Node
     {
         private final String[] keys;
         private final Node[] nodes;
         private final boolean keepAll;
+        private final boolean rejected;
         private final int maxKeyLength;
 
         private Node(
             String[] keys,
             Node[] nodes,
-            boolean keepAll)
+            boolean keepAll,
+            boolean rejected)
         {
             this.keys = keys;
             this.nodes = nodes;
             this.keepAll = keepAll;
+            this.rejected = rejected;
             int longest = 0;
             boolean wildcard = false;
             for (String key : keys)
@@ -806,6 +836,7 @@ public final class JsonProjectorImpl implements JsonTransform
     {
         private final Map<String, NodeBuilder> children = new LinkedHashMap<>();
         private boolean keepAll;
+        private boolean rejected;
 
         private NodeBuilder child(
             String segment)
@@ -825,7 +856,7 @@ public final class JsonProjectorImpl implements JsonTransform
                 nodes[i] = entry.getValue().build();
                 i++;
             }
-            return new Node(keys, nodes, keepAll);
+            return new Node(keys, nodes, keepAll, rejected);
         }
     }
 

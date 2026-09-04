@@ -195,6 +195,7 @@ public final class JsonSchemaImpl implements JsonSchema
     private final JsonNode raw;
 
     private List<String> retainedPaths;
+    private List<String> rejectedPaths;
 
     public static JsonSchema of(
         String schema)
@@ -231,6 +232,7 @@ public final class JsonSchemaImpl implements JsonSchema
         if (result != ANY && result != NONE)
         {
             result.retainedPaths = result.collectMatchingPaths((node, structured) -> !structured && !node.deny);
+            result.rejectedPaths = result.collectMatchingPaths((node, structured) -> !structured && node.deny);
         }
         return result;
     }
@@ -307,6 +309,12 @@ public final class JsonSchemaImpl implements JsonSchema
     public List<String> retainedPaths()
     {
         return retainedPaths != null ? retainedPaths : List.of();
+    }
+
+    @Override
+    public List<String> rejectedPaths()
+    {
+        return rejectedPaths != null ? rejectedPaths : List.of();
     }
 
     @Override
