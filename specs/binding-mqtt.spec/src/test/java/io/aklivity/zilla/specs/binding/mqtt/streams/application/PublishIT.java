@@ -66,9 +66,9 @@ public class PublishIT
 
     @Test
     @Specification({
-        "${app}/publish.many.messages/client",
-        "${app}/publish.many.messages/server"})
-    public void shouldSendManyMessages() throws Exception
+        "${app}/publish.multiple.messages.100c/client",
+        "${app}/publish.multiple.messages.100c/server"})
+    public void shouldSendMultipleMessages100c() throws Exception
     {
         k3po.finish();
     }

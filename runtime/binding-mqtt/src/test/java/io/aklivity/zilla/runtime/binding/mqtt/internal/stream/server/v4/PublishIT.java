@@ -132,9 +132,9 @@ public class PublishIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/publish.many.messages/client",
-        "${app}/publish.many.messages/server"})
-    public void shouldPublishManyMessages() throws Exception
+        "${net}/publish.multiple.messages.100c/client",
+        "${app}/publish.multiple.messages.100c/server"})
+    public void shouldPublishMultipleMessages100c() throws Exception
     {
         k3po.finish();
     }
