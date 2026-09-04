@@ -252,6 +252,23 @@ jobs:
             docker load -i ~/docker-images-cache/images.tar || true
           fi
 
+      # mcp.proxy's "everything" toolkit is installed via a live `npx -y` at
+      # container start (no baked-in image), so the cold path -- npm resolving
+      # and fetching 100+ transitive packages one by one -- takes anywhere
+      # from ~2 to 5+ minutes depending on npm-registry conditions, observed
+      # to occasionally exceed even the healthcheck's generous 10-minute
+      # ceiling under a slow registry. Restoring npm's own cache directory
+      # (mounted into the container -- see compose.yaml's `everything`
+      # service) turns that into a few-seconds no-op fetch instead. Bump the
+      # key's version suffix if the pinned @modelcontextprotocol/server-everything
+      # version in that compose.yaml ever changes.
+      - name: Restore npm cache for shared MCP "everything" server
+        if: ${{ matrix.dir == 'mcp.proxy' }}
+        uses: actions/cache@v6
+        with:
+          path: examples/${{ matrix.dir }}/.cache/npm-everything
+          key: npm-everything-2026.7.4-${{ runner.os }}
+
       - name: Start Zilla and wait for it to be healthy
         working-directory: examples/${{ matrix.dir }}
         run: docker compose up -d --wait
