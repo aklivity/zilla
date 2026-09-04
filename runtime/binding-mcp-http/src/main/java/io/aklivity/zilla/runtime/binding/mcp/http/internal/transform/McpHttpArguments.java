@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.mcp.http.internal.transform;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 import io.aklivity.zilla.runtime.common.json.JsonController;
@@ -35,6 +36,12 @@ import io.aklivity.zilla.runtime.common.json.JsonTransform;
  * convention {@code McpHttpRouteConfig}'s body-template pointer navigation already uses; a scalar inside an
  * array is not captured, since array elements have no key to build a path from.
  * <p>
+ * A top-level argument named in {@code excludedKeys} (e.g. an argument already fully consumed by the route's
+ * {@code :path} template) is still captured, but its key and value are withheld from the downstream sink
+ * entirely — otherwise a route whose body has no explicit template (so the whole {@code arguments} object
+ * flows through to the outbound body/query as-is) would leak that argument into the outbound request as an
+ * extra, unintended field.
+ * <p>
  * This is a mediating, structure-inspecting transform (it must see the {@code name}/{@code arguments}
  * wrapper's own {@code KEY_NAME} events, then every top-level argument's own {@code KEY_NAME}, to do its
  * job), sitting in front of a byte-preferring projector/sink chain — so, per the same mediating-transform
@@ -50,6 +57,7 @@ import io.aklivity.zilla.runtime.common.json.JsonTransform;
 public final class McpHttpArguments implements JsonTransform
 {
     private final Map<String, String> captured;
+    private final List<String> excludedKeys;
     private final StringBuilder text = new StringBuilder();
     private final JsonController downstreamControl = new JsonController()
     {
@@ -80,11 +88,15 @@ public final class McpHttpArguments implements JsonTransform
     private boolean forwarding;
     private int forwardDepth;
     private String captureKey;
+    private boolean suppressing;
+    private int suppressDepth;
 
     public McpHttpArguments(
-        Map<String, String> captured)
+        Map<String, String> captured,
+        List<String> excludedKeys)
     {
         this.captured = captured;
+        this.excludedKeys = excludedKeys;
     }
 
     @Override
@@ -95,6 +107,8 @@ public final class McpHttpArguments implements JsonTransform
         forwarding = false;
         forwardDepth = 0;
         captureKey = null;
+        suppressing = false;
+        suppressDepth = 0;
         path.clear();
         text.setLength(0);
     }
@@ -191,13 +205,13 @@ public final class McpHttpArguments implements JsonTransform
                 path.push(captureKey);
             }
             captureKey = null;
-            status = forward(sink, source, event);
+            status = suppressing ? Status.ADVANCED : forward(sink, source, event);
             break;
         case START_ARRAY:
             // array elements have no key to build a path from, so nothing beneath this point is captured
             forwardDepth++;
             captureKey = null;
-            status = forward(sink, source, event);
+            status = suppressing ? Status.ADVANCED : forward(sink, source, event);
             break;
         case END_OBJECT:
             forwardDepth--;
@@ -205,7 +219,11 @@ public final class McpHttpArguments implements JsonTransform
             {
                 path.pop();
             }
-            status = forward(sink, source, event);
+            status = suppressing ? Status.ADVANCED : forward(sink, source, event);
+            if (suppressing && forwardDepth == suppressDepth)
+            {
+                suppressing = false;
+            }
             if (forwardDepth == 0)
             {
                 forwarding = false;
@@ -213,16 +231,30 @@ public final class McpHttpArguments implements JsonTransform
             break;
         case END_ARRAY:
             forwardDepth--;
-            status = forward(sink, source, event);
+            status = suppressing ? Status.ADVANCED : forward(sink, source, event);
+            if (suppressing && forwardDepth == suppressDepth)
+            {
+                suppressing = false;
+            }
             if (forwardDepth == 0)
             {
                 forwarding = false;
             }
             break;
         case KEY_NAME:
-            captureKey = capturePath(source.getStringView().toString());
+            final String name = source.getStringView().toString();
+            captureKey = capturePath(name);
             text.setLength(0);
-            status = forward(sink, source, event);
+            if (forwardDepth == 1 && excludedKeys.contains(name))
+            {
+                suppressing = true;
+                suppressDepth = forwardDepth;
+                status = Status.ADVANCED;
+            }
+            else
+            {
+                status = forward(sink, source, event);
+            }
             break;
         case VALUE_STRING:
         case VALUE_NUMBER:
@@ -236,7 +268,11 @@ public final class McpHttpArguments implements JsonTransform
                     captureKey = null;
                 }
             }
-            status = forward(sink, source, event);
+            status = suppressing ? Status.ADVANCED : forward(sink, source, event);
+            if (suppressing && !source.deferredBytes() && forwardDepth == suppressDepth)
+            {
+                suppressing = false;
+            }
             break;
         case VALUE_TRUE:
             if (captureKey != null)
@@ -244,7 +280,11 @@ public final class McpHttpArguments implements JsonTransform
                 captured.put(captureKey, "true");
                 captureKey = null;
             }
-            status = forward(sink, source, event);
+            status = suppressing ? Status.ADVANCED : forward(sink, source, event);
+            if (suppressing && forwardDepth == suppressDepth)
+            {
+                suppressing = false;
+            }
             break;
         case VALUE_FALSE:
             if (captureKey != null)
@@ -252,16 +292,24 @@ public final class McpHttpArguments implements JsonTransform
                 captured.put(captureKey, "false");
                 captureKey = null;
             }
-            status = forward(sink, source, event);
+            status = suppressing ? Status.ADVANCED : forward(sink, source, event);
+            if (suppressing && forwardDepth == suppressDepth)
+            {
+                suppressing = false;
+            }
             break;
         case VERBATIM:
             // rides alongside the structured event stream for the same value rather than substituting for
             // it (see the class Javadoc), so it must not disturb an in-progress capture
-            status = forward(sink, source, event);
+            status = suppressing ? Status.ADVANCED : forward(sink, source, event);
             break;
         default:
             captureKey = null;
-            status = forward(sink, source, event);
+            status = suppressing ? Status.ADVANCED : forward(sink, source, event);
+            if (suppressing && forwardDepth == suppressDepth)
+            {
+                suppressing = false;
+            }
             break;
         }
         return status;

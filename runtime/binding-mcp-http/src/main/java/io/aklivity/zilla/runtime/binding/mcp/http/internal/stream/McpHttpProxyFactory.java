@@ -1054,7 +1054,7 @@ public final class McpHttpProxyFactory implements BindingHandler
                 requestPathArgs = pathArgReferences(route);
 
                 JsonStream stream = JsonEx.stream(JsonEx.createParser())
-                    .transform(new McpHttpArguments(requestArgs));
+                    .transform(new McpHttpArguments(requestArgs, requestPathArgs));
                 if (needsValidation)
                 {
                     // the schema validator must fully reassemble any individual scalar value spanning
