@@ -245,7 +245,11 @@ public final class McpHttpArguments implements JsonTransform
             final String name = source.getStringView().toString();
             captureKey = capturePath(name);
             text.setLength(0);
-            if (forwardDepth == 1 && excludedKeys.contains(name))
+            if (suppressing)
+            {
+                status = Status.ADVANCED;
+            }
+            else if (forwardDepth == 1 && excludedKeys.contains(name))
             {
                 suppressing = true;
                 suppressDepth = forwardDepth;
