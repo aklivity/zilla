@@ -51,6 +51,33 @@ class JsonProjectorTest
     }
 
     @Test
+    void shouldRetainPropertyWildcardField()
+    {
+        assertEquals("{\"a\":1,\"x\":2,\"y\":3}",
+            project(List.of("/a", "/*"), "{\"a\":1,\"x\":2,\"y\":3}"));
+    }
+
+    @Test
+    void shouldPreferNamedPropertyOverWildcard()
+    {
+        // the wildcard is a fallback, not an override -- a key with its own retained pointer keeps that
+        // pointer's shape even when it would also match the sibling wildcard
+        assertEquals("{\"a\":{\"b\":1},\"c\":{\"d\":2,\"e\":3}}",
+            project(List.of("/a/b", "/*"), "{\"a\":{\"b\":1,\"z\":9},\"c\":{\"d\":2,\"e\":3}}"));
+    }
+
+    @Test
+    void shouldRetainPropertyWildcardFieldThatFragmentsAcrossInputWindows()
+    {
+        // the unmatched key is longer than every named sibling (and the feed window), so onKey's
+        // exceeds-max-named-length shortcut must not declare SKIP early now that a wildcard sibling means
+        // a longer key can still match
+        String key = "x".repeat(40);
+        assertEquals("{\"a\":1,\"" + key + "\":2}",
+            projectWindowed(List.of("/a", "/*"), "{\"a\":1,\"" + key + "\":2}", 8));
+    }
+
+    @Test
     void shouldRetainExplicitArrayIndex()
     {
         assertEquals("{\"items\":[\"b\"]}",

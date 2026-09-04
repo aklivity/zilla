@@ -144,7 +144,8 @@
                                     "tasks.max": {
                                         "type": "string"
                                     }
-                                }
+                                },
+                                "additionalProperties": true
                             }
                         }
                     }
@@ -183,7 +184,8 @@
                                     "tasks.max": {
                                         "type": "string"
                                     }
-                                }
+                                },
+                                "additionalProperties": true
                             }
                         }
                     }
