@@ -136,7 +136,16 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "type": "object"
+                                "type": "object",
+                                "properties": {
+                                    "connector.class": {
+                                        "type": "string"
+                                    },
+                                    "tasks.max": {
+                                        "type": "string"
+                                    }
+                                },
+                                "additionalProperties": true
                             }
                         }
                     }
@@ -167,7 +176,16 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "type": "object"
+                                "type": "object",
+                                "properties": {
+                                    "connector.class": {
+                                        "type": "string"
+                                    },
+                                    "tasks.max": {
+                                        "type": "string"
+                                    }
+                                },
+                                "additionalProperties": true
                             }
                         }
                     }
