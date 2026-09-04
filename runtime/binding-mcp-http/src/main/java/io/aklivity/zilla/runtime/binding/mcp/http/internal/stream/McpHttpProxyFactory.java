@@ -1443,9 +1443,9 @@ public final class McpHttpProxyFactory implements BindingHandler
             String expression)
         {
             String value = "";
-            if (expression.equals("result") || expression.startsWith("result."))
+            if ("result".equals(expression) || expression.startsWith("result."))
             {
-                final String path = expression.equals("result") ? "" : expression.substring(7);
+                final String path = "result".equals(expression) ? "" : expression.substring(7);
                 final String captured = capturedResults.get(path);
                 value = captured != null ? captured : "";
             }
