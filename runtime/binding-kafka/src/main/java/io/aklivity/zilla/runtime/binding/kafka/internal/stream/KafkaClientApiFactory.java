@@ -1712,15 +1712,10 @@ public final class KafkaClientApiFactory implements BindingHandler
             state = KafkaState.closedReply(state);
             doNetEnd(traceId, authorization);
 
-            // a disconnect is not evidence the broker's supported versions changed;
-            // apiVersionRangeByApiKey survives reconnect and is only invalidated
-            // reactively, by an UNSUPPORTED_VERSION response to a real request
-            saslResolved = false;
-
-            cleanupDecodeSlot();
-            cleanupAppActive(traceId, EMPTY_OCTETS);
-
-            doNetSignalReconnect(traceId);
+            if (KafkaState.closed(state))
+            {
+                onNetClosed(traceId);
+            }
         }
 
         private void onNetAbort(
@@ -1729,8 +1724,12 @@ public final class KafkaClientApiFactory implements BindingHandler
             final long traceId = abort.traceId();
 
             state = KafkaState.closedReply(state);
+            doNetAbort(traceId);
 
-            cleanupNet(traceId);
+            if (KafkaState.closed(state))
+            {
+                onNetClosed(traceId);
+            }
         }
 
         private void onNetReset(
@@ -1739,8 +1738,12 @@ public final class KafkaClientApiFactory implements BindingHandler
             final long traceId = reset.traceId();
 
             state = KafkaState.closedInitial(state);
+            doNetReset(traceId);
 
-            cleanupNet(traceId);
+            if (KafkaState.closed(state))
+            {
+                onNetClosed(traceId);
+            }
         }
 
         private void onNetWindow(
@@ -1803,31 +1806,6 @@ public final class KafkaClientApiFactory implements BindingHandler
             long authorization,
             long affinity)
         {
-            if (KafkaState.closed(state))
-            {
-                state = 0;
-
-                initialSeq = 0;
-                initialAck = 0;
-                initialMax = 0;
-                initialPad = 0;
-                initialBudgetId = NO_BUDGET_ID;
-
-                replySeq = 0;
-                replyAck = 0;
-                replyMax = 0;
-
-                nextCorrelationId = 0;
-                responseBytesRemaining = 0;
-                apiVersionKeysRemaining = 0;
-                saslMechanismsRemaining = 0;
-
-                requestInFlight = false;
-                apiVersionsRequestExplicit = false;
-
-                decoder = decodeReject;
-            }
-
             if (!KafkaState.initialOpening(state))
             {
                 assert state == 0;
@@ -2318,17 +2296,50 @@ public final class KafkaClientApiFactory implements BindingHandler
             }
         }
 
+        private void onNetClosed(
+            long traceId)
+        {
+            assert KafkaState.closed(state);
+
+            cleanupAppActive(traceId, EMPTY_OCTETS);
+            cleanupDecodeSlot();
+            cleanupEncodeSlot();
+            cleanupBudget();
+
+            state = 0;
+
+            initialSeq = 0;
+            initialAck = 0;
+            initialMax = 0;
+            initialPad = 0;
+            initialBudgetId = NO_BUDGET_ID;
+
+            replySeq = 0;
+            replyAck = 0;
+            replyMax = 0;
+
+            nextCorrelationId = 0;
+            responseBytesRemaining = 0;
+            apiVersionKeysRemaining = 0;
+            saslMechanismsRemaining = 0;
+
+            requestInFlight = false;
+            apiVersionsRequestExplicit = false;
+
+            // a disconnect is not evidence the broker's supported versions changed;
+            // apiVersionRangeByApiKey survives reconnect and is only invalidated
+            // reactively, by an UNSUPPORTED_VERSION response to a real request
+            saslResolved = false;
+
+            decoder = decodeReject;
+
+            doNetSignalReconnect(traceId);
+        }
+
         private void cleanupNetPending(
             long traceId,
             int error)
         {
-            doNetReset(traceId);
-            doNetAbort(traceId);
-
-            apiVersionRangeByApiKey.clear();
-            apiVersionsRequestExplicit = false;
-            saslResolved = false;
-
             final KafkaResetExFW kafkaResetEx = kafkaResetExRW.wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(kafkaTypeId)
                 .error(error)
@@ -2339,6 +2350,16 @@ public final class KafkaClientApiFactory implements BindingHandler
             {
                 stream.cleanupApp(traceId, kafkaResetEx);
             }
+
+            doNetReset(traceId);
+            doNetAbort(traceId);
+
+            apiVersionRangeByApiKey.clear();
+
+            if (KafkaState.closed(state))
+            {
+                onNetClosed(traceId);
+            }
         }
 
         private void cleanupNet(
@@ -2347,12 +2368,10 @@ public final class KafkaClientApiFactory implements BindingHandler
             doNetReset(traceId);
             doNetAbort(traceId);
 
-            // see onNetEnd: apiVersionRangeByApiKey survives an abortive
-            // disconnect the same way it survives an orderly one
-            saslResolved = false;
-
-            cleanupAppActive(traceId, EMPTY_OCTETS);
-            doNetSignalReconnect(traceId);
+            if (KafkaState.closed(state))
+            {
+                onNetClosed(traceId);
+            }
         }
 
         private void cleanupDecodeSlot()
