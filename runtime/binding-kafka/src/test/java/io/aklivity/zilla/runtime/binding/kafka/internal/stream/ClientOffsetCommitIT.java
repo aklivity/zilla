@@ -41,6 +41,8 @@ public class ClientOffsetCommitIT
         .directory("target/zilla-itests")
         .countersBufferCapacity(8192)
         .configurationRoot("io/aklivity/zilla/specs/binding/kafka/config")
+        .configure("zilla.binding.kafka.client.connection.pool", "false")
+        .configure("zilla.binding.kafka.client.api.versions", "false")
         .external("net0")
         .clean();
 
@@ -84,6 +86,56 @@ public class ClientOffsetCommitIT
         "${app}/offset.commit.error/client",
         "${net}/offset.commit.error/server"})
     public void shouldHandleOffsetCommitError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/bare.commit/client",
+        "${net}/bare.commit/server"})
+    public void shouldCommitBareOffset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/reset.offsets.dead/client",
+        "${net}/reset.offsets.dead/server"})
+    public void shouldResetOffsetsForDeadGroup() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/find.then.describe/client",
+        "${net}/find.then.describe/server"})
+    public void shouldChainFindCoordinatorThenDescribeGroups() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/find.coordinator.only/client",
+        "${net}/find.coordinator.only/server"})
+    public void shouldFindCoordinatorOnly() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/find.then.describe.no.wait/client",
+        "${net}/find.then.describe/server"})
+    public void shouldChainFindCoordinatorThenDescribeGroupsNoWait() throws Exception
     {
         k3po.finish();
     }

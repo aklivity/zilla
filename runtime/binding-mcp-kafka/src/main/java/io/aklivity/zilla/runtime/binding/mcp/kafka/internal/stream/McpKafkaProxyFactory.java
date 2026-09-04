@@ -9041,16 +9041,23 @@ public class McpKafkaProxyFactory implements BindingHandler
                 traceId, authorization, affinity, kafkaBeginEx);
         }
 
+        /**
+         * Only the reply of the stage currently in flight closes the MCP reply; the previous stage's
+         * reply END arrives after {@link #advanceToOffsetCommit} has already opened the next stream.
+         */
         private void onKafkaEnd(
             EndFW end)
         {
             final long traceId = end.traceId();
 
-            state = McpKafkaState.closedReply(state);
-
-            if (stage == STAGE_OFFSET_COMMIT && mcpBegun)
+            if (end.streamId() == kafkaReplyId)
             {
-                peer.doMcpEnd(traceId);
+                state = McpKafkaState.closedReply(state);
+
+                if (stage == STAGE_OFFSET_COMMIT && mcpBegun)
+                {
+                    peer.doMcpEnd(traceId);
+                }
             }
         }
 
