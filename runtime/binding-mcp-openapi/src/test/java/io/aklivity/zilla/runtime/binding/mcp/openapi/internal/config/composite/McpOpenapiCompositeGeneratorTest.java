@@ -839,6 +839,86 @@ public class McpOpenapiCompositeGeneratorTest
     }
 
     @Test
+    public void shouldAdvertiseAdditionalPropertiesInInputSchema()
+    {
+        String spec =
+            """
+            {
+              "openapi": "3.0.1",
+              "info": { "title": "things", "version": "1.0" },
+              "servers": [ { "url": "https://api.example.com" } ],
+              "paths": {
+                "/things/{id}": {
+                  "put": {
+                    "operationId": "update_thing",
+                    "parameters": [
+                      { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+                    ],
+                    "requestBody": {
+                      "required": true,
+                      "content": { "application/json": { "schema": {
+                        "type": "object",
+                        "properties": { "name": { "type": "string" } },
+                        "additionalProperties": true } } }
+                    },
+                    "responses": { "200": { "description": "ok" } }
+                  }
+                }
+              }
+            }
+            """;
+        lenient().when(catalog.resolve(eq("things-api"), eq("latest"))).thenReturn(77);
+        lenient().when(catalog.resolve(eq(77))).thenReturn(spec);
+
+        BindingConfig binding = GenericBindingConfig.builder()
+            .namespace("test")
+            .name("mcp-openapi0")
+            .type("mcp-openapi")
+            .kind(CLIENT)
+            .options(McpOpenapiOptionsConfig.builder()
+                .spec()
+                    .label("openapi_things0")
+                    .server("https://api.example.com")
+                    .catalog()
+                        .name("catalog0")
+                        .subject("things-api")
+                        .version("latest")
+                        .build()
+                    .build()
+                .build())
+            .route()
+                .when(McpOpenapiConditionConfig.builder()
+                    .tool("update_thing")
+                    .build())
+                .with(McpOpenapiWithConfig.builder()
+                    .spec("openapi_things0")
+                    .operation("update_thing")
+                    .build())
+                .build()
+            .build();
+        binding.resolveId = resolveId;
+
+        McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
+
+        NamespaceConfig namespace = composite.namespaces.get(0);
+        String inputSchema = namespace.catalogs.stream()
+            .map(c -> c.options)
+            .filter(InlineOptionsConfig.class::isInstance)
+            .map(InlineOptionsConfig.class::cast)
+            .flatMap(o -> o.subjects.stream())
+            .filter(s -> "update_thing-input".equals(s.subject))
+            .map(s -> s.schema)
+            .findFirst()
+            .orElse(null);
+
+        assertThat(inputSchema, notNullValue());
+        JsonObject inputSchemaObject = Json.createReader(new StringReader(inputSchema)).readObject();
+        assertThat(inputSchemaObject.getJsonObject("properties").containsKey("id"), equalTo(true));
+        assertThat(inputSchemaObject.getJsonObject("properties").containsKey("name"), equalTo(true));
+        assertThat(inputSchemaObject.getBoolean("additionalProperties"), equalTo(true));
+    }
+
+    @Test
     public void shouldOverrideOutputSchema()
     {
         ModelConfig override = StringModelConfig.builder().build();
