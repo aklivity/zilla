@@ -54,7 +54,7 @@ read  '{"name":"restart_connector","arguments":{"connector":"connector1"}}'
 
 write flush
 
-write '{"structuredContent":{"result":null},"content":[{"type":"text","text":"Restarted connector"}],"isError":false}'
+write '{"structuredContent":null,"content":[{"type":"text","text":"Restarted connector"}],"isError":false}'
 write flush
 
 write close

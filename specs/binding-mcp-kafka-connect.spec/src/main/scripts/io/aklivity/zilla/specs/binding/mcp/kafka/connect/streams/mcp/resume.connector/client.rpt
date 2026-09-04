@@ -52,7 +52,7 @@ connected
 
 write '{"name":"resume_connector","arguments":{"connector":"connector1"}}'
 
-read  '{"structuredContent":{"result":null},"content":[{"type":"text","text":"Resumed connector"}],"isError":false}'
+read  '{"structuredContent":null,"content":[{"type":"text","text":"Resumed connector"}],"isError":false}'
 read closed
 
 write close
