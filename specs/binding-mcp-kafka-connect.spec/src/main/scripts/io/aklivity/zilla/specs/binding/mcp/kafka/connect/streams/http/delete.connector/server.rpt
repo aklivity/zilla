@@ -38,9 +38,6 @@ write zilla:begin.ext ${http:beginEx()
                             .build()}
 write flush
 
-write '{"name":"connector1"}'
-write flush
-
 write close
 
 read closed

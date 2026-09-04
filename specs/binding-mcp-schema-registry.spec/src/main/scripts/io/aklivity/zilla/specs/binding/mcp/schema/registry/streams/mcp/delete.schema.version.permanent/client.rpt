@@ -43,16 +43,16 @@ write zilla:begin.ext ${mcp:beginEx()
                            .typeId(zilla:id("mcp"))
                            .toolsCall()
                                .sessionId("5ca1ab1e-c0de-4a11-5e55-000100000000")
-                               .name("restart_connector_task")
-                               .contentLength(81)
+                               .name("delete_schema_version")
+                               .contentLength(102)
                                .build()
                            .build()}
 
 connected
 
-write '{"name":"restart_connector_task","arguments":{"connector":"connector1","task":0}}'
+write '{"name":"delete_schema_version","arguments":{"subject":"orders-value","version":"1","permanent":true}}'
 
-read  '{"structuredContent":{"result":null},"content":[{"type":"text","text":"Restarted connector task"}],"isError":false}'
+read  '{"structuredContent":{"result":1},"content":[{"type":"text","text":"Delete a specific schema version"}],"isError":false}'
 read closed
 
 write close

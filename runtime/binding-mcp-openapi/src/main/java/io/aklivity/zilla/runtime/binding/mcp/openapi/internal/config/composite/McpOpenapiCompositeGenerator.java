@@ -1200,9 +1200,53 @@ public final class McpOpenapiCompositeGenerator
         {
             if (typed.schema != null)
             {
-                result = toSchemaJson(jsonb, typed.schema.model);
+                result = denyParameterNames(toSchemaJson(jsonb, typed.schema.model), operation);
             }
             break;
+        }
+        return result;
+    }
+
+    // A structured body schema (named properties, possibly widened by additionalProperties) shares the
+    // same tools/call arguments object as the operation's own path/query/header/cookie parameters. Once
+    // additionalProperties admits unnamed keys, a parameter name would otherwise pass straight through
+    // that wildcard into the outbound body alongside the fields it actually describes -- so every
+    // parameter not already a declared body property is denied explicitly (a false sub-schema), which
+    // JsonSchema#rejectedPaths() surfaces to the body projector as always winning over the wildcard.
+    private static String denyParameterNames(
+        String schemaJson,
+        OpenapiOperationView operation)
+    {
+        String result = schemaJson;
+        if (operation.parameters != null && !operation.parameters.isEmpty())
+        {
+            JsonValue parsed = Json.createReader(new StringReader(schemaJson)).readValue();
+            if (parsed instanceof JsonObject)
+            {
+                JsonObject schema = (JsonObject) parsed;
+                JsonValue properties = schema.get("properties");
+                if (properties instanceof JsonObject)
+                {
+                    JsonObject declared = (JsonObject) properties;
+                    JsonObjectBuilder denied = Json.createObjectBuilder(declared);
+                    boolean modified = false;
+                    for (OpenapiParameterView parameter : operation.parameters)
+                    {
+                        if (!declared.containsKey(parameter.name))
+                        {
+                            denied.add(parameter.name, JsonValue.FALSE);
+                            modified = true;
+                        }
+                    }
+                    if (modified)
+                    {
+                        result = Json.createObjectBuilder(schema)
+                            .add("properties", denied)
+                            .build()
+                            .toString();
+                    }
+                }
+            }
         }
         return result;
     }

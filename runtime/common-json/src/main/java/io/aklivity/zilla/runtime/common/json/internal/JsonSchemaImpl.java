@@ -88,6 +88,11 @@ public final class JsonSchemaImpl implements JsonSchema
     private static final JsonSchemaImpl ANY = new JsonSchemaImpl(false);
     private static final JsonSchemaImpl NONE = new JsonSchemaImpl(true);
 
+    // reserved retained-path segment standing for "any object key not matched by a named property" --
+    // distinct from JsonProjectorImpl's array-only "-" wildcard, since an object key literally named "-"
+    // is matched like any other key there
+    private static final String WILDCARD_PROPERTY = "*";
+
     private static final String[] NO_KEYS = new String[0];
     private static final JsonSchemaImpl[] NO_SCHEMAS = new JsonSchemaImpl[0];
 
@@ -190,6 +195,7 @@ public final class JsonSchemaImpl implements JsonSchema
     private final JsonNode raw;
 
     private List<String> retainedPaths;
+    private List<String> rejectedPaths;
 
     public static JsonSchema of(
         String schema)
@@ -226,6 +232,7 @@ public final class JsonSchemaImpl implements JsonSchema
         if (result != ANY && result != NONE)
         {
             result.retainedPaths = result.collectMatchingPaths((node, structured) -> !structured && !node.deny);
+            result.rejectedPaths = result.collectMatchingPaths((node, structured) -> !structured && node.deny);
         }
         return result;
     }
@@ -305,6 +312,12 @@ public final class JsonSchemaImpl implements JsonSchema
     }
 
     @Override
+    public List<String> rejectedPaths()
+    {
+        return rejectedPaths != null ? rejectedPaths : List.of();
+    }
+
+    @Override
     public List<String> matchingPaths(
         Predicate<JsonSchema> filter)
     {
@@ -342,6 +355,15 @@ public final class JsonSchemaImpl implements JsonSchema
             for (Map.Entry<String, JsonSchemaImpl> entry : properties.entrySet())
             {
                 entry.getValue().collectPaths(pointer + "/" + escapePointer(entry.getKey()), visitor, pointers);
+            }
+            // an object with named properties is otherwise closed to its declared keys (the same as when
+            // additionalProperties is absent entirely, preserving every existing schema's pruning
+            // behavior) -- only an explicit, non-false additionalProperties widens it, retaining a
+            // wildcard path alongside the named ones for whatever key doesn't match them
+            if (hasAdditional && additionalAllowed)
+            {
+                JsonSchemaImpl additional = additionalSchema != null ? additionalSchema : ANY;
+                additional.collectPaths(pointer + "/" + WILDCARD_PROPERTY, visitor, pointers);
             }
         }
         if (items != null)

@@ -19,10 +19,10 @@ connect "zilla://streams/http0"
 
 write zilla:begin.ext ${http:beginEx()
                             .typeId(zilla:id("http"))
-                            .header(":method", "POST")
+                            .header(":method", "DELETE")
                             .header(":scheme", "http")
-                            .header(":authority", "localhost:8083")
-                            .header(":path", "/connectors/connector1/tasks/0/restart")
+                            .header(":authority", "localhost:8080")
+                            .header(":path", "/subjects/orders-value/versions/1?permanent=true")
                             .build()}
 
 connected
@@ -33,6 +33,7 @@ read zilla:begin.ext ${http:matchBeginEx()
                            .header("content-type", "application/json")
                            .build()}
 
+read  '1'
 read closed
 
 write close

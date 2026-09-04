@@ -23,16 +23,13 @@ accepted
 
 read zilla:begin.ext ${http:matchBeginEx()
                            .typeId(zilla:id("http"))
-                           .header(":method", "PUT")
+                           .header(":method", "DELETE")
                            .header(":scheme", "http")
-                           .header(":authority", "localhost:8083")
-                           .header(":path", "/connector-plugins/FileStreamSource/config/validate")
-                           .header("content-type", "application/json")
+                           .header(":authority", "localhost:8080")
+                           .header(":path", "/subjects/orders-value/versions/1?permanent=true")
                            .build()}
 
 connected
-
-read  '{"connector.class":"FileStreamSource","tasks.max":"2","file":"/tmp/kc-source.txt","topic":"connect-demo"}'
 
 write zilla:begin.ext ${http:beginEx()
                             .typeId(zilla:id("http"))
@@ -41,7 +38,7 @@ write zilla:begin.ext ${http:beginEx()
                             .build()}
 write flush
 
-write '{"name":"FileStreamSource","error_count":0,"groups":[],"configs":[]}'
+write '1'
 write flush
 
 write close
