@@ -52,7 +52,7 @@ connected
 
 write '{"name":"pause_connector","arguments":{"connector":"connector1"}}'
 
-read  '{"structuredContent":null,"content":[{"type":"text","text":"Paused connector"}],"isError":false}'
+read  '{"structuredContent":{"result":null},"content":[{"type":"text","text":"Paused connector"}],"isError":false}'
 read closed
 
 write close

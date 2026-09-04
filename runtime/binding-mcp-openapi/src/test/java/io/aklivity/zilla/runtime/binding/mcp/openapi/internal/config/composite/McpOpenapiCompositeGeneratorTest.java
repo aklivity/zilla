@@ -3021,7 +3021,7 @@ public class McpOpenapiCompositeGeneratorTest
     }
 
     @Test
-    public void shouldNotWrapWhenNoOutputSchemaDeclared()
+    public void shouldWrapWhenNoOutputSchemaDeclared()
     {
         lenient().when(catalog.resolve(eq("petstore-api"), eq("latest"))).thenReturn(66);
         lenient().when(catalog.resolve(eq(66))).thenReturn(PETSTORE_SPEC);
@@ -3067,7 +3067,7 @@ public class McpOpenapiCompositeGeneratorTest
             .orElse(null);
 
         assertThat(tool, notNullValue());
-        assertThat(tool.outputMaybeWrapped, equalTo(false));
+        assertThat(tool.outputMaybeWrapped, equalTo(true));
     }
 
     @Test

@@ -1001,6 +1001,12 @@ public final class McpHttpProxyFactory implements BindingHandler
         // response completes to resolve tool.summary's ${result.*} references without re-scanning a buffer
         private final Map<String, String> capturedResults = new HashMap<>();
 
+        // true when this tool's structuredContent is McpHttpResultWrap-wrapped as {"result":<value>} to satisfy
+        // the MCP wire contract that structuredContent is always a JSON object; a bare ${result} then means the
+        // real (unwrapped) response value, so it is resolved against the captured "result" key rather than the
+        // captured root -- keeping the wrapper an implementation detail invisible to tool.summary authors
+        private boolean resultWrapped;
+
         // the non-2xx response mode: relays the raw upstream body as escaped text with no JsonPipeline at all
         // (the body is not guaranteed to be valid JSON), using errorGenerator directly the same way responseStep
         // uses responseGenerator — wrap against encodeSlot's live position, drive via consumed()/length()
@@ -1353,9 +1359,10 @@ public final class McpHttpProxyFactory implements BindingHandler
                 final String summaryTemplate = tool != null ? tool.summary : null;
                 final List<String> resultPaths = tool != null ? toolResultReferences(tool) : List.of();
 
+                resultWrapped = tool != null && tool.outputMaybeWrapped;
                 responseGenerator = JsonEx.createGenerator();
                 JsonStream stream = JsonEx.stream(JsonEx.createParser());
-                if (tool != null && tool.outputMaybeWrapped)
+                if (resultWrapped)
                 {
                     // nothing proves the upstream body is already an object; route it through the
                     // transform that decides, from the real body's own first event, whether it actually
@@ -1455,14 +1462,16 @@ public final class McpHttpProxyFactory implements BindingHandler
 
         // Resolves a result.<path> reference, or a bare result reference (the response's own root value),
         // from the values McpHttpResults captured while structuredContent streamed past, replacing a
-        // re-scan of a fully buffered response copy.
+        // re-scan of a fully buffered response copy. When resultWrapped, the captured root is the
+        // McpHttpResultWrap envelope rather than the real value, so a bare ${result} is redirected to the
+        // captured "result" key instead -- see resultWrapped's field doc.
         private String resolveCapturedResult(
             String expression)
         {
             String value = "";
             if ("result".equals(expression) || expression.startsWith("result."))
             {
-                final String path = "result".equals(expression) ? "" : expression.substring(7);
+                final String path = "result".equals(expression) ? (resultWrapped ? "result" : "") : expression.substring(7);
                 final String captured = capturedResults.get(path);
                 value = captured != null ? captured : "";
             }
@@ -2400,7 +2409,14 @@ public final class McpHttpProxyFactory implements BindingHandler
     private List<String> newToolResultReferences(
         McpHttpToolConfig tool)
     {
-        return resultReferences(tool.summary);
+        final List<String> paths = resultReferences(tool.summary);
+        if (tool.outputMaybeWrapped)
+        {
+            // the streamed root is the McpHttpResultWrap envelope, not the real value -- capture "result"
+            // (the envelope's own value key) in place of a bare root capture, matching resolveCapturedResult
+            paths.replaceAll(path -> path.isEmpty() ? "result" : path);
+        }
+        return paths;
     }
 
     private void appendQuery(

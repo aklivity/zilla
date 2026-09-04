@@ -54,7 +54,7 @@ read  '{"name":"list_connectors","arguments":{}}'
 
 write flush
 
-write '{"structuredContent":["connector1","connector2"],"content":[{"type":"text","text":"Connectors: [\\"connector1\\",\\"connector2\\"]"}],"isError":false}'
+write '{"structuredContent":{"result":["connector1","connector2"]},"content":[{"type":"text","text":"Connectors: [\\"connector1\\",\\"connector2\\"]"}],"isError":false}'
 write flush
 
 write close

@@ -54,7 +54,7 @@ read  '{"name":"list_connector_tasks","arguments":{"connector":"connector1"}}'
 
 write flush
 
-write '{"structuredContent":[{"id":{"connector":"connector1","task":0},"config":{"task.class":"FileStreamSourceTask"}}],"content":[{"type":"text","text":"Tasks: [{\\"id\\":{\\"connector\\":\\"connector1\\",\\"task\\":0},\\"config\\":{\\"task.class\\":\\"FileStreamSourceTask\\"}}]"}],"isError":false}'
+write '{"structuredContent":{"result":[{"id":{"connector":"connector1","task":0},"config":{"task.class":"FileStreamSourceTask"}}]},"content":[{"type":"text","text":"Tasks: [{\\"id\\":{\\"connector\\":\\"connector1\\",\\"task\\":0},\\"config\\":{\\"task.class\\":\\"FileStreamSourceTask\\"}}]"}],"isError":false}'
 write flush
 
 write close

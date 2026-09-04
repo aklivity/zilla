@@ -54,7 +54,7 @@ read  '{"name":"stop_connector","arguments":{"connector":"connector1"}}'
 
 write flush
 
-write '{"structuredContent":null,"content":[{"type":"text","text":"Stopped connector"}],"isError":false}'
+write '{"structuredContent":{"result":null},"content":[{"type":"text","text":"Stopped connector"}],"isError":false}'
 write flush
 
 write close

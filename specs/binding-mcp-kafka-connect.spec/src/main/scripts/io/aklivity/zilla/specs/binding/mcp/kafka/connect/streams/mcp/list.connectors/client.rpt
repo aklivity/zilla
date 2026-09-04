@@ -52,7 +52,7 @@ connected
 
 write '{"name":"list_connectors","arguments":{}}'
 
-read  '{"structuredContent":["connector1","connector2"],"content":[{"type":"text","text":"Connectors: [\\"connector1\\",\\"connector2\\"]"}],"isError":false}'
+read  '{"structuredContent":{"result":["connector1","connector2"]},"content":[{"type":"text","text":"Connectors: [\\"connector1\\",\\"connector2\\"]"}],"isError":false}'
 read closed
 
 write close

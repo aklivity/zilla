@@ -54,7 +54,7 @@ read  '{"name":"restart_connector_task","arguments":{"connector":"connector1","t
 
 write flush
 
-write '{"structuredContent":null,"content":[{"type":"text","text":"Restarted connector task"}],"isError":false}'
+write '{"structuredContent":{"result":null},"content":[{"type":"text","text":"Restarted connector task"}],"isError":false}'
 write flush
 
 write close
