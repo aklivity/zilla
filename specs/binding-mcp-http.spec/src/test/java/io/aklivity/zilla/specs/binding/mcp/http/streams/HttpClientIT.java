@@ -236,6 +236,15 @@ public class HttpClientIT
 
     @Test
     @Specification({
+        "${http}/get.dashboard/client",
+        "${http}/get.dashboard/server"})
+    public void shouldProxyGetDashboardToHttp() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${http}/echo.id.large/client",
         "${http}/echo.id.large/server"})
     public void shouldProxyEchoIdLargeToHttp() throws Exception

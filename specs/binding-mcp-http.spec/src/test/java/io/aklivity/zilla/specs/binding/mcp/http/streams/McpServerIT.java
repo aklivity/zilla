@@ -326,6 +326,15 @@ public class McpServerIT
 
     @Test
     @Specification({
+        "${mcp}/get.dashboard/client",
+        "${mcp}/get.dashboard/server"})
+    public void shouldCallToolGetDashboard() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mcp}/echo.id.large/client",
         "${mcp}/echo.id.large/server"})
     public void shouldCallToolEchoIdWithLargeArgument() throws Exception

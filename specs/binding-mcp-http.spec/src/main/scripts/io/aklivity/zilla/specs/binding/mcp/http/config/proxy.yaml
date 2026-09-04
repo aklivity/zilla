@@ -212,6 +212,13 @@ catalogs:
               "type": "object",
               "properties": {}
             }
+        get_dashboard_params:
+          version: latest
+          schema: |
+            {
+              "type": "object",
+              "properties": {}
+            }
         echo_id_params:
           version: latest
           schema: |
@@ -379,7 +386,7 @@ bindings:
         list_tags:
           description: >
             List repository tags.
-          summary: "done"
+          summary: "Tags: ${result}"
           schemas:
             input:
               model: json
@@ -421,6 +428,19 @@ bindings:
               catalog:
                 http_github0:
                   - subject: get_status_params
+                    version: latest
+        get_dashboard:
+          description: >
+            Get a status dashboard. A bare-object response with no declared output schema, covering
+            tool.summary's container capture: ${result.data} re-serializes a whole nested object as
+            compact JSON, alongside bare scalar/null/boolean leaf references.
+          summary: "Dashboard: ${result.data} active=${result.active} disabled=${result.disabled} flag=${result.flag}"
+          schemas:
+            input:
+              model: json
+              catalog:
+                http_github0:
+                  - subject: get_dashboard_params
                     version: latest
         echo_id:
           description: >
@@ -610,6 +630,15 @@ bindings:
             ":scheme": https
             ":authority": api.github.com:443
             ":path": /status
+      - when:
+          - tool: get_dashboard
+        exit: http0
+        with:
+          headers:
+            ":method": GET
+            ":scheme": https
+            ":authority": api.github.com:443
+            ":path": /dashboard
       - when:
           - tool: echo_id
         exit: http0

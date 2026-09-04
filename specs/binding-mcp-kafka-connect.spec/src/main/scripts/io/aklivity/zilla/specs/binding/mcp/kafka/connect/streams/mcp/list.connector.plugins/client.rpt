@@ -52,7 +52,7 @@ connected
 
 write '{"name":"list_connector_plugins","arguments":{}}'
 
-read  '{"structuredContent":{"result":[{"class":"org.apache.kafka.connect.file.FileStreamSourceConnector","type":"source","version":"1.0"}]},"content":[{"type":"text","text":"Listed connector plugins"}],"isError":false}'
+read  '{"structuredContent":{"result":[{"class":"org.apache.kafka.connect.file.FileStreamSourceConnector","type":"source","version":"1.0"}]},"content":[{"type":"text","text":"Plugins: [{\\"class\\":\\"org.apache.kafka.connect.file.FileStreamSourceConnector\\",\\"type\\":\\"source\\",\\"version\\":\\"1.0\\"}]"}],"isError":false}'
 read closed
 
 write close

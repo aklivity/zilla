@@ -374,7 +374,7 @@ public class McpHttpProxyIT
     }
 
     // list_tags' output schema is array-rooted: structuredContent is the array itself, not an object
-    // wrapping it
+    // wrapping it; tool.summary's bare ${result} captures that same root array as compact JSON
     @Test
     @Configuration("proxy.yaml")
     @Specification({
@@ -405,6 +405,20 @@ public class McpHttpProxyIT
         "${mcp}/get.status/client",
         "${http}/get.status/server"})
     public void shouldCallToolGetStatus() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // get_dashboard's tool.summary combines a container reference (${result.data}, a nested object
+    // re-serialized as compact JSON, including a quote character that must round-trip through JSON
+    // escaping) with bare scalar/null/boolean leaf references (${result.active}, ${result.disabled},
+    // ${result.flag}) in the same template
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mcp}/get.dashboard/client",
+        "${http}/get.dashboard/server"})
+    public void shouldCallToolGetDashboard() throws Exception
     {
         k3po.finish();
     }
