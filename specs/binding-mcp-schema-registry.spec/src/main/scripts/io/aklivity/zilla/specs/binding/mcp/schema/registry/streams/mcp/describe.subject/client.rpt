@@ -52,7 +52,7 @@ connected
 
 write '{"name":"describe_subject","arguments":{"subject":"orders-value"}}'
 
-read  '{"structuredContent":{"result":[1,2]},"content":[{"type":"text","text":"Versions: [1,2]"}],"isError":false}'
+read  '{"structuredContent":[1,2],"content":[{"type":"text","text":"Versions: [1,2]"}],"isError":false}'
 read closed
 
 write close

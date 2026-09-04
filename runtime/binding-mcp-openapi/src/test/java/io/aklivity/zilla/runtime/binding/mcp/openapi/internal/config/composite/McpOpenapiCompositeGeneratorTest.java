@@ -306,6 +306,15 @@ public class McpOpenapiCompositeGeneratorTest
                     "items": { "type": "object", "properties": {
                       "id": { "type": "integer" }, "name": { "type": "string" } } } } } } } }
               }
+            },
+            "/pets/{id}": {
+              "delete": {
+                "operationId": "delete_pet",
+                "parameters": [
+                  { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+                ],
+                "responses": { "200": { "description": "ok" } }
+              }
             }
           }
         }
@@ -2928,6 +2937,56 @@ public class McpOpenapiCompositeGeneratorTest
 
         assertThat(tool, notNullValue());
         assertThat(tool.output, sameInstance(override));
+        assertThat(tool.outputMaybeWrapped, equalTo(false));
+    }
+
+    @Test
+    public void shouldNotWrapWhenNoOutputSchemaDeclared()
+    {
+        lenient().when(catalog.resolve(eq("petstore-api"), eq("latest"))).thenReturn(66);
+        lenient().when(catalog.resolve(eq(66))).thenReturn(PETSTORE_SPEC);
+
+        BindingConfig binding = GenericBindingConfig.builder()
+            .namespace("test")
+            .name("mcp-openapi0")
+            .type("mcp-openapi")
+            .kind(CLIENT)
+            .options(McpOpenapiOptionsConfig.builder()
+                .spec()
+                    .label("petstore")
+                    .server("https://api.petstore.example.com")
+                    .catalog()
+                        .name("catalog0")
+                        .subject("petstore-api")
+                        .version("latest")
+                        .build()
+                    .build()
+                .build())
+            .route()
+                .when(McpOpenapiConditionConfig.builder()
+                    .tool("delete_pet")
+                    .build())
+                .with(McpOpenapiWithConfig.builder()
+                    .spec("petstore")
+                    .operation("delete_pet")
+                    .build())
+                .build()
+            .build();
+        binding.resolveId = resolveId;
+
+        McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
+
+        BindingConfig mcpHttp = composite.namespaces.get(0).bindings.stream()
+            .filter(b -> "mcp-http0".equals(b.name))
+            .findFirst()
+            .orElse(null);
+        McpHttpOptionsConfig mcpHttpOptions = (McpHttpOptionsConfig) mcpHttp.options;
+        McpHttpToolConfig tool = mcpHttpOptions.tools.stream()
+            .filter(t -> "delete_pet".equals(t.name))
+            .findFirst()
+            .orElse(null);
+
+        assertThat(tool, notNullValue());
         assertThat(tool.outputMaybeWrapped, equalTo(false));
     }
 

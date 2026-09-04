@@ -420,7 +420,9 @@ public final class McpOpenapiCompositeGenerator
 
             if (entry.tool != null)
             {
-                final boolean outputMaybeWrapped = entry.tool.output == null && !hasObjectOutputSchema(entry.operation);
+                final boolean outputMaybeWrapped = entry.tool.output == null &&
+                    hasDeclaredOutputSchema(entry.operation) &&
+                    !hasObjectOutputSchema(entry.operation);
                 final ModelConfig output = entry.tool.output != null
                     ? qualifyModel(binding, entry.tool.output)
                     : jsonModel("%s-output".formatted(name));
@@ -1067,12 +1069,24 @@ public final class McpOpenapiCompositeGenerator
         return result;
     }
 
+    // Whether the OpenAPI operation declares any response schema at all, object-typed or not -- the
+    // precondition for outputMaybeWrapped below. An operation with no declared response schema never gets
+    // an advertised outputSchema in the first place (the derived "<name>-output" catalog subject is only
+    // ever registered inside the success.content != null branch above), so there is nothing for
+    // structuredContent to conform to and wrapping it would serve no protocol purpose.
+    private static boolean hasDeclaredOutputSchema(
+        OpenapiOperationView operation)
+    {
+        final OpenapiResponseView success = successResponse(operation);
+        return success != null && success.content != null;
+    }
+
     // MCP's tool outputSchema (and the structuredContent it describes) must be a JSON object; an OpenAPI
-    // response whose own schema is array- or primitive-typed is wrapped as {"result": <schema>} instead
-    // of advertised as-is -- see wrapAsObjectSchema and McpHttpResultWrap, which wraps the real response
-    // body the same way so structuredContent still matches the advertised schema. A resource's own output
-    // schema has no such constraint (it is never advertised, only used to project the read body), so this
-    // check and the wrapping it drives applies to tools only
+    // response whose own declared schema is array- or primitive-typed is wrapped as {"result": <schema>}
+    // instead of advertised as-is -- see wrapAsObjectSchema and McpHttpResultWrap, which wraps the real
+    // response body the same way so structuredContent still matches the advertised schema. A resource's
+    // own output schema has no such constraint (it is never advertised, only used to project the read
+    // body), so this check and the wrapping it drives applies to tools only
     private static boolean hasObjectOutputSchema(
         OpenapiOperationView operation)
     {
