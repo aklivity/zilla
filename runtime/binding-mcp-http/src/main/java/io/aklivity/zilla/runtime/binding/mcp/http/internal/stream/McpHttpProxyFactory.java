@@ -117,6 +117,7 @@ public final class McpHttpProxyFactory implements BindingHandler
     private static final byte[] RESOURCE_PREFIX = "{\"contents\":[{\"uri\":".getBytes(UTF_8);
     private static final byte[] RESOURCE_MIME = ",\"mimeType\":".getBytes(UTF_8);
     private static final byte[] RESOURCE_TEXT_OPEN = ",\"text\":\"".getBytes(UTF_8);
+    private static final byte[] NULL_RESPONSE_VALUE = "null".getBytes(UTF_8);
 
     private static final Map<String, String> EMPTY_PARAMS = Map.of();
     private static final Map<String, Object> SINK_SEGMENTABLE = Map.of(JsonSink.DELIVERY, JsonSink.Delivery.SEGMENTABLE);
@@ -157,6 +158,7 @@ public final class McpHttpProxyFactory implements BindingHandler
 
     private final UnsafeBufferEx escapeRO = new UnsafeBufferEx(new byte[0]);
     private final UnsafeBufferEx emptyRequestRO = new UnsafeBufferEx(new byte[0]);
+    private final UnsafeBufferEx nullResponseValueRO = new UnsafeBufferEx(NULL_RESPONSE_VALUE);
     private final Map<McpHttpRouteConfig, List<String>> routePathArgReferences;
     private final Map<McpHttpToolConfig, List<String>> toolResultReferences;
 
@@ -882,18 +884,30 @@ public final class McpHttpProxyFactory implements BindingHandler
         // (rather than assuming the caller already has) mirrors acquireEncodeSlot()'s guarded pattern; the
         // freshly re-fetched encodePool.buffer(encodeSlot) is never held across another encodePool.buffer(...)
         // call, avoiding the shared-wrapper aliasing hazard DefaultBufferPool.buffer(int) exposes.
+        // bodyReceived is HttpProxy's own decodeSlot != NO_SLOT — whether any response DATA payload has ever
+        // arrived — passed through rather than re-derived, since HttpProxy already tracks it.
         JsonPipeline.Status responseStep(
             DirectBufferEx buffer,
             int offset,
             int length,
-            boolean last)
+            boolean last,
+            boolean bodyReceived)
         {
             JsonPipeline.Status status;
             if (acquireEncodeSlot())
             {
                 final MutableDirectBufferEx slot = encodePool.buffer(encodeSlot);
                 responseGenerator.wrap(slot, encodeSlotOffset, encodePool.slotCapacity());
-                status = responsePipeline.transform(buffer, offset, offset + length, last);
+                // a response that closes having never received a single body byte (e.g. Content-Length: 0
+                // on a 202/204 action response) is not valid JSON on its own; treating it as the JSON
+                // literal null lets it flow through the same result/summary/envelope machinery a real body
+                // would, instead of the pipeline rejecting an empty document and aborting the reply
+                // mid-stream
+                final boolean bodyEmpty = last && !bodyReceived;
+                final DirectBufferEx source = bodyEmpty ? nullResponseValueRO : buffer;
+                final int sourceOffset = bodyEmpty ? 0 : offset;
+                final int sourceLimit = bodyEmpty ? NULL_RESPONSE_VALUE.length : offset + length;
+                status = responsePipeline.transform(source, sourceOffset, sourceLimit, last);
                 encodeSlotOffset += responseGenerator.length();
             }
             else
@@ -1383,9 +1397,12 @@ public final class McpHttpProxyFactory implements BindingHandler
             DirectBufferEx buffer,
             int offset,
             int length,
-            boolean last)
+            boolean last,
+            boolean bodyReceived)
         {
-            return errorRelay ? errorRelayStep(buffer, offset, length, last) : super.responseStep(buffer, offset, length, last);
+            return errorRelay
+                ? errorRelayStep(buffer, offset, length, last)
+                : super.responseStep(buffer, offset, length, last, bodyReceived);
         }
 
         @Override
@@ -2048,7 +2065,7 @@ public final class McpHttpProxyFactory implements BindingHandler
                 // a terminal status with an empty window, rather than dereferencing NO_SLOT
                 final MutableDirectBufferEx slot = decodeSlot != NO_SLOT ? decodePool.buffer(decodeSlot) : emptyRequestRO;
                 final JsonPipeline.Status status =
-                    mcp.responseStep(slot, 0, decodeSlotOffset, McpHttpState.replyClosed(state));
+                    mcp.responseStep(slot, 0, decodeSlotOffset, McpHttpState.replyClosed(state), decodeSlot != NO_SLOT);
                 if (status != JsonPipeline.Status.SUSPENDED)
                 {
                     // compact only at a terminal status: across suspend cycles the pipeline re-feeds the same

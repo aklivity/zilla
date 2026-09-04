@@ -54,7 +54,7 @@ read  '{"name":"resume_connector","arguments":{"connector":"connector1"}}'
 
 write flush
 
-write '{"structuredContent":{"name":"connector1"},"content":[{"type":"text","text":"Resumed connector connector1"}],"isError":false}'
+write '{"structuredContent":{"result":null},"content":[{"type":"text","text":"Resumed connector"}],"isError":false}'
 write flush
 
 write close

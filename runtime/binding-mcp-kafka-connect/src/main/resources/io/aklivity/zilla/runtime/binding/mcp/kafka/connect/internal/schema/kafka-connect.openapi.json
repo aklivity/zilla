@@ -73,7 +73,7 @@
             },
             "delete": {
                 "operationId": "delete_connector",
-                "summary": "Deleted connector ${result.name}",
+                "summary": "Deleted connector",
                 "parameters": [
                     {
                         "name": "connector",
@@ -219,7 +219,7 @@
         "/connectors/{connector}/restart": {
             "post": {
                 "operationId": "restart_connector",
-                "summary": "Restarted connector ${result.name}",
+                "summary": "Restarted connector",
                 "parameters": [
                     {
                         "name": "connector",
@@ -240,7 +240,7 @@
         "/connectors/{connector}/pause": {
             "put": {
                 "operationId": "pause_connector",
-                "summary": "Paused connector ${result.name}",
+                "summary": "Paused connector",
                 "parameters": [
                     {
                         "name": "connector",
@@ -261,7 +261,7 @@
         "/connectors/{connector}/resume": {
             "put": {
                 "operationId": "resume_connector",
-                "summary": "Resumed connector ${result.name}",
+                "summary": "Resumed connector",
                 "parameters": [
                     {
                         "name": "connector",
@@ -282,7 +282,7 @@
         "/connectors/{connector}/stop": {
             "put": {
                 "operationId": "stop_connector",
-                "summary": "Stopped connector ${result.name}",
+                "summary": "Stopped connector",
                 "parameters": [
                     {
                         "name": "connector",
@@ -345,14 +345,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "ok",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object"
-                                }
-                            }
-                        }
+                        "description": "ok"
                     }
                 }
             }
