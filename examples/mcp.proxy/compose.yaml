@@ -59,10 +59,22 @@ services:
     command: ["npx", "-y", "@modelcontextprotocol/server-everything@2026.7.4", "streamableHttp"]
     environment:
       PORT: "3001"
+    # Persists npm's download/extract cache across container recreations --
+    # CI restores/saves this same path via actions/cache, keyed on the pinned
+    # version above, turning the cold ~2-5 minute install into a few seconds
+    # on a cache hit. Gitignored; harmless if absent (falls back to a fresh,
+    # empty directory and pays the normal cold-install cost once).
+    volumes:
+      - ./.cache/npm-everything:/root/.npm
     healthcheck:
+      # A cold `npx -y` install of this package (no cache volume, so every
+      # container start re-fetches it) has been observed taking anywhere from
+      # ~2 to 5+ minutes depending on npm-registry conditions; retries is
+      # sized with a generous 10-minute ceiling rather than a tight bound on
+      # the slowest observed run.
       interval: 5s
       timeout: 3s
-      retries: 10
+      retries: 120
       start_period: 30s
       start_interval: 250ms
       test: ["CMD", "nc", "-z", "127.0.0.1", "3001"]
