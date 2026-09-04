@@ -252,6 +252,17 @@ public class CacheProduceIT
     @Test
     @Configuration("cache.yaml")
     @Specification({
+        "${app}/message.value.after.flushes/client",
+        "${app}/message.value.after.flushes/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldSendMessageValueAfterFlushes() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.yaml")
+    @Specification({
         "${app}/message.value.100k/client",
         "${app}/message.value.100k/server"})
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
