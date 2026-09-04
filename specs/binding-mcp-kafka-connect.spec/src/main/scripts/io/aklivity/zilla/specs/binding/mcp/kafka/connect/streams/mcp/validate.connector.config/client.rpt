@@ -44,13 +44,13 @@ write zilla:begin.ext ${mcp:beginEx()
                            .toolsCall()
                                .sessionId("5ca1ab1e-c0de-4a11-5e55-000100000000")
                                .name("validate_connector_config")
-                               .contentLength(135)
+                               .contentLength(186)
                                .build()
                            .build()}
 
 connected
 
-write '{"name":"validate_connector_config","arguments":{"pluginName":"FileStreamSource","connector.class":"FileStreamSource","tasks.max":"2"}}'
+write '{"name":"validate_connector_config","arguments":{"pluginName":"FileStreamSource","connector.class":"FileStreamSource","tasks.max":"2","file":"/tmp/kc-source.txt","topic":"connect-demo"}}'
 
 read  '{"structuredContent":{"name":"FileStreamSource","error_count":0,"groups":[],"configs":[]},"content":[{"type":"text","text":"Validated connector config with 0 errors"}],"isError":false}'
 read closed
