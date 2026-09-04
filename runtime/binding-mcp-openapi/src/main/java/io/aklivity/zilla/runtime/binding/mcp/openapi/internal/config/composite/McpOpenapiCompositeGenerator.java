@@ -1117,6 +1117,7 @@ public final class McpOpenapiCompositeGenerator
         final JsonObjectBuilder properties = Json.createObjectBuilder();
         final List<String> required = new LinkedList<>();
         final List<String> propertyNames = new LinkedList<>();
+        JsonValue additionalProperties = null;
 
         if (operation.parameters != null)
         {
@@ -1161,6 +1162,11 @@ public final class McpOpenapiCompositeGenerator
                         }
                     }
                 }
+                if (schema != null && schema.model.additionalProperties != null &&
+                    !JsonValue.FALSE.equals(schema.model.additionalProperties))
+                {
+                    additionalProperties = schema.model.additionalProperties;
+                }
                 break;
             }
         }
@@ -1173,6 +1179,10 @@ public final class McpOpenapiCompositeGenerator
             final JsonArrayBuilder requiredArray = Json.createArrayBuilder();
             required.forEach(requiredArray::add);
             object.add("required", requiredArray);
+        }
+        if (additionalProperties != null)
+        {
+            object.add("additionalProperties", additionalProperties);
         }
 
         return object.build().toString();
