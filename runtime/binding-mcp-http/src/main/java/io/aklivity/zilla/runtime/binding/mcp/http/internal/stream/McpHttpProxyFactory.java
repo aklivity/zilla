@@ -1436,15 +1436,17 @@ public final class McpHttpProxyFactory implements BindingHandler
             return status;
         }
 
-        // Resolves a result.<path> reference from the values McpHttpResults captured while structuredContent
-        // streamed past, replacing a re-scan of a fully buffered response copy.
+        // Resolves a result.<path> reference, or a bare result reference (the response's own root value),
+        // from the values McpHttpResults captured while structuredContent streamed past, replacing a
+        // re-scan of a fully buffered response copy.
         private String resolveCapturedResult(
             String expression)
         {
             String value = "";
-            if (expression.startsWith("result."))
+            if (expression.equals("result") || expression.startsWith("result."))
             {
-                final String captured = capturedResults.get(expression.substring(7));
+                final String path = expression.equals("result") ? "" : expression.substring(7);
+                final String captured = capturedResults.get(path);
                 value = captured != null ? captured : "";
             }
             return value;
@@ -2810,7 +2812,8 @@ public final class McpHttpProxyFactory implements BindingHandler
 
     // Extracts the result.<path> references from a tool.summary template (e.g. "result.number" from
     // "Created pull request #${result.number}"), the set McpHttpResults is asked to capture as the response
-    // streams past.
+    // streams past. A bare ${result} (no path) — the response body's own root value — is recorded as the
+    // empty-string path, McpHttpResults' sentinel for a root capture.
     private static List<String> resultReferences(
         String template)
     {
@@ -2818,17 +2821,30 @@ public final class McpHttpProxyFactory implements BindingHandler
         if (template != null)
         {
             int index = 0;
-            int start = template.indexOf("${result.", index);
+            int start = template.indexOf("${result", index);
             while (start >= 0)
             {
-                final int end = template.indexOf('}', start);
-                if (end < 0)
+                final int afterKeyword = start + 8;
+                if (afterKeyword < template.length() && template.charAt(afterKeyword) == '.')
                 {
-                    break;
+                    final int end = template.indexOf('}', afterKeyword);
+                    if (end < 0)
+                    {
+                        break;
+                    }
+                    result.add(template.substring(afterKeyword + 1, end));
+                    index = end + 1;
                 }
-                result.add(template.substring(start + 9, end));
-                index = end + 1;
-                start = template.indexOf("${result.", index);
+                else if (afterKeyword < template.length() && template.charAt(afterKeyword) == '}')
+                {
+                    result.add("");
+                    index = afterKeyword + 1;
+                }
+                else
+                {
+                    index = afterKeyword;
+                }
+                start = template.indexOf("${result", index);
             }
         }
         return result;

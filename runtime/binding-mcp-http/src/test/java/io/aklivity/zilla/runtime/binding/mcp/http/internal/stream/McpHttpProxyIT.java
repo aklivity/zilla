@@ -397,6 +397,18 @@ public class McpHttpProxyIT
         k3po.finish();
     }
 
+    // get_status has no declared output schema at all, so the raw upstream body streams unprojected;
+    // tool.summary's bare ${result} reference (no path) binds to that response's own root scalar value
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mcp}/get.status/client",
+        "${http}/get.status/server"})
+    public void shouldCallToolGetStatus() throws Exception
+    {
+        k3po.finish();
+    }
+
     // a 12000-byte top-level argument value referenced by the route's :path template: proves
     // McpHttpArguments captures a value spanning multiple decode windows correctly (see the
     // mediating-transform rule / multi-window accumulation fix), not just short path arguments that

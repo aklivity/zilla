@@ -42,6 +42,15 @@ import io.aklivity.zilla.runtime.common.json.JsonTransform;
  * captured "in flight" at a time (JSON parsing is strictly sequential), a single reused accumulator is
  * sufficient.
  * <p>
+ * The empty path (zero segments) denotes a bare {@code result} reference — the response body's own root
+ * value, with no key to match a {@code KEY_NAME} against — so it is armed as {@code awaiting} up front by
+ * {@link #reset()} instead of via {@link #onKeyName}. {@link #transform} excludes the pipeline's own
+ * {@code START_DOCUMENT}/{@code END_DOCUMENT} framing events from reaching {@link #capture} so that framing,
+ * not the real root value, is what the root reference would otherwise capture first; the first real event
+ * after that is the document's own root, whatever it turns out to be. A root that is an object or array
+ * gives up immediately (the same structural-value fallback {@link #capture} already applies to a keyed
+ * path), leaving that reference unresolved.
+ * <p>
  * This is a mediating, structure-inspecting transform sitting in front of a byte-preferring terminal sink
  * (see {@code common-json}'s verbatim-validate design notes), so it cannot forward a downstream
  * {@link JsonController#segmentable()} request upstream unchanged the way a purely forwarding stage would:
@@ -55,6 +64,8 @@ import io.aklivity.zilla.runtime.common.json.JsonTransform;
  */
 public final class McpHttpResults implements JsonTransform
 {
+    private static final String[] EMPTY_SEGMENTS = new String[0];
+
     private final Map<String, String> captured;
     private final String[] paths;
     private final String[][] segments;
@@ -98,7 +109,7 @@ public final class McpHttpResults implements JsonTransform
         this.segments = new String[this.paths.length][];
         for (int i = 0; i < this.paths.length; i++)
         {
-            this.segments[i] = this.paths[i].split("\\.");
+            this.segments[i] = this.paths[i].isEmpty() ? EMPTY_SEGMENTS : this.paths[i].split("\\.");
         }
         this.matched = new int[this.paths.length];
     }
@@ -112,6 +123,10 @@ public final class McpHttpResults implements JsonTransform
         for (int i = 0; i < matched.length; i++)
         {
             matched[i] = 0;
+            if (segments[i].length == 0)
+            {
+                awaiting = i;
+            }
         }
     }
 
@@ -129,7 +144,7 @@ public final class McpHttpResults implements JsonTransform
         JsonSink sink)
     {
         upstream = control;
-        if (awaiting != -1)
+        if (awaiting != -1 && event != JsonEvent.START_DOCUMENT && event != JsonEvent.END_DOCUMENT)
         {
             capture(awaiting, event, source);
         }
