@@ -242,28 +242,47 @@ public final class McpHttpArguments implements JsonTransform
             }
             break;
         case KEY_NAME:
-            final String name = source.getStringView().toString();
-            captureKey = capturePath(name);
-            text.setLength(0);
             if (suppressing)
             {
                 status = Status.ADVANCED;
             }
-            else if (forwardDepth == 1 && excludedKeys.contains(name))
+            else if (forwardDepth == 1 && source.deferredBytes())
             {
-                suppressing = true;
-                suppressDepth = forwardDepth;
-                status = Status.ADVANCED;
+                // an excluded-key decision needs the whole key, not a fragment of it -- decline so the
+                // source accumulates it and re-presents it whole on a later window, the same fallback a
+                // content-needing scalar value uses
+                upstream.consumed(0);
+                status = Status.STARVED;
             }
             else
             {
-                status = forward(sink, source, event);
+                final String name = source.getStringView().toString();
+                captureKey = capturePath(name);
+                text.setLength(0);
+                if (forwardDepth == 1 && excludedKeys.contains(name))
+                {
+                    suppressing = true;
+                    suppressDepth = forwardDepth;
+                    status = Status.ADVANCED;
+                }
+                else
+                {
+                    status = forward(sink, source, event);
+                }
             }
             break;
         case VALUE_STRING:
         case VALUE_NUMBER:
             if (captureKey != null)
             {
+                if (suppressing)
+                {
+                    // withheld from the sink, so nothing downstream consumes this value's bytes and
+                    // advances the source's per-fragment cursor -- getStringView() re-presents everything
+                    // seen so far on every call instead of just the newest delta, so replace rather than
+                    // accumulate
+                    text.setLength(0);
+                }
                 text.append(source.getStringView());
                 if (!source.deferredBytes())
                 {

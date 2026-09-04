@@ -90,10 +90,38 @@ public class McpHttpArgumentsTest
         assertEquals("FileStreamSource", captured.get("pluginName"));
     }
 
+    @Test
+    public void shouldWithholdExcludedTopLevelArgumentWhenFragmentedAcrossInputWindows()
+    {
+        String input = "{\"name\":\"create_pr\",\"arguments\":" +
+            "{\"owner\":\"acme\",\"repo\":\"widget\",\"title\":\"Add feature\"," +
+            "\"pr\":{\"branch\":\"feature\",\"target\":\"main\"}}}";
+
+        for (int window = 1; window <= input.length(); window++)
+        {
+            Map<String, String> captured = new LinkedHashMap<>();
+            String output = rerootWindowed(input, List.of("owner", "repo"), captured, window);
+
+            assertEquals("window=" + window,
+                "{\"title\":\"Add feature\",\"pr\":{\"branch\":\"feature\",\"target\":\"main\"}}", output);
+            assertEquals("window=" + window, "acme", captured.get("owner"));
+            assertEquals("window=" + window, "widget", captured.get("repo"));
+        }
+    }
+
     private static String reroot(
         String input,
         List<String> excludedKeys,
         Map<String, String> captured)
+    {
+        return rerootWindowed(input, excludedKeys, captured, input.length());
+    }
+
+    private static String rerootWindowed(
+        String input,
+        List<String> excludedKeys,
+        Map<String, String> captured,
+        int window)
     {
         McpHttpArguments transform = new McpHttpArguments(captured, excludedKeys);
 
@@ -106,7 +134,20 @@ public class McpHttpArgumentsTest
         pipeline.reset();
 
         byte[] msg = input.getBytes(UTF_8);
-        Status status = pipeline.transform(new UnsafeBufferEx(msg), 0, msg.length, true);
+        int progress = 0;
+        int limit = 0;
+        Status status = Status.STARVED;
+        int guard = 0;
+        while (status == Status.STARVED && guard++ < 10_000)
+        {
+            limit = Math.min(limit + window, msg.length);
+            boolean last = limit >= msg.length;
+            status = pipeline.transform(new UnsafeBufferEx(msg), progress, limit, last);
+            if (status == Status.STARVED)
+            {
+                progress = limit - pipeline.remaining();
+            }
+        }
         assertEquals(Status.COMPLETED, status);
 
         byte[] out = new byte[gen.length()];
