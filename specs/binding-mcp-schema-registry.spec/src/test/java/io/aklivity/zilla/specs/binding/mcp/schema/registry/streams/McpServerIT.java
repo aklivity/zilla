@@ -98,6 +98,26 @@ public class McpServerIT
 
     @Test
     @Specification({
+        "${mcp}/delete.subject.permanent/client",
+        "${mcp}/delete.subject.permanent/server"})
+    public void shouldCallToolDeleteSubjectPermanent() throws Exception
+    {
+        k3po.finish();
+    }
+
+
+    @Test
+    @Specification({
+        "${mcp}/delete.schema.version.permanent/client",
+        "${mcp}/delete.schema.version.permanent/server"})
+    public void shouldCallToolDeleteSchemaVersionPermanent() throws Exception
+    {
+        k3po.finish();
+    }
+
+
+    @Test
+    @Specification({
         "${mcp}/check.compatibility/client",
         "${mcp}/check.compatibility/server"})
     public void shouldCallToolCheckCompatibility() throws Exception
