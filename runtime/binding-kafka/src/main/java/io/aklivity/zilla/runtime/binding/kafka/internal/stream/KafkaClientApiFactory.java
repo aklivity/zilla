@@ -1873,6 +1873,11 @@ public final class KafkaClientApiFactory implements BindingHandler
             cleanupBudget();
 
             deauthorizeGuardSession();
+
+            if (KafkaState.closed(state))
+            {
+                onNetClosed(traceId);
+            }
         }
 
         private void doNetAbort(
@@ -1890,6 +1895,11 @@ public final class KafkaClientApiFactory implements BindingHandler
             cleanupBudget();
 
             deauthorizeGuardSession();
+
+            if (KafkaState.closed(state))
+            {
+                onNetClosed(traceId);
+            }
         }
 
         private void doNetReset(
@@ -1906,6 +1916,11 @@ public final class KafkaClientApiFactory implements BindingHandler
             cleanupDecodeSlot();
 
             deauthorizeGuardSession();
+
+            if (KafkaState.closed(state))
+            {
+                onNetClosed(traceId);
+            }
         }
 
         private void deauthorizeGuardSession()
@@ -2355,11 +2370,6 @@ public final class KafkaClientApiFactory implements BindingHandler
             doNetAbort(traceId);
 
             apiVersionRangeByApiKey.clear();
-
-            if (KafkaState.closed(state))
-            {
-                onNetClosed(traceId);
-            }
         }
 
         private void cleanupNet(
@@ -2367,11 +2377,6 @@ public final class KafkaClientApiFactory implements BindingHandler
         {
             doNetReset(traceId);
             doNetAbort(traceId);
-
-            if (KafkaState.closed(state))
-            {
-                onNetClosed(traceId);
-            }
         }
 
         private void cleanupDecodeSlot()
