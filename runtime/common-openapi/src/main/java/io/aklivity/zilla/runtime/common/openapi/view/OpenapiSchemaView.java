@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import jakarta.json.JsonValue;
 import jakarta.json.bind.annotation.JsonbProperty;
 import jakarta.json.bind.annotation.JsonbPropertyOrder;
 
@@ -117,6 +118,7 @@ public final class OpenapiSchemaView
         "type",
         "items",
         "properties",
+        "additionalProperties",
         "required",
         "format",
         "description",
@@ -146,6 +148,7 @@ public final class OpenapiSchemaView
         public String type;
         public OpenapiSchema items;
         public Map<String, OpenapiJsonSchema> properties;
+        public JsonValue additionalProperties;
         public List<String> required;
         public String format;
         public String description;
@@ -181,6 +184,7 @@ public final class OpenapiSchemaView
                    ? model.properties.entrySet().stream()
                        .collect(Collectors.toMap(Map.Entry::getKey, e -> of(e.getValue())))
                    : null;
+            json.additionalProperties = model.additionalProperties;
             json.required = model.required;
             json.format = model.format;
             json.description = model.description;

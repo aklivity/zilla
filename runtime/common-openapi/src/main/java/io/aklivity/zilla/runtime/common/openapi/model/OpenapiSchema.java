@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.common.openapi.model;
 import java.util.List;
 import java.util.Map;
 
+import jakarta.json.JsonValue;
 import jakarta.json.bind.annotation.JsonbProperty;
 
 public class OpenapiSchema extends AbstractOpenapiResolvable
@@ -25,6 +26,11 @@ public class OpenapiSchema extends AbstractOpenapiResolvable
     public OpenapiSchema items;
     public Map<String, OpenapiSchema> properties;
     public List<String> required;
+    // captured as a raw JsonValue (rather than resolved/recursively-bound like items/properties/schema)
+    // since a boolean literal (true/false) is a valid alternative to a nested schema object here, and
+    // consumers that shape output from this schema (e.g. common-json's JsonSchemaImpl) already understand
+    // both forms when parsing the serialized schema text
+    public JsonValue additionalProperties;
     public String format;
     public String description;
     @JsonbProperty("enum")

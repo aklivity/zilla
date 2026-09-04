@@ -49,6 +49,34 @@ class JsonSchemaRetainedPathsTest
     }
 
     @Test
+    void shouldCollectWildcardWhenAdditionalPropertiesAllowed()
+    {
+        assertEquals(List.of("/a", "/*"),
+            retained("{\"properties\":{\"a\":{\"type\":\"integer\"}},\"additionalProperties\":true}"));
+    }
+
+    @Test
+    void shouldCollectWildcardForTypedAdditionalPropertiesSchema()
+    {
+        assertEquals(List.of("/a", "/*"),
+            retained("{\"properties\":{\"a\":{\"type\":\"integer\"}},\"additionalProperties\":{\"type\":\"string\"}}"));
+    }
+
+    @Test
+    void shouldNotCollectWildcardWhenAdditionalPropertiesAbsent()
+    {
+        assertEquals(List.of("/a"),
+            retained("{\"properties\":{\"a\":{\"type\":\"integer\"}}}"));
+    }
+
+    @Test
+    void shouldNotCollectWildcardWhenAdditionalPropertiesFalse()
+    {
+        assertEquals(List.of("/a"),
+            retained("{\"properties\":{\"a\":{\"type\":\"integer\"}},\"additionalProperties\":false}"));
+    }
+
+    @Test
     void shouldTreatStructurelessObjectAsRetainedLeaf()
     {
         assertEquals(List.of("/meta"),
@@ -118,6 +146,28 @@ class JsonSchemaRetainedPathsTest
         byte[] out = new byte[gen.length()];
         buffer.getBytes(0, out);
         assertEquals("{\"items\":[{\"id\":1},{\"id\":2}]} ", new String(out, UTF_8));
+    }
+
+    @Test
+    void shouldDriveProjectorEndToEndWithAdditionalProperties()
+    {
+        JsonGeneratorEx gen = JsonEx.createGenerator();
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[1024]);
+        gen.wrap(buffer, 0, buffer.capacity());
+        JsonSchema schema = JsonSchema.of(
+            "{\"type\":\"object\",\"properties\":{\"connector.class\":{\"type\":\"string\"}}," +
+            "\"additionalProperties\":true}");
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
+            .transform(JsonTransforms.projector(schema.retainedPaths()))
+            .into(JsonEx.createSink(gen));
+        pipeline.reset();
+        byte[] bytes = "{\"connector.class\":\"FileStreamSource\",\"file\":\"/tmp/x\",\"topic\":\"t\"} "
+            .getBytes(UTF_8);
+        pipeline.transform(new UnsafeBufferEx(bytes), 0, bytes.length);
+        byte[] out = new byte[gen.length()];
+        buffer.getBytes(0, out);
+        assertEquals("{\"connector.class\":\"FileStreamSource\",\"file\":\"/tmp/x\",\"topic\":\"t\"} ",
+            new String(out, UTF_8));
     }
 
     private static List<String> retained(

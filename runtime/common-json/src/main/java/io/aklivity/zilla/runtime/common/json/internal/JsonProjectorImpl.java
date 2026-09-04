@@ -50,6 +50,7 @@ public final class JsonProjectorImpl implements JsonTransform
 {
     private static final int MAX_DEPTH = 64;
     private static final String WILDCARD = "-";
+    private static final String WILDCARD_PROPERTY = "*";
 
     private enum Decision
     {
@@ -636,7 +637,9 @@ public final class JsonProjectorImpl implements JsonTransform
         return result;
     }
 
-    // Matches an object key against a node's children by the live char view, allocation-free.
+    // Matches an object key against a node's children by the live char view, allocation-free -- preferring
+    // an explicit named child over the "*" wildcard, the object-key counterpart to lookupIndex's array
+    // wildcard fallback below.
     private static Node lookup(
         Node node,
         CharSequence key)
@@ -644,12 +647,22 @@ public final class JsonProjectorImpl implements JsonTransform
         Node result = null;
         if (node != null)
         {
+            Node wildcard = null;
             for (int i = 0; result == null && i < node.keys.length; i++)
             {
-                if (charsEqual(node.keys[i], key))
+                String segment = node.keys[i];
+                if (WILDCARD_PROPERTY.equals(segment))
+                {
+                    wildcard = node.nodes[i];
+                }
+                else if (charsEqual(segment, key))
                 {
                     result = node.nodes[i];
                 }
+            }
+            if (result == null)
+            {
+                result = wildcard;
             }
         }
         return result;
@@ -776,11 +789,16 @@ public final class JsonProjectorImpl implements JsonTransform
             this.nodes = nodes;
             this.keepAll = keepAll;
             int longest = 0;
+            boolean wildcard = false;
             for (String key : keys)
             {
                 longest = Math.max(longest, key.length());
+                wildcard |= WILDCARD_PROPERTY.equals(key);
             }
-            this.maxKeyLength = longest;
+            // a "*" child matches a key of any length, so a fragment already longer than every named
+            // sibling still can't be ruled out early -- only a closed enumeration (no wildcard) can use
+            // the max-named-length bound to declare SKIP before the key is fully reassembled
+            this.maxKeyLength = wildcard ? Integer.MAX_VALUE : longest;
         }
     }
 
