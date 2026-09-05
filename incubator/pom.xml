@@ -19,6 +19,7 @@
   <modules>
     <module>binding-amqp.spec</module>
     <module>binding-amqp.conf</module>
+    <module>binding-llm.spec</module>
     <module>binding-pgsql.spec</module>
     <module>binding-pgsql.conf</module>
     <module>binding-pgsql-kafka.spec</module>
