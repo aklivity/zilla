@@ -22,6 +22,7 @@ import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.Zill
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_BUDGET_ID;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_BYTE_ORDER;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_CAPABILITIES;
+import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_PADDABLE;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_PADDING;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_REDIRECTED_ID;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_SHARED_WINDOW;
@@ -35,7 +36,9 @@ import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.util.Conve
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.util.Conversions.convertToInt;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.util.Conversions.convertToLong;
 
+import java.util.EnumSet;
 import java.util.Objects;
+import java.util.Set;
 
 import io.aklivity.k3po.runtime.driver.internal.netty.bootstrap.channel.DefaultChannelConfig;
 
@@ -47,6 +50,7 @@ public class DefaultZillaChannelConfig extends DefaultChannelConfig implements Z
     private long budgetId;
     private long streamId;
     private int padding;
+    private Set<ZillaFrameKind> paddable = EnumSet.of(ZillaFrameKind.DATA);
     private ZillaThrottleMode throttle = ZillaThrottleMode.STREAM;
     private ZillaUpdateMode update = ZillaUpdateMode.STREAM;
     private long affinity;
@@ -134,6 +138,23 @@ public class DefaultZillaChannelConfig extends DefaultChannelConfig implements Z
     public int getPadding()
     {
         return padding;
+    }
+
+    @Override
+    public void setPaddable(String paddable)
+    {
+        final Set<ZillaFrameKind> kinds = EnumSet.noneOf(ZillaFrameKind.class);
+        for (String kind : paddable.trim().split("\\s+"))
+        {
+            kinds.add(ZillaFrameKind.decode(kind));
+        }
+        this.paddable = kinds;
+    }
+
+    @Override
+    public boolean isPaddable(ZillaFrameKind kind)
+    {
+        return paddable.contains(kind);
     }
 
     @Override
@@ -252,6 +273,10 @@ public class DefaultZillaChannelConfig extends DefaultChannelConfig implements Z
         else if (OPTION_PADDING.getName().equals(key))
         {
             setPadding(convertToInt(value));
+        }
+        else if (OPTION_PADDABLE.getName().equals(key))
+        {
+            setPaddable(Objects.toString(value, "data"));
         }
         else if (OPTION_UPDATE.getName().equals(key))
         {
