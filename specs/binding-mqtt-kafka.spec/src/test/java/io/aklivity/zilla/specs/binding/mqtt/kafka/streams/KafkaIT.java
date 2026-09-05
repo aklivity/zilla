@@ -830,6 +830,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/session.ignore.non.fetch.signal.stream.flush/client",
+        "${kafka}/session.ignore.non.fetch.signal.stream.flush/server"})
+    public void shouldIgnoreNonFetchSignalStreamFlush() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/publish.qos1/client",
         "${kafka}/publish.qos1/server"})
     public void shouldPublishQoS1Message() throws Exception
