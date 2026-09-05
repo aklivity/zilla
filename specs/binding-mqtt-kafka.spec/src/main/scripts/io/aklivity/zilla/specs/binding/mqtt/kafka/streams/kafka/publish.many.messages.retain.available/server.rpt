@@ -15,6 +15,7 @@
 
 accept "zilla://streams/kafka0"
         option zilla:window 8192
+        option zilla:update "handshake"
         option zilla:transmission "duplex"
 
 accepted
@@ -30,6 +31,8 @@ read zilla:begin.ext ${kafka:matchBeginEx()
                             .build()}
 
 connected
+
+read option zilla:window 65536
 
 read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
