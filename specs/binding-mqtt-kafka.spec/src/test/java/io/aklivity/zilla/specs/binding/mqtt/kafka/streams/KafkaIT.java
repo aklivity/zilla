@@ -776,6 +776,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/session.will.message.clean.start.abort.zero.window/client",
+        "${kafka}/session.will.message.clean.start.abort.zero.window/server"})
+    public void shouldSkipWillSignalOnAbortBeforeKafkaSessionStreamWindowGranted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/session.will.message.cancel.delivery/client",
         "${kafka}/session.will.message.cancel.delivery/server"})
     public void shouldCancelWillDelivery() throws Exception
