@@ -47,6 +47,7 @@ connect await ROUTED_BROKER_CLIENT
         "zilla://streams/app0"
     option zilla:window 8192
     option zilla:padding 4096
+    option zilla:paddable "data flush"
     option zilla:transmission "half-duplex"
     option zilla:affinity 177
 
