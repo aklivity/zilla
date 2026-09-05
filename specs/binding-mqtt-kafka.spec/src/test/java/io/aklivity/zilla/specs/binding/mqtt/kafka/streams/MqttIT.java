@@ -652,6 +652,17 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/session.will.message.clean.start.abort.zero.window/client",
+        "${mqtt}/session.will.message.clean.start.abort.zero.window/server"})
+    public void shouldSkipWillSignalOnAbortBeforeKafkaSessionStreamWindowGranted() throws Exception
+    {
+        k3po.start();
+        k3po.notifyBarrier("SESSION_STREAM_WINDOW_GRANTED");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/publish.qos1/client",
         "${mqtt}/publish.qos1/server"})
     public void shouldPublishQoS1Message() throws Exception
