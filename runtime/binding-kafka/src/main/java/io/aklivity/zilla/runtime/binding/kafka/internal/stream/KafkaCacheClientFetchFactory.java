@@ -874,7 +874,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
                 leaderId = LEADER_UNKNOWN;
             }
 
-            if (reconnectDelay != 0 && !members.isEmpty())
+            if (reconnectDelay != 0 && !members.isEmpty() && KafkaError.of(error).isRetriable())
             {
                 if (reconnectAt != NO_CANCEL_ID)
                 {
