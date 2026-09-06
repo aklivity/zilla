@@ -14,9 +14,13 @@
  */
 module io.aklivity.zilla.runtime.binding.llm
 {
-    requires io.aklivity.zilla.runtime.engine;
     requires io.aklivity.zilla.config.binding.llm;
+    requires transitive io.aklivity.zilla.runtime.common.json;
+    requires io.aklivity.zilla.runtime.engine;
 
+    exports io.aklivity.zilla.runtime.binding.llm.dialect;
+
+    uses io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectFactorySpi;
     uses io.aklivity.zilla.runtime.binding.llm.internal.decode.LlmContentDecoderSpi;
 
     provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
