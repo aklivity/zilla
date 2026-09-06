@@ -85,6 +85,15 @@ public class FetchIT
 
     @Test
     @Specification({
+        "${app}/partition.not.leader.client.reconnect/client",
+        "${app}/partition.not.leader.client.reconnect/server"})
+    public void shouldClientReconnectPartitionNotLeader() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/partition.offset/client",
         "${app}/partition.offset/server"})
     public void shouldRequestPartitionOffset() throws Exception
