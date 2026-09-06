@@ -571,7 +571,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             long traceId,
             KafkaCacheClientFetchStream member)
         {
-            if (member.leaderId != leaderId && member.leaderId != LEADER_UNKNOWN)
+            if (leaderId != LEADER_UNKNOWN && member.leaderId != leaderId && member.leaderId != LEADER_UNKNOWN)
             {
                 doClientFanoutInitialAbortIfNecessary(traceId);
                 doClientFanoutReplyResetIfNecessary(traceId);
