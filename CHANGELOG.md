@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.3.2](https://github.com/aklivity/zilla/tree/1.3.2) (2026-09-07)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/1.3.1...1.3.2)
+
+**Merged pull requests:**
+
+- docs\(readme\): fix release badge to use GitHub releases, scoped to 1.x [\#2442](https://github.com/aklivity/zilla/pull/2442) ([jfallows](https://github.com/jfallows))
+- fix\(binding-kafka\): back off and reconnect proactively on `NOT_LEADER_OR_FOLLOWER` [\#2551](https://github.com/aklivity/zilla/pull/2551) ([ankitk-me](https://github.com/ankitk-me))
+
 ## [1.3.1](https://github.com/aklivity/zilla/tree/1.3.1) (2026-08-18)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/1.3.0...1.3.1)
