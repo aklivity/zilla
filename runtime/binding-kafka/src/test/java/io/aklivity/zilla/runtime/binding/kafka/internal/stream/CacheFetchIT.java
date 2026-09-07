@@ -116,6 +116,17 @@ public class CacheFetchIT
     @Test
     @Configuration("cache.yaml")
     @Specification({
+        "${app}/partition.not.leader.client.reconnect/client",
+        "${app}/partition.not.leader.client.reconnect/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldClientReconnectPartitionNotLeader() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.yaml")
+    @Specification({
         "${app}/partition.not.leader.reconnect.after.meta/client",
         "${app}/partition.not.leader.reconnect.after.meta/server"})
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
