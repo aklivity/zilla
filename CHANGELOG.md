@@ -1,8 +1,8 @@
 # Changelog
 
-## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+## [2.4.0](https://github.com/aklivity/zilla/tree/2.4.0) (2026-09-07)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/2.3.0...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/2.3.0...2.4.0)
 
 **Fixed bugs:**
 
@@ -25,12 +25,28 @@
 - Retain and expose unrecognized schema-root properties, alongside existing field-level annotation retention [\#2415](https://github.com/aklivity/zilla/issues/2415) ([jfallows](https://github.com/jfallows))
 - Make wrapped key material self-sufficient for unwrap — drop the explicit key-name parameter from SecretKeyManager/VaultHandler.unwrap [\#2416](https://github.com/aklivity/zilla/issues/2416) ([jfallows](https://github.com/jfallows))
 - kafka cache storage: honor per-message authorization on the fetch path, not just at cache population [\#2423](https://github.com/aklivity/zilla/issues/2423) ([jfallows](https://github.com/jfallows))
+- kafka cache storage: honor per-message authorization on the produce path, not the first producer's [\#2424](https://github.com/aklivity/zilla/issues/2424) ([jfallows](https://github.com/jfallows))
 - MQTT CONNECT with a Will message crashes the whole engine \(JVM segfault\), not just the connection [\#2428](https://github.com/aklivity/zilla/issues/2428) ([sfr-oc](https://github.com/sfr-oc))
 - binding-kafka: avoid per-stream heap accumulation buffer for produce-path trailer entries [\#2456](https://github.com/aklivity/zilla/issues/2456) ([jfallows](https://github.com/jfallows))
 - fix\(binding-mcp\): options.cache config tree doesn't fold NamedConfig refs\(\) generically [\#2462](https://github.com/aklivity/zilla/issues/2462) ([jfallows](https://github.com/jfallows))
 - model pipelines: XxxDiagnostic can't distinguish parse, validation, and transform failures [\#2465](https://github.com/aklivity/zilla/issues/2465) ([jfallows](https://github.com/jfallows))
 - binding-mcp: kind: client should require exit \(or a route exit\) [\#2506](https://github.com/aklivity/zilla/issues/2506) ([jfallows](https://github.com/jfallows))
 - binding-mcp: cache hydration failures are not diagnosable from binding.mcp.hydrate.failed alone [\#2508](https://github.com/aklivity/zilla/issues/2508) ([jfallows](https://github.com/jfallows))
+- Merged produce window collapses on topics with more than one partition [\#2516](https://github.com/aklivity/zilla/issues/2516) ([sfr-oc](https://github.com/sfr-oc))
+- Produce flush acknowledge is applied locally and never emitted as a window [\#2517](https://github.com/aklivity/zilla/issues/2517) ([sfr-oc](https://github.com/sfr-oc))
+- Publish window granted upstream ignores the retained stream's credit [\#2518](https://github.com/aklivity/zilla/issues/2518) ([sfr-oc](https://github.com/sfr-oc))
+- Engine worker terminates on a non-fetch merged flush on the session signal stream [\#2519](https://github.com/aklivity/zilla/issues/2519) ([sfr-oc](https://github.com/sfr-oc))
+- Engine worker terminates when the session stream writes before its kafka stream is attached [\#2520](https://github.com/aklivity/zilla/issues/2520) ([sfr-oc](https://github.com/sfr-oc))
+- PUBLISH payload decode reserves padding after the publish stream window is exhausted [\#2521](https://github.com/aklivity/zilla/issues/2521) ([sfr-oc](https://github.com/sfr-oc))
+- Will message continuation read is not bounded by the declared payload length [\#2522](https://github.com/aklivity/zilla/issues/2522) ([sfr-oc](https://github.com/sfr-oc))
+- mcp\(proxy\): routing and cache hydration ignore south routes' real server capabilities, defaulting to "serves everything" [\#2524](https://github.com/aklivity/zilla/issues/2524) ([jfallows](https://github.com/jfallows))
+- MCP server binding never returns HTTP 404 for expired/unknown session, and default inactivity timeout is easy to exceed when interactive [\#2525](https://github.com/aklivity/zilla/issues/2525) ([jfallows](https://github.com/jfallows))
+- kafka-connect MCP tool schemas for validate/update connector config omit connector-specific fields [\#2530](https://github.com/aklivity/zilla/issues/2530) ([jfallows](https://github.com/jfallows))
+- mcp-kafka-connect: empty-body Kafka Connect responses \(202/204\) get mis-encoded as a hanging SSE stream [\#2531](https://github.com/aklivity/zilla/issues/2531) ([jfallows](https://github.com/jfallows))
+- mcp-kafka: reset\_offsets hangs forever when target consumer group state is Dead [\#2532](https://github.com/aklivity/zilla/issues/2532) ([jfallows](https://github.com/jfallows))
+- kafka\_sr\_\_delete\_subject tool schema has no 'permanent' parameter, so a subject can only ever be soft-deleted [\#2533](https://github.com/aklivity/zilla/issues/2533) ([jfallows](https://github.com/jfallows))
+- binding-mcp-http: tool.summary template has no way to reference the response's own root value [\#2535](https://github.com/aklivity/zilla/issues/2535) ([jfallows](https://github.com/jfallows))
+- kafka\_connect validate/update\_connector\_config: declared tool schema still omits connector-specific fields even though the fix landed functionally [\#2542](https://github.com/aklivity/zilla/issues/2542) ([jfallows](https://github.com/jfallows))
 
 **Merged pull requests:**
 
@@ -118,6 +134,26 @@
 - feat\(engine\): batch EmbeddingHandler.embed\(\), fix\(binding-mcp\): tolerate a failing search backend [\#2512](https://github.com/aklivity/zilla/pull/2512) ([jfallows](https://github.com/jfallows))
 - feat\(model-vector\): dedupe reject-phrase embedding across workers via a required store [\#2514](https://github.com/aklivity/zilla/pull/2514) ([jfallows](https://github.com/jfallows))
 - fix\(binding-mcp-kafka\): avoid NPE on unrecognized JSON in tool call arguments [\#2515](https://github.com/aklivity/zilla/pull/2515) ([jfallows](https://github.com/jfallows))
+- build: move NOTICE check to verify phase [\#2526](https://github.com/aklivity/zilla/pull/2526) ([jfallows](https://github.com/jfallows))
+- ci: cache maven wrapper distribution to avoid per-build downloads [\#2527](https://github.com/aklivity/zilla/pull/2527) ([jfallows](https://github.com/jfallows))
+- fix\(binding-mcp\): return HTTP 404 for unknown/expired MCP session [\#2528](https://github.com/aklivity/zilla/pull/2528) ([jfallows](https://github.com/jfallows))
+- fix\(binding-mcp\): honor south exits' real capabilities in route resolution [\#2529](https://github.com/aklivity/zilla/pull/2529) ([jfallows](https://github.com/jfallows))
+- fix\(binding-mqtt\): bound will-message continuation read to the declared payload length [\#2534](https://github.com/aklivity/zilla/pull/2534) ([jfallows](https://github.com/jfallows))
+- fix\(binding-mcp-schema-registry\): support permanent delete for subject and schema version [\#2536](https://github.com/aklivity/zilla/pull/2536) ([jfallows](https://github.com/jfallows))
+- fix\(binding-mcp-http\): treat a genuinely empty tool-call response body as JSON null [\#2537](https://github.com/aklivity/zilla/pull/2537) ([jfallows](https://github.com/jfallows))
+- fix\(binding-mcp-kafka-connect\): accept arbitrary connector config fields [\#2538](https://github.com/aklivity/zilla/pull/2538) ([jfallows](https://github.com/jfallows))
+- fix\(examples\): cache npm install for mcp.proxy's "everything" service [\#2539](https://github.com/aklivity/zilla/pull/2539) ([jfallows](https://github.com/jfallows))
+- fix\(binding-mcp-kafka\): stop reset\_offsets hanging after a stale stage END [\#2540](https://github.com/aklivity/zilla/pull/2540) ([jfallows](https://github.com/jfallows))
+- fix\(binding-mcp-http\): support ${result} in tool.summary [\#2541](https://github.com/aklivity/zilla/pull/2541) ([jfallows](https://github.com/jfallows))
+- fix\(binding-mcp-openapi\): advertise additionalProperties in generated tool input schema [\#2543](https://github.com/aklivity/zilla/pull/2543) ([jfallows](https://github.com/jfallows))
+- fix\(binding-kafka\): reconnect KIND\_API\_REQUEST pool after idle teardown [\#2544](https://github.com/aklivity/zilla/pull/2544) ([jfallows](https://github.com/jfallows))
+- fix\(binding-mqtt\): stop reserving padding once the publish stream's window is exhausted [\#2545](https://github.com/aklivity/zilla/pull/2545) ([jfallows](https://github.com/jfallows))
+- fix\(binding-kafka\): derive the merged produce window from the least budget offered [\#2546](https://github.com/aklivity/zilla/pull/2546) ([jfallows](https://github.com/jfallows))
+- fix\(binding-kafka\): emit a window when a produce flush is acknowledged [\#2547](https://github.com/aklivity/zilla/pull/2547) ([jfallows](https://github.com/jfallows))
+- fix\(binding-mqtt-kafka\): account for the retained stream when granting the publish window [\#2548](https://github.com/aklivity/zilla/pull/2548) ([jfallows](https://github.com/jfallows))
+- fix\(binding-mqtt-kafka\): guard KafkaSignalStream flush against non-fetch merged kind [\#2549](https://github.com/aklivity/zilla/pull/2549) ([jfallows](https://github.com/jfallows))
+- fix\(binding-mqtt-kafka\): guard doKafkaData against insufficient window budget [\#2550](https://github.com/aklivity/zilla/pull/2550) ([jfallows](https://github.com/jfallows))
+- fix\(binding-kafka\): back off and reconnect proactively on NOT\_LEADER\_OR\_FOLLOWER [\#2555](https://github.com/aklivity/zilla/pull/2555) ([jfallows](https://github.com/jfallows))
 
 ## [2.3.0](https://github.com/aklivity/zilla/tree/2.3.0) (2026-08-14)
 
