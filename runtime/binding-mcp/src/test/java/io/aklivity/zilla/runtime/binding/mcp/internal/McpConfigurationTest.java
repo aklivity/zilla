@@ -37,6 +37,7 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
 
+import java.time.Duration;
 import java.util.UUID;
 import java.util.function.LongFunction;
 
@@ -84,6 +85,14 @@ public class McpConfigurationTest
         assertEquals(MCP_HYDRATE_FILTER.name(), MCP_HYDRATE_FILTER_NAME);
         assertEquals(MCP_LEASE_TTL.name(), MCP_LEASE_TTL_NAME);
         assertEquals(MCP_LEASE_RETRY.name(), MCP_LEASE_RETRY_NAME);
+    }
+
+    @Test
+    public void shouldDefaultInactivityTimeoutToFiveMinutes()
+    {
+        McpConfiguration config = new McpConfiguration();
+
+        assertEquals(Duration.ofMinutes(5), config.inactivityTimeout());
     }
 
     @Test

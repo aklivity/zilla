@@ -7,7 +7,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>io.aklivity.zilla</groupId>
   <artifactId>zilla</artifactId>
-  <version>2.4.0-rc35</version>
+  <version>2.4.0</version>
   <packaging>pom</packaging>
   <name>zilla</name>
   <url>https://github.com/aklivity/zilla</url>
@@ -282,7 +282,7 @@
           </configuration>
           <executions>
             <execution>
-              <phase>validate</phase>
+              <phase>verify</phase>
               <goals>
                 <goal>check</goal>
               </goals>

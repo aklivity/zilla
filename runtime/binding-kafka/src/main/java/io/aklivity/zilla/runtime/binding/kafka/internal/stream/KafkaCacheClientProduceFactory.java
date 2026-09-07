@@ -631,6 +631,17 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
             }
         }
 
+        void onLeaderReady(
+            long traceId)
+        {
+            if (reconnectAt != NO_CANCEL_ID)
+            {
+                signaler.cancel(reconnectAt);
+                this.reconnectAt = NO_CANCEL_ID;
+                doClientFanInitialBeginIfNecessary(traceId);
+            }
+        }
+
         private void doClientFanInitialBeginIfNecessary(
             long traceId)
         {
@@ -639,7 +650,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 state = 0;
             }
 
-            if (!KafkaState.initialOpening(state))
+            if (!KafkaState.initialOpening(state) && reconnectAt == NO_CANCEL_ID)
             {
                 doClientFanInitialBegin(traceId);
             }
@@ -1456,10 +1467,8 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 }
             }
 
-            initialAck += reserved;
-
-            final int noAck = (int) (initialSeq - initialAck);
-            doClientInitialWindow(traceId, noAck, initialBudgetMax);
+            final int noAck = (int) (initialSeq - initialAck - reserved);
+            doClientInitialWindow(traceId, noAck, Math.max(initialMax, initialBudgetMax));
         }
 
         private void onClientInitialEnd(

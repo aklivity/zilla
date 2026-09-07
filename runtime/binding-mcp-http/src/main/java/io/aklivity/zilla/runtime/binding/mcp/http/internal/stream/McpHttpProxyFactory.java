@@ -117,6 +117,7 @@ public final class McpHttpProxyFactory implements BindingHandler
     private static final byte[] RESOURCE_PREFIX = "{\"contents\":[{\"uri\":".getBytes(UTF_8);
     private static final byte[] RESOURCE_MIME = ",\"mimeType\":".getBytes(UTF_8);
     private static final byte[] RESOURCE_TEXT_OPEN = ",\"text\":\"".getBytes(UTF_8);
+    private static final byte[] NULL_RESPONSE_VALUE = "null".getBytes(UTF_8);
 
     private static final Map<String, String> EMPTY_PARAMS = Map.of();
     private static final Map<String, Object> SINK_SEGMENTABLE = Map.of(JsonSink.DELIVERY, JsonSink.Delivery.SEGMENTABLE);
@@ -157,6 +158,7 @@ public final class McpHttpProxyFactory implements BindingHandler
 
     private final UnsafeBufferEx escapeRO = new UnsafeBufferEx(new byte[0]);
     private final UnsafeBufferEx emptyRequestRO = new UnsafeBufferEx(new byte[0]);
+    private final UnsafeBufferEx nullResponseValueRO = new UnsafeBufferEx(NULL_RESPONSE_VALUE);
     private final Map<McpHttpRouteConfig, List<String>> routePathArgReferences;
     private final Map<McpHttpToolConfig, List<String>> toolResultReferences;
 
@@ -232,9 +234,8 @@ public final class McpHttpProxyFactory implements BindingHandler
 
             if (kind == KIND_LIFECYCLE)
             {
-                final int capabilities = beginEx.lifecycle().capabilities();
                 final String sessionId = newSessionId();
-                newStream = new McpSession(sessionId, capabilities,
+                newStream = new McpSession(sessionId, binding.serverCapabilities(),
                     sender, originId, routedId, initialId, authorization, affinity)::onMcpMessage;
             }
             else
@@ -883,18 +884,30 @@ public final class McpHttpProxyFactory implements BindingHandler
         // (rather than assuming the caller already has) mirrors acquireEncodeSlot()'s guarded pattern; the
         // freshly re-fetched encodePool.buffer(encodeSlot) is never held across another encodePool.buffer(...)
         // call, avoiding the shared-wrapper aliasing hazard DefaultBufferPool.buffer(int) exposes.
+        // bodyReceived is HttpProxy's own decodeSlot != NO_SLOT — whether any response DATA payload has ever
+        // arrived — passed through rather than re-derived, since HttpProxy already tracks it.
         JsonPipeline.Status responseStep(
             DirectBufferEx buffer,
             int offset,
             int length,
-            boolean last)
+            boolean last,
+            boolean bodyReceived)
         {
             JsonPipeline.Status status;
             if (acquireEncodeSlot())
             {
                 final MutableDirectBufferEx slot = encodePool.buffer(encodeSlot);
                 responseGenerator.wrap(slot, encodeSlotOffset, encodePool.slotCapacity());
-                status = responsePipeline.transform(buffer, offset, offset + length, last);
+                // a response that closes having never received a single body byte (e.g. Content-Length: 0
+                // on a 202/204 action response) is not valid JSON on its own; treating it as the JSON
+                // literal null lets it flow through the same result/summary/envelope machinery a real body
+                // would, instead of the pipeline rejecting an empty document and aborting the reply
+                // mid-stream
+                final boolean bodyEmpty = last && !bodyReceived;
+                final DirectBufferEx source = bodyEmpty ? nullResponseValueRO : buffer;
+                final int sourceOffset = bodyEmpty ? 0 : offset;
+                final int sourceLimit = bodyEmpty ? NULL_RESPONSE_VALUE.length : offset + length;
+                status = responsePipeline.transform(source, sourceOffset, sourceLimit, last);
                 encodeSlotOffset += responseGenerator.length();
             }
             else
@@ -987,6 +1000,12 @@ public final class McpHttpProxyFactory implements BindingHandler
         // populated by the McpHttpResults capture stage as structuredContent streams past; read back once the
         // response completes to resolve tool.summary's ${result.*} references without re-scanning a buffer
         private final Map<String, String> capturedResults = new HashMap<>();
+
+        // true when this tool's structuredContent is McpHttpResultWrap-wrapped as {"result":<value>} to satisfy
+        // the MCP wire contract that structuredContent is always a JSON object; a bare ${result} then means the
+        // real (unwrapped) response value, so it is resolved against the captured "result" key rather than the
+        // captured root -- keeping the wrapper an implementation detail invisible to tool.summary authors
+        private boolean resultWrapped;
 
         // the non-2xx response mode: relays the raw upstream body as escaped text with no JsonPipeline at all
         // (the body is not guaranteed to be valid JSON), using errorGenerator directly the same way responseStep
@@ -1340,9 +1359,10 @@ public final class McpHttpProxyFactory implements BindingHandler
                 final String summaryTemplate = tool != null ? tool.summary : null;
                 final List<String> resultPaths = tool != null ? toolResultReferences(tool) : List.of();
 
+                resultWrapped = tool != null && tool.outputMaybeWrapped;
                 responseGenerator = JsonEx.createGenerator();
                 JsonStream stream = JsonEx.stream(JsonEx.createParser());
-                if (tool != null && tool.outputMaybeWrapped)
+                if (resultWrapped)
                 {
                     // nothing proves the upstream body is already an object; route it through the
                     // transform that decides, from the real body's own first event, whether it actually
@@ -1384,9 +1404,12 @@ public final class McpHttpProxyFactory implements BindingHandler
             DirectBufferEx buffer,
             int offset,
             int length,
-            boolean last)
+            boolean last,
+            boolean bodyReceived)
         {
-            return errorRelay ? errorRelayStep(buffer, offset, length, last) : super.responseStep(buffer, offset, length, last);
+            return errorRelay
+                ? errorRelayStep(buffer, offset, length, last)
+                : super.responseStep(buffer, offset, length, last, bodyReceived);
         }
 
         @Override
@@ -1437,15 +1460,19 @@ public final class McpHttpProxyFactory implements BindingHandler
             return status;
         }
 
-        // Resolves a result.<path> reference from the values McpHttpResults captured while structuredContent
-        // streamed past, replacing a re-scan of a fully buffered response copy.
+        // Resolves a result.<path> reference, or a bare result reference (the response's own root value),
+        // from the values McpHttpResults captured while structuredContent streamed past, replacing a
+        // re-scan of a fully buffered response copy. When resultWrapped, the captured root is the
+        // McpHttpResultWrap envelope rather than the real value, so a bare ${result} is redirected to the
+        // captured "result" key instead -- see resultWrapped's field doc.
         private String resolveCapturedResult(
             String expression)
         {
             String value = "";
-            if (expression.startsWith("result."))
+            if ("result".equals(expression) || expression.startsWith("result."))
             {
-                final String captured = capturedResults.get(expression.substring(7));
+                final String path = "result".equals(expression) ? (resultWrapped ? "result" : "") : expression.substring(7);
+                final String captured = capturedResults.get(path);
                 value = captured != null ? captured : "";
             }
             return value;
@@ -2049,7 +2076,7 @@ public final class McpHttpProxyFactory implements BindingHandler
                 // a terminal status with an empty window, rather than dereferencing NO_SLOT
                 final MutableDirectBufferEx slot = decodeSlot != NO_SLOT ? decodePool.buffer(decodeSlot) : emptyRequestRO;
                 final JsonPipeline.Status status =
-                    mcp.responseStep(slot, 0, decodeSlotOffset, McpHttpState.replyClosed(state));
+                    mcp.responseStep(slot, 0, decodeSlotOffset, McpHttpState.replyClosed(state), decodeSlot != NO_SLOT);
                 if (status != JsonPipeline.Status.SUSPENDED)
                 {
                     // compact only at a terminal status: across suspend cycles the pipeline re-feeds the same
@@ -2279,6 +2306,9 @@ public final class McpHttpProxyFactory implements BindingHandler
         {
             if (!McpHttpState.replyOpened(state))
             {
+                // capabilities is this binding's own declared real capabilities (McpHttpBindingConfig.
+                // serverCapabilities, computed from its configured tools/resources), not an echo of
+                // whatever the connecting north forwarded for its own client's elicitation support
                 final McpBeginExFW lifecycleEx = mcpBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
                     .typeId(mcpTypeId)
                     .lifecycle(l -> l
@@ -2379,7 +2409,14 @@ public final class McpHttpProxyFactory implements BindingHandler
     private List<String> newToolResultReferences(
         McpHttpToolConfig tool)
     {
-        return resultReferences(tool.summary);
+        final List<String> paths = resultReferences(tool.summary);
+        if (tool.outputMaybeWrapped)
+        {
+            // the streamed root is the McpHttpResultWrap envelope, not the real value -- capture "result"
+            // (the envelope's own value key) in place of a bare root capture, matching resolveCapturedResult
+            paths.replaceAll(path -> path.isEmpty() ? "result" : path);
+        }
+        return paths;
     }
 
     private void appendQuery(
@@ -2808,7 +2845,8 @@ public final class McpHttpProxyFactory implements BindingHandler
 
     // Extracts the result.<path> references from a tool.summary template (e.g. "result.number" from
     // "Created pull request #${result.number}"), the set McpHttpResults is asked to capture as the response
-    // streams past.
+    // streams past. A bare ${result} (no path) — the response body's own root value — is recorded as the
+    // empty-string path, McpHttpResults' sentinel for a root capture.
     private static List<String> resultReferences(
         String template)
     {
@@ -2816,17 +2854,30 @@ public final class McpHttpProxyFactory implements BindingHandler
         if (template != null)
         {
             int index = 0;
-            int start = template.indexOf("${result.", index);
+            int start = template.indexOf("${result", index);
             while (start >= 0)
             {
-                final int end = template.indexOf('}', start);
-                if (end < 0)
+                final int afterKeyword = start + 8;
+                if (afterKeyword < template.length() && template.charAt(afterKeyword) == '.')
                 {
-                    break;
+                    final int end = template.indexOf('}', afterKeyword);
+                    if (end < 0)
+                    {
+                        break;
+                    }
+                    result.add(template.substring(afterKeyword + 1, end));
+                    index = end + 1;
                 }
-                result.add(template.substring(start + 9, end));
-                index = end + 1;
-                start = template.indexOf("${result.", index);
+                else if (afterKeyword < template.length() && template.charAt(afterKeyword) == '}')
+                {
+                    result.add("");
+                    index = afterKeyword + 1;
+                }
+                else
+                {
+                    index = afterKeyword;
+                }
+                start = template.indexOf("${result", index);
             }
         }
         return result;

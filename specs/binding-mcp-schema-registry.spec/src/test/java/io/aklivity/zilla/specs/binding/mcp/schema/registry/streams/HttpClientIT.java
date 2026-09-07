@@ -98,6 +98,26 @@ public class HttpClientIT
 
     @Test
     @Specification({
+        "${http}/delete.subject.permanent/client",
+        "${http}/delete.subject.permanent/server"})
+    public void shouldProxyDeleteSubjectPermanentToHttp() throws Exception
+    {
+        k3po.finish();
+    }
+
+
+    @Test
+    @Specification({
+        "${http}/delete.schema.version.permanent/client",
+        "${http}/delete.schema.version.permanent/server"})
+    public void shouldProxyDeleteSchemaVersionPermanentToHttp() throws Exception
+    {
+        k3po.finish();
+    }
+
+
+    @Test
+    @Specification({
         "${http}/check.compatibility/client",
         "${http}/check.compatibility/server"})
     public void shouldProxyCheckCompatibilityToHttp() throws Exception

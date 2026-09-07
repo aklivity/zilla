@@ -32,7 +32,7 @@ read zilla:begin.ext ${http:matchBeginEx()
 
 connected
 
-read  '{"connector.class":"FileStreamSource","tasks.max":"2"}'
+read  '{"connector.class":"FileStreamSource","tasks.max":"2","file":"/tmp/kc-source.txt","topic":"connect-demo"}'
 
 write zilla:begin.ext ${http:beginEx()
                             .typeId(zilla:id("http"))
@@ -41,7 +41,7 @@ write zilla:begin.ext ${http:beginEx()
                             .build()}
 write flush
 
-write '{"name":"connector1","config":{"connector.class":"FileStreamSource","tasks.max":"2"},"tasks":[],"type":"source"}'
+write '{"name":"connector1","config":{"connector.class":"FileStreamSource","tasks.max":"2","file":"/tmp/kc-source.txt","topic":"connect-demo"},"tasks":[],"type":"source"}'
 write flush
 
 write close

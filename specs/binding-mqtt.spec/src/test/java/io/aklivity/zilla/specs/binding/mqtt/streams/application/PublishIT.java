@@ -66,6 +66,15 @@ public class PublishIT
 
     @Test
     @Specification({
+        "${app}/publish.multiple.messages.100c/client",
+        "${app}/publish.multiple.messages.100c/server"})
+    public void shouldSendMultipleMessages100c() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/publish.session.takeover/client",
         "${app}/publish.session.takeover/server"})
     public void shouldSendMessageAfterSessionTakeover() throws Exception

@@ -84,7 +84,7 @@ public class McpConfiguration extends Configuration
         MCP_CLIENT_VERSION = config.property(String.class, "client.version", (c, v) -> v,
             McpConfiguration::defaultServerVersion);
         MCP_INACTIVITY_TIMEOUT = config.property(Duration.class, "inactivity.timeout",
-            (c, v) -> Duration.parse(v), "PT60S");
+            (c, v) -> Duration.parse(v), "PT300S");
         MCP_KEEPALIVE_TOLERANCE = config.property("keepalive.tolerance", 2);
         MCP_SSE_KEEPALIVE_INTERVAL = config.property(Duration.class, "sse.keepalive.interval",
             (c, v) -> Duration.parse(v), "PT15S");

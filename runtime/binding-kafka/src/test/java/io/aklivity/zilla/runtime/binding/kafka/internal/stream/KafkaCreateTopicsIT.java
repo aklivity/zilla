@@ -132,4 +132,16 @@ public class KafkaCreateTopicsIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.yaml")
+    @Configure(name = KAFKA_CLIENT_API_VERSIONS_NAME, value = "true")
+    @Configure(name = KAFKA_CLIENT_RECONNECT_DELAY_NAME, value = "0")
+    @Specification({
+        "${app}/create.topics.v7.idle.reset.reconnect/client",
+        "${net}/create.topics.v7.idle.reset.reconnect/server"})
+    public void shouldReconnectAfterIdleConnectionReset() throws Exception
+    {
+        k3po.finish();
+    }
 }

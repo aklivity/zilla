@@ -1,0 +1,438 @@
+#
+# Copyright 2021-2026 Aklivity Inc.
+#
+# Aklivity licenses this file to you under the Apache License,
+# version 2.0 (the "License"); you may not use this file except in compliance
+# with the License. You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+#
+
+accept "zilla://streams/net0"
+  option zilla:window 8192
+  option zilla:transmission "duplex"
+  option zilla:byteorder "network"
+
+accepted
+connected
+
+read  [0x10 0x12]                    # CONNECT
+      [0x00 0x04] "MQTT"             # protocol name
+      [0x04]                         # protocol version
+      [0x02]                         # flags = clean start
+      [0x00 0x3c]                    # keep alive = 60s
+      [0x00 0x06] "client"           # client id
+
+write [0x20 0x02]                    # CONNACK
+      [0x00]                         # flags = none
+      [0x00]                         # reason code
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00001-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00002-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00003-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00004-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00005-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00006-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00007-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00008-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00009-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00010-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00011-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00012-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00013-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00014-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00015-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00016-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00017-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00018-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00019-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00020-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00021-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00022-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00023-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00024-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00025-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00026-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00027-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00028-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00029-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00030-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00031-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00032-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00033-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00034-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00035-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00036-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00037-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00038-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00039-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00040-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00041-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00042-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00043-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00044-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00045-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00046-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00047-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00048-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00049-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00050-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00051-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00052-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00053-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00054-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00055-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00056-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00057-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00058-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00059-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00060-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00061-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00062-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00063-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00064-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00065-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00066-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00067-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00068-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00069-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00070-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00071-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00072-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00073-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00074-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00075-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00076-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00077-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00078-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00079-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00080-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00081-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00082-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00083-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00084-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00085-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00086-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00087-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00088-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00089-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00090-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00091-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00092-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00093-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00094-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00095-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00096-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00097-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00098-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00099-test-payloadxxxxxxxx"     # payload
+
+read  [0x30 0x2a]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      "seq-00100-test-payloadxxxxxxxx"     # payload
+
+read  [0xc0 0x00]                    # PINGREQ
+
+write [0xd0 0x00]                    # PINGRESP

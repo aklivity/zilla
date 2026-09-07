@@ -173,6 +173,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/publish.many.messages.retain.available/client",
+        "${kafka}/publish.many.messages.retain.available/server"})
+    public void shouldPublishManyMessagesRetainAvailable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/publish.multiple.messages/client",
         "${kafka}/publish.multiple.messages/server"})
     public void shouldSendMultipleMessages() throws Exception
@@ -767,6 +776,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/session.will.message.clean.start.abort.zero.window/client",
+        "${kafka}/session.will.message.clean.start.abort.zero.window/server"})
+    public void shouldSkipWillSignalOnAbortBeforeKafkaSessionStreamWindowGranted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/session.will.message.cancel.delivery/client",
         "${kafka}/session.will.message.cancel.delivery/server"})
     public void shouldCancelWillDelivery() throws Exception
@@ -815,6 +833,15 @@ public class KafkaIT
         "${kafka}/session.expiry.after.signal.stream.restart/client",
         "${kafka}/session.expiry.after.signal.stream.restart/server"})
     public void shouldExpireSessionAfterSignalStreamRestart() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.ignore.non.fetch.signal.stream.flush/client",
+        "${kafka}/session.ignore.non.fetch.signal.stream.flush/server"})
+    public void shouldIgnoreNonFetchSignalStreamFlush() throws Exception
     {
         k3po.finish();
     }

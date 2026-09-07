@@ -1707,7 +1707,9 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                 flushEx != null && flushEx.typeId() == kafkaTypeId ? extension.get(kafkaFlushExRO::tryWrap) : null;
             final KafkaMergedFlushExFW kafkaMergedFlushEx =
                 kafkaFlushEx != null && kafkaFlushEx.kind() == KafkaDataExFW.KIND_MERGED ? kafkaFlushEx.merged() : null;
-            final Array32FW<KafkaOffsetFW> progress = kafkaMergedFlushEx != null ? kafkaMergedFlushEx.fetch().progress() : null;
+            final Array32FW<KafkaOffsetFW> progress =
+                kafkaMergedFlushEx != null && kafkaMergedFlushEx.kind() == KafkaMergedFlushExFW.KIND_FETCH ?
+                    kafkaMergedFlushEx.fetch().progress() : null;
 
             if (progress != null)
             {
@@ -3024,13 +3026,15 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             int limit,
             Flyweight extension)
         {
+            if (initialSeq + reserved - padding <= initialAck + initialMax)
+            {
+                doData(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                    traceId, authorization, budgetId, flags, reserved, buffer, offset, limit, extension);
 
-            doData(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                traceId, authorization, budgetId, flags, reserved, buffer, offset, limit, extension);
+                initialSeq += reserved;
 
-            initialSeq += reserved;
-
-            assert initialSeq - padding <= initialAck + initialMax;
+                assert initialSeq - padding <= initialAck + initialMax;
+            }
         }
 
         protected final void doKafkaData(
@@ -3042,12 +3046,15 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             OctetsFW payload,
             Flyweight extension)
         {
-            doData(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                traceId, authorization, budgetId, flags, reserved, payload, extension);
+            if (initialSeq + reserved <= initialAck + initialMax)
+            {
+                doData(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                    traceId, authorization, budgetId, flags, reserved, payload, extension);
 
-            initialSeq += reserved;
+                initialSeq += reserved;
 
-            assert initialSeq <= initialAck + initialMax;
+                assert initialSeq <= initialAck + initialMax;
+            }
         }
 
         protected void doKafkaData(
@@ -3060,17 +3067,20 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             Flyweight payload,
             Flyweight extension)
         {
-            final DirectBufferEx buffer = payload.buffer();
-            final int offset = payload.offset();
-            final int limit = payload.limit();
-            final int length = limit - offset;
+            if (initialSeq + reserved - padding <= initialAck + initialMax)
+            {
+                final DirectBufferEx buffer = payload.buffer();
+                final int offset = payload.offset();
+                final int limit = payload.limit();
+                final int length = limit - offset;
 
-            doData(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                traceId, authorization, budgetId, flags, reserved, buffer, offset, length, extension);
+                doData(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                    traceId, authorization, budgetId, flags, reserved, buffer, offset, length, extension);
 
-            initialSeq += reserved;
+                initialSeq += reserved;
 
-            assert initialSeq - padding <= initialAck + initialMax;
+                assert initialSeq - padding <= initialAck + initialMax;
+            }
         }
 
         private void doKafkaFlush(

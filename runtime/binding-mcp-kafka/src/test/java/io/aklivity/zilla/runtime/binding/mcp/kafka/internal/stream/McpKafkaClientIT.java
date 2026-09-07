@@ -366,6 +366,16 @@ public class McpKafkaClientIT
     }
 
     @Test
+    @Configuration("client.reset.offsets.yaml")
+    @Specification({
+        "${mcp}/reset.offsets.dead/client",
+        "${kafka}/reset.offsets.dead/server"})
+    public void shouldResetOffsetsForDeadGroup() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("client.describe.consumer.group.lag.yaml")
     @Specification({
         "${mcp}/describe.consumer.group.lag/client",

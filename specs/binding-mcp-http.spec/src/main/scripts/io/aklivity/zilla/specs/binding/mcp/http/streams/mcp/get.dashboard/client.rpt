@@ -1,0 +1,64 @@
+#
+# Copyright 2021-2026 Aklivity Inc
+#
+# Licensed under the Aklivity Community License (the "License"); you may not use
+# this file except in compliance with the License.  You may obtain a copy of the
+# License at
+#
+#   https://www.aklivity.io/aklivity-community-license/
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations under the License.
+#
+
+connect "zilla://streams/app0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+
+write zilla:begin.ext ${mcp:beginEx()
+                           .typeId(zilla:id("mcp"))
+                           .lifecycle()
+                               .build()
+                           .build()}
+
+connected
+
+read zilla:begin.ext ${mcp:matchBeginEx()
+                          .typeId(zilla:id("mcp"))
+                          .lifecycle()
+                              .sessionId("5ca1ab1e-c0de-4a11-5e55-000100000000")
+                              .build()
+                          .build()}
+
+read notify LIFECYCLE_INITIALIZED
+
+connect await LIFECYCLE_INITIALIZED
+        "zilla://streams/app0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+
+write zilla:begin.ext ${mcp:beginEx()
+                           .typeId(zilla:id("mcp"))
+                           .toolsCall()
+                               .sessionId("5ca1ab1e-c0de-4a11-5e55-000100000000")
+                               .name("get_dashboard")
+                               .contentLength(39)
+                               .build()
+                           .build()}
+
+connected
+
+write '{"name":"get_dashboard","arguments":{}}'
+
+# tool has no output schema, so the raw upstream body streams through unprojected. tool.summary
+# references ${result.data} (an object nested under a key, re-serialized as compact JSON by
+# McpHttpResults' container capture, including a quote character that must round-trip through
+# JSON escaping) alongside three top-level scalar leaf references -- ${result.active} (true),
+# ${result.disabled} (false), and ${result.flag} (null) -- covering every scalar/container
+# combination captureContainer and the leaf VALUE_TRUE/VALUE_FALSE/VALUE_NULL branches handle
+read  '{"structuredContent":{"active":true,"disabled":false,"flag":null,"data":{"name":"Ops \\"Team\\"","count":3,"verified":true,"archived":false,"note":null,"tags":["a","b"]}},"content":[{"type":"text","text":"Dashboard: {\\"name\\":\\"Ops \\\\\\"Team\\\\\\"\\",\\"count\\":3,\\"verified\\":true,\\"archived\\":false,\\"note\\":null,\\"tags\\":[\\"a\\",\\"b\\"]} active=true disabled=false flag=null"}],"isError":false}'
+read closed
+
+write close

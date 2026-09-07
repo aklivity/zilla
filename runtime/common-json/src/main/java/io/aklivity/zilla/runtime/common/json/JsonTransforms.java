@@ -44,12 +44,14 @@ public final class JsonTransforms
 
     /**
      * Returns a {@link JsonTransform} pruning a document to the paths retained by {@code schema}
-     * (see {@link JsonSchema#retainedPaths()}).
+     * (see {@link JsonSchema#retainedPaths()}), excluding any path {@code schema} explicitly denies
+     * (see {@link JsonSchema#rejectedPaths()}) even where a broader retained path would otherwise
+     * keep it.
      */
     public static JsonTransform projector(
         JsonSchema schema)
     {
-        return new JsonProjectorImpl(schema.retainedPaths());
+        return new JsonProjectorImpl(schema.retainedPaths(), schema.rejectedPaths());
     }
 
     /**

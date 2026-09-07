@@ -81,4 +81,13 @@ public class KafkaCreateTopicsIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/create.topics.v7.idle.reset.reconnect/client",
+        "${net}/create.topics.v7.idle.reset.reconnect/server"})
+    public void shouldReconnectAfterIdleConnectionReset() throws Exception
+    {
+        k3po.finish();
+    }
 }

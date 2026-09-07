@@ -504,6 +504,16 @@ public class CacheMergedIT
     @Test
     @Configuration("cache.options.merged.yaml")
     @Specification({
+        "${app}/merged.produce.message.values.partition.idle/client",
+        "${app}/unmerged.produce.message.values.partition.idle/server"})
+    public void shouldProduceMergedMessageValuesPartitionIdle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.options.merged.yaml")
+    @Specification({
         "${app}/merged.produce.message.flags.incomplete/client",
         "${app}/unmerged.produce.message.flags.incomplete/server"})
     public void shouldProduceMergedMessageFlagsIncomplete() throws Exception

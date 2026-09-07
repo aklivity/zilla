@@ -44,6 +44,7 @@ import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.config.engine.RouteConfig;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.McpKafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.KafkaOffsetFW;
+import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.McpCapabilities;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.stream.DataFW;
@@ -92,6 +93,7 @@ public class McpKafkaProxyFactoryTest
     private final EndFW endRO = new EndFW();
     private final ResetFW resetRO = new ResetFW();
     private final KafkaBeginExFW kafkaBeginExRO = new KafkaBeginExFW();
+    private final McpBeginExFW mcpBeginExRO = new McpBeginExFW();
     private final McpResetExFW mcpResetExRO = new McpResetExFW();
     private final McpEndExFW mcpEndExRO = new McpEndExFW();
 
@@ -193,6 +195,38 @@ public class McpKafkaProxyFactoryTest
                 .name(tool)
                 .contentLength(contentLength)
                 .timeout(timeout))
+            .build();
+
+        final BeginFW begin = beginRW.wrap(scratch, 0, scratch.capacity())
+            .originId(ORIGIN_ID)
+            .routedId(BINDING_ID)
+            .streamId(INITIAL_ID)
+            .sequence(0)
+            .acknowledge(0)
+            .maximum(0)
+            .traceId(1L)
+            .authorization(AUTHORIZATION)
+            .affinity(AFFINITY)
+            .extension(beginEx.buffer(), beginEx.offset(), beginEx.sizeof())
+            .build();
+
+        final MessageConsumer stream = factory.newStream(
+            begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof(), mcp);
+
+        if (stream != null)
+        {
+            stream.accept(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof());
+        }
+
+        return stream;
+    }
+
+    private MessageConsumer beginLifecycle(
+        int capabilities)
+    {
+        final McpBeginExFW beginEx = mcpBeginExRW.wrap(extScratch, 0, extScratch.capacity())
+            .typeId(MCP_TYPE_ID)
+            .lifecycle(l -> l.capabilities(capabilities))
             .build();
 
         final BeginFW begin = beginRW.wrap(scratch, 0, scratch.capacity())
@@ -390,6 +424,15 @@ public class McpKafkaProxyFactoryTest
         final BeginFW begin = beginRO.wrap(buffer, 0, recorded.bytes.length);
 
         return kafkaBeginExRO.wrap(begin.extension().buffer(), begin.extension().offset(), begin.extension().limit());
+    }
+
+    private McpBeginExFW mcpBeginEx(
+        Recorded recorded)
+    {
+        final UnsafeBufferEx buffer = new UnsafeBufferEx(recorded.bytes);
+        final BeginFW begin = beginRO.wrap(buffer, 0, recorded.bytes.length);
+
+        return mcpBeginExRO.wrap(begin.extension().buffer(), begin.extension().offset(), begin.extension().limit());
     }
 
     private McpResetExFW mcpResetEx(
@@ -653,6 +696,28 @@ public class McpKafkaProxyFactoryTest
 
         assertNull(stream);
         assertEquals(0, countOf(kafkaSent, BeginFW.TYPE_ID));
+    }
+
+    @Test
+    public void shouldDeclareToolsOnlyCapabilitiesRegardlessOfClientCapabilities() throws Exception
+    {
+        factory.attach(newBinding("produce_message"));
+
+        beginLifecycle(McpCapabilities.CLIENT_ELICITATION.value());
+
+        final McpBeginExFW lifecycleEx = mcpBeginEx(nthOf(mcpSent, BeginFW.TYPE_ID, 1));
+        assertEquals(McpCapabilities.SERVER_TOOLS.value(), lifecycleEx.lifecycle().capabilities());
+    }
+
+    @Test
+    public void shouldDeclareToolsOnlyCapabilitiesWhenClientSendsNone() throws Exception
+    {
+        factory.attach(newBinding("produce_message"));
+
+        beginLifecycle(0);
+
+        final McpBeginExFW lifecycleEx = mcpBeginEx(nthOf(mcpSent, BeginFW.TYPE_ID, 1));
+        assertEquals(McpCapabilities.SERVER_TOOLS.value(), lifecycleEx.lifecycle().capabilities());
     }
 
 }

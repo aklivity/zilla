@@ -182,6 +182,15 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/publish.many.messages.retain.available/client",
+        "${mqtt}/publish.many.messages.retain.available/server"})
+    public void shouldPublishManyMessagesRetainAvailable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/publish.with.user.properties.distinct/client",
         "${mqtt}/publish.with.user.properties.distinct/server"})
     public void shouldSendWithDistinctUserProperties() throws Exception
@@ -638,6 +647,17 @@ public class MqttIT
     {
         k3po.start();
         k3po.notifyBarrier("SESSION_META_STREAMS_OPENED");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.will.message.clean.start.abort.zero.window/client",
+        "${mqtt}/session.will.message.clean.start.abort.zero.window/server"})
+    public void shouldSkipWillSignalOnAbortBeforeKafkaSessionStreamWindowGranted() throws Exception
+    {
+        k3po.start();
+        k3po.notifyBarrier("SESSION_STREAM_WINDOW_GRANTED");
         k3po.finish();
     }
 

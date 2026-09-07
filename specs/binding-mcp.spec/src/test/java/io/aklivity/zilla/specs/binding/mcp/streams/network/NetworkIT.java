@@ -254,6 +254,24 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/reject.request.session.unknown/client",
+        "${net}/reject.request.session.unknown/server"})
+    public void shouldRejectRequestSessionUnknown() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/reject.request.session.missing/client",
+        "${net}/reject.request.session.missing/server"})
+    public void shouldRejectRequestSessionMissing() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/lifecycle.initialize.reject.capabilities.invalid/client",
         "${net}/lifecycle.initialize.reject.capabilities.invalid/server"})
     public void shouldRejectLifecycleInitializeCapabilitiesInvalid() throws Exception

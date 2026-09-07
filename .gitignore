@@ -35,6 +35,7 @@ hs_err_pid*.log
 *.tokens
 gen/
 examples/grpc-clicker.json
+.cache/
 .claude/
 AGENTS.override.md
 compose.override.yaml

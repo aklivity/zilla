@@ -243,6 +243,17 @@ public class SessionIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/session.will.message.disconnect.while.deferred/client",
+        "${app}/session.will.message.disconnect.while.deferred/server"})
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "16384")
+    public void shouldDisconnectWhileDeferred() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/session.will.message.disconnect.with.will.message/client",
         "${app}/session.will.message.abort/server"})
     public void shouldCloseSessionDisconnectWithWill() throws Exception

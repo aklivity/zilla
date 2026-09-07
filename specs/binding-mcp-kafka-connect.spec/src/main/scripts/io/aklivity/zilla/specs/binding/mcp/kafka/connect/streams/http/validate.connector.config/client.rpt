@@ -28,7 +28,7 @@ write zilla:begin.ext ${http:beginEx()
 
 connected
 
-write '{"connector.class":"FileStreamSource","tasks.max":"2"}'
+write '{"connector.class":"FileStreamSource","tasks.max":"2","file":"/tmp/kc-source.txt","topic":"connect-demo"}'
 
 read zilla:begin.ext ${http:matchBeginEx()
                            .typeId(zilla:id("http"))

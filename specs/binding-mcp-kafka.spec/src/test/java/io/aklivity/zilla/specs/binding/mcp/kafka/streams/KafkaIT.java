@@ -380,6 +380,24 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/offset.commit.for.reset/client",
+        "${kafka}/offset.commit.for.reset/server"})
+    public void shouldCommitOffsetForReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/reset.offsets.dead/client",
+        "${kafka}/reset.offsets.dead/server"})
+    public void shouldResetOffsetsForDeadGroup() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/find.coordinator.error/client",
         "${kafka}/find.coordinator.error/server"})
     public void shouldFindCoordinatorError() throws Exception

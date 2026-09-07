@@ -1574,24 +1574,29 @@ public final class MqttServerFactory implements MqttStreamFactory
                 }
             }
 
-            if (ready && reasonCode == SUCCESS)
+            final int initialBudget = publisher.initialBudget();
+            final int lengthMax = Math.min(available, server.decodeablePublishPayloadBytes);
+
+            // a frame reserves its payload plus the padding, so the window must hold both; when it
+            // cannot hold even the padding this is negative, and reserving the padding regardless
+            // would advance initialSeq past the window the publish stream has been granted
+            final int sizeMax = Math.min(lengthMax, initialBudget - publisher.initialPad);
+
+            final int maximum = sizeMax + publisher.initialPad;
+            final int minimum = Math.min(maximum, Math.max(publisher.initialMin, 1024) + publisher.initialPad);
+
+            int valueClaimed = maximum;
+
+            if (ready && reasonCode == SUCCESS && sizeMax >= 0 &&
+                canPublish && publisher.debit != null && lengthMax != 0)
             {
-                int initialBudget = publisher.initialBudget();
-                int lengthMax = Math.min(available, server.decodeablePublishPayloadBytes);
-                int reservedMax = Math.max(publisher.initialPad, Math.min(lengthMax + publisher.initialPad, initialBudget));
+                valueClaimed = publisher.debit.claim(traceId, minimum, maximum);
+            }
 
-                final int maximum = reservedMax;
-                final int minimum = Math.min(maximum, Math.max(publisher.initialMin, 1024) + publisher.initialPad);
+            final int sizeClaimed = valueClaimed - publisher.initialPad;
 
-                int valueClaimed = maximum;
-
-                if (canPublish && publisher.debit != null && lengthMax != 0)
-                {
-                    valueClaimed = publisher.debit.claim(traceId, minimum, maximum);
-                }
-
-                int sizeClaimed = valueClaimed - publisher.initialPad;
-
+            if (ready && reasonCode == SUCCESS && sizeClaimed >= 0)
+            {
                 final OctetsFW payload = payloadRO
                     .wrap(payloadBuffer, payloadOffset, payloadOffset + sizeClaimed);
 
@@ -3587,7 +3592,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 final int payloadSize = Math.min(payloadAvailable, session.initialBudget() - headerSize);
                 final OctetsFW willPayload = payloadRO.wrap(buffer, connectPayloadLimit, connectPayloadLimit + payloadSize);
 
-                willMessageBuffer.putBytes(headerSize, willPayload.buffer(), willPayload.offset(), willPayload.limit());
+                willMessageBuffer.putBytes(headerSize, willPayload.buffer(), willPayload.offset(), willPayload.sizeof());
 
                 final int deferred = willPayloadBytes - payloadSize;
                 final int dataFlags = deferred > 0 ? FLAG_INIT : FLAG_INIT | FLAG_FIN;
@@ -3642,12 +3647,19 @@ public final class MqttServerFactory implements MqttStreamFactory
             int offset,
             int limit)
         {
-            final OctetsFW payload = payloadRO.wrap(buffer, offset, limit);
             assert willPayloadDeferred >= 0;
-            final int flags = willPayloadDeferred - payload.sizeof() > 0 ? FLAG_CONT : FLAG_FIN;
+
+            // bounded by whatever is currently available in buffer (network-limited), the session
+            // window (backpressure-limited), and what is left of the declared will payload - bytes
+            // buffered beyond that boundary belong to the next control packet, not to the will
+            final int payloadAvailable = Math.min(limit - offset, willPayloadDeferred);
+            final int payloadSize = Math.min(payloadAvailable, session.initialBudget());
+            final OctetsFW willPayload = payloadRO.wrap(buffer, offset, offset + payloadSize);
+
+            final int flags = willPayloadDeferred - payloadSize > 0 ? FLAG_CONT : FLAG_FIN;
 
             final int publishedWillSize = session.doSessionData(traceId, flags,
-                payload.buffer(), offset, limit, 0, EMPTY_OCTETS);
+                willPayload.buffer(), willPayload.offset(), willPayload.limit(), 0, EMPTY_OCTETS);
             willPayloadDeferred -= publishedWillSize;
             willPayloadBytes -= publishedWillSize;
 

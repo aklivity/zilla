@@ -306,6 +306,15 @@ public class McpOpenapiCompositeGeneratorTest
                     "items": { "type": "object", "properties": {
                       "id": { "type": "integer" }, "name": { "type": "string" } } } } } } } }
               }
+            },
+            "/pets/{id}": {
+              "delete": {
+                "operationId": "delete_pet",
+                "parameters": [
+                  { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+                ],
+                "responses": { "200": { "description": "ok" } }
+              }
             }
           }
         }
@@ -747,6 +756,166 @@ public class McpOpenapiCompositeGeneratorTest
         assertThat(required, hasItem("repo"));
         assertThat(required, hasItem("title"));
         assertThat(required, not(hasItem("owner_body")));
+    }
+
+    @Test
+    public void shouldDenyPathParameterInOpenBodySchema()
+    {
+        String spec =
+            """
+            {
+              "openapi": "3.0.1",
+              "info": { "title": "things", "version": "1.0" },
+              "servers": [ { "url": "https://api.example.com" } ],
+              "paths": {
+                "/things/{id}": {
+                  "put": {
+                    "operationId": "update_thing",
+                    "parameters": [
+                      { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+                    ],
+                    "requestBody": {
+                      "required": true,
+                      "content": { "application/json": { "schema": {
+                        "type": "object",
+                        "properties": { "name": { "type": "string" } },
+                        "additionalProperties": true } } }
+                    },
+                    "responses": { "200": { "description": "ok" } }
+                  }
+                }
+              }
+            }
+            """;
+        lenient().when(catalog.resolve(eq("things-api"), eq("latest"))).thenReturn(77);
+        lenient().when(catalog.resolve(eq(77))).thenReturn(spec);
+
+        BindingConfig binding = GenericBindingConfig.builder()
+            .namespace("test")
+            .name("mcp-openapi0")
+            .type("mcp-openapi")
+            .kind(CLIENT)
+            .options(McpOpenapiOptionsConfig.builder()
+                .spec()
+                    .label("openapi_things0")
+                    .server("https://api.example.com")
+                    .catalog()
+                        .name("catalog0")
+                        .subject("things-api")
+                        .version("latest")
+                        .build()
+                    .build()
+                .build())
+            .route()
+                .when(McpOpenapiConditionConfig.builder()
+                    .tool("update_thing")
+                    .build())
+                .with(McpOpenapiWithConfig.builder()
+                    .spec("openapi_things0")
+                    .operation("update_thing")
+                    .build())
+                .build()
+            .build();
+        binding.resolveId = resolveId;
+
+        McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
+
+        NamespaceConfig namespace = composite.namespaces.get(0);
+        String bodySchema = namespace.catalogs.stream()
+            .map(c -> c.options)
+            .filter(InlineOptionsConfig.class::isInstance)
+            .map(InlineOptionsConfig.class::cast)
+            .flatMap(o -> o.subjects.stream())
+            .filter(s -> "update_thing-body".equals(s.subject))
+            .map(s -> s.schema)
+            .findFirst()
+            .orElse(null);
+
+        assertThat(bodySchema, notNullValue());
+        JsonObject bodySchemaObject = Json.createReader(new StringReader(bodySchema)).readObject();
+        assertThat(bodySchemaObject.getJsonObject("properties").getBoolean("id"), equalTo(false));
+        assertThat(bodySchemaObject.getJsonObject("properties").containsKey("name"), equalTo(true));
+        assertThat(bodySchemaObject.getBoolean("additionalProperties"), equalTo(true));
+    }
+
+    @Test
+    public void shouldAdvertiseAdditionalPropertiesInInputSchema()
+    {
+        String spec =
+            """
+            {
+              "openapi": "3.0.1",
+              "info": { "title": "things", "version": "1.0" },
+              "servers": [ { "url": "https://api.example.com" } ],
+              "paths": {
+                "/things/{id}": {
+                  "put": {
+                    "operationId": "update_thing",
+                    "parameters": [
+                      { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+                    ],
+                    "requestBody": {
+                      "required": true,
+                      "content": { "application/json": { "schema": {
+                        "type": "object",
+                        "properties": { "name": { "type": "string" } },
+                        "additionalProperties": true } } }
+                    },
+                    "responses": { "200": { "description": "ok" } }
+                  }
+                }
+              }
+            }
+            """;
+        lenient().when(catalog.resolve(eq("things-api"), eq("latest"))).thenReturn(77);
+        lenient().when(catalog.resolve(eq(77))).thenReturn(spec);
+
+        BindingConfig binding = GenericBindingConfig.builder()
+            .namespace("test")
+            .name("mcp-openapi0")
+            .type("mcp-openapi")
+            .kind(CLIENT)
+            .options(McpOpenapiOptionsConfig.builder()
+                .spec()
+                    .label("openapi_things0")
+                    .server("https://api.example.com")
+                    .catalog()
+                        .name("catalog0")
+                        .subject("things-api")
+                        .version("latest")
+                        .build()
+                    .build()
+                .build())
+            .route()
+                .when(McpOpenapiConditionConfig.builder()
+                    .tool("update_thing")
+                    .build())
+                .with(McpOpenapiWithConfig.builder()
+                    .spec("openapi_things0")
+                    .operation("update_thing")
+                    .build())
+                .build()
+            .build();
+        binding.resolveId = resolveId;
+
+        McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
+
+        NamespaceConfig namespace = composite.namespaces.get(0);
+        String inputSchema = namespace.catalogs.stream()
+            .map(c -> c.options)
+            .filter(InlineOptionsConfig.class::isInstance)
+            .map(InlineOptionsConfig.class::cast)
+            .flatMap(o -> o.subjects.stream())
+            .filter(s -> "update_thing-input".equals(s.subject))
+            .map(s -> s.schema)
+            .findFirst()
+            .orElse(null);
+
+        assertThat(inputSchema, notNullValue());
+        JsonObject inputSchemaObject = Json.createReader(new StringReader(inputSchema)).readObject();
+        assertThat(inputSchemaObject.getJsonObject("properties").containsKey("id"), equalTo(true));
+        assertThat(inputSchemaObject.getJsonObject("properties").containsKey("name"), equalTo(true));
+        assertThat(inputSchemaObject.getBoolean("additionalProperties"), equalTo(true));
     }
 
     @Test
@@ -2929,6 +3098,56 @@ public class McpOpenapiCompositeGeneratorTest
         assertThat(tool, notNullValue());
         assertThat(tool.output, sameInstance(override));
         assertThat(tool.outputMaybeWrapped, equalTo(false));
+    }
+
+    @Test
+    public void shouldWrapWhenNoOutputSchemaDeclared()
+    {
+        lenient().when(catalog.resolve(eq("petstore-api"), eq("latest"))).thenReturn(66);
+        lenient().when(catalog.resolve(eq(66))).thenReturn(PETSTORE_SPEC);
+
+        BindingConfig binding = GenericBindingConfig.builder()
+            .namespace("test")
+            .name("mcp-openapi0")
+            .type("mcp-openapi")
+            .kind(CLIENT)
+            .options(McpOpenapiOptionsConfig.builder()
+                .spec()
+                    .label("petstore")
+                    .server("https://api.petstore.example.com")
+                    .catalog()
+                        .name("catalog0")
+                        .subject("petstore-api")
+                        .version("latest")
+                        .build()
+                    .build()
+                .build())
+            .route()
+                .when(McpOpenapiConditionConfig.builder()
+                    .tool("delete_pet")
+                    .build())
+                .with(McpOpenapiWithConfig.builder()
+                    .spec("petstore")
+                    .operation("delete_pet")
+                    .build())
+                .build()
+            .build();
+        binding.resolveId = resolveId;
+
+        McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
+
+        BindingConfig mcpHttp = composite.namespaces.get(0).bindings.stream()
+            .filter(b -> "mcp-http0".equals(b.name))
+            .findFirst()
+            .orElse(null);
+        McpHttpOptionsConfig mcpHttpOptions = (McpHttpOptionsConfig) mcpHttp.options;
+        McpHttpToolConfig tool = mcpHttpOptions.tools.stream()
+            .filter(t -> "delete_pet".equals(t.name))
+            .findFirst()
+            .orElse(null);
+
+        assertThat(tool, notNullValue());
+        assertThat(tool.outputMaybeWrapped, equalTo(true));
     }
 
     @Test
