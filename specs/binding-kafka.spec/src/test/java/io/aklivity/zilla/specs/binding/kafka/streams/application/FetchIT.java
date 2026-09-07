@@ -85,9 +85,18 @@ public class FetchIT
 
     @Test
     @Specification({
-        "${app}/partition.not.leader.reconnect/client",
-        "${app}/partition.not.leader.reconnect/server"})
-    public void shouldReconnectPartitionNotLeader() throws Exception
+        "${app}/partition.not.leader.client.reconnect/client",
+        "${app}/partition.not.leader.client.reconnect/server"})
+    public void shouldClientReconnectPartitionNotLeader() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/partition.not.leader.cache.reconnect/client",
+        "${app}/partition.not.leader.cache.reconnect/server"})
+    public void shouldCacheReconnectPartitionNotLeader() throws Exception
     {
         k3po.finish();
     }

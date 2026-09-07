@@ -628,6 +628,17 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
             }
         }
 
+        void onLeaderReady(
+            long traceId)
+        {
+            if (reconnectAt != NO_CANCEL_ID)
+            {
+                signaler.cancel(reconnectAt);
+                this.reconnectAt = NO_CANCEL_ID;
+                doClientFanInitialBeginIfNecessary(traceId);
+            }
+        }
+
         private void doClientFanInitialBeginIfNecessary(
             long traceId)
         {
@@ -636,7 +647,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 state = 0;
             }
 
-            if (!KafkaState.initialOpening(state))
+            if (!KafkaState.initialOpening(state) && reconnectAt == NO_CANCEL_ID)
             {
                 doClientFanInitialBegin(traceId);
             }

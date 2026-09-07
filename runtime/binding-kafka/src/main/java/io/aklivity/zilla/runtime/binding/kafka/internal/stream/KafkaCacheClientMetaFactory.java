@@ -34,6 +34,8 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCache;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheTopic;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaBindingConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaRouteConfig;
+import io.aklivity.zilla.runtime.binding.kafka.internal.stream.KafkaCacheClientFetchFactory.KafkaCacheClientFetchFanout;
+import io.aklivity.zilla.runtime.binding.kafka.internal.stream.KafkaCacheClientProduceFactory.KafkaCacheClientProduceFan;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.ArrayFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaPartitionFW;
@@ -648,6 +650,25 @@ public final class KafkaCacheClientMetaFactory implements BindingHandler
                 final ArrayFW<KafkaPartitionFW> partitions = kafkaMetaDataEx.partitions();
                 leadersByPartitionId.clear();
                 partitions.forEach(p -> leadersByPartitionId.put(p.partitionId(), p.leaderId()));
+
+                partitions.forEach(p ->
+                {
+                    final long partitionKey = cacheRoute.topicPartitionKey(topic.name(), p.partitionId());
+
+                    final KafkaCacheClientFetchFanout fetchFanout =
+                        cacheRoute.clientFetchFanoutsByTopicPartition.get(partitionKey);
+                    if (fetchFanout != null)
+                    {
+                        fetchFanout.onLeaderReady(traceId);
+                    }
+
+                    final KafkaCacheClientProduceFan produceFan =
+                        cacheRoute.clientProduceFansByTopicPartition.get(partitionKey);
+                    if (produceFan != null)
+                    {
+                        produceFan.onLeaderReady(traceId);
+                    }
+                });
 
                 members.forEach(s -> s.doMetaReplyDataIfNecessary(traceId, kafkaDataEx));
             }
