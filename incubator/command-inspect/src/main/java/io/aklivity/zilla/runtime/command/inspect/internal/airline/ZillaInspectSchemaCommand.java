@@ -36,22 +36,13 @@ public final class ZillaInspectSchemaCommand extends ZillaCommand
         description = "Write the schema to this file instead of stdout")
     public String output;
 
-    @Option(name = {"--incubating"},
-        description = "Include schema properties still marked x-incubating")
-    public boolean incubating;
-
     @Override
     public void run()
     {
         try
         {
             EngineSchemaReader schemaReader = new EngineSchemaReader(new EngineInfo());
-            JsonObject schema = schemaReader.read();
-
-            if (!incubating)
-            {
-                schema = schemaReader.stripIncubatingSchema(schema);
-            }
+            JsonObject schema = schemaReader.stripIncubating(schemaReader.read());
 
             String text = EngineSchemaReader.write(schema);
 

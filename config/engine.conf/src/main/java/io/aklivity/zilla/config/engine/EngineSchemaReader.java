@@ -84,13 +84,13 @@ public final class EngineSchemaReader
         return out.getBuffer().toString();
     }
 
-    JsonObject stripIncubating(
+    public JsonObject stripIncubating(
         JsonObject schemaObject)
     {
         return FeatureFilter.isIncubatorEnabled() ? schemaObject : stripIncubatingSchema(schemaObject);
     }
 
-    public JsonObject stripIncubatingSchema(
+    JsonObject stripIncubatingSchema(
         JsonObject schemaObject)
     {
         Map<String, JsonValue> entries = new LinkedHashMap<>();

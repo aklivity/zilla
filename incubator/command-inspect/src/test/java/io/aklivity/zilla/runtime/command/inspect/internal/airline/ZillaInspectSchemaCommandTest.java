@@ -56,7 +56,7 @@ public class ZillaInspectSchemaCommandTest
     }
 
     @Test
-    public void shouldPrintStrippedSchemaToStdoutByDefault() throws Exception
+    public void shouldPrintSchemaToStdout() throws Exception
     {
         ZillaInspectSchemaCommand command = new ZillaInspectSchemaCommand();
 
@@ -65,23 +65,7 @@ public class ZillaInspectSchemaCommandTest
         JsonObject printed = Json.createReader(new StringReader(capturedOut.toString(StandardCharsets.UTF_8))).readObject();
 
         EngineSchemaReader schemaReader = new EngineSchemaReader(new EngineInfo());
-        JsonObject expected = schemaReader.stripIncubatingSchema(schemaReader.read());
-
-        assertThat(printed, equalTo(expected));
-    }
-
-    @Test
-    public void shouldPrintUnstrippedSchemaWhenIncubatingRequested() throws Exception
-    {
-        ZillaInspectSchemaCommand command = new ZillaInspectSchemaCommand();
-        command.incubating = true;
-
-        command.run();
-
-        JsonObject printed = Json.createReader(new StringReader(capturedOut.toString(StandardCharsets.UTF_8))).readObject();
-
-        EngineSchemaReader schemaReader = new EngineSchemaReader(new EngineInfo());
-        JsonObject expected = schemaReader.read();
+        JsonObject expected = schemaReader.stripIncubating(schemaReader.read());
 
         assertThat(printed, equalTo(expected));
     }
@@ -105,7 +89,7 @@ public class ZillaInspectSchemaCommandTest
         JsonObject parsed = Json.createReader(new StringReader(written)).readObject();
 
         EngineSchemaReader schemaReader = new EngineSchemaReader(new EngineInfo());
-        JsonObject expected = schemaReader.stripIncubatingSchema(schemaReader.read());
+        JsonObject expected = schemaReader.stripIncubating(schemaReader.read());
 
         assertThat(parsed, equalTo(expected));
     }
