@@ -184,6 +184,8 @@ public final class McpOpenapiCompositeGenerator
                 usedNames.add(tool);
             }
 
+            final String exit = route.exit != null ? route.exit : binding.exit;
+
             for (OpenapiOperationView operation : candidateOperations(openapi, route, claimed))
             {
                 claimed.add(operation);
@@ -204,7 +206,7 @@ public final class McpOpenapiCompositeGenerator
                 final List<GuardedRef> guarded = combineGuarded(binding, route, resolution.guarded);
 
                 routed.add(new RoutedOperation(toolConfig(binding, routeTool), resourceConfig(binding, resource),
-                    operation, guarded, serverByLabel.get(with.spec), with.params, with.body));
+                    operation, guarded, exit, serverByLabel.get(with.spec), with.params, with.body));
             }
         }
 
@@ -400,7 +402,7 @@ public final class McpOpenapiCompositeGenerator
                 .name(BINDING_NAME)
                 .kind(binding.kind)
                 .options(mcpHttpOptions(binding, routed))
-                .inject(b -> injectRoutes(b, binding, routed))
+                .inject(b -> injectRoutes(b, routed))
                 .build();
     }
 
@@ -582,7 +584,6 @@ public final class McpOpenapiCompositeGenerator
 
     private <C> McpHttpBindingConfigBuilder<C> injectRoutes(
         McpHttpBindingConfigBuilder<C> mcpHttp,
-        McpOpenapiBindingConfig binding,
         List<RoutedOperation> routed)
     {
         for (RoutedOperation entry : routed)
@@ -596,7 +597,7 @@ public final class McpOpenapiCompositeGenerator
             mcpHttp.route()
                 .when(when)
                 .with(with)
-                .exit(binding.exit)
+                .exit(entry.exit)
                 .inject(route -> injectGuarded(route, entry))
                 .build();
         }
@@ -1295,6 +1296,7 @@ public final class McpOpenapiCompositeGenerator
         private final McpOpenapiResourceConfig resource;
         private final OpenapiOperationView operation;
         private final List<GuardedRef> guarded;
+        private final String exit;
         private final String server;
         private final Map<String, String> params;
         private final Map<String, String> body;
@@ -1304,6 +1306,7 @@ public final class McpOpenapiCompositeGenerator
             McpOpenapiResourceConfig resource,
             OpenapiOperationView operation,
             List<GuardedRef> guarded,
+            String exit,
             String server,
             Map<String, String> params,
             Map<String, String> body)
@@ -1312,6 +1315,7 @@ public final class McpOpenapiCompositeGenerator
             this.resource = resource;
             this.operation = operation;
             this.guarded = guarded;
+            this.exit = exit;
             this.server = server;
             this.params = params != null ? params : Map.of();
             this.body = body != null ? body : Map.of();

@@ -17,6 +17,7 @@ package io.aklivity.zilla.config.engine;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.startsWith;
 
 import java.io.StringReader;
 import java.net.URL;
@@ -33,15 +34,39 @@ import org.junit.Test;
 import io.aklivity.zilla.runtime.common.feature.FeatureFilter;
 import io.aklivity.zilla.runtime.common.json.JsonSchema;
 
-public class EngineConfigReaderTest
+public class EngineSchemaReaderTest
 {
-    private EngineConfigReader reader;
+    private EngineSchemaReader reader;
 
     @Before
     public void initReader()
     {
-        reader = new EngineConfigReader(
-            text -> text, new EngineInfo(), EngineConfigReaderTest::noop, EngineConfigReaderTest::noop);
+        reader = new EngineSchemaReader(new EngineInfo());
+    }
+
+    @Test
+    public void shouldReadMergedSchema() throws Exception
+    {
+        JsonObject schema = reader.read();
+
+        assertThat(schema.containsKey("properties"), equalTo(true));
+    }
+
+    @Test
+    public void shouldWriteSchemaAsJsonNotYaml()
+    {
+        JsonObject schema = Json.createObjectBuilder()
+            .add("type", "object")
+            .add("properties", Json.createObjectBuilder()
+                .add("name", Json.createObjectBuilder().add("type", "string")))
+            .build();
+
+        String text = EngineSchemaReader.write(schema);
+
+        assertThat(text.stripLeading(), startsWith("{"));
+
+        JsonObject parsed = Json.createReader(new StringReader(text)).readObject();
+        assertThat(parsed, equalTo(schema));
     }
 
     @Test
@@ -140,10 +165,5 @@ public class EngineConfigReaderTest
 
         JsonSchema strippedSchema = JsonSchema.of(reader.stripIncubatingSchema(schemaObject).toString());
         assertThat(strippedSchema.validate(schemaProvider.createParser(new StringReader(document))), equalTo(false));
-    }
-
-    private static void noop(
-        String value)
-    {
     }
 }

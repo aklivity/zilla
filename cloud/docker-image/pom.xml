@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>cloud</artifactId>
-    <version>2.4.0</version>
+    <version>2.4.1</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -292,6 +292,12 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>command-dump</artifactId>
+      <version>${project.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>command-inspect</artifactId>
       <version>${project.version}</version>
       <scope>runtime</scope>
     </dependency>

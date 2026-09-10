@@ -2,7 +2,21 @@
 
 ## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/2.3.0...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/2.4.0...HEAD)
+
+**Implemented enhancements:**
+
+- command-inspect: add `zilla inspect schema` to output the merged config JSON Schema [\#2562](https://github.com/aklivity/zilla/issues/2562) ([jfallows](https://github.com/jfallows))
+
+**Merged pull requests:**
+
+- fix\(binding-mcp-openapi\): correct proxy exit schema and route filtering [\#2563](https://github.com/aklivity/zilla/pull/2563) ([jfallows](https://github.com/jfallows))
+- feat\(engine.conf,command-inspect\): add zilla inspect schema command [\#2564](https://github.com/aklivity/zilla/pull/2564) ([jfallows](https://github.com/jfallows))
+- fix\(binding-mcp-openapi\): resolve exit per route instead of one binding-wide value [\#2565](https://github.com/aklivity/zilla/pull/2565) ([jfallows](https://github.com/jfallows))
+
+## [2.4.0](https://github.com/aklivity/zilla/tree/2.4.0) (2026-09-07)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/2.3.0...2.4.0)
 
 **Fixed bugs:**
 

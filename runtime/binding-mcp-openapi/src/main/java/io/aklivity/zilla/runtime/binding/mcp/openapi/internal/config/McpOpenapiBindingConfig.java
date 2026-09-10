@@ -58,12 +58,17 @@ public final class McpOpenapiBindingConfig
         this.qname = binding.qname;
         this.kind = binding.kind;
         this.options = (McpOpenapiOptionsConfig) binding.options;
+
+        // a top-level exit: shorthand synthesizes its own catch-all last route (empty when, no with,
+        // exit set) on this same binding -- exclude it here so it never counts as a declared tool route;
+        // a declared route always has with, so with == null is what uniquely identifies the synthetic one
         this.routes = binding.routes.stream()
-            .map(McpOpenapiRouteConfig::new)
+            .filter(route -> route.with != null)
+            .map(route -> new McpOpenapiRouteConfig(context, route))
             .collect(toList());
 
         final RouteConfig exitRoute = binding.routes.stream()
-            .filter(route -> route.exit != null)
+            .filter(route -> route.with == null && route.exit != null)
             .findFirst()
             .orElse(null);
         this.exit = exitRoute != null ? context.supplyQName(exitRoute.id) : null;
