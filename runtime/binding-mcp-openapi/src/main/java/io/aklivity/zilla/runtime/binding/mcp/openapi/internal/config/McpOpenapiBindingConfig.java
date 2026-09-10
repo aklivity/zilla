@@ -64,7 +64,7 @@ public final class McpOpenapiBindingConfig
         // a declared route always has with, so with == null is what uniquely identifies the synthetic one
         this.routes = binding.routes.stream()
             .filter(route -> route.with != null)
-            .map(route -> new McpOpenapiRouteConfig(context, route))
+            .map(McpOpenapiRouteConfig::new)
             .collect(toList());
 
         final RouteConfig exitRoute = binding.routes.stream()
