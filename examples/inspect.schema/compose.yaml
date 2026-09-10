@@ -1,0 +1,7 @@
+name: ${NAMESPACE:-zilla-inspect-schema}
+services:
+  zilla:
+    image: ghcr.io/aklivity/zilla:${ZILLA_VERSION:-latest}
+    environment:
+      ZILLA_INCUBATOR_ENABLED: "true"
+    command: inspect schema
