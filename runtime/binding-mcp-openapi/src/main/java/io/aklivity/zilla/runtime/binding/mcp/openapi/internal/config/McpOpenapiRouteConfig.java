@@ -22,6 +22,7 @@ import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiConditionConfig;
 import io.aklivity.zilla.config.binding.mcp.openapi.McpOpenapiWithConfig;
 import io.aklivity.zilla.config.engine.GuardedConfig;
 import io.aklivity.zilla.config.engine.RouteConfig;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 
 public final class McpOpenapiRouteConfig
 {
@@ -29,8 +30,10 @@ public final class McpOpenapiRouteConfig
     public final List<McpOpenapiConditionConfig> when;
     public final McpOpenapiWithConfig with;
     public final List<GuardedConfig> guarded;
+    public final String exit;
 
     public McpOpenapiRouteConfig(
+        EngineContext context,
         RouteConfig route)
     {
         this.id = route.id;
@@ -39,6 +42,7 @@ public final class McpOpenapiRouteConfig
             .collect(toList());
         this.with = (McpOpenapiWithConfig) route.with;
         this.guarded = route.guarded;
+        this.exit = route.exit != null ? context.supplyQName(route.id) : null;
     }
 
     public boolean isBulk()
