@@ -19,11 +19,13 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.startsWith;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
@@ -106,5 +108,16 @@ public class ZillaInspectSchemaCommandTest
         JsonObject expected = schemaReader.stripIncubatingSchema(schemaReader.read());
 
         assertThat(parsed, equalTo(expected));
+    }
+
+    @Test(expected = IOException.class)
+    public void shouldRethrowWhenOutputPathInvalid() throws Exception
+    {
+        Path missingDirectory = Paths.get(System.getProperty("java.io.tmpdir"), "zilla-inspect-missing-" + System.nanoTime());
+
+        ZillaInspectSchemaCommand command = new ZillaInspectSchemaCommand();
+        command.output = missingDirectory.resolve("schema.json").toString();
+
+        command.run();
     }
 }
