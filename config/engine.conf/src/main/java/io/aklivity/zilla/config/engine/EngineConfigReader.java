@@ -14,36 +14,19 @@
  */
 package io.aklivity.zilla.config.engine;
 
-import static jakarta.json.stream.JsonGenerator.PRETTY_PRINTING;
-import static java.util.Collections.singletonMap;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
-import java.io.InputStream;
 import java.io.StringReader;
-import java.io.StringWriter;
-import java.net.URL;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.UnaryOperator;
 
-import jakarta.json.Json;
-import jakarta.json.JsonArray;
-import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
-import jakarta.json.JsonObjectBuilder;
-import jakarta.json.JsonPatch;
-import jakarta.json.JsonReader;
-import jakarta.json.JsonString;
-import jakarta.json.JsonValue;
 import jakarta.json.spi.JsonProvider;
 import jakarta.json.stream.JsonParser;
 
-import io.aklivity.zilla.runtime.common.feature.FeatureFilter;
 import io.aklivity.zilla.runtime.common.json.JsonSchema;
 import io.aklivity.zilla.runtime.common.yaml.YamlConfig;
 import io.aklivity.zilla.runtime.common.yaml.json.YamlJson;
@@ -80,25 +63,10 @@ public final class EngineConfigReader
         read:
         try
         {
-            InputStream schemaInput = info.schema().openStream();
+            EngineSchemaReader schemaReader = new EngineSchemaReader(info);
+            JsonObject schemaObject = schemaReader.stripIncubating(schemaReader.read());
 
-            JsonProvider schemaProvider = YamlJson.provider();
-            JsonReader schemaReader = schemaProvider.createReader(schemaInput);
-            JsonObject schemaObject = schemaReader.readObject();
-
-            for (URL schemaType : info.patches())
-            {
-                InputStream schemaPatchInput = schemaType.openStream();
-                JsonReader schemaPatchReader = schemaProvider.createReader(schemaPatchInput);
-                JsonArray schemaPatchArray = schemaPatchReader.readArray();
-                JsonPatch schemaPatch = schemaProvider.createPatch(schemaPatchArray);
-
-                schemaObject = schemaPatch.apply(schemaObject);
-            }
-
-            schemaObject = stripIncubating(schemaObject);
-
-            logSchema(schemaObject, schemaLogger);
+            schemaLogger.accept(EngineSchemaReader.write(schemaObject));
 
             if (!validateAnnotatedSchema(schemaObject, errors, configText))
             {
@@ -137,157 +105,6 @@ public final class EngineConfigReader
         return engine;
     }
 
-    JsonObject stripIncubating(
-        JsonObject schemaObject)
-    {
-        return FeatureFilter.isIncubatorEnabled() ? schemaObject : stripIncubatingSchema(schemaObject);
-    }
-
-    JsonObject stripIncubatingSchema(
-        JsonObject schemaObject)
-    {
-        Map<String, JsonValue> entries = new LinkedHashMap<>();
-        Set<String> removedProperties = new HashSet<>();
-
-        for (Map.Entry<String, JsonValue> entry : schemaObject.entrySet())
-        {
-            String name = entry.getKey();
-            JsonValue value = entry.getValue();
-
-            if ("properties".equals(name) && value.getValueType() == JsonValue.ValueType.OBJECT)
-            {
-                entries.put(name, stripIncubatingProperties(value.asJsonObject(), removedProperties));
-            }
-            else
-            {
-                stripIncubatingEntry(entries, name, value);
-            }
-        }
-
-        JsonValue required = entries.get("required");
-        if (required != null && required.getValueType() == JsonValue.ValueType.ARRAY && !removedProperties.isEmpty())
-        {
-            entries.put("required", stripIncubatingRequired(required.asJsonArray(), removedProperties));
-        }
-
-        JsonObjectBuilder builder = Json.createObjectBuilder();
-        entries.forEach(builder::add);
-
-        return builder.build();
-    }
-
-    private JsonObject stripIncubatingProperties(
-        JsonObject properties,
-        Set<String> removedProperties)
-    {
-        Map<String, JsonValue> entries = new LinkedHashMap<>();
-
-        for (Map.Entry<String, JsonValue> property : properties.entrySet())
-        {
-            String name = property.getKey();
-            JsonValue value = property.getValue();
-
-            if (value.getValueType() == JsonValue.ValueType.OBJECT && isIncubating(value.asJsonObject()))
-            {
-                removedProperties.add(name);
-            }
-            else
-            {
-                stripIncubatingEntry(entries, name, value);
-            }
-        }
-
-        JsonObjectBuilder builder = Json.createObjectBuilder();
-        entries.forEach(builder::add);
-
-        return builder.build();
-    }
-
-    private void stripIncubatingEntry(
-        Map<String, JsonValue> entries,
-        String name,
-        JsonValue value)
-    {
-        if (value.getValueType() == JsonValue.ValueType.OBJECT)
-        {
-            JsonObject child = value.asJsonObject();
-            if (!isIncubating(child))
-            {
-                entries.put(name, stripIncubatingSchema(child));
-            }
-        }
-        else if (value.getValueType() == JsonValue.ValueType.ARRAY)
-        {
-            entries.put(name, stripIncubatingArray(value.asJsonArray()));
-        }
-        else
-        {
-            entries.put(name, value);
-        }
-    }
-
-    private JsonArray stripIncubatingArray(
-        JsonArray array)
-    {
-        JsonArrayBuilder builder = Json.createArrayBuilder();
-
-        for (JsonValue item : array)
-        {
-            if (item.getValueType() == JsonValue.ValueType.OBJECT)
-            {
-                JsonObject child = item.asJsonObject();
-                if (!isIncubating(child))
-                {
-                    builder.add(stripIncubatingSchema(child));
-                }
-            }
-            else
-            {
-                builder.add(item);
-            }
-        }
-
-        return builder.build();
-    }
-
-    private JsonArray stripIncubatingRequired(
-        JsonArray required,
-        Set<String> removedProperties)
-    {
-        JsonArrayBuilder builder = Json.createArrayBuilder();
-
-        for (JsonValue item : required)
-        {
-            if (item.getValueType() != JsonValue.ValueType.STRING || !removedProperties.contains(((JsonString) item).getString()))
-            {
-                builder.add(item);
-            }
-        }
-
-        return builder.build();
-    }
-
-    private boolean isIncubating(
-        JsonObject node)
-    {
-        return node.getBoolean("x-incubating", false);
-    }
-
-    private void logSchema(
-        JsonObject schemaObject,
-        Consumer<String> logger)
-    {
-        final StringWriter out = new StringWriter();
-        YamlJson.provider()
-            .createGeneratorFactory(singletonMap(PRETTY_PRINTING, true))
-            .createGenerator(out)
-            .write(schemaObject)
-            .close();
-
-        final String schemaText = out.getBuffer().toString();
-        logger.accept(schemaText);
-    }
-
     private boolean validateAnnotatedSchema(
         JsonObject schemaObject,
         List<Exception> errors,
@@ -300,7 +117,7 @@ public final class EngineConfigReader
             final EngineConfigAnnotator annotator = new EngineConfigAnnotator();
             final JsonObject annotatedSchemaObject = annotator.annotate(schemaObject);
 
-            logSchema(annotatedSchemaObject, annotatedSchemaLogger);
+            annotatedSchemaLogger.accept(EngineSchemaReader.write(annotatedSchemaObject));
 
             final JsonSchema schema = JsonSchema.of(annotatedSchemaObject.toString());
 
