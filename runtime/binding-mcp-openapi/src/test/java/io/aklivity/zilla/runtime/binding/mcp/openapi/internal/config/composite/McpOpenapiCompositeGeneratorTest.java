@@ -48,6 +48,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
+import io.aklivity.zilla.config.binding.mcp.http.McpHttpConditionConfig;
 import io.aklivity.zilla.config.binding.mcp.http.McpHttpOptionsConfig;
 import io.aklivity.zilla.config.binding.mcp.http.McpHttpResourceConfig;
 import io.aklivity.zilla.config.binding.mcp.http.McpHttpToolAnnotationsConfig;
@@ -3417,6 +3418,193 @@ public class McpOpenapiCompositeGeneratorTest
         McpHttpOptionsConfig mcpHttpOptions = (McpHttpOptionsConfig) mcpHttp.options;
 
         assertThat(tool(mcpHttpOptions, "described_action").description, equalTo("Authored override description."));
+    }
+
+    @Test
+    public void shouldGenerateProxyKindMcpHttpFromRouteExit()
+    {
+        lenient().when(context.supplyQName(eq(9L))).thenReturn("test:http0");
+
+        BindingConfig binding = GenericBindingConfig.builder()
+            .namespace("test")
+            .name("mcp-openapi0")
+            .type("mcp-openapi")
+            .kind(PROXY)
+            .options(McpOpenapiOptionsConfig.builder()
+                .spec()
+                    .label("openapi_github0")
+                    .server("https://api.github.com")
+                    .catalog()
+                        .name("catalog0")
+                        .subject("rest-api")
+                        .version("latest")
+                        .build()
+                    .build()
+                .build())
+            .route()
+                .when(McpOpenapiConditionConfig.builder()
+                    .tool("create_pr")
+                    .build())
+                .with(McpOpenapiWithConfig.builder()
+                    .spec("openapi_github0")
+                    .operation("pulls/create")
+                    .build())
+                .exit("http0")
+                .build()
+            .build();
+        binding.resolveId = resolveId;
+        binding.routes.stream()
+            .filter(route -> "http0".equals(route.exit))
+            .findFirst()
+            .orElseThrow()
+            .id = 9L;
+
+        McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
+
+        NamespaceConfig namespace = composite.namespaces.get(0);
+        BindingConfig mcpHttp = namespace.bindings.stream()
+            .filter(b -> "mcp-http0".equals(b.name))
+            .findFirst()
+            .orElse(null);
+
+        assertThat(mcpHttp, notNullValue());
+        assertThat(mcpHttp.routes, hasSize(1));
+        assertThat(mcpHttp.routes.get(0).exit, equalTo("test:http0"));
+    }
+
+    @Test
+    public void shouldGenerateProxyKindMcpHttpWithDifferentExitPerRoute()
+    {
+        lenient().when(context.supplyQName(eq(10L))).thenReturn("test:http0");
+        lenient().when(context.supplyQName(eq(11L))).thenReturn("test:http1");
+
+        BindingConfig binding = GenericBindingConfig.builder()
+            .namespace("test")
+            .name("mcp-openapi0")
+            .type("mcp-openapi")
+            .kind(PROXY)
+            .options(McpOpenapiOptionsConfig.builder()
+                .spec()
+                    .label("openapi_github0")
+                    .server("https://api.github.com")
+                    .catalog()
+                        .name("catalog0")
+                        .subject("rest-api")
+                        .version("latest")
+                        .build()
+                    .build()
+                .build())
+            .route()
+                .when(McpOpenapiConditionConfig.builder()
+                    .tool("create_pr")
+                    .build())
+                .with(McpOpenapiWithConfig.builder()
+                    .spec("openapi_github0")
+                    .operation("pulls/create")
+                    .build())
+                .exit("http0")
+                .build()
+            .route()
+                .when(McpOpenapiConditionConfig.builder()
+                    .resource("repo://{owner}/{repo}")
+                    .build())
+                .with(McpOpenapiWithConfig.builder()
+                    .spec("openapi_github0")
+                    .operation("repos/get")
+                    .build())
+                .exit("http1")
+                .build()
+            .build();
+        binding.resolveId = resolveId;
+        binding.routes.stream()
+            .filter(route -> "http0".equals(route.exit))
+            .findFirst()
+            .orElseThrow()
+            .id = 10L;
+        binding.routes.stream()
+            .filter(route -> "http1".equals(route.exit))
+            .findFirst()
+            .orElseThrow()
+            .id = 11L;
+
+        McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
+
+        NamespaceConfig namespace = composite.namespaces.get(0);
+        BindingConfig mcpHttp = namespace.bindings.stream()
+            .filter(b -> "mcp-http0".equals(b.name))
+            .findFirst()
+            .orElse(null);
+
+        assertThat(mcpHttp, notNullValue());
+        assertThat(mcpHttp.routes, hasSize(2));
+
+        McpHttpToolConfig createPrTool = tool((McpHttpOptionsConfig) mcpHttp.options, "create_pr");
+        String createPrExit = mcpHttp.routes.stream()
+            .filter(r -> r.when.stream().anyMatch(w -> "create_pr".equals(((McpHttpConditionConfig) w).tool)))
+            .map(r -> r.exit)
+            .findFirst()
+            .orElse(null);
+        assertThat(createPrTool, notNullValue());
+        assertThat(createPrExit, equalTo("test:http0"));
+
+        String resourceExit = mcpHttp.routes.stream()
+            .filter(r -> r.when.stream().anyMatch(w -> "repo://{owner}/{repo}".equals(((McpHttpConditionConfig) w).resource)))
+            .map(r -> r.exit)
+            .findFirst()
+            .orElse(null);
+        assertThat(resourceExit, equalTo("test:http1"));
+    }
+
+    @Test
+    public void shouldGenerateProxyKindMcpHttpRouteExitFallingBackToBindingExit()
+    {
+        lenient().when(context.supplyQName(eq(12L))).thenReturn("test:http0");
+
+        BindingConfig binding = GenericBindingConfig.builder()
+            .namespace("test")
+            .name("mcp-openapi0")
+            .type("mcp-openapi")
+            .kind(PROXY)
+            .exit("http0")
+            .options(McpOpenapiOptionsConfig.builder()
+                .spec()
+                    .label("openapi_github0")
+                    .server("https://api.github.com")
+                    .catalog()
+                        .name("catalog0")
+                        .subject("rest-api")
+                        .version("latest")
+                        .build()
+                    .build()
+                .build())
+            .route()
+                .when(McpOpenapiConditionConfig.builder()
+                    .tool("create_pr")
+                    .build())
+                .with(McpOpenapiWithConfig.builder()
+                    .spec("openapi_github0")
+                    .operation("pulls/create")
+                    .build())
+                .build()
+            .build();
+        binding.resolveId = resolveId;
+        binding.routes.stream()
+            .filter(route -> "http0".equals(route.exit))
+            .findFirst()
+            .orElseThrow()
+            .id = 12L;
+
+        McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
+
+        NamespaceConfig namespace = composite.namespaces.get(0);
+        BindingConfig mcpHttp = namespace.bindings.stream()
+            .filter(b -> "mcp-http0".equals(b.name))
+            .findFirst()
+            .orElse(null);
+
+        assertThat(mcpHttp, notNullValue());
+        assertThat(mcpHttp.routes, hasSize(1));
+        assertThat(mcpHttp.routes.get(0).exit, equalTo("test:http0"));
     }
 
     private static McpHttpToolConfig tool(
