@@ -73,7 +73,10 @@ public final class FeatureFilter
     private static boolean isDevelopSnapshot()
     {
         return isUnnamedModule() || "develop-SNAPSHOT".equals(
-            FeatureFilter.class.getModule().getDescriptor().version().map(ModuleDescriptor.Version::toString)
+            FeatureFilter.class.getModule()
+                .getDescriptor()
+                .version()
+                .map(ModuleDescriptor.Version::toString)
                 .orElse("develop-SNAPSHOT"));
     }
 
