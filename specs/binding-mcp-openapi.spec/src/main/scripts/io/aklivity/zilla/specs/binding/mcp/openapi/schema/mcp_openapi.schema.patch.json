@@ -510,32 +510,21 @@
                             "kind":
                             {
                                 "const": "proxy"
+                            },
+                            "routes":
+                            {
+                                "items":
+                                {
+                                    "properties":
+                                    {
+                                        "exit": false
+                                    }
+                                }
                             }
                         },
-                        "anyOf":
+                        "required":
                         [
-                            {
-                                "required":
-                                [
-                                    "exit"
-                                ]
-                            },
-                            {
-                                "properties":
-                                {
-                                    "routes":
-                                    {
-                                        "items":
-                                        {
-                                            "required": [ "exit" ]
-                                        }
-                                    }
-                                },
-                                "required":
-                                [
-                                    "routes"
-                                ]
-                            }
+                            "exit"
                         ]
                     }
                 ]
