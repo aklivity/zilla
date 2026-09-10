@@ -67,15 +67,23 @@ public final class FeatureFilter
 
     private static boolean internalEnabled()
     {
-        return isDevelopSnapshot();
+        return isUnnamedModule();
     }
 
     private static boolean isDevelopSnapshot()
     {
+        return isUnnamedModule() || "develop-SNAPSHOT".equals(
+            FeatureFilter.class.getModule()
+                .getDescriptor()
+                .version()
+                .map(ModuleDescriptor.Version::toString)
+                .orElse("develop-SNAPSHOT"));
+    }
+
+    private static boolean isUnnamedModule()
+    {
         final Module module = FeatureFilter.class.getModule();
 
-        return module == null || module.getDescriptor() == null || "develop-SNAPSHOT".equals(
-            module.getDescriptor().version().map(ModuleDescriptor.Version::toString)
-                .orElse("develop-SNAPSHOT"));
+        return module == null || module.getDescriptor() == null;
     }
 }
