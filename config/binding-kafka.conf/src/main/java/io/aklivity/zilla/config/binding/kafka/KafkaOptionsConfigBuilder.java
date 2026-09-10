@@ -19,8 +19,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Function;
 
+import io.aklivity.zilla.config.engine.Config;
 import io.aklivity.zilla.config.engine.ConfigBuilder;
-import io.aklivity.zilla.config.engine.NamedConfig;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public final class KafkaOptionsConfigBuilder<T> extends ConfigBuilder<T, KafkaOptionsConfigBuilder<T>>
@@ -106,7 +106,7 @@ public final class KafkaOptionsConfigBuilder<T> extends ConfigBuilder<T, KafkaOp
     @Override
     public T build()
     {
-        List<NamedConfig> refs = new ArrayList<>();
+        List<Config.Reference> refs = new ArrayList<>();
         if (topics != null)
         {
             for (KafkaTopicConfig topic : topics)

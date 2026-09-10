@@ -24,7 +24,7 @@ public class OptionsConfig extends Config.Extensible
 
     public OptionsConfig(
         Map<String, Config> extensions,
-        List<NamedConfig> refs)
+        List<Config.Reference> refs)
     {
         this(Collections.emptyList(), extensions, refs);
     }
@@ -32,7 +32,7 @@ public class OptionsConfig extends Config.Extensible
     public OptionsConfig(
         List<String> resources,
         Map<String, Config> extensions,
-        List<NamedConfig> refs)
+        List<Config.Reference> refs)
     {
         super(extensions, refs);
         this.resources = resources;

@@ -203,7 +203,7 @@ public final class McpOpenapiCompositeGenerator
                     continue;
                 }
 
-                final List<GuardedRef> guarded = combineGuarded(binding, route, resolution.guarded);
+                final List<GuardedRef> guarded = combineGuarded(route, resolution.guarded);
 
                 routed.add(new RoutedOperation(toolConfig(binding, routeTool), resourceConfig(binding, resource),
                     operation, guarded, exit, serverByLabel.get(with.spec), with.params, with.body));
@@ -736,7 +736,6 @@ public final class McpOpenapiCompositeGenerator
     }
 
     private static List<GuardedRef> combineGuarded(
-        McpOpenapiBindingConfig binding,
         McpOpenapiRouteConfig route,
         List<GuardedRef> derived)
     {
@@ -751,7 +750,7 @@ public final class McpOpenapiCompositeGenerator
             }
             for (GuardedConfig guarded : route.guarded)
             {
-                final String qname = binding.supplyQName.apply(binding.resolveId.applyAsLong(guarded.name));
+                final String qname = guarded.qname();
                 rolesByQName.computeIfAbsent(qname, q -> new ArrayList<>()).addAll(guarded.roles);
             }
 

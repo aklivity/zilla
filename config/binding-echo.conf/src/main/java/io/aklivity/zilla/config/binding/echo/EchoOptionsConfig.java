@@ -17,8 +17,8 @@ package io.aklivity.zilla.config.binding.echo;
 import java.util.List;
 import java.util.function.Function;
 
+import io.aklivity.zilla.config.engine.Config;
 import io.aklivity.zilla.config.engine.ModelConfig;
-import io.aklivity.zilla.config.engine.NamedConfig;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public final class EchoOptionsConfig extends OptionsConfig
@@ -38,7 +38,7 @@ public final class EchoOptionsConfig extends OptionsConfig
 
     EchoOptionsConfig(
         ModelConfig value,
-        List<NamedConfig> refs)
+        List<Config.Reference> refs)
     {
         super(null, refs);
         this.value = value;

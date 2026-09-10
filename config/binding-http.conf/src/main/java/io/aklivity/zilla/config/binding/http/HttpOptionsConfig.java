@@ -19,7 +19,7 @@ import java.util.Map;
 import java.util.SortedSet;
 import java.util.function.Function;
 
-import io.aklivity.zilla.config.engine.NamedConfig;
+import io.aklivity.zilla.config.engine.Config;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public final class HttpOptionsConfig extends OptionsConfig
@@ -47,7 +47,7 @@ public final class HttpOptionsConfig extends OptionsConfig
         HttpAccessControlConfig access,
         HttpAuthorizationConfig authorization,
         List<HttpRequestConfig> requests,
-        List<NamedConfig> refs)
+        List<Config.Reference> refs)
     {
         super(null, refs);
         this.versions = versions;

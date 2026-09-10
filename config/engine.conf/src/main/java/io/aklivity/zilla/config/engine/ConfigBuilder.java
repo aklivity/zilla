@@ -36,7 +36,7 @@ public abstract class ConfigBuilder<T, B extends ConfigBuilder<T, B>>
     public abstract static class Extensible<T, B extends ConfigBuilder<T, B>> extends ConfigBuilder<T, B>
     {
         private Map<String, Config> extensions;
-        private List<NamedConfig> refs;
+        private List<Config.Reference> refs;
 
         public final <X extends ConfigExtBuilder<B>> X ext(
             Function<BiFunction<String, Config, B>, X> factory)
@@ -57,7 +57,7 @@ public abstract class ConfigBuilder<T, B extends ConfigBuilder<T, B>>
         }
 
         public final B ref(
-            NamedConfig ref)
+            Config.Reference ref)
         {
             if (refs == null)
             {
@@ -72,7 +72,7 @@ public abstract class ConfigBuilder<T, B extends ConfigBuilder<T, B>>
             return extensions;
         }
 
-        protected final List<NamedConfig> refs()
+        protected final List<Config.Reference> refs()
         {
             return refs != null ? refs : List.of();
         }

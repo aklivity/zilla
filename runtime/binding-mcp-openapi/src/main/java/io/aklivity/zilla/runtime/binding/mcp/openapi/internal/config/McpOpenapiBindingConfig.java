@@ -71,7 +71,7 @@ public final class McpOpenapiBindingConfig
             .filter(route -> route.with == null && route.exit != null)
             .findFirst()
             .orElse(null);
-        this.exit = exitRoute != null ? context.supplyQName(exitRoute.id) : null;
+        this.exit = exitRoute != null ? exitRoute.qname() : null;
 
         this.resolveId = binding.resolveId;
         this.supplyBindingId = context::supplyBindingId;

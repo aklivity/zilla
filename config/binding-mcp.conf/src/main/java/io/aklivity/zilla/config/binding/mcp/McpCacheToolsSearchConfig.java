@@ -22,7 +22,6 @@ import java.util.Map;
 import java.util.function.Function;
 
 import io.aklivity.zilla.config.engine.Config;
-import io.aklivity.zilla.config.engine.NamedConfig;
 
 public final class McpCacheToolsSearchConfig extends Config.Extensible
 {
@@ -49,10 +48,10 @@ public final class McpCacheToolsSearchConfig extends Config.Extensible
 
     // each configured index may itself contribute named references (e.g. an embedding vault); folding
     // them in here lets McpCacheToolsConfig discover every name under search generically via search.refs()
-    private static List<NamedConfig> withIndexes(
+    private static List<Config.Reference> withIndexes(
         List<McpToolSearchIndexConfig> indexes)
     {
-        List<NamedConfig> all = new ArrayList<>();
+        List<Config.Reference> all = new ArrayList<>();
         if (indexes != null)
         {
             for (McpToolSearchIndexConfig index : indexes)

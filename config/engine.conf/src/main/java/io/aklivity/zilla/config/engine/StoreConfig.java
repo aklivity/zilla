@@ -16,13 +16,9 @@ package io.aklivity.zilla.config.engine;
 
 import static java.util.Objects.requireNonNull;
 
-public abstract class StoreConfig extends Config
+public abstract class StoreConfig extends NamedConfig
 {
-    public transient long id;
-
     public final String namespace;
-    public final String name;
-    public final String qname;
     public final String type;
     public final OptionsConfig options;
 
@@ -32,8 +28,8 @@ public abstract class StoreConfig extends Config
         String type,
         OptionsConfig options)
     {
+        super(name);
         this.namespace = requireNonNull(namespace);
-        this.name = requireNonNull(name);
         this.qname = String.format("%s:%s", namespace, name);
         this.type = requireNonNull(type);
         this.options = options;

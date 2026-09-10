@@ -20,7 +20,6 @@ import java.util.function.Function;
 
 import io.aklivity.zilla.config.engine.Config;
 import io.aklivity.zilla.config.engine.ModelConfig;
-import io.aklivity.zilla.config.engine.NamedConfig;
 import io.aklivity.zilla.config.engine.ValidateConfig;
 
 public final class StringModelConfig extends ModelConfig
@@ -37,7 +36,7 @@ public final class StringModelConfig extends ModelConfig
         int minLength,
         ValidateConfig validate,
         Map<String, Config> extensions,
-        List<NamedConfig> refs)
+        List<Config.Reference> refs)
     {
         super("string", null, validate, extensions, refs);
         this.encoding = encoding;

@@ -548,8 +548,6 @@ public class McpOpenapiCompositeGeneratorTest
     @Test
     public void shouldGenerateProxyKindMcpHttpFromProxyKindExit()
     {
-        lenient().when(context.supplyQName(eq(9L))).thenReturn("test:schema_registry0");
-
         BindingConfig binding = GenericBindingConfig.builder()
             .namespace("test")
             .name("mcp-openapi0")
@@ -578,11 +576,12 @@ public class McpOpenapiCompositeGeneratorTest
                 .build()
             .build();
         binding.resolveId = resolveId;
-        binding.routes.stream()
+        RouteConfig exitRoute = binding.routes.stream()
             .filter(route -> "schema_registry0".equals(route.exit))
             .findFirst()
-            .orElseThrow()
-            .id = 9L;
+            .orElseThrow();
+        exitRoute.id = 9L;
+        exitRoute.qname = "test:schema_registry0";
 
         McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
@@ -2179,6 +2178,7 @@ public class McpOpenapiCompositeGeneratorTest
                 .build()
             .build();
         binding.resolveId = resolveId;
+        binding.routes.get(0).guarded.get(0).qname = "test1";
 
         McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
@@ -2231,6 +2231,7 @@ public class McpOpenapiCompositeGeneratorTest
                 .build()
             .build();
         binding.resolveId = resolveId;
+        binding.routes.get(0).guarded.get(0).qname = "test1";
 
         McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 
@@ -2287,6 +2288,7 @@ public class McpOpenapiCompositeGeneratorTest
                 .build()
             .build();
         binding.resolveId = resolveId;
+        binding.routes.get(0).guarded.get(0).qname = "test0";
 
         McpOpenapiCompositeConfig composite = generator.generate(new McpOpenapiBindingConfig(context, binding));
 

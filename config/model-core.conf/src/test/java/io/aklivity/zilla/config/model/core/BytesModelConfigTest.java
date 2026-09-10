@@ -22,7 +22,7 @@ import java.util.List;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.config.engine.NamedConfig;
+import io.aklivity.zilla.config.engine.Config;
 import io.aklivity.zilla.config.engine.VaultedConfig;
 
 public class BytesModelConfigTest
@@ -36,7 +36,7 @@ public class BytesModelConfigTest
             .ref(vaulted)
             .build();
 
-        List<NamedConfig> refs = config.refs();
+        List<Config.Reference> refs = config.refs();
         assertThat(refs, hasItem(vaulted));
     }
 

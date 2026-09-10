@@ -19,9 +19,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Function;
 
+import io.aklivity.zilla.config.engine.Config;
 import io.aklivity.zilla.config.engine.ConfigBuilder;
 import io.aklivity.zilla.config.engine.ModelConfig;
-import io.aklivity.zilla.config.engine.NamedConfig;
 
 public class HttpResponseConfigBuilder<T> extends ConfigBuilder<T, HttpResponseConfigBuilder<T>>
 {
@@ -107,7 +107,7 @@ public class HttpResponseConfigBuilder<T> extends ConfigBuilder<T, HttpResponseC
     @Override
     public T build()
     {
-        List<NamedConfig> refs = new ArrayList<>();
+        List<Config.Reference> refs = new ArrayList<>();
         if (content != null)
         {
             refs.addAll(content.refs());

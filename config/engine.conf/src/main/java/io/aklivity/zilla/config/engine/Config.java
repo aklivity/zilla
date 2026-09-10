@@ -23,10 +23,35 @@ public abstract class Config
     {
     }
 
+    /**
+     * A config the engine resolves a name on to an id/qname pair, by the same generic walk regardless of
+     * which concrete kind of reference this is.
+     */
+    public interface Reference
+    {
+        long id();
+
+        String qname();
+
+        void visit(Resolver resolver);
+    }
+
+    /**
+     * Resolves each concrete kind of {@link Reference} to its id/qname pair. Implemented by the engine.
+     */
+    public interface Resolver
+    {
+        void resolve(NamedConfig config);
+
+        void resolve(NamedConfig.Extensible config);
+
+        void resolve(RouteConfig config);
+    }
+
     public abstract static class Extensible extends Config
     {
         private final Map<String, Config> extensions;
-        private final List<NamedConfig> refs;
+        private final List<Reference> refs;
 
         protected Extensible()
         {
@@ -41,7 +66,7 @@ public abstract class Config
 
         protected Extensible(
             Map<String, Config> extensions,
-            List<NamedConfig> refs)
+            List<Reference> refs)
         {
             this.extensions = extensions;
             this.refs = refs != null ? refs : List.of();
@@ -55,11 +80,11 @@ public abstract class Config
         }
 
         /**
-         * Named configs (vaults, guards, ...) contributed by this config or any of its own extensions,
-         * each carrying only a name until the engine resolves it to an id once, generically, regardless of
-         * which concrete kind of named config it is.
+         * Named references (vaults, guards, ...) contributed by this config or any of its own extensions,
+         * each resolved to an id/qname once, generically, regardless of which concrete kind of reference
+         * it is.
          */
-        public final List<NamedConfig> refs()
+        public final List<Reference> refs()
         {
             return refs;
         }

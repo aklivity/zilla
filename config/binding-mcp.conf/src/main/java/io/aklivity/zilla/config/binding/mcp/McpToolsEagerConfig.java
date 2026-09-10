@@ -17,7 +17,6 @@ package io.aklivity.zilla.config.binding.mcp;
 import java.util.List;
 
 import io.aklivity.zilla.config.engine.Config;
-import io.aklivity.zilla.config.engine.NamedConfig;
 
 public abstract class McpToolsEagerConfig extends Config
 {
@@ -29,7 +28,7 @@ public abstract class McpToolsEagerConfig extends Config
         this.type = type;
     }
 
-    public List<NamedConfig> refs()
+    public List<Config.Reference> refs()
     {
         return List.of();
     }

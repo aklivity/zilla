@@ -20,20 +20,19 @@ import java.util.List;
 
 import io.aklivity.zilla.config.engine.Config;
 import io.aklivity.zilla.config.engine.ModelConfig;
-import io.aklivity.zilla.config.engine.NamedConfig;
 
 public class MqttTopicConfig extends Config
 {
     public final String name;
     public final ModelConfig content;
     public final List<MqttUserPropertyConfig> userProperties;
-    private final List<NamedConfig> refs;
+    private final List<Config.Reference> refs;
 
     public MqttTopicConfig(
         String name,
         ModelConfig content,
         List<MqttUserPropertyConfig> userProperties,
-        List<NamedConfig> refs)
+        List<Config.Reference> refs)
     {
         this.name = name;
         this.content = content;
@@ -41,7 +40,7 @@ public class MqttTopicConfig extends Config
         this.refs = refs;
     }
 
-    public List<NamedConfig> refs()
+    public List<Config.Reference> refs()
     {
         return refs;
     }
