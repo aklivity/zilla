@@ -65,13 +65,6 @@ public final class FeatureFilter
         return override != null ? Boolean.parseBoolean(override) : isDevelopSnapshot();
     }
 
-    // Unlike incubatorEnabled(), this has no override branch and must not fall back to
-    // isDevelopSnapshot()'s version-string check: a fully packaged, modularized artifact
-    // (module.getDescriptor() != null) always has a real module, even when its version
-    // happens to be "develop-SNAPSHOT" (e.g. a downstream project temporarily pinned to an
-    // unreleased dependency). Falling back to the version string there would let @Internal
-    // leak into a real packaged build, contradicting its only guarantee: never reachable
-    // outside an unpackaged (unnamed-module) build.
     private static boolean internalEnabled()
     {
         return isUnnamedModule();
