@@ -5254,16 +5254,9 @@
                                         "properties": {
                                             "routes": {
                                                 "items": {
-                                                    "if": {
-                                                        "required": [
-                                                            "with"
-                                                        ]
-                                                    },
-                                                    "then": {
-                                                        "required": [
-                                                            "exit"
-                                                        ]
-                                                    }
+                                                    "required": [
+                                                        "exit"
+                                                    ]
                                                 }
                                             }
                                         },
