@@ -2,6 +2,20 @@ name: ${NAMESPACE:-zilla-inspect-schema}
 services:
   zilla:
     image: ghcr.io/aklivity/zilla:${ZILLA_VERSION:-latest}
+    restart: unless-stopped
+    hostname: zilla.examples.dev
+    healthcheck:
+      interval: 5s
+      timeout: 3s
+      retries: 15
+      start_period: 15s
+      test: ["CMD", "sh", "-c", "test -f /var/run/zilla/ready"]
     environment:
       ZILLA_INCUBATOR_ENABLED: "true"
-    command: inspect schema
+    volumes:
+      - ./etc:/etc/zilla
+    command: start -v -e
+
+networks:
+  default:
+    driver: bridge
