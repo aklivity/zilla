@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.specs.binding.llm.streams.network;
+package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
@@ -25,65 +25,51 @@ import org.junit.rules.Timeout;
 
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
+import io.aklivity.zilla.runtime.engine.test.EngineRule;
+import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 
-public class NetworkIT
+public class LlmClientIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/llm/streams/network");
+        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/llm/streams/network")
+        .addScriptRoot("app", "io/aklivity/zilla/specs/binding/llm/streams/application");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
+    private final EngineRule engine = new EngineRule()
+        .directory("target/zilla-itests")
+        .countersBufferCapacity(8192)
+        .configurationRoot("io/aklivity/zilla/specs/binding/llm/config")
+        .external("net0")
+        .clean();
+
     @Rule
-    public final TestRule chain = outerRule(k3po).around(timeout);
+    public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
+    @Configuration("client.yaml")
     @Specification({
-        "${net}/sse.passthrough/client",
-        "${net}/sse.passthrough/server"})
-    public void shouldPassthroughSse() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/opaque.fallback/client",
-        "${net}/opaque.fallback/server"})
-    public void shouldForwardOpaqueFallback() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/json.fragmented/client",
-        "${net}/json.fragmented/server"})
-    public void shouldForwardJsonFragmentedWithSingleTerminalFlush() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/same.dialect/client",
+        "${app}/same.dialect/client",
         "${net}/same.dialect/server"})
-    public void shouldEncodeSameDialect() throws Exception
+    public void shouldForwardSameDialect() throws Exception
     {
         k3po.finish();
     }
 
     @Test
+    @Configuration("client.yaml")
     @Specification({
-        "${net}/cross.dialect/client",
+        "${app}/cross.dialect/client",
         "${net}/cross.dialect/server"})
-    public void shouldEncodeCrossDialect() throws Exception
+    public void shouldForwardCrossDialect() throws Exception
     {
         k3po.finish();
     }
 
     @Test
+    @Configuration("client.opaque.yaml")
     @Specification({
-        "${net}/client.opaque.fallback/client",
+        "${app}/client.opaque.fallback/client",
         "${net}/client.opaque.fallback/server"})
     public void shouldForwardClientOpaqueFallback() throws Exception
     {
@@ -91,8 +77,9 @@ public class NetworkIT
     }
 
     @Test
+    @Configuration("client.yaml")
     @Specification({
-        "${net}/client.abort/client",
+        "${app}/client.abort/client",
         "${net}/client.abort/server"})
     public void shouldAbortClientRequest() throws Exception
     {

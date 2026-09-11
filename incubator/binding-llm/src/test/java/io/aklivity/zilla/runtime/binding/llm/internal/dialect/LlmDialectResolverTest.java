@@ -113,6 +113,27 @@ public class LlmDialectResolverTest
         assertThat(resolved, nullValue());
     }
 
+    @Test
+    public void shouldReturnDialectNamed()
+    {
+        LlmDialect dialect = dialect("mock");
+        LlmDialectResolver resolver = new LlmDialectResolver(null, of(dialect));
+
+        LlmDialect resolved = resolver.dialectNamed("mock");
+
+        assertThat(resolved, equalTo(dialect));
+    }
+
+    @Test
+    public void shouldReturnNullForUnregisteredDialectName()
+    {
+        LlmDialectResolver resolver = new LlmDialectResolver(null, of(dialect("mock")));
+
+        LlmDialect resolved = resolver.dialectNamed("unregistered");
+
+        assertThat(resolved, nullValue());
+    }
+
     private static LlmDialect dialect(
         String name)
     {

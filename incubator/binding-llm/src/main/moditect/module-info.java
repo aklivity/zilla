@@ -22,6 +22,7 @@ module io.aklivity.zilla.runtime.binding.llm
 
     uses io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectFactorySpi;
     uses io.aklivity.zilla.runtime.binding.llm.internal.decode.LlmContentDecoderSpi;
+    uses io.aklivity.zilla.runtime.binding.llm.internal.encode.LlmContentEncoderSpi;
 
     provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
         with io.aklivity.zilla.runtime.binding.llm.internal.LlmBindingFactorySpi;
@@ -29,4 +30,7 @@ module io.aklivity.zilla.runtime.binding.llm
     provides io.aklivity.zilla.runtime.binding.llm.internal.decode.LlmContentDecoderSpi
         with io.aklivity.zilla.runtime.binding.llm.internal.decode.LlmJsonContentDecoderFactorySpi,
              io.aklivity.zilla.runtime.binding.llm.internal.decode.LlmSseContentDecoderFactorySpi;
+
+    provides io.aklivity.zilla.runtime.binding.llm.internal.encode.LlmContentEncoderSpi
+        with io.aklivity.zilla.runtime.binding.llm.internal.encode.LlmSseContentEncoderFactorySpi;
 }

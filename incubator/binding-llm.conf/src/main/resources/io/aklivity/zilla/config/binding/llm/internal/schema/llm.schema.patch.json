@@ -57,8 +57,51 @@
                                         {
                                             "title": "Dialect",
                                             "type": "string"
+                                        },
+                                        "server":
+                                        {
+                                            "title": "Server",
+                                            "type": "string",
+                                            "pattern": "([^\\:]+):(\\d+)"
                                         }
                                     },
+                                    "additionalProperties": false
+                                }
+                            }
+                        }
+                    },
+                    {
+                        "if":
+                        {
+                            "properties":
+                            {
+                                "kind":
+                                {
+                                    "const": "client"
+                                }
+                            }
+                        },
+                        "then":
+                        {
+                            "properties":
+                            {
+                                "options":
+                                {
+                                    "properties":
+                                    {
+                                        "dialect":
+                                        {
+                                            "title": "Dialect",
+                                            "type": "string"
+                                        },
+                                        "server":
+                                        {
+                                            "title": "Server",
+                                            "type": "string",
+                                            "pattern": "([^\\:]+):(\\d+)"
+                                        }
+                                    },
+                                    "required": [ "dialect", "server" ],
                                     "additionalProperties": false
                                 }
                             }

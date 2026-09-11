@@ -64,6 +64,12 @@ public final class LlmDialectResolver
         return dialectFixed ? fixedDialect : detect(path, headers);
     }
 
+    public LlmDialect dialectNamed(
+        String name)
+    {
+        return dialectsByName.get(name);
+    }
+
     private LlmDialect detect(
         String path,
         HttpHeaders headers)

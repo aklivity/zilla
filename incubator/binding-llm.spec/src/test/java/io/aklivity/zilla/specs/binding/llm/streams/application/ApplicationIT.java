@@ -62,4 +62,40 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/same.dialect/client",
+        "${app}/same.dialect/server"})
+    public void shouldForwardSameDialect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/cross.dialect/client",
+        "${app}/cross.dialect/server"})
+    public void shouldForwardCrossDialect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/client.opaque.fallback/client",
+        "${app}/client.opaque.fallback/server"})
+    public void shouldForwardClientOpaqueFallback() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/client.abort/client",
+        "${app}/client.abort/server"})
+    public void shouldAbortClientRequest() throws Exception
+    {
+        k3po.finish();
+    }
 }
