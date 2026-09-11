@@ -63,6 +63,12 @@ public final class LlmDialectResolver
         return dialectFixed ? fixedDialect : detect(headers);
     }
 
+    public LlmDialect dialectNamed(
+        String name)
+    {
+        return dialectsByName.get(name);
+    }
+
     private LlmDialect detect(
         ModelEnvelope headers)
     {
