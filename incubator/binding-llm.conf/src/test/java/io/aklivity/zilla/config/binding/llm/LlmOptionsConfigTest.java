@@ -42,4 +42,44 @@ public class LlmOptionsConfigTest
 
         assertThat(injected, sameInstance(builder));
     }
+
+    @Test
+    public void shouldBuildServerViaNestedBuilder()
+    {
+        LlmOptionsConfig options = LlmOptionsConfig.builder()
+            .server()
+                .host("localhost")
+                .port(11434)
+                .build()
+            .build();
+
+        assertThat(options.server.host, equalTo("localhost"));
+        assertThat(options.server.port, equalTo(11434));
+    }
+
+    @Test
+    public void shouldBuildServerViaSetter()
+    {
+        LlmServerConfig server = LlmServerConfig.builder()
+            .host("localhost")
+            .port(11434)
+            .build();
+
+        LlmOptionsConfig options = LlmOptionsConfig.builder()
+            .server(server)
+            .build();
+
+        assertThat(options.server, sameInstance(server));
+    }
+
+    @Test
+    public void shouldConvertServerToString()
+    {
+        LlmServerConfig server = LlmServerConfig.builder()
+            .host("localhost")
+            .port(11434)
+            .build();
+
+        assertThat(server.toString(), equalTo("localhost:11434"));
+    }
 }

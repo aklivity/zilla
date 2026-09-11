@@ -88,4 +88,35 @@ public class LlmOptionsConfigAdapterTest
 
         assertThat(text, equalTo("{}"));
     }
+
+    @Test
+    public void shouldReadServerOption()
+    {
+        String text =
+                "{" +
+                    "\"server\": \"localhost:11434\"" +
+                "}";
+
+        LlmOptionsConfig options = jsonb.fromJson(text, LlmOptionsConfig.class);
+
+        assertThat(options, not(nullValue()));
+        assertThat(options.server.host, equalTo("localhost"));
+        assertThat(options.server.port, equalTo(11434));
+    }
+
+    @Test
+    public void shouldWriteServerOption()
+    {
+        LlmOptionsConfig options = LlmOptionsConfig.builder()
+            .server()
+                .host("localhost")
+                .port(11434)
+                .build()
+            .build();
+
+        String text = jsonb.toJson(options);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, equalTo("{\"server\":\"localhost:11434\"}"));
+    }
 }
