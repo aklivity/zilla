@@ -1,5 +1,14 @@
 # Changelog
 
+## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/2.4.1...HEAD)
+
+**Merged pull requests:**
+
+- fix\(common-feature\): stop @Internal from leaking via version-string fallback [\#2566](https://github.com/aklivity/zilla/pull/2566) ([jfallows](https://github.com/jfallows))
+- refactor\(engine.conf\): resolve qname once at engine load time via Config.Reference [\#2567](https://github.com/aklivity/zilla/pull/2567) ([jfallows](https://github.com/jfallows))
+
 ## [2.4.1](https://github.com/aklivity/zilla/tree/2.4.1) (2026-09-10)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/2.4.0...2.4.1)
