@@ -12,35 +12,34 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.config.binding.llm.internal;
+package io.aklivity.zilla.config.binding.llm;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.sameInstance;
 
 import org.junit.Test;
 
-public class LlmBindingInfoTest
+public class LlmOptionsConfigTest
 {
-    private final LlmBindingInfo info = new LlmBindingInfo();
-
     @Test
-    public void shouldResolveType()
+    public void shouldBuildViaCustomMapper()
     {
-        assertThat(info.type(), equalTo("llm"));
+        String dialect = LlmOptionsConfig
+            .builder(options -> ((LlmOptionsConfig) options).dialect)
+            .dialect("openai")
+            .build();
+
+        assertThat(dialect, equalTo("openai"));
     }
 
     @Test
-    public void shouldResolveSchema()
+    public void shouldInjectBuilder()
     {
-        assertThat(info.schema(), not(nullValue()));
-    }
+        LlmOptionsConfigBuilder<LlmOptionsConfig> builder = LlmOptionsConfig.builder();
 
-    @Test
-    public void shouldResolveOptionsAdapter()
-    {
-        assertThat(info.options(), instanceOf(LlmOptionsConfigAdapter.class));
+        LlmOptionsConfigBuilder<LlmOptionsConfig> injected = builder.inject(identity -> identity);
+
+        assertThat(injected, sameInstance(builder));
     }
 }
