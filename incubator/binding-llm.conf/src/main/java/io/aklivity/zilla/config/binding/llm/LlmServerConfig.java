@@ -16,30 +16,35 @@ package io.aklivity.zilla.config.binding.llm;
 
 import java.util.function.Function;
 
-import io.aklivity.zilla.config.engine.OptionsConfig;
+import io.aklivity.zilla.config.engine.Config;
 
-public final class LlmOptionsConfig extends OptionsConfig
+public class LlmServerConfig extends Config
 {
-    public final String dialect;
-    public final LlmServerConfig server;
+    public final String host;
+    public final int port;
 
-    public static LlmOptionsConfigBuilder<LlmOptionsConfig> builder()
+    public static LlmServerConfigBuilder<LlmServerConfig> builder()
     {
-        return new LlmOptionsConfigBuilder<>(LlmOptionsConfig.class::cast);
+        return new LlmServerConfigBuilder<>(LlmServerConfig.class::cast);
     }
 
-    public static <T> LlmOptionsConfigBuilder<T> builder(
-        Function<OptionsConfig, T> mapper)
+    public static <T> LlmServerConfigBuilder<T> builder(
+        Function<LlmServerConfig, T> mapper)
     {
-        return new LlmOptionsConfigBuilder<>(mapper);
+        return new LlmServerConfigBuilder<>(mapper);
     }
 
-    LlmOptionsConfig(
-        String dialect,
-        LlmServerConfig server)
+    LlmServerConfig(
+        String host,
+        int port)
     {
-        super(null, null);
-        this.dialect = dialect;
-        this.server = server;
+        this.host = host;
+        this.port = port;
+    }
+
+    @Override
+    public String toString()
+    {
+        return String.format("%s:%d", host, port);
     }
 }
