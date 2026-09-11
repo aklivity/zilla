@@ -31,7 +31,40 @@
                     {
                         "enum": [ "client", "server" ]
                     }
-                }
+                },
+                "allOf":
+                [
+                    {
+                        "if":
+                        {
+                            "properties":
+                            {
+                                "kind":
+                                {
+                                    "const": "server"
+                                }
+                            }
+                        },
+                        "then":
+                        {
+                            "properties":
+                            {
+                                "options":
+                                {
+                                    "properties":
+                                    {
+                                        "dialect":
+                                        {
+                                            "title": "Dialect",
+                                            "type": "string"
+                                        }
+                                    },
+                                    "additionalProperties": false
+                                }
+                            }
+                        }
+                    }
+                ]
             }
         }
     }
