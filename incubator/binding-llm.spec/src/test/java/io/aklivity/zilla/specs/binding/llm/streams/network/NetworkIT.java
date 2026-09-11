@@ -107,4 +107,40 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/same.dialect/client",
+        "${net}/same.dialect/server"})
+    public void shouldEncodeSameDialect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/cross.dialect/client",
+        "${net}/cross.dialect/server"})
+    public void shouldEncodeCrossDialect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/client.opaque.fallback/client",
+        "${net}/client.opaque.fallback/server"})
+    public void shouldForwardClientOpaqueFallback() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/client.abort/client",
+        "${net}/client.abort/server"})
+    public void shouldAbortClientRequest() throws Exception
+    {
+        k3po.finish();
+    }
 }

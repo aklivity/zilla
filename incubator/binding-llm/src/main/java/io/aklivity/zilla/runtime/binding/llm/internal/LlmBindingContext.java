@@ -14,13 +14,14 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.internal;
 
+import static io.aklivity.zilla.config.engine.KindConfig.CLIENT;
 import static io.aklivity.zilla.config.engine.KindConfig.SERVER;
-import static java.util.Collections.singletonMap;
 
 import java.util.Map;
 
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.config.engine.KindConfig;
+import io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmClientFactory;
 import io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmServerFactory;
 import io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmStreamFactory;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -29,15 +30,15 @@ import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 
 final class LlmBindingContext implements BindingContext
 {
-    private final LlmServerFactory serverFactory;
     private final Map<KindConfig, LlmStreamFactory> factories;
 
     LlmBindingContext(
         LlmConfiguration config,
         EngineContext context)
     {
-        this.serverFactory = new LlmServerFactory(config, context);
-        this.factories = singletonMap(SERVER, serverFactory);
+        this.factories = Map.of(
+            SERVER, new LlmServerFactory(config, context),
+            CLIENT, new LlmClientFactory(config, context));
     }
 
     @Override
