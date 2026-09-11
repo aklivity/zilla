@@ -121,4 +121,14 @@ public class LlmOptionsConfigTest
 
         assertThat(injected, sameInstance(builder));
     }
+
+    @Test
+    public void shouldInjectServerBuilder()
+    {
+        LlmServerConfigBuilder<LlmServerConfig> builder = LlmServerConfig.builder();
+
+        LlmServerConfigBuilder<LlmServerConfig> injected = builder.inject(identity -> identity);
+
+        assertThat(injected, sameInstance(builder));
+    }
 }
