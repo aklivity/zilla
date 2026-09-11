@@ -17,50 +17,43 @@ package io.aklivity.zilla.config.binding.llm;
 import java.util.function.Function;
 
 import io.aklivity.zilla.config.engine.ConfigBuilder;
-import io.aklivity.zilla.config.engine.OptionsConfig;
 
-public final class LlmOptionsConfigBuilder<T> extends ConfigBuilder<T, LlmOptionsConfigBuilder<T>>
+public final class LlmServerConfigBuilder<T> extends ConfigBuilder<T, LlmServerConfigBuilder<T>>
 {
-    private final Function<OptionsConfig, T> mapper;
+    private final Function<LlmServerConfig, T> mapper;
+    private String host;
+    private int port;
 
-    private String dialect;
-    private LlmServerConfig server;
-
-    LlmOptionsConfigBuilder(
-        Function<OptionsConfig, T> mapper)
+    LlmServerConfigBuilder(
+        Function<LlmServerConfig, T> mapper)
     {
         this.mapper = mapper;
     }
 
     @Override
     @SuppressWarnings("unchecked")
-    protected Class<LlmOptionsConfigBuilder<T>> thisType()
+    protected Class<LlmServerConfigBuilder<T>> thisType()
     {
-        return (Class<LlmOptionsConfigBuilder<T>>) getClass();
+        return (Class<LlmServerConfigBuilder<T>>) getClass();
     }
 
-    public LlmOptionsConfigBuilder<T> dialect(
-        String dialect)
+    public LlmServerConfigBuilder<T> host(
+        String host)
     {
-        this.dialect = dialect;
+        this.host = host;
         return this;
     }
 
-    public LlmServerConfigBuilder<LlmOptionsConfigBuilder<T>> server()
+    public LlmServerConfigBuilder<T> port(
+        int port)
     {
-        return LlmServerConfig.builder(this::server);
-    }
-
-    public LlmOptionsConfigBuilder<T> server(
-        LlmServerConfig server)
-    {
-        this.server = server;
+        this.port = port;
         return this;
     }
 
     @Override
     public T build()
     {
-        return mapper.apply(new LlmOptionsConfig(dialect, server));
+        return mapper.apply(new LlmServerConfig(host, port));
     }
 }
