@@ -16,16 +16,13 @@ package io.aklivity.zilla.config.engine;
 
 import static java.util.Objects.requireNonNull;
 
-public abstract class ExporterConfig extends Config
+public abstract class ExporterConfig extends NamedConfig
 {
     public final String namespace;
-    public final String name;
-    public final String qname;
     public final String type;
     public final String vault;
     public final OptionsConfig options;
 
-    public transient long id;
     public transient long vaultId;
 
     protected ExporterConfig(
@@ -35,8 +32,8 @@ public abstract class ExporterConfig extends Config
         String vault,
         OptionsConfig options)
     {
+        super(name);
         this.namespace = requireNonNull(namespace);
-        this.name = requireNonNull(name);
         this.qname = String.format("%s:%s", namespace, name);
         this.type = requireNonNull(type);
         this.vault = vault;

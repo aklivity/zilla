@@ -22,7 +22,6 @@ import java.util.function.Function;
 import io.aklivity.zilla.config.engine.Config;
 import io.aklivity.zilla.config.engine.EmbeddedConfig;
 import io.aklivity.zilla.config.engine.ModelConfig;
-import io.aklivity.zilla.config.engine.NamedConfig;
 import io.aklivity.zilla.config.engine.StoredConfig;
 
 public final class VectorModelConfig extends ModelConfig
@@ -38,7 +37,7 @@ public final class VectorModelConfig extends ModelConfig
         double threshold,
         StoredConfig store,
         Map<String, Config> extensions,
-        List<NamedConfig> refs)
+        List<Config.Reference> refs)
     {
         super("vector", null, null, extensions, withRefs(embedding, store, refs));
         this.embedding = embedding;
@@ -58,12 +57,12 @@ public final class VectorModelConfig extends ModelConfig
         return new VectorModelConfigBuilder<>(VectorModelConfig.class::cast);
     }
 
-    private static List<NamedConfig> withRefs(
+    private static List<Config.Reference> withRefs(
         EmbeddedConfig embedding,
         StoredConfig store,
-        List<NamedConfig> refs)
+        List<Config.Reference> refs)
     {
-        List<NamedConfig> all = new ArrayList<>();
+        List<Config.Reference> all = new ArrayList<>();
         if (embedding != null)
         {
             all.add(embedding);

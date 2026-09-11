@@ -48,6 +48,7 @@ import jakarta.json.spi.JsonProvider;
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.config.engine.CatalogConfig;
 import io.aklivity.zilla.config.engine.CatalogedConfig;
+import io.aklivity.zilla.config.engine.Config;
 import io.aklivity.zilla.config.engine.ConfigException;
 import io.aklivity.zilla.config.engine.EngineConfig;
 import io.aklivity.zilla.config.engine.EngineConfigReader;
@@ -384,9 +385,9 @@ public class EngineManager
 
             if (vault.options != null)
             {
-                for (NamedConfig ref : vault.options.refs())
+                for (Config.Reference ref : vault.options.refs())
                 {
-                    ref.id = resolver.resolve(ref.name);
+                    ref.visit(resolver);
                 }
             }
         }
@@ -445,15 +446,15 @@ public class EngineManager
 
             if (binding.options != null)
             {
-                for (NamedConfig ref : binding.options.refs())
+                for (Config.Reference ref : binding.options.refs())
                 {
-                    ref.id = resolver.resolve(ref.name);
+                    ref.visit(resolver);
                 }
             }
 
             for (RouteConfig route : binding.routes)
             {
-                route.id = resolver.resolve(route.exit);
+                route.visit(resolver);
                 route.authorized = (session, resolve) -> true;
                 route.resolveId = binding.resolveId;
 
@@ -461,7 +462,7 @@ public class EngineManager
                 {
                     for (GuardedConfig guarded : route.guarded)
                     {
-                        guarded.id = resolver.resolve(guarded.name);
+                        guarded.visit(resolver);
 
                         LongObjectPredicate<UnaryOperator<String>> authorizer = guards.stream()
                             .filter(g -> g.id == guarded.id)
@@ -487,8 +488,6 @@ public class EngineManager
                             .orElse((session, name) -> null);
 
                         guarded.attributes = attributor;
-
-                        guarded.qname = resolver.format(guarded.id);
 
                         route.authorized = route.authorized.and(authorizer);
                     }
@@ -599,7 +598,7 @@ public class EngineManager
         }
     }
 
-    private final class NameResolver
+    private final class NameResolver implements Config.Resolver
     {
         private final int namespaceId;
         private final ThreadLocal<Matcher> matchName;
@@ -635,6 +634,30 @@ public class EngineManager
             return String.format("%s:%s",
                     supplyName.apply(NamespacedId.namespaceId(namespacedId)),
                     supplyName.apply(NamespacedId.localId(namespacedId)));
+        }
+
+        @Override
+        public void resolve(
+            NamedConfig config)
+        {
+            config.id = resolve(config.name);
+            config.qname = format(config.id);
+        }
+
+        @Override
+        public void resolve(
+            NamedConfig.Extensible config)
+        {
+            config.id = resolve(config.name);
+            config.qname = format(config.id);
+        }
+
+        @Override
+        public void resolve(
+            RouteConfig config)
+        {
+            config.id = resolve(config.exit);
+            config.qname = format(config.id);
         }
     }
 

@@ -20,14 +20,15 @@ import java.util.Map;
 
 /**
  * A config entry that names something resolved elsewhere in the same namespace (a vault, a guard, ...),
- * carrying only the name at config-load time. The engine resolves {@code name} to {@code id} once, by
- * the same generic walk regardless of which concrete kind of named config this is.
+ * carrying only the name at config-load time. The engine resolves {@code name} to {@code id}/{@code qname}
+ * once, by the same generic walk regardless of which concrete kind of named config this is.
  *
- * @see Config.Extensible#refs()
+ * @see Config#refs()
  */
-public abstract class NamedConfig extends Config.Extensible
+public abstract class NamedConfig extends Config.Extensible implements Config.Reference
 {
     public transient long id;
+    public transient String qname;
 
     public final String name;
 
@@ -43,5 +44,71 @@ public abstract class NamedConfig extends Config.Extensible
     {
         super(extensions);
         this.name = requireNonNull(name);
+    }
+
+    @Override
+    public long id()
+    {
+        return id;
+    }
+
+    @Override
+    public String qname()
+    {
+        return qname;
+    }
+
+    @Override
+    public void visit(
+        Config.Resolver resolver)
+    {
+        resolver.resolve(this);
+    }
+
+    /**
+     * A named config that also carries its own named extensions/refs (a vault, a store, an embedding, ...).
+     * Independent of {@link NamedConfig} (Java single inheritance won't let one extend the other while both
+     * also extend their respective {@link Config}/{@link Config.Extensible} base), but both implement
+     * {@link Config.Reference} so either kind can appear in the same {@link Config#refs()} list.
+     */
+    public abstract static class Extensible extends Config.Extensible implements Config.Reference
+    {
+        public transient long id;
+        public transient String qname;
+
+        public final String name;
+
+        protected Extensible(
+            String name)
+        {
+            this(name, null);
+        }
+
+        protected Extensible(
+            String name,
+            Map<String, Config> extensions)
+        {
+            super(extensions);
+            this.name = requireNonNull(name);
+        }
+
+        @Override
+        public long id()
+        {
+            return id;
+        }
+
+        @Override
+        public String qname()
+        {
+            return qname;
+        }
+
+        @Override
+        public void visit(
+            Config.Resolver resolver)
+        {
+            resolver.resolve(this);
+        }
     }
 }

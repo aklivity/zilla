@@ -23,9 +23,10 @@ import java.util.function.UnaryOperator;
 
 import io.aklivity.zilla.runtime.common.lang.util.function.LongObjectPredicate;
 
-public class RouteConfig extends Config
+public class RouteConfig extends Config implements Config.Reference
 {
     public transient long id;
+    public transient String qname;
     public transient LongObjectPredicate<UnaryOperator<String>> authorized;
     public transient ToLongFunction<String> resolveId;
 
@@ -52,5 +53,24 @@ public class RouteConfig extends Config
         this.when = requireNonNull(when);
         this.with = with;
         this.guarded = requireNonNull(guarded);
+    }
+
+    @Override
+    public long id()
+    {
+        return id;
+    }
+
+    @Override
+    public String qname()
+    {
+        return qname;
+    }
+
+    @Override
+    public void visit(
+        Config.Resolver resolver)
+    {
+        resolver.resolve(this);
     }
 }

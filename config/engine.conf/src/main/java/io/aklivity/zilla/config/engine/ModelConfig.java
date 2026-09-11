@@ -46,7 +46,7 @@ public abstract class ModelConfig extends Config.Extensible
         List<CatalogedConfig> cataloged,
         ValidateConfig validate,
         Map<String, Config> extensions,
-        List<NamedConfig> refs)
+        List<Config.Reference> refs)
     {
         super(extensions, withCataloged(cataloged, refs));
         this.model = model;
@@ -54,15 +54,15 @@ public abstract class ModelConfig extends Config.Extensible
         this.validate = validate != null ? validate : ValidateConfig.STRICT;
     }
 
-    // cataloged and each of its schemas' overlay are themselves NamedConfig, so folding them into refs
+    // cataloged and each of its schemas' overlay are themselves named references, so folding them into refs
     // lets the engine resolve every name this model carries -- cataloged, overlay, and whatever an
     // installed extension contributed -- with one generic walk, rather than a schema-specific walk plus
     // a separate generic one
-    private static List<NamedConfig> withCataloged(
+    private static List<Config.Reference> withCataloged(
         List<CatalogedConfig> cataloged,
-        List<NamedConfig> refs)
+        List<Config.Reference> refs)
     {
-        List<NamedConfig> all = new ArrayList<>();
+        List<Config.Reference> all = new ArrayList<>();
         if (cataloged != null)
         {
             all.addAll(cataloged);

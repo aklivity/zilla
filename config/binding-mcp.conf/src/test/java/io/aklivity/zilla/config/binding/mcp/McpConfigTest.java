@@ -24,7 +24,7 @@ import java.util.List;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.config.engine.NamedConfig;
+import io.aklivity.zilla.config.engine.Config;
 import io.aklivity.zilla.config.engine.VaultedConfig;
 
 public class McpConfigTest
@@ -141,17 +141,17 @@ public class McpConfigTest
 
     private static final class McpRefTestToolSearchIndexConfig extends McpToolSearchIndexConfig
     {
-        private final List<NamedConfig> refs;
+        private final List<Config.Reference> refs;
 
         McpRefTestToolSearchIndexConfig(
-            NamedConfig ref)
+            Config.Reference ref)
         {
             super("test");
             this.refs = List.of(ref);
         }
 
         @Override
-        public List<NamedConfig> refs()
+        public List<Config.Reference> refs()
         {
             return refs;
         }
@@ -159,17 +159,17 @@ public class McpConfigTest
 
     private static final class McpRefTestToolsEagerConfig extends McpToolsEagerConfig
     {
-        private final List<NamedConfig> refs;
+        private final List<Config.Reference> refs;
 
         McpRefTestToolsEagerConfig(
-            NamedConfig ref)
+            Config.Reference ref)
         {
             super("test");
             this.refs = List.of(ref);
         }
 
         @Override
-        public List<NamedConfig> refs()
+        public List<Config.Reference> refs()
         {
             return refs;
         }

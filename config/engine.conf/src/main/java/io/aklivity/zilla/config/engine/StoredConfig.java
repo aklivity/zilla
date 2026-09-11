@@ -17,7 +17,7 @@ package io.aklivity.zilla.config.engine;
 import java.util.Map;
 import java.util.function.Function;
 
-public final class StoredConfig extends NamedConfig
+public final class StoredConfig extends NamedConfig.Extensible
 {
     StoredConfig(
         String name,

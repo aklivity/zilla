@@ -20,7 +20,6 @@ import java.util.function.Function;
 
 import io.aklivity.zilla.config.engine.Config;
 import io.aklivity.zilla.config.engine.ModelConfig;
-import io.aklivity.zilla.config.engine.NamedConfig;
 
 public class KafkaTopicConfig extends Config
 {
@@ -30,7 +29,7 @@ public class KafkaTopicConfig extends Config
     public final ModelConfig key;
     public final ModelConfig value;
     public final KafkaTopicTransformsConfig transforms;
-    private final List<NamedConfig> refs;
+    private final List<Config.Reference> refs;
 
     public static KafkaTopicConfigBuilder<KafkaTopicConfig> builder()
     {
@@ -50,7 +49,7 @@ public class KafkaTopicConfig extends Config
         ModelConfig key,
         ModelConfig value,
         KafkaTopicTransformsConfig transforms,
-        List<NamedConfig> refs)
+        List<Config.Reference> refs)
     {
         this.name = name;
         this.defaultOffset = defaultOffset;
@@ -61,7 +60,7 @@ public class KafkaTopicConfig extends Config
         this.refs = refs;
     }
 
-    public List<NamedConfig> refs()
+    public List<Config.Reference> refs()
     {
         return refs;
     }

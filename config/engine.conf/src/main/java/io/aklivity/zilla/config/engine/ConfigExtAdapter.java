@@ -196,7 +196,7 @@ public final class ConfigExtAdapter<T extends Config.Extensible>
         B adapted = builder.ext(name, extension);
         if (extension instanceof Config.Extensible extensible)
         {
-            for (NamedConfig ref : extensible.refs())
+            for (Config.Reference ref : extensible.refs())
             {
                 adapted = adapted.ref(ref);
             }

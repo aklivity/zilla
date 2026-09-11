@@ -18,16 +18,13 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.function.ToLongFunction;
 
-public abstract class GuardConfig extends Config
+public abstract class GuardConfig extends NamedConfig
 {
-    public transient long id;
     public transient long storeId;
     public transient String qstore;
     public transient ToLongFunction<String> resolveId;
 
     public final String namespace;
-    public final String name;
-    public final String qname;
     public final String type;
     public final String kind;
     public final String store;
@@ -41,8 +38,8 @@ public abstract class GuardConfig extends Config
         String store,
         OptionsConfig options)
     {
+        super(name);
         this.namespace = requireNonNull(namespace);
-        this.name = requireNonNull(name);
         this.qname = String.format("%s:%s", namespace, name);
         this.type = requireNonNull(type);
         this.kind = kind;
