@@ -17,9 +17,9 @@ package io.aklivity.zilla.config.binding.echo;
 import java.util.List;
 import java.util.function.Function;
 
+import io.aklivity.zilla.config.engine.Config;
 import io.aklivity.zilla.config.engine.ConfigBuilder;
 import io.aklivity.zilla.config.engine.ModelConfig;
-import io.aklivity.zilla.config.engine.NamedConfig;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public final class EchoOptionsConfigBuilder<T> extends ConfigBuilder<T, EchoOptionsConfigBuilder<T>>
@@ -51,7 +51,7 @@ public final class EchoOptionsConfigBuilder<T> extends ConfigBuilder<T, EchoOpti
     @Override
     public T build()
     {
-        List<NamedConfig> refs = value != null ? value.refs() : List.of();
+        List<Config.Reference> refs = value != null ? value.refs() : List.of();
         return mapper.apply(new EchoOptionsConfig(value, refs));
     }
 }

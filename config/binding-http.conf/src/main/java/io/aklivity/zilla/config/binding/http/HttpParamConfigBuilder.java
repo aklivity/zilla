@@ -17,9 +17,9 @@ package io.aklivity.zilla.config.binding.http;
 import java.util.List;
 import java.util.function.Function;
 
+import io.aklivity.zilla.config.engine.Config;
 import io.aklivity.zilla.config.engine.ConfigBuilder;
 import io.aklivity.zilla.config.engine.ModelConfig;
-import io.aklivity.zilla.config.engine.NamedConfig;
 
 public class HttpParamConfigBuilder<T> extends ConfigBuilder<T, HttpParamConfigBuilder<T>>
 {
@@ -64,7 +64,7 @@ public class HttpParamConfigBuilder<T> extends ConfigBuilder<T, HttpParamConfigB
     @Override
     public T build()
     {
-        List<NamedConfig> refs = model != null ? model.refs() : List.of();
+        List<Config.Reference> refs = model != null ? model.refs() : List.of();
         return mapper.apply(new HttpParamConfig(name, model, refs));
     }
 }

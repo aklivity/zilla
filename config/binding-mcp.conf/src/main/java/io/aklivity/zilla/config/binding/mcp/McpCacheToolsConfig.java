@@ -21,7 +21,6 @@ import java.util.List;
 import java.util.function.Function;
 
 import io.aklivity.zilla.config.engine.Config;
-import io.aklivity.zilla.config.engine.NamedConfig;
 
 public final class McpCacheToolsConfig extends Config.Extensible
 {
@@ -39,11 +38,11 @@ public final class McpCacheToolsConfig extends Config.Extensible
 
     // search and eager may each contribute their own named references; folding both in here lets
     // McpCacheConfig discover every name under tools generically via tools.refs()
-    private static List<NamedConfig> withSearchAndEager(
+    private static List<Config.Reference> withSearchAndEager(
         McpCacheToolsSearchConfig search,
         List<McpToolsEagerConfig> eager)
     {
-        List<NamedConfig> all = new ArrayList<>();
+        List<Config.Reference> all = new ArrayList<>();
         if (search != null)
         {
             all.addAll(search.refs());

@@ -27,7 +27,6 @@ public class GuardedConfig extends NamedConfig
 {
     public transient LongFunction<String> identity;
     public transient LongObjectBiFunction<String, String> attributes;
-    public transient String qname;
 
     public final List<String> roles;
 

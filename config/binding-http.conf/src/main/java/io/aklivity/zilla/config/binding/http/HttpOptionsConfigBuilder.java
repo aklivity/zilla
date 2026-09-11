@@ -23,8 +23,8 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.function.Function;
 
+import io.aklivity.zilla.config.engine.Config;
 import io.aklivity.zilla.config.engine.ConfigBuilder;
-import io.aklivity.zilla.config.engine.NamedConfig;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public final class HttpOptionsConfigBuilder<T> extends ConfigBuilder<T, HttpOptionsConfigBuilder<T>>
@@ -127,7 +127,7 @@ public final class HttpOptionsConfigBuilder<T> extends ConfigBuilder<T, HttpOpti
     @Override
     public T build()
     {
-        List<NamedConfig> refs = new ArrayList<>();
+        List<Config.Reference> refs = new ArrayList<>();
         if (requests != null)
         {
             for (HttpRequestConfig request : requests)

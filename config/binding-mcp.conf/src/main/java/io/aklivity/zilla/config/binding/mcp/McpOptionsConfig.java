@@ -17,8 +17,8 @@ package io.aklivity.zilla.config.binding.mcp;
 import java.util.List;
 import java.util.function.Function;
 
+import io.aklivity.zilla.config.engine.Config;
 import io.aklivity.zilla.config.engine.ModelConfig;
-import io.aklivity.zilla.config.engine.NamedConfig;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public final class McpOptionsConfig extends OptionsConfig
@@ -35,7 +35,7 @@ public final class McpOptionsConfig extends OptionsConfig
         McpCacheConfig cache,
         String server,
         ModelConfig tools,
-        List<NamedConfig> refs)
+        List<Config.Reference> refs)
     {
         super(null, refs);
         this.elicitation = elicitation;

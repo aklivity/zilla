@@ -132,7 +132,7 @@ public final class McpSchemaRegistryCompositeGenerator
                 mcpOpenapi.route()
                     .when(McpOpenapiConditionConfig.builder().tool(tool).build())
                     .with(McpOpenapiWithConfig.builder().spec(SUBJECT_NAME).operation(tool).build())
-                    .inject(route -> injectGuarded(route, binding, guarded))
+                    .inject(route -> injectGuarded(route, guarded))
                     .build();
             }
         }
@@ -158,12 +158,11 @@ public final class McpSchemaRegistryCompositeGenerator
 
     private <C> McpOpenapiRouteConfigBuilder<C> injectGuarded(
         McpOpenapiRouteConfigBuilder<C> route,
-        McpSchemaRegistryBindingConfig binding,
         List<GuardedConfig> guarded)
     {
         for (GuardedConfig guard : guarded)
         {
-            String qname = binding.supplyQName.apply(binding.resolveId.applyAsLong(guard.name));
+            String qname = guard.qname();
             route.guarded()
                 .name(qname)
                 .inject(g -> injectRoles(g, guard.roles))

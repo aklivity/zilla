@@ -20,7 +20,6 @@ import java.util.List;
 
 import io.aklivity.zilla.config.engine.Config;
 import io.aklivity.zilla.config.engine.ModelConfig;
-import io.aklivity.zilla.config.engine.NamedConfig;
 
 public class HttpResponseConfig extends Config
 {
@@ -28,14 +27,14 @@ public class HttpResponseConfig extends Config
     public final List<String> contentType;
     public final List<HttpParamConfig> headers;
     public final ModelConfig content;
-    private final List<NamedConfig> refs;
+    private final List<Config.Reference> refs;
 
     HttpResponseConfig(
         List<String> status,
         List<String> contentType,
         List<HttpParamConfig> headers,
         ModelConfig content,
-        List<NamedConfig> refs)
+        List<Config.Reference> refs)
     {
         this.status = status;
         this.contentType = contentType;
@@ -44,7 +43,7 @@ public class HttpResponseConfig extends Config
         this.refs = refs;
     }
 
-    public List<NamedConfig> refs()
+    public List<Config.Reference> refs()
     {
         return refs;
     }

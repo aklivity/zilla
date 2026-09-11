@@ -17,7 +17,7 @@ package io.aklivity.zilla.config.binding.mqtt;
 import java.util.List;
 import java.util.function.Function;
 
-import io.aklivity.zilla.config.engine.NamedConfig;
+import io.aklivity.zilla.config.engine.Config;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public class MqttOptionsConfig extends OptionsConfig
@@ -45,7 +45,7 @@ public class MqttOptionsConfig extends OptionsConfig
         List<MqttVersion> versions,
         String store,
         String server,
-        List<NamedConfig> refs)
+        List<Config.Reference> refs)
     {
         super(null, refs);
         this.authorization = authorization;

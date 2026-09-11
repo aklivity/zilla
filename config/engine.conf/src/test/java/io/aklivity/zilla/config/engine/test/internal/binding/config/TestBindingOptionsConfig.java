@@ -19,8 +19,8 @@ import java.util.List;
 import java.util.function.Function;
 
 import io.aklivity.zilla.config.engine.CatalogedConfig;
+import io.aklivity.zilla.config.engine.Config;
 import io.aklivity.zilla.config.engine.ModelConfig;
-import io.aklivity.zilla.config.engine.NamedConfig;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public final class TestBindingOptionsConfig extends OptionsConfig
@@ -66,7 +66,7 @@ public final class TestBindingOptionsConfig extends OptionsConfig
         String embedding,
         List<EnvelopeValue> envelope,
         List<EnvelopeAssertion> envelopeAssertions,
-        List<NamedConfig> refs)
+        List<Config.Reference> refs)
     {
         super(null, refs);
         this.value = value;
