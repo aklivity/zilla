@@ -82,4 +82,14 @@ public class LlmOptionsConfigTest
 
         assertThat(server.toString(), equalTo("localhost:11434"));
     }
+
+    @Test
+    public void shouldInjectServerBuilder()
+    {
+        LlmServerConfigBuilder<LlmServerConfig> builder = LlmServerConfig.builder();
+
+        LlmServerConfigBuilder<LlmServerConfig> injected = builder.inject(identity -> identity);
+
+        assertThat(injected, sameInstance(builder));
+    }
 }
