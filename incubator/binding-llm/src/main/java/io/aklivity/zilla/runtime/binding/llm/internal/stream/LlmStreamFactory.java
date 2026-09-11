@@ -12,8 +12,16 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-open module io.aklivity.zilla.specs.binding.llm
+package io.aklivity.zilla.runtime.binding.llm.internal.stream;
+
+import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+
+public interface LlmStreamFactory extends BindingHandler
 {
-    requires transitive io.aklivity.zilla.specs.engine;
-    requires transitive io.aklivity.zilla.specs.binding.http;
+    void attach(
+        BindingConfig binding);
+
+    void detach(
+        long bindingId);
 }

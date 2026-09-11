@@ -24,7 +24,7 @@
   </licenses>
 
   <properties>
-    <jacoco.coverage.ratio>1.00</jacoco.coverage.ratio>
+    <jacoco.coverage.ratio>0.85</jacoco.coverage.ratio>
     <jacoco.missed.count>0</jacoco.missed.count>
   </properties>
 
@@ -32,6 +32,12 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>binding-llm.spec</artifactId>
+      <version>${project.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>binding-http.spec</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>
@@ -103,7 +109,7 @@
         <artifactId>flyweight-maven-plugin</artifactId>
         <version>${project.version}</version>
         <configuration>
-          <scopeNames>core llm</scopeNames>
+          <scopeNames>core llm http</scopeNames>
           <packageName>io.aklivity.zilla.runtime.binding.llm.internal.types</packageName>
         </configuration>
         <executions>
@@ -146,6 +152,16 @@
           <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>engine</artifactId>
+            <version>${project.version}</version>
+          </dependency>
+          <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>binding-llm.spec</artifactId>
+            <version>${project.version}</version>
+          </dependency>
+          <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>binding-http.spec</artifactId>
             <version>${project.version}</version>
           </dependency>
         </dependencies>

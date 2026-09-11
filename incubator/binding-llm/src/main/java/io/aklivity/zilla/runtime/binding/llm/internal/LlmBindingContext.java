@@ -14,42 +14,61 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.internal;
 
+import static io.aklivity.zilla.config.engine.KindConfig.SERVER;
+
 import java.util.EnumMap;
 import java.util.Map;
 
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.config.engine.KindConfig;
+import io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmServerFactory;
+import io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmStreamFactory;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 
 final class LlmBindingContext implements BindingContext
 {
-    private final Map<KindConfig, BindingHandler> handlers;
+    private final Map<KindConfig, LlmStreamFactory> factories;
 
     LlmBindingContext(
         LlmConfiguration config,
         EngineContext context)
     {
-        this.handlers = new EnumMap<>(KindConfig.class);
+        final Map<KindConfig, LlmStreamFactory> factories = new EnumMap<>(KindConfig.class);
+        factories.put(SERVER, new LlmServerFactory(config, context));
+        this.factories = factories;
     }
 
     @Override
     public BindingHandler attach(
         BindingConfig binding)
     {
-        return handlers.get(binding.kind);
+        final LlmStreamFactory factory = factories.get(binding.kind);
+
+        if (factory != null)
+        {
+            factory.attach(binding);
+        }
+
+        return factory;
     }
 
     @Override
     public void detach(
         BindingConfig binding)
     {
+        final LlmStreamFactory factory = factories.get(binding.kind);
+
+        if (factory != null)
+        {
+            factory.detach(binding.id);
+        }
     }
 
     @Override
     public String toString()
     {
-        return String.format("%s %s", getClass().getSimpleName(), handlers);
+        return String.format("%s %s", getClass().getSimpleName(), factories);
     }
 }

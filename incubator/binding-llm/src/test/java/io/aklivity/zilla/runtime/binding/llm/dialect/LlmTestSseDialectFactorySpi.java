@@ -12,8 +12,19 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-open module io.aklivity.zilla.specs.binding.llm
+package io.aklivity.zilla.runtime.binding.llm.dialect;
+
+public final class LlmTestSseDialectFactorySpi implements LlmDialectFactorySpi
 {
-    requires transitive io.aklivity.zilla.specs.engine;
-    requires transitive io.aklivity.zilla.specs.binding.http;
+    @Override
+    public String name()
+    {
+        return "test-sse";
+    }
+
+    @Override
+    public LlmDialect create()
+    {
+        return new LlmTestSseDialect();
+    }
 }
