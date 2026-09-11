@@ -12,37 +12,31 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.config.binding.llm.internal;
+package io.aklivity.zilla.config.binding.llm;
 
-import java.net.URL;
+import java.util.function.Function;
 
-import jakarta.json.JsonObject;
-
-import io.aklivity.zilla.config.engine.BindingInfo;
-import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfig;
-import io.aklivity.zilla.runtime.common.feature.Incubating;
 
-@Incubating
-public final class LlmBindingInfo implements BindingInfo
+public final class LlmOptionsConfig extends OptionsConfig
 {
-    public static final String TYPE = "llm";
+    public final String dialect;
 
-    @Override
-    public String type()
+    public static LlmOptionsConfigBuilder<LlmOptionsConfig> builder()
     {
-        return TYPE;
+        return new LlmOptionsConfigBuilder<>(LlmOptionsConfig.class::cast);
     }
 
-    @Override
-    public URL schema()
+    public static <T> LlmOptionsConfigBuilder<T> builder(
+        Function<OptionsConfig, T> mapper)
     {
-        return getClass().getResource("schema/llm.schema.patch.json");
+        return new LlmOptionsConfigBuilder<>(mapper);
     }
 
-    @Override
-    public ConfigAdapter<OptionsConfig, JsonObject> options()
+    LlmOptionsConfig(
+        String dialect)
     {
-        return new LlmOptionsConfigAdapter();
+        super(null, null);
+        this.dialect = dialect;
     }
 }

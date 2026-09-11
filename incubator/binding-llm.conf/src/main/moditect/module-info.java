@@ -17,6 +17,8 @@ module io.aklivity.zilla.config.binding.llm
     requires io.aklivity.zilla.config.engine;
     requires io.aklivity.zilla.runtime.common.feature;
 
+    exports io.aklivity.zilla.config.binding.llm;
+
     provides io.aklivity.zilla.config.engine.BindingInfo
         with io.aklivity.zilla.config.binding.llm.internal.LlmBindingInfo;
 }
