@@ -14,6 +14,9 @@
  */
 package io.aklivity.zilla.config.binding.llm.internal;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
@@ -26,6 +29,9 @@ import io.aklivity.zilla.config.engine.OptionsConfig;
 public final class LlmOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, JsonObject>
 {
     private static final String DIALECT_NAME = "dialect";
+    private static final String SERVER_NAME = "server";
+
+    private static final Pattern SERVER_PATTERN = Pattern.compile("([^\\:]+):(\\d+)");
 
     @Override
     public JsonObject adaptToJson(
@@ -40,6 +46,11 @@ public final class LlmOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, 
             object.add(DIALECT_NAME, llmOptions.dialect);
         }
 
+        if (llmOptions.server != null)
+        {
+            object.add(SERVER_NAME, String.format("%s:%d", llmOptions.server.host, llmOptions.server.port));
+        }
+
         return object.build();
     }
 
@@ -52,6 +63,18 @@ public final class LlmOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, 
         if (object.containsKey(DIALECT_NAME))
         {
             llmOptions.dialect(object.getString(DIALECT_NAME));
+        }
+
+        if (object.containsKey(SERVER_NAME))
+        {
+            Matcher matcher = SERVER_PATTERN.matcher(object.getString(SERVER_NAME));
+            if (matcher.matches())
+            {
+                llmOptions.server()
+                    .host(matcher.group(1))
+                    .port(Integer.parseInt(matcher.group(2)))
+                    .build();
+            }
         }
 
         return llmOptions.build();
