@@ -119,4 +119,77 @@ public class LlmOptionsConfigAdapterTest
         assertThat(text, not(nullValue()));
         assertThat(text, equalTo("{\"server\":\"localhost:11434\"}"));
     }
+
+    @Test
+    public void shouldReadOptionsWithoutServer()
+    {
+        String text =
+                "{" +
+                    "\"dialect\": \"openai\"" +
+                "}";
+
+        LlmOptionsConfig options = jsonb.fromJson(text, LlmOptionsConfig.class);
+
+        assertThat(options, not(nullValue()));
+        assertThat(options.server, nullValue());
+    }
+
+    @Test
+    public void shouldWriteOptionsWithoutServer()
+    {
+        LlmOptionsConfig options = LlmOptionsConfig.builder()
+            .dialect("openai")
+            .build();
+
+        String text = jsonb.toJson(options);
+
+        assertThat(text, equalTo("{\"dialect\":\"openai\"}"));
+    }
+
+    @Test
+    public void shouldReadDialectAndServerOptions()
+    {
+        String text =
+                "{" +
+                    "\"dialect\": \"openai\"," +
+                    "\"server\": \"example.com:8080\"" +
+                "}";
+
+        LlmOptionsConfig options = jsonb.fromJson(text, LlmOptionsConfig.class);
+
+        assertThat(options, not(nullValue()));
+        assertThat(options.dialect, equalTo("openai"));
+        assertThat(options.server.host, equalTo("example.com"));
+        assertThat(options.server.port, equalTo(8080));
+    }
+
+    @Test
+    public void shouldWriteDialectAndServerOptions()
+    {
+        LlmOptionsConfig options = LlmOptionsConfig.builder()
+            .dialect("openai")
+            .server()
+                .host("example.com")
+                .port(8080)
+                .build()
+            .build();
+
+        String text = jsonb.toJson(options);
+
+        assertThat(text, equalTo("{\"dialect\":\"openai\",\"server\":\"example.com:8080\"}"));
+    }
+
+    @Test
+    public void shouldReadMalformedServerOptionAsAbsent()
+    {
+        String text =
+                "{" +
+                    "\"server\": \"not-a-host-and-port\"" +
+                "}";
+
+        LlmOptionsConfig options = jsonb.fromJson(text, LlmOptionsConfig.class);
+
+        assertThat(options, not(nullValue()));
+        assertThat(options.server, nullValue());
+    }
 }
