@@ -23,6 +23,10 @@ import io.aklivity.zilla.runtime.common.json.JsonTransform;
 
 public final class LlmTestDialect implements LlmDialect
 {
+    private static final String STREAM_FIELD = "stream";
+    private static final String CONTENT_TYPE_JSON = "application/test+json";
+    private static final String CONTENT_TYPE_SSE = "text/test-event-stream";
+
     @Override
     public String name()
     {
@@ -38,9 +42,18 @@ public final class LlmTestDialect implements LlmDialect
     }
 
     @Override
-    public String contentType()
+    public String contentType(
+        Kind kind,
+        HttpHeaders headers,
+        HttpRequestBody body)
     {
-        return "application/test+json";
+        return kind == Kind.RESPONSE && streaming(body) ? CONTENT_TYPE_SSE : CONTENT_TYPE_JSON;
+    }
+
+    private static boolean streaming(
+        HttpRequestBody body)
+    {
+        return body != null && "true".equals(body.value(STREAM_FIELD));
     }
 
     @Override
