@@ -75,4 +75,14 @@ public class LlmServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.request/client",
+        "${app}/openai.request/server"})
+    public void shouldDetectOpenAiDialectFromPath() throws Exception
+    {
+        k3po.finish();
+    }
 }
