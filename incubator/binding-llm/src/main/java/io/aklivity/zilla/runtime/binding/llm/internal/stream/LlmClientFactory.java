@@ -23,6 +23,7 @@ import org.agrona.collections.Long2ObjectHashMap;
 
 import io.aklivity.zilla.config.binding.llm.LlmServerConfig;
 import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.runtime.binding.llm.dialect.HttpRequestBody;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialect;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialect.Kind;
 import io.aklivity.zilla.runtime.binding.llm.internal.LlmConfiguration;
@@ -199,7 +200,6 @@ public final class LlmClientFactory implements LlmStreamFactory
                 final long streamAffinity = begin.affinity();
                 final boolean sameDialect = target == source;
                 final LlmContentEncoder encoder = encoders.create(target.contentType(Kind.REQUEST, null, null));
-                final LlmContentDecoder decoder = decoders.create(target.contentType(Kind.RESPONSE, null, null));
 
                 newStream = new LlmClient(
                     sender,
@@ -213,8 +213,7 @@ public final class LlmClientFactory implements LlmStreamFactory
                     source,
                     target,
                     sameDialect,
-                    encoder,
-                    decoder)::onAppMessage;
+                    encoder)::onAppMessage;
             }
         }
 
@@ -249,6 +248,9 @@ public final class LlmClientFactory implements LlmStreamFactory
 
         private int state;
 
+        private int bodySlot = NO_SLOT;
+        private int bodySlotOffset;
+
         private LlmClient(
             MessageConsumer app,
             long originId,
@@ -261,8 +263,7 @@ public final class LlmClientFactory implements LlmStreamFactory
             LlmDialect source,
             LlmDialect target,
             boolean sameDialect,
-            LlmContentEncoder encoder,
-            LlmContentDecoder decoder)
+            LlmContentEncoder encoder)
         {
             this.app = app;
             this.originId = originId;
@@ -283,7 +284,7 @@ public final class LlmClientFactory implements LlmStreamFactory
                 .transform(target.supplyDecoder(Kind.RESPONSE))
                 .transform(source.supplyEncoder(Kind.RESPONSE))
                 .into(JsonEx.createGenerator());
-            this.delegate = new LlmHttpClient(this, routedId, resolvedId, server, decoder);
+            this.delegate = new LlmHttpClient(this, routedId, resolvedId, server);
         }
 
         private int replyWindow()
@@ -403,6 +404,8 @@ public final class LlmClientFactory implements LlmStreamFactory
                 contentLength = result.produced();
             }
 
+            captureBody(content, contentOffset, contentLength);
+
             if (encoder != null)
             {
                 final int encoded = encoder.encodeData(
@@ -432,6 +435,50 @@ public final class LlmClientFactory implements LlmStreamFactory
             }
         }
 
+        private void captureBody(
+            DirectBufferEx buffer,
+            int offset,
+            int length)
+        {
+            if (length > 0)
+            {
+                if (bodySlot == NO_SLOT)
+                {
+                    bodySlot = decodePool.acquire(initialId);
+                }
+
+                if (bodySlot != NO_SLOT)
+                {
+                    final int capturable = Math.min(length, decodeMax - bodySlotOffset);
+                    if (capturable > 0)
+                    {
+                        final MutableDirectBufferEx slotBuffer = decodePool.buffer(bodySlot);
+                        slotBuffer.putBytes(bodySlotOffset, buffer, offset, capturable);
+                        bodySlotOffset += capturable;
+                    }
+                }
+            }
+        }
+
+        private LlmContentDecoder resolveDecoder()
+        {
+            final HttpRequestBody body = bodySlot != NO_SLOT
+                ? new LlmJsonRequestBody(decodePool.buffer(bodySlot), 0, bodySlotOffset)
+                : null;
+
+            return decoders.create(target.contentType(Kind.RESPONSE, null, body));
+        }
+
+        private void cleanupBodySlot()
+        {
+            if (bodySlot != NO_SLOT)
+            {
+                decodePool.release(bodySlot);
+                bodySlot = NO_SLOT;
+                bodySlotOffset = 0;
+            }
+        }
+
         private void onAppEnd(
             EndFW end)
         {
@@ -441,6 +488,9 @@ public final class LlmClientFactory implements LlmStreamFactory
             state = LlmState.closingInitial(state);
             state = LlmState.closedInitial(state);
 
+            delegate.decoder = resolveDecoder();
+            cleanupBodySlot();
+
             delegate.doNetEnd(traceId, authorization);
         }
 
@@ -449,6 +499,8 @@ public final class LlmClientFactory implements LlmStreamFactory
         {
             final long traceId = abort.traceId();
             final long authorization = abort.authorization();
+
+            cleanupBodySlot();
 
             delegate.doNetAbort(traceId, authorization);
         }
@@ -597,7 +649,8 @@ public final class LlmClientFactory implements LlmStreamFactory
         private final long initialId;
         private final long replyId;
         private final String authority;
-        private final LlmContentDecoder decoder;
+
+        private LlmContentDecoder decoder;
 
         private long initialSeq;
         private long initialAck;
@@ -621,8 +674,7 @@ public final class LlmClientFactory implements LlmStreamFactory
             LlmClient client,
             long originId,
             long routedId,
-            LlmServerConfig server,
-            LlmContentDecoder decoder)
+            LlmServerConfig server)
         {
             this.client = client;
             this.originId = originId;
@@ -630,7 +682,6 @@ public final class LlmClientFactory implements LlmStreamFactory
             this.initialId = supplyInitialId.applyAsLong(routedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.authority = server.host + ":" + server.port;
-            this.decoder = decoder;
         }
 
         private int initialWindow()
