@@ -32,5 +32,6 @@ module io.aklivity.zilla.runtime.binding.llm
              io.aklivity.zilla.runtime.binding.llm.internal.decode.LlmSseContentDecoderFactorySpi;
 
     provides io.aklivity.zilla.runtime.binding.llm.internal.encode.LlmContentEncoderSpi
-        with io.aklivity.zilla.runtime.binding.llm.internal.encode.LlmSseContentEncoderFactorySpi;
+        with io.aklivity.zilla.runtime.binding.llm.internal.encode.LlmJsonContentEncoderFactorySpi,
+             io.aklivity.zilla.runtime.binding.llm.internal.encode.LlmSseContentEncoderFactorySpi;
 }
