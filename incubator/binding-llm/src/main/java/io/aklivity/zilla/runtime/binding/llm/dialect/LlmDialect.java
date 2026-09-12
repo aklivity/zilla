@@ -57,12 +57,27 @@ public interface LlmDialect
         HttpHeaders headers);
 
     /**
-     * Returns the content-type of this dialect's native wire format, e.g. to select a matching content
-     * decoder.
+     * Returns the content-type of this dialect's native wire format for the given direction of one
+     * exchange, e.g. to select a matching content decoder or encoder.
+     * <p>
+     * Resolved per request rather than fixed once for the dialect instance, since a dialect's native format
+     * can depend on the request itself -- e.g. a streaming-capable API whose request body carries a flag
+     * selecting streaming (event-stream framing) versus non-streaming (a single JSON document) delivery for
+     * its response, while the request body's own content-type stays constant regardless of that flag.
+     * {@code headers} and {@code body} are the same request signals {@link #detect(String, HttpHeaders)}
+     * and {@link HttpRequestBody} expose elsewhere; either may be {@code null} when unavailable to the
+     * caller, and implementations that need no request context to decide simply ignore them.
+     * </p>
      *
+     * @param kind     the request or response direction
+     * @param headers  the request headers, or {@code null} if unavailable
+     * @param body     the request body, or {@code null} if unavailable
      * @return the content-type
      */
-    String contentType();
+    String contentType(
+        Kind kind,
+        HttpHeaders headers,
+        HttpRequestBody body);
 
     /**
      * Creates a new {@link JsonTransform} decoding one stream's native {@code kind} payload into this

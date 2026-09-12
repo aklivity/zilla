@@ -61,7 +61,44 @@ public class LlmDialectFactorySpiTest
 
         assertThat(dialect, not(nullValue()));
         assertThat(dialect.name(), equalTo("test"));
-        assertThat(dialect.contentType(), equalTo("application/test+json"));
+    }
+
+    @Test
+    public void shouldResolveJsonContentTypeForRequestRegardlessOfStreamFlag()
+    {
+        LlmDialect dialect = factoriesByName.get("test").create();
+        HttpRequestBody body = mock(HttpRequestBody.class);
+        when(body.value("stream")).thenReturn("true");
+
+        assertThat(dialect.contentType(LlmDialect.Kind.REQUEST, null, body), equalTo("application/test+json"));
+    }
+
+    @Test
+    public void shouldResolveJsonContentTypeForNonStreamingResponse()
+    {
+        LlmDialect dialect = factoriesByName.get("test").create();
+        HttpRequestBody body = mock(HttpRequestBody.class);
+        when(body.value("stream")).thenReturn("false");
+
+        assertThat(dialect.contentType(LlmDialect.Kind.RESPONSE, null, body), equalTo("application/test+json"));
+    }
+
+    @Test
+    public void shouldResolveSseContentTypeForStreamingResponse()
+    {
+        LlmDialect dialect = factoriesByName.get("test").create();
+        HttpRequestBody body = mock(HttpRequestBody.class);
+        when(body.value("stream")).thenReturn("true");
+
+        assertThat(dialect.contentType(LlmDialect.Kind.RESPONSE, null, body), equalTo("text/test-event-stream"));
+    }
+
+    @Test
+    public void shouldResolveJsonContentTypeForResponseWhenBodyAbsent()
+    {
+        LlmDialect dialect = factoriesByName.get("test").create();
+
+        assertThat(dialect.contentType(LlmDialect.Kind.RESPONSE, null, null), equalTo("application/test+json"));
     }
 
     @Test
