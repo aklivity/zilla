@@ -85,4 +85,24 @@ public class LlmClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.conditional.yaml")
+    @Specification({
+        "${app}/client.conditional.streaming/client",
+        "${net}/client.conditional.streaming/server"})
+    public void shouldSelectStreamingDecoderFromRequestBody() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.conditional.yaml")
+    @Specification({
+        "${app}/client.conditional.nonstreaming/client",
+        "${net}/client.conditional.nonstreaming/server"})
+    public void shouldSelectNonstreamingDecoderFromRequestBody() throws Exception
+    {
+        k3po.finish();
+    }
 }
