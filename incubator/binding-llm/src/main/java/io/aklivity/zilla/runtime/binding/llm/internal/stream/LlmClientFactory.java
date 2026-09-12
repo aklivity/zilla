@@ -24,6 +24,7 @@ import org.agrona.collections.Long2ObjectHashMap;
 import io.aklivity.zilla.config.binding.llm.LlmServerConfig;
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialect;
+import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialect.Kind;
 import io.aklivity.zilla.runtime.binding.llm.internal.LlmConfiguration;
 import io.aklivity.zilla.runtime.binding.llm.internal.config.LlmBindingConfig;
 import io.aklivity.zilla.runtime.binding.llm.internal.config.LlmRouteConfig;
@@ -197,8 +198,8 @@ public final class LlmClientFactory implements LlmStreamFactory
                 final long initialId = begin.streamId();
                 final long streamAffinity = begin.affinity();
                 final boolean sameDialect = target == source;
-                final LlmContentEncoder encoder = encoders.create(target.contentType());
-                final LlmContentDecoder decoder = decoders.create(target.contentType());
+                final LlmContentEncoder encoder = encoders.create(target.contentType(Kind.REQUEST, null, null));
+                final LlmContentDecoder decoder = decoders.create(target.contentType(Kind.RESPONSE, null, null));
 
                 newStream = new LlmClient(
                     sender,
@@ -275,12 +276,12 @@ public final class LlmClientFactory implements LlmStreamFactory
             this.sameDialect = sameDialect;
             this.encoder = encoder;
             this.requestPipeline = sameDialect ? null : JsonEx.stream(JsonEx.createParser())
-                .transform(source.supplyDecoder(LlmDialect.Kind.REQUEST))
-                .transform(target.supplyEncoder(LlmDialect.Kind.REQUEST))
+                .transform(source.supplyDecoder(Kind.REQUEST))
+                .transform(target.supplyEncoder(Kind.REQUEST))
                 .into(JsonEx.createGenerator());
             this.responsePipeline = sameDialect ? null : JsonEx.stream(JsonEx.createParser())
-                .transform(target.supplyDecoder(LlmDialect.Kind.RESPONSE))
-                .transform(source.supplyEncoder(LlmDialect.Kind.RESPONSE))
+                .transform(target.supplyDecoder(Kind.RESPONSE))
+                .transform(source.supplyEncoder(Kind.RESPONSE))
                 .into(JsonEx.createGenerator());
             this.delegate = new LlmHttpClient(this, routedId, resolvedId, server, decoder);
         }
