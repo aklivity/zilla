@@ -143,4 +143,31 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/openai.request/client",
+        "${net}/openai.request/server"})
+    public void shouldEncodeOpenaiRequest() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.streaming/client",
+        "${net}/openai.streaming/server"})
+    public void shouldEncodeOpenaiStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.nonstreaming/client",
+        "${net}/openai.nonstreaming/server"})
+    public void shouldEncodeOpenaiNonstreaming() throws Exception
+    {
+        k3po.finish();
+    }
 }
