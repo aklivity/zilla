@@ -43,7 +43,10 @@ public final class LlmTestSseDialect implements LlmDialect
     }
 
     @Override
-    public String contentType()
+    public String contentType(
+        Kind kind,
+        HttpHeaders headers,
+        HttpRequestBody body)
     {
         return "text/event-stream";
     }

@@ -44,7 +44,10 @@ public final class LlmTestJsonDialect implements LlmDialect
     }
 
     @Override
-    public String contentType()
+    public String contentType(
+        Kind kind,
+        HttpHeaders headers,
+        HttpRequestBody body)
     {
         return "application/json";
     }

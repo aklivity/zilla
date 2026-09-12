@@ -24,6 +24,7 @@ import org.agrona.collections.Long2ObjectHashMap;
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.runtime.binding.llm.dialect.HttpHeaders;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialect;
+import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialect.Kind;
 import io.aklivity.zilla.runtime.binding.llm.internal.LlmConfiguration;
 import io.aklivity.zilla.runtime.binding.llm.internal.config.LlmBindingConfig;
 import io.aklivity.zilla.runtime.binding.llm.internal.config.LlmRouteConfig;
@@ -180,7 +181,8 @@ public final class LlmServerFactory implements LlmStreamFactory
                 final long originId = begin.originId();
                 final long initialId = begin.streamId();
                 final long streamAffinity = begin.affinity();
-                final LlmContentDecoder decoder = decoders.create(dialect.contentType());
+                final String contentType = dialect.contentType(Kind.REQUEST, httpHeadersRO, null);
+                final LlmContentDecoder decoder = decoders.create(contentType);
 
                 newStream = new LlmServer(
                     sender,
