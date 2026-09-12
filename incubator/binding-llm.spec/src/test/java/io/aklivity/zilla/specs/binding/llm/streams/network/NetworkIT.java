@@ -53,4 +53,13 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/json.fragmented/client",
+        "${net}/json.fragmented/server"})
+    public void shouldForwardJsonFragmentedWithSingleTerminalFlush() throws Exception
+    {
+        k3po.finish();
+    }
 }

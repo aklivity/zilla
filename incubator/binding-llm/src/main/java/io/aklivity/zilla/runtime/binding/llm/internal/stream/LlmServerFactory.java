@@ -450,6 +450,12 @@ public final class LlmServerFactory implements LlmStreamFactory
             {
                 stream.doAppFlush(traceId, authorization, null, emptyRO.buffer(), 0, 0);
             }
+            else
+            {
+                decodeTraceId = traceId;
+                decodeAuthorization = authorization;
+                decoder.decode(emptyRO.buffer(), 0, 0, this);
+            }
 
             cleanupDecodeSlot();
 

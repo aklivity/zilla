@@ -64,15 +64,13 @@ public class LlmJsonContentDecoderTest
     }
 
     @Test
-    public void shouldDecodeEntireBufferAsSingleEvent()
+    public void shouldForwardNonEmptyRangeAsDataWithoutFlushing()
     {
         int progress = decode("{\"id\":\"1\",\"choices\":[{\"message\":{\"content\":\"hi\"}}]}");
 
         assertThat(progress, equalTo(byteLength("{\"id\":\"1\",\"choices\":[{\"message\":{\"content\":\"hi\"}}]}")));
-        assertThat(flushes.size(), equalTo(1));
-        assertThat(flushes.get(0).event, nullValue());
-        assertThat(flushes.get(0).id, equalTo(""));
-        assertThat(flushes.get(0).data, equalTo("{\"id\":\"1\",\"choices\":[{\"message\":{\"content\":\"hi\"}}]}"));
+        assertThat(flushes.size(), equalTo(0));
+        assertThat(data.toString(), equalTo("{\"id\":\"1\",\"choices\":[{\"message\":{\"content\":\"hi\"}}]}"));
     }
 
     @Test
@@ -84,23 +82,27 @@ public class LlmJsonContentDecoderTest
     }
 
     @Test
-    public void shouldDispatchEmptyBodyAsEmptyEvent()
+    public void shouldReportTerminalFlushOnlyForEmptyRange()
     {
-        decode("");
+        decode("{}");
+        int progress = decode("");
 
+        assertThat(progress, equalTo(0));
         assertThat(flushes.size(), equalTo(1));
-        assertThat(flushes.get(0).data, equalTo(""));
+        assertThat(flushes.get(0).event, nullValue());
+        assertThat(flushes.get(0).id, equalTo(""));
+        assertThat(flushes.get(0).data, equalTo("{}"));
     }
 
     @Test
-    public void shouldDispatchSeparateEventPerDecodeCall()
+    public void shouldForwardDataAcrossFragmentsWithOnlyOneTerminalFlush()
     {
-        decode("{\"a\":1}");
-        decode("{\"b\":2}");
+        decode("{\"a\":1,");
+        decode("\"b\":2}");
+        decode("");
 
-        assertThat(flushes.size(), equalTo(2));
-        assertThat(flushes.get(0).data, equalTo("{\"a\":1}"));
-        assertThat(flushes.get(1).data, equalTo("{\"b\":2}"));
+        assertThat(flushes.size(), equalTo(1));
+        assertThat(flushes.get(0).data, equalTo("{\"a\":1,\"b\":2}"));
     }
 
     private int decode(

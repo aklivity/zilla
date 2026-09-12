@@ -65,4 +65,14 @@ public class LlmServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/json.fragmented/client",
+        "${app}/json.fragmented/server"})
+    public void shouldForwardJsonFragmentedWithSingleTerminalFlush() throws Exception
+    {
+        k3po.finish();
+    }
 }

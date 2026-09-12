@@ -1,2 +1,3 @@
 io.aklivity.zilla.runtime.binding.llm.dialect.LlmTestDialectFactorySpi
 io.aklivity.zilla.runtime.binding.llm.dialect.LlmTestSseDialectFactorySpi
+io.aklivity.zilla.runtime.binding.llm.dialect.LlmTestJsonDialectFactorySpi

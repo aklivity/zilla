@@ -22,9 +22,11 @@ import org.agrona.concurrent.UnsafeBuffer;
  * of its own, so the entire document is dispatched as a single event, the same abstraction
  * {@code text/event-stream} dispatches one event per SSE frame through.
  * <p>
- * Unlike SSE framing, a JSON document carries no self-contained marker of where it ends; each
- * {@link #decode} call is expected to receive one complete buffered document rather than
- * incremental fragments, so this decoder performs no framing loop of its own.
+ * Unlike SSE framing, a JSON document carries no self-contained marker of where it ends, so this
+ * decoder cannot tell a document is complete from its bytes alone: each {@link #decode} call with
+ * a non-empty range simply forwards those bytes, arriving in as many fragments as the network
+ * delivers them in; the single terminal event is only reported on the empty-range call made once
+ * the stream has actually ended.
  * </p>
  */
 final class LlmJsonContentDecoder implements LlmContentDecoder
@@ -38,8 +40,14 @@ final class LlmJsonContentDecoder implements LlmContentDecoder
         int limit,
         LlmContentDecoderOutput output)
     {
-        output.data(buffer, offset, limit - offset);
-        output.flush(null, EMPTY_ID, 0, 0);
+        if (limit > offset)
+        {
+            output.data(buffer, offset, limit - offset);
+        }
+        else
+        {
+            output.flush(null, EMPTY_ID, 0, 0);
+        }
 
         return limit;
     }
