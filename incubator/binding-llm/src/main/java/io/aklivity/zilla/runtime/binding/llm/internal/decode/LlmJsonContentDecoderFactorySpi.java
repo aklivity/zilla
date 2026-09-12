@@ -12,16 +12,19 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-module io.aklivity.zilla.runtime.binding.llm
+package io.aklivity.zilla.runtime.binding.llm.internal.decode;
+
+public final class LlmJsonContentDecoderFactorySpi implements LlmContentDecoderSpi
 {
-    requires io.aklivity.zilla.runtime.engine;
-    requires io.aklivity.zilla.config.binding.llm;
+    @Override
+    public String contentType()
+    {
+        return "application/json";
+    }
 
-    uses io.aklivity.zilla.runtime.binding.llm.internal.decode.LlmContentDecoderSpi;
-
-    provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
-        with io.aklivity.zilla.runtime.binding.llm.internal.LlmBindingFactorySpi;
-
-    provides io.aklivity.zilla.runtime.binding.llm.internal.decode.LlmContentDecoderSpi
-        with io.aklivity.zilla.runtime.binding.llm.internal.decode.LlmJsonContentDecoderFactorySpi;
+    @Override
+    public LlmContentDecoder supply()
+    {
+        return new LlmJsonContentDecoder();
+    }
 }
