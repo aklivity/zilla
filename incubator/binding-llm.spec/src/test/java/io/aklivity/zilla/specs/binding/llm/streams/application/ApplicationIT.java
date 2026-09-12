@@ -98,4 +98,22 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/client.conditional.streaming/client",
+        "${app}/client.conditional.streaming/server"})
+    public void shouldForwardClientConditionalStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/client.conditional.nonstreaming/client",
+        "${app}/client.conditional.nonstreaming/server"})
+    public void shouldForwardClientConditionalNonstreaming() throws Exception
+    {
+        k3po.finish();
+    }
 }

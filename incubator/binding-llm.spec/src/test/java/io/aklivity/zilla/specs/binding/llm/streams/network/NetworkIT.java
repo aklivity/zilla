@@ -98,4 +98,22 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/client.conditional.streaming/client",
+        "${net}/client.conditional.streaming/server"})
+    public void shouldEncodeClientConditionalStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/client.conditional.nonstreaming/client",
+        "${net}/client.conditional.nonstreaming/server"})
+    public void shouldEncodeClientConditionalNonstreaming() throws Exception
+    {
+        k3po.finish();
+    }
 }
