@@ -12,9 +12,14 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.llm.internal.decode;
+package io.aklivity.zilla.runtime.binding.llm.internal.codec;
 
-public final class LlmJsonContentDecoderFactorySpi implements LlmContentDecoderSpi
+import io.aklivity.zilla.runtime.binding.llm.internal.decode.LlmContentDecoder;
+import io.aklivity.zilla.runtime.binding.llm.internal.decode.LlmJsonContentDecoder;
+import io.aklivity.zilla.runtime.binding.llm.internal.encode.LlmContentEncoder;
+import io.aklivity.zilla.runtime.binding.llm.internal.encode.LlmJsonContentEncoder;
+
+public final class LlmJsonContentCodecSpi implements LlmContentCodecSpi
 {
     @Override
     public String contentType()
@@ -23,8 +28,14 @@ public final class LlmJsonContentDecoderFactorySpi implements LlmContentDecoderS
     }
 
     @Override
-    public LlmContentDecoder supply()
+    public LlmContentDecoder supplyDecoder()
     {
         return new LlmJsonContentDecoder();
+    }
+
+    @Override
+    public LlmContentEncoder supplyEncoder()
+    {
+        return new LlmJsonContentEncoder();
     }
 }
