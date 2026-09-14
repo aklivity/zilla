@@ -14,11 +14,12 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.dialect;
 
-import io.aklivity.zilla.runtime.common.json.JsonTransform;
+import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
+import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 
 /**
  * A pluggable native wire format for an LLM API -- request/response framing and payload shape -- mapped to
- * and from this binding's canonical JSON representation.
+ * and from this binding's canonical representation.
  * <p>
  * Implementations are created by a registered {@link LlmDialectFactorySpi}, discovered via
  * {@link java.util.ServiceLoader}, so dialects can be contributed from outside this module.
@@ -38,64 +39,56 @@ public interface LlmDialect
 
     /**
      * Returns this dialect's name, used to select it explicitly (e.g. via configuration) independent of
-     * {@link #detect(String, HttpHeaders)}.
+     * {@link #detect(ModelEnvelope)}.
      *
      * @return the dialect name
      */
     String name();
 
     /**
-     * Determines whether this dialect recognizes a request from its path and headers, for a route that
-     * selects a dialect automatically rather than by explicit configuration.
+     * Determines whether this dialect recognizes a request from its metadata, for a route that selects a
+     * dialect automatically rather than by explicit configuration.
+     * <p>
+     * {@code headers} carries the request's {@code :method}/{@code :path} pseudo-headers as ordinary named
+     * entries alongside its other headers -- there is no separate path parameter -- so a dialect reads
+     * whichever entries it needs the same way regardless of which one it is.
+     * </p>
      *
-     * @param path     the request path
-     * @param headers  the request headers
+     * @param headers  the request headers, including its {@code :method}/{@code :path} pseudo-headers
      * @return {@code true} if this dialect matches
      */
     boolean detect(
-        String path,
-        HttpHeaders headers);
+        ModelEnvelope headers);
 
     /**
-     * Returns the content-type of this dialect's native wire format for the given direction of one
-     * exchange, e.g. to select a matching content decoder or encoder.
+     * Creates a new {@link ModelTransform} decoding one stream's native {@code kind} payload into this
+     * binding's canonical representation, field by field.
      * <p>
-     * Resolved per request rather than fixed once for the dialect instance, since a dialect's native format
-     * can depend on the request itself -- e.g. a streaming-capable API whose request body carries a flag
-     * selecting streaming (event-stream framing) versus non-streaming (a single JSON document) delivery for
-     * its response, while the request body's own content-type stays constant regardless of that flag.
-     * {@code headers} and {@code body} are the same request signals {@link #detect(String, HttpHeaders)}
-     * and {@link HttpRequestBody} expose elsewhere; either may be {@code null} when unavailable to the
-     * caller, and implementations that need no request context to decide simply ignore them.
+     * {@code envelope} is the same per-stream metadata channel {@link #detect(ModelEnvelope)} reads request
+     * headers from. A decoder may also write to it -- e.g. extracting a model name or a streaming flag from
+     * a field into a named entry, mirroring how a Kafka cache model's {@code extractKey}/{@code
+     * extractHeaders} transform observes a field and copies its value into an envelope while it flows
+     * through unchanged -- so a caller reads that signal back off the envelope as decoding proceeds, rather
+     * than buffering the whole body first just to peek at one field.
      * </p>
      *
-     * @param kind     the request or response direction
-     * @param headers  the request headers, or {@code null} if unavailable
-     * @param body     the request body, or {@code null} if unavailable
-     * @return the content-type
-     */
-    String contentType(
-        Kind kind,
-        HttpHeaders headers,
-        HttpRequestBody body);
-
-    /**
-     * Creates a new {@link JsonTransform} decoding one stream's native {@code kind} payload into this
-     * binding's canonical representation.
-     *
-     * @param kind  the request or response direction
+     * @param kind      the request or response direction
+     * @param envelope  the per-stream metadata channel
      * @return a new decoding transform
      */
-    JsonTransform supplyDecoder(
-        Kind kind);
+    ModelTransform supplyDecoder(
+        Kind kind,
+        ModelEnvelope envelope);
 
     /**
-     * Creates a new {@link JsonTransform} encoding one stream's canonical {@code kind} payload into this
-     * dialect's native representation.
+     * Creates a new {@link ModelTransform} encoding one stream's canonical {@code kind} payload into this
+     * dialect's native representation, field by field.
      *
-     * @param kind  the request or response direction
+     * @param kind      the request or response direction
+     * @param envelope  the per-stream metadata channel
      * @return a new encoding transform
      */
-    JsonTransform supplyEncoder(
-        Kind kind);
+    ModelTransform supplyEncoder(
+        Kind kind,
+        ModelEnvelope envelope);
 }
