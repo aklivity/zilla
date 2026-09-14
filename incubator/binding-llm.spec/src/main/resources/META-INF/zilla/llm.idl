@@ -1,0 +1,128 @@
+/*
+ * Copyright 2021-2026 Aklivity Inc
+ *
+ * Licensed under the Aklivity Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ *   https://www.aklivity.io/aklivity-community-license/
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+scope llm
+{
+    scope stream
+    {
+        struct LlmBeginEx extends core::stream::Extension
+        {
+            string16 dialect;
+        }
+
+        // content is carried in the DATA frame's own payload octets, and INIT/FIN
+        // in its existing flags; block identity does not survive once it moves to
+        // FLUSH. logProbability is the one piece of per-delta detail the canonical
+        // vocabulary carries here rather than deferring to native: a dialect that
+        // exposes per-token detail (e.g. OpenAI logprobs) sets it on the DATA frame
+        // that carries the token it describes; a dialect that doesn't (e.g.
+        // Anthropic, structurally) leaves it null. logProbability never survives a
+        // cross-dialect route to Anthropic
+        struct LlmDataEx extends core::stream::Extension
+        {
+            string16 logProbability = null;
+        }
+
+        union LlmFlushEx switch (uint8) extends core::stream::Extension
+        {
+            case 0: llm::stream::LlmMessageStartFlushEx messageStart;
+            case 1: llm::stream::LlmBlockStartFlushEx   blockStart;
+            case 2: llm::stream::LlmBlockEndFlushEx     blockEnd;
+            case 3: llm::stream::LlmFinishFlushEx       finish;
+            case 4: llm::stream::LlmUsageFlushEx        usage;
+            case 5: llm::stream::LlmKeepaliveFlushEx    keepalive;
+            case 6: llm::stream::LlmNativeFlushEx       raw;
+        }
+
+        // choiceIndex is the (choice, block) compound index's outer half: Anthropic's
+        // stream is exactly one message, always choiceIndex 0, so it costs nothing
+        // there; OpenAI's n > 1 surfaces as one messageStart per parallel completion,
+        // all sharing id/model, distinguished only by choiceIndex. choiceIndex never
+        // survives a cross-dialect route to Anthropic when n > 1 upstream
+        struct LlmMessageStartFlushEx
+        {
+            int32 choiceIndex = 0;
+            string16 id;
+            string16 model = null;
+            string16 role = null;
+        }
+
+        enum LlmBlockType (uint8)
+        {
+            TEXT(0),
+            TOOL_CALL(1),
+            THINKING(2)
+        }
+
+        struct LlmBlockStartFlushEx
+        {
+            int32 choiceIndex = 0;
+            int32 blockId;
+            LlmBlockType type;
+            string16 toolId = null;
+            string16 toolName = null;
+        }
+
+        struct LlmBlockEndFlushEx
+        {
+            int32 choiceIndex = 0;
+            int32 blockId;
+        }
+
+        enum LlmFinishReason (uint8)
+        {
+            STOP(0),
+            LENGTH(1),
+            TOOL_CALL(2),
+            CONTENT_FILTER(3),
+            ERROR(4)
+        }
+
+        // reason is per choice: OpenAI's parallel completions each finish
+        // independently, at different token counts and for different reasons
+        struct LlmFinishFlushEx
+        {
+            int32 choiceIndex = 0;
+            LlmFinishReason reason;
+        }
+
+        // usage is aggregated across choices, never per-choice, matching every
+        // known dialect's own accounting; it carries no choiceIndex for that reason.
+        // inputTokens is decoupled from messageStart so it can arrive whenever the
+        // source dialect discloses it: early (Anthropic's message_start.usage) or
+        // only in a terminal chunk (OpenAI, which never reveals prompt_tokens before
+        // then) -- a source that discloses it late simply defers emitting this event
+        // rather than emitting a placeholder zero on messageStart and correcting it
+        // later
+        struct LlmUsageFlushEx
+        {
+            int32 inputTokens = -1;
+            int32 outputTokens = -1;
+        }
+
+        struct LlmKeepaliveFlushEx
+        {
+        }
+
+        // choiceIndex lets a same-dialect route attribute an opaque native/raw event
+        // to the right choice even though its payload isn't parsed
+        struct LlmNativeFlushEx
+        {
+            int32 choiceIndex = 0;
+            string16 type = null;
+            int32 length;
+            octets[length] payload = null;
+        }
+    }
+}
