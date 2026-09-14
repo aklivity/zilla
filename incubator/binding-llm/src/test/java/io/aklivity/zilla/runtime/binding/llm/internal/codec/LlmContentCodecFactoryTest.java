@@ -12,8 +12,9 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.llm.internal.decode;
+package io.aklivity.zilla.runtime.binding.llm.internal.codec;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.not;
@@ -24,9 +25,13 @@ import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 
-public class LlmContentDecoderFactoryTest
+import io.aklivity.zilla.runtime.binding.llm.internal.decode.LlmContentDecoder;
+import io.aklivity.zilla.runtime.binding.llm.internal.decode.LlmContentDecoderOutput;
+import io.aklivity.zilla.runtime.binding.llm.internal.encode.LlmContentEncoder;
+
+public class LlmContentCodecFactoryTest
 {
-    private final LlmContentDecoderFactory factory = new LlmContentDecoderFactory();
+    private final LlmContentCodecFactory factory = new LlmContentCodecFactory();
 
     @Test
     public void shouldResolveRegisteredContentType()
@@ -37,7 +42,7 @@ public class LlmContentDecoderFactoryTest
     @Test
     public void shouldDispatchDecoderForRegisteredContentType()
     {
-        LlmContentDecoder decoder = factory.create("test/echo");
+        LlmContentDecoder decoder = factory.createDecoder("test/echo");
         assertThat(decoder, not(nullValue()));
 
         MutableDirectBuffer buffer = new UnsafeBuffer(new byte[8]);
@@ -70,8 +75,29 @@ public class LlmContentDecoderFactoryTest
     }
 
     @Test
-    public void shouldReturnNullForUnrecognizedContentType()
+    public void shouldDispatchEncoderForRegisteredContentType()
     {
-        assertThat(factory.create("application/unrecognized"), nullValue());
+        LlmContentEncoder encoder = factory.createEncoder("test/echo");
+        assertThat(encoder, not(nullValue()));
+
+        byte[] bytes = "hello".getBytes(UTF_8);
+        DirectBuffer buffer = new UnsafeBuffer(bytes);
+        MutableDirectBuffer encoded = new UnsafeBuffer(new byte[16]);
+
+        int written = encoder.encodeData(buffer, 0, bytes.length, encoded, 0, encoded.capacity());
+
+        assertThat(written, not(0));
+    }
+
+    @Test
+    public void shouldReturnNullDecoderForUnrecognizedContentType()
+    {
+        assertThat(factory.createDecoder("application/unrecognized"), nullValue());
+    }
+
+    @Test
+    public void shouldReturnNullEncoderForUnrecognizedContentType()
+    {
+        assertThat(factory.createEncoder("application/unrecognized"), nullValue());
     }
 }
