@@ -15,8 +15,7 @@
 module io.aklivity.zilla.runtime.binding.llm
 {
     requires io.aklivity.zilla.config.binding.llm;
-    requires transitive io.aklivity.zilla.runtime.common.json;
-    requires io.aklivity.zilla.runtime.engine;
+    requires transitive io.aklivity.zilla.runtime.engine;
 
     exports io.aklivity.zilla.runtime.binding.llm.dialect;
 

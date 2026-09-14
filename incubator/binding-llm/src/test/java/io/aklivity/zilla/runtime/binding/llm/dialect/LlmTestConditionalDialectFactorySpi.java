@@ -14,18 +14,17 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.dialect;
 
-/**
- * Read-only access to the headers of an HTTP request, used by {@link LlmDialect#detect(String, HttpHeaders)}
- * to recognize a dialect without binding to any particular wire representation of the headers.
- */
-public interface HttpHeaders
+public final class LlmTestConditionalDialectFactorySpi implements LlmDialectFactorySpi
 {
-    /**
-     * Returns the value of the named header.
-     *
-     * @param name  the header name, case-insensitive
-     * @return the header value, or {@code null} if absent
-     */
-    String header(
-        String name);
+    @Override
+    public String name()
+    {
+        return "test";
+    }
+
+    @Override
+    public LlmDialect create()
+    {
+        return new LlmTestConditionalDialect();
+    }
 }
