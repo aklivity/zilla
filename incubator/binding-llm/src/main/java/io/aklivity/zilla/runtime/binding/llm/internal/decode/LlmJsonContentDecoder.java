@@ -27,7 +27,7 @@ import org.agrona.concurrent.UnsafeBuffer;
  * incremental fragments, so this decoder performs no framing loop of its own.
  * </p>
  */
-final class LlmJsonContentDecoder implements LlmContentDecoder
+public final class LlmJsonContentDecoder implements LlmContentDecoder
 {
     private static final DirectBuffer EMPTY_ID = new UnsafeBuffer(new byte[0]);
 
