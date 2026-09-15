@@ -19,6 +19,8 @@ scope llm
         struct LlmBeginEx extends core::stream::Extension
         {
             string16 dialect;
+            string16 contentType = null;
+            string16 model = null;
         }
 
         // content is carried in the DATA frame's own payload octets, and INIT/FIN
