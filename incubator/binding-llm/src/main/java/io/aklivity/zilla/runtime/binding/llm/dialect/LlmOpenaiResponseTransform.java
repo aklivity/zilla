@@ -61,8 +61,10 @@ import io.aklivity.zilla.runtime.engine.model.ModelTransform;
  * </p>
  * <p>
  * The literal {@code [DONE]} sentinel that terminates an OpenAI stream is not JSON and never reaches this
- * transform -- the same-dialect path this backs forwards the raw SSE payload bytes without ever routing them
- * through a model pipeline; only a genuine JSON document reaches {@link #transform}.
+ * transform -- it fails to parse as JSON at all, so the caller recognizes and forwards it verbatim before
+ * ever invoking a model pipeline. Every other response chunk, same-dialect or cross-dialect, is a genuine
+ * JSON document and is schema-validated through a model pipeline; only {@code [DONE]} is exempt, and only
+ * because it is not JSON to begin with, not because same-dialect traffic skips validation.
  * </p>
  */
 final class LlmOpenaiResponseTransform implements ModelTransform
