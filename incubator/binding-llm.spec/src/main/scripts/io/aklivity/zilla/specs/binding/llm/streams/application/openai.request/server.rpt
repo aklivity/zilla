@@ -23,6 +23,7 @@ read zilla:begin.ext ${llm:matchBeginEx()
                           .typeId(zilla:id("llm"))
                           .dialect("openai")
                           .contentType("application/json")
+                          .model("gpt-4")
                           .build()}
 
 connected
