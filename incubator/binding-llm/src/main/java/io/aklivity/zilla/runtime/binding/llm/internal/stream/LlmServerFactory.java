@@ -88,7 +88,8 @@ public final class LlmServerFactory implements LlmStreamFactory
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final BindingHandler streamFactory;
-    private final BufferPool bufferPool;
+    private final BufferPool decodePool;
+    private final BufferPool encodePool;
     private final int llmTypeId;
     private final EngineContext context;
     private final Long2ObjectHashMap<LlmBindingConfig> bindings;
@@ -99,8 +100,19 @@ public final class LlmServerFactory implements LlmStreamFactory
     {
         this.writeBuffer = requireNonNull(context.writeBuffer());
         this.extBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
-        this.bufferPool = context.bufferPool();
-        this.transformBuffer = new UnsafeBufferEx(new byte[bufferPool.slotCapacity()]);
+        this.decodePool = context.bufferPool();
+        // Wraps a distinct MutableDirectBufferEx instance internally, even though it shares the same
+        // underlying pooled memory and slot accounting as decodePool -- bufferPool.buffer(slot) rewraps a
+        // single mutable field per pool, so holding a decodePool-fetched buffer across decodeNetwork()'s
+        // direct call into LlmStream.doAppData() (which fetches from encodeSlot) never repoints it at the
+        // wrong slot's memory, the way a single shared pool handle would. See McpServerFactory's
+        // decodePool/encodePool for precedent. encodePool itself is shared by both LlmServer's reply-
+        // direction relay and LlmStream's request-direction relay: the two never appear in the same call
+        // stack -- LlmStream forwards to app0 only via the deferred, ring-buffer-mediated accept() path,
+        // never a direct Java call into LlmServer's own encodeSlot handling -- so a single encodePool
+        // instance can't alias between them.
+        this.encodePool = context.bufferPool().duplicate();
+        this.transformBuffer = new UnsafeBufferEx(new byte[decodePool.slotCapacity()]);
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.streamFactory = context.streamFactory();
@@ -385,7 +397,7 @@ public final class LlmServerFactory implements LlmStreamFactory
 
             if (decodeSlot == NO_SLOT)
             {
-                decodeSlot = bufferPool.acquire(initialId);
+                decodeSlot = decodePool.acquire(initialId);
             }
 
             if (decodeSlot == NO_SLOT)
@@ -399,7 +411,7 @@ public final class LlmServerFactory implements LlmStreamFactory
             }
             else
             {
-                final MutableDirectBufferEx decodeBuffer = bufferPool.buffer(decodeSlot);
+                final MutableDirectBufferEx decodeBuffer = decodePool.buffer(decodeSlot);
                 decodeBuffer.putBytes(decodeSlotOffset, payload.buffer(), payload.offset(), payload.sizeof());
                 decodeSlotOffset += payload.sizeof();
                 decodeSlotFlags = flags;
@@ -423,6 +435,7 @@ public final class LlmServerFactory implements LlmStreamFactory
 
             if (decodeSlot != NO_SLOT)
             {
+                final MutableDirectBufferEx decodeBuffer = decodePool.buffer(decodeSlot);
                 int progress = 0;
 
                 while (progress < decodeSlotOffset && (stream == null || stream.requestAvailable()))
@@ -430,11 +443,6 @@ public final class LlmServerFactory implements LlmStreamFactory
                     final boolean first = !requestStarted;
                     final int callFlags = (first ? decodeSlotFlags & FLAG_INIT : 0) | (decodeSlotFlags & FLAG_FIN);
 
-                    // bufferPool.buffer(slot) rewraps a single shared buffer instance per call -- it must
-                    // be re-fetched immediately before use rather than held across stream.doAppData() below,
-                    // which itself calls bufferPool.buffer() for encodeSlot and would silently repoint any
-                    // held reference at the wrong slot's memory.
-                    final MutableDirectBufferEx decodeBuffer = bufferPool.buffer(decodeSlot);
                     final ModelPipelineResult result = pipeline.transform(traceId, routedId, authorization, callFlags,
                         decodeBuffer, progress, decodeSlotOffset, transformBuffer, 0, transformBuffer.capacity());
                     final ModelStatus status = result.status();
@@ -482,14 +490,13 @@ public final class LlmServerFactory implements LlmStreamFactory
 
                 if (progress > 0)
                 {
-                    final MutableDirectBufferEx decodeBuffer = bufferPool.buffer(decodeSlot);
                     decodeBuffer.putBytes(0, decodeBuffer, progress, decodeSlotOffset - progress);
                     decodeSlotOffset -= progress;
                 }
 
                 if (decodeSlotOffset == 0)
                 {
-                    bufferPool.release(decodeSlot);
+                    decodePool.release(decodeSlot);
                     decodeSlot = NO_SLOT;
                 }
             }
@@ -615,10 +622,10 @@ public final class LlmServerFactory implements LlmStreamFactory
 
             if (encodeSlot == NO_SLOT)
             {
-                encodeSlot = bufferPool.acquire(replyId);
+                encodeSlot = encodePool.acquire(replyId);
             }
 
-            if (encodeSlot == NO_SLOT || encodeSlotOffset + length > bufferPool.slotCapacity())
+            if (encodeSlot == NO_SLOT || encodeSlotOffset + length > encodePool.slotCapacity())
             {
                 doNetReset(traceId);
                 stream.doAppAbort(traceId);
@@ -626,7 +633,7 @@ public final class LlmServerFactory implements LlmStreamFactory
             }
             else
             {
-                final MutableDirectBufferEx buffer = bufferPool.buffer(encodeSlot);
+                final MutableDirectBufferEx buffer = encodePool.buffer(encodeSlot);
                 buffer.putBytes(encodeSlotOffset, payload.buffer(), payload.offset(), length);
                 encodeSlotOffset += length;
                 encodeChunks.add(new SlotChunk(length, flags, budgetId, traceId, authorization));
@@ -646,6 +653,7 @@ public final class LlmServerFactory implements LlmStreamFactory
             flushingReply = true;
             try
             {
+                final MutableDirectBufferEx buffer = encodePool.buffer(encodeSlot);
                 while (!encodeChunks.isEmpty())
                 {
                     final long available = replyMax - (replySeq - replyAck);
@@ -668,10 +676,6 @@ public final class LlmServerFactory implements LlmStreamFactory
 
                     final int sliceOffset = chunk.sent;
                     chunk.sent += sliceLength;
-                    // bufferPool.buffer(slot) rewraps a single shared buffer instance per call -- fetched
-                    // fresh here since doNetData() below can synchronously trigger reentrant processing
-                    // that itself calls bufferPool.buffer() for a different slot.
-                    final MutableDirectBufferEx buffer = bufferPool.buffer(encodeSlot);
                     doNetData(chunk.traceId, chunk.authorization, outputFlags, chunk.budgetId,
                         sliceLength, buffer, sliceOffset, sliceLength);
 
@@ -680,8 +684,7 @@ public final class LlmServerFactory implements LlmStreamFactory
                         encodeChunks.poll();
                         if (encodeSlotOffset > chunk.length)
                         {
-                            final MutableDirectBufferEx compactBuffer = bufferPool.buffer(encodeSlot);
-                            compactBuffer.putBytes(0, compactBuffer, chunk.length, encodeSlotOffset - chunk.length);
+                            buffer.putBytes(0, buffer, chunk.length, encodeSlotOffset - chunk.length);
                         }
                         encodeSlotOffset -= chunk.length;
                     }
@@ -689,7 +692,7 @@ public final class LlmServerFactory implements LlmStreamFactory
 
                 if (encodeChunks.isEmpty())
                 {
-                    bufferPool.release(encodeSlot);
+                    encodePool.release(encodeSlot);
                     encodeSlot = NO_SLOT;
                     encodeSlotOffset = 0;
                 }
@@ -896,7 +899,7 @@ public final class LlmServerFactory implements LlmStreamFactory
         {
             if (decodeSlot != NO_SLOT)
             {
-                bufferPool.release(decodeSlot);
+                decodePool.release(decodeSlot);
                 decodeSlot = NO_SLOT;
                 decodeSlotOffset = 0;
             }
@@ -906,7 +909,7 @@ public final class LlmServerFactory implements LlmStreamFactory
         {
             if (encodeSlot != NO_SLOT)
             {
-                bufferPool.release(encodeSlot);
+                encodePool.release(encodeSlot);
                 encodeSlot = NO_SLOT;
                 encodeSlotOffset = 0;
                 encodeChunks.clear();
@@ -974,7 +977,7 @@ public final class LlmServerFactory implements LlmStreamFactory
         {
             if (encodeSlot == NO_SLOT)
             {
-                encodeSlot = bufferPool.acquire(initialId);
+                encodeSlot = encodePool.acquire(initialId);
             }
 
             if (encodeSlot == NO_SLOT)
@@ -985,7 +988,7 @@ public final class LlmServerFactory implements LlmStreamFactory
             }
             else
             {
-                final MutableDirectBufferEx buffer = bufferPool.buffer(encodeSlot);
+                final MutableDirectBufferEx buffer = encodePool.buffer(encodeSlot);
                 buffer.putBytes(encodeSlotOffset, source, 0, length);
                 encodeSlotOffset += length;
                 encodeSlotFlags = flags;
@@ -1006,6 +1009,7 @@ public final class LlmServerFactory implements LlmStreamFactory
             flushingRequest = true;
             try
             {
+                final MutableDirectBufferEx buffer = encodePool.buffer(encodeSlot);
                 while (encodeSlotSent < encodeSlotOffset)
                 {
                     final long available = initialAvailable();
@@ -1014,10 +1018,6 @@ public final class LlmServerFactory implements LlmStreamFactory
                         break;
                     }
 
-                    // bufferPool.buffer(slot) rewraps a single shared buffer instance per call -- fetched
-                    // fresh each iteration since doAppData() below can synchronously trigger reentrant
-                    // processing that itself calls bufferPool.buffer() for a different slot.
-                    final MutableDirectBufferEx buffer = bufferPool.buffer(encodeSlot);
                     final int remaining = encodeSlotOffset - encodeSlotSent;
                     int sliceLength = (int) Math.min(remaining, available);
                     final int padding = server.pipeline.padding(buffer, encodeSlotSent, sliceLength);
@@ -1041,7 +1041,7 @@ public final class LlmServerFactory implements LlmStreamFactory
 
                 if (encodeSlotSent >= encodeSlotOffset)
                 {
-                    bufferPool.release(encodeSlot);
+                    encodePool.release(encodeSlot);
                     encodeSlot = NO_SLOT;
                     encodeSlotOffset = 0;
                     encodeSlotSent = 0;
@@ -1099,7 +1099,7 @@ public final class LlmServerFactory implements LlmStreamFactory
 
             replySeq = sequence;
             replyAck = acknowledge;
-            replyMax = bufferPool.slotCapacity();
+            replyMax = encodePool.slotCapacity();
             state = LlmState.openingReply(state);
 
             server.doNetBegin(traceId, authorization, affinity, extension);
@@ -1359,7 +1359,7 @@ public final class LlmServerFactory implements LlmStreamFactory
         {
             if (encodeSlot != NO_SLOT)
             {
-                bufferPool.release(encodeSlot);
+                encodePool.release(encodeSlot);
                 encodeSlot = NO_SLOT;
                 encodeSlotOffset = 0;
                 encodeSlotSent = 0;
