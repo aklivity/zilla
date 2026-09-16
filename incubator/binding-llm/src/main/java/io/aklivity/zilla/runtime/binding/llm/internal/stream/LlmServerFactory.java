@@ -55,7 +55,10 @@ import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 
 public final class LlmServerFactory implements LlmStreamFactory
 {
+    private static final String HTTP_TYPE_NAME = "http";
+    private static final String HEADER_STATUS = ":status";
     private static final String HEADER_CONTENT_TYPE = "content-type";
+    private static final String STATUS_OK = "200";
     private static final String ENVELOPE_MODEL = "model";
 
     private static final int FLAG_FIN = 0x01;
@@ -80,6 +83,7 @@ public final class LlmServerFactory implements LlmStreamFactory
     private final ChallengeFW.Builder challengeRW = new ChallengeFW.Builder();
 
     private final HttpBeginExFW httpBeginExRO = new HttpBeginExFW();
+    private final HttpBeginExFW.Builder httpBeginExRW = new HttpBeginExFW.Builder();
     private final LlmBeginExFW.Builder llmBeginExRW = new LlmBeginExFW.Builder();
 
     private final MutableDirectBufferEx writeBuffer;
@@ -91,6 +95,7 @@ public final class LlmServerFactory implements LlmStreamFactory
     private final BufferPool decodePool;
     private final BufferPool encodePool;
     private final int llmTypeId;
+    private final int httpTypeId;
     private final EngineContext context;
     private final Long2ObjectHashMap<LlmBindingConfig> bindings;
 
@@ -117,6 +122,7 @@ public final class LlmServerFactory implements LlmStreamFactory
         this.supplyReplyId = context::supplyReplyId;
         this.streamFactory = context.streamFactory();
         this.llmTypeId = context.supplyTypeId(LlmBinding.NAME);
+        this.httpTypeId = context.supplyTypeId(HTTP_TYPE_NAME);
         this.context = context;
         this.bindings = new Long2ObjectHashMap<>();
     }
@@ -726,9 +732,19 @@ public final class LlmServerFactory implements LlmStreamFactory
         private void doNetBegin(
             long traceId,
             long authorization,
-            long affinity,
-            OctetsFW extension)
+            long affinity)
         {
+            final HttpBeginExFW.Builder httpBeginExBuilder = httpBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(httpTypeId)
+                .headersItem(h -> h.name(HEADER_STATUS).value(STATUS_OK));
+
+            if (contentType != null)
+            {
+                httpBeginExBuilder.headersItem(h -> h.name(HEADER_CONTENT_TYPE).value(contentType));
+            }
+
+            final HttpBeginExFW httpBeginEx = httpBeginExBuilder.build();
+
             final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
                 .routedId(routedId)
@@ -739,7 +755,7 @@ public final class LlmServerFactory implements LlmStreamFactory
                 .traceId(traceId)
                 .authorization(authorization)
                 .affinity(affinity)
-                .extension(extension)
+                .extension(httpBeginEx.buffer(), httpBeginEx.offset(), httpBeginEx.sizeof())
                 .build();
 
             network.accept(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof());
@@ -1095,14 +1111,13 @@ public final class LlmServerFactory implements LlmStreamFactory
             final long traceId = begin.traceId();
             final long authorization = begin.authorization();
             final long affinity = begin.affinity();
-            final OctetsFW extension = begin.extension();
 
             replySeq = sequence;
             replyAck = acknowledge;
             replyMax = encodePool.slotCapacity();
             state = LlmState.openingReply(state);
 
-            server.doNetBegin(traceId, authorization, affinity, extension);
+            server.doNetBegin(traceId, authorization, affinity);
             doAppWindow(traceId);
         }
 
