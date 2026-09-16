@@ -23,6 +23,7 @@ write zilla:begin.ext ${http:beginEx()
                             .header(":scheme", "http")
                             .header(":authority", "example.com:8080")
                             .header(":path", "/")
+                            .header("content-type", "application/json")
                             .build()}
 
 connected
@@ -33,6 +34,7 @@ write close
 read zilla:begin.ext ${http:matchBeginEx()
                            .typeId(zilla:id("http"))
                            .header(":status", "200")
+                           .header("content-type", "application/json")
                            .build()}
 
 read "{\"id\":\"chatcmpl_2\",\"object\":\"chat.completion\",\"model\":\"gpt-4\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"Hello! How can I help you today?\"},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":25,\"completion_tokens\":15,\"total_tokens\":40}}"

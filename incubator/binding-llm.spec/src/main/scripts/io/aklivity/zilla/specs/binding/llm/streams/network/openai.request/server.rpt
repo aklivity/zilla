@@ -39,5 +39,5 @@ write zilla:begin.ext ${http:beginEx()
                            .header(":status", "200")
                            .build()}
 
-write "response body"
+write "{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}]}"
 write close

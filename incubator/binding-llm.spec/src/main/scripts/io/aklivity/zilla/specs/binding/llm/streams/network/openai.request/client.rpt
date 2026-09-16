@@ -38,6 +38,6 @@ read zilla:begin.ext ${http:matchBeginEx()
                            .header(":status", "200")
                            .build()}
 
-read "response body"
+read "{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}]}"
 
 read closed
