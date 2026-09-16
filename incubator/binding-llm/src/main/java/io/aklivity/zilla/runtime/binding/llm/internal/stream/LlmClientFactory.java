@@ -58,6 +58,7 @@ import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
+import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 
 public final class LlmClientFactory implements LlmStreamFactory
 {
@@ -282,17 +283,18 @@ public final class LlmClientFactory implements LlmStreamFactory
             this.envelope = new LlmModelEnvelope();
             this.requestEncoder = codecs.createEncoder(requestContentType);
 
-            this.requestPipeline = !sameDialect && requestEncoder != null
-                ? binding.supplyModel(source, Kind.REQUEST).supplyDecoder(envelope,
-                    source.supplyDecoder(Kind.REQUEST, envelope).andThen(target.supplyEncoder(Kind.REQUEST, envelope)),
-                    ModelCache.NONE)
+            final ModelTransform requestTransform = sameDialect
+                ? ModelTransform.NONE
+                : source.supplyDecoder(Kind.REQUEST, envelope).andThen(target.supplyEncoder(Kind.REQUEST, envelope));
+            this.requestPipeline = requestEncoder != null
+                ? binding.supplyModel(source, Kind.REQUEST).supplyDecoder(envelope, requestTransform, ModelCache.NONE)
                 : null;
 
-            this.responsePipeline = !sameDialect
-                ? binding.supplyModel(target, Kind.RESPONSE).supplyDecoder(envelope,
-                    target.supplyDecoder(Kind.RESPONSE, envelope).andThen(source.supplyEncoder(Kind.RESPONSE, envelope)),
-                    ModelCache.NONE)
-                : null;
+            final ModelTransform responseTransform = sameDialect
+                ? ModelTransform.NONE
+                : target.supplyDecoder(Kind.RESPONSE, envelope).andThen(source.supplyEncoder(Kind.RESPONSE, envelope));
+            this.responsePipeline = binding.supplyModel(target, Kind.RESPONSE)
+                .supplyDecoder(envelope, responseTransform, ModelCache.NONE);
 
             this.delegate = new LlmHttpClient(this, routedId, resolvedId, server, requestContentType);
         }
@@ -370,10 +372,6 @@ public final class LlmClientFactory implements LlmStreamFactory
             {
                 delegate.doNetData(traceId, authorization, payload.buffer(), payload.offset(), payload.sizeof());
             }
-            else if (requestPipeline == null)
-            {
-                forwardRequestContent(traceId, authorization, payload.buffer(), payload.offset(), payload.sizeof());
-            }
             else
             {
                 appendDecodeSlot(payload.buffer(), payload.offset(), payload.sizeof(), flags, traceId, authorization);
@@ -440,7 +438,7 @@ public final class LlmClientFactory implements LlmStreamFactory
                     final int producedLength = result.produced();
                     if (producedLength > 0)
                     {
-                        forwardRequestContent(traceId, authorization, transformBuffer, 0, producedLength);
+                        forwardRequestContent(traceId, authorization, transformBuffer, producedLength);
                     }
 
                     if (status == ModelStatus.COMPLETE)
@@ -474,11 +472,10 @@ public final class LlmClientFactory implements LlmStreamFactory
         private void forwardRequestContent(
             long traceId,
             long authorization,
-            DirectBufferEx buffer,
-            int offset,
+            MutableDirectBufferEx buffer,
             int length)
         {
-            final int encoded = requestEncoder.encodeData(buffer, offset, length, copyBuffer, 0, copyBuffer.capacity());
+            final int encoded = requestEncoder.encodeData(buffer, 0, length, copyBuffer, 0, copyBuffer.capacity());
             delegate.doNetData(traceId, authorization, copyBuffer, 0, encoded);
         }
 
@@ -1065,36 +1062,27 @@ public final class LlmClientFactory implements LlmStreamFactory
             if (length > 0)
             {
                 final ModelPipeline pipeline = client.responsePipeline;
+                final int flags = FLAG_INIT | FLAG_FIN;
 
-                if (pipeline == null)
+                final ModelPipelineResult result = pipeline.transform(decodeTraceId, routedId, decodeAuthorization,
+                    flags, (DirectBufferEx) buffer, offset, offset + length, transformBuffer, 0, transformBuffer.capacity());
+
+                if (result.status() == ModelStatus.REJECTED)
                 {
-                    client.doAppData(decodeTraceId, decodeAuthorization, buffer, offset, length);
+                    pipeline.reset();
+                    cleanupNet(decodeTraceId, decodeAuthorization);
                 }
                 else
                 {
-                    final int flags = FLAG_INIT | FLAG_FIN;
+                    final int producedLength = result.produced();
+                    if (producedLength > 0)
+                    {
+                        client.doAppData(decodeTraceId, decodeAuthorization, transformBuffer, 0, producedLength);
+                    }
 
-                    final ModelPipelineResult result = pipeline.transform(decodeTraceId, routedId, decodeAuthorization,
-                        flags, (DirectBufferEx) buffer, offset, offset + length, transformBuffer, 0,
-                        transformBuffer.capacity());
-
-                    if (result.status() == ModelStatus.REJECTED)
+                    if (result.status() == ModelStatus.COMPLETE)
                     {
                         pipeline.reset();
-                        cleanupNet(decodeTraceId, decodeAuthorization);
-                    }
-                    else
-                    {
-                        final int producedLength = result.produced();
-                        if (producedLength > 0)
-                        {
-                            client.doAppData(decodeTraceId, decodeAuthorization, transformBuffer, 0, producedLength);
-                        }
-
-                        if (result.status() == ModelStatus.COMPLETE)
-                        {
-                            pipeline.reset();
-                        }
                     }
                 }
             }
@@ -1189,10 +1177,7 @@ public final class LlmClientFactory implements LlmStreamFactory
                 decodeSlot = NO_SLOT;
                 decodeSlotOffset = 0;
             }
-            if (client.responsePipeline != null)
-            {
-                client.responsePipeline.reset();
-            }
+            client.responsePipeline.reset();
         }
     }
 
