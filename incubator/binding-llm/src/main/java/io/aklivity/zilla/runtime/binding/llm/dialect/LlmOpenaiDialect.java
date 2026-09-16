@@ -14,7 +14,9 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.dialect;
 
-import io.aklivity.zilla.runtime.common.json.JsonTransform;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
+import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 
 /**
  * OpenAI Chat Completions dialect: detects {@code POST /v1/chat/completions} and {@code POST
@@ -22,30 +24,21 @@ import io.aklivity.zilla.runtime.common.json.JsonTransform;
  * transforms give a canonical synonym for -- see {@link LlmOpenaiRequestTransform} and
  * {@link LlmOpenaiResponseTransform} for exactly which members and the rationale.
  * <p>
- * {@link #contentType(Kind, HttpHeaders, HttpRequestBody)} resolves per request: the request body's own
- * content-type is always {@code application/json} regardless of the {@code stream} flag, while the
- * response's content-type follows that same flag -- {@code text/event-stream} (SSE chunks) when
- * {@code stream: true}, {@code application/json} (a single document) otherwise -- both routed through the
- * same content-decoder abstraction the issue calls for, with no special-casing between them since either
- * way a chunk or the whole document is one JSON value handed to the same {@link LlmOpenaiResponseTransform}.
- * When {@code body} is unavailable to the caller, the response is treated as non-streaming, matching the
- * {@code stream} flag's own default.
+ * Content-type resolution (a streaming response's {@code text/event-stream} chunks versus a single
+ * {@code application/json} document) is a transport-layer concern, resolved from the real upstream
+ * {@code Content-Type} response header rather than predicted here.
  * </p>
  */
 public final class LlmOpenaiDialect implements LlmDialect
 {
     private static final String NAME = "openai";
-    private static final String CONTENT_TYPE_JSON = "application/json";
-    private static final String CONTENT_TYPE_SSE = "text/event-stream";
 
     private static final String METHOD_HEADER = ":method";
+    private static final String PATH_HEADER = ":path";
     private static final String METHOD_POST = "POST";
 
     private static final String CHAT_COMPLETIONS_PATH = "/v1/chat/completions";
     private static final String COMPLETIONS_PATH = "/v1/completions";
-
-    private static final String STREAM_FIELD = "stream";
-    private static final String STREAM_TRUE = "true";
 
     @Override
     public String name()
@@ -55,34 +48,20 @@ public final class LlmOpenaiDialect implements LlmDialect
 
     @Override
     public boolean detect(
-        String path,
-        HttpHeaders headers)
+        ModelEnvelope headers)
     {
-        return headers != null &&
-            METHOD_POST.equalsIgnoreCase(headers.header(METHOD_HEADER)) &&
+        final String method = header(headers, METHOD_HEADER);
+        final String path = header(headers, PATH_HEADER);
+        return METHOD_POST.equalsIgnoreCase(method) &&
             (CHAT_COMPLETIONS_PATH.equals(path) || COMPLETIONS_PATH.equals(path));
     }
 
     @Override
-    public String contentType(
+    public ModelTransform supplyDecoder(
         Kind kind,
-        HttpHeaders headers,
-        HttpRequestBody body)
+        ModelEnvelope envelope)
     {
-        return kind == Kind.RESPONSE && streaming(body) ? CONTENT_TYPE_SSE : CONTENT_TYPE_JSON;
-    }
-
-    private static boolean streaming(
-        HttpRequestBody body)
-    {
-        return body != null && STREAM_TRUE.equals(body.value(STREAM_FIELD));
-    }
-
-    @Override
-    public JsonTransform supplyDecoder(
-        Kind kind)
-    {
-        final JsonTransform transform;
+        final ModelTransform transform;
         switch (kind)
         {
         case REQUEST:
@@ -92,17 +71,18 @@ public final class LlmOpenaiDialect implements LlmDialect
             transform = new LlmOpenaiResponseTransform(true);
             break;
         default:
-            transform = null;
+            transform = ModelTransform.NONE;
             break;
         }
         return transform;
     }
 
     @Override
-    public JsonTransform supplyEncoder(
-        Kind kind)
+    public ModelTransform supplyEncoder(
+        Kind kind,
+        ModelEnvelope envelope)
     {
-        final JsonTransform transform;
+        final ModelTransform transform;
         switch (kind)
         {
         case REQUEST:
@@ -112,9 +92,17 @@ public final class LlmOpenaiDialect implements LlmDialect
             transform = new LlmOpenaiResponseTransform(false);
             break;
         default:
-            transform = null;
+            transform = ModelTransform.NONE;
             break;
         }
         return transform;
+    }
+
+    private static String header(
+        ModelEnvelope headers,
+        String name)
+    {
+        final DirectBufferEx value = headers.get(name, 0);
+        return value != null ? value.getStringWithoutLengthUtf8(0, value.capacity()) : null;
     }
 }
