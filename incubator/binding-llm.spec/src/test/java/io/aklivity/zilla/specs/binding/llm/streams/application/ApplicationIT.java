@@ -152,4 +152,13 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/openai.response.invalid/client",
+        "${app}/openai.response.invalid/server"})
+    public void shouldAbortInvalidOpenaiResponse() throws Exception
+    {
+        k3po.finish();
+    }
 }

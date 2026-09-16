@@ -170,4 +170,22 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/openai.request.invalid/client",
+        "${net}/openai.request.invalid/server"})
+    public void shouldRejectInvalidOpenaiRequest() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.response.invalid/client",
+        "${net}/openai.response.invalid/server"})
+    public void shouldEncodeInvalidOpenaiResponse() throws Exception
+    {
+        k3po.finish();
+    }
 }

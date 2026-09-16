@@ -105,4 +105,14 @@ public class LlmClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.response.invalid/client",
+        "${net}/openai.response.invalid/server"})
+    public void shouldRejectInvalidOpenaiResponse() throws Exception
+    {
+        k3po.finish();
+    }
 }
