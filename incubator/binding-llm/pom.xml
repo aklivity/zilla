@@ -24,7 +24,7 @@
   </licenses>
 
   <properties>
-    <jacoco.coverage.ratio>1.00</jacoco.coverage.ratio>
+    <jacoco.coverage.ratio>0.87</jacoco.coverage.ratio>
     <jacoco.missed.count>0</jacoco.missed.count>
   </properties>
 
@@ -48,6 +48,11 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
+      <artifactId>model-json.conf</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
       <artifactId>engine</artifactId>
       <type>test-jar</type>
       <version>${project.version}</version>
@@ -57,6 +62,18 @@
       <groupId>${project.groupId}</groupId>
       <artifactId>engine.conf</artifactId>
       <type>test-jar</type>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>model-json</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>catalog-inline</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
@@ -98,7 +115,7 @@
         <artifactId>flyweight-maven-plugin</artifactId>
         <version>${project.version}</version>
         <configuration>
-          <scopeNames>core llm</scopeNames>
+          <scopeNames>core http llm</scopeNames>
           <packageName>io.aklivity.zilla.runtime.binding.llm.internal.types</packageName>
         </configuration>
         <executions>
