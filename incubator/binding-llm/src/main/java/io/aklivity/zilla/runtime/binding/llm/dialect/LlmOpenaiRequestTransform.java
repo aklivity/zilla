@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.binding.llm.dialect;
 
 import io.aklivity.zilla.runtime.engine.model.ModelController;
+import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelEvent;
 import io.aklivity.zilla.runtime.engine.model.ModelSink;
 import io.aklivity.zilla.runtime.engine.model.ModelSource;
@@ -35,6 +36,13 @@ import io.aklivity.zilla.runtime.engine.model.ModelTransform;
  * field's full path against this table's top-level-only entries (e.g. {@code $.max_tokens}) naturally scopes
  * the rename to a direct member of the request object; a same-named field nested inside {@code messages} or
  * {@code tools} has a different, non-matching path and is never touched.
+ * </p>
+ * <p>
+ * Alongside the rename/forward decision, {@code model} is observed and copied into the supplied
+ * {@link ModelEnvelope} under the same name -- mirroring how a Kafka cache model's {@code extractKey}/
+ * {@code extractHeaders} transform observes a field and copies its value into an envelope while it flows
+ * through unchanged -- so a caller (e.g. stamping {@code LlmBeginEx.model}) reads it back off the envelope
+ * without buffering the whole request first just to peek at one field.
  * </p>
  * <p>
  * One instance decodes (native to canonical) or encodes (canonical to native) depending on the direction
@@ -58,13 +66,19 @@ final class LlmOpenaiRequestTransform implements ModelTransform
         { "$.response_format", "$.responseFormat" },
     };
 
+    private static final String MODEL_PATH = "$.model";
+    private static final String MODEL_NAME = "model";
+
     private final boolean toCanonical;
+    private final ModelEnvelope envelope;
     private final LlmOpenaiSubstitutedSource renamed;
 
     LlmOpenaiRequestTransform(
-        boolean toCanonical)
+        boolean toCanonical,
+        ModelEnvelope envelope)
     {
         this.toCanonical = toCanonical;
+        this.envelope = envelope;
         this.renamed = new LlmOpenaiSubstitutedSource();
     }
 
@@ -78,6 +92,11 @@ final class LlmOpenaiRequestTransform implements ModelTransform
         final ModelStatus status;
         if (event == ModelEvent.FIELD)
         {
+            if (MODEL_PATH.equals(source.getPath()))
+            {
+                envelope.set(MODEL_NAME, source.getValue());
+            }
+
             final String toPath = rename(source.getPath());
             status = toPath != null
                 ? sink.transform(control, renamed.wrap(toPath, source.getValue()), ModelEvent.REPLACED)

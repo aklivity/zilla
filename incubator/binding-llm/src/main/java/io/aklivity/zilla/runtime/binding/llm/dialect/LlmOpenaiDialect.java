@@ -65,7 +65,7 @@ public final class LlmOpenaiDialect implements LlmDialect
         switch (kind)
         {
         case REQUEST:
-            transform = new LlmOpenaiRequestTransform(true);
+            transform = new LlmOpenaiRequestTransform(true, envelope);
             break;
         case RESPONSE:
             transform = new LlmOpenaiResponseTransform(true);
@@ -86,7 +86,7 @@ public final class LlmOpenaiDialect implements LlmDialect
         switch (kind)
         {
         case REQUEST:
-            transform = new LlmOpenaiRequestTransform(false);
+            transform = new LlmOpenaiRequestTransform(false, envelope);
             break;
         case RESPONSE:
             transform = new LlmOpenaiResponseTransform(false);
