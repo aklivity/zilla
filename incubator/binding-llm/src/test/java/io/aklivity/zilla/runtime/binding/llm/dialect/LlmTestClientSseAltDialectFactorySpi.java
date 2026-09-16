@@ -14,17 +14,26 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.dialect;
 
-public final class LlmTestSseAltDialectFactorySpi implements LlmDialectFactorySpi
+import java.net.URL;
+
+public final class LlmTestClientSseAltDialectFactorySpi implements LlmDialectFactorySpi
 {
     @Override
     public String name()
     {
-        return "test-sse-alt";
+        return "test-client-sse-alt";
     }
 
     @Override
     public LlmDialect create()
     {
-        return new LlmTestSseAltDialect();
+        return new LlmTestClientSseAltDialect();
+    }
+
+    @Override
+    public URL schema(
+        LlmDialect.Kind kind)
+    {
+        return LlmTestClientSseAltDialect.schemaResource();
     }
 }

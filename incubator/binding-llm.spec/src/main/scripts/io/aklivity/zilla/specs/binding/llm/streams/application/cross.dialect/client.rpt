@@ -19,7 +19,8 @@ connect "zilla://streams/app0"
 
 write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
-                           .dialect("test-sse-alt")
+                           .dialect("test-client-sse-alt")
+                           .contentType("text/event-stream")
                            .build()}
 
 connected
@@ -38,7 +39,8 @@ write close
 
 read zilla:begin.ext ${llm:matchBeginEx()
                            .typeId(zilla:id("llm"))
-                           .dialect("test-sse-alt")
+                           .dialect("test-client-sse-alt")
+                           .contentType("text/event-stream")
                            .build()}
 
 read "{\"text\":\"hi\"}"
