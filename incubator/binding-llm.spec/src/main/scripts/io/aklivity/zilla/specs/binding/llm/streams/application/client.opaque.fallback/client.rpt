@@ -19,7 +19,8 @@ connect "zilla://streams/app0"
 
 write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
-                           .dialect("test")
+                           .dialect("test-client")
+                           .contentType("application/octet-stream")
                            .build()}
 
 connected
@@ -29,7 +30,8 @@ write close
 
 read zilla:begin.ext ${llm:matchBeginEx()
                            .typeId(zilla:id("llm"))
-                           .dialect("test")
+                           .dialect("test-client")
+                           .contentType("application/octet-stream")
                            .build()}
 
 read "this is an opaque response payload"

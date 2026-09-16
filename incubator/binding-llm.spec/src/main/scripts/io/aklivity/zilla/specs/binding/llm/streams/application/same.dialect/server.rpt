@@ -21,12 +21,13 @@ accepted
 
 read zilla:begin.ext ${llm:matchBeginEx()
                           .typeId(zilla:id("llm"))
-                          .dialect("test-sse")
+                          .dialect("test-client-sse")
+                          .contentType("text/event-stream")
                           .build()}
 
 connected
 
-read "hello there"
+read "{\"text\":\"hello there\"}"
 
 read advised zilla:flush ${llm:matchFlushEx()
                                .typeId(zilla:id("llm"))
@@ -41,10 +42,11 @@ read closed
 
 write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
-                           .dialect("test-sse")
+                           .dialect("test-client-sse")
+                           .contentType("text/event-stream")
                            .build()}
 
-write "hi"
+write "{\"text\":\"hi\"}"
 
 write advise zilla:flush ${llm:flushEx()
                                .typeId(zilla:id("llm"))

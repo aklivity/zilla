@@ -21,7 +21,7 @@ accepted
 
 read zilla:begin.ext ${llm:matchBeginEx()
                           .typeId(zilla:id("llm"))
-                          .dialect("test-sse")
+                          .dialect("test-client-sse")
                           .build()}
 
 connected

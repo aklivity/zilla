@@ -25,11 +25,12 @@ read zilla:begin.ext ${http:matchBeginEx()
                            .header(":scheme", "http")
                            .header(":authority", "example.com:8080")
                            .header(":path", "/")
+                           .header("content-type", "text/event-stream")
                            .build()}
 
 connected
 
-read "data: hello there\n"
+read "data: {\"text\":\"hello there\"}\n"
 read "event: message\n\n"
 
 read closed
@@ -37,7 +38,8 @@ read closed
 write zilla:begin.ext ${http:beginEx()
                            .typeId(zilla:id("http"))
                            .header(":status", "200")
+                           .header("content-type", "text/event-stream")
                            .build()}
 
-write "data: hi\n\n"
+write "data: {\"text\":\"hi\"}\n\n"
 write close

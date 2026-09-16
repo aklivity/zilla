@@ -19,7 +19,7 @@ connect "zilla://streams/app0"
 
 write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
-                           .dialect("test-sse")
+                           .dialect("test-client-sse")
                            .build()}
 
 connected
