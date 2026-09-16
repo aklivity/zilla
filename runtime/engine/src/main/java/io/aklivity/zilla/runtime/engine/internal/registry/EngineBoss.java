@@ -153,7 +153,7 @@ public class EngineBoss implements EngineController, Agent
     {
         try
         {
-            detachAll();
+            detachAllNow();
 
             controllersByType.clear();
 
@@ -169,14 +169,19 @@ public class EngineBoss implements EngineController, Agent
         }
     }
 
-    public void detachAll()
+    public void detachAllNow()
     {
         if (thread != null)
         {
-            NamespacesTask detachedTask = new NamespacesTask(namespaces, this::detachNamespace);
-            taskQueue.offer(detachedTask);
-            detachedTask.future().join();
+            detachAll().join();
         }
+    }
+
+    private CompletableFuture<Void> detachAll()
+    {
+        NamespacesTask detachedTask = new NamespacesTask(namespaces, this::detachNamespace);
+        taskQueue.offer(detachedTask);
+        return detachedTask.future();
     }
 
     public void attachNow(
