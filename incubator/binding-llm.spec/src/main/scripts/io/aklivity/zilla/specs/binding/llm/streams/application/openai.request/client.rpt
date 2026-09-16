@@ -20,26 +20,16 @@ connect "zilla://streams/app0"
 write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
                            .dialect("openai")
+                           .contentType("application/json")
                            .build()}
 
 connected
 
 write "{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}]}"
-
-write advise zilla:flush ${llm:flushEx()
-                               .typeId(zilla:id("llm"))
-                               .raw()
-                                   .choiceIndex(0)
-                                   .build()
-                               .build()}
+write flush
 
 write close
 
-read zilla:begin.ext ${http:matchBeginEx()
-                           .typeId(zilla:id("http"))
-                           .header(":status", "200")
-                           .build()}
-
-read "response body"
+read "{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}]}"
 
 read closed
