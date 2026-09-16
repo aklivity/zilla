@@ -215,4 +215,31 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.request/client",
+        "${net}/anthropic.request/server"})
+    public void shouldEncodeAnthropicRequest() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.streaming/client",
+        "${net}/anthropic.streaming/server"})
+    public void shouldEncodeAnthropicStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.nonstreaming/client",
+        "${net}/anthropic.nonstreaming/server"})
+    public void shouldEncodeAnthropicNonstreaming() throws Exception
+    {
+        k3po.finish();
+    }
 }
