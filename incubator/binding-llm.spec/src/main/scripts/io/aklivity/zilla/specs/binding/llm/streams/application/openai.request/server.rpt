@@ -31,7 +31,7 @@ read "{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"user\",\"content\":\"Hello\
 
 read closed
 
-write "response body"
+write "{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}]}"
 write flush
 
 write close
