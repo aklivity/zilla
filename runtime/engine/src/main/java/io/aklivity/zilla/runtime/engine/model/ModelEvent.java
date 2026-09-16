@@ -35,7 +35,12 @@ public enum ModelEvent
     START_VALUE,
     /** a field of the current value, its path and value readable from the {@link ModelSource} */
     FIELD,
-    /** a field whose value a transform substituted; the substitute is readable from the {@link ModelSource} */
+    /**
+     * a field whose value a transform substituted; the substitute is readable from the {@link ModelSource}.
+     * The substitute's own {@link ModelSource#getPath()} may differ from the original field's path, naming
+     * a sibling field of the same enclosing value instead -- redirecting where the field is written, e.g. to
+     * rename it -- but never a path outside that enclosing value's own members.
+     */
     REPLACED,
     /** a field a transform declined; the format writes a structurally valid placeholder for its type */
     DECLINED,
