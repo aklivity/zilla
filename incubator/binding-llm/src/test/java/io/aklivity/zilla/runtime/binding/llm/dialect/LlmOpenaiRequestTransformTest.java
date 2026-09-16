@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.llm.dialect;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.nullValue;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,6 +27,7 @@ import org.junit.Test;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.model.ModelController;
+import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelEvent;
 import io.aklivity.zilla.runtime.engine.model.ModelSink;
 import io.aklivity.zilla.runtime.engine.model.ModelSource;
@@ -53,7 +55,7 @@ public class LlmOpenaiRequestTransformTest
     public void shouldRenameEachKnownFieldToCanonical()
     {
         Recorder recorder = new Recorder();
-        ModelTransform decoder = new LlmOpenaiRequestTransform(true);
+        ModelTransform decoder = new LlmOpenaiRequestTransform(true, ModelEnvelope.NONE);
 
         feed(decoder, recorder, "$.max_tokens", "256");
         feed(decoder, recorder, "$.top_p", "0.9");
@@ -79,7 +81,7 @@ public class LlmOpenaiRequestTransformTest
     public void shouldRenameEachKnownFieldToNative()
     {
         Recorder recorder = new Recorder();
-        ModelTransform encoder = new LlmOpenaiRequestTransform(false);
+        ModelTransform encoder = new LlmOpenaiRequestTransform(false, ModelEnvelope.NONE);
 
         feed(encoder, recorder, "$.maxOutputTokens", "256");
         feed(encoder, recorder, "$.topP", "0.9");
@@ -95,7 +97,7 @@ public class LlmOpenaiRequestTransformTest
     public void shouldForwardUnknownFieldUnchanged()
     {
         Recorder recorder = new Recorder();
-        ModelTransform decoder = new LlmOpenaiRequestTransform(true);
+        ModelTransform decoder = new LlmOpenaiRequestTransform(true, ModelEnvelope.NONE);
 
         feed(decoder, recorder, "$.model", "gpt-4o");
         feed(decoder, recorder, "$.stream", "true");
@@ -107,11 +109,37 @@ public class LlmOpenaiRequestTransformTest
     public void shouldNotRenameNestedFieldResemblingTopLevelName()
     {
         Recorder recorder = new Recorder();
-        ModelTransform decoder = new LlmOpenaiRequestTransform(true);
+        ModelTransform decoder = new LlmOpenaiRequestTransform(true, ModelEnvelope.NONE);
 
         feed(decoder, recorder, "$.tools[0].function.parameters.n", "1");
 
         assertThat(recorder.events, equalTo(List.of("$.tools[0].function.parameters.n=1")));
+    }
+
+    @Test
+    public void shouldExtractModelIntoEnvelope()
+    {
+        Recorder recorder = new Recorder();
+        TestModelEnvelope envelope = new TestModelEnvelope();
+        ModelTransform decoder = new LlmOpenaiRequestTransform(true, envelope);
+
+        feed(decoder, recorder, "$.model", "gpt-4o");
+
+        assertThat(recorder.events, equalTo(List.of("$.model=gpt-4o")));
+        DirectBufferEx extracted = envelope.get("model", 0);
+        assertThat(extracted.getStringWithoutLengthUtf8(0, extracted.capacity()), equalTo("gpt-4o"));
+    }
+
+    @Test
+    public void shouldNotExtractNestedFieldNamedModel()
+    {
+        Recorder recorder = new Recorder();
+        TestModelEnvelope envelope = new TestModelEnvelope();
+        ModelTransform decoder = new LlmOpenaiRequestTransform(true, envelope);
+
+        feed(decoder, recorder, "$.tools[0].function.model", "should-not-be-extracted");
+
+        assertThat(envelope.get("model", 0), nullValue());
     }
 
     private static void feed(

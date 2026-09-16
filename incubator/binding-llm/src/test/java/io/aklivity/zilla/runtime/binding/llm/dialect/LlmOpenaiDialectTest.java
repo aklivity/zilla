@@ -24,7 +24,6 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.ServiceLoader;
 import java.util.function.Supplier;
@@ -134,33 +133,5 @@ public class LlmOpenaiDialectTest
         String text)
     {
         return new UnsafeBufferEx(text.getBytes(UTF_8));
-    }
-
-    private static final class TestModelEnvelope implements ModelEnvelope
-    {
-        private final Map<String, DirectBufferEx> valuesByName = new HashMap<>();
-
-        @Override
-        public int count(
-            String name)
-        {
-            return valuesByName.containsKey(name) ? 1 : 0;
-        }
-
-        @Override
-        public DirectBufferEx get(
-            String name,
-            int index)
-        {
-            return index == 0 ? valuesByName.get(name) : null;
-        }
-
-        @Override
-        public void set(
-            String name,
-            DirectBufferEx value)
-        {
-            valuesByName.put(name, value);
-        }
     }
 }
