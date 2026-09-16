@@ -24,9 +24,16 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
+import java.io.InputStream;
+import java.net.URL;
 import java.util.Map;
 import java.util.ServiceLoader;
 import java.util.function.Supplier;
+
+import jakarta.json.Json;
+import jakarta.json.JsonArray;
+import jakarta.json.JsonObject;
+import jakarta.json.JsonReader;
 
 import org.junit.Test;
 
@@ -141,6 +148,47 @@ public class LlmOpenaiDialectTest
             assertThat(dialect.supplyEncoder(kind, ModelEnvelope.NONE), not(nullValue()));
             assertThat(dialect.supplyDecoder(kind, ModelEnvelope.NONE).identity(), is(false));
             assertThat(dialect.supplyEncoder(kind, ModelEnvelope.NONE).identity(), is(false));
+        }
+    }
+
+    @Test
+    public void shouldSupplyRequestSchema() throws Exception
+    {
+        URL schema = factoriesByName.get("openai").schema(LlmDialect.Kind.REQUEST);
+
+        assertThat(schema, not(nullValue()));
+
+        JsonObject root = readSchema(schema);
+        assertThat(root.getString("type"), equalTo("object"));
+        assertThat(root.getJsonArray("required"), equalTo(Json.createArrayBuilder().add("model").add("messages").build()));
+        assertThat(root.getJsonObject("properties").containsKey("model"), is(true));
+        assertThat(root.getJsonObject("properties").containsKey("messages"), is(true));
+        assertThat(root.getJsonObject("properties").containsKey("stream"), is(true));
+    }
+
+    @Test
+    public void shouldSupplyResponseSchema() throws Exception
+    {
+        URL schema = factoriesByName.get("openai").schema(LlmDialect.Kind.RESPONSE);
+
+        assertThat(schema, not(nullValue()));
+
+        JsonObject root = readSchema(schema);
+        assertThat(root.getString("type"), equalTo("object"));
+        assertThat(root.getJsonObject("properties").containsKey("choices"), is(true));
+        assertThat(root.getJsonObject("properties").containsKey("usage"), is(true));
+
+        JsonArray required = root.getJsonArray("required");
+        assertThat(required, nullValue());
+    }
+
+    private static JsonObject readSchema(
+        URL schema) throws Exception
+    {
+        try (InputStream input = schema.openStream();
+            JsonReader reader = Json.createReader(input))
+        {
+            return reader.readObject();
         }
     }
 
