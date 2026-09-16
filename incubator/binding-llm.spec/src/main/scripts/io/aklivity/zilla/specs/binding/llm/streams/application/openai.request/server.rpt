@@ -22,27 +22,16 @@ accepted
 read zilla:begin.ext ${llm:matchBeginEx()
                           .typeId(zilla:id("llm"))
                           .dialect("openai")
+                          .contentType("application/json")
                           .build()}
 
 connected
 
 read "{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}]}"
 
-read advised zilla:flush ${llm:matchFlushEx()
-                               .typeId(zilla:id("llm"))
-                               .raw()
-                                   .choiceIndex(0)
-                                   .typeNull()
-                                   .payloadNull()
-                                   .build()
-                               .build()}
-
 read closed
 
-write zilla:begin.ext ${http:beginEx()
-                           .typeId(zilla:id("http"))
-                           .header(":status", "200")
-                           .build()}
-
 write "response body"
+write flush
+
 write close
