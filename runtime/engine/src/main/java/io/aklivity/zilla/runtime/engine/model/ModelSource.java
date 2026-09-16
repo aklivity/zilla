@@ -38,6 +38,11 @@ public interface ModelSource
 {
     /**
      * The path of the field at the current event, as a JSON path rooted at the value (e.g. {@code $.name}).
+     * <p>
+     * For a {@link ModelEvent#REPLACED} answer's own {@code ModelSource}, this may name a sibling field of
+     * the same enclosing value rather than the original field's own path, redirecting where the substitute
+     * is written -- see {@link ModelEvent#REPLACED}.
+     * </p>
      *
      * @return the field path, or {@code null} at {@link ModelEvent#START_VALUE} and
      *         {@link ModelEvent#END_VALUE}
