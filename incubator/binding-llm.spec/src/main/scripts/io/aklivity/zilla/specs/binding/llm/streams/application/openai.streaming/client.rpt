@@ -31,6 +31,7 @@ write close
 read zilla:begin.ext ${llm:matchBeginEx()
                            .typeId(zilla:id("llm"))
                            .dialect("openai")
+                           .contentType("text/event-stream")
                            .build()}
 
 read "{\"id\":\"chatcmpl_1\",\"model\":\"gpt-4\",\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\"},\"finish_reason\":null}]}"

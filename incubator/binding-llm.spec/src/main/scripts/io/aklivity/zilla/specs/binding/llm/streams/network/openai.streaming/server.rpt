@@ -25,6 +25,7 @@ read zilla:begin.ext ${http:matchBeginEx()
                            .header(":scheme", "http")
                            .header(":authority", "example.com:8080")
                            .header(":path", "/")
+                           .header("content-type", "application/json")
                            .build()}
 
 connected
@@ -36,6 +37,7 @@ read closed
 write zilla:begin.ext ${http:beginEx()
                            .typeId(zilla:id("http"))
                            .header(":status", "200")
+                           .header("content-type", "text/event-stream")
                            .build()}
 
 write "data: {\"id\":\"chatcmpl_1\",\"model\":\"gpt-4\",\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\"},\"finish_reason\":null}]}\n\n"
