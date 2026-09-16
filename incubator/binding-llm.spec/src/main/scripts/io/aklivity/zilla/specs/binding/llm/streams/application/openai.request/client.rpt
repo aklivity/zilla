@@ -21,6 +21,7 @@ write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
                            .dialect("openai")
                            .contentType("application/json")
+                           .model("gpt-4")
                            .build()}
 
 connected
