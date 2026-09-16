@@ -20,6 +20,6 @@ bindings:
     type: llm
     kind: client
     options:
-      dialect: test-sse
+      dialect: test-client-sse
       server: example.com:8080
     exit: net0
