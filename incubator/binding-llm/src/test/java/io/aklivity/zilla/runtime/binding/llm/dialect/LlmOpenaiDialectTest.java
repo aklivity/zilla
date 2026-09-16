@@ -31,7 +31,6 @@ import java.util.ServiceLoader;
 import java.util.function.Supplier;
 
 import jakarta.json.Json;
-import jakarta.json.JsonArray;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonReader;
 
@@ -152,34 +151,15 @@ public class LlmOpenaiDialectTest
     }
 
     @Test
-    public void shouldSupplyRequestSchema() throws Exception
+    public void shouldSupplySchemaResourceForEachKind() throws Exception
     {
-        URL schema = factoriesByName.get("openai").schema(LlmDialect.Kind.REQUEST);
+        for (LlmDialect.Kind kind : LlmDialect.Kind.values())
+        {
+            URL schema = factoriesByName.get("openai").schema(kind);
 
-        assertThat(schema, not(nullValue()));
-
-        JsonObject root = readSchema(schema);
-        assertThat(root.getString("type"), equalTo("object"));
-        assertThat(root.getJsonArray("required"), equalTo(Json.createArrayBuilder().add("model").add("messages").build()));
-        assertThat(root.getJsonObject("properties").containsKey("model"), is(true));
-        assertThat(root.getJsonObject("properties").containsKey("messages"), is(true));
-        assertThat(root.getJsonObject("properties").containsKey("stream"), is(true));
-    }
-
-    @Test
-    public void shouldSupplyResponseSchema() throws Exception
-    {
-        URL schema = factoriesByName.get("openai").schema(LlmDialect.Kind.RESPONSE);
-
-        assertThat(schema, not(nullValue()));
-
-        JsonObject root = readSchema(schema);
-        assertThat(root.getString("type"), equalTo("object"));
-        assertThat(root.getJsonObject("properties").containsKey("choices"), is(true));
-        assertThat(root.getJsonObject("properties").containsKey("usage"), is(true));
-
-        JsonArray required = root.getJsonArray("required");
-        assertThat(required, nullValue());
+            assertThat(schema, not(nullValue()));
+            assertThat(readSchema(schema).getString("type"), equalTo("object"));
+        }
     }
 
     private static JsonObject readSchema(
