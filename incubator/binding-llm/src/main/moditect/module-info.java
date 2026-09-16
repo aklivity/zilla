@@ -27,7 +27,8 @@ module io.aklivity.zilla.runtime.binding.llm
         with io.aklivity.zilla.runtime.binding.llm.internal.LlmBindingFactorySpi;
 
     provides io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectFactorySpi
-        with io.aklivity.zilla.runtime.binding.llm.dialect.LlmOpenaiDialectFactorySpi;
+        with io.aklivity.zilla.runtime.binding.llm.dialect.LlmOpenaiDialectFactorySpi,
+             io.aklivity.zilla.runtime.binding.llm.dialect.LlmAnthropicDialectFactorySpi;
 
     provides io.aklivity.zilla.runtime.binding.llm.internal.codec.LlmContentCodecSpi
         with io.aklivity.zilla.runtime.binding.llm.internal.codec.LlmSseContentCodecSpi,
