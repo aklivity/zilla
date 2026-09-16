@@ -135,4 +135,24 @@ public class LlmClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.streaming/client",
+        "${net}/anthropic.streaming/server"})
+    public void shouldForwardAnthropicStreamingSameDialect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.nonstreaming/client",
+        "${net}/anthropic.nonstreaming/server"})
+    public void shouldForwardAnthropicNonstreamingSameDialect() throws Exception
+    {
+        k3po.finish();
+    }
 }
