@@ -14,12 +14,12 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.dialect;
 
-import io.aklivity.zilla.runtime.common.json.JsonController;
-import io.aklivity.zilla.runtime.common.json.JsonEvent;
-import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
-import io.aklivity.zilla.runtime.common.json.JsonSink;
-import io.aklivity.zilla.runtime.common.json.JsonSource;
-import io.aklivity.zilla.runtime.common.json.JsonTransform;
+import io.aklivity.zilla.runtime.engine.model.ModelController;
+import io.aklivity.zilla.runtime.engine.model.ModelEvent;
+import io.aklivity.zilla.runtime.engine.model.ModelSink;
+import io.aklivity.zilla.runtime.engine.model.ModelSource;
+import io.aklivity.zilla.runtime.engine.model.ModelStatus;
+import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 
 /**
  * Renames the top-level members of an OpenAI Chat Completions request between OpenAI's native
@@ -31,109 +31,67 @@ import io.aklivity.zilla.runtime.common.json.JsonTransform;
  * <p>
  * Every other top-level member ({@code model}, {@code messages}, {@code tools}, {@code temperature},
  * {@code stream}, {@code stop}, {@code user}, {@code seed}, {@code logprobs}, ...) has no established
- * canonical synonym yet, so it -- and every nested value, at any depth -- is forwarded unchanged. The
- * transform only ever inspects a member key at depth 1 (a direct child of the request object); nothing
- * inside {@code messages}/{@code tools} is read or altered.
+ * canonical synonym yet, so it -- and every nested value, at any depth -- is forwarded unchanged. Matching a
+ * field's full path against this table's top-level-only entries (e.g. {@code $.max_tokens}) naturally scopes
+ * the rename to a direct member of the request object; a same-named field nested inside {@code messages} or
+ * {@code tools} has a different, non-matching path and is never touched.
  * </p>
  * <p>
  * One instance decodes (native to canonical) or encodes (canonical to native) depending on the direction
- * supplied at construction; a fresh instance backs each {@link LlmDialect#supplyDecoder(LlmDialect.Kind)}/
- * {@link LlmDialect#supplyEncoder(LlmDialect.Kind)} call and is reused document-to-document via
- * {@link #reset()}.
+ * supplied at construction; a fresh instance backs each
+ * {@link LlmDialect#supplyDecoder(LlmDialect.Kind, io.aklivity.zilla.runtime.engine.model.ModelEnvelope)}/
+ * {@link LlmDialect#supplyEncoder(LlmDialect.Kind, io.aklivity.zilla.runtime.engine.model.ModelEnvelope)}
+ * call.
  * </p>
  */
-final class LlmOpenaiRequestTransform implements JsonTransform
+final class LlmOpenaiRequestTransform implements ModelTransform
 {
-    private static final int REQUEST_DEPTH = 1;
-
     private static final String[][] RENAMES =
     {
-        { "max_tokens", "maxOutputTokens" },
-        { "top_p", "topP" },
-        { "n", "choiceCount" },
-        { "presence_penalty", "presencePenalty" },
-        { "frequency_penalty", "frequencyPenalty" },
-        { "top_logprobs", "topLogprobs" },
-        { "tool_choice", "toolChoice" },
-        { "response_format", "responseFormat" },
+        { "$.max_tokens", "$.maxOutputTokens" },
+        { "$.top_p", "$.topP" },
+        { "$.n", "$.choiceCount" },
+        { "$.presence_penalty", "$.presencePenalty" },
+        { "$.frequency_penalty", "$.frequencyPenalty" },
+        { "$.top_logprobs", "$.topLogprobs" },
+        { "$.tool_choice", "$.toolChoice" },
+        { "$.response_format", "$.responseFormat" },
     };
 
     private final boolean toCanonical;
-    private final LlmOpenaiStructuredController structured = new LlmOpenaiStructuredController();
-    private final LlmOpenaiSubstitutedSource renamed = new LlmOpenaiSubstitutedSource();
-
-    private int depth;
+    private final LlmOpenaiSubstitutedSource renamed;
 
     LlmOpenaiRequestTransform(
         boolean toCanonical)
     {
         this.toCanonical = toCanonical;
+        this.renamed = new LlmOpenaiSubstitutedSource();
     }
 
     @Override
-    public void reset()
+    public ModelStatus transform(
+        ModelController control,
+        ModelSource source,
+        ModelEvent event,
+        ModelSink sink)
     {
-        depth = 0;
-    }
-
-    @Override
-    public Status transform(
-        JsonController control,
-        JsonSource source,
-        JsonEvent event,
-        JsonSink sink)
-    {
-        final JsonController upstream = structured.wrap(control);
-        final Status status;
-        switch (event)
+        final ModelStatus status;
+        if (event == ModelEvent.FIELD)
         {
-        case START_OBJECT:
-        case START_ARRAY:
-            status = sink.transform(upstream, source, event);
-            depth++;
-            break;
-        case END_OBJECT:
-        case END_ARRAY:
-            depth--;
-            status = sink.transform(upstream, source, event);
-            break;
-        case KEY_NAME:
-            status = onKey(upstream, source, sink);
-            break;
-        default:
-            status = sink.transform(upstream, source, event);
-            break;
-        }
-        return status;
-    }
-
-    private Status onKey(
-        JsonController control,
-        JsonSource source,
-        JsonSink sink)
-    {
-        final Status status;
-        if (depth == REQUEST_DEPTH && source.deferredBytes())
-        {
-            control.consumed(0);
-            status = Status.STARVED;
-        }
-        else if (depth == REQUEST_DEPTH)
-        {
-            final String rename = rename(source.getStringView());
-            status = rename != null
-                ? sink.transform(control, renamed.wrap(source, rename), JsonEvent.KEY_NAME)
-                : sink.transform(control, source, JsonEvent.KEY_NAME);
+            final String toPath = rename(source.getPath());
+            status = toPath != null
+                ? sink.transform(control, renamed.wrap(toPath, source.getValue()), ModelEvent.REPLACED)
+                : sink.transform(control, source, event);
         }
         else
         {
-            status = sink.transform(control, source, JsonEvent.KEY_NAME);
+            status = sink.transform(control, source, event);
         }
         return status;
     }
 
     private String rename(
-        CharSequence key)
+        String path)
     {
         final int from = toCanonical ? 0 : 1;
         final int to = toCanonical ? 1 : 0;
@@ -141,7 +99,7 @@ final class LlmOpenaiRequestTransform implements JsonTransform
         String match = null;
         for (String[] pair : RENAMES)
         {
-            if (pair[from].contentEquals(key))
+            if (pair[from].equals(path))
             {
                 match = pair[to];
                 break;

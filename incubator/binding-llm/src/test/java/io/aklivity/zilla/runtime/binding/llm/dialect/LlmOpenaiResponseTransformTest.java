@@ -14,154 +14,200 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.dialect;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
-import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
-import io.aklivity.zilla.runtime.common.json.JsonEx;
-import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
-import io.aklivity.zilla.runtime.common.json.JsonPipeline;
-import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
-import io.aklivity.zilla.runtime.common.json.JsonStream;
-import io.aklivity.zilla.runtime.common.json.JsonTransform;
+import io.aklivity.zilla.runtime.engine.model.ModelController;
+import io.aklivity.zilla.runtime.engine.model.ModelEvent;
+import io.aklivity.zilla.runtime.engine.model.ModelSink;
+import io.aklivity.zilla.runtime.engine.model.ModelSource;
+import io.aklivity.zilla.runtime.engine.model.ModelStatus;
+import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 
 public class LlmOpenaiResponseTransformTest
 {
+    private static final ModelController NO_CONTROL = new ModelController()
+    {
+        @Override
+        public long authorization()
+        {
+            return 0L;
+        }
+
+        @Override
+        public void reject(
+            String diagnostic)
+        {
+        }
+    };
+
     @Test
     public void shouldRenameChoiceIndexToCanonical()
     {
-        String nativeJson = "{\"id\":\"chatcmpl-1\",\"object\":\"chat.completion.chunk\",\"created\":1," +
-            "\"model\":\"gpt-4o\",\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\",\"content\":\"Hi\"}," +
-            "\"logprobs\":null,\"finish_reason\":null}]}";
-        String canonicalJson = "{\"id\":\"chatcmpl-1\",\"object\":\"chat.completion.chunk\",\"created\":1," +
-            "\"model\":\"gpt-4o\",\"choices\":[{\"choiceIndex\":0,\"delta\":{\"role\":\"assistant\"," +
-            "\"content\":\"Hi\"},\"logProbability\":null,\"finishReason\":null}]}";
+        Recorder recorder = new Recorder();
+        ModelTransform decoder = new LlmOpenaiResponseTransform(true);
 
-        assertThat(decode(nativeJson), equalTo(canonicalJson));
-        assertThat(encode(canonicalJson), equalTo(nativeJson));
+        feed(decoder, recorder, "$.choices[0].index", "0");
+        feed(decoder, recorder, "$.choices[1].index", "1");
+
+        assertThat(recorder.events, equalTo(List.of(
+            "$.choices[0].choiceIndex=0",
+            "$.choices[1].choiceIndex=1")));
     }
 
     @Test
-    public void shouldSupportMultipleChoicesWhenNGreaterThanOne()
+    public void shouldRenameFinishReasonAndForwardUnmappedValueUnchanged()
     {
-        String nativeJson = "{\"id\":\"chatcmpl-1\",\"choices\":[" +
-            "{\"index\":0,\"delta\":{\"content\":\"a\"},\"finish_reason\":null}," +
-            "{\"index\":1,\"delta\":{\"content\":\"b\"},\"finish_reason\":null}]}";
-        String canonicalJson = "{\"id\":\"chatcmpl-1\",\"choices\":[" +
-            "{\"choiceIndex\":0,\"delta\":{\"content\":\"a\"},\"finishReason\":null}," +
-            "{\"choiceIndex\":1,\"delta\":{\"content\":\"b\"},\"finishReason\":null}]}";
+        Recorder recorder = new Recorder();
+        ModelTransform decoder = new LlmOpenaiResponseTransform(true);
 
-        assertThat(decode(nativeJson), equalTo(canonicalJson));
+        feed(decoder, recorder, "$.choices[0].finish_reason", "stop");
+
+        assertThat(recorder.events, equalTo(List.of("$.choices[0].finishReason=stop")));
     }
 
     @Test
-    public void shouldRemapToolCallsFinishReasonValue()
+    public void shouldRenameFinishReasonAndRemapToolCallsValueToCanonical()
     {
-        String nativeJson = "{\"choices\":[{\"index\":0,\"delta\":{},\"finish_reason\":\"tool_calls\"}]}";
-        String canonicalJson = "{\"choices\":[{\"choiceIndex\":0,\"delta\":{},\"finishReason\":\"tool_call\"}]}";
+        Recorder recorder = new Recorder();
+        ModelTransform decoder = new LlmOpenaiResponseTransform(true);
 
-        assertThat(decode(nativeJson), equalTo(canonicalJson));
-        assertThat(encode(canonicalJson), equalTo(nativeJson));
+        feed(decoder, recorder, "$.choices[0].finish_reason", "tool_calls");
+
+        assertThat(recorder.events, equalTo(List.of("$.choices[0].finishReason=tool_call")));
     }
 
     @Test
-    public void shouldForwardOtherFinishReasonValuesUnchanged()
+    public void shouldRenameFinishReasonAndRemapToolCallValueToNative()
     {
-        String[] values = { "stop", "length", "content_filter" };
-        for (String value : values)
-        {
-            String nativeJson = "{\"choices\":[{\"index\":0,\"delta\":{},\"finish_reason\":\"" + value + "\"}]}";
-            String canonicalJson =
-                "{\"choices\":[{\"choiceIndex\":0,\"delta\":{},\"finishReason\":\"" + value + "\"}]}";
+        Recorder recorder = new Recorder();
+        ModelTransform encoder = new LlmOpenaiResponseTransform(false);
 
-            assertThat(decode(nativeJson), equalTo(canonicalJson));
-            assertThat(encode(canonicalJson), equalTo(nativeJson));
-        }
-    }
+        feed(encoder, recorder, "$.choices[0].finishReason", "tool_call");
 
-    @Test
-    public void shouldPreserveToolCallArgumentFragmentStreamingUnchanged()
-    {
-        String nativeJson = "{\"choices\":[{\"index\":0,\"delta\":{\"tool_calls\":[{\"index\":0," +
-            "\"id\":\"call_1\",\"type\":\"function\",\"function\":{\"name\":\"get_weather\"," +
-            "\"arguments\":\"{\\\"lo\"}}]},\"finish_reason\":null}]}";
-        String canonicalJson = "{\"choices\":[{\"choiceIndex\":0,\"delta\":{\"tool_calls\":[{\"index\":0," +
-            "\"id\":\"call_1\",\"type\":\"function\",\"function\":{\"name\":\"get_weather\"," +
-            "\"arguments\":\"{\\\"lo\"}}]},\"finishReason\":null}]}";
-
-        assertThat(decode(nativeJson), equalTo(canonicalJson));
-        assertThat(encode(canonicalJson), equalTo(nativeJson));
+        assertThat(recorder.events, equalTo(List.of("$.choices[0].finish_reason=tool_calls")));
     }
 
     @Test
     public void shouldRenameUsageFields()
     {
-        String nativeJson = "{\"choices\":[],\"usage\":{\"prompt_tokens\":10,\"completion_tokens\":5," +
-            "\"total_tokens\":15}}";
-        String canonicalJson = "{\"choices\":[],\"usage\":{\"inputTokens\":10,\"outputTokens\":5," +
-            "\"totalTokens\":15}}";
+        Recorder recorder = new Recorder();
+        ModelTransform decoder = new LlmOpenaiResponseTransform(true);
 
-        assertThat(decode(nativeJson), equalTo(canonicalJson));
-        assertThat(encode(canonicalJson), equalTo(nativeJson));
+        feed(decoder, recorder, "$.usage.prompt_tokens", "10");
+        feed(decoder, recorder, "$.usage.completion_tokens", "5");
+        feed(decoder, recorder, "$.usage.total_tokens", "15");
+
+        assertThat(recorder.events, equalTo(List.of(
+            "$.usage.inputTokens=10",
+            "$.usage.outputTokens=5",
+            "$.usage.totalTokens=15")));
     }
 
     @Test
-    public void shouldRoundTripThroughCanonicalWithNoLoss()
+    public void shouldForwardUnknownRootFieldUnchanged()
     {
-        String nativeJson = "{\"id\":\"chatcmpl-1\",\"object\":\"chat.completion.chunk\",\"created\":1," +
-            "\"model\":\"gpt-4o\",\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\"," +
-            "\"tool_calls\":[{\"index\":0,\"id\":\"call_1\",\"type\":\"function\"," +
-            "\"function\":{\"name\":\"get_weather\",\"arguments\":\"{}\"}}]},\"logprobs\":null," +
-            "\"finish_reason\":\"tool_calls\"}],\"usage\":{\"prompt_tokens\":10,\"completion_tokens\":5," +
-            "\"total_tokens\":15}}";
+        Recorder recorder = new Recorder();
+        ModelTransform decoder = new LlmOpenaiResponseTransform(true);
 
-        assertThat(roundTrip(nativeJson), equalTo(nativeJson));
+        feed(decoder, recorder, "$.id", "chatcmpl-1");
+        feed(decoder, recorder, "$.choices[0].delta.role", "assistant");
+
+        assertThat(recorder.events, equalTo(List.of(
+            "$.id=chatcmpl-1",
+            "$.choices[0].delta.role=assistant")));
     }
 
-    private static String decode(
-        String json)
+    @Test
+    public void shouldNotRenameLogprobsSinceItIsContainerValued()
     {
-        return feed(json, new LlmOpenaiResponseTransform(true));
+        Recorder recorder = new Recorder();
+        ModelTransform decoder = new LlmOpenaiResponseTransform(true);
+
+        feed(decoder, recorder, "$.choices[0].logprobs.content", "null");
+
+        assertThat(recorder.events, equalTo(List.of("$.choices[0].logprobs.content=null")));
     }
 
-    private static String encode(
-        String json)
+    @Test
+    public void shouldNotRenameNestedIndexInsideStreamedToolCallDelta()
     {
-        return feed(json, new LlmOpenaiResponseTransform(false));
+        Recorder recorder = new Recorder();
+        ModelTransform decoder = new LlmOpenaiResponseTransform(true);
+
+        feed(decoder, recorder, "$.choices[0].delta.tool_calls[0].index", "0");
+
+        assertThat(recorder.events, equalTo(List.of("$.choices[0].delta.tool_calls[0].index=0")));
     }
 
-    private static String roundTrip(
-        String json)
+    private static void feed(
+        ModelTransform transform,
+        ModelSink sink,
+        String path,
+        String value)
     {
-        return feed(json, new LlmOpenaiResponseTransform(true), new LlmOpenaiResponseTransform(false));
+        transform.transform(NO_CONTROL, new Field(path, value), ModelEvent.FIELD, sink);
     }
 
-    private static String feed(
-        String json,
-        JsonTransform... transforms)
+    private static String text(
+        ModelSource source)
     {
-        final byte[] bytes = json.getBytes(StandardCharsets.UTF_8);
-        final JsonGeneratorEx generator = JsonEx.createGenerator();
-        final MutableDirectBufferEx outBuf = new UnsafeBufferEx(new byte[Math.max(1024, bytes.length * 2)]);
-        generator.wrap(outBuf, 0, outBuf.capacity());
+        DirectBufferEx value = source.getValue();
+        return value.getStringWithoutLengthUtf8(0, value.capacity());
+    }
 
-        JsonStream stream = JsonEx.stream(JsonEx.createParser());
-        for (JsonTransform transform : transforms)
+    private static final class Field implements ModelSource
+    {
+        private final String path;
+        private final DirectBufferEx value;
+
+        private Field(
+            String path,
+            String value)
         {
-            stream = stream.transform(transform);
+            this.path = path;
+            this.value = new UnsafeBufferEx(value.getBytes(UTF_8));
         }
-        final JsonPipeline pipeline = stream.lenient(false).into(JsonEx.createSink(generator));
 
-        final Status status = pipeline.transform(new UnsafeBufferEx(bytes), 0, bytes.length, true);
-        assertThat(status, equalTo(Status.COMPLETED));
+        @Override
+        public String getPath()
+        {
+            return path;
+        }
 
-        final byte[] out = new byte[generator.length()];
-        outBuf.getBytes(0, out);
-        return new String(out, StandardCharsets.UTF_8);
+        @Override
+        public DirectBufferEx getValue()
+        {
+            return value;
+        }
+    }
+
+    private static final class Recorder implements ModelSink
+    {
+        private final List<String> events = new ArrayList<>();
+
+        @Override
+        public ModelStatus transform(
+            ModelController control,
+            ModelSource source,
+            ModelEvent event)
+        {
+            events.add(source.getPath() + "=" + text(source));
+            return ModelStatus.OK;
+        }
+
+        @Override
+        public boolean identity()
+        {
+            return false;
+        }
     }
 }
