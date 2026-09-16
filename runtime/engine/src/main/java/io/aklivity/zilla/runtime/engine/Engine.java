@@ -419,7 +419,7 @@ public final class Engine implements Collector, AutoCloseable
 
         try
         {
-            boss.detachAll();
+            boss.detachAllNow();
         }
         catch (Throwable ex)
         {
