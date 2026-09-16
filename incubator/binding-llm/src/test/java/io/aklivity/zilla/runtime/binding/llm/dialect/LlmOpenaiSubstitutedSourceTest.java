@@ -14,80 +14,42 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.dialect;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.sameInstance;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import java.math.BigDecimal;
-
-import jakarta.json.stream.JsonLocation;
 
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
-import io.aklivity.zilla.runtime.common.json.JsonSource;
-import io.aklivity.zilla.runtime.common.json.JsonVerbatim;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public class LlmOpenaiSubstitutedSourceTest
 {
-    private final JsonSource delegate = mock(JsonSource.class);
     private final LlmOpenaiSubstitutedSource source = new LlmOpenaiSubstitutedSource();
 
     @Test
-    public void shouldReturnSubstitutedTextInsteadOfDelegateText()
+    public void shouldExposeWrappedPathAndValue()
     {
-        source.wrap(delegate, "substituted");
+        DirectBufferEx value = new UnsafeBufferEx("256".getBytes(UTF_8));
 
-        assertThat(source.getString(), equalTo("substituted"));
-        assertThat(source.getStringView(), equalTo("substituted"));
+        LlmOpenaiSubstitutedSource wrapped = source.wrap("$.maxOutputTokens", value);
+
+        assertThat(wrapped, sameInstance(source));
+        assertThat(source.getPath(), equalTo("$.maxOutputTokens"));
+        assertThat(source.getValue(), sameInstance(value));
     }
 
     @Test
-    public void shouldDelegateNumericAccessors()
+    public void shouldRewrapForEachSubstitutedField()
     {
-        BigDecimal decimal = BigDecimal.TEN;
-        when(delegate.getBigDecimal()).thenReturn(decimal);
-        when(delegate.isIntegralNumber()).thenReturn(true);
-        when(delegate.getInt()).thenReturn(42);
-        when(delegate.getLong()).thenReturn(42L);
+        DirectBufferEx first = new UnsafeBufferEx("256".getBytes(UTF_8));
+        DirectBufferEx second = new UnsafeBufferEx("0.9".getBytes(UTF_8));
 
-        source.wrap(delegate, "ignored");
+        source.wrap("$.maxOutputTokens", first);
+        source.wrap("$.topP", second);
 
-        assertThat(source.getBigDecimal(), sameInstance(decimal));
-        assertThat(source.isIntegralNumber(), equalTo(true));
-        assertThat(source.getInt(), equalTo(42));
-        assertThat(source.getLong(), equalTo(42L));
-    }
-
-    @Test
-    public void shouldDelegateLocationSegmentVerbatimAndDeferred()
-    {
-        JsonLocation location = mock(JsonLocation.class);
-        DirectBufferEx segment = mock(DirectBufferEx.class);
-        JsonVerbatim verbatim = mock(JsonVerbatim.class);
-        when(delegate.getLocation()).thenReturn(location);
-        when(delegate.getSegment()).thenReturn(segment);
-        when(delegate.getVerbatim(64)).thenReturn(verbatim);
-        when(delegate.deferredBytes()).thenReturn(true);
-
-        source.wrap(delegate, "ignored");
-
-        assertThat(source.getLocation(), sameInstance(location));
-        assertThat(source.getSegment(), sameInstance(segment));
-        assertThat(source.getVerbatim(64), sameInstance(verbatim));
-        assertThat(source.deferredBytes(), equalTo(true));
-    }
-
-    @Test
-    public void shouldDelegateSkipValue()
-    {
-        source.wrap(delegate, "ignored");
-
-        source.skipValue();
-
-        verify(delegate).skipValue();
+        assertThat(source.getPath(), equalTo("$.topP"));
+        assertThat(source.getValue(), sameInstance(second));
     }
 }

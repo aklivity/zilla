@@ -14,102 +14,41 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.dialect;
 
-import java.math.BigDecimal;
-
-import jakarta.json.stream.JsonLocation;
-
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
-import io.aklivity.zilla.runtime.common.json.JsonSource;
-import io.aklivity.zilla.runtime.common.json.JsonVerbatim;
+import io.aklivity.zilla.runtime.engine.model.ModelSource;
 
 /**
- * Wraps a {@link JsonSource} to substitute the text of the current scalar token -- an object key or a string
- * value -- with a different literal, so an OpenAI dialect transform can rename a key or remap a value by
- * handing the sink this view rather than re-serializing the surrounding document by hand. Every other
- * accessor delegates to the wrapped source unchanged.
+ * The {@link ModelSource} an OpenAI dialect transform hands its {@code sink} to answer
+ * {@link io.aklivity.zilla.runtime.engine.model.ModelEvent#REPLACED} -- a substitute path (renaming a field
+ * to its sibling synonym), a substitute value (remapping a known enumerated value), or both at once.
  * <p>
- * One instance is held per transform and rewrapped once per substituted event via {@link #wrap(JsonSource,
- * String)}; it is never retained beyond the current {@code transform} call.
+ * One instance is held per transform and rewrapped once per substituted field via
+ * {@link #wrap(String, DirectBufferEx)}; it is never retained beyond the current {@code transform} call.
  * </p>
  */
-final class LlmOpenaiSubstitutedSource implements JsonSource
+final class LlmOpenaiSubstitutedSource implements ModelSource
 {
-    private JsonSource delegate;
-    private String text;
+    private String path;
+    private DirectBufferEx value;
 
     LlmOpenaiSubstitutedSource wrap(
-        JsonSource delegate,
-        String text)
+        String path,
+        DirectBufferEx value)
     {
-        this.delegate = delegate;
-        this.text = text;
+        this.path = path;
+        this.value = value;
         return this;
     }
 
     @Override
-    public String getString()
+    public String getPath()
     {
-        return text;
+        return path;
     }
 
     @Override
-    public CharSequence getStringView()
+    public DirectBufferEx getValue()
     {
-        return text;
-    }
-
-    @Override
-    public BigDecimal getBigDecimal()
-    {
-        return delegate.getBigDecimal();
-    }
-
-    @Override
-    public boolean isIntegralNumber()
-    {
-        return delegate.isIntegralNumber();
-    }
-
-    @Override
-    public int getInt()
-    {
-        return delegate.getInt();
-    }
-
-    @Override
-    public long getLong()
-    {
-        return delegate.getLong();
-    }
-
-    @Override
-    public JsonLocation getLocation()
-    {
-        return delegate.getLocation();
-    }
-
-    @Override
-    public DirectBufferEx getSegment()
-    {
-        return delegate.getSegment();
-    }
-
-    @Override
-    public JsonVerbatim getVerbatim(
-        int limit)
-    {
-        return delegate.getVerbatim(limit);
-    }
-
-    @Override
-    public void skipValue()
-    {
-        delegate.skipValue();
-    }
-
-    @Override
-    public boolean deferredBytes()
-    {
-        return delegate.deferredBytes();
+        return value;
     }
 }

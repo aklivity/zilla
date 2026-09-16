@@ -14,58 +14,66 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.dialect;
 
-import io.aklivity.zilla.runtime.common.json.JsonController;
-import io.aklivity.zilla.runtime.common.json.JsonEvent;
-import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
-import io.aklivity.zilla.runtime.common.json.JsonSink;
-import io.aklivity.zilla.runtime.common.json.JsonSource;
-import io.aklivity.zilla.runtime.common.json.JsonTransform;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.engine.model.ModelController;
+import io.aklivity.zilla.runtime.engine.model.ModelEvent;
+import io.aklivity.zilla.runtime.engine.model.ModelSink;
+import io.aklivity.zilla.runtime.engine.model.ModelSource;
+import io.aklivity.zilla.runtime.engine.model.ModelStatus;
+import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 
 /**
  * Renames a handful of OpenAI Chat Completions streaming-chunk members between OpenAI's native field names
- * and the canonical vocabulary this dialect defines a synonym for, at two fixed nesting depths relative to
- * the chunk's root object:
+ * and the canonical vocabulary this dialect defines a synonym for, matched by each field's own full path:
  * <ul>
- * <li>Depth 3 -- a direct member of one {@code choices[]} element -- renames {@code index}/{@code
- * choiceIndex} (the design's canonical vocabulary names this {@code choiceIndex} precisely so multiple
- * choices, {@code n > 1}, carry an unambiguous index rather than relying on array position),
- * {@code logprobs}/{@code logProbability}, and {@code finish_reason}/{@code finishReason} -- the last also
- * remapping its {@code "tool_calls"}/{@code "tool_call"} value (every other value, {@code stop}/{@code
- * length}/{@code content_filter}, is already identical in both vocabularies).</li>
- * <li>Depth 2 -- a direct member of the {@code usage} object -- renames {@code prompt_tokens}/{@code
- * inputTokens}, {@code completion_tokens}/{@code outputTokens}, {@code total_tokens}/{@code totalTokens}.</li>
+ * <li>A direct member of one {@code choices[]} element -- e.g. {@code $.choices[0].index} -- renames
+ * {@code index}/{@code choiceIndex} (the design's canonical vocabulary names this {@code choiceIndex}
+ * precisely so multiple choices, {@code n > 1}, carry an unambiguous index rather than relying on array
+ * position) and {@code finish_reason}/{@code finishReason} -- the latter also remapping its
+ * {@code "tool_calls"}/{@code "tool_call"} value (every other value, {@code stop}/{@code length}/
+ * {@code content_filter}, is already identical in both vocabularies).</li>
+ * <li>A direct member of the {@code usage} object -- e.g. {@code $.usage.prompt_tokens} -- renames
+ * {@code prompt_tokens}/{@code inputTokens}, {@code completion_tokens}/{@code outputTokens},
+ * {@code total_tokens}/{@code totalTokens}.</li>
  * </ul>
- * Both depths are unambiguous without tracking the enclosing container's identity: an array element (a
- * {@code choices[]} entry included) never itself emits a {@link JsonEvent#KEY_NAME}, so any key seen at
- * depth 2 belongs to {@code usage} and any key at depth 3 belongs to a choice.
+ * Matching the field's full path, rather than tracking nesting depth, disambiguates a same-named field
+ * nested deeper -- e.g. a streamed {@code delta.tool_calls[].index} entry has path
+ * {@code $.choices[0].delta.tool_calls[0].index}, which is not a direct {@code choices[]} member and is
+ * left untouched.
  * <p>
  * Everything else -- {@code id}, {@code object}, {@code created}, {@code model} at the root; {@code role},
- * {@code content} and the whole {@code tool_calls[]} structure (including each entry's streamed {@code
- * function.arguments} fragment) inside {@code delta}; the {@code logprobs} object's own contents -- has no
- * established canonical synonym yet and is forwarded unchanged, at any depth.
+ * {@code content} and the whole {@code tool_calls[]} structure (including each entry's streamed
+ * {@code function.arguments} fragment) inside {@code delta} -- has no established canonical synonym yet and
+ * is forwarded unchanged, at any depth. The {@code logprobs} member of a choice is likewise left unrenamed:
+ * its value is an object, and renaming its key without touching its contents would require redirecting a
+ * container-valued field, which this dialect's field-by-field, scalar-value-oriented transform contract does
+ * not support.
  * </p>
  * <p>
  * One instance decodes (native to canonical) or encodes (canonical to native) depending on the direction
- * supplied at construction; a fresh instance backs each {@link LlmDialect#supplyDecoder(LlmDialect.Kind)}/
- * {@link LlmDialect#supplyEncoder(LlmDialect.Kind)} call and is reused document-to-document via
- * {@link #reset()}.
+ * supplied at construction; a fresh instance backs each
+ * {@link LlmDialect#supplyDecoder(LlmDialect.Kind, io.aklivity.zilla.runtime.engine.model.ModelEnvelope)}/
+ * {@link LlmDialect#supplyEncoder(LlmDialect.Kind, io.aklivity.zilla.runtime.engine.model.ModelEnvelope)}
+ * call.
  * </p>
  * <p>
  * The literal {@code [DONE]} sentinel that terminates an OpenAI stream is not JSON and never reaches this
  * transform -- the same-dialect path this backs forwards the raw SSE payload bytes without ever routing them
- * through a JSON pipeline; only a genuine JSON document reaches {@link #transform}.
+ * through a model pipeline; only a genuine JSON document reaches {@link #transform}.
  * </p>
  */
-final class LlmOpenaiResponseTransform implements JsonTransform
+final class LlmOpenaiResponseTransform implements ModelTransform
 {
-    private static final int USAGE_DEPTH = 2;
-    private static final int CHOICE_DEPTH = 3;
+    private static final String CHOICES_PREFIX = "$.choices[";
+    private static final String USAGE_PREFIX = "$.usage.";
 
     private static final String[][] CHOICE_RENAMES =
     {
         { "index", "choiceIndex" },
         { "finish_reason", "finishReason" },
-        { "logprobs", "logProbability" },
     };
 
     private static final String[][] USAGE_RENAMES =
@@ -75,153 +83,167 @@ final class LlmOpenaiResponseTransform implements JsonTransform
         { "total_tokens", "totalTokens" },
     };
 
-    private static final String[][] FINISH_REASON_VALUES =
-    {
-        { "tool_calls", "tool_call" },
-    };
-
     private static final String FINISH_REASON_NATIVE = "finish_reason";
     private static final String FINISH_REASON_CANONICAL = "finishReason";
+    private static final String FINISH_REASON_VALUE_NATIVE = "tool_calls";
+    private static final String FINISH_REASON_VALUE_CANONICAL = "tool_call";
 
     private final boolean toCanonical;
-    private final LlmOpenaiStructuredController structured = new LlmOpenaiStructuredController();
-    private final LlmOpenaiSubstitutedSource renamed = new LlmOpenaiSubstitutedSource();
-
-    private int depth;
-    private boolean finishReasonValuePending;
+    private final LlmOpenaiSubstitutedSource renamed;
+    private final UnsafeBufferEx nativeFinishReasonValue;
+    private final UnsafeBufferEx canonicalFinishReasonValue;
 
     LlmOpenaiResponseTransform(
         boolean toCanonical)
     {
         this.toCanonical = toCanonical;
+        this.renamed = new LlmOpenaiSubstitutedSource();
+        this.nativeFinishReasonValue = new UnsafeBufferEx(FINISH_REASON_VALUE_NATIVE.getBytes(UTF_8));
+        this.canonicalFinishReasonValue = new UnsafeBufferEx(FINISH_REASON_VALUE_CANONICAL.getBytes(UTF_8));
     }
 
     @Override
-    public void reset()
+    public ModelStatus transform(
+        ModelController control,
+        ModelSource source,
+        ModelEvent event,
+        ModelSink sink)
     {
-        depth = 0;
-        finishReasonValuePending = false;
-    }
-
-    @Override
-    public Status transform(
-        JsonController control,
-        JsonSource source,
-        JsonEvent event,
-        JsonSink sink)
-    {
-        final JsonController upstream = structured.wrap(control);
-        final Status status;
-        switch (event)
+        final ModelStatus status;
+        if (event == ModelEvent.FIELD)
         {
-        case START_OBJECT:
-        case START_ARRAY:
-            status = sink.transform(upstream, source, event);
-            depth++;
-            break;
-        case END_OBJECT:
-        case END_ARRAY:
-            depth--;
-            status = sink.transform(upstream, source, event);
-            break;
-        case KEY_NAME:
-            status = onKey(upstream, source, sink);
-            break;
-        case VALUE_STRING:
-            status = onValueString(upstream, source, sink);
-            break;
-        default:
-            finishReasonValuePending = false;
-            status = sink.transform(upstream, source, event);
-            break;
+            status = onField(control, source, sink);
+        }
+        else
+        {
+            status = sink.transform(control, source, event);
         }
         return status;
     }
 
-    private Status onKey(
-        JsonController control,
-        JsonSource source,
-        JsonSink sink)
+    private ModelStatus onField(
+        ModelController control,
+        ModelSource source,
+        ModelSink sink)
     {
-        final String[][] table = renamesAtDepth(depth);
-        final Status status;
-        if (table != null && source.deferredBytes())
-        {
-            control.consumed(0);
-            status = Status.STARVED;
-        }
-        else if (table != null)
-        {
-            final CharSequence key = source.getStringView();
-            finishReasonValuePending = depth == CHOICE_DEPTH && isFinishReasonKey(key);
+        final String path = source.getPath();
+        final String choiceMember = choiceMember(path);
+        final String usageMember = choiceMember == null ? usageMember(path) : null;
 
-            final String rename = rename(table, key);
-            status = rename != null
-                ? sink.transform(control, renamed.wrap(source, rename), JsonEvent.KEY_NAME)
-                : sink.transform(control, source, JsonEvent.KEY_NAME);
+        final ModelStatus status;
+        if (choiceMember != null)
+        {
+            status = onChoiceMember(control, source, choiceMember, sink);
+        }
+        else if (usageMember != null)
+        {
+            final String toName = rename(USAGE_RENAMES, usageMember);
+            status = toName != null
+                ? sink.transform(control, renamed.wrap(USAGE_PREFIX + toName, source.getValue()), ModelEvent.REPLACED)
+                : sink.transform(control, source, ModelEvent.FIELD);
         }
         else
         {
-            finishReasonValuePending = false;
-            status = sink.transform(control, source, JsonEvent.KEY_NAME);
+            status = sink.transform(control, source, ModelEvent.FIELD);
         }
         return status;
     }
 
-    private Status onValueString(
-        JsonController control,
-        JsonSource source,
-        JsonSink sink)
+    private ModelStatus onChoiceMember(
+        ModelController control,
+        ModelSource source,
+        String member,
+        ModelSink sink)
     {
-        final Status status;
-        if (finishReasonValuePending && source.deferredBytes())
+        final String path = source.getPath();
+        final String basePath = path.substring(0, path.length() - member.length());
+        final String toName = rename(CHOICE_RENAMES, member);
+        final boolean finishReason = (toCanonical ? FINISH_REASON_NATIVE : FINISH_REASON_CANONICAL).equals(member);
+
+        final ModelStatus status;
+        if (finishReason)
         {
-            control.consumed(0);
-            status = Status.STARVED;
+            status = onFinishReason(control, source, basePath, toName, sink);
         }
-        else if (finishReasonValuePending)
+        else if (toName != null)
         {
-            finishReasonValuePending = false;
-            final String rename = rename(FINISH_REASON_VALUES, source.getStringView());
-            status = rename != null
-                ? sink.transform(control, renamed.wrap(source, rename), JsonEvent.VALUE_STRING)
-                : sink.transform(control, source, JsonEvent.VALUE_STRING);
+            status = sink.transform(control, renamed.wrap(basePath + toName, source.getValue()), ModelEvent.REPLACED);
         }
         else
         {
-            status = sink.transform(control, source, JsonEvent.VALUE_STRING);
+            status = sink.transform(control, source, ModelEvent.FIELD);
         }
         return status;
     }
 
-    private String[][] renamesAtDepth(
-        int depth)
+    private ModelStatus onFinishReason(
+        ModelController control,
+        ModelSource source,
+        String basePath,
+        String toName,
+        ModelSink sink)
     {
-        final String[][] table;
-        if (depth == CHOICE_DEPTH)
+        final DirectBufferEx value = source.getValue();
+        final String text = value.getStringWithoutLengthUtf8(0, value.capacity());
+        final boolean remapValue = (toCanonical ? FINISH_REASON_VALUE_NATIVE : FINISH_REASON_VALUE_CANONICAL).equals(text);
+
+        final ModelStatus status;
+        if (toName != null || remapValue)
         {
-            table = CHOICE_RENAMES;
-        }
-        else if (depth == USAGE_DEPTH)
-        {
-            table = USAGE_RENAMES;
+            final String toPath = toName != null ? basePath + toName : source.getPath();
+            final DirectBufferEx toValue = remapValue
+                ? toCanonical ? canonicalFinishReasonValue : nativeFinishReasonValue
+                : value;
+            status = sink.transform(control, renamed.wrap(toPath, toValue), ModelEvent.REPLACED);
         }
         else
         {
-            table = null;
+            status = sink.transform(control, source, ModelEvent.FIELD);
         }
-        return table;
+        return status;
     }
 
-    private boolean isFinishReasonKey(
-        CharSequence key)
+    // checks the direct-member shape (no further '.'/'[' past the candidate start) using indexOf(int,
+    // int) against the original path before ever substring()-ing it, so the many deeply-nested fields
+    // that share this prefix but aren't direct members (delta.tool_calls[].index and the like) cost no
+    // allocation -- only a genuine direct member (a handful of names per element) pays for its own String
+    private static String choiceMember(
+        String path)
     {
-        return (toCanonical ? FINISH_REASON_NATIVE : FINISH_REASON_CANONICAL).contentEquals(key);
+        String member = null;
+        if (path.startsWith(CHOICES_PREFIX))
+        {
+            final int bracket = path.indexOf(']', CHOICES_PREFIX.length());
+            if (bracket != -1 && path.length() > bracket + 2 && path.charAt(bracket + 1) == '.')
+            {
+                final int from = bracket + 2;
+                if (path.indexOf('.', from) == -1 && path.indexOf('[', from) == -1)
+                {
+                    member = path.substring(from);
+                }
+            }
+        }
+        return member;
+    }
+
+    private static String usageMember(
+        String path)
+    {
+        String member = null;
+        if (path.startsWith(USAGE_PREFIX))
+        {
+            final int from = USAGE_PREFIX.length();
+            if (path.indexOf('.', from) == -1 && path.indexOf('[', from) == -1)
+            {
+                member = path.substring(from);
+            }
+        }
+        return member;
     }
 
     private String rename(
         String[][] table,
-        CharSequence key)
+        String key)
     {
         final int from = toCanonical ? 0 : 1;
         final int to = toCanonical ? 1 : 0;
@@ -229,7 +251,7 @@ final class LlmOpenaiResponseTransform implements JsonTransform
         String match = null;
         for (String[] pair : table)
         {
-            if (pair[from].contentEquals(key))
+            if (pair[from].equals(key))
             {
                 match = pair[to];
                 break;

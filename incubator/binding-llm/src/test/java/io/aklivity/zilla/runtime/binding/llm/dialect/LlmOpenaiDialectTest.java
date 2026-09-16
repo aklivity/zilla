@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.dialect;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toMap;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -22,14 +23,17 @@ import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.ServiceLoader;
 import java.util.function.Supplier;
 
 import org.junit.Test;
+
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 
 public class LlmOpenaiDialectTest
 {
@@ -55,110 +59,51 @@ public class LlmOpenaiDialectTest
     }
 
     @Test
-    public void shouldResolveRequestContentTypeAsJsonRegardlessOfStreamFlag()
-    {
-        LlmDialect dialect = new LlmOpenaiDialect();
-        HttpRequestBody streaming = mock(HttpRequestBody.class);
-        when(streaming.value("stream")).thenReturn("true");
-
-        assertThat(dialect.contentType(LlmDialect.Kind.REQUEST, null, null), equalTo("application/json"));
-        assertThat(dialect.contentType(LlmDialect.Kind.REQUEST, null, streaming), equalTo("application/json"));
-    }
-
-    @Test
-    public void shouldResolveResponseContentTypeAsSseWhenStreaming()
-    {
-        LlmDialect dialect = new LlmOpenaiDialect();
-        HttpRequestBody body = mock(HttpRequestBody.class);
-        when(body.value("stream")).thenReturn("true");
-
-        assertThat(dialect.contentType(LlmDialect.Kind.RESPONSE, null, body), equalTo("text/event-stream"));
-    }
-
-    @Test
-    public void shouldResolveResponseContentTypeAsJsonWhenNotStreaming()
-    {
-        LlmDialect dialect = new LlmOpenaiDialect();
-        HttpRequestBody body = mock(HttpRequestBody.class);
-        when(body.value("stream")).thenReturn("false");
-
-        assertThat(dialect.contentType(LlmDialect.Kind.RESPONSE, null, body), equalTo("application/json"));
-    }
-
-    @Test
-    public void shouldResolveResponseContentTypeAsJsonWhenBodyUnavailable()
-    {
-        LlmDialect dialect = new LlmOpenaiDialect();
-
-        assertThat(dialect.contentType(LlmDialect.Kind.RESPONSE, null, null), equalTo("application/json"));
-    }
-
-    @Test
     public void shouldDetectChatCompletionsPost()
     {
         LlmDialect dialect = new LlmOpenaiDialect();
-        HttpHeaders headers = mock(HttpHeaders.class);
-        when(headers.header(":method")).thenReturn("POST");
 
-        assertThat(dialect.detect("/v1/chat/completions", headers), is(true));
+        assertThat(dialect.detect(headers("POST", "/v1/chat/completions")), is(true));
     }
 
     @Test
     public void shouldDetectCompletionsPost()
     {
         LlmDialect dialect = new LlmOpenaiDialect();
-        HttpHeaders headers = mock(HttpHeaders.class);
-        when(headers.header(":method")).thenReturn("POST");
 
-        assertThat(dialect.detect("/v1/completions", headers), is(true));
+        assertThat(dialect.detect(headers("POST", "/v1/completions")), is(true));
     }
 
     @Test
     public void shouldDetectRegardlessOfMethodCase()
     {
         LlmDialect dialect = new LlmOpenaiDialect();
-        HttpHeaders headers = mock(HttpHeaders.class);
-        when(headers.header(":method")).thenReturn("post");
 
-        assertThat(dialect.detect("/v1/chat/completions", headers), is(true));
+        assertThat(dialect.detect(headers("post", "/v1/chat/completions")), is(true));
     }
 
     @Test
     public void shouldNotDetectUnrecognizedPath()
     {
         LlmDialect dialect = new LlmOpenaiDialect();
-        HttpHeaders headers = mock(HttpHeaders.class);
-        when(headers.header(":method")).thenReturn("POST");
 
-        assertThat(dialect.detect("/v1/embeddings", headers), is(false));
+        assertThat(dialect.detect(headers("POST", "/v1/embeddings")), is(false));
     }
 
     @Test
     public void shouldNotDetectNonPostMethod()
     {
         LlmDialect dialect = new LlmOpenaiDialect();
-        HttpHeaders headers = mock(HttpHeaders.class);
-        when(headers.header(":method")).thenReturn("GET");
 
-        assertThat(dialect.detect("/v1/chat/completions", headers), is(false));
+        assertThat(dialect.detect(headers("GET", "/v1/chat/completions")), is(false));
     }
 
     @Test
-    public void shouldNotDetectWithNullHeaders()
+    public void shouldNotDetectWithEmptyHeaders()
     {
         LlmDialect dialect = new LlmOpenaiDialect();
 
-        assertThat(dialect.detect("/v1/chat/completions", null), is(false));
-    }
-
-    @Test
-    public void shouldNotDetectWithNullPath()
-    {
-        LlmDialect dialect = new LlmOpenaiDialect();
-        HttpHeaders headers = mock(HttpHeaders.class);
-        when(headers.header(":method")).thenReturn("POST");
-
-        assertThat(dialect.detect(null, headers), is(false));
+        assertThat(dialect.detect(ModelEnvelope.NONE), is(false));
     }
 
     @Test
@@ -168,10 +113,54 @@ public class LlmOpenaiDialectTest
 
         for (LlmDialect.Kind kind : LlmDialect.Kind.values())
         {
-            assertThat(dialect.supplyDecoder(kind), not(nullValue()));
-            assertThat(dialect.supplyEncoder(kind), not(nullValue()));
-            assertThat(dialect.supplyDecoder(kind).identity(), is(false));
-            assertThat(dialect.supplyEncoder(kind).identity(), is(false));
+            assertThat(dialect.supplyDecoder(kind, ModelEnvelope.NONE), not(nullValue()));
+            assertThat(dialect.supplyEncoder(kind, ModelEnvelope.NONE), not(nullValue()));
+            assertThat(dialect.supplyDecoder(kind, ModelEnvelope.NONE).identity(), is(false));
+            assertThat(dialect.supplyEncoder(kind, ModelEnvelope.NONE).identity(), is(false));
+        }
+    }
+
+    private static ModelEnvelope headers(
+        String method,
+        String path)
+    {
+        TestModelEnvelope envelope = new TestModelEnvelope();
+        envelope.set(":method", value(method));
+        envelope.set(":path", value(path));
+        return envelope;
+    }
+
+    private static DirectBufferEx value(
+        String text)
+    {
+        return new UnsafeBufferEx(text.getBytes(UTF_8));
+    }
+
+    private static final class TestModelEnvelope implements ModelEnvelope
+    {
+        private final Map<String, DirectBufferEx> valuesByName = new HashMap<>();
+
+        @Override
+        public int count(
+            String name)
+        {
+            return valuesByName.containsKey(name) ? 1 : 0;
+        }
+
+        @Override
+        public DirectBufferEx get(
+            String name,
+            int index)
+        {
+            return index == 0 ? valuesByName.get(name) : null;
+        }
+
+        @Override
+        public void set(
+            String name,
+            DirectBufferEx value)
+        {
+            valuesByName.put(name, value);
         }
     }
 }
