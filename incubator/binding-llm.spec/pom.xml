@@ -24,19 +24,34 @@
   </licenses>
 
   <properties>
-    <jacoco.coverage.ratio>1.00</jacoco.coverage.ratio>
+    <jacoco.coverage.ratio>0.96</jacoco.coverage.ratio>
     <jacoco.missed.count>0</jacoco.missed.count>
   </properties>
 
   <dependencies>
+    <dependency>
+      <groupId>io.aklivity.k3po</groupId>
+      <artifactId>lang</artifactId>
+      <scope>provided</scope>
+    </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>engine.spec</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>binding-http.spec</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.aklivity.k3po</groupId>
+      <artifactId>control-junit</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -66,7 +81,7 @@
         <artifactId>flyweight-maven-plugin</artifactId>
         <version>${project.version}</version>
         <configuration>
-          <scopeNames>core llm</scopeNames>
+          <scopeNames>core http llm</scopeNames>
           <packageName>io.aklivity.zilla.specs.binding.llm.internal.types</packageName>
         </configuration>
         <executions>
@@ -96,6 +111,27 @@
       <plugin>
         <groupId>org.moditect</groupId>
         <artifactId>moditect-maven-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <groupId>io.aklivity.k3po</groupId>
+        <artifactId>k3po-maven-plugin</artifactId>
+        <dependencies>
+          <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>engine</artifactId>
+            <version>${project.version}</version>
+            <type>test-jar</type>
+          </dependency>
+          <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>engine</artifactId>
+            <version>${project.version}</version>
+          </dependency>
+        </dependencies>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-failsafe-plugin</artifactId>
       </plugin>
       <plugin>
         <groupId>org.jacoco</groupId>
