@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.util.function.LongUnaryOperator;
 
@@ -76,6 +77,10 @@ public final class LlmClientFactory implements LlmStreamFactory
     // no per-dialect request path is modeled yet (LlmOptionsConfig / llm.idl carry no such field);
     // this fixed placeholder stands in until that config surface exists
     private static final String PATH_DEFAULT = "/";
+
+    // the literal SSE data value OpenAI (and other dialects following its convention) sends to terminate a
+    // stream; it is not a JSON document, so it must never reach the JSON-schema-validating response pipeline
+    private static final DirectBufferEx SSE_DONE_SENTINEL = new UnsafeBufferEx("[DONE]".getBytes(UTF_8));
 
     private static final int FLAG_FIN = 0x01;
     private static final int FLAG_INIT = 0x02;
@@ -289,11 +294,11 @@ public final class LlmClientFactory implements LlmStreamFactory
                 ? binding.supplyModel(source, Kind.REQUEST).supplyDecoder(envelope, requestTransform, ModelCache.NONE)
                 : null;
 
-            this.responsePipeline = sameDialect
-                ? null
-                : binding.supplyModel(target, Kind.RESPONSE)
-                    .supplyDecoder(envelope, target.supplyDecoder(Kind.RESPONSE, envelope)
-                        .andThen(source.supplyEncoder(Kind.RESPONSE, envelope)), ModelCache.NONE);
+            final ModelTransform responseTransform = sameDialect
+                ? ModelTransform.NONE
+                : target.supplyDecoder(Kind.RESPONSE, envelope).andThen(source.supplyEncoder(Kind.RESPONSE, envelope));
+            this.responsePipeline = binding.supplyModel(target, Kind.RESPONSE)
+                .supplyDecoder(envelope, responseTransform, ModelCache.NONE);
 
             this.delegate = new LlmHttpClient(this, routedId, resolvedId, server, requestContentType);
         }
@@ -1053,6 +1058,19 @@ public final class LlmClientFactory implements LlmStreamFactory
             client.doAppFlush(decodeTraceId, decodeAuthorization, event, buffer, offset, length);
         }
 
+        private boolean isDoneSentinel(
+            DirectBuffer buffer,
+            int offset,
+            int length)
+        {
+            boolean matches = length == SSE_DONE_SENTINEL.capacity();
+            for (int i = 0; matches && i < length; i++)
+            {
+                matches = buffer.getByte(offset + i) == SSE_DONE_SENTINEL.getByte(i);
+            }
+            return matches;
+        }
+
         private void forwardResponseContent(
             DirectBuffer buffer,
             int offset,
@@ -1060,13 +1078,13 @@ public final class LlmClientFactory implements LlmStreamFactory
         {
             if (length > 0)
             {
-                final ModelPipeline pipeline = client.responsePipeline;
-                if (pipeline == null)
+                if (isDoneSentinel(buffer, offset, length))
                 {
                     client.doAppData(decodeTraceId, decodeAuthorization, (DirectBufferEx) buffer, offset, length);
                 }
                 else
                 {
+                    final ModelPipeline pipeline = client.responsePipeline;
                     final int flags = FLAG_INIT | FLAG_FIN;
 
                     final ModelPipelineResult result = pipeline.transform(decodeTraceId, routedId, decodeAuthorization,
@@ -1184,10 +1202,7 @@ public final class LlmClientFactory implements LlmStreamFactory
                 decodeSlot = NO_SLOT;
                 decodeSlotOffset = 0;
             }
-            if (client.responsePipeline != null)
-            {
-                client.responsePipeline.reset();
-            }
+            client.responsePipeline.reset();
         }
     }
 
