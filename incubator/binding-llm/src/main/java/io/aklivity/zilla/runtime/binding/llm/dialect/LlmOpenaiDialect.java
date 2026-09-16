@@ -19,13 +19,19 @@ import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 
 /**
- * OpenAI Chat Completions dialect: detects {@code POST /v1/chat/completions} and {@code POST
- * /v1/completions} requests, and renames the OpenAI-native request/response members that this dialect's
- * transforms give a canonical synonym for -- see {@link LlmOpenaiRequestTransform} and
- * {@link LlmOpenaiResponseTransform} for exactly which members and the rationale.
+ * OpenAI Chat Completions dialect: detects a {@code POST /v1/chat/completions} or {@code POST
+ * /v1/completions} request carrying {@code application/json}, and renames the OpenAI-native
+ * request/response members that this dialect's transforms give a canonical synonym for -- see
+ * {@link LlmOpenaiRequestTransform} and {@link LlmOpenaiResponseTransform} for exactly which members and
+ * the rationale.
  * <p>
- * Content-type resolution (a streaming response's {@code text/event-stream} chunks versus a single
- * {@code application/json} document) is a transport-layer concern, resolved from the real upstream
+ * The request content-type is part of detection (not just the method/path pair) because a request routed
+ * to this same path with some other content-type is a different dialect's own traffic, not this one's --
+ * without it, this dialect would ambiguously co-match any such request purely on path and method.
+ * </p>
+ * <p>
+ * Response content-type resolution (a streaming response's {@code text/event-stream} chunks versus a
+ * single {@code application/json} document) is a transport-layer concern, resolved from the real upstream
  * {@code Content-Type} response header rather than predicted here.
  * </p>
  */
@@ -35,10 +41,12 @@ public final class LlmOpenaiDialect implements LlmDialect
 
     private static final String METHOD_HEADER = ":method";
     private static final String PATH_HEADER = ":path";
+    private static final String CONTENT_TYPE_HEADER = "content-type";
     private static final String METHOD_POST = "POST";
 
     private static final String CHAT_COMPLETIONS_PATH = "/v1/chat/completions";
     private static final String COMPLETIONS_PATH = "/v1/completions";
+    private static final String CONTENT_TYPE_JSON = "application/json";
 
     @Override
     public String name()
@@ -52,8 +60,10 @@ public final class LlmOpenaiDialect implements LlmDialect
     {
         final String method = header(headers, METHOD_HEADER);
         final String path = header(headers, PATH_HEADER);
+        final String contentType = header(headers, CONTENT_TYPE_HEADER);
         return METHOD_POST.equalsIgnoreCase(method) &&
-            (CHAT_COMPLETIONS_PATH.equals(path) || COMPLETIONS_PATH.equals(path));
+            (CHAT_COMPLETIONS_PATH.equals(path) || COMPLETIONS_PATH.equals(path)) &&
+            CONTENT_TYPE_JSON.equals(contentType);
     }
 
     @Override

@@ -98,6 +98,31 @@ public class LlmOpenaiDialectTest
     }
 
     @Test
+    public void shouldNotDetectMismatchedContentType()
+    {
+        LlmDialect dialect = new LlmOpenaiDialect();
+
+        TestModelEnvelope envelope = new TestModelEnvelope();
+        envelope.set(":method", value("POST"));
+        envelope.set(":path", value("/v1/chat/completions"));
+        envelope.set("content-type", value("application/vnd.zilla.test-unknown+json"));
+
+        assertThat(dialect.detect(envelope), is(false));
+    }
+
+    @Test
+    public void shouldNotDetectMissingContentType()
+    {
+        LlmDialect dialect = new LlmOpenaiDialect();
+
+        TestModelEnvelope envelope = new TestModelEnvelope();
+        envelope.set(":method", value("POST"));
+        envelope.set(":path", value("/v1/chat/completions"));
+
+        assertThat(dialect.detect(envelope), is(false));
+    }
+
+    @Test
     public void shouldNotDetectWithEmptyHeaders()
     {
         LlmDialect dialect = new LlmOpenaiDialect();
@@ -126,6 +151,7 @@ public class LlmOpenaiDialectTest
         TestModelEnvelope envelope = new TestModelEnvelope();
         envelope.set(":method", value(method));
         envelope.set(":path", value(path));
+        envelope.set("content-type", value("application/json"));
         return envelope;
     }
 
