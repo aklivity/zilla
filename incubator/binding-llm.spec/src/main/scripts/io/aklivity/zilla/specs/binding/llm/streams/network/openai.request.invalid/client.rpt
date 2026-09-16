@@ -31,4 +31,4 @@ connected
 write "{\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}]}"
 write flush
 
-read aborted
+write abort
