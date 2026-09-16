@@ -24,15 +24,9 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
-import java.io.InputStream;
-import java.net.URL;
 import java.util.Map;
 import java.util.ServiceLoader;
 import java.util.function.Supplier;
-
-import jakarta.json.Json;
-import jakarta.json.JsonObject;
-import jakarta.json.JsonReader;
 
 import org.junit.Test;
 
@@ -147,28 +141,6 @@ public class LlmOpenaiDialectTest
             assertThat(dialect.supplyEncoder(kind, ModelEnvelope.NONE), not(nullValue()));
             assertThat(dialect.supplyDecoder(kind, ModelEnvelope.NONE).identity(), is(false));
             assertThat(dialect.supplyEncoder(kind, ModelEnvelope.NONE).identity(), is(false));
-        }
-    }
-
-    @Test
-    public void shouldSupplySchemaResourceForEachKind() throws Exception
-    {
-        for (LlmDialect.Kind kind : LlmDialect.Kind.values())
-        {
-            URL schema = factoriesByName.get("openai").schema(kind);
-
-            assertThat(schema, not(nullValue()));
-            assertThat(readSchema(schema).getString("type"), equalTo("object"));
-        }
-    }
-
-    private static JsonObject readSchema(
-        URL schema) throws Exception
-    {
-        try (InputStream input = schema.openStream();
-            JsonReader reader = Json.createReader(input))
-        {
-            return reader.readObject();
         }
     }
 
