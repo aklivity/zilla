@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.specs.binding.llm.internal;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
 
@@ -24,6 +25,7 @@ import org.junit.Test;
 import io.aklivity.k3po.runtime.lang.el.BytesMatcher;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmBeginExFW;
+import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmFlushExFW;
 
 public class LlmFunctionsTest
 {
@@ -94,6 +96,248 @@ public class LlmFunctionsTest
             .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .dialect("test-permissive")
+            .build();
+
+        assertThrows(Exception.class, () -> matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldGenerateFlushExWithRawTypeAndPayload()
+    {
+        byte[] bytes = LlmFunctions.flushEx()
+            .typeId(0)
+            .raw()
+                .choiceIndex(0)
+                .type("message")
+                .payload("hello".getBytes(UTF_8))
+                .build()
+            .build();
+
+        assertNotNull(bytes);
+    }
+
+    @Test
+    public void shouldGenerateFlushExWithRawWithoutOptionalFields()
+    {
+        byte[] bytes = LlmFunctions.flushEx()
+            .typeId(0)
+            .raw()
+                .choiceIndex(0)
+                .build()
+            .build();
+
+        assertNotNull(bytes);
+    }
+
+    @Test
+    public void shouldMatchFlushExWithoutConstraints() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchFlushEx()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new LlmFlushExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .raw(r -> r.choiceIndex(0).type("message"))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldMatchFlushExRawType() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchFlushEx()
+            .typeId(0)
+            .raw()
+                .choiceIndex(0)
+                .type("message")
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new LlmFlushExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .raw(r -> r.choiceIndex(0).type("message"))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldMatchFlushExRawNullFields() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchFlushEx()
+            .typeId(0)
+            .raw()
+                .choiceIndex(0)
+                .typeNull()
+                .payloadNull()
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new LlmFlushExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .raw(r -> r.choiceIndex(0))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldMatchFlushExRawPayload() throws Exception
+    {
+        byte[] payload = "hello".getBytes(UTF_8);
+
+        BytesMatcher matcher = LlmFunctions.matchFlushEx()
+            .typeId(0)
+            .raw()
+                .choiceIndex(0)
+                .payload(payload)
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new LlmFlushExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .raw(r -> r.choiceIndex(0).payload(new UnsafeBufferEx(payload), 0, payload.length))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldFailMatchFlushExTypeIdMismatch() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchFlushEx()
+            .typeId(1)
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new LlmFlushExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .raw(r -> r.choiceIndex(0))
+            .build();
+
+        assertThrows(Exception.class, () -> matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldFailMatchFlushExRawChoiceIndexMismatch() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchFlushEx()
+            .typeId(0)
+            .raw()
+                .choiceIndex(1)
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new LlmFlushExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .raw(r -> r.choiceIndex(0))
+            .build();
+
+        assertThrows(Exception.class, () -> matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldFailMatchFlushExRawTypeMismatch() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchFlushEx()
+            .typeId(0)
+            .raw()
+                .choiceIndex(0)
+                .type("message")
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new LlmFlushExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .raw(r -> r.choiceIndex(0).type("other"))
+            .build();
+
+        assertThrows(Exception.class, () -> matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldFailMatchFlushExRawTypeNotNullMismatch() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchFlushEx()
+            .typeId(0)
+            .raw()
+                .choiceIndex(0)
+                .typeNull()
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new LlmFlushExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .raw(r -> r.choiceIndex(0).type("message"))
+            .build();
+
+        assertThrows(Exception.class, () -> matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldFailMatchFlushExRawPayloadMismatch() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchFlushEx()
+            .typeId(0)
+            .raw()
+                .choiceIndex(0)
+                .payload("hello".getBytes(UTF_8))
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        new LlmFlushExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .raw(r -> r.choiceIndex(0).payload(new UnsafeBufferEx("nope!".getBytes(UTF_8)), 0, 5))
+            .build();
+
+        assertThrows(Exception.class, () -> matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldFailMatchFlushExRawPayloadNotNullMismatch() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchFlushEx()
+            .typeId(0)
+            .raw()
+                .choiceIndex(0)
+                .payloadNull()
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(256);
+
+        byte[] payload = "hello".getBytes(UTF_8);
+        new LlmFlushExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .raw(r -> r.choiceIndex(0).payload(new UnsafeBufferEx(payload), 0, payload.length))
             .build();
 
         assertThrows(Exception.class, () -> matcher.match(byteBuf));

@@ -21,7 +21,8 @@ accepted
 
 read zilla:begin.ext ${llm:matchBeginEx()
                           .typeId(zilla:id("llm"))
-                          .dialect("test-sse-alt")
+                          .dialect("test-client-sse-alt")
+                          .contentType("text/event-stream")
                           .build()}
 
 connected
@@ -41,7 +42,8 @@ read closed
 
 write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
-                           .dialect("test-sse-alt")
+                           .dialect("test-client-sse-alt")
+                           .contentType("text/event-stream")
                            .build()}
 
 write "{\"text\":\"hi\"}"

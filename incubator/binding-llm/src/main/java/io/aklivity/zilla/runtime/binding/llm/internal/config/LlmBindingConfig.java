@@ -27,6 +27,7 @@ import io.aklivity.zilla.config.engine.CatalogedConfig;
 import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.config.model.json.JsonModelConfig;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialect;
+import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialect.Kind;
 import io.aklivity.zilla.runtime.binding.llm.internal.dialect.LlmDialectResolver;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
@@ -39,6 +40,7 @@ public final class LlmBindingConfig
     // schema subject varies, so it is resolved once per binding rather than once per dialect
     private static final String SYSTEM_CATALOG_NAME = "sys:llm_dialects";
     private static final String SUBJECT_REQUEST_SUFFIX = ".request";
+    private static final String SUBJECT_RESPONSE_SUFFIX = ".response";
     private static final String SCHEMA_VERSION_LATEST = "latest";
 
     private static final LlmOptionsConfig DEFAULT_OPTIONS = LlmOptionsConfig.builder().build();
@@ -52,7 +54,7 @@ public final class LlmBindingConfig
     private final LlmDialectResolver dialects;
     private final EngineContext context;
     private final ToLongFunction<String> resolveId;
-    private final Map<String, ModelHandler> modelsByDialect;
+    private final Map<String, ModelHandler> modelsByDialectAndKind;
 
     private long catalogId = -1L;
 
@@ -68,7 +70,7 @@ public final class LlmBindingConfig
         this.dialects = new LlmDialectResolver(this.options.dialect);
         this.context = context;
         this.resolveId = binding.resolveId;
-        this.modelsByDialect = new HashMap<>();
+        this.modelsByDialectAndKind = new HashMap<>();
     }
 
     public LlmRouteConfig resolve(
@@ -92,25 +94,36 @@ public final class LlmBindingConfig
         return dialects.resolve(headers);
     }
 
-    public ModelHandler supplyModel(
-        LlmDialect dialect)
+    public LlmDialect dialectNamed(
+        String name)
     {
-        ModelHandler model = modelsByDialect.get(dialect.name());
+        return dialects.dialectNamed(name);
+    }
+
+    public ModelHandler supplyModel(
+        LlmDialect dialect,
+        Kind kind)
+    {
+        String key = dialect.name() + kind;
+        ModelHandler model = modelsByDialectAndKind.get(key);
         if (model == null)
         {
-            model = context.supplyModel(newModelConfig(dialect));
-            modelsByDialect.put(dialect.name(), model);
+            model = context.supplyModel(newModelConfig(dialect, kind));
+            modelsByDialectAndKind.put(key, model);
         }
         return model;
     }
 
     private JsonModelConfig newModelConfig(
-        LlmDialect dialect)
+        LlmDialect dialect,
+        Kind kind)
     {
+        String suffix = kind == Kind.REQUEST ? SUBJECT_REQUEST_SUFFIX : SUBJECT_RESPONSE_SUFFIX;
+
         CatalogedConfig cataloged = CatalogedConfig.builder()
             .name(SYSTEM_CATALOG_NAME)
             .schema()
-                .subject(dialect.name() + SUBJECT_REQUEST_SUFFIX)
+                .subject(dialect.name() + suffix)
                 .version(SCHEMA_VERSION_LATEST)
                 .build()
             .build();
