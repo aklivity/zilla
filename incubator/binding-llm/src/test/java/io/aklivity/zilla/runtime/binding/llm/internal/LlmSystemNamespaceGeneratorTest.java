@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.internal;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.emptyList;
 import static java.util.List.of;
 import static org.hamcrest.MatcherAssert.assertThat;
