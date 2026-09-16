@@ -84,7 +84,7 @@ public final class JsonModelHandlerImpl extends JsonModelHandler implements Mode
         ModelEnvelope envelope,
         ModelTransform transform)
     {
-        return new JsonModelEncoderPipeline(this, JsonModelEnvelope.of(requireNonNull(envelope)));
+        return new JsonModelEncoderPipeline(this, JsonModelEnvelope.of(requireNonNull(envelope)), requireNonNull(transform));
     }
 
     int decodePadding(
@@ -165,17 +165,17 @@ public final class JsonModelHandlerImpl extends JsonModelHandler implements Mode
         return handler.encode(traceId, bindingId, schemaId, data, index, length, next, NONE_ENCODER);
     }
 
-    // the decode path: extractor is null when the caller's ModelTransform is NONE (the observation-only
-    // extraction stage is skipped), but this overload is always the decode path regardless, so installed
-    // extensions always fold in here. An installed extension may substitute a value (redacting a field,
-    // say), which has no original source bytes to splice, so decode forces structured (canonical) delivery
-    // whenever at least one extension is folded in -- byte-preserving delivery remains the default with
-    // none installed, matching the pre-extension behavior exactly
+    // the decode path: fieldTransform is null when the caller's ModelTransform is NONE (the field-transform
+    // stage is skipped entirely, keeping the byte-preserving fast path), but this overload is always the
+    // decode path regardless, so installed extensions always fold in here. An installed extension, or the
+    // wired field transform itself, may substitute a value (redacting or renaming a field, say), which has
+    // no original source bytes to splice, so decode forces structured (canonical) delivery whenever either
+    // is in play -- byte-preserving delivery remains the default with neither installed
     JsonPipeline newPipeline(
         int schemaId,
         boolean lenient,
         JsonGeneratorEx generator,
-        JsonTransform extractor,
+        JsonTransform fieldTransform,
         JsonReporter reporter,
         JsonEnvelope envelope,
         ModelCache cache)
@@ -185,13 +185,13 @@ public final class JsonModelHandlerImpl extends JsonModelHandler implements Mode
             ? extendDecode(JsonEx.stream(JsonEx.createParser()), schema, cache).transform(schema.validator(lenient))
             : null;
         JsonStream terminal = stream != null
-            ? (extractor != null ? stream.transform(extractor) : stream)
+            ? (fieldTransform != null ? stream.transform(fieldTransform) : stream)
                 .lenient(lenient)
                 .reporting(reporter)
                 .envelope(envelope)
             : null;
         return terminal != null
-            ? exts.isEmpty()
+            ? exts.isEmpty() && fieldTransform == null
                 ? terminal.into(generator)
                 : terminal.into(generator, STRUCTURED_DELIVERY)
             : null;
@@ -200,26 +200,29 @@ public final class JsonModelHandlerImpl extends JsonModelHandler implements Mode
     // the encode path: the write path into the broker. A caller's value being encoded into its canonical
     // form is extended independently of the decode path above, so an extension that only redacts on read
     // (the default encode()) leaves this path unchanged; one that also needs to apply on write overrides
-    // encode() to fold in here. An installed extension may substitute a value here too, so encode forces
-    // structured (canonical) delivery whenever at least one extension is folded in, matching the decode
-    // path's own guard above -- byte-preserving delivery remains the default with none installed
+    // encode() to fold in here. An installed extension, or the wired field transform, may substitute a
+    // value here too, so encode forces structured (canonical) delivery whenever either is in play, matching
+    // the decode path's own guard above -- byte-preserving delivery remains the default with neither
     JsonPipeline newPipeline(
         int schemaId,
         boolean lenient,
         JsonGeneratorEx generator,
+        JsonTransform fieldTransform,
         JsonReporter reporter,
         JsonEnvelope envelope)
     {
         JsonSchema schema = supplySchema(schemaId);
-        JsonStream terminal = schema != null
-            ? extendEncode(JsonEx.stream(JsonEx.createParser()), schema)
-                .transform(schema.validator(lenient))
+        JsonStream stream = schema != null
+            ? extendEncode(JsonEx.stream(JsonEx.createParser()), schema).transform(schema.validator(lenient))
+            : null;
+        JsonStream terminal = stream != null
+            ? (fieldTransform != null ? stream.transform(fieldTransform) : stream)
                 .lenient(lenient)
                 .reporting(reporter)
                 .envelope(envelope)
             : null;
         return terminal != null
-            ? exts.isEmpty()
+            ? exts.isEmpty() && fieldTransform == null
                 ? terminal.into(generator)
                 : terminal.into(generator, STRUCTURED_DELIVERY)
             : null;

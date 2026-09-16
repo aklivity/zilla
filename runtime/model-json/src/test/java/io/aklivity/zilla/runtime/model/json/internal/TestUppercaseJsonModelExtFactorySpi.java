@@ -187,10 +187,9 @@ public final class TestUppercaseJsonModelExtFactorySpi implements JsonModelExtFa
         }
 
         // mirrors JsonSource#deferredBytes(): a string value larger than the input window arrives as
-        // repeated events over the same key, each carrying the value's whole decoded-so-far prefix (see
-        // JsonExtractor's onTargetString-equivalent), so re-capturing (not appending) on every fragment
-        // and staying armed until deferredBytes() goes false always leaves the last (complete) capture
-        // in place
+        // repeated events over the same key, each carrying the value's whole decoded-so-far prefix, so
+        // re-capturing (not appending) on every fragment and staying armed until deferredBytes() goes
+        // false always leaves the last (complete) capture in place
         private Status onTargetString(
             JsonSource source,
             JsonSink sink)
