@@ -171,7 +171,19 @@ public class EngineBoss implements EngineController, Agent
 
     public void detachAll()
     {
+        if (thread != null)
+        {
+            final CompletableFuture<Void> detached = new CompletableFuture<>();
+            taskQueue.offer(() -> detachAllNow(detached));
+            detached.join();
+        }
+    }
+
+    private void detachAllNow(
+        CompletableFuture<Void> detached)
+    {
         namespaces.forEach(this::detachNamespace);
+        detached.complete(null);
     }
 
     public void attachNow(
