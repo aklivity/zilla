@@ -235,7 +235,7 @@ public class LlmAnthropicEventMapperTest
         mapper.encode(buffer, 0, buffer.capacity(), null, support);
 
         assertThat(support.trace, contains(
-            "event:content_block_delta:{\"type\":\"content_block_delta\",\"index\":0," +
+            "event:content_block_delta:{\"type\":\"content_block_delta\",\"index\":1," +
                 "\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"{\\\"a\\\":1}\"}}"));
     }
 
