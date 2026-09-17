@@ -29,6 +29,22 @@ public class LlmSseContentEncoderTest
     private final MutableDirectBuffer encoded = new UnsafeBuffer(new byte[64]);
 
     @Test
+    public void shouldEncodeEventName()
+    {
+        int written = encoder.encodeEventName("message", encoded, 0, encoded.capacity());
+
+        assertThat(text(written), equalTo("event: message\n"));
+    }
+
+    @Test
+    public void shouldEncodeNoEventNameWhenNull()
+    {
+        int written = encoder.encodeEventName(null, encoded, 0, encoded.capacity());
+
+        assertThat(written, equalTo(0));
+    }
+
+    @Test
     public void shouldEncodeDataLine()
     {
         int written = encodeData("hello there");
@@ -37,35 +53,37 @@ public class LlmSseContentEncoderTest
     }
 
     @Test
-    public void shouldEncodeFlushWithEventNameAndNoId()
+    public void shouldEncodeFlushWithNoId()
     {
-        int written = encodeFlush("message", "");
-
-        assertThat(text(written), equalTo("event: message\n\n"));
-    }
-
-    @Test
-    public void shouldEncodeFlushWithoutEventName()
-    {
-        int written = encodeFlush(null, "");
+        int written = encodeFlush("");
 
         assertThat(text(written), equalTo("\n"));
     }
 
     @Test
-    public void shouldEncodeFlushWithEventIdOmittingNullEventName()
+    public void shouldEncodeFlushWithId()
     {
-        int written = encodeFlush(null, "42");
+        int written = encodeFlush("42");
 
         assertThat(text(written), equalTo("id: 42\n\n"));
     }
 
     @Test
-    public void shouldEncodeFlushWithEventNameAndId()
+    public void shouldEncodeFullEventInOrder()
     {
-        int written = encodeFlush("message", "42");
+        int position = encoder.encodeEventName("message", encoded, 0, encoded.capacity());
+        position += encodeDataAt(position, "hello there");
+        position += encodeFlushAt(position, "42");
 
-        assertThat(text(written), equalTo("event: message\nid: 42\n\n"));
+        assertThat(text(position), equalTo("event: message\ndata: hello there\nid: 42\n\n"));
+    }
+
+    @Test
+    public void shouldReturnZeroWhenDestinationTooSmallForEventName()
+    {
+        int written = encoder.encodeEventName("message", encoded, 0, 3);
+
+        assertThat(written, equalTo(0));
     }
 
     @Test
@@ -85,7 +103,7 @@ public class LlmSseContentEncoderTest
         byte[] id = "42".getBytes(UTF_8);
         DirectBuffer idBuffer = new UnsafeBuffer(id);
 
-        int written = encoder.encodeFlush("message", idBuffer, 0, id.length, encoded, 0, 3);
+        int written = encoder.encodeFlush(idBuffer, 0, id.length, encoded, 0, 3);
 
         assertThat(written, equalTo(0));
     }
@@ -98,13 +116,30 @@ public class LlmSseContentEncoderTest
         return encoder.encodeData(buffer, 0, bytes.length, encoded, 0, encoded.capacity());
     }
 
+    private int encodeDataAt(
+        int position,
+        String data)
+    {
+        byte[] bytes = data.getBytes(UTF_8);
+        DirectBuffer buffer = new UnsafeBuffer(bytes);
+        return encoder.encodeData(buffer, 0, bytes.length, encoded, position, encoded.capacity());
+    }
+
     private int encodeFlush(
-        String event,
         String id)
     {
         byte[] idBytes = id.getBytes(UTF_8);
         DirectBuffer idBuffer = new UnsafeBuffer(idBytes);
-        return encoder.encodeFlush(event, idBuffer, 0, idBytes.length, encoded, 0, encoded.capacity());
+        return encoder.encodeFlush(idBuffer, 0, idBytes.length, encoded, 0, encoded.capacity());
+    }
+
+    private int encodeFlushAt(
+        int position,
+        String id)
+    {
+        byte[] idBytes = id.getBytes(UTF_8);
+        DirectBuffer idBuffer = new UnsafeBuffer(idBytes);
+        return encoder.encodeFlush(idBuffer, 0, idBytes.length, encoded, position, encoded.capacity());
     }
 
     private String text(

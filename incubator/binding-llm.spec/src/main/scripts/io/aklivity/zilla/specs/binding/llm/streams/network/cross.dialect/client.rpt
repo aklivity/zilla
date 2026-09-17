@@ -28,8 +28,7 @@ write zilla:begin.ext ${http:beginEx()
 
 connected
 
-write "data: {\"text\":\"hello there\"}\n"
-write "event: message\n\n"
+write "event: message\ndata: {\"text\":\"hello there\"}\n\n"
 write close
 
 read zilla:begin.ext ${http:matchBeginEx()

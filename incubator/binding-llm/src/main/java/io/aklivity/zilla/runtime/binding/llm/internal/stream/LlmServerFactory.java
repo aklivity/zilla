@@ -22,6 +22,7 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.function.LongUnaryOperator;
 
+import org.agrona.DirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
 
 import io.aklivity.zilla.config.engine.BindingConfig;
@@ -989,11 +990,14 @@ public final class LlmServerFactory implements LlmStreamFactory
         private boolean flushingRequest;
 
         private LlmContentEncoder encoder;
+        private final MutableDirectBufferEx pendingContent;
+        private int pendingContentLength;
 
         private LlmStream(
             LlmServer server)
         {
             this.server = server;
+            this.pendingContent = new UnsafeBufferEx(new byte[copyBuffer.capacity()]);
         }
 
         private boolean requestAvailable()
@@ -1173,12 +1177,22 @@ public final class LlmServerFactory implements LlmStreamFactory
             }
             else
             {
-                final int encoded = encoder.encodeData(payload.buffer(), payload.offset(), payload.sizeof(),
-                    copyBuffer, 0, copyBuffer.capacity());
-                if (encoded > 0)
-                {
-                    server.doNetData(copyBuffer, 0, encoded, flags, budgetId, traceId, authorization);
-                }
+                appendPendingContent(payload.buffer(), payload.offset(), payload.sizeof());
+            }
+        }
+
+        private void appendPendingContent(
+            DirectBuffer buffer,
+            int offset,
+            int length)
+        {
+            final int available = pendingContent.capacity() - pendingContentLength;
+            final int appended = Math.min(length, available);
+
+            if (appended > 0)
+            {
+                pendingContent.putBytes(pendingContentLength, buffer, offset, appended);
+                pendingContentLength += appended;
             }
         }
 
@@ -1201,14 +1215,24 @@ public final class LlmServerFactory implements LlmStreamFactory
                     final String event = raw.type() != null ? raw.type().asString() : null;
                     final OctetsFW payload = raw.payload();
                     final int idLength = payload != null ? payload.sizeof() : 0;
-                    final int encoded = payload != null
-                        ? encoder.encodeFlush(event, payload.buffer(), payload.offset(), idLength,
-                            copyBuffer, 0, copyBuffer.capacity())
-                        : encoder.encodeFlush(event, EMPTY_OCTETS.buffer(), 0, 0,
-                            copyBuffer, 0, copyBuffer.capacity());
-                    if (encoded > 0)
+
+                    int position = 0;
+                    position += encoder.encodeEventName(event, copyBuffer, position, copyBuffer.capacity());
+                    if (pendingContentLength > 0)
                     {
-                        server.doNetData(copyBuffer, 0, encoded, FLAG_INIT | FLAG_FIN, budgetId, traceId, authorization);
+                        position += encoder.encodeData(pendingContent, 0, pendingContentLength,
+                            copyBuffer, position, copyBuffer.capacity());
+                    }
+                    position += payload != null
+                        ? encoder.encodeFlush(payload.buffer(), payload.offset(), idLength,
+                            copyBuffer, position, copyBuffer.capacity())
+                        : encoder.encodeFlush(EMPTY_OCTETS.buffer(), 0, 0,
+                            copyBuffer, position, copyBuffer.capacity());
+                    pendingContentLength = 0;
+
+                    if (position > 0)
+                    {
+                        server.doNetData(copyBuffer, 0, position, FLAG_INIT | FLAG_FIN, budgetId, traceId, authorization);
                     }
                 }
             }

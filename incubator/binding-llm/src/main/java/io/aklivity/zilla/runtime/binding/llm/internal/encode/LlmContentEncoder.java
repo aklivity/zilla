@@ -27,6 +27,27 @@ import org.agrona.MutableDirectBuffer;
 public interface LlmContentEncoder
 {
     /**
+     * Encodes the event name announcing the event currently being written into
+     * {@code encoded[encodedOffset, encodedLimit)}. A caller sequences a complete event as
+     * {@code encodeEventName} followed by {@code encodeData} (against the content bytes accumulated since the
+     * previous event boundary) followed by {@code encodeFlush}, so that a content-type whose wire form
+     * requires the event name ahead of its content (e.g. SSE's {@code event:} field before {@code data:})
+     * is written in that order.
+     *
+     * @param event         the content-type-specific event name, or {@code null} when the content-type has none
+     * @param encoded       the destination buffer
+     * @param encodedOffset the offset to write at within {@code encoded}
+     * @param encodedLimit  the limit of the destination region within {@code encoded}
+     * @return the number of bytes written, or {@code 0} when {@code event} is {@code null}, the content-type
+     *         has no event-name concept, or the destination region is too small
+     */
+    int encodeEventName(
+        String event,
+        MutableDirectBuffer encoded,
+        int encodedOffset,
+        int encodedLimit);
+
+    /**
      * Encodes the content bytes of the event currently being written into {@code encoded[encodedOffset, encodedLimit)}.
      *
      * @param buffer        the buffer holding the content bytes
@@ -46,9 +67,10 @@ public interface LlmContentEncoder
         int encodedLimit);
 
     /**
-     * Encodes an event boundary into {@code encoded[encodedOffset, encodedLimit)}.
+     * Encodes the event boundary terminator into {@code encoded[encodedOffset, encodedLimit)}, after any event
+     * name and content bytes already encoded for the same event via {@link #encodeEventName} and
+     * {@link #encodeData}.
      *
-     * @param event         the content-type-specific event name, or {@code null} when the content-type has none
      * @param id            the buffer holding any bytes associated with the event boundary
      * @param idOffset      the offset of the associated bytes within {@code id}
      * @param idLength      the number of associated bytes
@@ -58,7 +80,6 @@ public interface LlmContentEncoder
      * @return the number of bytes written, or {@code 0} when the destination region is too small
      */
     int encodeFlush(
-        String event,
         DirectBuffer id,
         int idOffset,
         int idLength,
