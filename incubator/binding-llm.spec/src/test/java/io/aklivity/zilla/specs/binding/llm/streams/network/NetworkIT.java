@@ -155,6 +155,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/anthropic.request/client",
+        "${net}/anthropic.request/server"})
+    public void shouldEncodeAnthropicRequest() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/openai.streaming/client",
         "${net}/openai.streaming/server"})
     public void shouldEncodeOpenaiStreaming() throws Exception

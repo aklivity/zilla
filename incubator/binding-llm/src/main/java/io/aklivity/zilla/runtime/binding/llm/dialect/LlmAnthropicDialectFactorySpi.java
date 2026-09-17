@@ -18,6 +18,7 @@ import java.net.URL;
 
 public final class LlmAnthropicDialectFactorySpi implements LlmDialectFactorySpi
 {
+    private static final String REQUEST_SCHEMA = "anthropic.request.schema.json";
     private static final String RESPONSE_SCHEMA = "anthropic.response.schema.json";
 
     @Override
@@ -36,6 +37,6 @@ public final class LlmAnthropicDialectFactorySpi implements LlmDialectFactorySpi
     public URL schema(
         LlmDialect.Kind kind)
     {
-        return kind == LlmDialect.Kind.RESPONSE ? getClass().getResource(RESPONSE_SCHEMA) : null;
+        return getClass().getResource(kind == LlmDialect.Kind.REQUEST ? REQUEST_SCHEMA : RESPONSE_SCHEMA);
     }
 }

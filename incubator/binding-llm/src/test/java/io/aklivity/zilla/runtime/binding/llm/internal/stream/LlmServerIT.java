@@ -137,6 +137,16 @@ public class LlmServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/anthropic.request/client",
+        "${app}/anthropic.request/server"})
+    public void shouldDetectAnthropicDialectFromPath() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/openai.request.invalid/client"})
     public void shouldRejectInvalidOpenaiRequest() throws Exception
     {
