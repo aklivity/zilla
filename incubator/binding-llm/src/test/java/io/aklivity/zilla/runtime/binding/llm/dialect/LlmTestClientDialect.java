@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.dialect;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 
@@ -51,5 +52,12 @@ public final class LlmTestClientDialect implements LlmDialect
         ModelEnvelope envelope)
     {
         return ModelTransform.NONE;
+    }
+
+    @Override
+    public DirectBufferEx terminator(
+        Kind kind)
+    {
+        return null;
     }
 }

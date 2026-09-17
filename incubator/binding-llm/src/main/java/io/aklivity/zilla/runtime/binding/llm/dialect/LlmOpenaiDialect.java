@@ -14,7 +14,10 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.dialect;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 
@@ -47,6 +50,8 @@ public final class LlmOpenaiDialect implements LlmDialect
     private static final String CHAT_COMPLETIONS_PATH = "/v1/chat/completions";
     private static final String COMPLETIONS_PATH = "/v1/completions";
     private static final String CONTENT_TYPE_JSON = "application/json";
+
+    private static final DirectBufferEx RESPONSE_TERMINATOR = new UnsafeBufferEx("[DONE]".getBytes(UTF_8));
 
     @Override
     public String name()
@@ -106,6 +111,13 @@ public final class LlmOpenaiDialect implements LlmDialect
             break;
         }
         return transform;
+    }
+
+    @Override
+    public DirectBufferEx terminator(
+        Kind kind)
+    {
+        return kind == Kind.RESPONSE ? RESPONSE_TERMINATOR : null;
     }
 
     private static String header(

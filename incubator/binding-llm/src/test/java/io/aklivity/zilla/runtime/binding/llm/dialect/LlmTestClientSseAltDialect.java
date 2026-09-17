@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.binding.llm.dialect;
 
 import java.net.URL;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.engine.model.ModelController;
 import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelEvent;
@@ -60,6 +61,13 @@ public final class LlmTestClientSseAltDialect implements LlmDialect
         ModelEnvelope envelope)
     {
         return IdentityTransform.INSTANCE;
+    }
+
+    @Override
+    public DirectBufferEx terminator(
+        Kind kind)
+    {
+        return null;
     }
 
     static URL schemaResource()
