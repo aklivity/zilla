@@ -19,6 +19,8 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.util.function.LongUnaryOperator;
 
+import jakarta.json.JsonObject;
+
 import org.agrona.DirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
 
@@ -32,7 +34,12 @@ import io.aklivity.zilla.runtime.binding.llm.internal.config.LlmBindingConfig;
 import io.aklivity.zilla.runtime.binding.llm.internal.config.LlmRouteConfig;
 import io.aklivity.zilla.runtime.binding.llm.internal.decode.LlmContentDecoder;
 import io.aklivity.zilla.runtime.binding.llm.internal.decode.LlmContentDecoderOutput;
+import io.aklivity.zilla.runtime.binding.llm.internal.decode.LlmSseContentDecoder;
 import io.aklivity.zilla.runtime.binding.llm.internal.encode.LlmContentEncoder;
+import io.aklivity.zilla.runtime.binding.llm.internal.mapper.LlmEventMapper;
+import io.aklivity.zilla.runtime.binding.llm.internal.mapper.LlmEventMapperFactory;
+import io.aklivity.zilla.runtime.binding.llm.internal.mapper.LlmEventMapperOutput;
+import io.aklivity.zilla.runtime.binding.llm.internal.mapper.LlmNativeEventOutput;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.AbortFW;
@@ -43,6 +50,7 @@ import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmBeginExFW;
+import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmDataExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmFlushExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmNativeFlushExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.ResetFW;
@@ -244,6 +252,9 @@ public final class LlmClientFactory implements LlmStreamFactory
         private final LlmDialect source;
         private final LlmDialect target;
         private final boolean sameDialect;
+        private final LlmEventMapper targetEventMapper;
+        private final LlmEventMapper sourceEventMapper;
+        private final boolean translateEvents;
         private final LlmModelEnvelope envelope;
         private final LlmContentEncoder requestEncoder;
         private final ModelPipeline requestPipeline;
@@ -293,9 +304,13 @@ public final class LlmClientFactory implements LlmStreamFactory
             this.source = source;
             this.target = target;
             this.sameDialect = source == target;
+            this.targetEventMapper = sameDialect ? null : LlmEventMapperFactory.supply(target.name(), llmTypeId);
+            this.sourceEventMapper = sameDialect ? null : LlmEventMapperFactory.supply(source.name(), llmTypeId);
             this.envelope = new LlmModelEnvelope();
             this.requestEncoder = codecs.createEncoder(requestContentType);
             this.pendingContent = new UnsafeBufferEx(new byte[copyBuffer.capacity()]);
+
+            this.translateEvents = targetEventMapper != null && sourceEventMapper != null;
 
             final ModelTransform requestTransform = sameDialect
                 ? ModelTransform.NONE
@@ -307,9 +322,10 @@ public final class LlmClientFactory implements LlmStreamFactory
             final ModelTransform responseTransform = sameDialect
                 ? ModelTransform.NONE
                 : target.supplyDecoder(Kind.RESPONSE, envelope).andThen(source.supplyEncoder(Kind.RESPONSE, envelope));
-            this.responsePipeline = binding.supplyModel(target, Kind.RESPONSE)
-                .supplyDecoder(envelope, responseTransform, ModelCache.NONE);
-            this.responseTerminator = target.terminator(Kind.RESPONSE);
+            this.responsePipeline = translateEvents
+                ? null
+                : binding.supplyModel(target, Kind.RESPONSE).supplyDecoder(envelope, responseTransform, ModelCache.NONE);
+            this.responseTerminator = translateEvents ? null : target.terminator(Kind.RESPONSE);
 
             this.delegate = new LlmHttpClient(this, routedId, resolvedId, server, requestContentType);
         }
@@ -766,6 +782,7 @@ public final class LlmClientFactory implements LlmStreamFactory
         private final String requestContentType;
 
         private LlmContentDecoder decoder;
+        private boolean streaming;
 
         private long initialSeq;
         private long initialAck;
@@ -785,6 +802,12 @@ public final class LlmClientFactory implements LlmStreamFactory
         private long decodeTraceId;
         private long decodeAuthorization;
 
+        private final MutableDirectBufferEx nativeEventBuffer;
+        private int nativeEventLength;
+        private String nativeEventName;
+        private final LlmEventMapperOutput canonicalOutput;
+        private final LlmNativeEventOutput nativeOutput;
+
         private LlmHttpClient(
             LlmClient client,
             long originId,
@@ -799,6 +822,33 @@ public final class LlmClientFactory implements LlmStreamFactory
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.authority = server.host + ":" + server.port;
             this.requestContentType = requestContentType;
+            this.nativeEventBuffer = new UnsafeBufferEx(new byte[decodeMax]);
+            this.nativeOutput = this::onNativeEvent;
+            this.canonicalOutput = new LlmEventMapperOutput()
+            {
+                @Override
+                public void data(
+                    DirectBuffer buffer,
+                    int offset,
+                    int length,
+                    LlmDataExFW dataEx)
+                {
+                    client.sourceEventMapper.encode(buffer, offset, length, dataEx, nativeOutput);
+                }
+
+                @Override
+                public void flush(
+                    LlmFlushExFW flushEx)
+                {
+                    client.sourceEventMapper.encode(flushEx, nativeOutput);
+                }
+
+                @Override
+                public void end()
+                {
+                    client.sourceEventMapper.encodeEnd(nativeOutput);
+                }
+            };
         }
 
         private int initialWindow()
@@ -949,6 +999,7 @@ public final class LlmClientFactory implements LlmStreamFactory
             }
 
             this.decoder = codecs.createDecoder(responseContentType);
+            this.streaming = decoder instanceof LlmSseContentDecoder;
 
             client.doAppBegin(traceId, authorization, client.source.name(), responseContentType);
 
@@ -1086,7 +1137,14 @@ public final class LlmClientFactory implements LlmStreamFactory
         {
             if (event != null)
             {
-                client.envelope.set(ENVELOPE_EVENT, asBuffer(event));
+                if (client.translateEvents)
+                {
+                    nativeEventName = event;
+                }
+                else
+                {
+                    client.envelope.set(ENVELOPE_EVENT, asBuffer(event));
+                }
             }
         }
 
@@ -1096,7 +1154,15 @@ public final class LlmClientFactory implements LlmStreamFactory
             int offset,
             int length)
         {
-            forwardResponseContent(buffer, offset, length);
+            if (client.translateEvents)
+            {
+                nativeEventBuffer.putBytes(nativeEventLength, buffer, offset, length);
+                nativeEventLength += length;
+            }
+            else
+            {
+                forwardResponseContent(buffer, offset, length);
+            }
         }
 
         @Override
@@ -1106,7 +1172,46 @@ public final class LlmClientFactory implements LlmStreamFactory
             int offset,
             int length)
         {
-            client.doAppFlush(decodeTraceId, decodeAuthorization, event, buffer, offset, length);
+            if (client.translateEvents)
+            {
+                translateNativeEvent();
+            }
+            else
+            {
+                client.doAppFlush(decodeTraceId, decodeAuthorization, event, buffer, offset, length);
+            }
+        }
+
+        private void translateNativeEvent()
+        {
+            String data = nativeEventBuffer.getStringWithoutLengthUtf8(0, nativeEventLength);
+
+            if (streaming)
+            {
+                client.targetEventMapper.decode(nativeEventName, data, canonicalOutput);
+            }
+            else
+            {
+                JsonObject canonical = client.targetEventMapper.decodeMessage(data);
+                onNativeEvent(null, client.sourceEventMapper.encodeMessage(canonical));
+            }
+
+            nativeEventName = null;
+            nativeEventLength = 0;
+        }
+
+        private void onNativeEvent(
+            String name,
+            String data)
+        {
+            if (data != null && !data.isEmpty())
+            {
+                byte[] bytes = data.getBytes(UTF_8);
+                copyBuffer.putBytes(0, bytes);
+                client.doAppData(decodeTraceId, decodeAuthorization, copyBuffer, 0, bytes.length);
+            }
+
+            client.doAppFlush(decodeTraceId, decodeAuthorization, name, emptyRO.buffer(), 0, 0);
         }
 
         private boolean matchesTerminator(
@@ -1255,7 +1360,10 @@ public final class LlmClientFactory implements LlmStreamFactory
                 decodeSlot = NO_SLOT;
                 decodeSlotOffset = 0;
             }
-            client.responsePipeline.reset();
+            if (client.responsePipeline != null)
+            {
+                client.responsePipeline.reset();
+            }
         }
     }
 
