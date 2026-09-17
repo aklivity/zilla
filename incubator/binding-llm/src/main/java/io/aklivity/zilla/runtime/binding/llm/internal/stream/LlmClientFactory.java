@@ -266,6 +266,9 @@ public final class LlmClientFactory implements LlmStreamFactory
         private int decodeSlotFlags;
         private boolean requestStarted;
 
+        private final MutableDirectBufferEx pendingContent;
+        private int pendingContentLength;
+
         private LlmClient(
             MessageConsumer app,
             long originId,
@@ -292,6 +295,7 @@ public final class LlmClientFactory implements LlmStreamFactory
             this.sameDialect = source == target;
             this.envelope = new LlmModelEnvelope();
             this.requestEncoder = codecs.createEncoder(requestContentType);
+            this.pendingContent = new UnsafeBufferEx(new byte[copyBuffer.capacity()]);
 
             final ModelTransform requestTransform = sameDialect
                 ? ModelTransform.NONE
@@ -486,8 +490,14 @@ public final class LlmClientFactory implements LlmStreamFactory
             MutableDirectBufferEx buffer,
             int length)
         {
-            final int encoded = requestEncoder.encodeData(buffer, 0, length, copyBuffer, 0, copyBuffer.capacity());
-            delegate.doNetData(traceId, authorization, copyBuffer, 0, encoded);
+            final int available = pendingContent.capacity() - pendingContentLength;
+            final int appended = Math.min(length, available);
+
+            if (appended > 0)
+            {
+                pendingContent.putBytes(pendingContentLength, buffer, 0, appended);
+                pendingContentLength += appended;
+            }
         }
 
         private void onAppFlush(
@@ -508,12 +518,22 @@ public final class LlmClientFactory implements LlmStreamFactory
                     final String event = raw.type() != null ? raw.type().asString() : null;
                     final OctetsFW payload = raw.payload();
                     final int idLength = payload != null ? payload.sizeof() : 0;
-                    final int encoded = payload != null
+
+                    int position = 0;
+                    position += requestEncoder.encodeEventName(event, copyBuffer, position, copyBuffer.capacity());
+                    if (pendingContentLength > 0)
+                    {
+                        position += requestEncoder.encodeData(pendingContent, 0, pendingContentLength,
+                            copyBuffer, position, copyBuffer.capacity());
+                    }
+                    position += payload != null
                         ? requestEncoder.encodeFlush(
-                            event, payload.buffer(), payload.offset(), idLength, copyBuffer, 0, copyBuffer.capacity())
+                            payload.buffer(), payload.offset(), idLength, copyBuffer, position, copyBuffer.capacity())
                         : requestEncoder.encodeFlush(
-                            event, emptyRO.buffer(), 0, 0, copyBuffer, 0, copyBuffer.capacity());
-                    delegate.doNetData(traceId, authorization, copyBuffer, 0, encoded);
+                            emptyRO.buffer(), 0, 0, copyBuffer, position, copyBuffer.capacity());
+                    pendingContentLength = 0;
+
+                    delegate.doNetData(traceId, authorization, copyBuffer, 0, position);
                 }
             }
         }
@@ -526,6 +546,20 @@ public final class LlmClientFactory implements LlmStreamFactory
 
             state = LlmState.closingInitial(state);
             state = LlmState.closeInitial(state);
+
+            // Not every dialect's request forwarding is followed by an app-level FLUSH before END
+            // (e.g. a plain, non-streaming JSON request body never advises one) -- anything still held
+            // in pendingContent at this point would otherwise be silently dropped instead of forwarded.
+            if (pendingContentLength > 0)
+            {
+                final int encoded = requestEncoder.encodeData(pendingContent, 0, pendingContentLength,
+                    copyBuffer, 0, copyBuffer.capacity());
+                pendingContentLength = 0;
+                if (encoded > 0)
+                {
+                    delegate.doNetData(traceId, authorization, copyBuffer, 0, encoded);
+                }
+            }
 
             delegate.doNetEnd(traceId, authorization);
         }
