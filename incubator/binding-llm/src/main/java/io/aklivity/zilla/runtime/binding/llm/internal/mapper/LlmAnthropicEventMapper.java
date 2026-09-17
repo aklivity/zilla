@@ -22,6 +22,8 @@ import static io.aklivity.zilla.runtime.binding.llm.internal.mapper.LlmEventMapp
 import java.nio.charset.StandardCharsets;
 
 import jakarta.json.Json;
+import jakarta.json.JsonArray;
+import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 
@@ -46,7 +48,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
  * currently open block's type, held output tokens pending a {@code finish}) so a
  * fresh instance is required per stream; instances are not shared across streams.
  */
-public final class LlmAnthropicEventMapper
+public final class LlmAnthropicEventMapper implements LlmEventMapper
 {
     private static final int EXTENSION_BUFFER_CAPACITY = 512;
 
@@ -56,6 +58,7 @@ public final class LlmAnthropicEventMapper
 
     private int inputTokens = -1;
     private LlmBlockType openBlockType;
+    private int openBlockId;
 
     private int heldOutputTokens = -1;
     private boolean finishSent;
@@ -68,6 +71,7 @@ public final class LlmAnthropicEventMapper
         this.flushExRW = new LlmFlushExFW.Builder();
     }
 
+    @Override
     public void decode(
         String event,
         String data,
@@ -98,6 +102,7 @@ public final class LlmAnthropicEventMapper
         }
     }
 
+    @Override
     public void encode(
         DirectBuffer buffer,
         int offset,
@@ -120,13 +125,14 @@ public final class LlmAnthropicEventMapper
 
         JsonObject event = Json.createObjectBuilder()
             .add("type", "content_block_delta")
-            .add("index", 0)
+            .add("index", openBlockId)
             .add("delta", delta)
             .build();
 
         output.event("content_block_delta", compact(event));
     }
 
+    @Override
     public void encode(
         LlmFlushExFW flushEx,
         LlmNativeEventOutput output)
@@ -153,6 +159,7 @@ public final class LlmAnthropicEventMapper
         }
     }
 
+    @Override
     public void encodeEnd(
         LlmNativeEventOutput output)
     {
@@ -161,6 +168,91 @@ public final class LlmAnthropicEventMapper
             .build();
 
         output.event("message_stop", compact(event));
+    }
+
+    @Override
+    public JsonObject decodeMessage(
+        String data)
+    {
+        JsonObject root = readObject(data);
+        JsonArray blocks = root.getJsonArray("content");
+
+        JsonArrayBuilder content = Json.createArrayBuilder();
+        if (blocks != null)
+        {
+            for (int i = 0; i < blocks.size(); i++)
+            {
+                JsonObject block = blocks.getJsonObject(i);
+                if ("tool_use".equals(getString(block, "type", null)))
+                {
+                    JsonObject input = block.getJsonObject("input");
+                    JsonObjectBuilder canonicalBlock = Json.createObjectBuilder().add("type", "tool_call");
+                    addIfPresent(canonicalBlock, "toolId", getString(block, "id", null));
+                    addIfPresent(canonicalBlock, "toolName", getString(block, "name", null));
+                    canonicalBlock.add("arguments", input != null ? compact(input) : "{}");
+                    content.add(canonicalBlock);
+                }
+                else
+                {
+                    content.add(Json.createObjectBuilder().add("type", "text").add("text", getString(block, "text", "")));
+                }
+            }
+        }
+
+        JsonObject usage = root.getJsonObject("usage");
+
+        JsonObjectBuilder canonical = Json.createObjectBuilder();
+        addIfPresent(canonical, "id", getString(root, "id", null));
+        addIfPresent(canonical, "model", getString(root, "model", null));
+        canonical.add("role", orDefault(getString(root, "role", null), "assistant"));
+        canonical.add("content", content);
+        canonical.add("finishReason", finishReason(getString(root, "stop_reason", null)).name());
+        canonical.add("usage", Json.createObjectBuilder()
+            .add("inputTokens", usage != null ? usage.getInt("input_tokens", -1) : -1)
+            .add("outputTokens", usage != null ? usage.getInt("output_tokens", -1) : -1));
+
+        return canonical.build();
+    }
+
+    @Override
+    public String encodeMessage(
+        JsonObject message)
+    {
+        JsonArray content = message.getJsonArray("content");
+        JsonArrayBuilder blocks = Json.createArrayBuilder();
+
+        for (int i = 0; i < content.size(); i++)
+        {
+            JsonObject block = content.getJsonObject(i);
+            if ("tool_call".equals(block.getString("type")))
+            {
+                JsonObjectBuilder toolUse = Json.createObjectBuilder().add("type", "tool_use");
+                addIfPresent(toolUse, "id", getString(block, "toolId", null));
+                addIfPresent(toolUse, "name", getString(block, "toolName", null));
+                String arguments = getString(block, "arguments", "");
+                toolUse.add("input", arguments.isEmpty() ? Json.createObjectBuilder().build() : readObject(arguments));
+                blocks.add(toolUse);
+            }
+            else
+            {
+                blocks.add(Json.createObjectBuilder().add("type", "text").add("text", getString(block, "text", "")));
+            }
+        }
+
+        JsonObjectBuilder root = Json.createObjectBuilder();
+        addIfPresent(root, "id", getString(message, "id", null));
+        root.add("type", "message");
+        root.add("role", getString(message, "role", "assistant"));
+        addIfPresent(root, "model", getString(message, "model", null));
+        root.add("content", blocks);
+        root.add("stop_reason", stopReason(LlmFinishReason.valueOf(message.getString("finishReason"))));
+
+        JsonObject usage = message.getJsonObject("usage");
+        root.add("usage", Json.createObjectBuilder()
+            .add("input_tokens", usage != null ? usage.getInt("inputTokens", -1) : -1)
+            .add("output_tokens", usage != null ? usage.getInt("outputTokens", -1) : -1));
+
+        return compact(root.build());
     }
 
     private void onMessageStart(
@@ -299,6 +391,7 @@ public final class LlmAnthropicEventMapper
     {
         LlmBlockType type = blockStart.type().get();
         openBlockType = type;
+        openBlockId = blockStart.blockId();
 
         JsonObjectBuilder contentBlock = Json.createObjectBuilder();
         if (type == LlmBlockType.TOOL_CALL)
