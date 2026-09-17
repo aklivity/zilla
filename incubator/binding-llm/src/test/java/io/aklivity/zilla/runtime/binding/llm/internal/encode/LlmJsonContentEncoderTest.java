@@ -48,11 +48,19 @@ public class LlmJsonContentEncoderTest
     }
 
     @Test
+    public void shouldEncodeEventNameAsNoBytes()
+    {
+        int written = encoder.encodeEventName("message", encoded, 0, encoded.capacity());
+
+        assertThat(written, equalTo(0));
+    }
+
+    @Test
     public void shouldEncodeFlushAsNoBytes()
     {
         DirectBuffer idBuffer = new UnsafeBuffer(new byte[0]);
 
-        int written = encoder.encodeFlush(null, idBuffer, 0, 0, encoded, 0, encoded.capacity());
+        int written = encoder.encodeFlush(idBuffer, 0, 0, encoded, 0, encoded.capacity());
 
         assertThat(written, equalTo(0));
     }

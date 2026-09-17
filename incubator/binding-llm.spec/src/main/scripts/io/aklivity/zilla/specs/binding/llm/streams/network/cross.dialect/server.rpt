@@ -30,8 +30,7 @@ read zilla:begin.ext ${http:matchBeginEx()
 
 connected
 
-read "data: {\"text\":\"hello there\"}\n"
-read "event: message\n\n"
+read "event: message\ndata: {\"text\":\"hello there\"}\n\n"
 
 read closed
 

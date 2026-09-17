@@ -44,6 +44,16 @@ public final class LlmTestContentCodecSpi implements LlmContentCodecSpi
         return new LlmContentEncoder()
         {
             @Override
+            public int encodeEventName(
+                String event,
+                MutableDirectBuffer encoded,
+                int encodedOffset,
+                int encodedLimit)
+            {
+                return 0;
+            }
+
+            @Override
             public int encodeData(
                 DirectBuffer buffer,
                 int offset,
@@ -63,7 +73,6 @@ public final class LlmTestContentCodecSpi implements LlmContentCodecSpi
 
             @Override
             public int encodeFlush(
-                String event,
                 DirectBuffer id,
                 int idOffset,
                 int idLength,

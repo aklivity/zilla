@@ -20,11 +20,14 @@ import org.agrona.MutableDirectBuffer;
 /**
  * Encodes {@code text/event-stream} (SSE) framing, the inverse of {@code LlmSseContentDecoder}.
  * <p>
- * Each {@code encodeData}/{@code encodeFlush} call writes one complete SSE field line (or the blank
- * line terminating an event); a decoder on the receiving side parses fields independently of the
- * order they arrive in, so this need not reproduce a particular field ordering to round-trip
- * faithfully. A single data chunk is written as one {@code data:} line; splitting embedded newlines
- * across multiple {@code data:} lines is not implemented here.
+ * Each {@code encodeEventName}/{@code encodeData}/{@code encodeFlush} call writes one complete SSE
+ * field line (or the blank line terminating an event). A caller must sequence a full event as
+ * {@code encodeEventName} (writing {@code event:} when present) followed by {@code encodeData}
+ * (writing {@code data:}) followed by {@code encodeFlush} (writing {@code id:} and the terminating
+ * blank line) so the wire form matches the field order every real SSE sender uses, since the event
+ * name, when present, always precedes its data on the wire. A single data chunk is written as one
+ * {@code data:} line; splitting embedded newlines across multiple {@code data:} lines is not
+ * implemented here.
  * </p>
  */
 public final class LlmSseContentEncoder implements LlmContentEncoder
@@ -33,6 +36,32 @@ public final class LlmSseContentEncoder implements LlmContentEncoder
     private static final String EVENT_FIELD = "event: ";
     private static final String ID_FIELD = "id: ";
     private static final byte LF = '\n';
+
+    @Override
+    public int encodeEventName(
+        String event,
+        MutableDirectBuffer encoded,
+        int encodedOffset,
+        int encodedLimit)
+    {
+        int written = 0;
+
+        if (event != null)
+        {
+            int required = EVENT_FIELD.length() + event.length() + 1;
+            if (encodedOffset + required <= encodedLimit)
+            {
+                int position = encodedOffset;
+                position += encoded.putStringWithoutLengthUtf8(position, EVENT_FIELD);
+                position += encoded.putStringWithoutLengthUtf8(position, event);
+                encoded.putByte(position, LF);
+                position++;
+                written = position - encodedOffset;
+            }
+        }
+
+        return written;
+    }
 
     @Override
     public int encodeData(
@@ -62,7 +91,6 @@ public final class LlmSseContentEncoder implements LlmContentEncoder
 
     @Override
     public int encodeFlush(
-        String event,
         DirectBuffer id,
         int idOffset,
         int idLength,
@@ -70,21 +98,12 @@ public final class LlmSseContentEncoder implements LlmContentEncoder
         int encodedOffset,
         int encodedLimit)
     {
-        int required = 1 +
-            (event != null ? EVENT_FIELD.length() + event.length() + 1 : 0) +
-            (idLength > 0 ? ID_FIELD.length() + idLength + 1 : 0);
+        int required = 1 + (idLength > 0 ? ID_FIELD.length() + idLength + 1 : 0);
         int written = 0;
 
         if (encodedOffset + required <= encodedLimit)
         {
             int position = encodedOffset;
-            if (event != null)
-            {
-                position += encoded.putStringWithoutLengthUtf8(position, EVENT_FIELD);
-                position += encoded.putStringWithoutLengthUtf8(position, event);
-                encoded.putByte(position, LF);
-                position++;
-            }
             if (idLength > 0)
             {
                 position += encoded.putStringWithoutLengthUtf8(position, ID_FIELD);
