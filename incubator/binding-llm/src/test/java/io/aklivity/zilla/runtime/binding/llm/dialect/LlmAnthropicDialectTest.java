@@ -23,6 +23,7 @@ import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.sameInstance;
 
 import java.util.Map;
 import java.util.ServiceLoader;
@@ -33,6 +34,7 @@ import org.junit.Test;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
+import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 
 public class LlmAnthropicDialectTest
 {
@@ -149,6 +151,16 @@ public class LlmAnthropicDialectTest
             assertThat(dialect.supplyDecoder(kind, ModelEnvelope.NONE).identity(), is(false));
             assertThat(dialect.supplyEncoder(kind, ModelEnvelope.NONE).identity(), is(false));
         }
+    }
+
+    @Test
+    public void shouldSupplyValidatorOnlyForRequestKind()
+    {
+        LlmDialect dialect = new LlmAnthropicDialect();
+
+        assertThat(dialect.supplyValidator(LlmDialect.Kind.REQUEST, ModelEnvelope.NONE), not(nullValue()));
+        assertThat(dialect.supplyValidator(LlmDialect.Kind.REQUEST, ModelEnvelope.NONE).identity(), is(true));
+        assertThat(dialect.supplyValidator(LlmDialect.Kind.RESPONSE, ModelEnvelope.NONE), sameInstance(ModelTransform.NONE));
     }
 
     private static ModelEnvelope headers(

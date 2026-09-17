@@ -187,7 +187,7 @@ public final class LlmServerFactory implements LlmStreamFactory
                         final String contentType = header(envelope, HEADER_CONTENT_TYPE);
                         final ModelHandler model = binding.supplyModel(dialect, LlmDialect.Kind.REQUEST);
                         final ModelPipeline pipeline = model.supplyDecoder(
-                            envelope, dialect.supplyDecoder(LlmDialect.Kind.REQUEST, envelope), ModelCache.NONE);
+                            envelope, dialect.supplyValidator(LlmDialect.Kind.REQUEST, envelope), ModelCache.NONE);
 
                         newStream = new LlmServer(
                                 network,

@@ -50,6 +50,14 @@ public final class LlmTestStrictDialect implements LlmDialect
     }
 
     @Override
+    public ModelTransform supplyValidator(
+        Kind kind,
+        ModelEnvelope envelope)
+    {
+        return supplyDecoder(kind, envelope);
+    }
+
+    @Override
     public ModelTransform supplyEncoder(
         Kind kind,
         ModelEnvelope envelope)
