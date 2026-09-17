@@ -82,6 +82,32 @@ public interface LlmDialect
         ModelEnvelope envelope);
 
     /**
+     * Creates a new {@link ModelTransform} that validates one stream's native {@code kind} payload against
+     * this dialect's own schema -- the same schema mechanism {@link LlmDialectFactorySpi#schema(Kind)}
+     * registers for {@link #supplyDecoder(Kind, ModelEnvelope)} -- without any canonical rewriting: every
+     * field passes through unchanged.
+     * <p>
+     * A binding with no target dialect to bridge toward (e.g. a {@code kind: server} accepting a native
+     * request it only needs to detect, validate, and forward byte-for-byte to its own application-facing
+     * side) uses this instead of {@link #supplyDecoder(Kind, ModelEnvelope)}: canonical rewriting is
+     * meaningful only when bridging between two different dialects, which is a {@code kind: client}
+     * binding's job alone.
+     * </p>
+     * <p>
+     * {@code envelope} is the same per-stream metadata channel {@link #detect(ModelEnvelope)} reads from. A
+     * validator may still extract a signal (e.g. {@code model}) into it as the payload streams through,
+     * exactly as {@link #supplyDecoder(Kind, ModelEnvelope)} does, but performs no field substitution.
+     * </p>
+     *
+     * @param kind      the request or response direction
+     * @param envelope  the per-stream metadata channel
+     * @return a new validating transform
+     */
+    ModelTransform supplyValidator(
+        Kind kind,
+        ModelEnvelope envelope);
+
+    /**
      * Creates a new {@link ModelTransform} encoding one stream's canonical {@code kind} payload into this
      * dialect's native representation, field by field.
      *

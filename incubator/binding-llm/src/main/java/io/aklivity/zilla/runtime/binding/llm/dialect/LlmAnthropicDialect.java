@@ -27,9 +27,11 @@ import io.aklivity.zilla.runtime.engine.model.ModelTransform;
  * that combination is at least as consistent with some other dialect stacking its own bearer credential on
  * top of a forwarded Anthropic API key, so {@link #detect(ModelEnvelope)} does not treat it as a hint.
  * <p>
- * Renames the Anthropic-native request/response members that this dialect's transforms give a canonical
- * synonym for -- see {@link LlmAnthropicRequestTransform} and {@link LlmAnthropicResponseTransform} for
- * exactly which members and the rationale. Anthropic's own streaming block lifecycle
+ * {@link #supplyDecoder(Kind, ModelEnvelope)}/{@link #supplyEncoder(Kind, ModelEnvelope)} rename the
+ * Anthropic-native request/response members that this dialect's transforms give a canonical synonym for --
+ * see {@link LlmAnthropicRequestTransform} and {@link LlmAnthropicResponseTransform} for exactly which
+ * members and the rationale; {@link #supplyValidator(Kind, ModelEnvelope)} performs no such renaming, only
+ * {@code model} extraction and native schema validation. Anthropic's own streaming block lifecycle
  * ({@code message_start}/{@code content_block_start}/{@code content_block_delta}/{@code content_block_stop}/
  * {@code message_delta}/{@code message_stop}) is already the skeleton this binding's canonical representation
  * is modeled on, so far fewer members need renaming here than {@link LlmOpenaiDialect} requires.
@@ -96,6 +98,14 @@ public final class LlmAnthropicDialect implements LlmDialect
             break;
         }
         return transform;
+    }
+
+    @Override
+    public ModelTransform supplyValidator(
+        Kind kind,
+        ModelEnvelope envelope)
+    {
+        return kind == Kind.REQUEST ? new LlmModelExtractTransform(envelope) : ModelTransform.NONE;
     }
 
     @Override
