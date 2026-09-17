@@ -90,7 +90,7 @@ public class LlmClientIT
     @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.streaming/client",
-        "${net}/openai.streaming/server"})
+        "${net}/client.openai.streaming/server"})
     public void shouldForwardOpenaiStreamingSameDialect() throws Exception
     {
         k3po.finish();
@@ -100,7 +100,7 @@ public class LlmClientIT
     @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.nonstreaming/client",
-        "${net}/openai.nonstreaming/server"})
+        "${net}/client.openai.nonstreaming/server"})
     public void shouldForwardOpenaiNonstreamingSameDialect() throws Exception
     {
         k3po.finish();

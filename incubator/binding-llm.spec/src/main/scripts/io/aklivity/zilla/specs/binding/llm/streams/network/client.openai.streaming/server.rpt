@@ -24,7 +24,7 @@ read zilla:begin.ext ${http:matchBeginEx()
                            .header(":method", "POST")
                            .header(":scheme", "http")
                            .header(":authority", "example.com:8080")
-                           .header(":path", "/v1/chat/completions")
+                           .header(":path", "/")
                            .header("content-type", "application/json")
                            .build()}
 
