@@ -17,6 +17,9 @@ package io.aklivity.zilla.runtime.binding.llm.internal.mapper;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.everyItem;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.startsWith;
 
 import org.agrona.DirectBuffer;
 import org.junit.Before;
@@ -189,6 +192,51 @@ public class LlmOpenaiEventMapperTest
         mapper.decode(null, "[DONE]", support);
 
         assertThat(support.trace, contains("end"));
+    }
+
+    // llm.idl LlmMessageStartFlushEx: choiceIndex never survives a cross-dialect route to
+    // Anthropic when n > 1 upstream -- only the first parallel completion is even decoded
+    @Test
+    public void shouldDropSecondChoiceOfParallelCompletions()
+    {
+        mapper.decode(null, "{\"id\":\"chatcmpl_1\",\"model\":\"gpt-4\",\"choices\":[" +
+            "{\"index\":0,\"delta\":{\"role\":\"assistant\"},\"finish_reason\":null}," +
+            "{\"index\":1,\"delta\":{\"role\":\"assistant\"},\"finish_reason\":null}]}", support);
+
+        assertThat(support.trace, contains(
+            "messageStart:0:chatcmpl_1:gpt-4:assistant",
+            "blockStart:0:0:TEXT:null:null"));
+    }
+
+    @Test
+    public void shouldDropSecondChoiceContentOfParallelCompletions()
+    {
+        firstChunk();
+
+        mapper.decode(null, "{\"choices\":[" +
+            "{\"index\":0,\"delta\":{\"content\":\"A\"},\"finish_reason\":null}," +
+            "{\"index\":1,\"delta\":{\"content\":\"B\"},\"finish_reason\":null}]}", support);
+
+        assertThat(support.trace, contains("data:A"));
+    }
+
+    // llm.idl LlmUsageFlushEx: a source that discloses inputTokens late (OpenAI, which never
+    // reveals prompt_tokens before a terminal chunk) defers emitting usage rather than emitting
+    // a placeholder zero on messageStart and correcting it later
+    @Test
+    public void shouldDeferUsageUntilOpenaiDisclosesInputTokens()
+    {
+        mapper.decode(null, "{\"id\":\"chatcmpl_1\",\"model\":\"gpt-4\"," +
+            "\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\"},\"finish_reason\":null}]}", support);
+
+        assertThat(support.trace, everyItem(not(startsWith("usage:"))));
+
+        support.trace.clear();
+
+        mapper.decode(null, "{\"choices\":[{\"index\":0,\"delta\":{},\"finish_reason\":\"stop\"}]," +
+            "\"usage\":{\"prompt_tokens\":25,\"completion_tokens\":15}}", support);
+
+        assertThat(support.trace, contains("blockEnd:0:0", "finish:0:STOP", "usage:25:15"));
     }
 
     @Test
