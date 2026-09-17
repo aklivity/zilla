@@ -188,4 +188,22 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.response.invalid/client",
+        "${net}/anthropic.response.invalid/server"})
+    public void shouldEncodeAnthropicResponseWithMismatchedEventType() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.response.valid/client",
+        "${net}/anthropic.response.valid/server"})
+    public void shouldEncodeAnthropicResponseWithMatchingEventType() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -161,4 +161,22 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.response.invalid/client",
+        "${app}/anthropic.response.invalid/server"})
+    public void shouldAbortAnthropicResponseWithMismatchedEventType() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.response.valid/client",
+        "${app}/anthropic.response.valid/server"})
+    public void shouldForwardAnthropicResponseWithMatchingEventType() throws Exception
+    {
+        k3po.finish();
+    }
 }
