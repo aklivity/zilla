@@ -23,6 +23,18 @@ import org.agrona.DirectBuffer;
 public interface LlmContentDecoderOutput
 {
     /**
+     * Signals that decoding has entered a new content-type-specific named event -- e.g. the SSE
+     * {@code event:} field's value -- before any {@link #data} belonging to it is emitted. The default
+     * does nothing, since a content-type with no concept of named events (e.g. plain JSON) never calls it.
+     *
+     * @param event  the event name
+     */
+    default void event(
+        String event)
+    {
+    }
+
+    /**
      * Emits content bytes belonging to the event currently being decoded.
      *
      * @param buffer  the buffer holding the content bytes
