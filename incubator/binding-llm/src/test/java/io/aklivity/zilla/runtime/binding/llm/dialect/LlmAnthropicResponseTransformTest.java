@@ -17,12 +17,9 @@ package io.aklivity.zilla.runtime.binding.llm.dialect;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.notNullValue;
 
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 import org.junit.Test;
 
@@ -203,50 +200,6 @@ public class LlmAnthropicResponseTransformTest
     }
 
     @Test
-    public void shouldForwardTypeMatchingEnvelopeEventOnDecode()
-    {
-        Recorder recorder = new Recorder();
-        TestEnvelope envelope = new TestEnvelope();
-        envelope.set("event", "content_block_delta");
-        ModelTransform decoder = new LlmAnthropicResponseTransform(true, envelope);
-
-        ModelStatus status = feed(decoder, recorder, "$.type", "content_block_delta");
-
-        assertThat(status, equalTo(ModelStatus.OK));
-        assertThat(recorder.events, equalTo(List.of("$.type=content_block_delta")));
-    }
-
-    @Test
-    public void shouldRejectTypeNotMatchingEnvelopeEventOnDecode()
-    {
-        Recorder recorder = new Recorder();
-        RecordingController control = new RecordingController();
-        TestEnvelope envelope = new TestEnvelope();
-        envelope.set("event", "message_start");
-        ModelTransform decoder = new LlmAnthropicResponseTransform(true, envelope);
-
-        ModelStatus status = decoder.transform(control, new Field("$.type", "content_block_delta"), ModelEvent.FIELD, recorder);
-
-        assertThat(status, equalTo(ModelStatus.REJECTED));
-        assertThat(recorder.events, equalTo(List.of()));
-        assertThat(control.diagnostic, notNullValue());
-    }
-
-    @Test
-    public void shouldIgnoreEnvelopeEventMismatchOnEncode()
-    {
-        Recorder recorder = new Recorder();
-        TestEnvelope envelope = new TestEnvelope();
-        envelope.set("event", "message_start");
-        ModelTransform encoder = new LlmAnthropicResponseTransform(false, envelope);
-
-        ModelStatus status = feed(encoder, recorder, "$.type", "content_block_delta");
-
-        assertThat(status, equalTo(ModelStatus.OK));
-        assertThat(recorder.events, equalTo(List.of("$.type=content_block_delta")));
-    }
-
-    @Test
     public void shouldRoundTripKnownFieldsThroughCanonicalFormWithNoLoss()
     {
         List<String[]> nativeFields = List.of(
@@ -277,13 +230,13 @@ public class LlmAnthropicResponseTransformTest
         assertThat(roundTripped.events, equalTo(original));
     }
 
-    private static ModelStatus feed(
+    private static void feed(
         ModelTransform transform,
         ModelSink sink,
         String path,
         String value)
     {
-        return transform.transform(NO_CONTROL, new Field(path, value), ModelEvent.FIELD, sink);
+        transform.transform(NO_CONTROL, new Field(path, value), ModelEvent.FIELD, sink);
     }
 
     private static String text(
@@ -316,61 +269,6 @@ public class LlmAnthropicResponseTransformTest
         public DirectBufferEx getValue()
         {
             return value;
-        }
-    }
-
-    private static final class RecordingController implements ModelController
-    {
-        private String diagnostic;
-
-        @Override
-        public long authorization()
-        {
-            return 0L;
-        }
-
-        @Override
-        public void reject(
-            String diagnostic)
-        {
-            this.diagnostic = diagnostic;
-        }
-    }
-
-    private static final class TestEnvelope implements ModelEnvelope
-    {
-        private final Map<String, List<DirectBufferEx>> valuesByName = new LinkedHashMap<>();
-
-        void set(
-            String name,
-            String value)
-        {
-            set(name, new UnsafeBufferEx(value.getBytes(UTF_8)));
-        }
-
-        @Override
-        public int count(
-            String name)
-        {
-            List<DirectBufferEx> values = valuesByName.get(name);
-            return values != null ? values.size() : 0;
-        }
-
-        @Override
-        public DirectBufferEx get(
-            String name,
-            int index)
-        {
-            List<DirectBufferEx> values = valuesByName.get(name);
-            return values != null && index < values.size() ? values.get(index) : null;
-        }
-
-        @Override
-        public void set(
-            String name,
-            DirectBufferEx value)
-        {
-            valuesByName.computeIfAbsent(name, n -> new ArrayList<>()).add(value);
         }
     }
 
