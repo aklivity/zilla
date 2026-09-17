@@ -14,8 +14,12 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.dialect;
 
+import java.net.URL;
+
 public final class LlmAnthropicDialectFactorySpi implements LlmDialectFactorySpi
 {
+    private static final String RESPONSE_SCHEMA = "anthropic.response.schema.json";
+
     @Override
     public String name()
     {
@@ -26,5 +30,12 @@ public final class LlmAnthropicDialectFactorySpi implements LlmDialectFactorySpi
     public LlmDialect create()
     {
         return new LlmAnthropicDialect();
+    }
+
+    @Override
+    public URL schema(
+        LlmDialect.Kind kind)
+    {
+        return kind == LlmDialect.Kind.RESPONSE ? getClass().getResource(RESPONSE_SCHEMA) : null;
     }
 }

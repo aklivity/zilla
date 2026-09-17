@@ -115,4 +115,24 @@ public class LlmClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.response.invalid/client",
+        "${net}/anthropic.response.invalid/server"})
+    public void shouldRejectAnthropicResponseWithMismatchedEventType() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.response.valid/client",
+        "${net}/anthropic.response.valid/server"})
+    public void shouldForwardAnthropicResponseWithMatchingEventType() throws Exception
+    {
+        k3po.finish();
+    }
 }
