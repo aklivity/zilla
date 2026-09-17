@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.4.3](https://github.com/aklivity/zilla/tree/2.4.3) (2026-09-17)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/2.4.2...2.4.3)
+
+**Merged pull requests:**
+
+- fix\(engine\): synchronize EngineBoss.detachAll\(\) with boss thread [\#2579](https://github.com/aklivity/zilla/pull/2579) ([jfallows](https://github.com/jfallows))
+
 ## [2.4.2](https://github.com/aklivity/zilla/tree/2.4.2) (2026-09-11)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/2.4.1...2.4.2)
