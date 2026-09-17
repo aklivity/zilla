@@ -147,6 +147,7 @@ public final class LlmSseContentDecoder implements LlmContentDecoder
             break;
         case EVENT_FIELD:
             eventName = buffer.getStringWithoutLengthUtf8(valueStart, valueLength);
+            output.event(eventName);
             break;
         case ID_FIELD:
             onEventId(buffer, valueStart, valueLength);
