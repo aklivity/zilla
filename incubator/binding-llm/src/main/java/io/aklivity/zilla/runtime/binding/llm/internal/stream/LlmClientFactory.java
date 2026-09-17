@@ -15,7 +15,6 @@
 package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
-import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.util.function.LongUnaryOperator;
 
@@ -78,10 +77,6 @@ public final class LlmClientFactory implements LlmStreamFactory
     // this fixed placeholder stands in until that config surface exists
     private static final String PATH_DEFAULT = "/";
 
-    // the literal SSE data value OpenAI (and other dialects following its convention) sends to terminate a
-    // stream; it is not a JSON document, so it must never reach the JSON-schema-validating response pipeline
-    private static final DirectBufferEx SSE_DONE_SENTINEL = new UnsafeBufferEx("[DONE]".getBytes(UTF_8));
-
     private static final int FLAG_FIN = 0x01;
     private static final int FLAG_INIT = 0x02;
 
@@ -124,6 +119,7 @@ public final class LlmClientFactory implements LlmStreamFactory
     private final MutableDirectBufferEx extBuffer;
     private final MutableDirectBufferEx transformBuffer;
     private final MutableDirectBufferEx copyBuffer;
+    private final DirectBufferEx comparisonRO;
 
     private final BufferPool decodePool;
     private final int decodeMax;
@@ -148,6 +144,7 @@ public final class LlmClientFactory implements LlmStreamFactory
         this.decodeMax = decodePool.slotCapacity();
         this.transformBuffer = new UnsafeBufferEx(new byte[decodeMax]);
         this.copyBuffer = new UnsafeBufferEx(new byte[decodeMax]);
+        this.comparisonRO = new UnsafeBufferEx(new byte[0]);
         this.codecs = new LlmContentCodecFactory();
         this.bindings = new Long2ObjectHashMap<>();
     }
@@ -243,6 +240,7 @@ public final class LlmClientFactory implements LlmStreamFactory
         private final LlmContentEncoder requestEncoder;
         private final ModelPipeline requestPipeline;
         private final ModelPipeline responsePipeline;
+        private final DirectBufferEx responseTerminator;
         private final LlmHttpClient delegate;
 
         private long initialSeq;
@@ -299,6 +297,7 @@ public final class LlmClientFactory implements LlmStreamFactory
                 : target.supplyDecoder(Kind.RESPONSE, envelope).andThen(source.supplyEncoder(Kind.RESPONSE, envelope));
             this.responsePipeline = binding.supplyModel(target, Kind.RESPONSE)
                 .supplyDecoder(envelope, responseTransform, ModelCache.NONE);
+            this.responseTerminator = target.terminator(Kind.RESPONSE);
 
             this.delegate = new LlmHttpClient(this, routedId, resolvedId, server, requestContentType);
         }
@@ -1058,15 +1057,17 @@ public final class LlmClientFactory implements LlmStreamFactory
             client.doAppFlush(decodeTraceId, decodeAuthorization, event, buffer, offset, length);
         }
 
-        private boolean isDoneSentinel(
+        private boolean matchesTerminator(
             DirectBuffer buffer,
             int offset,
             int length)
         {
-            boolean matches = length == SSE_DONE_SENTINEL.capacity();
-            for (int i = 0; matches && i < length; i++)
+            final DirectBufferEx terminator = client.responseTerminator;
+            boolean matches = terminator != null;
+            if (matches)
             {
-                matches = buffer.getByte(offset + i) == SSE_DONE_SENTINEL.getByte(i);
+                comparisonRO.wrap((DirectBufferEx) buffer, offset, length);
+                matches = comparisonRO.equals(terminator);
             }
             return matches;
         }
@@ -1078,7 +1079,7 @@ public final class LlmClientFactory implements LlmStreamFactory
         {
             if (length > 0)
             {
-                if (isDoneSentinel(buffer, offset, length))
+                if (matchesTerminator(buffer, offset, length))
                 {
                     client.doAppData(decodeTraceId, decodeAuthorization, (DirectBufferEx) buffer, offset, length);
                 }

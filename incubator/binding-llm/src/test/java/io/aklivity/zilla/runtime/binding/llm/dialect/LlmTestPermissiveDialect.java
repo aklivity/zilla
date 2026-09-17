@@ -65,6 +65,13 @@ public final class LlmTestPermissiveDialect implements LlmDialect
         return ModelTransform.NONE;
     }
 
+    @Override
+    public DirectBufferEx terminator(
+        Kind kind)
+    {
+        return null;
+    }
+
     static URL schemaResource()
     {
         return LlmTestPermissiveDialect.class.getResource("test.permissive.request.schema.json");

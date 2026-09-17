@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.dialect;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 
@@ -91,4 +92,17 @@ public interface LlmDialect
     ModelTransform supplyEncoder(
         Kind kind,
         ModelEnvelope envelope);
+
+    /**
+     * Returns the literal byte sequence this dialect's {@code kind} stream uses to signal completion out
+     * of band from any document -- e.g. OpenAI's response stream ends with the SSE data value
+     * {@code [DONE]}, which is not JSON and never reaches a {@link #supplyDecoder(Kind, ModelEnvelope)}
+     * transform -- or {@code null} when this dialect's {@code kind} stream has no such terminator and every
+     * value is a document.
+     *
+     * @param kind  the request or response direction
+     * @return the terminator bytes, or {@code null}
+     */
+    DirectBufferEx terminator(
+        Kind kind);
 }
