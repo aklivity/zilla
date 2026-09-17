@@ -127,6 +127,15 @@ public class JsonModelFieldTransformTest
     }
 
     @Test
+    public void shouldForwardBooleanAndNullFieldsUnchanged()
+    {
+        String output = decode(renaming("$.unused", "$.unused"),
+            "{\"stream\":true,\"cache\":false,\"seed\":null}");
+
+        assertThat(output, equalTo("{\"stream\":true,\"cache\":false,\"seed\":null}"));
+    }
+
+    @Test
     public void shouldForwardContainerValuedMembersUnchanged()
     {
         String output = decode(renaming("$.max_tokens", "$.maxOutputTokens"),

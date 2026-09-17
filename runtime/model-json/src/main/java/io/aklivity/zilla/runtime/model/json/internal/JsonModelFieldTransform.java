@@ -270,7 +270,21 @@ final class JsonModelFieldTransform implements JsonTransform
     {
         Status status;
         scalarText.setLength(0);
-        scalarText.append(source.getStringView());
+        switch (event)
+        {
+        case VALUE_TRUE:
+            scalarText.append("true");
+            break;
+        case VALUE_FALSE:
+            scalarText.append("false");
+            break;
+        case VALUE_NULL:
+            scalarText.append("null");
+            break;
+        default:
+            scalarText.append(source.getStringView());
+            break;
+        }
         valueLength = putUtf8(valueBuffer, scalarText);
         if (source.deferredBytes())
         {
