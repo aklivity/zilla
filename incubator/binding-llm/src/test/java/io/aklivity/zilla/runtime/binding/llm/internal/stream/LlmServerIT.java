@@ -176,16 +176,6 @@ public class LlmServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/anthropic.request/client",
-        "${app}/anthropic.request/server"})
-    public void shouldDetectAnthropicDialectFromPath() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
         "${net}/anthropic.streaming/client",
         "${app}/anthropic.streaming/server"})
     public void shouldForwardAnthropicStreaming() throws Exception

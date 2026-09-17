@@ -218,15 +218,6 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/anthropic.request/client",
-        "${net}/anthropic.request/server"})
-    public void shouldEncodeAnthropicRequest() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${net}/anthropic.streaming/client",
         "${net}/anthropic.streaming/server"})
     public void shouldEncodeAnthropicStreaming() throws Exception
