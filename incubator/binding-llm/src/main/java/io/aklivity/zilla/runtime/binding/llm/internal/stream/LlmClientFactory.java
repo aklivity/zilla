@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.util.function.LongUnaryOperator;
 
@@ -72,6 +73,7 @@ public final class LlmClientFactory implements LlmStreamFactory
     private static final String METHOD_POST = "POST";
     private static final String SCHEME_HTTP = "http";
     private static final String CONTENT_TYPE_JSON = "application/json";
+    private static final String ENVELOPE_EVENT = "event";
 
     // no per-dialect request path is modeled yet (LlmOptionsConfig / llm.idl carry no such field);
     // this fixed placeholder stands in until that config surface exists
@@ -222,6 +224,12 @@ public final class LlmClientFactory implements LlmStreamFactory
         }
 
         return newStream;
+    }
+
+    private static DirectBufferEx asBuffer(
+        String value)
+    {
+        return new UnsafeBufferEx(value.getBytes(UTF_8));
     }
 
     private final class LlmClient
@@ -1036,6 +1044,16 @@ public final class LlmClientFactory implements LlmStreamFactory
             }
 
             return offset + forwardable;
+        }
+
+        @Override
+        public void event(
+            String event)
+        {
+            if (event != null)
+            {
+                client.envelope.set(ENVELOPE_EVENT, asBuffer(event));
+            }
         }
 
         @Override

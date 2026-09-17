@@ -17,15 +17,19 @@ package io.aklivity.zilla.runtime.binding.llm.dialect;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.notNullValue;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.model.ModelController;
+import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelEvent;
 import io.aklivity.zilla.runtime.engine.model.ModelSink;
 import io.aklivity.zilla.runtime.engine.model.ModelSource;
@@ -53,7 +57,7 @@ public class LlmAnthropicResponseTransformTest
     public void shouldRenameContentBlockIndexToCanonical()
     {
         Recorder recorder = new Recorder();
-        ModelTransform decoder = new LlmAnthropicResponseTransform(true);
+        ModelTransform decoder = new LlmAnthropicResponseTransform(true, ModelEnvelope.NONE);
 
         feed(decoder, recorder, "$.index", "0");
 
@@ -64,7 +68,7 @@ public class LlmAnthropicResponseTransformTest
     public void shouldRenameContentBlockIndexToNative()
     {
         Recorder recorder = new Recorder();
-        ModelTransform encoder = new LlmAnthropicResponseTransform(false);
+        ModelTransform encoder = new LlmAnthropicResponseTransform(false, ModelEnvelope.NONE);
 
         feed(encoder, recorder, "$.blockId", "0");
 
@@ -75,7 +79,7 @@ public class LlmAnthropicResponseTransformTest
     public void shouldRenameStopReasonAndRemapMaxTokensValueToCanonical()
     {
         Recorder recorder = new Recorder();
-        ModelTransform decoder = new LlmAnthropicResponseTransform(true);
+        ModelTransform decoder = new LlmAnthropicResponseTransform(true, ModelEnvelope.NONE);
 
         feed(decoder, recorder, "$.delta.stop_reason", "max_tokens");
 
@@ -86,7 +90,7 @@ public class LlmAnthropicResponseTransformTest
     public void shouldRenameStopReasonAndRemapToolUseValueToCanonical()
     {
         Recorder recorder = new Recorder();
-        ModelTransform decoder = new LlmAnthropicResponseTransform(true);
+        ModelTransform decoder = new LlmAnthropicResponseTransform(true, ModelEnvelope.NONE);
 
         feed(decoder, recorder, "$.delta.stop_reason", "tool_use");
 
@@ -97,7 +101,7 @@ public class LlmAnthropicResponseTransformTest
     public void shouldRenameStopReasonAndRemapEndTurnValueToCanonical()
     {
         Recorder recorder = new Recorder();
-        ModelTransform decoder = new LlmAnthropicResponseTransform(true);
+        ModelTransform decoder = new LlmAnthropicResponseTransform(true, ModelEnvelope.NONE);
 
         feed(decoder, recorder, "$.delta.stop_reason", "end_turn");
 
@@ -108,13 +112,13 @@ public class LlmAnthropicResponseTransformTest
     public void shouldRemapStopSequenceValueToCanonicalStopButNotRoundTripToOriginal()
     {
         Recorder decoded = new Recorder();
-        ModelTransform decoder = new LlmAnthropicResponseTransform(true);
+        ModelTransform decoder = new LlmAnthropicResponseTransform(true, ModelEnvelope.NONE);
         feed(decoder, decoded, "$.delta.stop_reason", "stop_sequence");
 
         assertThat(decoded.events, equalTo(List.of("$.delta.finishReason=stop")));
 
         Recorder encoded = new Recorder();
-        ModelTransform encoder = new LlmAnthropicResponseTransform(false);
+        ModelTransform encoder = new LlmAnthropicResponseTransform(false, ModelEnvelope.NONE);
         feed(encoder, encoded, "$.delta.finishReason", "stop");
 
         assertThat(encoded.events, equalTo(List.of("$.delta.stop_reason=end_turn")));
@@ -124,7 +128,7 @@ public class LlmAnthropicResponseTransformTest
     public void shouldRenameFinishReasonAndRemapToolCallValueToNative()
     {
         Recorder recorder = new Recorder();
-        ModelTransform encoder = new LlmAnthropicResponseTransform(false);
+        ModelTransform encoder = new LlmAnthropicResponseTransform(false, ModelEnvelope.NONE);
 
         feed(encoder, recorder, "$.delta.finishReason", "tool_call");
 
@@ -135,7 +139,7 @@ public class LlmAnthropicResponseTransformTest
     public void shouldRenameUsageFieldsNestedUnderMessageOnMessageStart()
     {
         Recorder recorder = new Recorder();
-        ModelTransform decoder = new LlmAnthropicResponseTransform(true);
+        ModelTransform decoder = new LlmAnthropicResponseTransform(true, ModelEnvelope.NONE);
 
         feed(decoder, recorder, "$.message.usage.input_tokens", "25");
         feed(decoder, recorder, "$.message.usage.output_tokens", "1");
@@ -149,7 +153,7 @@ public class LlmAnthropicResponseTransformTest
     public void shouldRenameUsageFieldsAtRootOnMessageDelta()
     {
         Recorder recorder = new Recorder();
-        ModelTransform decoder = new LlmAnthropicResponseTransform(true);
+        ModelTransform decoder = new LlmAnthropicResponseTransform(true, ModelEnvelope.NONE);
 
         feed(decoder, recorder, "$.usage.output_tokens", "15");
 
@@ -160,7 +164,7 @@ public class LlmAnthropicResponseTransformTest
     public void shouldRenameUsageFieldsToNative()
     {
         Recorder recorder = new Recorder();
-        ModelTransform encoder = new LlmAnthropicResponseTransform(false);
+        ModelTransform encoder = new LlmAnthropicResponseTransform(false, ModelEnvelope.NONE);
 
         feed(encoder, recorder, "$.message.usage.inputTokens", "25");
         feed(encoder, recorder, "$.usage.outputTokens", "15");
@@ -174,7 +178,7 @@ public class LlmAnthropicResponseTransformTest
     public void shouldForwardUnknownFieldsUnchanged()
     {
         Recorder recorder = new Recorder();
-        ModelTransform decoder = new LlmAnthropicResponseTransform(true);
+        ModelTransform decoder = new LlmAnthropicResponseTransform(true, ModelEnvelope.NONE);
 
         feed(decoder, recorder, "$.type", "message_start");
         feed(decoder, recorder, "$.message.id", "msg_01");
@@ -199,6 +203,50 @@ public class LlmAnthropicResponseTransformTest
     }
 
     @Test
+    public void shouldForwardTypeMatchingEnvelopeEventOnDecode()
+    {
+        Recorder recorder = new Recorder();
+        TestEnvelope envelope = new TestEnvelope();
+        envelope.set("event", "content_block_delta");
+        ModelTransform decoder = new LlmAnthropicResponseTransform(true, envelope);
+
+        ModelStatus status = feed(decoder, recorder, "$.type", "content_block_delta");
+
+        assertThat(status, equalTo(ModelStatus.OK));
+        assertThat(recorder.events, equalTo(List.of("$.type=content_block_delta")));
+    }
+
+    @Test
+    public void shouldRejectTypeNotMatchingEnvelopeEventOnDecode()
+    {
+        Recorder recorder = new Recorder();
+        RecordingController control = new RecordingController();
+        TestEnvelope envelope = new TestEnvelope();
+        envelope.set("event", "message_start");
+        ModelTransform decoder = new LlmAnthropicResponseTransform(true, envelope);
+
+        ModelStatus status = decoder.transform(control, new Field("$.type", "content_block_delta"), ModelEvent.FIELD, recorder);
+
+        assertThat(status, equalTo(ModelStatus.REJECTED));
+        assertThat(recorder.events, equalTo(List.of()));
+        assertThat(control.diagnostic, notNullValue());
+    }
+
+    @Test
+    public void shouldIgnoreEnvelopeEventMismatchOnEncode()
+    {
+        Recorder recorder = new Recorder();
+        TestEnvelope envelope = new TestEnvelope();
+        envelope.set("event", "message_start");
+        ModelTransform encoder = new LlmAnthropicResponseTransform(false, envelope);
+
+        ModelStatus status = feed(encoder, recorder, "$.type", "content_block_delta");
+
+        assertThat(status, equalTo(ModelStatus.OK));
+        assertThat(recorder.events, equalTo(List.of("$.type=content_block_delta")));
+    }
+
+    @Test
     public void shouldRoundTripKnownFieldsThroughCanonicalFormWithNoLoss()
     {
         List<String[]> nativeFields = List.of(
@@ -209,14 +257,14 @@ public class LlmAnthropicResponseTransformTest
             new String[] { "$.content_block.type", "text" });
 
         Recorder canonical = new Recorder();
-        ModelTransform decoder = new LlmAnthropicResponseTransform(true);
+        ModelTransform decoder = new LlmAnthropicResponseTransform(true, ModelEnvelope.NONE);
         for (String[] field : nativeFields)
         {
             feed(decoder, canonical, field[0], field[1]);
         }
 
         Recorder roundTripped = new Recorder();
-        ModelTransform encoder = new LlmAnthropicResponseTransform(false);
+        ModelTransform encoder = new LlmAnthropicResponseTransform(false, ModelEnvelope.NONE);
         for (String event : canonical.events)
         {
             int separator = event.indexOf('=');
@@ -229,13 +277,13 @@ public class LlmAnthropicResponseTransformTest
         assertThat(roundTripped.events, equalTo(original));
     }
 
-    private static void feed(
+    private static ModelStatus feed(
         ModelTransform transform,
         ModelSink sink,
         String path,
         String value)
     {
-        transform.transform(NO_CONTROL, new Field(path, value), ModelEvent.FIELD, sink);
+        return transform.transform(NO_CONTROL, new Field(path, value), ModelEvent.FIELD, sink);
     }
 
     private static String text(
@@ -268,6 +316,61 @@ public class LlmAnthropicResponseTransformTest
         public DirectBufferEx getValue()
         {
             return value;
+        }
+    }
+
+    private static final class RecordingController implements ModelController
+    {
+        private String diagnostic;
+
+        @Override
+        public long authorization()
+        {
+            return 0L;
+        }
+
+        @Override
+        public void reject(
+            String diagnostic)
+        {
+            this.diagnostic = diagnostic;
+        }
+    }
+
+    private static final class TestEnvelope implements ModelEnvelope
+    {
+        private final Map<String, List<DirectBufferEx>> valuesByName = new LinkedHashMap<>();
+
+        void set(
+            String name,
+            String value)
+        {
+            set(name, new UnsafeBufferEx(value.getBytes(UTF_8)));
+        }
+
+        @Override
+        public int count(
+            String name)
+        {
+            List<DirectBufferEx> values = valuesByName.get(name);
+            return values != null ? values.size() : 0;
+        }
+
+        @Override
+        public DirectBufferEx get(
+            String name,
+            int index)
+        {
+            List<DirectBufferEx> values = valuesByName.get(name);
+            return values != null && index < values.size() ? values.get(index) : null;
+        }
+
+        @Override
+        public void set(
+            String name,
+            DirectBufferEx value)
+        {
+            valuesByName.computeIfAbsent(name, n -> new ArrayList<>()).add(value);
         }
     }
 

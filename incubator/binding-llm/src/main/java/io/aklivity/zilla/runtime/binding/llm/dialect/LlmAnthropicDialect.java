@@ -89,7 +89,7 @@ public final class LlmAnthropicDialect implements LlmDialect
             transform = new LlmAnthropicRequestTransform(true, envelope);
             break;
         case RESPONSE:
-            transform = new LlmAnthropicResponseTransform(true);
+            transform = new LlmAnthropicResponseTransform(true, envelope);
             break;
         default:
             transform = ModelTransform.NONE;
@@ -110,7 +110,7 @@ public final class LlmAnthropicDialect implements LlmDialect
             transform = new LlmAnthropicRequestTransform(false, envelope);
             break;
         case RESPONSE:
-            transform = new LlmAnthropicResponseTransform(false);
+            transform = new LlmAnthropicResponseTransform(false, envelope);
             break;
         default:
             transform = ModelTransform.NONE;
