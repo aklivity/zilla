@@ -133,7 +133,7 @@ final class LlmAnthropicResponseTransform implements ModelTransform
         ModelSink sink)
     {
         final ModelStatus status;
-        if (event == ModelEvent.FIELD)
+        if (event == ModelEvent.FIELD || event == ModelEvent.REPLACED)
         {
             status = onField(control, source, sink);
         }

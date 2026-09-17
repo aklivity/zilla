@@ -90,7 +90,7 @@ final class LlmOpenaiRequestTransform implements ModelTransform
         ModelSink sink)
     {
         final ModelStatus status;
-        if (event == ModelEvent.FIELD)
+        if (event == ModelEvent.FIELD || event == ModelEvent.REPLACED)
         {
             if (MODEL_PATH.equals(source.getPath()))
             {
