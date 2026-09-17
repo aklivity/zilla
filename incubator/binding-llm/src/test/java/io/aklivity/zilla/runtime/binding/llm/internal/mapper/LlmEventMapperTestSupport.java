@@ -39,6 +39,8 @@ final class LlmEventMapperTestSupport implements LlmEventMapperOutput, LlmNative
 
     private final MutableDirectBufferEx flushExBuffer = new UnsafeBufferEx(new byte[512]);
     private final LlmFlushExFW.Builder flushExRW = new LlmFlushExFW.Builder();
+    private final MutableDirectBufferEx dataExBuffer = new UnsafeBufferEx(new byte[512]);
+    private final LlmDataExFW.Builder dataExRW = new LlmDataExFW.Builder();
 
     final List<String> trace = new ArrayList<>();
 
@@ -181,6 +183,16 @@ final class LlmEventMapperTestSupport implements LlmEventMapperOutput, LlmNative
             .wrap(flushExBuffer, 0, flushExBuffer.capacity())
             .typeId(TYPE_ID)
             .usage(u -> u.inputTokens(inputTokens).outputTokens(outputTokens))
+            .build();
+    }
+
+    LlmDataExFW dataEx(
+        String logProbability)
+    {
+        return dataExRW
+            .wrap(dataExBuffer, 0, dataExBuffer.capacity())
+            .typeId(TYPE_ID)
+            .logProbability(logProbability)
             .build();
     }
 
