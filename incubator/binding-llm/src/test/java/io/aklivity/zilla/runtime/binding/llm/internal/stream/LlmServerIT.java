@@ -41,6 +41,7 @@ public class LlmServerIT
         .countersBufferCapacity(8192)
         .configurationRoot("io/aklivity/zilla/specs/binding/llm/config")
         .external("app0")
+        .external("app1")
         .clean();
 
     @Rule
@@ -227,6 +228,35 @@ public class LlmServerIT
     @Specification({
         "${net}/anthropic.request.rejected.authorization/client"})
     public void shouldRejectAnthropicRequestFailingAuthorization() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.routes.yaml")
+    @Specification({
+        "${net}/route.by.model.a/client",
+        "${app}/route.by.model.a/server"})
+    public void shouldRouteByModelA() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.routes.yaml")
+    @Specification({
+        "${net}/route.by.model.b/client",
+        "${app}/route.by.model.b/server"})
+    public void shouldRouteByModelB() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.routes.yaml")
+    @Specification({
+        "${net}/route.by.model.unmatched/client"})
+    public void shouldResetRequestWithUnmatchedModel() throws Exception
     {
         k3po.finish();
     }
