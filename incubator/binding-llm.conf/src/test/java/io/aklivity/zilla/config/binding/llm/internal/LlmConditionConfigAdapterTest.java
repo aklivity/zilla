@@ -15,6 +15,7 @@
 package io.aklivity.zilla.config.binding.llm.internal;
 
 import static java.util.Arrays.asList;
+import static java.util.function.Function.identity;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
@@ -61,6 +62,7 @@ public class LlmConditionConfigAdapterTest
     public void shouldWriteConditionWithDialect()
     {
         LlmConditionConfig condition = LlmConditionConfig.builder()
+            .inject(identity())
             .dialect("openai")
             .build();
 
@@ -112,5 +114,16 @@ public class LlmConditionConfigAdapterTest
         assertThat(condition, not(nullValue()));
         assertThat(condition.dialect, equalTo("anthropic"));
         assertThat(condition.model, contains("claude-*"));
+    }
+
+    @Test
+    public void shouldBuildConditionViaMapper()
+    {
+        LlmConditionConfig condition = LlmConditionConfig.builder(LlmConditionConfig.class::cast)
+            .dialect("openai")
+            .build();
+
+        assertThat(condition, not(nullValue()));
+        assertThat(condition.dialect, equalTo("openai"));
     }
 }
