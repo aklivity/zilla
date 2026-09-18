@@ -624,7 +624,7 @@ public final class LlmClientFactory implements LlmStreamFactory
             replyMax = maximum;
             state = LlmState.openReply(state);
 
-            delegate.resumeDecode(traceId, authorization);
+            delegate.decodeNet(traceId, authorization);
         }
 
         private void onAppReset(
@@ -1134,10 +1134,9 @@ public final class LlmClientFactory implements LlmStreamFactory
             {
                 cleanupDecodeSlot();
 
-                if (LlmState.replyClosing(state) && !LlmState.replyClosed(state))
+                if (LlmState.replyClosing(state))
                 {
-                    state = LlmState.closeReply(state);
-                    client.doAppEnd(pendingEndTraceId, pendingEndAuthorization);
+                    doAppEnd(pendingEndTraceId, pendingEndAuthorization);
                 }
             }
         }
@@ -1323,15 +1322,17 @@ public final class LlmClientFactory implements LlmStreamFactory
                 client.doAppFlush(traceId, authorization, null, emptyRO.buffer(), 0, 0);
             }
 
+            pendingEndTraceId = traceId;
+            pendingEndAuthorization = authorization;
+
+            if (decodeSlot != NO_SLOT)
+            {
+                decodeNet(traceId, authorization);
+            }
+
             if (decodeSlot == NO_SLOT)
             {
-                state = LlmState.closeReply(state);
-                client.doAppEnd(traceId, authorization);
-            }
-            else
-            {
-                pendingEndTraceId = traceId;
-                pendingEndAuthorization = authorization;
+                doAppEnd(pendingEndTraceId, pendingEndAuthorization);
             }
         }
 
@@ -1386,7 +1387,7 @@ public final class LlmClientFactory implements LlmStreamFactory
             client.doAppChallenge(traceId, authorization, extension);
         }
 
-        private void resumeDecode(
+        private void decodeNet(
             long traceId,
             long authorization)
         {
@@ -1394,6 +1395,17 @@ public final class LlmClientFactory implements LlmStreamFactory
             {
                 final MutableDirectBufferEx slotBuffer = decodePool.buffer(decodeSlot);
                 decodeNet(traceId, authorization, slotBuffer, 0, decodeSlotOffset);
+            }
+        }
+
+        private void doAppEnd(
+            long traceId,
+            long authorization)
+        {
+            if (!LlmState.replyClosed(state))
+            {
+                state = LlmState.closeReply(state);
+                client.doAppEnd(traceId, authorization);
             }
         }
 
