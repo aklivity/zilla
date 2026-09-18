@@ -13,40 +13,39 @@
 # specific language governing permissions and limitations under the License.
 #
 
-property serverAddress "zilla://streams/app0"
-
-accept ${serverAddress}
-       option zilla:window 8192
-       option zilla:transmission "half-duplex"
-accepted
-
-read zilla:begin.ext ${llm:matchBeginEx()
-                          .typeId(zilla:id("llm"))
-                          .dialect("openai")
-                          .build()}
-
-connected
-
-read '{"model":"gpt-4","messages":[{"role":"user","content":"'
-read ${core:randomBase64(10000)}
-read '"}],"stream":false}'
-
-read closed
+connect "zilla://streams/net0"
+  option zilla:window 8192
+  option zilla:transmission "half-duplex"
 
 write zilla:begin.ext ${llm:beginEx()
+                            .typeId(zilla:id("llm"))
+                            .dialect("openai")
+                            .model("gpt-a")
+                            .build()}
+connected
+
+write '{"model":"gpt-4","messages":[{"role":"user","content":"'
+      ${core:randomBase64(10000)}
+      '"}],"stream":false}'
+
+write close
+
+read zilla:begin.ext ${llm:matchBeginEx()
                            .typeId(zilla:id("llm"))
                            .dialect("openai")
                            .contentType("application/json")
                            .build()}
 
-write '{"id":"chatcmpl_2","object":"chat.completion","model":"gpt-4","choices":[{"index":0,"message":{"role":"assistant","content":"'
-      ${core:randomBase64(10000)}
-      '"},"finish_reason":"stop"}],"usage":{"prompt_tokens":25,"completion_tokens":15,"total_tokens":40}}'
-write advise zilla:flush ${llm:flushEx()
+read '{"id":"chatcmpl_2","object":"chat.completion","model":"gpt-4","choices":[{"index":0,"message":{"role":"assistant","content":"'
+read ${core:randomBase64(10000)}
+read '"},"finish_reason":"stop"}],"usage":{"prompt_tokens":25,"completion_tokens":15,"total_tokens":40}}'
+read advised zilla:flush ${llm:matchFlushEx()
                                .typeId(zilla:id("llm"))
                                .raw()
                                    .choiceIndex(0)
+                                   .typeNull()
+                                   .payloadNull()
                                    .build()
                                .build()}
 
-write close
+read closed

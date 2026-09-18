@@ -305,6 +305,10 @@ public final class LlmClientFactory implements LlmStreamFactory
         private int decodeSlotFlags;
         private boolean requestStarted;
 
+        private int encodeSlot = NO_SLOT;
+        private int encodeSlotOffset;
+        private boolean pendingResponseFlush;
+
         private final MutableDirectBufferEx pendingContent;
         private int pendingContentLength;
 
@@ -633,6 +637,12 @@ public final class LlmClientFactory implements LlmStreamFactory
             replyMax = maximum;
             state = LlmState.openReply(state);
 
+            if (encodeSlot != NO_SLOT)
+            {
+                final MutableDirectBufferEx slotBuffer = encodePool.buffer(encodeSlot);
+                encodeReply(traceId, authorization, slotBuffer, 0, encodeSlotOffset);
+            }
+
             delegate.decodeNet(traceId, authorization);
         }
 
@@ -680,6 +690,10 @@ public final class LlmClientFactory implements LlmStreamFactory
             state = LlmState.openReply(state);
         }
 
+        // Appends onto the tail of encodeSlot when it already holds bytes waiting for app-facing reply
+        // window credit, otherwise encodes straight from the caller's buffer -- avoiding a copy on the
+        // common, unblocked path. Either way, encodeReply() decides how much of the result actually goes
+        // out now.
         private void doAppData(
             long traceId,
             long authorization,
@@ -687,15 +701,107 @@ public final class LlmClientFactory implements LlmStreamFactory
             int offset,
             int length)
         {
-            copyBuffer.putBytes(0, buffer, offset, length);
+            DirectBuffer encodeBuffer = buffer;
+            int encodeOffset = offset;
+            int encodeLimit = offset + length;
 
-            LlmClientFactory.this.doData(app, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                traceId, authorization, FLAG_INIT | FLAG_FIN, 0L, length, copyBuffer, 0, length, emptyRO);
+            if (encodeSlot != NO_SLOT)
+            {
+                final MutableDirectBufferEx slotBuffer = encodePool.buffer(encodeSlot);
+                slotBuffer.putBytes(encodeSlotOffset, buffer, offset, length);
+                encodeSlotOffset += length;
 
-            replySeq += length;
+                encodeBuffer = slotBuffer;
+                encodeOffset = 0;
+                encodeLimit = encodeSlotOffset;
+            }
+
+            encodeReply(traceId, authorization, encodeBuffer, encodeOffset, encodeLimit);
         }
 
+        // Writes only as much of buffer[offset, limit) as the currently granted replyWindow allows,
+        // buffering any remainder in encodeSlot for the next onAppWindow to drain further -- an app write
+        // can never exceed the granted window, however much of it the caller has ready to send.
+        private void encodeReply(
+            long traceId,
+            long authorization,
+            DirectBuffer buffer,
+            int offset,
+            int limit)
+        {
+            final int maxLength = limit - offset;
+            final int replyWin = replyMax - (int) (replySeq - replyAck);
+            final int length = Math.max(Math.min(replyWin, maxLength), 0);
+
+            if (length > 0)
+            {
+                copyBuffer.putBytes(0, buffer, offset, length);
+
+                LlmClientFactory.this.doData(app, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                    traceId, authorization, FLAG_INIT | FLAG_FIN, 0L, length, copyBuffer, 0, length, emptyRO);
+
+                replySeq += length;
+            }
+
+            final int remaining = maxLength - length;
+            if (remaining > 0)
+            {
+                if (encodeSlot == NO_SLOT)
+                {
+                    encodeSlot = encodePool.acquire(replyId);
+                }
+
+                if (encodeSlot == NO_SLOT)
+                {
+                    cleanupClient(traceId, authorization);
+                }
+                else
+                {
+                    final MutableDirectBufferEx slotBuffer = encodePool.buffer(encodeSlot);
+                    slotBuffer.putBytes(0, buffer, offset + length, remaining);
+                    encodeSlotOffset = remaining;
+                }
+            }
+            else
+            {
+                cleanupEncodeSlot();
+
+                if (pendingResponseFlush)
+                {
+                    pendingResponseFlush = false;
+                    sendAppFlush(traceId, authorization, null, emptyRO.buffer(), 0, 0);
+                }
+
+                if (LlmState.replyClosing(state))
+                {
+                    doAppEndNow(traceId, authorization);
+                }
+            }
+        }
+
+        // A plain end-of-document marker (no event, no payload) queued behind encodeSlot must not jump
+        // ahead of the content it is marking the end of -- deferred until the slot drains. A flush that
+        // carries its own event/payload (the streaming raw-event path) is unaffected, since that path
+        // never buffers content ahead of it in encodeSlot the way the non-streaming decode path does.
         private void doAppFlush(
+            long traceId,
+            long authorization,
+            String event,
+            DirectBuffer buffer,
+            int offset,
+            int length)
+        {
+            if (event == null && length == 0 && encodeSlot != NO_SLOT)
+            {
+                pendingResponseFlush = true;
+            }
+            else
+            {
+                sendAppFlush(traceId, authorization, event, buffer, offset, length);
+            }
+        }
+
+        private void sendAppFlush(
             long traceId,
             long authorization,
             String event,
@@ -728,6 +834,18 @@ public final class LlmClientFactory implements LlmStreamFactory
             long traceId,
             long authorization)
         {
+            state = LlmState.closingReply(state);
+
+            if (encodeSlot == NO_SLOT)
+            {
+                doAppEndNow(traceId, authorization);
+            }
+        }
+
+        private void doAppEndNow(
+            long traceId,
+            long authorization)
+        {
             if (!LlmState.replyClosed(state))
             {
                 state = LlmState.closeReply(state);
@@ -743,6 +861,7 @@ public final class LlmClientFactory implements LlmStreamFactory
             if (!LlmState.replyClosed(state))
             {
                 state = LlmState.closeReply(state);
+                cleanupEncodeSlot();
                 LlmClientFactory.this.doAbort(app, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, emptyRO);
             }
@@ -782,6 +901,7 @@ public final class LlmClientFactory implements LlmStreamFactory
             long authorization)
         {
             cleanupDecodeSlot();
+            cleanupEncodeSlot();
             doAppReset(traceId, authorization);
             delegate.doNetAbort(traceId, authorization);
         }
@@ -798,6 +918,16 @@ public final class LlmClientFactory implements LlmStreamFactory
             if (requestPipeline != null)
             {
                 requestPipeline.reset();
+            }
+        }
+
+        private void cleanupEncodeSlot()
+        {
+            if (encodeSlot != NO_SLOT)
+            {
+                encodePool.release(encodeSlot);
+                encodeSlot = NO_SLOT;
+                encodeSlotOffset = 0;
             }
         }
     }
@@ -832,6 +962,7 @@ public final class LlmClientFactory implements LlmStreamFactory
 
         private long decodeTraceId;
         private long decodeAuthorization;
+        private boolean responseStarted;
 
         private long pendingEndTraceId;
         private long pendingEndAuthorization;
@@ -1233,14 +1364,85 @@ public final class LlmClientFactory implements LlmStreamFactory
             }
         }
 
+        // LlmJsonContentDecoder documents that it expects one complete buffered document per call, unlike
+        // the SSE decoder's own line-oriented tolerance of partial input -- so a JSON (non-streaming)
+        // response is never handed to decoder.decode() until the reply is confirmed closing (the true,
+        // content-length-driven end of the body), and even then without truncating to window, since output
+        // flow control is enforced downstream by doAppData's own encodeSlot rather than by starving the
+        // input here. A same-dialect JSON route skips decoder.decode() entirely and instead streams the
+        // body straight through the model pipeline, chunk by chunk, exactly like the request-decode side
+        // already does -- this is the path that scales to a response larger than one decode slot.
         private int decodeContent(
             DirectBufferEx buffer,
             int offset,
             int limit,
             int window)
         {
-            final int decodeLimit = offset + Math.min(limit - offset, window);
-            return decoder.decode(buffer, offset, decodeLimit, this);
+            int progress = offset;
+
+            if (streaming)
+            {
+                final int decodeLimit = offset + Math.min(limit - offset, window);
+                progress = decoder.decode(buffer, offset, decodeLimit, this);
+            }
+            else if (client.translateEvents)
+            {
+                if (LlmState.replyClosing(state))
+                {
+                    progress = decoder.decode(buffer, offset, limit, this);
+                }
+            }
+            else
+            {
+                progress = decodeJsonContent(buffer, offset, limit);
+            }
+
+            return progress;
+        }
+
+        private int decodeJsonContent(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            int progress = offset;
+
+            if (progress < limit)
+            {
+                final int flags = responseStarted ? 0 : FLAG_INIT;
+
+                final ModelPipelineResult result = client.responsePipeline.transform(decodeTraceId, routedId,
+                    decodeAuthorization, flags, buffer, offset, limit, transformBuffer, 0, transformBuffer.capacity());
+                final ModelStatus status = result.status();
+
+                if (status == ModelStatus.REJECTED)
+                {
+                    client.responsePipeline.reset();
+                    cleanupNet(decodeTraceId, decodeAuthorization);
+                    progress = limit;
+                }
+                else
+                {
+                    responseStarted = true;
+
+                    final int producedLength = result.produced();
+                    if (producedLength > 0)
+                    {
+                        client.doAppData(decodeTraceId, decodeAuthorization, transformBuffer, 0, producedLength);
+                    }
+
+                    if (status == ModelStatus.COMPLETE)
+                    {
+                        client.responsePipeline.reset();
+                        responseStarted = false;
+                        client.doAppFlush(decodeTraceId, decodeAuthorization, null, emptyRO.buffer(), 0, 0);
+                    }
+
+                    progress = offset + result.consumed();
+                }
+            }
+
+            return progress;
         }
 
         private int forwardOpaque(
@@ -1529,6 +1731,7 @@ public final class LlmClientFactory implements LlmStreamFactory
             {
                 client.responsePipeline.reset();
             }
+            responseStarted = false;
         }
 
         private void cleanupEncodeSlot()

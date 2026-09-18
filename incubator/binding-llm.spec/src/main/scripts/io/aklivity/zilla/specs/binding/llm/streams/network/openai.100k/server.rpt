@@ -13,40 +13,35 @@
 # specific language governing permissions and limitations under the License.
 #
 
-property serverAddress "zilla://streams/app0"
-
-accept ${serverAddress}
+accept "zilla://streams/net0"
        option zilla:window 8192
        option zilla:transmission "half-duplex"
 accepted
 
-read zilla:begin.ext ${llm:matchBeginEx()
-                          .typeId(zilla:id("llm"))
-                          .dialect("openai")
-                          .build()}
+read zilla:begin.ext ${http:matchBeginEx()
+                           .typeId(zilla:id("http"))
+                           .header(":method", "POST")
+                           .header(":scheme", "http")
+                           .header(":authority", "example.com:8080")
+                           .header(":path", "/")
+                           .header("content-type", "application/json")
+                           .build()}
 
 connected
 
 read '{"model":"gpt-4","messages":[{"role":"user","content":"'
-read ${core:randomBase64(10000)}
+read ${core:randomBase64(100000)}
 read '"}],"stream":false}'
 
 read closed
 
-write zilla:begin.ext ${llm:beginEx()
-                           .typeId(zilla:id("llm"))
-                           .dialect("openai")
-                           .contentType("application/json")
+write zilla:begin.ext ${http:beginEx()
+                           .typeId(zilla:id("http"))
+                           .header(":status", "200")
+                           .header("content-type", "application/json")
                            .build()}
 
 write '{"id":"chatcmpl_2","object":"chat.completion","model":"gpt-4","choices":[{"index":0,"message":{"role":"assistant","content":"'
-      ${core:randomBase64(10000)}
+      ${core:randomBase64(100000)}
       '"},"finish_reason":"stop"}],"usage":{"prompt_tokens":25,"completion_tokens":15,"total_tokens":40}}'
-write advise zilla:flush ${llm:flushEx()
-                               .typeId(zilla:id("llm"))
-                               .raw()
-                                   .choiceIndex(0)
-                                   .build()
-                               .build()}
-
 write close
