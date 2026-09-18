@@ -404,9 +404,11 @@ public final class LlmClientFactory implements LlmStreamFactory
             state = LlmState.openingInitial(state);
             state = LlmState.openInitial(state);
 
+            // deferred until delegate.onNetWindow() reports the network transport is
+            // ready, rather than granted unconditionally here -- granting it before the
+            // transport can accept a request risks a request arriving too early and
+            // being rejected as a window violation
             delegate.doNetBegin(traceId, authorization);
-
-            doAppWindow(traceId, authorization);
         }
 
         private void onAppData(
@@ -1332,11 +1334,20 @@ public final class LlmClientFactory implements LlmStreamFactory
         private void onNetWindow(
             WindowFW window)
         {
+            final long traceId = window.traceId();
+            final long authorization = window.authorization();
             final long acknowledge = window.acknowledge();
             final int maximum = window.maximum();
 
+            final boolean transportReady = initialMax <= 0 && maximum > 0;
+
             initialAck = acknowledge;
             initialMax = maximum;
+
+            if (transportReady)
+            {
+                client.doAppWindow(traceId, authorization);
+            }
         }
 
         private void onNetReset(
