@@ -1,0 +1,143 @@
+name: ${NAMESPACE:-zilla-llm-proxy}
+
+services:
+  zilla:
+    image: ghcr.io/aklivity/zilla:${ZILLA_VERSION:-latest}
+    restart: unless-stopped
+    hostname: zilla.examples.dev
+    ports:
+      - 7161:7161
+      - 7162:7162
+    # start_interval matters here: without it, `docker compose up --wait`
+    # only re-checks the healthcheck every `interval` (5s), so the compose
+    # command exits well after zilla is actually ready. With it, `up --wait`
+    # returns almost immediately once /var/run/zilla/ready exists.
+    healthcheck:
+      interval: 5s
+      timeout: 3s
+      retries: 15
+      start_period: 15s
+      start_interval: 250ms
+      test: ["CMD", "sh", "-c", "test -f /var/run/zilla/ready"]
+    environment:
+      ZILLA_INCUBATOR_ENABLED: "true"
+    volumes:
+      - ./etc:/etc/zilla
+    command: start -v -e
+    depends_on:
+      mock-openai:
+        condition: service_healthy
+      mock-anthropic:
+        condition: service_healthy
+      mock-openai-secondary:
+        condition: service_healthy
+      mock-anthropic-secondary:
+        condition: service_healthy
+
+  # Mock OpenAI chat completions API backing south_llm_client_openai.
+  mock-openai:
+    image: node:20-alpine
+    hostname: mock-openai
+    restart: unless-stopped
+    working_dir: /app
+    command: ["sh", "-c", "npm install --no-audit --no-fund --silent && node server.mjs"]
+    environment:
+      PORT: "4101"
+    volumes:
+      - ./mock-openai:/app
+    healthcheck:
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 30s
+      start_interval: 250ms
+      test: ["CMD", "nc", "-z", "127.0.0.1", "4101"]
+
+  # Mock Anthropic messages API backing south_llm_client_anthropic.
+  mock-anthropic:
+    image: node:20-alpine
+    hostname: mock-anthropic
+    restart: unless-stopped
+    working_dir: /app
+    command: ["sh", "-c", "npm install --no-audit --no-fund --silent && node server.mjs"]
+    environment:
+      PORT: "4102"
+    volumes:
+      - ./mock-anthropic:/app
+    healthcheck:
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 30s
+      start_interval: 250ms
+      test: ["CMD", "nc", "-z", "127.0.0.1", "4102"]
+
+  # Second openai-dialect deployment backing south_llm_client_openai_secondary;
+  # north_llm_proxy routes gpt-4o here instead of translating to mock-anthropic.
+  mock-openai-secondary:
+    image: node:20-alpine
+    hostname: mock-openai-secondary
+    restart: unless-stopped
+    working_dir: /app
+    command: ["sh", "-c", "npm install --no-audit --no-fund --silent && node server.mjs"]
+    environment:
+      PORT: "4103"
+    volumes:
+      - ./mock-openai-secondary:/app
+    healthcheck:
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 30s
+      start_interval: 250ms
+      test: ["CMD", "nc", "-z", "127.0.0.1", "4103"]
+
+  # Second anthropic-dialect deployment backing south_llm_client_anthropic_secondary;
+  # north_llm_proxy routes claude-3-5-haiku-20241022 here instead of translating
+  # to mock-openai.
+  mock-anthropic-secondary:
+    image: node:20-alpine
+    hostname: mock-anthropic-secondary
+    restart: unless-stopped
+    working_dir: /app
+    command: ["sh", "-c", "npm install --no-audit --no-fund --silent && node server.mjs"]
+    environment:
+      PORT: "4104"
+    volumes:
+      - ./mock-anthropic-secondary:/app
+    healthcheck:
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 30s
+      start_interval: 250ms
+      test: ["CMD", "nc", "-z", "127.0.0.1", "4104"]
+
+  # Profile-gated: `docker compose up` never starts this; `docker compose run
+  # verify` (via .github/test.sh) enables its profile. Depending only on
+  # zilla's health is enough to gate the whole topology, since zilla already
+  # depends on both mocks. The docker socket is mounted so the credential
+  # pass-through assertions can read a mock's own logs via `docker logs`.
+  verify:
+    image: node:20-alpine
+    profiles: ["test"]
+    working_dir: /work
+    depends_on:
+      zilla:
+        condition: service_healthy
+    volumes:
+      - ./etc/test:/test:ro
+      - ../.github/test-lib.sh:/test-lib.sh:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      FAIL_FAST: "${FAIL_FAST:-1}"
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -e
+        apk add --no-cache curl docker-cli > /dev/null
+        exec sh /test/verify.sh
+
+networks:
+  default:
+    driver: bridge
