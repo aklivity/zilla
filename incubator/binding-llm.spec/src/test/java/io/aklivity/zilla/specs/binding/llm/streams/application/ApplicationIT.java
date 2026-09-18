@@ -206,4 +206,22 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/openai.request.guarded/client",
+        "${app}/openai.request.guarded/server"})
+    public void shouldForwardOpenaiRequestGuarded() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.request.guarded/client",
+        "${app}/anthropic.request.guarded/server"})
+    public void shouldForwardAnthropicRequestGuarded() throws Exception
+    {
+        k3po.finish();
+    }
 }

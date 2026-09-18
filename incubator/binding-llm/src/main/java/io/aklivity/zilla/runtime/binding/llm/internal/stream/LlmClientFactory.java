@@ -62,6 +62,7 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
+import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelCache;
 import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
@@ -240,6 +241,23 @@ public final class LlmClientFactory implements LlmStreamFactory
         return new UnsafeBufferEx(value.getBytes(UTF_8));
     }
 
+    private static String authorizationCredentials(
+        LlmBindingConfig binding,
+        long authorization)
+    {
+        String header = null;
+
+        if (binding.guard != null && binding.credentials != null && (authorization & GuardHandler.MASK_AUTHORIZED) != 0L)
+        {
+            final String credentials = binding.guard.credentials(authorization);
+            header = credentials != null
+                ? binding.credentials.replace(LlmBindingConfig.CREDENTIALS_PLACEHOLDER, credentials)
+                : null;
+        }
+
+        return header;
+    }
+
     private final class LlmClient
     {
         private final MessageConsumer app;
@@ -249,6 +267,7 @@ public final class LlmClientFactory implements LlmStreamFactory
         private final long replyId;
         private final long authorization;
         private final long affinity;
+        private final LlmBindingConfig binding;
         private final LlmDialect source;
         private final LlmDialect target;
         private final boolean sameDialect;
@@ -301,6 +320,7 @@ public final class LlmClientFactory implements LlmStreamFactory
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.authorization = authorization;
             this.affinity = affinity;
+            this.binding = binding;
             this.source = source;
             this.target = target;
             this.sameDialect = source == target;
@@ -862,14 +882,22 @@ public final class LlmClientFactory implements LlmStreamFactory
         {
             state = LlmState.openingInitial(state);
 
-            final HttpBeginExFW httpBeginEx = httpBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
+            final String credentials = authorizationCredentials(client.binding, authorization);
+
+            final HttpBeginExFW.Builder httpBeginExBuilder = httpBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(httpTypeId)
                 .headersItem(h -> h.name(HEADER_METHOD).value(METHOD_POST))
                 .headersItem(h -> h.name(HEADER_SCHEME).value(SCHEME_HTTP))
                 .headersItem(h -> h.name(HEADER_AUTHORITY).value(authority))
                 .headersItem(h -> h.name(HEADER_PATH).value(PATH_DEFAULT))
-                .headersItem(h -> h.name(HEADER_CONTENT_TYPE).value(requestContentType))
-                .build();
+                .headersItem(h -> h.name(HEADER_CONTENT_TYPE).value(requestContentType));
+
+            if (credentials != null)
+            {
+                httpBeginExBuilder.headersItem(h -> h.name(client.target.credentialsHeader()).value(credentials));
+            }
+
+            final HttpBeginExFW httpBeginEx = httpBeginExBuilder.build();
 
             net = LlmClientFactory.this.newStream(this::onNetMessage, originId, routedId, initialId,
                 initialSeq, initialAck, initialMax, traceId, authorization, client.affinity, httpBeginEx);

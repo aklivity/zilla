@@ -48,7 +48,7 @@ public final class LlmBindingConfig
     private static final String SUBJECT_RESPONSE_SUFFIX = ".response";
     private static final String SCHEMA_VERSION_LATEST = "latest";
 
-    private static final String CREDENTIALS_PLACEHOLDER = "{credentials}";
+    public static final String CREDENTIALS_PLACEHOLDER = "{credentials}";
 
     private static final Runnable NOOP = () ->
     {
@@ -61,12 +61,13 @@ public final class LlmBindingConfig
     public final KindConfig kind;
     public final LlmOptionsConfig options;
     public final List<LlmRouteConfig> routes;
+    public final GuardHandler guard;
+    public final String credentials;
 
     private final LlmDialectResolver dialects;
     private final EngineContext context;
     private final ToLongFunction<String> resolveId;
     private final Map<String, ModelHandler> modelsByDialectAndKind;
-    private final GuardHandler guard;
     private final Pattern credentialsPattern;
 
     private long catalogId = -1L;
@@ -89,7 +90,7 @@ public final class LlmBindingConfig
             .map(resolveId::applyAsLong)
             .map(context::supplyGuard)
             .orElse(null);
-        final String credentials = Optional.ofNullable(this.options.authorization)
+        this.credentials = Optional.ofNullable(this.options.authorization)
             .map(a -> a.credentials)
             .filter(c -> !c.isEmpty())
             .orElse(null);

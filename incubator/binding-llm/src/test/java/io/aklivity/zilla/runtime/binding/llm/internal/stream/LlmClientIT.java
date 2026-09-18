@@ -195,4 +195,24 @@ public class LlmClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.openai.guarded.yaml")
+    @Specification({
+        "${app}/openai.request.guarded/client",
+        "${net}/client.openai.request.guarded/server"})
+    public void shouldForwardOpenaiRequestWithForwardedCredentials() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.guarded.yaml")
+    @Specification({
+        "${app}/anthropic.request.guarded/client",
+        "${net}/client.anthropic.request.guarded/server"})
+    public void shouldForwardAnthropicRequestWithForwardedCredentials() throws Exception
+    {
+        k3po.finish();
+    }
 }
