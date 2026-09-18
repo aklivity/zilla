@@ -194,6 +194,26 @@ public class LlmServerIT
     }
 
     @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.10k/client",
+        "${app}/openai.10k/server"})
+    public void shouldForwardOpenai10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.10k/client",
+        "${app}/anthropic.10k/server"})
+    public void shouldForwardAnthropic10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("server.guarded.yaml")
     @Specification({
         "${net}/openai.request.guarded/client",
