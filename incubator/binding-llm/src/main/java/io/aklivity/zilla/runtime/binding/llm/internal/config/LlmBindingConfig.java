@@ -19,7 +19,10 @@ import static java.util.stream.Collectors.toList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.ToLongFunction;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import io.aklivity.zilla.config.binding.llm.LlmOptionsConfig;
 import io.aklivity.zilla.config.engine.BindingConfig;
@@ -29,7 +32,9 @@ import io.aklivity.zilla.config.model.json.JsonModelConfig;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialect;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialect.Kind;
 import io.aklivity.zilla.runtime.binding.llm.internal.dialect.LlmDialectResolver;
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 
@@ -43,6 +48,12 @@ public final class LlmBindingConfig
     private static final String SUBJECT_RESPONSE_SUFFIX = ".response";
     private static final String SCHEMA_VERSION_LATEST = "latest";
 
+    private static final String CREDENTIALS_PLACEHOLDER = "{credentials}";
+
+    private static final Runnable NOOP = () ->
+    {
+    };
+
     private static final LlmOptionsConfig DEFAULT_OPTIONS = LlmOptionsConfig.builder().build();
 
     public final long id;
@@ -55,6 +66,8 @@ public final class LlmBindingConfig
     private final EngineContext context;
     private final ToLongFunction<String> resolveId;
     private final Map<String, ModelHandler> modelsByDialectAndKind;
+    private final GuardHandler guard;
+    private final Pattern credentialsPattern;
 
     private long catalogId = -1L;
 
@@ -71,6 +84,49 @@ public final class LlmBindingConfig
         this.context = context;
         this.resolveId = binding.resolveId;
         this.modelsByDialectAndKind = new HashMap<>();
+        this.guard = Optional.ofNullable(this.options.authorization)
+            .map(a -> a.name)
+            .map(resolveId::applyAsLong)
+            .map(context::supplyGuard)
+            .orElse(null);
+        final String credentials = Optional.ofNullable(this.options.authorization)
+            .map(a -> a.credentials)
+            .filter(c -> !c.isEmpty())
+            .orElse(null);
+        this.credentialsPattern = credentials != null
+            ? Pattern.compile(credentials.replace(CREDENTIALS_PLACEHOLDER, "(?<credentials>[^\\s]+)"))
+            : null;
+    }
+
+    public LlmAuthorizationResult authorize(
+        long traceId,
+        long routedId,
+        long initialId,
+        long authorization,
+        ModelEnvelope envelope,
+        LlmDialect dialect)
+    {
+        LlmAuthorizationResult result = new LlmAuthorizationResult(authorization, true, NOOP);
+
+        if (guard != null)
+        {
+            final DirectBufferEx value = envelope.get(dialect.credentialsHeader(), 0);
+            final String header = value != null ? value.getStringWithoutLengthUtf8(0, value.capacity()) : null;
+            final Matcher credentialsMatcher = header != null ? credentialsPattern.matcher(header) : null;
+            final String credentials = credentialsMatcher != null && credentialsMatcher.matches()
+                ? credentialsMatcher.group("credentials")
+                : null;
+
+            final long sessionAuth = credentials != null
+                ? guard.reauthorize(traceId, routedId, initialId, credentials)
+                : GuardHandler.NOT_AUTHORIZED;
+
+            result = (sessionAuth & GuardHandler.MASK_AUTHORIZED) != 0L
+                ? new LlmAuthorizationResult(sessionAuth, true, () -> guard.deauthorize(sessionAuth))
+                : new LlmAuthorizationResult(authorization, false, NOOP);
+        }
+
+        return result;
     }
 
     public LlmRouteConfig resolve(

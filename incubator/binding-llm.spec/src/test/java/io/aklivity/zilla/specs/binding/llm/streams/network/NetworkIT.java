@@ -233,4 +233,40 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/openai.request.guarded/client",
+        "${net}/openai.request.guarded/server"})
+    public void shouldEncodeOpenaiRequestGuarded() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.request.guarded/client",
+        "${net}/anthropic.request.guarded/server"})
+    public void shouldEncodeAnthropicRequestGuarded() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.request.rejected.authorization/client",
+        "${net}/openai.request.rejected.authorization/server"})
+    public void shouldRejectOpenaiRequestFailingAuthorization() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.request.rejected.authorization/client",
+        "${net}/anthropic.request.rejected.authorization/server"})
+    public void shouldRejectAnthropicRequestFailingAuthorization() throws Exception
+    {
+        k3po.finish();
+    }
 }

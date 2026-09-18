@@ -192,4 +192,42 @@ public class LlmServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.guarded.yaml")
+    @Specification({
+        "${net}/openai.request.guarded/client",
+        "${app}/openai.request/server"})
+    public void shouldForwardOpenaiRequestGuarded() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.guarded.yaml")
+    @Specification({
+        "${net}/anthropic.request.guarded/client",
+        "${app}/anthropic.request/server"})
+    public void shouldForwardAnthropicRequestGuarded() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.guarded.yaml")
+    @Specification({
+        "${net}/openai.request.rejected.authorization/client"})
+    public void shouldRejectOpenaiRequestFailingAuthorization() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.guarded.yaml")
+    @Specification({
+        "${net}/anthropic.request.rejected.authorization/client"})
+    public void shouldRejectAnthropicRequestFailingAuthorization() throws Exception
+    {
+        k3po.finish();
+    }
 }

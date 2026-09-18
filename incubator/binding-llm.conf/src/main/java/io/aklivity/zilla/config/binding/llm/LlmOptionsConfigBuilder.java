@@ -24,6 +24,7 @@ public final class LlmOptionsConfigBuilder<T> extends ConfigBuilder<T, LlmOption
     private final Function<OptionsConfig, T> mapper;
 
     private String dialect;
+    private LlmAuthorizationConfig authorization;
     private LlmServerConfig server;
 
     LlmOptionsConfigBuilder(
@@ -46,6 +47,18 @@ public final class LlmOptionsConfigBuilder<T> extends ConfigBuilder<T, LlmOption
         return this;
     }
 
+    public LlmOptionsConfigBuilder<T> authorization(
+        LlmAuthorizationConfig authorization)
+    {
+        this.authorization = authorization;
+        return this;
+    }
+
+    public LlmAuthorizationConfigBuilder<LlmOptionsConfigBuilder<T>> authorization()
+    {
+        return LlmAuthorizationConfig.builder(this::authorization);
+    }
+
     public LlmServerConfigBuilder<LlmOptionsConfigBuilder<T>> server()
     {
         return LlmServerConfig.builder(this::server);
@@ -61,6 +74,6 @@ public final class LlmOptionsConfigBuilder<T> extends ConfigBuilder<T, LlmOption
     @Override
     public T build()
     {
-        return mapper.apply(new LlmOptionsConfig(dialect, server));
+        return mapper.apply(new LlmOptionsConfig(dialect, authorization, server));
     }
 }
