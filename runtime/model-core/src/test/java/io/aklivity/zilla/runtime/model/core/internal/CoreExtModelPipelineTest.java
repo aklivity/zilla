@@ -40,6 +40,7 @@ import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
+import io.aklivity.zilla.runtime.engine.model.ModelRejection;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 import io.aklivity.zilla.runtime.model.core.ext.BytesController;
@@ -186,6 +187,7 @@ public class CoreExtModelPipelineTest
         assertEquals(ModelStatus.REJECTED, result.status());
         assertEquals(0, result.produced());
         assertEquals(List.of(), reported);
+        assertEquals(ModelRejection.WITHHELD, result.rejection());
     }
 
     @Test
@@ -202,6 +204,23 @@ public class CoreExtModelPipelineTest
         assertEquals(0, result.produced());
         assertEquals(List.of("A message payload failed validation. A field was not the expected type (unacceptable)."),
             reported);
+        assertEquals(ModelRejection.INVALID, result.rejection());
+    }
+
+    @Test
+    public void shouldRejectValueFailingBaseValidation()
+    {
+        Malformed validator = new Malformed();
+        StringExtModelPipeline pipeline = new StringExtModelPipeline(
+            new CoreModelHandler(mock(EngineContext.class), StringModel.NAME, () -> validator, false, false),
+            validator, false, List.of(), ModelEnvelope.NONE, 0);
+        UnsafeBufferEx dst = new UnsafeBufferEx(new byte[16]);
+
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+            buffer("abc"), 0, 3, dst, 0, dst.capacity());
+
+        assertEquals(ModelStatus.REJECTED, result.status());
+        assertEquals(ModelRejection.INVALID, result.rejection());
     }
 
     @Test
@@ -699,6 +718,20 @@ public class CoreExtModelPipelineTest
             initial += (flags & CoreModelValidator.FLAGS_INIT) != 0 ? 1 : 0;
             finished += (flags & CoreModelValidator.FLAGS_FIN) != 0 ? 1 : 0;
             return Validity.VALID;
+        }
+    }
+
+    // always fails the pipeline's own structural validation, regardless of the bytes seen
+    private static final class Malformed implements CoreModelValidator
+    {
+        @Override
+        public Validity validate(
+            int flags,
+            DirectBufferEx data,
+            int index,
+            int length)
+        {
+            return Validity.MALFORMED;
         }
     }
 
