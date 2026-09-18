@@ -23,6 +23,7 @@ import org.junit.rules.DisableOnDebug;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
 
+import io.aklivity.k3po.runtime.junit.annotation.ScriptProperty;
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
@@ -72,6 +73,48 @@ public class LlmProxyIT
     @Specification({
         "${net}/proxy.route.unmatched/client"})
     public void shouldRejectRequestWithUnmatchedModel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.routes.yaml")
+    @Specification({
+        "${net}/proxy.route.openai.10k/client",
+        "${app}/openai.10k/server"})
+    public void shouldRouteOpenai10kToAppZero() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.routes.yaml")
+    @Specification({
+        "${net}/proxy.route.anthropic.10k/client",
+        "${app}/anthropic.10k/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldRouteAnthropic10kToAppOne() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.routes.yaml")
+    @Specification({
+        "${net}/proxy.route.openai.100k/client",
+        "${app}/openai.100k/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldRouteOpenai100kToAppOne() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.routes.yaml")
+    @Specification({
+        "${net}/proxy.route.anthropic.100k/client",
+        "${app}/anthropic.100k/server"})
+    public void shouldRouteAnthropic100kToAppZero() throws Exception
     {
         k3po.finish();
     }
