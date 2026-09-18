@@ -1,7 +1,7 @@
 ---
 name: example
 guards:
-  credentials:
+  api_key:
     type: inline
 bindings:
   north_tcp_server_openai:
@@ -17,7 +17,7 @@ bindings:
     options:
       dialect: openai
       authorization:
-        credentials:
+        api_key:
           credentials: "Bearer {credentials}"
     exit: south_llm_client_anthropic
   south_llm_client_anthropic:
@@ -27,7 +27,7 @@ bindings:
       dialect: anthropic
       server: mock-anthropic:4102
       authorization:
-        credentials:
+        api_key:
           credentials: "{credentials}"
     exit: south_tcp_client_anthropic
   south_tcp_client_anthropic:
@@ -50,7 +50,7 @@ bindings:
     options:
       dialect: anthropic
       authorization:
-        credentials:
+        api_key:
           credentials: "{credentials}"
     exit: south_llm_client_openai
   south_llm_client_openai:
@@ -60,7 +60,7 @@ bindings:
       dialect: openai
       server: mock-openai:4101
       authorization:
-        credentials:
+        api_key:
           credentials: "Bearer {credentials}"
     exit: south_tcp_client_openai
   south_tcp_client_openai:
