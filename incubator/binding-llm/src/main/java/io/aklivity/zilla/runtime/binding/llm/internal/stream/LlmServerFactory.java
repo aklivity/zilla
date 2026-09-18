@@ -208,7 +208,7 @@ public final class LlmServerFactory implements LlmStreamFactory
                                     begin.originId(),
                                     begin.routedId(),
                                     begin.streamId(),
-                                    binding,
+                                    route.id,
                                     authResult.authorization(),
                                     dialect,
                                     contentType,
@@ -315,7 +315,7 @@ public final class LlmServerFactory implements LlmStreamFactory
         private final long routedId;
         private final long initialId;
         private final long replyId;
-        private final LlmBindingConfig binding;
+        private final long exitId;
         private final LlmDialect dialect;
         private final String contentType;
         private final LlmModelEnvelope envelope;
@@ -323,7 +323,6 @@ public final class LlmServerFactory implements LlmStreamFactory
         private final Runnable deauthorize;
 
         private LlmStream stream;
-        private long exitId;
 
         private long initialSeq;
         private long initialAck;
@@ -358,7 +357,7 @@ public final class LlmServerFactory implements LlmStreamFactory
             long originId,
             long routedId,
             long initialId,
-            LlmBindingConfig binding,
+            long exitId,
             long authorization,
             LlmDialect dialect,
             String contentType,
@@ -371,7 +370,7 @@ public final class LlmServerFactory implements LlmStreamFactory
             this.routedId = routedId;
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
-            this.binding = binding;
+            this.exitId = exitId;
             this.initialAuthorization = authorization;
             this.dialect = dialect;
             this.contentType = contentType;
@@ -505,12 +504,7 @@ public final class LlmServerFactory implements LlmStreamFactory
                     if (stream == null)
                     {
                         stream = new LlmStream(this);
-                        if (!stream.doAppBegin(traceId, authorization))
-                        {
-                            doNetReset(traceId);
-                            cleanup(traceId);
-                            return;
-                        }
+                        stream.doAppBegin(traceId, authorization);
                     }
 
                     final int producedLength = result.produced();
@@ -1360,61 +1354,52 @@ public final class LlmServerFactory implements LlmStreamFactory
             server.doNetChallenge(traceId, authorization, extension);
         }
 
-        private boolean doAppBegin(
+        private void doAppBegin(
             long traceId,
             long authorization)
         {
+            this.initialId = supplyInitialId.applyAsLong(server.exitId);
+            this.replyId = supplyReplyId.applyAsLong(initialId);
+
             final DirectBufferEx modelValue = server.envelope.get(ENVELOPE_MODEL, 0);
             final String model = modelValue != null
                 ? modelValue.getStringWithoutLengthUtf8(0, modelValue.capacity())
                 : null;
 
-            final LlmRouteConfig route = server.binding.resolve(server.initialAuthorization, server.dialect.name(), model);
-            final boolean resolved = route != null;
+            final LlmBeginExFW.Builder builder = llmBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(llmTypeId)
+                .dialect(server.dialect.name());
 
-            if (resolved)
+            if (server.contentType != null)
             {
-                server.exitId = route.id;
-                this.initialId = supplyInitialId.applyAsLong(server.exitId);
-                this.replyId = supplyReplyId.applyAsLong(initialId);
-
-                final LlmBeginExFW.Builder builder = llmBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
-                    .typeId(llmTypeId)
-                    .dialect(server.dialect.name());
-
-                if (server.contentType != null)
-                {
-                    builder.contentType(server.contentType);
-                }
-
-                if (model != null)
-                {
-                    builder.model(model);
-                }
-
-                final LlmBeginExFW llmBeginEx = builder.build();
-
-                final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                    .originId(server.routedId)
-                    .routedId(server.exitId)
-                    .streamId(initialId)
-                    .sequence(initialSeq)
-                    .acknowledge(initialAck)
-                    .maximum(initialMax)
-                    .traceId(traceId)
-                    .authorization(authorization)
-                    .affinity(0L)
-                    .extension(llmBeginEx.buffer(), llmBeginEx.offset(), llmBeginEx.sizeof())
-                    .build();
-
-                app = streamFactory.newStream(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof(),
-                    this::onAppMessage);
-                app.accept(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof());
-
-                state = LlmState.openingInitial(state);
+                builder.contentType(server.contentType);
             }
 
-            return resolved;
+            if (model != null)
+            {
+                builder.model(model);
+            }
+
+            final LlmBeginExFW llmBeginEx = builder.build();
+
+            final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+                .originId(server.routedId)
+                .routedId(server.exitId)
+                .streamId(initialId)
+                .sequence(initialSeq)
+                .acknowledge(initialAck)
+                .maximum(initialMax)
+                .traceId(traceId)
+                .authorization(authorization)
+                .affinity(0L)
+                .extension(llmBeginEx.buffer(), llmBeginEx.offset(), llmBeginEx.sizeof())
+                .build();
+
+            app = streamFactory.newStream(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof(),
+                this::onAppMessage);
+            app.accept(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof());
+
+            state = LlmState.openingInitial(state);
         }
 
         private void doAppData(
