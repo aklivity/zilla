@@ -23,6 +23,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
+import io.aklivity.zilla.runtime.engine.model.ModelRejection;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 
 // Per-stream identity transform for a core model: validate the bytes about to be forwarded, copy them
@@ -91,11 +92,13 @@ final class CoreModelPipeline implements ModelPipeline
         ModelStatus status;
         int consumed;
         int produced;
+        ModelRejection rejection = null;
         if (reject)
         {
             status = ModelStatus.REJECTED;
             consumed = 0;
             produced = 0;
+            rejection = ModelRejection.INVALID;
         }
         else
         {
@@ -115,7 +118,7 @@ final class CoreModelPipeline implements ModelPipeline
                 status = ModelStatus.UNDERFLOW;
             }
         }
-        return result.set(status, consumed, produced);
+        return result.set(status, consumed, produced, rejection);
     }
 
     @Override
