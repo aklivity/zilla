@@ -1,0 +1,71 @@
+---
+name: example
+guards:
+  credentials:
+    type: inline
+bindings:
+  north_tcp_server_openai:
+    type: tcp
+    kind: server
+    options:
+      host: 0.0.0.0
+      port: 7161
+    exit: north_llm_server_openai
+  north_llm_server_openai:
+    type: llm
+    kind: server
+    options:
+      dialect: openai
+      authorization:
+        credentials:
+          credentials: "Bearer {credentials}"
+    exit: south_llm_client_anthropic
+  south_llm_client_anthropic:
+    type: llm
+    kind: client
+    options:
+      dialect: anthropic
+      server: mock-anthropic:4102
+      authorization:
+        credentials:
+          credentials: "{credentials}"
+    exit: south_tcp_client_anthropic
+  south_tcp_client_anthropic:
+    type: tcp
+    kind: client
+    options:
+      host: mock-anthropic
+      port: 4102
+
+  north_tcp_server_anthropic:
+    type: tcp
+    kind: server
+    options:
+      host: 0.0.0.0
+      port: 7162
+    exit: north_llm_server_anthropic
+  north_llm_server_anthropic:
+    type: llm
+    kind: server
+    options:
+      dialect: anthropic
+      authorization:
+        credentials:
+          credentials: "{credentials}"
+    exit: south_llm_client_openai
+  south_llm_client_openai:
+    type: llm
+    kind: client
+    options:
+      dialect: openai
+      server: mock-openai:4101
+      authorization:
+        credentials:
+          credentials: "Bearer {credentials}"
+    exit: south_tcp_client_openai
+  south_tcp_client_openai:
+    type: tcp
+    kind: client
+    options:
+      host: mock-openai
+      port: 4101
