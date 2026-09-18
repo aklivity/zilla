@@ -122,6 +122,32 @@
                                             "description": "Host and port of the large language model server this client connects to, formatted as host:port.",
                                             "type": "string",
                                             "pattern": "([^\\:]+):(\\d+)"
+                                        },
+                                        "authorization":
+                                        {
+                                            "title": "Authorization",
+                                            "description": "Guard used to resolve outbound request credentials, keyed by guard name. Credentials is a template used to build the request header the resolved dialect sends credentials in (for example Authorization for openai, x-api-key for anthropic), with {credentials} standing in for the resolved token. When {credentials} resolves to the authorization already granted to the inbound request, the caller's own credentials are forwarded upstream unchanged.",
+                                            "type": "object",
+                                            "patternProperties":
+                                            {
+                                                "^[A-Za-z0-9_-]+$":
+                                                {
+                                                    "type": "object",
+                                                    "properties":
+                                                    {
+                                                        "credentials":
+                                                        {
+                                                            "title": "Credentials",
+                                                            "type": "string",
+                                                            "pattern": ".*\\{credentials\\}.*",
+                                                            "default": "Bearer {credentials}"
+                                                        }
+                                                    },
+                                                    "additionalProperties": false
+                                                }
+                                            },
+                                            "additionalProperties": false,
+                                            "maxProperties": 1
                                         }
                                     },
                                     "required": [ "dialect", "server" ],
