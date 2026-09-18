@@ -87,47 +87,6 @@
                                         }
                                     },
                                     "additionalProperties": false
-                                },
-                                "routes":
-                                {
-                                    "title": "Routes",
-                                    "type": "array",
-                                    "items":
-                                    {
-                                        "type": "object",
-                                        "properties":
-                                        {
-                                            "when":
-                                            {
-                                                "title": "When",
-                                                "type": "array",
-                                                "items":
-                                                {
-                                                    "type": "object",
-                                                    "properties":
-                                                    {
-                                                        "dialect":
-                                                        {
-                                                            "title": "Dialect",
-                                                            "description": "Matches when the request's resolved dialect equals this value.",
-                                                            "$ref": "#/$defs/binding-ext/llm/dialect"
-                                                        },
-                                                        "model":
-                                                        {
-                                                            "title": "Model",
-                                                            "description": "Matches when the request's extracted model is admitted by this allow-set. Accepts exact model names or * glob patterns.",
-                                                            "type": "array",
-                                                            "items":
-                                                            {
-                                                                "type": "string"
-                                                            }
-                                                        }
-                                                    },
-                                                    "additionalProperties": false
-                                                }
-                                            }
-                                        }
-                                    }
                                 }
                             }
                         }
