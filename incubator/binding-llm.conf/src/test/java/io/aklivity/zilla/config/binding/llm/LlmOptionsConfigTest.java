@@ -92,4 +92,26 @@ public class LlmOptionsConfigTest
 
         assertThat(injected, sameInstance(builder));
     }
+
+    @Test
+    public void shouldBuildAuthorizationViaCustomMapper()
+    {
+        String name = LlmAuthorizationConfig
+            .builder(authorization -> ((LlmAuthorizationConfig) authorization).name)
+            .name("test0")
+            .credentials("Bearer {credentials}")
+            .build();
+
+        assertThat(name, equalTo("test0"));
+    }
+
+    @Test
+    public void shouldInjectAuthorizationBuilder()
+    {
+        LlmAuthorizationConfigBuilder<LlmAuthorizationConfig> builder = LlmAuthorizationConfig.builder();
+
+        LlmAuthorizationConfigBuilder<LlmAuthorizationConfig> injected = builder.inject(identity -> identity);
+
+        assertThat(injected, sameInstance(builder));
+    }
 }
