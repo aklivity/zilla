@@ -48,7 +48,7 @@ public final class LlmContentCodecFactory
     public LlmContentDecoder createDecoder(
         String contentType)
     {
-        LlmContentCodecSpi codecSpi = codecsByContentType.get(contentType);
+        LlmContentCodecSpi codecSpi = codecsByContentType.get(mediaType(contentType));
 
         return codecSpi != null ? codecSpi.supplyDecoder() : null;
     }
@@ -56,8 +56,25 @@ public final class LlmContentCodecFactory
     public LlmContentEncoder createEncoder(
         String contentType)
     {
-        LlmContentCodecSpi codecSpi = codecsByContentType.get(contentType);
+        LlmContentCodecSpi codecSpi = codecsByContentType.get(mediaType(contentType));
 
         return codecSpi != null ? codecSpi.supplyEncoder() : null;
+    }
+
+    // a content-type header is a media type optionally followed by ";"-separated
+    // parameters (e.g. "application/json; charset=utf-8"); codecs are registered
+    // by media type alone, so any parameters are stripped before lookup
+    private static String mediaType(
+        String contentType)
+    {
+        String mediaType = contentType;
+
+        if (mediaType != null)
+        {
+            final int separator = mediaType.indexOf(';');
+            mediaType = (separator != -1 ? mediaType.substring(0, separator) : mediaType).trim();
+        }
+
+        return mediaType;
     }
 }
