@@ -27,16 +27,11 @@ read zilla:begin.ext ${llm:matchBeginEx()
 
 connected
 
+read zilla:data.ext ${llm:matchDataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("message")
+                          .build()}
 read "{\"text\":\"hello there\"}"
-
-read advised zilla:flush ${llm:matchFlushEx()
-                               .typeId(zilla:id("llm"))
-                               .raw()
-                                   .choiceIndex(0)
-                                   .type("message")
-                                   .payloadNull()
-                                   .build()
-                               .build()}
 
 read closed
 
@@ -46,13 +41,9 @@ write zilla:begin.ext ${llm:beginEx()
                            .contentType("text/event-stream")
                            .build()}
 
+write zilla:data.ext ${llm:dataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
 write "{\"text\":\"hi\"}"
-
-write advise zilla:flush ${llm:flushEx()
-                               .typeId(zilla:id("llm"))
-                               .raw()
-                                   .choiceIndex(0)
-                                   .build()
-                               .build()}
 
 write close

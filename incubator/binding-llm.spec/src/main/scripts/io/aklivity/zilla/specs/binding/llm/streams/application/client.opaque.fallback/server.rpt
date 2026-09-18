@@ -37,13 +37,9 @@ write zilla:begin.ext ${llm:beginEx()
                            .contentType("application/octet-stream")
                            .build()}
 
+write zilla:data.ext ${llm:dataEx()
+                          .typeId(zilla:id("llm"))
+                          .build()}
 write "this is an opaque response payload"
-
-write advise zilla:flush ${llm:flushEx()
-                               .typeId(zilla:id("llm"))
-                               .raw()
-                                   .choiceIndex(0)
-                                   .build()
-                               .build()}
 
 write close

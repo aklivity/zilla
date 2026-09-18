@@ -36,14 +36,10 @@ write zilla:begin.ext ${llm:beginEx()
                            .contentType("text/event-stream")
                            .build()}
 
+write zilla:data.ext ${llm:dataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("content_block_delta")
+                          .build()}
 write "{\"type\":\"content_block_delta\",\"delta\":{\"type\":\"text_delta\",\"text\":\"Hi\"}}"
-
-write advise zilla:flush ${llm:flushEx()
-                               .typeId(zilla:id("llm"))
-                               .raw()
-                                   .choiceIndex(0)
-                                   .type("content_block_delta")
-                                   .build()
-                               .build()}
 
 write close

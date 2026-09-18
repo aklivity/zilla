@@ -34,15 +34,10 @@ read zilla:begin.ext ${llm:matchBeginEx()
                            .contentType("application/octet-stream")
                            .build()}
 
+read zilla:data.ext ${llm:matchDataEx()
+                          .typeId(zilla:id("llm"))
+                          .typeNull()
+                          .build()}
 read "this is an opaque response payload"
-
-read advised zilla:flush ${llm:matchFlushEx()
-                               .typeId(zilla:id("llm"))
-                               .raw()
-                                   .choiceIndex(0)
-                                   .typeNull()
-                                   .payloadNull()
-                                   .build()
-                               .build()}
 
 read closed

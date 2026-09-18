@@ -34,15 +34,10 @@ read zilla:begin.ext ${llm:matchBeginEx()
                            .contentType("text/event-stream")
                            .build()}
 
+read zilla:data.ext ${llm:matchDataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("content_block_delta")
+                          .build()}
 read "{\"type\":\"content_block_delta\",\"delta\":{\"type\":\"text_delta\",\"text\":\"Hi\"}}"
-
-read advised zilla:flush ${llm:matchFlushEx()
-                               .typeId(zilla:id("llm"))
-                               .raw()
-                                   .choiceIndex(0)
-                                   .type("content_block_delta")
-                                   .payloadNull()
-                                   .build()
-                               .build()}
 
 read closed
