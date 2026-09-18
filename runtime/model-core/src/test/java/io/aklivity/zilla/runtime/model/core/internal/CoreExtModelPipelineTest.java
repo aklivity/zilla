@@ -212,7 +212,7 @@ public class CoreExtModelPipelineTest
     {
         Malformed validator = new Malformed();
         StringExtModelPipeline pipeline = new StringExtModelPipeline(
-            new CoreModelHandler(mock(EngineContext.class), StringModel.NAME, () -> validator, false, false),
+            new CoreModelHandler(engine(new ArrayList<>()), StringModel.NAME, () -> validator, false, false),
             validator, false, List.of(), ModelEnvelope.NONE, 0);
         UnsafeBufferEx dst = new UnsafeBufferEx(new byte[16]);
 
