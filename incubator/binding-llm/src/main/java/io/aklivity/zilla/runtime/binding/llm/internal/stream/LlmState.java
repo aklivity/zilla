@@ -57,6 +57,12 @@ final class LlmState
         return (state & INITIAL_OPENED) != 0;
     }
 
+    static boolean initialClosing(
+        int state)
+    {
+        return (state & INITIAL_CLOSING) != 0;
+    }
+
     static boolean initialClosed(
         int state)
     {
