@@ -31,6 +31,7 @@ public final class ModelPipelineResult
     private ModelStatus status;
     private int consumed;
     private int produced;
+    private ModelRejection rejection;
 
     public ModelStatus status()
     {
@@ -48,8 +49,18 @@ public final class ModelPipelineResult
     }
 
     /**
+     * @return the category of a {@link ModelStatus#REJECTED} outcome, or {@code null} when the status is
+     *         not {@code REJECTED} or the implementation does not report one
+     */
+    public ModelRejection rejection()
+    {
+        return rejection;
+    }
+
+    /**
      * Updates this result in place and returns it, for an implementation to report the outcome of a
-     * {@link ModelPipeline#transform} call without allocating.
+     * {@link ModelPipeline#transform} call without allocating. Equivalent to
+     * {@link #set(ModelStatus, int, int, ModelRejection)} with a {@code null} rejection.
      *
      * @param status    the outcome
      * @param consumed  the number of input bytes consumed
@@ -61,9 +72,30 @@ public final class ModelPipelineResult
         int consumed,
         int produced)
     {
+        return set(status, consumed, produced, null);
+    }
+
+    /**
+     * Updates this result in place and returns it, for an implementation to report the outcome of a
+     * {@link ModelPipeline#transform} call without allocating.
+     *
+     * @param status    the outcome
+     * @param consumed  the number of input bytes consumed
+     * @param produced  the number of output bytes produced
+     * @param rejection the category of a {@code REJECTED} outcome, or {@code null} when not applicable
+     *                  or not reported
+     * @return this result
+     */
+    public ModelPipelineResult set(
+        ModelStatus status,
+        int consumed,
+        int produced,
+        ModelRejection rejection)
+    {
         this.status = status;
         this.consumed = consumed;
         this.produced = produced;
+        this.rejection = rejection;
         return this;
     }
 }
