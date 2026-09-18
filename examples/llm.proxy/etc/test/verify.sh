@@ -20,6 +20,13 @@
 #      no prefix (options.authorization on both llm bindings, same guard)
 #   6. south_llm_client_openai forwards the caller's own `x-api-key` upstream
 #      as `Authorization: Bearer ...`, the same pass-through mirrored
+#   7. north_llm_proxy routes a gpt-4o request from the openai-facing
+#      frontend to mock-openai-secondary (same dialect, no translation)
+#      instead of the default cross-dialect route to mock-anthropic --
+#      routing purely on LlmBeginEx.model, never on request content
+#   8. north_llm_proxy routes a claude-3-5-haiku-20241022 request from the
+#      anthropic-facing frontend to mock-anthropic-secondary, the same
+#      model-based intra-dialect routing mirrored
 
 set -x
 
@@ -199,6 +206,51 @@ then
   echo "✅ south_llm_client_openai forwarded the caller's own token to mock-openai as Authorization: Bearer"
 else
   fail "south_llm_client_openai did not forward the caller's token to mock-openai"
+fi
+
+# WHEN: an OpenAI-dialect client sends a request naming model gpt-4o to the
+#       openai-facing frontend
+# THEN: north_llm_proxy routes it to mock-openai-secondary, not the default
+#       mock-anthropic translation route -- the response comes back
+#       openai-shaped either way, so the secondary's distinguishing reply
+#       text is what actually proves which backend answered
+call_openai_secondary_model_route() {
+  OPENAI_SECONDARY_OUT=$(curl -sS --max-time 10 \
+      -X POST "$OPENAI_URL" \
+      -H "Content-Type: application/json" \
+      -H "Authorization: Bearer test-openai-key" \
+      -d '{"model":"gpt-4o","messages":[{"role":"user","content":"Hello"}]}')
+  echo "$OPENAI_SECONDARY_OUT" | grep -q 'secondary openai-dialect deployment'
+}
+timed openai_secondary_model_route retry_until 10 1 call_openai_secondary_model_route
+echo OPENAI_SECONDARY_OUT="$OPENAI_SECONDARY_OUT"
+if echo "$OPENAI_SECONDARY_OUT" | grep -q 'secondary openai-dialect deployment'
+then
+  echo "✅ north_llm_proxy routed a gpt-4o request to mock-openai-secondary by model"
+else
+  fail "north_llm_proxy did not route the gpt-4o request to mock-openai-secondary"
+fi
+
+# WHEN: an Anthropic-dialect client sends a request naming model
+#       claude-3-5-haiku-20241022 to the anthropic-facing frontend
+# THEN: north_llm_proxy routes it to mock-anthropic-secondary, not the
+#       default mock-openai translation route
+call_anthropic_secondary_model_route() {
+  ANTHROPIC_SECONDARY_OUT=$(curl -sS --max-time 10 \
+      -X POST "$ANTHROPIC_URL" \
+      -H "Content-Type: application/json" \
+      -H "anthropic-version: 2023-06-01" \
+      -H "x-api-key: test-anthropic-key" \
+      -d '{"model":"claude-3-5-haiku-20241022","max_tokens":1024,"messages":[{"role":"user","content":"Hello"}]}')
+  echo "$ANTHROPIC_SECONDARY_OUT" | grep -q 'secondary anthropic-dialect deployment'
+}
+timed anthropic_secondary_model_route retry_until 10 1 call_anthropic_secondary_model_route
+echo ANTHROPIC_SECONDARY_OUT="$ANTHROPIC_SECONDARY_OUT"
+if echo "$ANTHROPIC_SECONDARY_OUT" | grep -q 'secondary anthropic-dialect deployment'
+then
+  echo "✅ north_llm_proxy routed a claude-3-5-haiku-20241022 request to mock-anthropic-secondary by model"
+else
+  fail "north_llm_proxy did not route the claude-3-5-haiku-20241022 request to mock-anthropic-secondary"
 fi
 
 report_timings
