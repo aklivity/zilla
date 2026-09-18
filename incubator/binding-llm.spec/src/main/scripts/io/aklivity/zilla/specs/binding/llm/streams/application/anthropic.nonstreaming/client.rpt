@@ -34,14 +34,10 @@ read zilla:begin.ext ${llm:matchBeginEx()
                            .contentType("application/json")
                            .build()}
 
+read zilla:data.ext ${llm:matchDataEx()
+                          .typeId(zilla:id("llm"))
+                          .typeNull()
+                          .build()}
 read "{\"id\":\"msg_01\",\"type\":\"message\",\"role\":\"assistant\",\"model\":\"claude-3-opus-20240229\",\"content\":[{\"type\":\"text\",\"text\":\"Hello! How can I help you today?\"},{\"type\":\"tool_use\",\"id\":\"toolu_01\",\"name\":\"get_weather\",\"input\":{\"city\":\"San Francisco\"}}],\"stop_reason\":\"tool_use\",\"stop_sequence\":null,\"usage\":{\"input_tokens\":25,\"output_tokens\":15}}"
-read advised zilla:flush ${llm:matchFlushEx()
-                               .typeId(zilla:id("llm"))
-                               .raw()
-                                   .choiceIndex(0)
-                                   .typeNull()
-                                   .payloadNull()
-                                   .build()
-                               .build()}
 
 read closed
