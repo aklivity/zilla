@@ -288,6 +288,24 @@ public class LlmSchemaValidationTest
     }
 
     @Test(expected = RuntimeException.class)
+    public void shouldRejectServerWithUnregisteredDialect()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              net0:
+                type: llm
+                kind: server
+                options:
+                  dialect: gemini
+                exit: app0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
     public void shouldRejectServerWithNonStringDialect()
     {
         String text =
@@ -336,6 +354,25 @@ public class LlmSchemaValidationTest
                   dialect: openai
                   server: example.com:8080
                   unknown: value
+                exit: net0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectClientWithUnregisteredDialect()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: gemini
+                  server: example.com:8080
                 exit: net0
             """;
 
