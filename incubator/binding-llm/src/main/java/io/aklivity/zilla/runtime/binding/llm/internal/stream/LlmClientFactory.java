@@ -824,6 +824,9 @@ public final class LlmClientFactory implements LlmStreamFactory
         private long decodeTraceId;
         private long decodeAuthorization;
 
+        private long pendingEndTraceId;
+        private long pendingEndAuthorization;
+
         private final MutableDirectBufferEx nativeEventBuffer;
         private int nativeEventLength;
         private String nativeEventName;
@@ -1130,6 +1133,13 @@ public final class LlmClientFactory implements LlmStreamFactory
             else
             {
                 cleanupDecodeSlot();
+
+                if (LlmState.replyEndDeferred(state))
+                {
+                    state = LlmState.clearReplyEndDeferred(state);
+                    state = LlmState.closeReply(state);
+                    client.doAppEnd(pendingEndTraceId, pendingEndAuthorization);
+                }
             }
         }
 
@@ -1308,16 +1318,23 @@ public final class LlmClientFactory implements LlmStreamFactory
             final long authorization = end.authorization();
 
             state = LlmState.closingReply(state);
-            state = LlmState.closeReply(state);
 
             if (decoder == null)
             {
                 client.doAppFlush(traceId, authorization, null, emptyRO.buffer(), 0, 0);
             }
 
-            cleanupDecodeSlot();
-
-            client.doAppEnd(traceId, authorization);
+            if (decodeSlot == NO_SLOT)
+            {
+                state = LlmState.closeReply(state);
+                client.doAppEnd(traceId, authorization);
+            }
+            else
+            {
+                state = LlmState.deferReplyEnd(state);
+                pendingEndTraceId = traceId;
+                pendingEndAuthorization = authorization;
+            }
         }
 
         private void onNetAbort(

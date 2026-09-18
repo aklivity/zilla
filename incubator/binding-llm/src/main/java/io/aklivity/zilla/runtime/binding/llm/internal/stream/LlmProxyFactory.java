@@ -288,7 +288,11 @@ public final class LlmProxyFactory implements LlmStreamFactory
             this.replyMax = window.maximum();
             this.state = LlmState.openReply(state);
 
-            app.doAppWindow(traceId, authorization, budgetId, minimum, capabilities, replySeq, replyAck, replyMax, padding);
+            final int replyWin = replyMax - (int)(replySeq - replyAck);
+            if (replyWin > 0)
+            {
+                app.doAppWindow(traceId, authorization, budgetId, minimum, capabilities, replyWin, padding, replyMax);
+            }
         }
 
         private void onNetReset(
@@ -371,20 +375,19 @@ public final class LlmProxyFactory implements LlmStreamFactory
             long budgetId,
             int minimum,
             int capabilities,
-            long appReplySeq,
-            long appReplyAck,
-            int appReplyMax,
-            int padding)
+            int minInitialWin,
+            int minInitialPad,
+            int minInitialMax)
         {
-            final long newInitialAck = Math.max(appReplySeq - (appReplyMax - (int) (appReplySeq - appReplyAck)), initialAck);
+            final long newInitialAck = Math.max(initialSeq - minInitialWin, initialAck);
 
-            if (newInitialAck > initialAck || appReplyMax > initialMax)
+            if (newInitialAck > initialAck || minInitialMax > initialMax)
             {
                 this.initialAck = newInitialAck;
-                this.initialMax = appReplyMax;
+                this.initialMax = minInitialMax;
 
                 doWindow(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                        traceId, authorization, budgetId, padding, minimum, capabilities);
+                        traceId, authorization, budgetId, minInitialPad, minimum, capabilities);
             }
         }
 
@@ -572,8 +575,11 @@ public final class LlmProxyFactory implements LlmStreamFactory
             this.initialMax = window.maximum();
             this.state = LlmState.openInitial(state);
 
-            net.doNetWindow(traceId, authorization, budgetId, minimum, capabilities, initialSeq, initialAck, initialMax,
-                    padding);
+            final int initialWin = initialMax - (int)(initialSeq - initialAck);
+            if (initialWin > 0)
+            {
+                net.doNetWindow(traceId, authorization, budgetId, minimum, capabilities, initialWin, padding, initialMax);
+            }
         }
 
         private void onAppReset(
@@ -647,20 +653,19 @@ public final class LlmProxyFactory implements LlmStreamFactory
             long budgetId,
             int minimum,
             int capabilities,
-            long netReplySeq,
-            long netReplyAck,
-            int netReplyMax,
-            int padding)
+            int minReplyWin,
+            int minReplyPad,
+            int minReplyMax)
         {
-            final long newReplyAck = Math.max(netReplySeq - (netReplyMax - (int) (netReplySeq - netReplyAck)), replyAck);
+            final long newReplyAck = Math.max(replySeq - minReplyWin, replyAck);
 
-            if (newReplyAck > replyAck || netReplyMax > replyMax)
+            if (newReplyAck > replyAck || minReplyMax > replyMax)
             {
                 this.replyAck = newReplyAck;
-                this.replyMax = netReplyMax;
+                this.replyMax = minReplyMax;
 
                 doWindow(app, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                        traceId, authorization, budgetId, padding, minimum, capabilities);
+                        traceId, authorization, budgetId, minReplyPad, minimum, capabilities);
             }
         }
 
