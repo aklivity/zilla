@@ -192,4 +192,68 @@ public class LlmOptionsConfigAdapterTest
         assertThat(options, not(nullValue()));
         assertThat(options.server, nullValue());
     }
+
+    @Test
+    public void shouldReadOptionsWithAuthorizationDefaultCredentials()
+    {
+        String text =
+                "{" +
+                    "\"authorization\": {" +
+                        "\"test0\": {}" +
+                    "}" +
+                "}";
+
+        LlmOptionsConfig options = jsonb.fromJson(text, LlmOptionsConfig.class);
+
+        assertThat(options, not(nullValue()));
+        assertThat(options.authorization, not(nullValue()));
+        assertThat(options.authorization.name, equalTo("test0"));
+        assertThat(options.authorization.credentials, equalTo("Bearer {credentials}"));
+    }
+
+    @Test
+    public void shouldReadOptionsWithAuthorizationExplicitCredentials()
+    {
+        String text =
+                "{" +
+                    "\"authorization\": {" +
+                        "\"test0\": {" +
+                            "\"credentials\": \"{credentials}\"" +
+                        "}" +
+                    "}" +
+                "}";
+
+        LlmOptionsConfig options = jsonb.fromJson(text, LlmOptionsConfig.class);
+
+        assertThat(options, not(nullValue()));
+        assertThat(options.authorization, not(nullValue()));
+        assertThat(options.authorization.name, equalTo("test0"));
+        assertThat(options.authorization.credentials, equalTo("{credentials}"));
+    }
+
+    @Test
+    public void shouldReadOptionsWithoutAuthorization()
+    {
+        String text = "{}";
+
+        LlmOptionsConfig options = jsonb.fromJson(text, LlmOptionsConfig.class);
+
+        assertThat(options, not(nullValue()));
+        assertThat(options.authorization, nullValue());
+    }
+
+    @Test
+    public void shouldWriteOptionsWithAuthorization()
+    {
+        LlmOptionsConfig options = LlmOptionsConfig.builder()
+            .authorization()
+                .name("test0")
+                .credentials("Bearer {credentials}")
+                .build()
+            .build();
+
+        String text = jsonb.toJson(options);
+
+        assertThat(text, equalTo("{\"authorization\":{\"test0\":{\"credentials\":\"Bearer {credentials}\"}}}"));
+    }
 }

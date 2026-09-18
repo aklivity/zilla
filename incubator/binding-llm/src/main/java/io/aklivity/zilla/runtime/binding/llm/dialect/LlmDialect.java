@@ -62,6 +62,35 @@ public interface LlmDialect
         ModelEnvelope headers);
 
     /**
+     * Returns the name of the request header this dialect's API carries client credentials in, read from
+     * a request's {@link ModelEnvelope} to extract credentials for an {@code options.authorization} guard
+     * check on a {@code kind: server} binding -- e.g. {@code authorization} for a dialect that follows the
+     * bearer-token convention, {@code x-api-key} for one that expects a raw API key of its own.
+     * <p>
+     * Defaults to {@code authorization}, the conventional bearer-token header; a dialect whose API expects
+     * credentials elsewhere overrides this to name that header instead.
+     * </p>
+     *
+     * @return the credentials header name
+     */
+    default String credentialsHeader()
+    {
+        return "authorization";
+    }
+
+    /**
+     * Returns this dialect's own JSON error body for a request an {@code options.authorization} guard
+     * rejected on a {@code kind: server} binding, shaped the way this dialect's own API reports an
+     * authentication failure.
+     *
+     * @return the error response body, JSON-encoded
+     */
+    default String unauthorizedBody()
+    {
+        return "{\"error\":{\"message\":\"Unauthorized\",\"type\":\"authentication_error\"}}";
+    }
+
+    /**
      * Creates a new {@link ModelTransform} decoding one stream's native {@code kind} payload into this
      * binding's canonical representation, field by field.
      * <p>

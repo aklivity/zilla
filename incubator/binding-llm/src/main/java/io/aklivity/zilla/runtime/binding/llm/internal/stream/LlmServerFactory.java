@@ -30,6 +30,7 @@ import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialect;
 import io.aklivity.zilla.runtime.binding.llm.internal.LlmBinding;
 import io.aklivity.zilla.runtime.binding.llm.internal.LlmConfiguration;
 import io.aklivity.zilla.runtime.binding.llm.internal.codec.LlmContentCodecFactory;
+import io.aklivity.zilla.runtime.binding.llm.internal.config.LlmAuthorizationResult;
 import io.aklivity.zilla.runtime.binding.llm.internal.config.LlmBindingConfig;
 import io.aklivity.zilla.runtime.binding.llm.internal.config.LlmRouteConfig;
 import io.aklivity.zilla.runtime.binding.llm.internal.encode.LlmContentEncoder;
@@ -65,6 +66,8 @@ public final class LlmServerFactory implements LlmStreamFactory
     private static final String HEADER_STATUS = ":status";
     private static final String HEADER_CONTENT_TYPE = "content-type";
     private static final String STATUS_OK = "200";
+    private static final String STATUS_UNAUTHORIZED = "401";
+    private static final String CONTENT_TYPE_JSON = "application/json";
     private static final String ENVELOPE_MODEL = "model";
 
     private static final int FLAG_FIN = 0x01;
@@ -185,21 +188,33 @@ public final class LlmServerFactory implements LlmStreamFactory
 
                     if (dialect != null)
                     {
-                        final String contentType = header(envelope, HEADER_CONTENT_TYPE);
-                        final ModelHandler model = binding.supplyModel(dialect, LlmDialect.Kind.REQUEST);
-                        final ModelPipeline pipeline = model.supplyDecoder(
-                            envelope, dialect.supplyValidator(LlmDialect.Kind.REQUEST, envelope), ModelCache.NONE);
+                        final LlmAuthorizationResult authResult = binding.authorize(
+                            begin.traceId(), routedId, begin.streamId(), authorization, envelope, dialect);
 
-                        newStream = new LlmServer(
-                                network,
-                                begin.originId(),
-                                begin.routedId(),
-                                begin.streamId(),
-                                route.id,
-                                dialect,
-                                contentType,
-                                envelope,
-                                pipeline)::onNetMessage;
+                        if (!authResult.authorized())
+                        {
+                            newStream = new LlmUnauthorizedResponder(
+                                network, begin.originId(), routedId, begin.streamId(), dialect)::onNetMessage;
+                        }
+                        else
+                        {
+                            final String contentType = header(envelope, HEADER_CONTENT_TYPE);
+                            final ModelHandler model = binding.supplyModel(dialect, LlmDialect.Kind.REQUEST);
+                            final ModelPipeline pipeline = model.supplyDecoder(
+                                envelope, dialect.supplyValidator(LlmDialect.Kind.REQUEST, envelope), ModelCache.NONE);
+
+                            newStream = new LlmServer(
+                                    network,
+                                    begin.originId(),
+                                    begin.routedId(),
+                                    begin.streamId(),
+                                    route.id,
+                                    dialect,
+                                    contentType,
+                                    envelope,
+                                    pipeline,
+                                    authResult.deauthorize())::onNetMessage;
+                        }
                     }
                 }
             }
@@ -304,6 +319,7 @@ public final class LlmServerFactory implements LlmStreamFactory
         private final String contentType;
         private final LlmModelEnvelope envelope;
         private final ModelPipeline pipeline;
+        private final Runnable deauthorize;
 
         private LlmStream stream;
 
@@ -333,6 +349,8 @@ public final class LlmServerFactory implements LlmStreamFactory
         private long pendingReplyEndTraceId;
         private long pendingReplyEndAuthorization;
 
+        private boolean deauthorized;
+
         private LlmServer(
             MessageConsumer network,
             long originId,
@@ -342,7 +360,8 @@ public final class LlmServerFactory implements LlmStreamFactory
             LlmDialect dialect,
             String contentType,
             LlmModelEnvelope envelope,
-            ModelPipeline pipeline)
+            ModelPipeline pipeline,
+            Runnable deauthorize)
         {
             this.network = network;
             this.originId = originId;
@@ -354,6 +373,7 @@ public final class LlmServerFactory implements LlmStreamFactory
             this.contentType = contentType;
             this.envelope = envelope;
             this.pipeline = pipeline;
+            this.deauthorize = deauthorize;
         }
 
         private void onNetMessage(
@@ -837,6 +857,12 @@ public final class LlmServerFactory implements LlmStreamFactory
 
                 network.accept(end.typeId(), end.buffer(), end.offset(), end.sizeof());
                 state = LlmState.closeReply(state);
+
+                if (!deauthorized)
+                {
+                    deauthorized = true;
+                    deauthorize.run();
+                }
             }
         }
 
@@ -861,6 +887,12 @@ public final class LlmServerFactory implements LlmStreamFactory
 
                 network.accept(abort.typeId(), abort.buffer(), abort.offset(), abort.sizeof());
                 state = LlmState.closeReply(state);
+
+                if (!deauthorized)
+                {
+                    deauthorized = true;
+                    deauthorize.run();
+                }
             }
         }
 
@@ -929,6 +961,11 @@ public final class LlmServerFactory implements LlmStreamFactory
             envelope.clear();
             cleanupDecodeSlot();
             cleanupEncodeSlot();
+            if (!deauthorized)
+            {
+                deauthorized = true;
+                deauthorize.run();
+            }
             if (stream != null)
             {
                 stream.cleanup();
@@ -1481,6 +1518,237 @@ public final class LlmServerFactory implements LlmStreamFactory
                 encodeSlotOffset = 0;
                 encodeSlotSent = 0;
             }
+        }
+    }
+
+    // Represents the network (accept) side of a request whose options.authorization guard rejected it
+    // before any dialect model pipeline was built -- never forwards to app0, only replies with the
+    // resolved dialect's own JSON error body once the peer grants enough reply-direction credit to carry
+    // it, then ends the reply. Bytes the client still sends on the initial direction are windowed open and
+    // discarded rather than left to stall the client purely because its credentials were rejected.
+    private final class LlmUnauthorizedResponder
+    {
+        private final MessageConsumer network;
+        private final long originId;
+        private final long routedId;
+        private final long initialId;
+        private final long replyId;
+        private final DirectBufferEx body;
+
+        private long initialSeq;
+        private long initialAck;
+        private int initialMax;
+
+        private long replySeq;
+        private long replyAck;
+        private int replyMax;
+
+        private boolean began;
+        private int bodySent;
+
+        private LlmUnauthorizedResponder(
+            MessageConsumer network,
+            long originId,
+            long routedId,
+            long initialId,
+            LlmDialect dialect)
+        {
+            this.network = network;
+            this.originId = originId;
+            this.routedId = routedId;
+            this.initialId = initialId;
+            this.replyId = supplyReplyId.applyAsLong(initialId);
+            this.body = asBuffer(dialect.unauthorizedBody());
+        }
+
+        private void onNetMessage(
+            int msgTypeId,
+            DirectBufferEx buffer,
+            int index,
+            int length)
+        {
+            switch (msgTypeId)
+            {
+            case BeginFW.TYPE_ID:
+                onNetBegin(beginRO.wrap(buffer, index, index + length));
+                break;
+            case DataFW.TYPE_ID:
+                onNetData(dataRO.wrap(buffer, index, index + length));
+                break;
+            case EndFW.TYPE_ID:
+                onNetEnd(endRO.wrap(buffer, index, index + length));
+                break;
+            case AbortFW.TYPE_ID:
+                onNetAbort(abortRO.wrap(buffer, index, index + length));
+                break;
+            case WindowFW.TYPE_ID:
+                onNetWindow(windowRO.wrap(buffer, index, index + length));
+                break;
+            default:
+                break;
+            }
+        }
+
+        private void onNetBegin(
+            BeginFW begin)
+        {
+            final long traceId = begin.traceId();
+            final long authorization = begin.authorization();
+
+            initialSeq = begin.sequence();
+            initialAck = begin.acknowledge();
+            initialMax = transformBuffer.capacity();
+
+            doNetWindow(traceId);
+            doNetBegin(traceId, authorization);
+        }
+
+        private void onNetData(
+            DataFW data)
+        {
+            final long traceId = data.traceId();
+
+            initialSeq = data.sequence() + data.reserved();
+            initialAck = initialSeq;
+
+            doNetWindow(traceId);
+        }
+
+        private void onNetEnd(
+            EndFW end)
+        {
+            initialSeq = end.sequence();
+            initialAck = initialSeq;
+        }
+
+        private void onNetAbort(
+            AbortFW abort)
+        {
+            initialSeq = abort.sequence();
+            initialAck = initialSeq;
+        }
+
+        private void onNetWindow(
+            WindowFW window)
+        {
+            replyAck = window.acknowledge();
+            replyMax = window.maximum();
+
+            flushBody(window.traceId(), window.authorization());
+        }
+
+        private void doNetWindow(
+            long traceId)
+        {
+            final WindowFW window = windowRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+                .originId(originId)
+                .routedId(routedId)
+                .streamId(initialId)
+                .sequence(initialSeq)
+                .acknowledge(initialAck)
+                .maximum(initialMax)
+                .traceId(traceId)
+                .budgetId(0L)
+                .padding(0)
+                .build();
+
+            network.accept(window.typeId(), window.buffer(), window.offset(), window.sizeof());
+        }
+
+        private void doNetBegin(
+            long traceId,
+            long authorization)
+        {
+            final HttpBeginExFW httpBeginEx = httpBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(httpTypeId)
+                .headersItem(h -> h.name(HEADER_STATUS).value(STATUS_UNAUTHORIZED))
+                .headersItem(h -> h.name(HEADER_CONTENT_TYPE).value(CONTENT_TYPE_JSON))
+                .build();
+
+            final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+                .originId(originId)
+                .routedId(routedId)
+                .streamId(replyId)
+                .sequence(replySeq)
+                .acknowledge(replyAck)
+                .maximum(replyMax)
+                .traceId(traceId)
+                .authorization(authorization)
+                .affinity(0L)
+                .extension(httpBeginEx.buffer(), httpBeginEx.offset(), httpBeginEx.sizeof())
+                .build();
+
+            network.accept(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof());
+            began = true;
+        }
+
+        private void flushBody(
+            long traceId,
+            long authorization)
+        {
+            if (!began || bodySent >= body.capacity())
+            {
+                return;
+            }
+
+            while (bodySent < body.capacity())
+            {
+                final long available = replyMax - (replySeq - replyAck);
+                if (available <= 0)
+                {
+                    break;
+                }
+
+                final int remaining = body.capacity() - bodySent;
+                final int length = (int) Math.min(remaining, available);
+                final boolean first = bodySent == 0;
+                final boolean last = bodySent + length == body.capacity();
+                final int flags = (first ? FLAG_INIT : 0) | (last ? FLAG_FIN : 0);
+
+                final DataFW data = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+                    .originId(originId)
+                    .routedId(routedId)
+                    .streamId(replyId)
+                    .sequence(replySeq)
+                    .acknowledge(replyAck)
+                    .maximum(replyMax)
+                    .traceId(traceId)
+                    .authorization(authorization)
+                    .flags(flags)
+                    .budgetId(0L)
+                    .reserved(length)
+                    .payload(body, bodySent, length)
+                    .extension(EMPTY_OCTETS)
+                    .build();
+
+                network.accept(data.typeId(), data.buffer(), data.offset(), data.sizeof());
+                replySeq += length;
+                bodySent += length;
+            }
+
+            if (bodySent >= body.capacity())
+            {
+                doNetEnd(traceId, authorization);
+            }
+        }
+
+        private void doNetEnd(
+            long traceId,
+            long authorization)
+        {
+            final EndFW end = endRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+                .originId(originId)
+                .routedId(routedId)
+                .streamId(replyId)
+                .sequence(replySeq)
+                .acknowledge(replyAck)
+                .maximum(replyMax)
+                .traceId(traceId)
+                .authorization(authorization)
+                .extension(EMPTY_OCTETS)
+                .build();
+
+            network.accept(end.typeId(), end.buffer(), end.offset(), end.sizeof());
         }
     }
 }

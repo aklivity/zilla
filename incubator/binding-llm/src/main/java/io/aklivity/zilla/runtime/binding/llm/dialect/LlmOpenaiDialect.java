@@ -72,6 +72,13 @@ public final class LlmOpenaiDialect implements LlmDialect
     }
 
     @Override
+    public String unauthorizedBody()
+    {
+        return "{\"error\":{\"message\":\"Incorrect API key provided.\"," +
+            "\"type\":\"invalid_request_error\",\"param\":null,\"code\":\"invalid_api_key\"}}";
+    }
+
+    @Override
     public ModelTransform supplyDecoder(
         Kind kind,
         ModelEnvelope envelope)
