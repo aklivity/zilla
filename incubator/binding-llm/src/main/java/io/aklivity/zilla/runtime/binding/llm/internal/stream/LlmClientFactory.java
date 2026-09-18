@@ -1134,9 +1134,8 @@ public final class LlmClientFactory implements LlmStreamFactory
             {
                 cleanupDecodeSlot();
 
-                if (LlmState.replyEndDeferred(state))
+                if (LlmState.replyClosing(state) && !LlmState.replyClosed(state))
                 {
-                    state = LlmState.clearReplyEndDeferred(state);
                     state = LlmState.closeReply(state);
                     client.doAppEnd(pendingEndTraceId, pendingEndAuthorization);
                 }
@@ -1331,7 +1330,6 @@ public final class LlmClientFactory implements LlmStreamFactory
             }
             else
             {
-                state = LlmState.deferReplyEnd(state);
                 pendingEndTraceId = traceId;
                 pendingEndAuthorization = authorization;
             }
