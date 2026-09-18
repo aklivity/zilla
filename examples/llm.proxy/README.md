@@ -11,19 +11,24 @@ already implemented.
 Two independent routes exercise both directions at once:
 
 ```text
-                       ┌──────────────────────────────────────── Zilla ─────────────────────────────────────────┐
-openai client ────────►│ tcp(7161) → llm(server, dialect: openai)    → llm(client, dialect: anthropic) → tcp     │────► mock-anthropic:4102
-                       │                                                                                         │
-anthropic client ─────►│ tcp(7162) → llm(server, dialect: anthropic) → llm(client, dialect: openai)    → tcp     │────► mock-openai:4101
-                       └─────────────────────────────────────────────────────────────────────────────────────────┘
+                       ┌────────────────────────────────────────────── Zilla ───────────────────────────────────────────────┐
+openai client ────────►│ tcp(7161) → http(server) → llm(server, dialect: openai)    → llm(client, dialect: anthropic) → http(client) → tcp │────► mock-anthropic:4102
+                       │                                                                                                     │
+anthropic client ─────►│ tcp(7162) → http(server) → llm(server, dialect: anthropic) → llm(client, dialect: openai)    → http(client) → tcp │────► mock-openai:4101
+                       └─────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
+
+The `llm` binding sits on top of `http`, the same way `mcp` does in
+`examples/mcp.proxy` -- `http(server)`/`http(client)` do the wire-level
+HTTP/1.1 framing, and `llm(server)`/`llm(client)` operate on the decoded
+request/response, translating between dialects.
 
 | Binding | Kind | Role in this example |
 | --- | --- | --- |
 | `llm` | `server` (`north_llm_server_openai`) | Terminates OpenAI-dialect `/v1/chat/completions` requests on port 7161 |
-| `llm` | `client` (`south_llm_client_anthropic`) | Re-encodes the request for `mock-anthropic`'s `/v1/messages` API and translates its response back |
+| `llm` | `client` (`south_llm_client_anthropic`) | Re-encodes the request for `mock-anthropic`'s Messages API and translates its response back |
 | `llm` | `server` (`north_llm_server_anthropic`) | Terminates Anthropic-dialect `/v1/messages` requests on port 7162 |
-| `llm` | `client` (`south_llm_client_openai`) | Re-encodes the request for `mock-openai`'s `/v1/chat/completions` API and translates its response back |
+| `llm` | `client` (`south_llm_client_openai`) | Re-encodes the request for `mock-openai`'s Chat Completions API and translates its response back |
 
 Each direction also demonstrates a tool-call round trip: a request carrying
 an OpenAI `tools` definition gets an OpenAI `tool_calls` response translated
@@ -58,7 +63,7 @@ bindings:
       authorization:
         api_key:
           credentials: "{credentials}"
-    exit: south_tcp_client_anthropic
+    exit: south_http_client_anthropic
 ```
 
 The `api_key` guard doesn't validate anything -- it accepts whatever

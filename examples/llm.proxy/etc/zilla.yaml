@@ -10,6 +10,10 @@ bindings:
     options:
       host: 0.0.0.0
       port: 7161
+    exit: north_http_server_openai
+  north_http_server_openai:
+    type: http
+    kind: server
     exit: north_llm_server_openai
   north_llm_server_openai:
     type: llm
@@ -29,6 +33,10 @@ bindings:
       authorization:
         api_key:
           credentials: "{credentials}"
+    exit: south_http_client_anthropic
+  south_http_client_anthropic:
+    type: http
+    kind: client
     exit: south_tcp_client_anthropic
   south_tcp_client_anthropic:
     type: tcp
@@ -43,6 +51,10 @@ bindings:
     options:
       host: 0.0.0.0
       port: 7162
+    exit: north_http_server_anthropic
+  north_http_server_anthropic:
+    type: http
+    kind: server
     exit: north_llm_server_anthropic
   north_llm_server_anthropic:
     type: llm
@@ -62,6 +74,10 @@ bindings:
       authorization:
         api_key:
           credentials: "Bearer {credentials}"
+    exit: south_http_client_openai
+  south_http_client_openai:
+    type: http
+    kind: client
     exit: south_tcp_client_openai
   south_tcp_client_openai:
     type: tcp

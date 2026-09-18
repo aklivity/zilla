@@ -11,7 +11,10 @@ const PORT = Number(process.env.PORT ?? 4101);
 const app = express();
 app.use(express.json());
 
-app.post("/v1/chat/completions", (req, res) =>
+// south_llm_client_openai always issues its outbound request to "/",
+// regardless of dialect -- it does not carry the dialect's own canonical
+// path (e.g. /v1/chat/completions) upstream.
+app.post("/", (req, res) =>
 {
     // Zilla's south_llm_client_openai forwards the caller's own credential
     // here via options.authorization pass-through; logged so verify.sh can
@@ -40,7 +43,12 @@ app.post("/v1/chat/completions", (req, res) =>
             content: "Hello! How can I help you today?"
         };
 
-    res.json({
+    // res.json() sends "application/json; charset=utf-8", but the llm
+    // binding looks up its response codec by an exact content-type match
+    // against "application/json" -- the charset parameter would make that
+    // lookup miss and silently drop the body.
+    res.set("Content-Type", "application/json");
+    res.send(JSON.stringify({
         object: "chat.completion",
         id: "chatcmpl_1",
         model,
@@ -52,7 +60,7 @@ app.post("/v1/chat/completions", (req, res) =>
             }
         ],
         usage: { prompt_tokens: 25, completion_tokens: 15 }
-    });
+    }));
 });
 
 app.listen(PORT, () => console.log(`mock-openai listening on ${PORT}`));

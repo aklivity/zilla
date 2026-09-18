@@ -11,7 +11,10 @@ const PORT = Number(process.env.PORT ?? 4102);
 const app = express();
 app.use(express.json());
 
-app.post("/v1/messages", (req, res) =>
+// south_llm_client_anthropic always issues its outbound request to "/",
+// regardless of dialect -- it does not carry the dialect's own canonical
+// path (e.g. /v1/messages) upstream.
+app.post("/", (req, res) =>
 {
     // Zilla's south_llm_client_anthropic forwards the caller's own credential
     // here via options.authorization pass-through; logged so verify.sh can
@@ -36,7 +39,12 @@ app.post("/v1/messages", (req, res) =>
             }
         ];
 
-    res.json({
+    // res.json() sends "application/json; charset=utf-8", but the llm
+    // binding looks up its response codec by an exact content-type match
+    // against "application/json" -- the charset parameter would make that
+    // lookup miss and silently drop the body.
+    res.set("Content-Type", "application/json");
+    res.send(JSON.stringify({
         id: "msg_01",
         type: "message",
         role: "assistant",
@@ -44,7 +52,7 @@ app.post("/v1/messages", (req, res) =>
         content,
         stop_reason: content[0].type === "tool_use" ? "tool_use" : "end_turn",
         usage: { input_tokens: 25, output_tokens: 15 }
-    });
+    }));
 });
 
 app.listen(PORT, () => console.log(`mock-anthropic listening on ${PORT}`));
