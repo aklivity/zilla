@@ -28,6 +28,7 @@ import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelFieldBridge;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
+import io.aklivity.zilla.runtime.engine.model.ModelRejection;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 
@@ -88,6 +89,7 @@ final class TestModelPipeline implements ModelPipeline
     private final ModelPipelineResult result;
     private final TestModelHandler handler;
     private final List<String> reject;
+    private final List<String> withhold;
     private final boolean suspend;
     private final Runnable resumed;
     private final EngineContext context;
@@ -101,6 +103,7 @@ final class TestModelPipeline implements ModelPipeline
     private int contentDrained;
     private boolean awaiting;
     private ModelStatus resolved;
+    private boolean resolvedWithheld;
 
     TestModelPipeline(
         int length,
@@ -111,6 +114,7 @@ final class TestModelPipeline implements ModelPipeline
         ModelTransform transform,
         TestModelHandler handler,
         List<String> reject,
+        List<String> withhold,
         boolean suspend,
         Runnable resumed,
         EngineContext context,
@@ -127,10 +131,11 @@ final class TestModelPipeline implements ModelPipeline
         this.result = new ModelPipelineResult();
         this.handler = handler;
         this.reject = reject;
+        this.withhold = withhold;
         this.suspend = suspend;
         this.resumed = resumed;
         this.context = context;
-        this.buffer = reject != null ? new ExpandableArrayBufferEx() : null;
+        this.buffer = reject != null || withhold != null ? new ExpandableArrayBufferEx() : null;
         this.discloseAuthorized = discloseAuthorized;
         this.discloseRedacted = discloseRedacted;
         this.envelopeDiscloseName = envelopeDiscloseName;
@@ -149,7 +154,7 @@ final class TestModelPipeline implements ModelPipeline
         int dstIndex,
         int dstLimit)
     {
-        return reject != null
+        return reject != null || withhold != null
             ? transformReject(src, srcIndex, srcLimit, dst, dstIndex, dstLimit, flags)
             : transformLength(traceId, bindingId, authorization, flags, src, srcIndex, srcLimit, dst, dstIndex, dstLimit);
     }
@@ -194,21 +199,23 @@ final class TestModelPipeline implements ModelPipeline
             if ((flags & FLAGS_FIN) != 0)
             {
                 String text = buffer.getStringWithoutLengthUtf8(0, contentLength);
-                boolean matched = reject.contains(text);
+                List<String> matchAgainst = reject != null ? reject : withhold;
+                boolean matched = matchAgainst.contains(text);
+                boolean asWithheld = reject == null;
 
                 if (suspend)
                 {
                     awaiting = true;
                     context.dispatch(() ->
                     {
-                        resolve(matched);
+                        resolve(matched, asWithheld);
                         resumed.run();
                     });
                     status = ModelStatus.SUSPENDED;
                 }
                 else
                 {
-                    resolve(matched);
+                    resolve(matched, asWithheld);
                     ModelPipelineResult inner = transformReject(EMPTY_SRC, 0, 0, dst, dstIndex, dstLimit, 0x00);
                     status = inner.status();
                     produced = inner.produced();
@@ -220,13 +227,17 @@ final class TestModelPipeline implements ModelPipeline
             }
         }
 
-        return result.set(status, consumed, produced);
+        return result.set(status, consumed, produced, status == ModelStatus.REJECTED && resolvedWithheld
+            ? ModelRejection.WITHHELD
+            : null);
     }
 
     private void resolve(
-        boolean matched)
+        boolean matched,
+        boolean asWithheld)
     {
         resolved = matched ? ModelStatus.REJECTED : ModelStatus.OK;
+        resolvedWithheld = matched && asWithheld;
         awaiting = false;
     }
 
