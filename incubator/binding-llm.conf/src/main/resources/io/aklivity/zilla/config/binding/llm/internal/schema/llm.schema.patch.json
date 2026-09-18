@@ -58,6 +58,32 @@
                                             "title": "Dialect",
                                             "description": "Fixes the dialect assumed for inbound requests instead of detecting it automatically. Accepts the name of any dialect registered with the binding, for example openai or anthropic.",
                                             "$ref": "#/$defs/binding-ext/llm/dialect"
+                                        },
+                                        "authorization":
+                                        {
+                                            "title": "Authorization",
+                                            "description": "Guard used to validate inbound request credentials, keyed by guard name. Credentials is a template matched against the request header the resolved dialect expects credentials in (for example Authorization for openai, x-api-key for anthropic), with {credentials} standing in for the extracted token.",
+                                            "type": "object",
+                                            "patternProperties":
+                                            {
+                                                "^[A-Za-z0-9_-]+$":
+                                                {
+                                                    "type": "object",
+                                                    "properties":
+                                                    {
+                                                        "credentials":
+                                                        {
+                                                            "title": "Credentials",
+                                                            "type": "string",
+                                                            "pattern": ".*\\{credentials\\}.*",
+                                                            "default": "Bearer {credentials}"
+                                                        }
+                                                    },
+                                                    "additionalProperties": false
+                                                }
+                                            },
+                                            "additionalProperties": false,
+                                            "maxProperties": 1
                                         }
                                     },
                                     "additionalProperties": false

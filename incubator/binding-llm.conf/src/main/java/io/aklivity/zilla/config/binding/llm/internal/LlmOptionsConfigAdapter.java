@@ -20,6 +20,7 @@ import java.util.regex.Pattern;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
+import jakarta.json.JsonString;
 
 import io.aklivity.zilla.config.binding.llm.LlmOptionsConfig;
 import io.aklivity.zilla.config.binding.llm.LlmOptionsConfigBuilder;
@@ -29,6 +30,9 @@ import io.aklivity.zilla.config.engine.OptionsConfig;
 public final class LlmOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, JsonObject>
 {
     private static final String DIALECT_NAME = "dialect";
+    private static final String AUTHORIZATION_NAME = "authorization";
+    private static final String AUTHORIZATION_CREDENTIALS_NAME = "credentials";
+    private static final String AUTHORIZATION_CREDENTIALS_DEFAULT = "Bearer {credentials}";
     private static final String SERVER_NAME = "server";
 
     private static final Pattern SERVER_PATTERN = Pattern.compile("([^\\:]+):(\\d+)");
@@ -44,6 +48,18 @@ public final class LlmOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, 
         if (llmOptions.dialect != null)
         {
             object.add(DIALECT_NAME, llmOptions.dialect);
+        }
+
+        if (llmOptions.authorization != null && llmOptions.authorization.name != null)
+        {
+            JsonObjectBuilder authorization = Json.createObjectBuilder();
+            JsonObjectBuilder guardObject = Json.createObjectBuilder();
+            if (llmOptions.authorization.credentials != null)
+            {
+                guardObject.add(AUTHORIZATION_CREDENTIALS_NAME, llmOptions.authorization.credentials);
+            }
+            authorization.add(llmOptions.authorization.name, guardObject);
+            object.add(AUTHORIZATION_NAME, authorization);
         }
 
         if (llmOptions.server != null)
@@ -63,6 +79,22 @@ public final class LlmOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, 
         if (object.containsKey(DIALECT_NAME))
         {
             llmOptions.dialect(object.getString(DIALECT_NAME));
+        }
+
+        if (object.containsKey(AUTHORIZATION_NAME))
+        {
+            JsonObject authorization = object.getJsonObject(AUTHORIZATION_NAME);
+            authorization.forEach((guard, value) ->
+            {
+                JsonObject guardObject = (JsonObject) value;
+                String credentials = guardObject.containsKey(AUTHORIZATION_CREDENTIALS_NAME)
+                    ? ((JsonString) guardObject.get(AUTHORIZATION_CREDENTIALS_NAME)).getString()
+                    : AUTHORIZATION_CREDENTIALS_DEFAULT;
+                llmOptions.authorization()
+                    .name(guard)
+                    .credentials(credentials)
+                    .build();
+            });
         }
 
         if (object.containsKey(SERVER_NAME))
