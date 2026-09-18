@@ -135,6 +135,14 @@ public final class LlmClientFactory implements LlmStreamFactory
     private final BufferPool decodePool;
     private final int decodeMax;
 
+    // Wraps a distinct MutableDirectBufferEx instance internally, even though it shares the same
+    // underlying pooled memory and slot accounting as decodePool -- bufferPool.buffer(slot) rewraps a
+    // single mutable field per pool, so appending to LlmHttpClient's encodeSlot from within LlmClient's
+    // decodeRequest() loop (which holds a live decodePool-fetched buffer for the whole loop) never
+    // repoints that reference at the wrong slot's memory, the way a single shared pool handle would.
+    // See LlmServerFactory's decodePool/encodePool for precedent.
+    private final BufferPool encodePool;
+
     private final LlmContentCodecFactory codecs;
 
     private final Long2ObjectHashMap<LlmBindingConfig> bindings;
@@ -153,6 +161,7 @@ public final class LlmClientFactory implements LlmStreamFactory
         this.extBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.decodePool = context.bufferPool();
         this.decodeMax = decodePool.slotCapacity();
+        this.encodePool = context.bufferPool().duplicate();
         this.transformBuffer = new UnsafeBufferEx(new byte[decodeMax]);
         this.copyBuffer = new UnsafeBufferEx(new byte[decodeMax]);
         this.comparisonRO = new UnsafeBufferEx(new byte[0]);
@@ -827,6 +836,9 @@ public final class LlmClientFactory implements LlmStreamFactory
         private long pendingEndTraceId;
         private long pendingEndAuthorization;
 
+        private int encodeSlot = NO_SLOT;
+        private int encodeSlotOffset;
+
         private final MutableDirectBufferEx nativeEventBuffer;
         private int nativeEventLength;
         private String nativeEventName;
@@ -910,6 +922,9 @@ public final class LlmClientFactory implements LlmStreamFactory
             state = LlmState.openInitial(state);
         }
 
+        // Appends onto the tail of encodeSlot when it already holds bytes waiting for net window credit,
+        // otherwise encodes straight from the caller's buffer -- avoiding a copy on the common, unblocked
+        // path. Either way, encodeNet() decides how much of the result actually goes out now.
         private void doNetData(
             long traceId,
             long authorization,
@@ -917,13 +932,89 @@ public final class LlmClientFactory implements LlmStreamFactory
             int offset,
             int length)
         {
-            LlmClientFactory.this.doData(net, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                traceId, authorization, FLAG_INIT | FLAG_FIN, 0L, length, buffer, offset, length, emptyRO);
+            DirectBufferEx encodeBuffer = buffer;
+            int encodeOffset = offset;
+            int encodeLimit = offset + length;
 
-            initialSeq += length;
+            if (encodeSlot != NO_SLOT)
+            {
+                final MutableDirectBufferEx slotBuffer = encodePool.buffer(encodeSlot);
+                slotBuffer.putBytes(encodeSlotOffset, buffer, offset, length);
+                encodeSlotOffset += length;
+
+                encodeBuffer = slotBuffer;
+                encodeOffset = 0;
+                encodeLimit = encodeSlotOffset;
+            }
+
+            encodeNet(traceId, authorization, encodeBuffer, encodeOffset, encodeLimit);
+        }
+
+        // Writes only as much of buffer[offset, limit) as the currently granted initialWindow allows,
+        // buffering any remainder in encodeSlot for the next onNetWindow to drain further -- a net write
+        // can never exceed the granted window, however much of it the caller has ready to send.
+        private void encodeNet(
+            long traceId,
+            long authorization,
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            final int maxLength = limit - offset;
+            final int initialWin = initialMax - (int) (initialSeq - initialAck);
+            final int length = Math.max(Math.min(initialWin, maxLength), 0);
+
+            if (length > 0)
+            {
+                LlmClientFactory.this.doData(net, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                    traceId, authorization, FLAG_INIT | FLAG_FIN, 0L, length, buffer, offset, length, emptyRO);
+
+                initialSeq += length;
+            }
+
+            final int remaining = maxLength - length;
+            if (remaining > 0)
+            {
+                if (encodeSlot == NO_SLOT)
+                {
+                    encodeSlot = encodePool.acquire(initialId);
+                }
+
+                if (encodeSlot == NO_SLOT)
+                {
+                    cleanupNet(traceId, authorization);
+                }
+                else
+                {
+                    final MutableDirectBufferEx slotBuffer = encodePool.buffer(encodeSlot);
+                    slotBuffer.putBytes(0, buffer, offset + length, remaining);
+                    encodeSlotOffset = remaining;
+                }
+            }
+            else
+            {
+                cleanupEncodeSlot();
+
+                if (LlmState.initialClosing(state))
+                {
+                    doNetEndNow(traceId, authorization);
+                }
+            }
         }
 
         private void doNetEnd(
+            long traceId,
+            long authorization)
+        {
+            state = LlmState.closingInitial(state);
+
+            if (encodeSlot == NO_SLOT)
+            {
+                doNetEndNow(traceId, authorization);
+            }
+        }
+
+        private void doNetEndNow(
             long traceId,
             long authorization)
         {
@@ -942,6 +1033,7 @@ public final class LlmClientFactory implements LlmStreamFactory
             if (!LlmState.initialClosed(state))
             {
                 state = LlmState.closeInitial(state);
+                cleanupEncodeSlot();
                 LlmClientFactory.this.doAbort(net, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, emptyRO);
             }
@@ -1364,6 +1456,12 @@ public final class LlmClientFactory implements LlmStreamFactory
             {
                 client.doAppWindow(traceId, authorization);
             }
+
+            if (encodeSlot != NO_SLOT)
+            {
+                final MutableDirectBufferEx slotBuffer = encodePool.buffer(encodeSlot);
+                encodeNet(traceId, authorization, slotBuffer, 0, encodeSlotOffset);
+            }
         }
 
         private void onNetReset(
@@ -1414,6 +1512,7 @@ public final class LlmClientFactory implements LlmStreamFactory
             long authorization)
         {
             cleanupDecodeSlot();
+            cleanupEncodeSlot();
             doNetReset(traceId);
             client.doAppAbort(traceId, authorization);
         }
@@ -1429,6 +1528,16 @@ public final class LlmClientFactory implements LlmStreamFactory
             if (client.responsePipeline != null)
             {
                 client.responsePipeline.reset();
+            }
+        }
+
+        private void cleanupEncodeSlot()
+        {
+            if (encodeSlot != NO_SLOT)
+            {
+                encodePool.release(encodeSlot);
+                encodeSlot = NO_SLOT;
+                encodeSlotOffset = 0;
             }
         }
     }
