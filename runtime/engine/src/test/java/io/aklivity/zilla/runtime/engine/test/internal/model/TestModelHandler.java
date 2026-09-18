@@ -44,6 +44,7 @@ public class TestModelHandler implements ModelHandler
     private final boolean encodeLenient;
     private final List<Long> transformAuthorizations;
     private final List<String> reject;
+    private final List<String> withhold;
     private final boolean suspend;
     private final EngineContext context;
     private final List<Long> discloseAuthorized;
@@ -70,6 +71,7 @@ public class TestModelHandler implements ModelHandler
         this.encodeLenient = config.validate.encode == ValidateMode.LENIENT;
         this.transformAuthorizations = config.transformAuthorizations;
         this.reject = config.reject;
+        this.withhold = config.withhold;
         this.suspend = config.suspend;
         this.context = context;
         this.discloseAuthorized = config.discloseAuthorized;
@@ -95,7 +97,7 @@ public class TestModelHandler implements ModelHandler
         ModelTransform transform)
     {
         return new TestModelPipeline(length, transformLength, fields, encodeLenient, envelope, transform, this,
-            null, false, NOOP, null, null, null, null, deterministic);
+            null, null, false, NOOP, null, null, null, null, deterministic);
     }
 
     @Override
@@ -114,7 +116,7 @@ public class TestModelHandler implements ModelHandler
         Runnable resumed)
     {
         return new TestModelPipeline(length, transformLength, fields, encodeLenient, envelope, transform, this,
-            reject, suspend, resumed, context, null, null, null, deterministic);
+            reject, withhold, suspend, resumed, context, null, null, null, deterministic);
     }
 
     private ModelPipeline supplyDecoder(
@@ -125,9 +127,9 @@ public class TestModelHandler implements ModelHandler
     {
         return cache == ModelCache.WRITE
             ? new TestModelPipeline(length, transformLength, fields, decodeLenient, envelope, transform, this,
-                null, false, resumed, context, null, null, null, deterministic)
+                null, null, false, resumed, context, null, null, null, deterministic)
             : new TestModelPipeline(length, transformLength, fields, decodeLenient, envelope, transform, this,
-                reject, suspend, resumed, context, discloseAuthorized, discloseRedacted, envelopeDiscloseName, deterministic);
+                reject, withhold, suspend, resumed, context, discloseAuthorized, discloseRedacted, envelopeDiscloseName, deterministic);
     }
 
     Long nextTransformAuthorization()
