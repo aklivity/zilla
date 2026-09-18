@@ -379,7 +379,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
             int minInitialPad,
             int minInitialMax)
         {
-            final long newInitialAck = Math.max(initialSeq - minInitialWin, initialAck);
+            final long newInitialAck = Math.max(initialSeq - (minInitialMax - minInitialWin), initialAck);
 
             if (newInitialAck > initialAck || minInitialMax > initialMax)
             {
@@ -657,7 +657,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
             int minReplyPad,
             int minReplyMax)
         {
-            final long newReplyAck = Math.max(replySeq - minReplyWin, replyAck);
+            final long newReplyAck = Math.max(replySeq - (minReplyMax - minReplyWin), replyAck);
 
             if (newReplyAck > replyAck || minReplyMax > replyMax)
             {

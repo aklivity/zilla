@@ -28,7 +28,7 @@ read zilla:begin.ext ${llm:matchBeginEx()
 connected
 
 read '{"model":"gpt-4","messages":[{"role":"user","content":"'
-read ${core:randomBase64(10000)}
+read ${core:randomBase64(100000)}
 read '"}],"stream":false}'
 
 read closed
@@ -40,7 +40,7 @@ write zilla:begin.ext ${llm:beginEx()
                            .build()}
 
 write '{"id":"chatcmpl_2","object":"chat.completion","model":"gpt-4","choices":[{"index":0,"message":{"role":"assistant","content":"'
-      ${core:randomBase64(10000)}
+      ${core:randomBase64(100000)}
       '"},"finish_reason":"stop"}],"usage":{"prompt_tokens":25,"completion_tokens":15,"total_tokens":40}}'
 write advise zilla:flush ${llm:flushEx()
                                .typeId(zilla:id("llm"))

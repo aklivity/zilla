@@ -13,40 +13,39 @@
 # specific language governing permissions and limitations under the License.
 #
 
-property serverAddress "zilla://streams/app0"
-
-accept ${serverAddress}
-       option zilla:window 8192
-       option zilla:transmission "half-duplex"
-accepted
-
-read zilla:begin.ext ${llm:matchBeginEx()
-                          .typeId(zilla:id("llm"))
-                          .dialect("anthropic")
-                          .build()}
-
-connected
-
-read '{"model":"claude-3-opus-20240229","max_tokens":1024,"messages":[{"role":"user","content":"'
-read ${core:randomBase64(10000)}
-read '"}],"stream":false}'
-
-read closed
+connect "zilla://streams/net0"
+  option zilla:window 8192
+  option zilla:transmission "half-duplex"
 
 write zilla:begin.ext ${llm:beginEx()
+                            .typeId(zilla:id("llm"))
+                            .dialect("anthropic")
+                            .model("gpt-b")
+                            .build()}
+connected
+
+write '{"model":"claude-3-opus-20240229","max_tokens":1024,"messages":[{"role":"user","content":"'
+      ${core:randomBase64(10000)}
+      '"}],"stream":false}'
+
+write close
+
+read zilla:begin.ext ${llm:matchBeginEx()
                            .typeId(zilla:id("llm"))
                            .dialect("anthropic")
                            .contentType("application/json")
                            .build()}
 
-write '{"id":"msg_01","type":"message","role":"assistant","model":"claude-3-opus-20240229","content":[{"type":"text","text":"'
-      ${core:randomBase64(10000)}
-      '"}],"stop_reason":"end_turn","stop_sequence":null,"usage":{"input_tokens":25,"output_tokens":15}}'
-write advise zilla:flush ${llm:flushEx()
+read '{"id":"msg_01","type":"message","role":"assistant","model":"claude-3-opus-20240229","content":[{"type":"text","text":"'
+read ${core:randomBase64(10000)}
+read '"}],"stop_reason":"end_turn","stop_sequence":null,"usage":{"input_tokens":25,"output_tokens":15}}'
+read advised zilla:flush ${llm:matchFlushEx()
                                .typeId(zilla:id("llm"))
                                .raw()
                                    .choiceIndex(0)
+                                   .typeNull()
+                                   .payloadNull()
                                    .build()
                                .build()}
 
-write close
+read closed
