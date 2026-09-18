@@ -209,6 +209,7 @@ public final class LlmServerFactory implements LlmStreamFactory
                                     begin.routedId(),
                                     begin.streamId(),
                                     route.id,
+                                    authResult.authorization(),
                                     dialect,
                                     contentType,
                                     envelope,
@@ -334,7 +335,7 @@ public final class LlmServerFactory implements LlmStreamFactory
         private int state;
         private boolean requestStarted;
 
-        private long initialAuthorization;
+        private final long initialAuthorization;
         private long pendingEndTraceId;
 
         private int decodeSlot = NO_SLOT;
@@ -357,6 +358,7 @@ public final class LlmServerFactory implements LlmStreamFactory
             long routedId,
             long initialId,
             long exitId,
+            long authorization,
             LlmDialect dialect,
             String contentType,
             LlmModelEnvelope envelope,
@@ -369,6 +371,7 @@ public final class LlmServerFactory implements LlmStreamFactory
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.exitId = exitId;
+            this.initialAuthorization = authorization;
             this.dialect = dialect;
             this.contentType = contentType;
             this.envelope = envelope;
@@ -427,12 +430,10 @@ public final class LlmServerFactory implements LlmStreamFactory
             DataFW data)
         {
             final long traceId = data.traceId();
-            final long authorization = data.authorization();
             final int flags = data.flags();
             final OctetsFW payload = data.payload();
 
             initialSeq = data.sequence() + data.reserved();
-            initialAuthorization = authorization;
 
             if (decodeSlot == NO_SLOT)
             {
