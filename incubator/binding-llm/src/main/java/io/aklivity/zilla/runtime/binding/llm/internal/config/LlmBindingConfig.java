@@ -145,6 +145,23 @@ public final class LlmBindingConfig
         return resolved;
     }
 
+    public LlmRouteConfig resolve(
+        long authorization,
+        String dialect,
+        String model)
+    {
+        LlmRouteConfig resolved = null;
+        for (LlmRouteConfig route : routes)
+        {
+            if (route.authorized(authorization) && route.matches(dialect, model))
+            {
+                resolved = route;
+                break;
+            }
+        }
+        return resolved;
+    }
+
     public LlmDialect resolveDialect(
         ModelEnvelope headers)
     {

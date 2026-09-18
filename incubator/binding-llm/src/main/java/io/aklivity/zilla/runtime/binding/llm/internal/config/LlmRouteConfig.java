@@ -15,21 +15,22 @@
 package io.aklivity.zilla.runtime.binding.llm.internal.config;
 
 import static java.util.function.UnaryOperator.identity;
+import static java.util.stream.Collectors.toList;
 
+import java.util.List;
 import java.util.function.UnaryOperator;
 
+import io.aklivity.zilla.config.binding.llm.LlmConditionConfig;
 import io.aklivity.zilla.config.engine.RouteConfig;
 import io.aklivity.zilla.runtime.common.lang.util.function.LongObjectPredicate;
 
-// There is no routes[].when condition schema for llm yet, so a route is selected purely by authorization,
-// matching the shallow "first authorized route" shape other simple bindings without a condition matcher
-// already use (see WsBindingConfig / WsRouteConfig, minus the when/matches half).
 public final class LlmRouteConfig
 {
     public final long id;
     public final int order;
 
     private final LongObjectPredicate<UnaryOperator<String>> authorized;
+    private final List<LlmConditionMatcher> matchers;
 
     public LlmRouteConfig(
         RouteConfig route)
@@ -37,11 +38,22 @@ public final class LlmRouteConfig
         this.id = route.id;
         this.order = route.order;
         this.authorized = route.authorized;
+        this.matchers = route.when.stream()
+            .map(LlmConditionConfig.class::cast)
+            .map(LlmConditionMatcher::new)
+            .collect(toList());
     }
 
     boolean authorized(
         long authorization)
     {
         return authorized.test(authorization, identity());
+    }
+
+    boolean matches(
+        String dialect,
+        String model)
+    {
+        return matchers.isEmpty() || matchers.stream().anyMatch(m -> m.matches(dialect, model));
     }
 }
