@@ -74,8 +74,8 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/openai.request/client",
-        "${net}/openai.request/server"})
+        "${net}/openai.request.echo/client",
+        "${net}/openai.request.echo/server"})
     public void shouldEncodeOpenaiRequest() throws Exception
     {
         k3po.finish();
@@ -83,8 +83,8 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/anthropic.request/client",
-        "${net}/anthropic.request/server"})
+        "${net}/anthropic.request.echo/client",
+        "${net}/anthropic.request.echo/server"})
     public void shouldEncodeAnthropicRequest() throws Exception
     {
         k3po.finish();
@@ -212,6 +212,42 @@ public class NetworkIT
         "${net}/anthropic.100k/client",
         "${net}/anthropic.100k/server"})
     public void shouldEncodeAnthropic100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.streaming.transformed/client",
+        "${net}/openai.streaming.transformed/server"})
+    public void shouldEncodeOpenaiStreamingTransformed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.streaming.transformed/client",
+        "${net}/anthropic.streaming.transformed/server"})
+    public void shouldEncodeAnthropicStreamingTransformed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.nonstreaming.transformed/client",
+        "${net}/openai.nonstreaming.transformed/server"})
+    public void shouldEncodeOpenaiNonstreamingTransformed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.nonstreaming.transformed/client",
+        "${net}/anthropic.nonstreaming.transformed/server"})
+    public void shouldEncodeAnthropicNonstreamingTransformed() throws Exception
     {
         k3po.finish();
     }

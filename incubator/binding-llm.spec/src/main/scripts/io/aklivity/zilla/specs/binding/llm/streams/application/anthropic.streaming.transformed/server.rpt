@@ -13,79 +13,100 @@
 # specific language governing permissions and limitations under the License.
 #
 
-connect "zilla://streams/app0"
-        option zilla:window 8192
-        option zilla:transmission "half-duplex"
+property model "claude-3-opus-20240229"
+property id "msg_01"
+
+accept "zilla://streams/app0"
+       option zilla:window 8192
+       option zilla:transmission "half-duplex"
+
+accepted
+
+read zilla:begin.ext ${llm:matchBeginEx()
+                          .typeId(zilla:id("llm"))
+                          .dialect("anthropic")
+                          .build()}
+
+connected
+
+read '{"model":"'
+     ${model}
+     '","messages":[{"role":"user","content":"Hello"}],"stream":true}'
+
+read closed
 
 write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
                            .dialect("anthropic")
-                           .build()}
-
-connected
-
-write "{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}],\"stream\":true}"
-
-write close
-
-read zilla:begin.ext ${llm:matchBeginEx()
-                           .typeId(zilla:id("llm"))
-                           .dialect("anthropic")
                            .contentType("text/event-stream")
                            .build()}
+write flush
 
-read zilla:data.ext ${llm:matchDataEx()
+write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .type("message_start")
                           .build()}
-read "{\"type\":\"message_start\",\"message\":{\"id\":\"chatcmpl_1\",\"type\":\"message\",\"role\":\"assistant\",\"model\":\"gpt-4\"}}"
+write '{"type":"message_start","message":{"id":"'
+      ${id}
+      '","type":"message","role":"assistant","model":"'
+      ${model}
+      '"}}'
+write flush
 
-read zilla:data.ext ${llm:matchDataEx()
+write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .type("content_block_start")
                           .build()}
-read "{\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}}"
+write "{\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}}"
+write flush
 
-read zilla:data.ext ${llm:matchDataEx()
+write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .type("content_block_delta")
                           .build()}
-read "{\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"Hello\"}}"
+write "{\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"Hello\"}}"
+write flush
 
-read zilla:data.ext ${llm:matchDataEx()
+write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .type("content_block_stop")
                           .build()}
-read "{\"type\":\"content_block_stop\",\"index\":0}"
+write "{\"type\":\"content_block_stop\",\"index\":0}"
+write flush
 
-read zilla:data.ext ${llm:matchDataEx()
+write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .type("content_block_start")
                           .build()}
-read "{\"type\":\"content_block_start\",\"index\":1,\"content_block\":{\"type\":\"tool_use\",\"id\":\"call_1\",\"name\":\"get_weather\"}}"
+write "{\"type\":\"content_block_start\",\"index\":1,\"content_block\":{\"type\":\"tool_use\",\"id\":\"call_1\",\"name\":\"get_weather\"}}"
+write flush
 
-read zilla:data.ext ${llm:matchDataEx()
+write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .type("content_block_delta")
                           .build()}
-read "{\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"{\\\"city\\\":\"}}"
+write "{\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"{\\\"city\\\":\"}}"
+write flush
 
-read zilla:data.ext ${llm:matchDataEx()
+write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .type("content_block_stop")
                           .build()}
-read "{\"type\":\"content_block_stop\",\"index\":1}"
+write "{\"type\":\"content_block_stop\",\"index\":1}"
+write flush
 
-read zilla:data.ext ${llm:matchDataEx()
+write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .type("message_delta")
                           .build()}
-read "{\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"end_turn\"},\"usage\":{\"output_tokens\":0}}"
+write "{\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"end_turn\"},\"usage\":{\"output_tokens\":0}}"
+write flush
 
-read zilla:data.ext ${llm:matchDataEx()
+write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .type("message_stop")
                           .build()}
-read "{\"type\":\"message_stop\"}"
+write "{\"type\":\"message_stop\"}"
+write flush
 
-read closed
+write close

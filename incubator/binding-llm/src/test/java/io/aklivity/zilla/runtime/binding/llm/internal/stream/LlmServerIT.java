@@ -67,8 +67,8 @@ public class LlmServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/openai.request/client",
-        "${app}/openai.request/server"})
+        "${net}/openai.request.echo/client",
+        "${app}/openai.request.echo/server"})
     public void shouldDetectOpenaiDialectFromPath() throws Exception
     {
         k3po.finish();
@@ -77,8 +77,8 @@ public class LlmServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/anthropic.request/client",
-        "${app}/anthropic.request/server"})
+        "${net}/anthropic.request.echo/client",
+        "${app}/anthropic.request.echo/server"})
     public void shouldDetectAnthropicDialectFromPath() throws Exception
     {
         k3po.finish();

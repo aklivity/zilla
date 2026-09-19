@@ -23,6 +23,7 @@ import org.junit.rules.DisableOnDebug;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
 
+import io.aklivity.k3po.runtime.junit.annotation.ScriptProperty;
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
@@ -117,21 +118,34 @@ public class LlmClientIT
     }
 
     @Test
-    @Configuration("client.openai.yaml")
+    @Configuration("client.anthropic.yaml")
     @Specification({
-        "${app}/openai.to.anthropic.streaming/client",
-        "${net}/openai.streaming/server"})
+        "${app}/openai.streaming.transformed/client",
+        "${net}/anthropic.streaming.transformed/server"})
+    @ScriptProperty({ "model \"gpt-4\"", "id \"chatcmpl_1\"" })
     public void shouldTranslateOpenaiToAnthropicStreaming() throws Exception
     {
         k3po.finish();
     }
 
     @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/anthropic.streaming.transformed/client",
+        "${net}/openai.streaming.transformed/server"})
+    @ScriptProperty({ "model \"claude-3-opus-20240229\"", "id \"msg_01\"" })
+    public void shouldTranslateAnthropicToOpenaiStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("client.anthropic.yaml")
     @Specification({
-        "${app}/anthropic.to.openai.streaming/client",
-        "${net}/anthropic.streaming/server"})
-    public void shouldTranslateAnthropicToOpenaiStreaming() throws Exception
+        "${app}/openai.nonstreaming.transformed/client",
+        "${net}/anthropic.nonstreaming.transformed/server"})
+    @ScriptProperty({ "model \"gpt-4\"", "id \"chatcmpl_2\"" })
+    public void shouldTranslateOpenaiToAnthropicNonstreaming() throws Exception
     {
         k3po.finish();
     }
@@ -139,18 +153,9 @@ public class LlmClientIT
     @Test
     @Configuration("client.openai.yaml")
     @Specification({
-        "${app}/openai.to.anthropic.nonstreaming/client",
-        "${net}/openai.nonstreaming/server"})
-    public void shouldTranslateOpenaiToAnthropicNonstreaming() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.anthropic.yaml")
-    @Specification({
-        "${app}/anthropic.to.openai.nonstreaming/client",
-        "${net}/anthropic.nonstreaming/server"})
+        "${app}/anthropic.nonstreaming.transformed/client",
+        "${net}/openai.nonstreaming.transformed/server"})
+    @ScriptProperty({ "model \"claude-3-opus-20240229\"", "id \"msg_01\"" })
     public void shouldTranslateAnthropicToOpenaiNonstreaming() throws Exception
     {
         k3po.finish();

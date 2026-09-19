@@ -13,24 +13,29 @@
 # specific language governing permissions and limitations under the License.
 #
 
+property model "claude-3-opus-20240229"
+property id "msg_01"
+
 connect "zilla://streams/app0"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
 
 write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
-                           .dialect("openai")
+                           .dialect("anthropic")
                            .build()}
 
 connected
 
-write "{\"model\":\"claude-3-opus-20240229\",\"max_tokens\":1024,\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}],\"stream\":false}"
+write '{"model":"'
+      ${model}
+      '","messages":[{"role":"user","content":"Hello"}],"stream":false}'
 
 write close
 
 read zilla:begin.ext ${llm:matchBeginEx()
                            .typeId(zilla:id("llm"))
-                           .dialect("openai")
+                           .dialect("anthropic")
                            .contentType("application/json")
                            .build()}
 
@@ -38,6 +43,10 @@ read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .typeNull()
                           .build()}
-read "{\"object\":\"chat.completion\",\"id\":\"msg_01\",\"model\":\"claude-3-opus-20240229\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"Hello! How can I help you today?\",\"tool_calls\":[{\"id\":\"toolu_01\",\"type\":\"function\",\"function\":{\"name\":\"get_weather\",\"arguments\":\"{\\\"city\\\":\\\"San Francisco\\\"}\"}}]},\"finish_reason\":\"tool_calls\"}],\"usage\":{\"prompt_tokens\":25,\"completion_tokens\":15}}"
+read '{"id":"'
+     ${id}
+     '","type":"message","role":"assistant","model":"'
+     ${model}
+     '","content":[{"type":"text","text":"Hello! How can I help you today?"},{"type":"tool_use","id":"call_1","name":"get_weather","input":{"city":"San Francisco"}}],"stop_reason":"tool_use","usage":{"input_tokens":25,"output_tokens":15}}'
 
 read closed

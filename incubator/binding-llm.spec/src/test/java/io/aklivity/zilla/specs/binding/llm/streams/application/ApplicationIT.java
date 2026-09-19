@@ -56,8 +56,8 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/openai.request/client",
-        "${app}/openai.request/server"})
+        "${app}/openai.request.echo/client",
+        "${app}/openai.request.echo/server"})
     public void shouldForwardOpenaiRequest() throws Exception
     {
         k3po.finish();
@@ -65,8 +65,8 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/anthropic.request/client",
-        "${app}/anthropic.request/server"})
+        "${app}/anthropic.request.echo/client",
+        "${app}/anthropic.request.echo/server"})
     public void shouldForwardAnthropicRequest() throws Exception
     {
         k3po.finish();
@@ -185,6 +185,42 @@ public class ApplicationIT
         "${app}/anthropic.100k/client",
         "${app}/anthropic.100k/server"})
     public void shouldForwardAnthropic100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.streaming.transformed/client",
+        "${app}/openai.streaming.transformed/server"})
+    public void shouldForwardOpenaiStreamingTransformed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.streaming.transformed/client",
+        "${app}/anthropic.streaming.transformed/server"})
+    public void shouldForwardAnthropicStreamingTransformed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.nonstreaming.transformed/client",
+        "${app}/openai.nonstreaming.transformed/server"})
+    public void shouldForwardOpenaiNonstreamingTransformed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.nonstreaming.transformed/client",
+        "${app}/anthropic.nonstreaming.transformed/server"})
+    public void shouldForwardAnthropicNonstreamingTransformed() throws Exception
     {
         k3po.finish();
     }
