@@ -180,9 +180,39 @@ public class NetworkIT
         k3po.finish();
     }
 
-    // openai.10k/anthropic.10k/openai.100k/anthropic.100k's client.rpt and server.rpt are not a
-    // self-consistent pair here (unlike openai.request/anthropic.request): client.rpt plays the external
-    // caller's realistic path (e.g. /v1/chat/completions) for LlmServerIT's own use, while server.rpt plays
-    // llm(client)'s own backend at "/" for LlmClientIT's use -- two different hops, deliberately asymmetric,
-    // never meant to be matched directly against each other.
+    @Test
+    @Specification({
+        "${net}/openai.10k/client",
+        "${net}/openai.10k/server"})
+    public void shouldEncodeOpenai10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.10k/client",
+        "${net}/anthropic.10k/server"})
+    public void shouldEncodeAnthropic10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.100k/client",
+        "${net}/openai.100k/server"})
+    public void shouldEncodeOpenai100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.100k/client",
+        "${net}/anthropic.100k/server"})
+    public void shouldEncodeAnthropic100k() throws Exception
+    {
+        k3po.finish();
+    }
 }

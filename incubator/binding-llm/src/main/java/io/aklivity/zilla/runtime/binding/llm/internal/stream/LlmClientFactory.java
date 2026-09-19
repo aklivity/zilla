@@ -85,10 +85,6 @@ public final class LlmClientFactory implements LlmStreamFactory
     private static final String CONTENT_TYPE_JSON = "application/json";
     private static final String ENVELOPE_EVENT = "event";
 
-    // no per-dialect request path is modeled yet (LlmOptionsConfig / llm.idl carry no such field);
-    // this fixed placeholder stands in until that config surface exists
-    private static final String PATH_DEFAULT = "/";
-
     private static final int FLAG_FIN = 0x01;
     private static final int FLAG_INIT = 0x02;
 
@@ -1011,7 +1007,7 @@ public final class LlmClientFactory implements LlmStreamFactory
                 .headersItem(h -> h.name(HEADER_METHOD).value(METHOD_POST))
                 .headersItem(h -> h.name(HEADER_SCHEME).value(SCHEME_HTTP))
                 .headersItem(h -> h.name(HEADER_AUTHORITY).value(authority))
-                .headersItem(h -> h.name(HEADER_PATH).value(PATH_DEFAULT))
+                .headersItem(h -> h.name(HEADER_PATH).value(client.target.requestPath()))
                 .headersItem(h -> h.name(HEADER_CONTENT_TYPE).value(requestContentType));
 
             if (credentials != null)

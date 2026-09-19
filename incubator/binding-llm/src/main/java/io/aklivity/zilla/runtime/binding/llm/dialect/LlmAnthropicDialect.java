@@ -111,6 +111,12 @@ public final class LlmAnthropicDialect implements LlmDialect
     }
 
     @Override
+    public String requestPath()
+    {
+        return MESSAGES_PATH;
+    }
+
+    @Override
     public String credentialsHeader()
     {
         return API_KEY_HEADER;

@@ -64,6 +64,15 @@ public interface LlmDialect
         JsonEnvelope headers);
 
     /**
+     * Returns the request path this dialect's API expects a request at, used by a {@code kind: client}
+     * binding dialing out to this dialect's upstream (e.g. {@code /v1/chat/completions} for OpenAI's Chat
+     * Completions API).
+     *
+     * @return the request path
+     */
+    String requestPath();
+
+    /**
      * Returns the name of the request header this dialect's API carries client credentials in, read from
      * a request's {@link JsonEnvelope} to extract credentials for an {@code options.authorization} guard
      * check on a {@code kind: server} binding -- e.g. {@code authorization} for a dialect that follows the

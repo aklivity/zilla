@@ -103,6 +103,12 @@ public final class LlmOpenaiDialect implements LlmDialect
     }
 
     @Override
+    public String requestPath()
+    {
+        return CHAT_COMPLETIONS_PATH;
+    }
+
+    @Override
     public String unauthorizedBody()
     {
         return "{\"error\":{\"message\":\"Incorrect API key provided.\"," +

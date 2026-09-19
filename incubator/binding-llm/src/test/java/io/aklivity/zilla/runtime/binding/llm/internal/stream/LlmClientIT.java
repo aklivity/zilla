@@ -70,7 +70,7 @@ public class LlmClientIT
     @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.streaming/client",
-        "${net}/client.openai.streaming/server"})
+        "${net}/openai.streaming/server"})
     public void shouldForwardOpenaiStreamingSameDialect() throws Exception
     {
         k3po.finish();
@@ -80,7 +80,7 @@ public class LlmClientIT
     @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.nonstreaming/client",
-        "${net}/client.openai.nonstreaming/server"})
+        "${net}/openai.nonstreaming/server"})
     public void shouldForwardOpenaiNonstreamingSameDialect() throws Exception
     {
         k3po.finish();
@@ -100,7 +100,7 @@ public class LlmClientIT
     @Configuration("client.anthropic.yaml")
     @Specification({
         "${app}/anthropic.streaming/client",
-        "${net}/client.anthropic.streaming/server"})
+        "${net}/anthropic.streaming/server"})
     public void shouldForwardAnthropicStreamingSameDialect() throws Exception
     {
         k3po.finish();
@@ -110,7 +110,7 @@ public class LlmClientIT
     @Configuration("client.anthropic.yaml")
     @Specification({
         "${app}/anthropic.nonstreaming/client",
-        "${net}/client.anthropic.nonstreaming/server"})
+        "${net}/anthropic.nonstreaming/server"})
     public void shouldForwardAnthropicNonstreamingSameDialect() throws Exception
     {
         k3po.finish();
@@ -120,7 +120,7 @@ public class LlmClientIT
     @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.to.anthropic.streaming/client",
-        "${net}/client.openai.streaming/server"})
+        "${net}/openai.streaming/server"})
     public void shouldTranslateOpenaiToAnthropicStreaming() throws Exception
     {
         k3po.finish();
@@ -130,7 +130,7 @@ public class LlmClientIT
     @Configuration("client.anthropic.yaml")
     @Specification({
         "${app}/anthropic.to.openai.streaming/client",
-        "${net}/client.anthropic.streaming/server"})
+        "${net}/anthropic.streaming/server"})
     public void shouldTranslateAnthropicToOpenaiStreaming() throws Exception
     {
         k3po.finish();
@@ -140,7 +140,7 @@ public class LlmClientIT
     @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.to.anthropic.nonstreaming/client",
-        "${net}/client.openai.nonstreaming/server"})
+        "${net}/openai.nonstreaming/server"})
     public void shouldTranslateOpenaiToAnthropicNonstreaming() throws Exception
     {
         k3po.finish();
@@ -150,7 +150,7 @@ public class LlmClientIT
     @Configuration("client.anthropic.yaml")
     @Specification({
         "${app}/anthropic.to.openai.nonstreaming/client",
-        "${net}/client.anthropic.nonstreaming/server"})
+        "${net}/anthropic.nonstreaming/server"})
     public void shouldTranslateAnthropicToOpenaiNonstreaming() throws Exception
     {
         k3po.finish();
@@ -160,7 +160,7 @@ public class LlmClientIT
     @Configuration("client.openai.guarded.yaml")
     @Specification({
         "${app}/openai.request.guarded/client",
-        "${net}/client.openai.request.guarded/server"})
+        "${net}/openai.request.guarded.forwarded/server"})
     public void shouldForwardOpenaiRequestWithForwardedCredentials() throws Exception
     {
         k3po.finish();
@@ -170,7 +170,7 @@ public class LlmClientIT
     @Configuration("client.anthropic.guarded.yaml")
     @Specification({
         "${app}/anthropic.request.guarded/client",
-        "${net}/client.anthropic.request.guarded/server"})
+        "${net}/anthropic.request.guarded.forwarded/server"})
     public void shouldForwardAnthropicRequestWithForwardedCredentials() throws Exception
     {
         k3po.finish();

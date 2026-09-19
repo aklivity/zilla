@@ -23,7 +23,7 @@ read zilla:begin.ext ${http:matchBeginEx()
                            .header(":method", "POST")
                            .header(":scheme", "http")
                            .header(":authority", "example.com:8080")
-                           .header(":path", "/")
+                           .header(":path", "/v1/messages")
                            .header("content-type", "application/json")
                            .build()}
 
