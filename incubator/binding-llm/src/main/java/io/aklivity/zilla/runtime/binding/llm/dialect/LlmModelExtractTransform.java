@@ -14,57 +14,71 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.dialect;
 
-import io.aklivity.zilla.runtime.engine.model.ModelController;
-import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
-import io.aklivity.zilla.runtime.engine.model.ModelEvent;
-import io.aklivity.zilla.runtime.engine.model.ModelSink;
-import io.aklivity.zilla.runtime.engine.model.ModelSource;
-import io.aklivity.zilla.runtime.engine.model.ModelStatus;
-import io.aklivity.zilla.runtime.engine.model.ModelTransform;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
+import io.aklivity.zilla.runtime.common.json.JsonEvent;
+import io.aklivity.zilla.runtime.common.json.JsonSource;
 
 /**
- * Observes the top-level {@code model} field of a request -- {@code $.model} in both the OpenAI Chat
- * Completions and Anthropic Messages request shapes -- copying its value into the supplied
- * {@link ModelEnvelope} while forwarding every field unchanged, at any depth: no canonical renaming.
- * Mirrors how a Kafka cache model's {@code extractKey}/{@code extractHeaders} transform observes a field
- * and copies its value into an envelope while it flows through unchanged.
+ * Observes the top-level {@code model} field of a request -- a direct child of the root object in both the
+ * OpenAI Chat Completions and Anthropic Messages request shapes -- copying its value into the supplied
+ * {@link JsonEnvelope} while forwarding every field unchanged, at any depth: no canonical renaming. Mirrors
+ * how a Kafka cache model's {@code extractKey}/{@code extractHeaders} transform observes a field and copies
+ * its value into an envelope while it flows through unchanged.
  * <p>
- * {@code model} sits at the identical top-level path in every dialect this binding supports so far, so one
- * dialect-neutral instance backs every {@link LlmDialect#supplyValidator(LlmDialect.Kind, ModelEnvelope)}
+ * {@code model} sits at the identical top-level key in every dialect this binding supports so far, so one
+ * dialect-neutral instance backs every {@link LlmDialect#supplyValidator(LlmDialect.Kind, JsonEnvelope)}
  * implementation rather than duplicating identical extraction logic per dialect.
  * </p>
  */
-final class LlmModelExtractTransform implements ModelTransform
+final class LlmModelExtractTransform extends LlmRequestFieldTransform
 {
-    private static final String MODEL_PATH = "$.model";
     private static final String MODEL_NAME = "model";
 
-    private final ModelEnvelope envelope;
+    private final JsonEnvelope envelope;
 
     LlmModelExtractTransform(
-        ModelEnvelope envelope)
+        JsonEnvelope envelope)
     {
         this.envelope = envelope;
     }
 
     @Override
-    public ModelStatus transform(
-        ModelController control,
-        ModelSource source,
-        ModelEvent event,
-        ModelSink sink)
+    protected String rename(
+        CharSequence key)
     {
-        if (event == ModelEvent.FIELD && MODEL_PATH.equals(source.getPath()))
-        {
-            envelope.set(MODEL_NAME, source.getValue());
-        }
+        return null;
+    }
 
-        return sink.transform(control, source, event);
+    @Override
+    protected void onValue(
+        CharSequence key,
+        JsonSource source,
+        JsonEvent event)
+    {
+        if (contentEquals(key, MODEL_NAME) && event == JsonEvent.VALUE_STRING)
+        {
+            envelope.set(MODEL_NAME, new UnsafeBufferEx(source.getString().getBytes(UTF_8)));
+        }
     }
 
     @Override
     public boolean identity()
     {
         return true;
+    }
+
+    private static boolean contentEquals(
+        CharSequence key,
+        String name)
+    {
+        boolean matches = key.length() == name.length();
+        for (int i = 0; matches && i < name.length(); i++)
+        {
+            matches = key.charAt(i) == name.charAt(i);
+        }
+        return matches;
     }
 }

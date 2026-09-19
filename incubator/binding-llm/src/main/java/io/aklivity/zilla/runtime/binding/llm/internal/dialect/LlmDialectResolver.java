@@ -24,11 +24,11 @@ import java.util.function.Supplier;
 
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialect;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectFactorySpi;
-import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
+import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
 
 /**
  * Resolves the {@link LlmDialect} for an inbound request, either from a fixed configured dialect name or by
- * dispatching {@link LlmDialect#detect(ModelEnvelope)} across every dialect registered via
+ * dispatching {@link LlmDialect#detect(JsonEnvelope)} across every dialect registered via
  * {@link LlmDialectFactorySpi}.
  * <p>
  * A configured fixed dialect name bypasses detection entirely, including when the name matches no registered
@@ -58,7 +58,7 @@ public final class LlmDialectResolver
     }
 
     public LlmDialect resolve(
-        ModelEnvelope headers)
+        JsonEnvelope headers)
     {
         return dialectFixed ? fixedDialect : detect(headers);
     }
@@ -70,7 +70,7 @@ public final class LlmDialectResolver
     }
 
     private LlmDialect detect(
-        ModelEnvelope headers)
+        JsonEnvelope headers)
     {
         LlmDialect matched = null;
         boolean ambiguous = false;

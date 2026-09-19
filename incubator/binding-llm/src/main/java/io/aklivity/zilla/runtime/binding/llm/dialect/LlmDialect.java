@@ -14,9 +14,11 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.dialect;
 
+import jakarta.json.JsonObject;
+
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
-import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
-import io.aklivity.zilla.runtime.engine.model.ModelTransform;
+import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
+import io.aklivity.zilla.runtime.common.json.JsonTransform;
 
 /**
  * A pluggable native wire format for an LLM API -- request/response framing and payload shape -- mapped to
@@ -40,7 +42,7 @@ public interface LlmDialect
 
     /**
      * Returns this dialect's name, used to select it explicitly (e.g. via configuration) independent of
-     * {@link #detect(ModelEnvelope)}.
+     * {@link #detect(JsonEnvelope)}.
      *
      * @return the dialect name
      */
@@ -59,11 +61,11 @@ public interface LlmDialect
      * @return {@code true} if this dialect matches
      */
     boolean detect(
-        ModelEnvelope headers);
+        JsonEnvelope headers);
 
     /**
      * Returns the name of the request header this dialect's API carries client credentials in, read from
-     * a request's {@link ModelEnvelope} to extract credentials for an {@code options.authorization} guard
+     * a request's {@link JsonEnvelope} to extract credentials for an {@code options.authorization} guard
      * check on a {@code kind: server} binding -- e.g. {@code authorization} for a dialect that follows the
      * bearer-token convention, {@code x-api-key} for one that expects a raw API key of its own.
      * <p>
@@ -91,10 +93,10 @@ public interface LlmDialect
     }
 
     /**
-     * Creates a new {@link ModelTransform} decoding one stream's native {@code kind} payload into this
+     * Creates a new {@link JsonTransform} decoding one stream's native {@code kind} payload into this
      * binding's canonical representation, field by field.
      * <p>
-     * {@code envelope} is the same per-stream metadata channel {@link #detect(ModelEnvelope)} reads request
+     * {@code envelope} is the same per-stream metadata channel {@link #detect(JsonEnvelope)} reads request
      * headers from. A decoder may also write to it -- e.g. extracting a model name or a streaming flag from
      * a field into a named entry, mirroring how a Kafka cache model's {@code extractKey}/{@code
      * extractHeaders} transform observes a field and copies its value into an envelope while it flows
@@ -106,52 +108,61 @@ public interface LlmDialect
      * @param envelope  the per-stream metadata channel
      * @return a new decoding transform
      */
-    ModelTransform supplyDecoder(
+    JsonTransform supplyDecoder(
         Kind kind,
-        ModelEnvelope envelope);
+        JsonEnvelope envelope);
 
     /**
-     * Creates a new {@link ModelTransform} that validates one stream's native {@code kind} payload against
-     * this dialect's own schema -- the same schema mechanism {@link LlmDialectFactorySpi#schema(Kind)}
-     * registers for {@link #supplyDecoder(Kind, ModelEnvelope)} -- without any canonical rewriting: every
-     * field passes through unchanged.
+     * Creates a new {@link JsonTransform} that observes one stream's native {@code kind} payload -- e.g.
+     * extracting {@code model} -- without any canonical rewriting: every field passes through unchanged.
      * <p>
      * A binding with no target dialect to bridge toward (e.g. a {@code kind: server} accepting a native
      * request it only needs to detect, validate, and forward byte-for-byte to its own application-facing
-     * side) uses this instead of {@link #supplyDecoder(Kind, ModelEnvelope)}: canonical rewriting is
+     * side) uses this instead of {@link #supplyDecoder(Kind, JsonEnvelope)}: canonical rewriting is
      * meaningful only when bridging between two different dialects, which is a {@code kind: client}
      * binding's job alone.
      * </p>
      * <p>
-     * {@code envelope} is the same per-stream metadata channel {@link #detect(ModelEnvelope)} reads from. A
+     * {@code envelope} is the same per-stream metadata channel {@link #detect(JsonEnvelope)} reads from. A
      * validator may still extract a signal (e.g. {@code model}) into it as the payload streams through,
-     * exactly as {@link #supplyDecoder(Kind, ModelEnvelope)} does, but performs no field substitution.
+     * exactly as {@link #supplyDecoder(Kind, JsonEnvelope)} does, but performs no field substitution.
      * </p>
      *
      * @param kind      the request or response direction
      * @param envelope  the per-stream metadata channel
      * @return a new validating transform
      */
-    ModelTransform supplyValidator(
+    JsonTransform supplyValidator(
         Kind kind,
-        ModelEnvelope envelope);
+        JsonEnvelope envelope);
 
     /**
-     * Creates a new {@link ModelTransform} encoding one stream's canonical {@code kind} payload into this
+     * Creates a new {@link JsonTransform} encoding one stream's canonical {@code kind} payload into this
      * dialect's native representation, field by field.
      *
      * @param kind      the request or response direction
      * @param envelope  the per-stream metadata channel
      * @return a new encoding transform
      */
-    ModelTransform supplyEncoder(
+    JsonTransform supplyEncoder(
         Kind kind,
-        ModelEnvelope envelope);
+        JsonEnvelope envelope);
+
+    /**
+     * Returns a {@link JsonTransform} validating one stream's native {@code kind} payload against this
+     * dialect's own JSON schema, compiled once from this dialect's bundled schema resource, forwarding
+     * every event unchanged.
+     *
+     * @param kind  the request or response direction
+     * @return a schema-validating transform
+     */
+    JsonTransform supplySchemaValidator(
+        Kind kind);
 
     /**
      * Returns the literal byte sequence this dialect's {@code kind} stream uses to signal completion out
      * of band from any document -- e.g. OpenAI's response stream ends with the SSE data value
-     * {@code [DONE]}, which is not JSON and never reaches a {@link #supplyDecoder(Kind, ModelEnvelope)}
+     * {@code [DONE]}, which is not JSON and never reaches a {@link #supplyDecoder(Kind, JsonEnvelope)}
      * transform -- or {@code null} when this dialect's {@code kind} stream has no such terminator and every
      * value is a document.
      *
@@ -160,4 +171,27 @@ public interface LlmDialect
      */
     DirectBufferEx terminator(
         Kind kind);
+
+    /**
+     * Translates a non-streaming response's whole native JSON document into the canonical non-streaming
+     * shape: {@code id}/{@code model} (both nullable, omitted when absent), {@code role}, a {@code content}
+     * array of {@code {"type":"text","text":...}} and {@code {"type":"tool_call","toolId":...,
+     * "toolName":...,"arguments":...}} entries, {@code finishReason} (an {@code LlmCanonicalFinishReason}
+     * name), and a {@code usage} object with {@code inputTokens}/{@code outputTokens} (-1 when absent).
+     *
+     * @param data  the native response document
+     * @return the canonical non-streaming document
+     */
+    JsonObject decodeMessage(
+        String data);
+
+    /**
+     * Translates the canonical non-streaming document {@link #decodeMessage} produces into this dialect's
+     * native non-streaming response document.
+     *
+     * @param message  the canonical non-streaming document
+     * @return the native response document
+     */
+    String encodeMessage(
+        JsonObject message);
 }

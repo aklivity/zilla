@@ -15,7 +15,6 @@
 module io.aklivity.zilla.runtime.binding.llm
 {
     requires io.aklivity.zilla.config.binding.llm;
-    requires io.aklivity.zilla.config.model.json;
     requires transitive io.aklivity.zilla.runtime.engine;
     requires io.aklivity.zilla.runtime.common.json;
     requires io.aklivity.zilla.runtime.common.agrona;

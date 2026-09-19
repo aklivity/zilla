@@ -14,13 +14,12 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.dialect;
 
-import io.aklivity.zilla.runtime.engine.model.ModelController;
-import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
-import io.aklivity.zilla.runtime.engine.model.ModelEvent;
-import io.aklivity.zilla.runtime.engine.model.ModelSink;
-import io.aklivity.zilla.runtime.engine.model.ModelSource;
-import io.aklivity.zilla.runtime.engine.model.ModelStatus;
-import io.aklivity.zilla.runtime.engine.model.ModelTransform;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
+import io.aklivity.zilla.runtime.common.json.JsonEvent;
+import io.aklivity.zilla.runtime.common.json.JsonSource;
 
 /**
  * Renames the top-level members of an Anthropic Messages API request between Anthropic's native
@@ -35,85 +34,50 @@ import io.aklivity.zilla.runtime.engine.model.ModelTransform;
  * canonical synonym yet, so it -- and every nested value, at any depth -- is forwarded unchanged.
  * {@code top_k} has no OpenAI equivalent to align a canonical name with, and {@code stop_sequences} mirrors
  * OpenAI's own {@code stop}, which likewise has no canonical synonym -- both are left under their native
- * member name rather than inventing a canonical one unilaterally. Matching a field's full path against this
- * table's top-level-only entries (e.g. {@code $.max_tokens}) naturally scopes the rename to a direct member
- * of the request object; a same-named field nested inside {@code messages} or {@code tools} has a different,
- * non-matching path and is never touched.
+ * member name rather than inventing a canonical one unilaterally. Only a top-level (depth-1) SCALAR member is
+ * ever offered to the rename table -- a same-named field nested inside {@code messages} or {@code tools}, or
+ * a top-level member whose own value is an object/array, is never touched; see
+ * {@link LlmRequestFieldTransform} for the depth-1-scalar-only interception mechanism.
  * </p>
  * <p>
  * Alongside the rename/forward decision, {@code model} is observed and copied into the supplied
- * {@link ModelEnvelope} under the same name -- mirroring how a Kafka cache model's {@code extractKey}/
+ * {@link JsonEnvelope} under the same name -- mirroring how a Kafka cache model's {@code extractKey}/
  * {@code extractHeaders} transform observes a field and copies its value into an envelope while it flows
  * through unchanged -- so a caller (e.g. stamping {@code LlmBeginEx.model}) reads it back off the envelope
  * without buffering the whole request first just to peek at one field.
  * </p>
  * <p>
- * {@link LlmOpenaiSubstitutedSource} is reused here despite its name -- it is a generic {@code path}/
- * {@code value} substitution {@link ModelSource} with no OpenAI-specific behavior, so forking a byte-identical
- * copy under this dialect's own name would add duplication with no behavioral difference.
- * </p>
- * <p>
  * One instance decodes (native to canonical) or encodes (canonical to native) depending on the direction
  * supplied at construction; a fresh instance backs each
- * {@link LlmDialect#supplyDecoder(LlmDialect.Kind, io.aklivity.zilla.runtime.engine.model.ModelEnvelope)}/
- * {@link LlmDialect#supplyEncoder(LlmDialect.Kind, io.aklivity.zilla.runtime.engine.model.ModelEnvelope)}
- * call.
+ * {@link LlmDialect#supplyDecoder(LlmDialect.Kind, JsonEnvelope)}/
+ * {@link LlmDialect#supplyEncoder(LlmDialect.Kind, JsonEnvelope)} call.
  * </p>
  */
-final class LlmAnthropicRequestTransform implements ModelTransform
+final class LlmAnthropicRequestTransform extends LlmRequestFieldTransform
 {
     private static final String[][] RENAMES =
     {
-        { "$.max_tokens", "$.maxOutputTokens" },
-        { "$.top_p", "$.topP" },
-        { "$.tool_choice", "$.toolChoice" },
+        { "max_tokens", "maxOutputTokens" },
+        { "top_p", "topP" },
+        { "tool_choice", "toolChoice" },
     };
 
-    private static final String MODEL_PATH = "$.model";
     private static final String MODEL_NAME = "model";
 
     private final boolean toCanonical;
-    private final ModelEnvelope envelope;
-    private final LlmOpenaiSubstitutedSource renamed;
+    private final JsonEnvelope envelope;
 
     LlmAnthropicRequestTransform(
         boolean toCanonical,
-        ModelEnvelope envelope)
+        JsonEnvelope envelope)
     {
         this.toCanonical = toCanonical;
         this.envelope = envelope;
-        this.renamed = new LlmOpenaiSubstitutedSource();
     }
 
     @Override
-    public ModelStatus transform(
-        ModelController control,
-        ModelSource source,
-        ModelEvent event,
-        ModelSink sink)
-    {
-        final ModelStatus status;
-        if (event == ModelEvent.FIELD || event == ModelEvent.REPLACED)
-        {
-            if (MODEL_PATH.equals(source.getPath()))
-            {
-                envelope.set(MODEL_NAME, source.getValue());
-            }
-
-            final String toPath = rename(source.getPath());
-            status = toPath != null
-                ? sink.transform(control, renamed.wrap(toPath, source.getValue()), ModelEvent.REPLACED)
-                : sink.transform(control, source, event);
-        }
-        else
-        {
-            status = sink.transform(control, source, event);
-        }
-        return status;
-    }
-
-    private String rename(
-        String path)
+    protected String rename(
+        CharSequence key)
     {
         final int from = toCanonical ? 0 : 1;
         final int to = toCanonical ? 1 : 0;
@@ -121,12 +85,42 @@ final class LlmAnthropicRequestTransform implements ModelTransform
         String match = null;
         for (String[] pair : RENAMES)
         {
-            if (pair[from].equals(path))
+            if (contentEquals(key, pair[from]))
             {
                 match = pair[to];
                 break;
             }
         }
         return match;
+    }
+
+    @Override
+    protected void onValue(
+        CharSequence key,
+        JsonSource source,
+        JsonEvent event)
+    {
+        if (contentEquals(key, MODEL_NAME) && event == JsonEvent.VALUE_STRING)
+        {
+            envelope.set(MODEL_NAME, new UnsafeBufferEx(source.getString().getBytes(UTF_8)));
+        }
+    }
+
+    @Override
+    public boolean identity()
+    {
+        return false;
+    }
+
+    private static boolean contentEquals(
+        CharSequence key,
+        String name)
+    {
+        boolean matches = key.length() == name.length();
+        for (int i = 0; matches && i < name.length(); i++)
+        {
+            matches = key.charAt(i) == name.charAt(i);
+        }
+        return matches;
     }
 }

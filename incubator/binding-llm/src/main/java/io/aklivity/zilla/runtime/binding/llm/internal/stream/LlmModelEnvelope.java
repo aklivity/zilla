@@ -21,13 +21,13 @@ import java.util.Map;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
-import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
+import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
 
 // Per-stream metadata channel: seeded from the inbound request's :method / :path pseudo-headers and its
-// ordinary headers (LlmDialect.detect(ModelEnvelope) reads these), then read from and written to as the
+// ordinary headers (LlmDialect.detect(JsonEnvelope) reads these), then read from and written to as the
 // dialect's own decode transform observes fields (e.g. extracting a "model" entry) while the request body
-// streams through the model pipeline.
-final class LlmModelEnvelope implements ModelEnvelope
+// streams through the json pipeline.
+final class LlmModelEnvelope implements JsonEnvelope
 {
     private final Map<String, List<DirectBufferEx>> valuesByName;
 
