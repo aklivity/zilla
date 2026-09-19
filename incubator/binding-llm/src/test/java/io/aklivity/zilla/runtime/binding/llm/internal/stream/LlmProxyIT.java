@@ -49,7 +49,7 @@ public class LlmProxyIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("proxy.routes.yaml")
+    @Configuration("proxy.yaml")
     @Specification({
         "${net}/proxy.route.by.model.a/client",
         "${app}/proxy.route.by.model.a/server"})
@@ -59,7 +59,7 @@ public class LlmProxyIT
     }
 
     @Test
-    @Configuration("proxy.routes.yaml")
+    @Configuration("proxy.yaml")
     @Specification({
         "${net}/proxy.route.by.model.b/client",
         "${app}/proxy.route.by.model.b/server"})
@@ -69,7 +69,7 @@ public class LlmProxyIT
     }
 
     @Test
-    @Configuration("proxy.routes.yaml")
+    @Configuration("proxy.yaml")
     @Specification({
         "${net}/proxy.route.unmatched/client"})
     public void shouldRejectRequestWithUnmatchedModel() throws Exception
@@ -78,7 +78,7 @@ public class LlmProxyIT
     }
 
     @Test
-    @Configuration("proxy.routes.yaml")
+    @Configuration("proxy.yaml")
     @Specification({
         "${net}/proxy.route.openai.10k/client",
         "${app}/openai.10k/server"})
@@ -88,7 +88,7 @@ public class LlmProxyIT
     }
 
     @Test
-    @Configuration("proxy.routes.yaml")
+    @Configuration("proxy.yaml")
     @Specification({
         "${net}/proxy.route.anthropic.10k/client",
         "${app}/anthropic.10k/server"})
@@ -99,7 +99,7 @@ public class LlmProxyIT
     }
 
     @Test
-    @Configuration("proxy.routes.yaml")
+    @Configuration("proxy.yaml")
     @Specification({
         "${net}/proxy.route.openai.100k/client",
         "${app}/openai.100k/server"})
@@ -110,7 +110,7 @@ public class LlmProxyIT
     }
 
     @Test
-    @Configuration("proxy.routes.yaml")
+    @Configuration("proxy.yaml")
     @Specification({
         "${net}/proxy.route.anthropic.100k/client",
         "${app}/anthropic.100k/server"})
