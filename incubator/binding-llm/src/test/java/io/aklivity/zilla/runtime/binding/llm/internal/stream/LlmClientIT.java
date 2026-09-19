@@ -48,11 +48,11 @@ public class LlmClientIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("client.opaque.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
-        "${app}/opaque.fallback/client",
-        "${net}/opaque.fallback/server"})
-    public void shouldForwardClientOpaqueFallback() throws Exception
+        "${app}/response.rejected.contenttype/client",
+        "${net}/response.rejected.contenttype/server"})
+    public void shouldRejectResponseWithUnrecognizedContentType() throws Exception
     {
         k3po.finish();
     }
@@ -164,9 +164,9 @@ public class LlmClientIT
     @Test
     @Configuration("client.openai.guarded.yaml")
     @Specification({
-        "${app}/openai.request.guarded/client",
-        "${net}/openai.request.guarded.forwarded/server"})
-    public void shouldForwardOpenaiRequestWithForwardedCredentials() throws Exception
+        "${app}/openai.request.authorized/client",
+        "${net}/openai.request.authorized/server"})
+    public void shouldForwardOpenaiRequestWithAuthorizedCredentials() throws Exception
     {
         k3po.finish();
     }
@@ -174,9 +174,9 @@ public class LlmClientIT
     @Test
     @Configuration("client.anthropic.guarded.yaml")
     @Specification({
-        "${app}/anthropic.request.guarded/client",
-        "${net}/anthropic.request.guarded.forwarded/server"})
-    public void shouldForwardAnthropicRequestWithForwardedCredentials() throws Exception
+        "${app}/anthropic.request.authorized/client",
+        "${net}/anthropic.request.authorized/server"})
+    public void shouldForwardAnthropicRequestWithAuthorizedCredentials() throws Exception
     {
         k3po.finish();
     }

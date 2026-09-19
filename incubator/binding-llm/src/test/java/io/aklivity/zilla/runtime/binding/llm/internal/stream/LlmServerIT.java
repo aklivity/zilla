@@ -181,9 +181,9 @@ public class LlmServerIT
     @Test
     @Configuration("server.guarded.yaml")
     @Specification({
-        "${net}/openai.request.guarded/client",
-        "${app}/openai.request.guarded.forwarded/server"})
-    public void shouldForwardOpenaiRequestGuarded() throws Exception
+        "${net}/openai.request.authorized/client",
+        "${app}/openai.request.authorized/server"})
+    public void shouldForwardOpenaiRequestAuthorized() throws Exception
     {
         k3po.finish();
     }
@@ -191,9 +191,9 @@ public class LlmServerIT
     @Test
     @Configuration("server.guarded.yaml")
     @Specification({
-        "${net}/anthropic.request.guarded/client",
-        "${app}/anthropic.request.guarded.forwarded/server"})
-    public void shouldForwardAnthropicRequestGuarded() throws Exception
+        "${net}/anthropic.request.authorized/client",
+        "${app}/anthropic.request.authorized/server"})
+    public void shouldForwardAnthropicRequestAuthorized() throws Exception
     {
         k3po.finish();
     }

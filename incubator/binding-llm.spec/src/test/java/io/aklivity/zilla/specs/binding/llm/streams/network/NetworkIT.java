@@ -56,9 +56,9 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/opaque.fallback/client",
-        "${net}/opaque.fallback/server"})
-    public void shouldForwardClientOpaqueFallback() throws Exception
+        "${net}/response.rejected.contenttype/client",
+        "${net}/response.rejected.contenttype/server"})
+    public void shouldEncodeResponseWithUnrecognizedContentType() throws Exception
     {
         k3po.finish();
     }
@@ -144,23 +144,10 @@ public class NetworkIT
         k3po.finish();
     }
 
-    @Test
-    @Specification({
-        "${net}/openai.request.guarded/client",
-        "${net}/openai.request.guarded/server"})
-    public void shouldEncodeOpenaiRequestGuarded() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/anthropic.request.guarded/client",
-        "${net}/anthropic.request.guarded/server"})
-    public void shouldEncodeAnthropicRequestGuarded() throws Exception
-    {
-        k3po.finish();
-    }
+    // network/openai.request.authorized and network/anthropic.request.authorized are exercised as two
+    // independent, cross-directory pairs -- client.rpt (an already-authenticated caller) by LlmServerIT,
+    // server.rpt (asserts the guard-resolved zilla:authorization arrived) by LlmClientIT -- not self-paired
+    // here, since a plain k3po connect never carries an authorization value the accept side would resolve.
 
     @Test
     @Specification({

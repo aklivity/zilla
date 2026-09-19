@@ -1230,6 +1230,14 @@ public final class LlmClientFactory implements LlmStreamFactory
             client.doAppBegin(traceId, authorization, client.source.name(), responseContentType);
 
             doNetWindow(traceId, authorization);
+
+            // A response content-type this dialect doesn't recognize (neither JSON nor SSE) means the
+            // upstream response cannot be interpreted at all -- reject rather than forward it opaquely,
+            // matching how a JSON response that fails dialect schema validation is rejected mid-stream.
+            if (decoder == null)
+            {
+                cleanupNet(traceId, authorization);
+            }
         }
 
         private String header(
@@ -1298,9 +1306,7 @@ public final class LlmClientFactory implements LlmStreamFactory
                 decodeTraceId = traceId;
                 decodeAuthorization = authorization;
 
-                progress = decoder != null
-                    ? decodeContent(buffer, offset, limit, window)
-                    : forwardOpaque(traceId, authorization, buffer, offset, limit, window);
+                progress = decodeContent(buffer, offset, limit, window);
             }
 
             if (progress < limit)
@@ -1425,24 +1431,6 @@ public final class LlmClientFactory implements LlmStreamFactory
             }
 
             return progress;
-        }
-
-        private int forwardOpaque(
-            long traceId,
-            long authorization,
-            DirectBufferEx buffer,
-            int offset,
-            int limit,
-            int window)
-        {
-            final int forwardable = Math.min(limit - offset, window);
-
-            if (forwardable > 0)
-            {
-                client.doAppData(traceId, authorization, null, true, buffer, offset, forwardable);
-            }
-
-            return offset + forwardable;
         }
 
         @Override

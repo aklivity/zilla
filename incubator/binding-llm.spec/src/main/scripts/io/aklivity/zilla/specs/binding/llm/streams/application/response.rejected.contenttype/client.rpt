@@ -20,24 +20,12 @@ connect "zilla://streams/app0"
 write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
                            .dialect("openai")
-                           .contentType("application/octet-stream")
                            .build()}
 
 connected
 
-write "this is an opaque request payload"
+write "{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}],\"stream\":false}"
+
 write close
 
-read zilla:begin.ext ${llm:matchBeginEx()
-                           .typeId(zilla:id("llm"))
-                           .dialect("openai")
-                           .contentType("application/octet-stream")
-                           .build()}
-
-read zilla:data.ext ${llm:matchDataEx()
-                          .typeId(zilla:id("llm"))
-                          .typeNull()
-                          .build()}
-read "this is an opaque response payload"
-
-read closed
+read aborted

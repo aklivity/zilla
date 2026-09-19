@@ -38,9 +38,9 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/opaque.fallback/client",
-        "${app}/opaque.fallback/server"})
-    public void shouldForwardClientOpaqueFallback() throws Exception
+        "${app}/response.rejected.contenttype/client",
+        "${app}/response.rejected.contenttype/server"})
+    public void shouldAbortResponseWithUnrecognizedContentType() throws Exception
     {
         k3po.finish();
     }
@@ -119,36 +119,18 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/openai.request.guarded/client",
-        "${app}/openai.request.guarded/server"})
-    public void shouldForwardOpenaiRequestGuarded() throws Exception
+        "${app}/openai.request.authorized/client",
+        "${app}/openai.request.authorized/server"})
+    public void shouldForwardOpenaiRequestAuthorized() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${app}/anthropic.request.guarded/client",
-        "${app}/anthropic.request.guarded/server"})
-    public void shouldForwardAnthropicRequestGuarded() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/openai.request.guarded.forwarded/client",
-        "${app}/openai.request.guarded.forwarded/server"})
-    public void shouldForwardOpenaiRequestGuardedFromServer() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/anthropic.request.guarded.forwarded/client",
-        "${app}/anthropic.request.guarded.forwarded/server"})
-    public void shouldForwardAnthropicRequestGuardedFromServer() throws Exception
+        "${app}/anthropic.request.authorized/client",
+        "${app}/anthropic.request.authorized/server"})
+    public void shouldForwardAnthropicRequestAuthorized() throws Exception
     {
         k3po.finish();
     }
