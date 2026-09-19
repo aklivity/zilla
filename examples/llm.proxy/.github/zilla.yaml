@@ -1,4 +1,8 @@
 ---
+# CI-only: identical topology to ../etc/zilla.yaml, but every south_llm_client_*
+# targets a local mock instead of the real OpenAI/Anthropic API, so this example
+# is verifiable without real API keys or network access to either provider.
+# Loaded in place of ../etc/zilla.yaml by compose.mock.yaml (see .env.test).
 name: example
 guards:
   api_key:
@@ -48,7 +52,7 @@ bindings:
 
   # Shared by both frontends: routes purely on LlmBeginEx.dialect/model, never on
   # request content. The dialect-only routes (last, catch-all for their dialect)
-  # preserve today's cross-dialect translation demo unconditionally; the
+  # preserve the cross-dialect translation demo unconditionally; the
   # dialect+model routes ahead of them pick off two specific models and send
   # them, same-dialect, to a second same-dialect deployment instead -- the
   # intra-dialect failover/multi-backend routing this binding kind exists for.
@@ -71,21 +75,12 @@ bindings:
           - dialect: anthropic
         exit: south_llm_client_openai
 
-  # Every south_llm_client_* below targets the real OpenAI/Anthropic API
-  # directly over TLS -- see README.md's "Credential pass-through" section:
-  # options.authorization templates the *caller's own* credential rather than
-  # configuring one of Zilla's own, so no API key is ever written here. The
-  # secondary deployments point at the same real API as their primary -- this
-  # example has only one real backend per dialect to demonstrate the
-  # model-based routing against, unlike CI's mocks, which use a distinct
-  # secondary instance specifically to prove which backend answered (see
-  # .github/zilla.yaml).
   south_llm_client_anthropic:
     type: llm
     kind: client
     options:
       dialect: anthropic
-      server: api.anthropic.com:443
+      server: mock-anthropic:4102
       authorization:
         api_key:
           credentials: "{credentials}"
@@ -93,29 +88,20 @@ bindings:
   south_http_client_anthropic:
     type: http
     kind: client
-    exit: south_tls_client_anthropic
-  south_tls_client_anthropic:
-    type: tls
-    kind: client
-    vault: south_clients
-    options:
-      trustcacerts: true
-      sni:
-        - api.anthropic.com
     exit: south_tcp_client_anthropic
   south_tcp_client_anthropic:
     type: tcp
     kind: client
     options:
-      host: api.anthropic.com
-      port: 443
+      host: mock-anthropic
+      port: 4102
 
   south_llm_client_openai:
     type: llm
     kind: client
     options:
       dialect: openai
-      server: api.openai.com:443
+      server: mock-openai:4101
       authorization:
         api_key:
           credentials: "Bearer {credentials}"
@@ -123,32 +109,23 @@ bindings:
   south_http_client_openai:
     type: http
     kind: client
-    exit: south_tls_client_openai
-  south_tls_client_openai:
-    type: tls
-    kind: client
-    vault: south_clients
-    options:
-      trustcacerts: true
-      sni:
-        - api.openai.com
     exit: south_tcp_client_openai
   south_tcp_client_openai:
     type: tcp
     kind: client
     options:
-      host: api.openai.com
-      port: 443
+      host: mock-openai
+      port: 4101
 
   # Second same-dialect (openai) deployment: north_llm_proxy routes gpt-4o here
-  # instead of translating to Anthropic -- no dialect translation happens on
-  # this leg at all, same dialect in as out.
+  # instead of translating to mock-anthropic -- no dialect translation happens
+  # on this leg at all, same dialect in as out.
   south_llm_client_openai_secondary:
     type: llm
     kind: client
     options:
       dialect: openai
-      server: api.openai.com:443
+      server: mock-openai-secondary:4103
       authorization:
         api_key:
           credentials: "Bearer {credentials}"
@@ -156,31 +133,22 @@ bindings:
   south_http_client_openai_secondary:
     type: http
     kind: client
-    exit: south_tls_client_openai_secondary
-  south_tls_client_openai_secondary:
-    type: tls
-    kind: client
-    vault: south_clients
-    options:
-      trustcacerts: true
-      sni:
-        - api.openai.com
     exit: south_tcp_client_openai_secondary
   south_tcp_client_openai_secondary:
     type: tcp
     kind: client
     options:
-      host: api.openai.com
-      port: 443
+      host: mock-openai-secondary
+      port: 4103
 
   # Second same-dialect (anthropic) deployment: north_llm_proxy routes
-  # claude-3-5-haiku-20241022 here instead of translating to OpenAI.
+  # claude-3-5-haiku-20241022 here instead of translating to mock-openai.
   south_llm_client_anthropic_secondary:
     type: llm
     kind: client
     options:
       dialect: anthropic
-      server: api.anthropic.com:443
+      server: mock-anthropic-secondary:4104
       authorization:
         api_key:
           credentials: "{credentials}"
@@ -188,24 +156,10 @@ bindings:
   south_http_client_anthropic_secondary:
     type: http
     kind: client
-    exit: south_tls_client_anthropic_secondary
-  south_tls_client_anthropic_secondary:
-    type: tls
-    kind: client
-    vault: south_clients
-    options:
-      trustcacerts: true
-      sni:
-        - api.anthropic.com
     exit: south_tcp_client_anthropic_secondary
   south_tcp_client_anthropic_secondary:
     type: tcp
     kind: client
     options:
-      host: api.anthropic.com
-      port: 443
-
-vaults:
-  south_clients:
-    type: filesystem
-    options: {}
+      host: mock-anthropic-secondary
+      port: 4104

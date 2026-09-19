@@ -28,10 +28,10 @@ own `http(client)` → `tcp(client)`, purely from the stream's `dialect`/`model`
 
 | Inbound dialect | Model | Routed to | Same dialect? |
 | --- | --- | --- | --- |
-| `openai` | `gpt-4o` | `south_llm_client_openai_secondary` → `mock-openai-secondary:4103` | yes -- no translation |
-| `anthropic` | `claude-3-5-haiku-20241022` | `south_llm_client_anthropic_secondary` → `mock-anthropic-secondary:4104` | yes -- no translation |
-| `openai` | *(anything else, e.g. `gpt-4`)* | `south_llm_client_anthropic` → `mock-anthropic:4102` | no -- translated |
-| `anthropic` | *(anything else, e.g. `claude-3-opus-20240229`)* | `south_llm_client_openai` → `mock-openai:4101` | no -- translated |
+| `openai` | `gpt-4o` | `south_llm_client_openai_secondary` → OpenAI's Chat Completions API (`mock-openai-secondary` in CI) | yes -- no translation |
+| `anthropic` | `claude-3-5-haiku-20241022` | `south_llm_client_anthropic_secondary` → Anthropic's Messages API (`mock-anthropic-secondary` in CI) | yes -- no translation |
+| `openai` | *(anything else, e.g. `gpt-4`)* | `south_llm_client_anthropic` → Anthropic's Messages API (`mock-anthropic` in CI) | no -- translated |
+| `anthropic` | *(anything else, e.g. `claude-3-opus-20240229`)* | `south_llm_client_openai` → OpenAI's Chat Completions API (`mock-openai` in CI) | no -- translated |
 
 The `llm` binding sits on top of `http`, the same way `mcp` does in
 `examples/mcp.proxy` -- `http(server)`/`http(client)` do the wire-level
@@ -43,10 +43,10 @@ decoded request/response (or, for the proxy, on the stream's own metadata).
 | `llm` | `server` (`north_llm_server_openai`) | Terminates OpenAI-dialect `/v1/chat/completions` requests on port 7161 |
 | `llm` | `server` (`north_llm_server_anthropic`) | Terminates Anthropic-dialect `/v1/messages` requests on port 7162 |
 | `llm` | `proxy` (`north_llm_proxy`) | Routes on `dialect`/`model` to one of the four `llm(client)` legs below |
-| `llm` | `client` (`south_llm_client_anthropic`) | Default exit for openai-dialect traffic: re-encodes for `mock-anthropic`'s Messages API and translates its response back |
-| `llm` | `client` (`south_llm_client_openai`) | Default exit for anthropic-dialect traffic: re-encodes for `mock-openai`'s Chat Completions API and translates its response back |
-| `llm` | `client` (`south_llm_client_openai_secondary`) | `model: gpt-4o` exit: same dialect (openai) as the request, no translation, straight to `mock-openai-secondary` |
-| `llm` | `client` (`south_llm_client_anthropic_secondary`) | `model: claude-3-5-haiku-20241022` exit: same dialect (anthropic) as the request, no translation, straight to `mock-anthropic-secondary` |
+| `llm` | `client` (`south_llm_client_anthropic`) | Default exit for openai-dialect traffic: re-encodes for Anthropic's Messages API and translates its response back |
+| `llm` | `client` (`south_llm_client_openai`) | Default exit for anthropic-dialect traffic: re-encodes for OpenAI's Chat Completions API and translates its response back |
+| `llm` | `client` (`south_llm_client_openai_secondary`) | `model: gpt-4o` exit: same dialect (openai) as the request, no translation, straight to the second OpenAI deployment |
+| `llm` | `client` (`south_llm_client_anthropic_secondary`) | `model: claude-3-5-haiku-20241022` exit: same dialect (anthropic) as the request, no translation, straight to the second Anthropic deployment |
 
 Each cross-dialect direction also demonstrates a tool-call round trip: a
 request carrying an OpenAI `tools` definition gets an OpenAI `tool_calls`
@@ -111,12 +111,17 @@ bindings:
     kind: client
     options:
       dialect: anthropic
-      server: mock-anthropic:4102
+      server: api.anthropic.com:443
       authorization:
         api_key:
           credentials: "{credentials}"
     exit: south_http_client_anthropic
 ```
+
+(`south_http_client_anthropic` then exits through a `tls(client)` to reach
+`api.anthropic.com:443` -- see `etc/zilla.yaml` for the full chain; elided
+here since this section is about the credential template, not the network
+path.)
 
 The `api_key` guard doesn't validate anything -- it accepts whatever
 token a caller presents and hands it back unchanged when asked. On the
@@ -130,9 +135,17 @@ or the secondary, model-routed ones. The reverse route mirrors this: an
 inbound `x-api-key` is captured with the `"{credentials}"` template and
 forwarded upstream as `Authorization: Bearer {credentials}`.
 
+`etc/zilla.yaml` targets the **real** OpenAI and Anthropic APIs directly over
+TLS by default -- see [Testing against mocks instead](#testing-against-mocks-instead)
+for the CI/local setup that swaps in mock backends so the example is
+runnable without real API keys.
+
 ## Requirements
 
 - docker compose
+- a real OpenAI API key and/or a real Anthropic API key, to actually see a
+  live response -- the containers start and the routing works without one,
+  but the upstream API will reject an invalid key
 
 ## Setup
 
@@ -143,48 +156,50 @@ docker compose up -d
 ## Try it
 
 Send an OpenAI-shaped request to the openai-facing frontend; the reply comes
-back openai-shaped even though the real upstream (`mock-anthropic`) only
-speaks Anthropic:
+back openai-shaped even though the real upstream (Anthropic's Messages API)
+only speaks Anthropic:
 
 ```bash
 curl -s http://localhost:7161/v1/chat/completions \
     -H 'Content-Type: application/json' \
-    -H 'Authorization: Bearer your-openai-key' \
+    -H 'Authorization: Bearer your-real-openai-key' \
     -d '{"model":"gpt-4","messages":[{"role":"user","content":"Hello"}]}'
 ```
 
 Ask for `gpt-4o` instead, and `north_llm_proxy` routes it to the second
-openai-dialect deployment (`mock-openai-secondary`) rather than translating
-it to Anthropic:
+openai-dialect deployment rather than translating it to Anthropic (both
+deployments target the same real OpenAI API in this example -- see
+`south_llm_client_openai_secondary` in `etc/zilla.yaml` -- but a real
+multi-backend setup would point this at a distinct second deployment):
 
 ```bash
 curl -s http://localhost:7161/v1/chat/completions \
     -H 'Content-Type: application/json' \
-    -H 'Authorization: Bearer your-openai-key' \
+    -H 'Authorization: Bearer your-real-openai-key' \
     -d '{"model":"gpt-4o","messages":[{"role":"user","content":"Hello"}]}'
 ```
 
 Send an Anthropic-shaped request to the anthropic-facing frontend; the reply
-comes back anthropic-shaped even though the real upstream (`mock-openai`)
-only speaks OpenAI:
+comes back anthropic-shaped even though the real upstream (OpenAI's Chat
+Completions API) only speaks OpenAI:
 
 ```bash
 curl -s http://localhost:7162/v1/messages \
     -H 'Content-Type: application/json' \
     -H 'anthropic-version: 2023-06-01' \
-    -H 'x-api-key: your-anthropic-key' \
+    -H 'x-api-key: your-real-anthropic-key' \
     -d '{"model":"claude-3-opus-20240229","max_tokens":1024,"messages":[{"role":"user","content":"Hello"}]}'
 ```
 
 Ask for `claude-3-5-haiku-20241022` instead, and `north_llm_proxy` routes it
-to the second anthropic-dialect deployment (`mock-anthropic-secondary`)
-rather than translating it to OpenAI:
+to the second anthropic-dialect deployment rather than translating it to
+OpenAI:
 
 ```bash
 curl -s http://localhost:7162/v1/messages \
     -H 'Content-Type: application/json' \
     -H 'anthropic-version: 2023-06-01' \
-    -H 'x-api-key: your-anthropic-key' \
+    -H 'x-api-key: your-real-anthropic-key' \
     -d '{"model":"claude-3-5-haiku-20241022","max_tokens":1024,"messages":[{"role":"user","content":"Hello"}]}'
 ```
 
@@ -192,88 +207,50 @@ Add a `tools` definition to either cross-dialect request (see
 `etc/test/verify.sh` for the full shape) to see a tool-call response
 translated across dialects too.
 
-## Verify
+## Testing against mocks instead
 
 ```bash
 ./.github/test.sh
 ```
 
-Runs the assertions in `etc/test/verify.sh` inside the compose stack: both
-translation directions, both tool-call round trips, both credential
-pass-through directions (confirmed by grepping each mock backend's own log
-for the caller's forwarded token), and both model-based routes to the
-secondary, same-dialect deployments.
+This is what CI runs, and works with no real API keys or network access to
+either provider. `docker compose --env-file .github/.env.test run --rm
+verify` merges in `.github/compose.mock.yaml` (via `.env.test`'s
+`COMPOSE_FILE`), which stands up four mock backends and points zilla at
+`.github/zilla.yaml` -- the same topology as `etc/zilla.yaml`, but every
+`south_llm_client_*` targets its own mock instead of the real API, so the two
+same-dialect deployments answer distinguishably and the model-based routing
+assertions can tell them apart. It then runs the assertions in
+`etc/test/verify.sh` inside the compose stack: both translation directions,
+both tool-call round trips, both credential pass-through directions
+(confirmed by grepping each mock backend's own log for the caller's forwarded
+token), and both model-based routes to the secondary, same-dialect
+deployments.
 
-## Using the real OpenAI/Anthropic APIs instead of the mocks
+To bring the mock-backed stack up interactively instead of just running the
+verify script:
 
-Nothing about the routing or the credential pass-through above is specific to
-the mocks -- swap any `llm(client)`'s upstream for the real thing and a
-caller's own real API key still forwards through unchanged, because
-`options.authorization` templates the caller's *own* credential rather than
-configuring one of Zilla's own.
+```bash
+docker compose --env-file .github/.env.test up -d
+```
 
-To point `south_llm_client_openai` (or `south_llm_client_openai_secondary`)
-at the real OpenAI API instead of `mock-openai`:
-
-1. Change its `options.server` from `mock-openai:4101` to
-   `api.openai.com:443`.
-2. Real endpoints need TLS; insert a `tls(client)` between the `llm(client)`
-   and the `tcp(client)`:
-
-   ```yaml
-   south_llm_client_openai:
-     type: llm
-     kind: client
-     options:
-       dialect: openai
-       server: api.openai.com:443
-       authorization:
-         api_key:
-           credentials: "Bearer {credentials}"
-     exit: south_http_client_openai
-   south_http_client_openai:
-     type: http
-     kind: client
-     exit: south_tls_client_openai
-   south_tls_client_openai:
-     type: tls
-     kind: client
-     vault: south_clients
-     options:
-       trustcacerts: true
-       sni:
-         - api.openai.com
-     exit: south_tcp_client_openai
-   south_tcp_client_openai:
-     type: tcp
-     kind: client
-     options:
-       host: api.openai.com
-       port: 443
-   vaults:
-     south_clients:
-       type: filesystem
-       options: {}
-   ```
-
-3. Call the openai-facing frontend (port 7161) with your **real** OpenAI API
-   key in the `Authorization` header, exactly as you would call OpenAI
-   directly -- `options.authorization`'s `"Bearer {credentials}"` /
-   `"{credentials}"` templates forward it upstream unchanged, so no key is
-   ever written into `zilla.yaml`.
-
-The same three steps apply to `south_llm_client_anthropic` (or
-`south_llm_client_anthropic_secondary`): point `options.server` at
-`api.anthropic.com:443`, insert an equivalent `tls(client)`/`vault` pair with
-`sni: [api.anthropic.com]`, and call port 7162 with a real `x-api-key`.
-
-See the [TLS binding reference](https://docs.aklivity.io/zilla/latest/reference/config/bindings/tls/)
-for the full set of `tls(client)` options.
+Nothing about the routing or the credential pass-through is specific to
+either the real APIs or the mocks -- `options.authorization` templates the
+*caller's own* credential rather than configuring one of Zilla's own, so the
+same request shapes above work against either stack; only the upstream truly
+answering the request differs.
 
 ## Teardown
 
 ```bash
 docker compose down
+```
+
+If you brought up the mock-backed stack instead, tear it down with the same
+`--env-file`:
+
+```bash
+docker compose --env-file .github/.env.test down
 ```
 
 ## References
