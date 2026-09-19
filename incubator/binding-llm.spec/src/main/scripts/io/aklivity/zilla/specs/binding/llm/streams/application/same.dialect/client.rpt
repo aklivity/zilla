@@ -30,6 +30,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("message")
                           .build()}
 write "{\"text\":\"hello there\"}"
+write flush
 
 write close
 

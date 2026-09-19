@@ -40,10 +40,12 @@ write zilla:begin.ext ${llm:beginEx()
                            .dialect("test-client-sse")
                            .contentType("text/event-stream")
                            .build()}
+write flush
 
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .build()}
 write "{\"text\":\"hi\"}"
+write flush
 
 write close

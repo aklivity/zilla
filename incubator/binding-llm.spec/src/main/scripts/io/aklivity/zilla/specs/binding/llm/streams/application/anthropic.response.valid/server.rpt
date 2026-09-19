@@ -35,11 +35,13 @@ write zilla:begin.ext ${llm:beginEx()
                            .dialect("test-client-sse-alt")
                            .contentType("text/event-stream")
                            .build()}
+write flush
 
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .type("content_block_delta")
                           .build()}
 write "{\"type\":\"content_block_delta\",\"delta\":{\"type\":\"text_delta\",\"text\":\"Hi\"}}"
+write flush
 
 write close

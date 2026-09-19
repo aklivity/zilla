@@ -35,59 +35,69 @@ write zilla:begin.ext ${llm:beginEx()
                            .dialect("anthropic")
                            .contentType("text/event-stream")
                            .build()}
+write flush
 
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .type("message_start")
                           .build()}
 write "{\"type\":\"message_start\",\"message\":{\"id\":\"msg_01\",\"type\":\"message\",\"role\":\"assistant\",\"model\":\"claude-3-opus-20240229\",\"content\":[],\"usage\":{\"input_tokens\":25,\"output_tokens\":1}}}"
+write flush
 
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .type("content_block_start")
                           .build()}
 write "{\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}}"
+write flush
 
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .type("content_block_delta")
                           .build()}
 write "{\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"Hello\"}}"
+write flush
 
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .type("content_block_stop")
                           .build()}
 write "{\"type\":\"content_block_stop\",\"index\":0}"
+write flush
 
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .type("content_block_start")
                           .build()}
 write "{\"type\":\"content_block_start\",\"index\":1,\"content_block\":{\"type\":\"tool_use\",\"id\":\"toolu_01\",\"name\":\"get_weather\",\"input\":{}}}"
+write flush
 
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .type("content_block_delta")
                           .build()}
 write "{\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"{\\\"city\\\":\"}}"
+write flush
 
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .type("content_block_stop")
                           .build()}
 write "{\"type\":\"content_block_stop\",\"index\":1}"
+write flush
 
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .type("message_delta")
                           .build()}
 write "{\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"tool_use\",\"stop_sequence\":null},\"usage\":{\"output_tokens\":15}}"
+write flush
 
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .type("message_stop")
                           .build()}
 write "{\"type\":\"message_stop\"}"
+write flush
 
 write close

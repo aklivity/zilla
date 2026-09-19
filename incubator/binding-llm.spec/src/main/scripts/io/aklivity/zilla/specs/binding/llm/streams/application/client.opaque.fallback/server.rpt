@@ -36,10 +36,12 @@ write zilla:begin.ext ${llm:beginEx()
                            .dialect("test-client")
                            .contentType("application/octet-stream")
                            .build()}
+write flush
 
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .build()}
 write "this is an opaque response payload"
+write flush
 
 write close

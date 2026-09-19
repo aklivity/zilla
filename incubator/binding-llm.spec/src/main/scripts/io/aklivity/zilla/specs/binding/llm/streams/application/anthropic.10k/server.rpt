@@ -38,6 +38,7 @@ write zilla:begin.ext ${llm:beginEx()
                            .dialect("anthropic")
                            .contentType("application/json")
                            .build()}
+write flush
 
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
@@ -45,5 +46,6 @@ write zilla:data.ext ${llm:dataEx()
 write '{"id":"msg_01","type":"message","role":"assistant","model":"claude-3-opus-20240229","content":[{"type":"text","text":"'
       ${core:randomBase64(10000)}
       '"}],"stop_reason":"end_turn","stop_sequence":null,"usage":{"input_tokens":25,"output_tokens":15}}'
+write flush
 
 write close

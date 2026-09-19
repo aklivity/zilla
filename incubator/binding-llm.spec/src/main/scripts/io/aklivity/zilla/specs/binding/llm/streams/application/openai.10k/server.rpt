@@ -38,6 +38,7 @@ write zilla:begin.ext ${llm:beginEx()
                            .dialect("openai")
                            .contentType("application/json")
                            .build()}
+write flush
 
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
@@ -45,5 +46,6 @@ write zilla:data.ext ${llm:dataEx()
 write '{"id":"chatcmpl_2","object":"chat.completion","model":"gpt-4","choices":[{"index":0,"message":{"role":"assistant","content":"'
       ${core:randomBase64(10000)}
       '"},"finish_reason":"stop"}],"usage":{"prompt_tokens":25,"completion_tokens":15,"total_tokens":40}}'
+write flush
 
 write close
