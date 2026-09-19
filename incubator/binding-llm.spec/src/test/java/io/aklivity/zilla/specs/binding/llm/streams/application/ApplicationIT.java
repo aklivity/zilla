@@ -173,6 +173,42 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/openai.streaming.10k/client",
+        "${app}/openai.streaming.10k/server"})
+    public void shouldForwardOpenaiStreaming10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.streaming.10k/client",
+        "${app}/anthropic.streaming.10k/server"})
+    public void shouldForwardAnthropicStreaming10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.streaming.100k/client",
+        "${app}/openai.streaming.100k/server"})
+    public void shouldForwardOpenaiStreaming100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.streaming.100k/client",
+        "${app}/anthropic.streaming.100k/server"})
+    public void shouldForwardAnthropicStreaming100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/openai.streaming.transformed/client",
         "${app}/openai.streaming.transformed/server"})
     public void shouldForwardOpenaiStreamingTransformed() throws Exception

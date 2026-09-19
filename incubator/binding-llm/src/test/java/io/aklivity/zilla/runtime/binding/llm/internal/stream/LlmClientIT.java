@@ -221,13 +221,43 @@ public class LlmClientIT
         k3po.finish();
     }
 
-    // openai.100k/anthropic.100k hang on the response-decode path: LlmClientFactory.decodeJsonContent() calls
-    // responsePipeline.transform() exactly once and never retries on Status.SUSPENDED, unlike the working
-    // retry loop in this same file's transformNativeStreamEvent(). Tracked for a fix; the two tests above
-    // remain red until then.
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.streaming.10k/client",
+        "${net}/openai.streaming.10k/server"})
+    public void shouldForwardOpenaiStreaming10k() throws Exception
+    {
+        k3po.finish();
+    }
 
-    // Cross-dialect request transformation for content this large hits a separate, tracked bug
-    // (aklivity/zilla#2597): the request forwards verbatim, untransformed, once content spans multiple
-    // incremental transform() calls. Add shouldTransformAnthropicToOpenai10k/shouldTransformOpenaiToAnthropic10k
-    // back once that is fixed.
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.streaming.10k/client",
+        "${net}/anthropic.streaming.10k/server"})
+    public void shouldForwardAnthropicStreaming10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.streaming.100k/client",
+        "${net}/openai.streaming.100k/server"})
+    public void shouldForwardOpenaiStreaming100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.streaming.100k/client",
+        "${net}/anthropic.streaming.100k/server"})
+    public void shouldForwardAnthropicStreaming100k() throws Exception
+    {
+        k3po.finish();
+    }
 }

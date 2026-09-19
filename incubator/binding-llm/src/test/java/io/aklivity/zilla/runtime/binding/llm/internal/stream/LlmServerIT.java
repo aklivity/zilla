@@ -153,11 +153,6 @@ public class LlmServerIT
         k3po.finish();
     }
 
-    // openai.100k/anthropic.100k hang here on the request-decode path: LlmServerFactory.decodeNetwork()
-    // treats Status.SUSPENDED the same as Status.STARVED and waits for an external retrigger that may never
-    // come, instead of retrying immediately -- see the analogous, already-correct retry loop in
-    // LlmClientFactory.transformNativeStreamEvent(). Tracked for a fix; these two remain red until then.
-
     @Test
     @Configuration("server.yaml")
     @Specification({
@@ -174,6 +169,46 @@ public class LlmServerIT
         "${net}/anthropic.100k/client",
         "${app}/anthropic.100k/server"})
     public void shouldForwardAnthropic100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.streaming.10k/client",
+        "${app}/openai.streaming.10k/server"})
+    public void shouldForwardOpenaiStreaming10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.streaming.10k/client",
+        "${app}/anthropic.streaming.10k/server"})
+    public void shouldForwardAnthropicStreaming10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.streaming.100k/client",
+        "${app}/openai.streaming.100k/server"})
+    public void shouldForwardOpenaiStreaming100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.streaming.100k/client",
+        "${app}/anthropic.streaming.100k/server"})
+    public void shouldForwardAnthropicStreaming100k() throws Exception
     {
         k3po.finish();
     }

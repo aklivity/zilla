@@ -205,6 +205,42 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/openai.streaming.10k/client",
+        "${net}/openai.streaming.10k/server"})
+    public void shouldEncodeOpenaiStreaming10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.streaming.10k/client",
+        "${net}/anthropic.streaming.10k/server"})
+    public void shouldEncodeAnthropicStreaming10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.streaming.100k/client",
+        "${net}/openai.streaming.100k/server"})
+    public void shouldEncodeOpenaiStreaming100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.streaming.100k/client",
+        "${net}/anthropic.streaming.100k/server"})
+    public void shouldEncodeAnthropicStreaming100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/openai.streaming.transformed/client",
         "${net}/openai.streaming.transformed/server"})
     public void shouldEncodeOpenaiStreamingTransformed() throws Exception

@@ -117,16 +117,6 @@ public final class LlmServerFactory implements LlmStreamFactory
         this.writeBuffer = requireNonNull(context.writeBuffer());
         this.extBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.decodePool = context.bufferPool();
-        // Wraps a distinct MutableDirectBufferEx instance internally, even though it shares the same
-        // underlying pooled memory and slot accounting as decodePool -- bufferPool.buffer(slot) rewraps a
-        // single mutable field per pool, so holding a decodePool-fetched buffer across decodeNetwork()'s
-        // direct call into LlmStream.doAppData() (which fetches from encodeSlot) never repoints it at the
-        // wrong slot's memory, the way a single shared pool handle would. See McpServerFactory's
-        // decodePool/encodePool for precedent. encodePool itself is shared by both LlmServer's reply-
-        // direction relay and LlmStream's request-direction relay: the two never appear in the same call
-        // stack -- LlmStream forwards to app0 only via the deferred, ring-buffer-mediated accept() path,
-        // never a direct Java call into LlmServer's own encodeSlot handling -- so a single encodePool
-        // instance can't alias between them.
         this.encodePool = context.bufferPool().duplicate();
         this.transformBuffer = new UnsafeBufferEx(new byte[decodePool.slotCapacity()]);
         this.copyBuffer = new UnsafeBufferEx(new byte[encodePool.slotCapacity()]);
@@ -219,9 +209,6 @@ public final class LlmServerFactory implements LlmStreamFactory
         return newStream;
     }
 
-    // No target dialect to bridge toward on this kind: server binding -- detect, schema-validate, and
-    // extract (e.g. "model"), forwarding every field unchanged, exactly mirroring how the old
-    // ModelHandler-backed pipeline chained a catalog-enforced schema underneath dialect.supplyValidator(...).
     private JsonPipeline buildRequestPipeline(
         LlmDialect dialect,
         LlmModelEnvelope envelope)
@@ -265,9 +252,6 @@ public final class LlmServerFactory implements LlmStreamFactory
         return value != null ? value.getStringWithoutLengthUtf8(0, value.capacity()) : null;
     }
 
-    // Reports the INIT/FIN flags for one slice of a larger fragment being sent across multiple frames as
-    // budget allows: INIT only carries on the first slice, FIN only on the last, matching how the original
-    // fragment's own flags would have applied had the whole thing fit in one frame.
     private static int sliceFlags(
         int flags,
         boolean first,
@@ -285,11 +269,6 @@ public final class LlmServerFactory implements LlmStreamFactory
         return sliceFlags;
     }
 
-    // Marks one physical reply frame's extent within the shared, capacity-bounded encodeSlot buffer, so
-    // several independently-flagged frames from app0 can accumulate and drain in order -- each one may
-    // itself need several slices to get past the client's own smaller window -- without losing frame
-    // boundaries or copying bytes out into a separate per-frame allocation. Mutable only in `sent`, which
-    // tracks progress made slicing *this* chunk out to the client across possibly-multiple doNetData calls.
     private static final class SlotChunk
     {
         private final int length;
@@ -314,12 +293,6 @@ public final class LlmServerFactory implements LlmStreamFactory
         }
     }
 
-    // Represents the network (accept) side of one exchange: client <-> us. Owns the request-direction
-    // decode slot (raw client bytes not yet fed to the model pipeline) and the reply-direction relay slot
-    // (bytes received from the app-facing LlmStream not yet forwarded to the client). Credit granted to
-    // the client in either direction is always computed from this class's own slot occupancy -- never
-    // copied from LlmStream's sequence numbers, which live in an entirely different, independently-sized
-    // byte domain once a model transform is involved.
     private final class LlmServer
     {
         private final MessageConsumer network;
@@ -472,14 +445,6 @@ public final class LlmServerFactory implements LlmStreamFactory
             }
         }
 
-        // Drives pipeline.transform() against whatever raw input currently sits in decodeSlot, stopping
-        // either when the slot fully drains, when the pipeline genuinely needs more input than we have
-        // (consumed == 0 -- ordinary fragmentation, unrelated to app0 backpressure, so the network window
-        // stays open), or when the app-facing LlmStream's own request slot is occupied (app0 backpressure --
-        // the network window is deliberately NOT reopened until that clears, which is what makes a second
-        // frame arriving while one is still pending structurally impossible). Called both right after
-        // appending fresh bytes in onNetData, and again once app0 backpressure clears (see onAppWindow),
-        // to resume any input left over from an earlier call.
         private void decodeNetwork(
             long traceId)
         {
@@ -656,12 +621,6 @@ public final class LlmServerFactory implements LlmStreamFactory
             }
         }
 
-        // Called by LlmStream.onAppData with app0's reply payload. app0 is credited (see doAppWindow)
-        // exactly as much room as remains free in encodeSlot, so a compliant app0 can legitimately send
-        // several independently-flagged frames before the first has fully drained toward the client --
-        // each is appended (as a SlotChunk marker over the one shared, capacity-bounded buffer) rather
-        // than assumed to be the sole occupant. Overflowing the slot's actual capacity despite that
-        // credit accounting is a genuine protocol violation, not a case to buffer around.
         private void doNetData(
             OctetsFW payload,
             int flags,
@@ -763,10 +722,6 @@ public final class LlmServerFactory implements LlmStreamFactory
                 flushingReply = false;
             }
 
-            // Credits app0 with exactly the free space remaining in encodeSlot, in the same byte units
-            // as stream's own replySeq since the reply direction is a pure byte-for-byte passthrough --
-            // never by copying the client's own acknowledge value, which lives in the client's own,
-            // entirely independent byte domain.
             if (stream != null)
             {
                 final long replyAckMax = stream.replySeq - encodeSlotOffset;
@@ -1006,10 +961,6 @@ public final class LlmServerFactory implements LlmStreamFactory
         }
     }
 
-    // Represents the application (exit) side of one exchange: us <-> app0. Owns the request-direction
-    // relay slot (transformed bytes not yet forwarded to app0) and tracks its own initial/reply flow
-    // control entirely in its own domain -- app0's sequence numbers never need to be reconciled against
-    // LlmServer's, since credit in each direction is always derived from local slot occupancy alone.
     private final class LlmStream
     {
         private final LlmServer server;
@@ -1057,9 +1008,6 @@ public final class LlmServerFactory implements LlmStreamFactory
             return initialMax - (initialSeq - initialAck);
         }
 
-        // Called by LlmServer.decodeNetwork() with a freshly transformed chunk. Always lands it in
-        // encodeSlot first, then attempts to drain as much of it as app0's currently granted window
-        // allows -- the same uniform stash-then-flush shape used for the reply direction.
         private void doAppData(
             MutableDirectBufferEx source,
             int length,
@@ -1198,12 +1146,6 @@ public final class LlmServerFactory implements LlmStreamFactory
             doAppWindow(traceId);
         }
 
-        // The app0 wire carries the LlmDataEx extension (its event name, when the dialect has one) only
-        // on the frame that starts a value (FLAG_INIT) -- captured here and applied once, on the same
-        // frame, via encodeEventName; encodeData runs once per frame (content-type-neutral: a no-op
-        // wrapper for JSON, one full "data:" line for SSE, so a value that fits in one frame -- true of
-        // every currently supported streaming payload -- encodes correctly either way); encodeFlush runs
-        // once, on the frame that finishes the value (FLAG_FIN), writing any trailing terminator.
         private void onAppData(
             DataFW data)
         {
@@ -1320,9 +1262,6 @@ public final class LlmServerFactory implements LlmStreamFactory
 
             flushEncodeSlot();
 
-            // encodeSlot may have just fully drained -- resume any network input left waiting in
-            // decodeSlot (see LlmServer.decodeNetwork) now that app0 backpressure has cleared, and let
-            // it recompute whether to re-credit the client and/or fire a deferred end.
             if (encodeSlot == NO_SLOT)
             {
                 server.decodeNetwork(traceId);
@@ -1507,11 +1446,6 @@ public final class LlmServerFactory implements LlmStreamFactory
         }
     }
 
-    // Represents the network (accept) side of a request whose options.authorization guard rejected it
-    // before any dialect model pipeline was built -- never forwards to app0, only replies with the
-    // resolved dialect's own JSON error body once the peer grants enough reply-direction credit to carry
-    // it, then ends the reply. Bytes the client still sends on the initial direction are windowed open and
-    // discarded rather than left to stall the client purely because its credentials were rejected.
     private final class LlmUnauthorizedResponder
     {
         private final MessageConsumer network;

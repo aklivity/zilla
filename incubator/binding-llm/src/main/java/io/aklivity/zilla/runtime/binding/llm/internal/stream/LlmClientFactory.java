@@ -130,12 +130,6 @@ public final class LlmClientFactory implements LlmStreamFactory
     private final BufferPool decodePool;
     private final int decodeMax;
 
-    // Wraps a distinct MutableDirectBufferEx instance internally, even though it shares the same
-    // underlying pooled memory and slot accounting as decodePool -- bufferPool.buffer(slot) rewraps a
-    // single mutable field per pool, so appending to LlmHttpClient's encodeSlot from within LlmClient's
-    // decodeRequest() loop (which holds a live decodePool-fetched buffer for the whole loop) never
-    // repoints that reference at the wrong slot's memory, the way a single shared pool handle would.
-    // See LlmServerFactory's decodePool/encodePool for precedent.
     private final BufferPool encodePool;
 
     private final LlmContentCodecFactory codecs;
@@ -331,8 +325,6 @@ public final class LlmClientFactory implements LlmStreamFactory
             this.source = source;
             this.target = target;
             this.sameDialect = source == target;
-            // Every registered dialect (openai, anthropic) has a genuine streaming decode/encode pair (see
-            // LlmResponseTransformFactory), so any cross-dialect route transforms streaming response events.
             this.transformEvents = !sameDialect;
             this.envelope = new LlmModelEnvelope();
             this.requestEncoder = codecs.createEncoder(requestContentType);
@@ -345,9 +337,6 @@ public final class LlmClientFactory implements LlmStreamFactory
             this.delegate = new LlmHttpClient(this, routedId, resolvedId, server, requestContentType);
         }
 
-        // Chains the source dialect's own schema validator ahead of any rename stage -- validating once,
-        // against the source's own schema only, matching this binding's existing behavior (the target's
-        // schema was never separately checked): a same-dialect route needs no rename stage at all.
         private static JsonPipeline buildRequestPipeline(
             LlmDialect source,
             LlmDialect target,
@@ -371,11 +360,6 @@ public final class LlmClientFactory implements LlmStreamFactory
             return stream.into(generator);
         }
 
-        // Built only for a same-dialect route (transformEvents == false): still runs through the JsonPipeline
-        // for schema validation, but injects no decode/encode rename stage, since a same-dialect rename would
-        // be a no-op identity round trip. Genuine cross-dialect streaming response translation is handled
-        // entirely by LlmHttpClient's own eventPipeline (the decode/encode JsonTransform/JsonSink pair), not
-        // by a JsonPipeline built here.
         private static JsonPipeline buildResponsePipeline(
             LlmDialect target,
             JsonEnvelope envelope)
@@ -440,10 +424,6 @@ public final class LlmClientFactory implements LlmStreamFactory
             state = LlmState.openingInitial(state);
             state = LlmState.openInitial(state);
 
-            // deferred until delegate.onNetWindow() reports the network transport is
-            // ready, rather than granted unconditionally here -- granting it before the
-            // transport can accept a request risks a request arriving too early and
-            // being rejected as a window violation
             delegate.doNetBegin(traceId, authorization);
         }
 
@@ -506,12 +486,6 @@ public final class LlmClientFactory implements LlmStreamFactory
             }
         }
 
-        // Forwards each transformed chunk straight to net as it is produced, rather than buffering
-        // until a later boundary signal -- the app-facing wire has no separate boundary frame, so
-        // encodeEventName/encodeFlush bracket the whole document (called once at start/COMPLETE) while
-        // encodeData is called per produced chunk; for the currently supported (JSON) request content
-        // types both bracket calls are no-ops, but the sequencing stays correct for a content type that
-        // needs it.
         private void decodeRequest(
             long traceId,
             long authorization)
@@ -681,13 +655,6 @@ public final class LlmClientFactory implements LlmStreamFactory
             state = LlmState.openReply(state);
         }
 
-        // Appends onto the tail of encodeSlot when it already holds bytes waiting for app-facing reply
-        // window credit, otherwise encodes straight from the caller's buffer -- avoiding a copy on the
-        // common, unblocked path. Either way, encodeReply() decides how much of the result actually goes
-        // out now. A value may span several calls (event captured on the first, last true on the final
-        // one) -- encodeReply attaches the LlmDataEx extension and FLAG_INIT only to the physical write
-        // that starts the value, and FLAG_FIN only to the one that finishes it, however many physical
-        // writes flow control splits it into.
         private void doAppData(
             long traceId,
             long authorization,
@@ -721,11 +688,6 @@ public final class LlmClientFactory implements LlmStreamFactory
             encodeReply(traceId, authorization, encodeBuffer, encodeOffset, encodeLimit);
         }
 
-        // Writes only as much of buffer[offset, limit) as the currently granted replyWindow allows,
-        // buffering any remainder in encodeSlot for the next onAppWindow to drain further -- an app write
-        // can never exceed the granted window, however much of it the caller has ready to send. A
-        // zero-length call (maxLength == 0) still writes when it starts or finishes a value, so an empty
-        // value is still observable on the wire.
         private void encodeReply(
             long traceId,
             long authorization,
@@ -944,12 +906,6 @@ public final class LlmClientFactory implements LlmStreamFactory
         private String pendingResponseEvent;
         private final LlmNativeEventOutput nativeOutput;
 
-        // Cross-dialect (transformEvents) response streaming only: a long-lived JsonPipeline chaining the
-        // source dialect's decode JsonTransform into the target dialect's encode JsonSink, built once here
-        // (rather than on the outer LlmClient) because the encode sink needs nativeOutput, which only
-        // exists once this inner class is constructed. decodeEvent/encodeTerminator are the same two
-        // objects, held as their narrower interfaces for the two calls LlmHttpClient itself needs to make
-        // directly (the native SSE event name, and the OpenAI-style out-of-band "[DONE]" bypass).
         private final JsonPipeline eventPipeline;
         private final LlmDialectEvent decodeEvent;
         private final LlmDialectTerminator encodeTerminator;
@@ -973,8 +929,6 @@ public final class LlmClientFactory implements LlmStreamFactory
 
             if (client.transformEvents)
             {
-                // Decodes the native bytes the upstream (target) API actually sends over net, encoding to
-                // the native shape the app-facing (source) side expects.
                 final JsonTransform decodeTransform = LlmResponseTransformFactory.supplyDecodeTransform(client.target.name());
                 final JsonSink encodeSink = LlmResponseTransformFactory.supplyEncodeSink(client.source.name(), nativeOutput);
                 this.eventPipeline = JsonEx.stream(JsonEx.createParser()).transform(decodeTransform).into(encodeSink);
@@ -1023,9 +977,6 @@ public final class LlmClientFactory implements LlmStreamFactory
             state = LlmState.openInitial(state);
         }
 
-        // Appends onto the tail of encodeSlot when it already holds bytes waiting for net window credit,
-        // otherwise encodes straight from the caller's buffer -- avoiding a copy on the common, unblocked
-        // path. Either way, encodeNet() decides how much of the result actually goes out now.
         private void doNetData(
             long traceId,
             long authorization,
@@ -1051,9 +1002,6 @@ public final class LlmClientFactory implements LlmStreamFactory
             encodeNet(traceId, authorization, encodeBuffer, encodeOffset, encodeLimit);
         }
 
-        // Writes only as much of buffer[offset, limit) as the currently granted initialWindow allows,
-        // buffering any remainder in encodeSlot for the next onNetWindow to drain further -- a net write
-        // can never exceed the granted window, however much of it the caller has ready to send.
         private void encodeNet(
             long traceId,
             long authorization,
@@ -1231,9 +1179,6 @@ public final class LlmClientFactory implements LlmStreamFactory
 
             doNetWindow(traceId, authorization);
 
-            // A response content-type this dialect doesn't recognize (neither JSON nor SSE) means the
-            // upstream response cannot be interpreted at all -- reject rather than forward it opaquely,
-            // matching how a JSON response that fails dialect schema validation is rejected mid-stream.
             if (decoder == null)
             {
                 cleanupNet(traceId, authorization);
@@ -1340,14 +1285,6 @@ public final class LlmClientFactory implements LlmStreamFactory
             }
         }
 
-        // LlmJsonContentDecoder documents that it expects one complete buffered document per call, unlike
-        // the SSE decoder's own line-oriented tolerance of partial input -- so a JSON (non-streaming)
-        // response is never handed to decoder.decode() until the reply is confirmed closing (the true,
-        // content-length-driven end of the body), and even then without truncating to window, since output
-        // flow control is enforced downstream by doAppData's own encodeSlot rather than by starving the
-        // input here. A same-dialect JSON route skips decoder.decode() entirely and instead streams the
-        // body straight through the model pipeline, chunk by chunk, exactly like the request-decode side
-        // already does -- this is the path that scales to a response larger than one decode slot.
         private int decodeContent(
             DirectBufferEx buffer,
             int offset,
@@ -1389,9 +1326,6 @@ public final class LlmClientFactory implements LlmStreamFactory
                     transformBuffer, 0, transformBuffer.capacity());
                 Status status = result.status();
 
-                // SUSPENDED means the generator filled transformBuffer before the source was fully consumed --
-                // drain what it produced, then resume into the same, now-empty buffer until real progress
-                // (COMPLETED, STARVED, or REJECTED) is made, mirroring the documented JsonPipeline contract.
                 while (status == Status.SUSPENDED)
                 {
                     responseStarted = true;
@@ -1505,12 +1439,6 @@ public final class LlmClientFactory implements LlmStreamFactory
             nativeEventLength = 0;
         }
 
-        // OpenAI's literal "[DONE]" sentinel is not JSON and never reaches eventPipeline -- checked here,
-        // before the pipeline is ever invoked for this chunk, exactly as the dialect's own terminator()
-        // contract intends. Each native chunk is a separate, complete input value from the parser's own
-        // perspective; nextDocument() (never reset(), which would wipe the decode/encode stages' own
-        // cross-chunk state -- see LlmCanonicalEmitter/LlmCanonicalEncodeSink) advances eventPipeline from
-        // one native chunk to the next within this same response stream.
         private void transformNativeStreamEvent()
         {
             if (matchesTerminator(nativeEventBuffer, 0, nativeEventLength, client.target.terminator(Kind.RESPONSE)))
@@ -1563,9 +1491,6 @@ public final class LlmClientFactory implements LlmStreamFactory
             return matches;
         }
 
-        // Each native chunk is a separate, complete input value from the parser's own perspective;
-        // nextDocument() (never reset(), which would wipe the schema validator's own state) advances
-        // client.responsePipeline from one native chunk to the next within this same response stream.
         private void forwardResponseContent(
             String event,
             DirectBuffer buffer,
