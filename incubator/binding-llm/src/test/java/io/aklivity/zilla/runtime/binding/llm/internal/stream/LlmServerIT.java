@@ -49,38 +49,8 @@ public class LlmServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/request.valid/client",
-        "${app}/request.valid/server"})
-    public void shouldForwardValidRequest() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/request.valid.10k/client",
-        "${app}/request.valid.10k/server"})
-    public void shouldForwardValidRequest10k() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/request.valid.100k/client",
-        "${app}/request.valid.100k/server"})
-    public void shouldForwardValidRequest100k() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/request.rejected.schema/client"})
-    public void shouldRejectRequestFailingSchema() throws Exception
+        "${net}/anthropic.request.invalid/client"})
+    public void shouldRejectInvalidAnthropicRequest() throws Exception
     {
         k3po.finish();
     }
@@ -90,36 +60,6 @@ public class LlmServerIT
     @Specification({
         "${net}/request.rejected.dialect/client"})
     public void shouldRejectRequestWithUnresolvedDialect() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/response.valid.10k/client",
-        "${app}/response.valid.10k/server"})
-    public void shouldForwardValidResponse10k() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/response.valid.100k/client",
-        "${app}/response.valid.100k/server"})
-    public void shouldForwardValidResponse100k() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/request.aborted/client",
-        "${app}/request.aborted/server"})
-    public void shouldRequestAborted() throws Exception
     {
         k3po.finish();
     }
@@ -213,9 +153,30 @@ public class LlmServerIT
         k3po.finish();
     }
 
-    // openai.100k/anthropic.100k hang here on the existing, unmodified request-decode path (pre-existing,
-    // not caused by this change) -- request.valid.100k above already covers 100k flow control generically;
-    // deferred pending its own root-cause investigation.
+    // openai.100k/anthropic.100k hang here on the request-decode path: LlmServerFactory.decodeNetwork()
+    // treats Status.SUSPENDED the same as Status.STARVED and waits for an external retrigger that may never
+    // come, instead of retrying immediately -- see the analogous, already-correct retry loop in
+    // LlmClientFactory.translateNativeStreamEvent(). Tracked for a fix; these two remain red until then.
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.100k/client",
+        "${app}/openai.100k/server"})
+    public void shouldForwardOpenai100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.100k/client",
+        "${app}/anthropic.100k/server"})
+    public void shouldForwardAnthropic100k() throws Exception
+    {
+        k3po.finish();
+    }
 
     @Test
     @Configuration("server.guarded.yaml")

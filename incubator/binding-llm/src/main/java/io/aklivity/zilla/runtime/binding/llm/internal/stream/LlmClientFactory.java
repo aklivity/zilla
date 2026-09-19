@@ -335,19 +335,15 @@ public final class LlmClientFactory implements LlmStreamFactory
             this.source = source;
             this.target = target;
             this.sameDialect = source == target;
-            // A dialect pair only translates streaming response events when both sides have a genuine
-            // decode/encode pair (see LlmResponseTransformFactory) -- a third-party or test-only dialect
-            // with no such pair falls back to schema-validate-and-passthrough, exactly like a same-dialect
-            // route, rather than attempting (and failing) to stream-translate it.
-            this.translateEvents = !sameDialect &&
-                LlmResponseTransformFactory.supports(source.name()) &&
-                LlmResponseTransformFactory.supports(target.name());
+            // Every registered dialect (openai, anthropic) has a genuine streaming decode/encode pair (see
+            // LlmResponseTransformFactory), so any cross-dialect route translates streaming response events.
+            this.translateEvents = !sameDialect;
             this.envelope = new LlmModelEnvelope();
             this.requestEncoder = codecs.createEncoder(requestContentType);
 
             this.requestPipeline = requestEncoder != null ? buildRequestPipeline(source, target, sameDialect, envelope) : null;
 
-            this.responsePipeline = translateEvents ? null : buildResponsePipeline(source, target, sameDialect, envelope);
+            this.responsePipeline = translateEvents ? null : buildResponsePipeline(target, envelope);
             this.responseTerminator = translateEvents ? null : target.terminator(Kind.RESPONSE);
 
             this.delegate = new LlmHttpClient(this, routedId, resolvedId, server, requestContentType);
@@ -379,35 +375,22 @@ public final class LlmClientFactory implements LlmStreamFactory
             return stream.into(generator);
         }
 
-        // Built only when !translateEvents: either a genuine same-dialect route (validate-and-forward,
-        // never renamed), or a cross-dialect pair with no registered decode/encode pair of its own (e.g. a
-        // third-party or test-only dialect), which still renames field-by-field via each dialect's own
-        // supplyDecoder/supplyEncoder exactly like the request-side pipeline does -- for such a dialect
-        // this is normally an identity rename, so it reduces to schema-validate-and-passthrough in
-        // practice. Genuine cross-dialect streaming response translation (translateEvents == true) is
-        // handled entirely by LlmHttpClient's own eventPipeline (the decode/encode JsonTransform/JsonSink
-        // pair), not by a JsonPipeline built here.
+        // Built only for a same-dialect route (translateEvents == false): still runs through the JsonPipeline
+        // for schema validation, but injects no decode/encode rename stage, since a same-dialect rename would
+        // be a no-op identity round trip. Genuine cross-dialect streaming response translation is handled
+        // entirely by LlmHttpClient's own eventPipeline (the decode/encode JsonTransform/JsonSink pair), not
+        // by a JsonPipeline built here.
         private static JsonPipeline buildResponsePipeline(
-            LlmDialect source,
             LlmDialect target,
-            boolean sameDialect,
             JsonEnvelope envelope)
         {
             final JsonParserEx parser = JsonEx.createParser();
             final JsonGeneratorEx generator = JsonEx.createGenerator();
 
-            JsonStream stream = JsonEx.stream(parser)
+            return JsonEx.stream(parser)
                 .envelope(envelope)
-                .transform(target.supplySchemaValidator(Kind.RESPONSE));
-
-            if (!sameDialect)
-            {
-                stream = stream
-                    .transform(target.supplyDecoder(Kind.RESPONSE, envelope))
-                    .transform(source.supplyEncoder(Kind.RESPONSE, envelope));
-            }
-
-            return stream.into(generator);
+                .transform(target.supplySchemaValidator(Kind.RESPONSE))
+                .into(generator);
         }
 
         private int replyWindow()
@@ -995,13 +978,10 @@ public final class LlmClientFactory implements LlmStreamFactory
             if (client.translateEvents)
             {
                 // Decodes the native bytes the upstream (target) API actually sends over net, encoding to
-                // the native shape the app-facing (source) side expects -- matching client.responsePipeline's
-                // own target.supplyDecoder(...)/source.supplyEncoder(...) direction for the same-dialect case.
+                // the native shape the app-facing (source) side expects.
                 final JsonTransform decodeTransform = LlmResponseTransformFactory.supplyDecodeTransform(client.target.name());
                 final JsonSink encodeSink = LlmResponseTransformFactory.supplyEncodeSink(client.source.name(), nativeOutput);
-                this.eventPipeline = decodeTransform != null && encodeSink != null
-                    ? JsonEx.stream(JsonEx.createParser()).transform(decodeTransform).into(encodeSink)
-                    : null;
+                this.eventPipeline = JsonEx.stream(JsonEx.createParser()).transform(decodeTransform).into(encodeSink);
                 this.decodeEvent = (LlmDialectEvent) decodeTransform;
                 this.encodeTerminator = (LlmDialectTerminator) encodeSink;
             }
@@ -1403,9 +1383,23 @@ public final class LlmClientFactory implements LlmStreamFactory
 
             if (progress < limit)
             {
-                final JsonPipelineResult result = client.responsePipeline.transform(buffer, offset, limit, false,
+                JsonPipelineResult result = client.responsePipeline.transform(buffer, offset, limit, false,
                     transformBuffer, 0, transformBuffer.capacity());
-                final Status status = result.status();
+                Status status = result.status();
+
+                // SUSPENDED means the generator filled transformBuffer before the source was fully consumed --
+                // drain what it produced, then resume into the same, now-empty buffer until real progress
+                // (COMPLETED, STARVED, or REJECTED) is made, mirroring the documented JsonPipeline contract.
+                while (status == Status.SUSPENDED)
+                {
+                    responseStarted = true;
+                    client.doAppData(decodeTraceId, decodeAuthorization, null, false, transformBuffer, 0,
+                        result.produced());
+
+                    result = client.responsePipeline.transform(buffer, offset, limit, false,
+                        transformBuffer, 0, transformBuffer.capacity());
+                    status = result.status();
+                }
 
                 if (status == Status.REJECTED)
                 {

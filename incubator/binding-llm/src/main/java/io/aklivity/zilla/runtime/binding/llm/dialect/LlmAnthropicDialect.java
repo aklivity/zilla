@@ -47,9 +47,10 @@ import io.aklivity.zilla.runtime.common.json.JsonTransform;
  * top of a forwarded Anthropic API key, so {@link #detect(JsonEnvelope)} does not treat it as a hint.
  * <p>
  * {@link #supplyDecoder(Kind, JsonEnvelope)}/{@link #supplyEncoder(Kind, JsonEnvelope)} rename the
- * Anthropic-native request members that {@link LlmAnthropicRequestTransform} gives a canonical synonym for
- * (response-side streaming dialect translation lives in {@code internal.mapper.LlmAnthropicDecodeTransform}/
- * {@code LlmAnthropicEncodeSink}); {@link #supplyValidator(Kind, JsonEnvelope)} performs no such renaming,
+ * Anthropic-native request members that {@link LlmAnthropicRequestTransform} gives a canonical synonym for;
+ * the response direction is always identity here, since genuine cross-dialect response streaming translation
+ * lives entirely in {@code internal.mapper.LlmAnthropicDecodeTransform}/{@code LlmAnthropicEncodeSink}, and a
+ * same-dialect response needs no rename at all. {@link #supplyValidator(Kind, JsonEnvelope)} performs no such renaming,
  * only {@code model} extraction. Anthropic's own streaming block lifecycle ({@code message_start}/
  * {@code content_block_start}/{@code content_block_delta}/{@code content_block_stop}/{@code message_delta}/
  * {@code message_stop}) is already the skeleton this binding's canonical representation is modeled on, so
@@ -127,9 +128,7 @@ public final class LlmAnthropicDialect implements LlmDialect
         Kind kind,
         JsonEnvelope envelope)
     {
-        return kind == Kind.REQUEST
-            ? new LlmAnthropicRequestTransform(true, envelope)
-            : new LlmAnthropicResponseTypeTransform(envelope);
+        return kind == Kind.REQUEST ? new LlmAnthropicRequestTransform(true, envelope) : LlmDialectTransforms.identity();
     }
 
     @Override

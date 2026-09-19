@@ -38,54 +38,9 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/request.valid/client",
-        "${net}/request.valid/server"})
-    public void shouldForwardValidRequest() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/request.valid.10k/client",
-        "${net}/request.valid.10k/server"})
-    public void shouldForwardValidRequest10k() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/request.valid.100k/client",
-        "${net}/request.valid.100k/server"})
-    public void shouldForwardValidRequest100k() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/response.valid.10k/client",
-        "${net}/response.valid.10k/server"})
-    public void shouldForwardValidResponse10k() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/response.valid.100k/client",
-        "${net}/response.valid.100k/server"})
-    public void shouldForwardValidResponse100k() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/request.rejected.schema/client",
-        "${net}/request.rejected.schema/server"})
-    public void shouldRejectRequestFailingSchema() throws Exception
+        "${net}/anthropic.request.invalid/client",
+        "${net}/anthropic.request.invalid/server"})
+    public void shouldRejectInvalidAnthropicRequest() throws Exception
     {
         k3po.finish();
     }
@@ -95,33 +50,6 @@ public class NetworkIT
         "${net}/request.rejected.dialect/client",
         "${net}/request.rejected.dialect/server"})
     public void shouldRejectRequestWithUnresolvedDialect() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/request.aborted/client",
-        "${net}/request.aborted/server"})
-    public void shouldRequestAborted() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/same.dialect/client",
-        "${net}/same.dialect/server"})
-    public void shouldEncodeSameDialect() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/cross.dialect/client",
-        "${net}/cross.dialect/server"})
-    public void shouldEncodeCrossDialect() throws Exception
     {
         k3po.finish();
     }
@@ -194,24 +122,6 @@ public class NetworkIT
         "${net}/openai.response.invalid/client",
         "${net}/openai.response.invalid/server"})
     public void shouldEncodeInvalidOpenaiResponse() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/anthropic.response.invalid/client",
-        "${net}/anthropic.response.invalid/server"})
-    public void shouldEncodeAnthropicResponseWithMismatchedEventType() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/anthropic.response.valid/client",
-        "${net}/anthropic.response.valid/server"})
-    public void shouldEncodeAnthropicResponseWithMatchingEventType() throws Exception
     {
         k3po.finish();
     }

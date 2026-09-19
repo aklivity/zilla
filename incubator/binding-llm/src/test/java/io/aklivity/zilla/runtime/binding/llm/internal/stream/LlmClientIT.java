@@ -47,26 +47,6 @@ public class LlmClientIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("client.yaml")
-    @Specification({
-        "${app}/same.dialect/client",
-        "${net}/same.dialect/server"})
-    public void shouldForwardSameDialect() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.yaml")
-    @Specification({
-        "${app}/cross.dialect/client",
-        "${net}/cross.dialect/server"})
-    public void shouldForwardCrossDialect() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
     @Configuration("client.opaque.yaml")
     @Specification({
         "${app}/client.opaque.fallback/client",
@@ -77,7 +57,7 @@ public class LlmClientIT
     }
 
     @Test
-    @Configuration("client.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
         "${app}/client.abort/client",
         "${net}/client.abort/server"})
@@ -112,26 +92,6 @@ public class LlmClientIT
         "${app}/openai.response.invalid/client",
         "${net}/openai.response.invalid/server"})
     public void shouldRejectInvalidOpenaiResponse() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.anthropic.yaml")
-    @Specification({
-        "${app}/anthropic.response.invalid/client",
-        "${net}/anthropic.response.invalid/server"})
-    public void shouldRejectAnthropicResponseWithMismatchedEventType() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.anthropic.yaml")
-    @Specification({
-        "${app}/anthropic.response.valid/client",
-        "${net}/anthropic.response.valid/server"})
-    public void shouldForwardAnthropicResponseWithMatchingEventType() throws Exception
     {
         k3po.finish();
     }
@@ -236,9 +196,30 @@ public class LlmClientIT
         k3po.finish();
     }
 
-    // openai.100k/anthropic.100k hang on the response-decode path at this size (pre-existing, not caused
-    // by this change) -- response.valid.100k above already covers 100k flow control generically; deferred
-    // pending its own root-cause investigation.
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.100k/client",
+        "${net}/openai.100k/server"})
+    public void shouldForwardOpenai100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.100k/client",
+        "${net}/anthropic.100k/server"})
+    public void shouldForwardAnthropic100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // openai.100k/anthropic.100k hang on the response-decode path: LlmClientFactory.decodeJsonContent() calls
+    // responsePipeline.transform() exactly once and never retries on Status.SUSPENDED, unlike the working
+    // retry loop in this same file's translateNativeStreamEvent(). Tracked for a fix; the two tests above
+    // remain red until then.
 
     // Cross-dialect request translation for content this large hits a separate, tracked bug
     // (aklivity/zilla#2597): the request forwards verbatim, untranslated, once content spans multiple

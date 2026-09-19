@@ -14,26 +14,22 @@
 #
 
 accept "zilla://streams/net0"
-  option zilla:window 8192
-  option zilla:transmission "half-duplex"
+       option zilla:window 8192
+       option zilla:transmission "half-duplex"
+
 accepted
 
 read zilla:begin.ext ${http:matchBeginEx()
-                             .typeId(zilla:id("http"))
-                             .header(":method", "POST")
-                             .header(":scheme", "http")
-                             .header(":authority", "localhost:8080")
-                             .header(":path", "/v1/chat/completions")
-                             .header("content-type", "application/vnd.zilla.test-permissive+json")
-                             .build()}
+                           .typeId(zilla:id("http"))
+                           .header(":method", "POST")
+                           .header(":scheme", "http")
+                           .header(":authority", "example.com:8080")
+                           .header(":path", "/v1/messages")
+                           .header("content-type", "application/json")
+                           .build()}
+
 connected
 
-read "{\"model\":\"gpt-x\",\"prompt\":\"hi\"}"
+read "{\"model\":\"claude-3-opus-20240229\",\"max_tokens\":1024}"
 
-read closed
-
-write '{"result":"'
-write ${core:randomBase64(10000)}
-write '"}'
-
-write close
+write abort

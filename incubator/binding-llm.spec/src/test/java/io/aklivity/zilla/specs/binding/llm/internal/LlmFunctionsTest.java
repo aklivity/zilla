@@ -39,8 +39,8 @@ public class LlmFunctionsTest
     {
         byte[] bytes = LlmFunctions.beginEx()
             .typeId(0)
-            .dialect("test-permissive")
-            .contentType("application/vnd.zilla.test-permissive+json")
+            .dialect("openai")
+            .contentType("application/json")
             .model("gpt-x")
             .build();
 
@@ -52,7 +52,7 @@ public class LlmFunctionsTest
     {
         byte[] bytes = LlmFunctions.beginEx()
             .typeId(0)
-            .dialect("test-permissive")
+            .dialect("openai")
             .build();
 
         assertNotNull(bytes);
@@ -63,8 +63,8 @@ public class LlmFunctionsTest
     {
         BytesMatcher matcher = LlmFunctions.matchBeginEx()
             .typeId(0)
-            .dialect("test-permissive")
-            .contentType("application/vnd.zilla.test-permissive+json")
+            .dialect("openai")
+            .contentType("application/json")
             .model("gpt-x")
             .build();
 
@@ -73,8 +73,8 @@ public class LlmFunctionsTest
         new LlmBeginExFW.Builder()
             .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
-            .dialect("test-permissive")
-            .contentType("application/vnd.zilla.test-permissive+json")
+            .dialect("openai")
+            .contentType("application/json")
             .model("gpt-x")
             .build();
 
@@ -86,7 +86,7 @@ public class LlmFunctionsTest
     {
         BytesMatcher matcher = LlmFunctions.matchBeginEx()
             .typeId(0)
-            .dialect("test-strict")
+            .dialect("openai")
             .build();
 
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
@@ -94,7 +94,7 @@ public class LlmFunctionsTest
         new LlmBeginExFW.Builder()
             .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
-            .dialect("test-permissive")
+            .dialect("anthropic")
             .build();
 
         assertThrows(Exception.class, () -> matcher.match(byteBuf));

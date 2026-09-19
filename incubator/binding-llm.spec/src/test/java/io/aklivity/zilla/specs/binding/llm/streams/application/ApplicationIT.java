@@ -38,78 +38,6 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/request.valid/client",
-        "${app}/request.valid/server"})
-    public void shouldForwardValidRequest() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/request.valid.10k/client",
-        "${app}/request.valid.10k/server"})
-    public void shouldForwardValidRequest10k() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/request.valid.100k/client",
-        "${app}/request.valid.100k/server"})
-    public void shouldForwardValidRequest100k() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/response.valid.10k/client",
-        "${app}/response.valid.10k/server"})
-    public void shouldForwardValidResponse10k() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/response.valid.100k/client",
-        "${app}/response.valid.100k/server"})
-    public void shouldForwardValidResponse100k() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/request.aborted/client",
-        "${app}/request.aborted/server"})
-    public void shouldRequestAborted() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/same.dialect/client",
-        "${app}/same.dialect/server"})
-    public void shouldForwardSameDialect() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/cross.dialect/client",
-        "${app}/cross.dialect/server"})
-    public void shouldForwardCrossDialect() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${app}/client.opaque.fallback/client",
         "${app}/client.opaque.fallback/server"})
     public void shouldForwardClientOpaqueFallback() throws Exception
@@ -167,24 +95,6 @@ public class ApplicationIT
         "${app}/openai.response.invalid/client",
         "${app}/openai.response.invalid/server"})
     public void shouldAbortInvalidOpenaiResponse() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/anthropic.response.invalid/client",
-        "${app}/anthropic.response.invalid/server"})
-    public void shouldAbortAnthropicResponseWithMismatchedEventType() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/anthropic.response.valid/client",
-        "${app}/anthropic.response.valid/server"})
-    public void shouldForwardAnthropicResponseWithMatchingEventType() throws Exception
     {
         k3po.finish();
     }

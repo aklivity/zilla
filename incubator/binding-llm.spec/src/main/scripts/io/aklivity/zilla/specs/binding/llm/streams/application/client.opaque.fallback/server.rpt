@@ -21,7 +21,7 @@ accepted
 
 read zilla:begin.ext ${llm:matchBeginEx()
                           .typeId(zilla:id("llm"))
-                          .dialect("test-client")
+                          .dialect("openai")
                           .contentType("application/octet-stream")
                           .build()}
 
@@ -33,7 +33,7 @@ read closed
 
 write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
-                           .dialect("test-client")
+                           .dialect("openai")
                            .contentType("application/octet-stream")
                            .build()}
 write flush

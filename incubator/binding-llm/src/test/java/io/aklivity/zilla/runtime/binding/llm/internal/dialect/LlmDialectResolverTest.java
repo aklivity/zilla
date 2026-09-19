@@ -39,12 +39,12 @@ public class LlmDialectResolverTest
     public void shouldDetectRegisteredDialectByHeaders()
     {
         LlmDialectResolver resolver = new LlmDialectResolver(null);
-        JsonEnvelope headers = headers(":method", "POST", ":path", "/v1/test");
+        JsonEnvelope headers = headers(":method", "POST", ":path", "/v1/messages");
 
         LlmDialect resolved = resolver.resolve(headers);
 
         assertThat(resolved, not(nullValue()));
-        assertThat(resolved.name(), equalTo("test"));
+        assertThat(resolved.name(), equalTo("anthropic"));
     }
 
     @Test

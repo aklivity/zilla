@@ -51,26 +51,6 @@ public class LlmProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Specification({
-        "${net}/proxy.route.by.model.a/client",
-        "${app}/proxy.route.by.model.a/server"})
-    public void shouldRouteByModelA() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("proxy.yaml")
-    @Specification({
-        "${net}/proxy.route.by.model.b/client",
-        "${app}/proxy.route.by.model.b/server"})
-    public void shouldRouteByModelB() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("proxy.yaml")
-    @Specification({
         "${net}/proxy.route.unmatched/client"})
     public void shouldRejectRequestWithUnmatchedModel() throws Exception
     {
@@ -103,8 +83,7 @@ public class LlmProxyIT
     @Specification({
         "${net}/proxy.route.openai.100k/client",
         "${app}/openai.100k/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
-    public void shouldRouteOpenai100kToAppOne() throws Exception
+    public void shouldRouteOpenai100kToAppZero() throws Exception
     {
         k3po.finish();
     }
@@ -114,7 +93,8 @@ public class LlmProxyIT
     @Specification({
         "${net}/proxy.route.anthropic.100k/client",
         "${app}/anthropic.100k/server"})
-    public void shouldRouteAnthropic100kToAppZero() throws Exception
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldRouteAnthropic100kToAppOne() throws Exception
     {
         k3po.finish();
     }

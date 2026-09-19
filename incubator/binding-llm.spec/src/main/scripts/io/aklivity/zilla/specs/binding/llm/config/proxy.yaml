@@ -21,8 +21,10 @@ bindings:
     kind: proxy
     routes:
     - when:
-      - model: [ gpt-a ]
+      - dialect: openai
+        model: [ gpt-a ]
       exit: app0
     - when:
-      - model: [ gpt-b ]
+      - dialect: anthropic
+        model: [ gpt-b ]
       exit: app1

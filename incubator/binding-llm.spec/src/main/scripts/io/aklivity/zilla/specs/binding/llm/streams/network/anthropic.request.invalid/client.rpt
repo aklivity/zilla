@@ -13,17 +13,22 @@
 # specific language governing permissions and limitations under the License.
 #
 
-accept "zilla://streams/app0"
-  option zilla:window 8192
-  option zilla:transmission "half-duplex"
-accepted
+connect "zilla://streams/net0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
 
-read zilla:begin.ext ${llm:matchBeginEx()
-                            .typeId(zilla:id("llm"))
-                            .dialect("test-permissive")
-                            .contentType("application/vnd.zilla.test-permissive+json")
-                            .model("gpt-x")
+write zilla:begin.ext ${http:beginEx()
+                            .typeId(zilla:id("http"))
+                            .header(":method", "POST")
+                            .header(":scheme", "http")
+                            .header(":authority", "example.com:8080")
+                            .header(":path", "/v1/messages")
+                            .header("content-type", "application/json")
                             .build()}
+
 connected
 
-read aborted
+write "{\"model\":\"claude-3-opus-20240229\",\"max_tokens\":1024}"
+write flush
+
+write abort

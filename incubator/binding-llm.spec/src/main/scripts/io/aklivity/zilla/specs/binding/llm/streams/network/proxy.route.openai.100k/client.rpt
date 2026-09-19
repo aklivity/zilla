@@ -20,7 +20,7 @@ connect "zilla://streams/net0"
 write zilla:begin.ext ${llm:beginEx()
                             .typeId(zilla:id("llm"))
                             .dialect("openai")
-                            .model("gpt-b")
+                            .model("gpt-a")
                             .build()}
 connected
 
