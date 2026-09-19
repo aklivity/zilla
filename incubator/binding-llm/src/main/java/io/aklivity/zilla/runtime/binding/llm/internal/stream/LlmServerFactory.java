@@ -47,15 +47,16 @@ import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.common.json.JsonEx;
+import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
+import io.aklivity.zilla.runtime.common.json.JsonParserEx;
+import io.aklivity.zilla.runtime.common.json.JsonPipeline;
+import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
+import io.aklivity.zilla.runtime.common.json.JsonPipelineResult;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
-import io.aklivity.zilla.runtime.engine.model.ModelCache;
-import io.aklivity.zilla.runtime.engine.model.ModelHandler;
-import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
-import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
-import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 
 public final class LlmServerFactory implements LlmStreamFactory
 {
@@ -195,9 +196,7 @@ public final class LlmServerFactory implements LlmStreamFactory
                         else
                         {
                             final String contentType = header(envelope, HEADER_CONTENT_TYPE);
-                            final ModelHandler model = binding.supplyModel(dialect, LlmDialect.Kind.REQUEST);
-                            final ModelPipeline pipeline = model.supplyDecoder(
-                                envelope, dialect.supplyValidator(LlmDialect.Kind.REQUEST, envelope), ModelCache.NONE);
+                            final JsonPipeline pipeline = buildRequestPipeline(dialect, envelope);
 
                             newStream = new LlmServer(
                                     network,
@@ -218,6 +217,23 @@ public final class LlmServerFactory implements LlmStreamFactory
         }
 
         return newStream;
+    }
+
+    // No target dialect to bridge toward on this kind: server binding -- detect, schema-validate, and
+    // extract (e.g. "model"), forwarding every field unchanged, exactly mirroring how the old
+    // ModelHandler-backed pipeline chained a catalog-enforced schema underneath dialect.supplyValidator(...).
+    private JsonPipeline buildRequestPipeline(
+        LlmDialect dialect,
+        LlmModelEnvelope envelope)
+    {
+        final JsonParserEx parser = JsonEx.createParser();
+        final JsonGeneratorEx generator = JsonEx.createGenerator();
+
+        return JsonEx.stream(parser)
+            .envelope(envelope)
+            .transform(dialect.supplySchemaValidator(LlmDialect.Kind.REQUEST))
+            .transform(dialect.supplyValidator(LlmDialect.Kind.REQUEST, envelope))
+            .into(generator);
     }
 
     private HttpBeginExFW extractHeaders(
@@ -315,7 +331,7 @@ public final class LlmServerFactory implements LlmStreamFactory
         private final LlmDialect dialect;
         private final String contentType;
         private final LlmModelEnvelope envelope;
-        private final ModelPipeline pipeline;
+        private final JsonPipeline pipeline;
         private final Runnable deauthorize;
 
         private LlmStream stream;
@@ -358,7 +374,7 @@ public final class LlmServerFactory implements LlmStreamFactory
             LlmDialect dialect,
             String contentType,
             LlmModelEnvelope envelope,
-            ModelPipeline pipeline,
+            JsonPipeline pipeline,
             Runnable deauthorize)
         {
             this.network = network;
@@ -477,13 +493,13 @@ public final class LlmServerFactory implements LlmStreamFactory
                 while (progress < decodeSlotOffset && (stream == null || stream.requestAvailable()))
                 {
                     final boolean first = !requestStarted;
-                    final int callFlags = (first ? decodeSlotFlags & FLAG_INIT : 0) | (decodeSlotFlags & FLAG_FIN);
+                    final boolean last = (decodeSlotFlags & FLAG_FIN) != 0;
 
-                    final ModelPipelineResult result = pipeline.transform(traceId, routedId, authorization, callFlags,
-                        decodeBuffer, progress, decodeSlotOffset, transformBuffer, 0, transformBuffer.capacity());
-                    final ModelStatus status = result.status();
+                    final JsonPipelineResult result = pipeline.transform(decodeBuffer, progress, decodeSlotOffset, last,
+                        transformBuffer, 0, transformBuffer.capacity());
+                    final Status status = result.status();
 
-                    if (status == ModelStatus.REJECTED)
+                    if (status == Status.REJECTED)
                     {
                         pipeline.reset();
                         doNetReset(traceId);
@@ -506,12 +522,11 @@ public final class LlmServerFactory implements LlmStreamFactory
                     final int producedLength = result.produced();
                     if (producedLength > 0)
                     {
-                        final int outputFlags = (first ? callFlags & FLAG_INIT : 0)
-                            | (status == ModelStatus.COMPLETE ? callFlags & FLAG_FIN : 0);
+                        final int outputFlags = (first ? FLAG_INIT : 0) | (status == Status.COMPLETED ? FLAG_FIN : 0);
                         stream.doAppData(transformBuffer, producedLength, outputFlags, traceId, authorization);
                     }
 
-                    if (status == ModelStatus.COMPLETE)
+                    if (status == Status.COMPLETED)
                     {
                         pipeline.reset();
                     }
@@ -1096,12 +1111,7 @@ public final class LlmServerFactory implements LlmStreamFactory
                     }
 
                     final int remaining = encodeSlotOffset - encodeSlotSent;
-                    int sliceLength = (int) Math.min(remaining, available);
-                    final int padding = server.pipeline.padding(buffer, encodeSlotSent, sliceLength);
-                    if (padding > 0)
-                    {
-                        sliceLength = Math.max(0, (int) Math.min(remaining, available - padding));
-                    }
+                    final int sliceLength = (int) Math.min(remaining, available);
                     if (sliceLength <= 0)
                     {
                         break;
@@ -1385,7 +1395,7 @@ public final class LlmServerFactory implements LlmStreamFactory
             int offset,
             int length)
         {
-            final int reserved = length + server.pipeline.padding(buffer, offset, length);
+            final int reserved = length;
 
             final DataFW data = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(server.routedId)

@@ -36,12 +36,10 @@ import io.aklivity.zilla.runtime.binding.llm.internal.decode.LlmContentDecoder;
 import io.aklivity.zilla.runtime.binding.llm.internal.decode.LlmContentDecoderOutput;
 import io.aklivity.zilla.runtime.binding.llm.internal.decode.LlmSseContentDecoder;
 import io.aklivity.zilla.runtime.binding.llm.internal.encode.LlmContentEncoder;
-import io.aklivity.zilla.runtime.binding.llm.internal.mapper.LlmCanonicalBlockKind;
-import io.aklivity.zilla.runtime.binding.llm.internal.mapper.LlmCanonicalFinishReason;
-import io.aklivity.zilla.runtime.binding.llm.internal.mapper.LlmCanonicalOutput;
-import io.aklivity.zilla.runtime.binding.llm.internal.mapper.LlmEventMapper;
-import io.aklivity.zilla.runtime.binding.llm.internal.mapper.LlmEventMapperFactory;
+import io.aklivity.zilla.runtime.binding.llm.internal.mapper.LlmDialectEvent;
+import io.aklivity.zilla.runtime.binding.llm.internal.mapper.LlmDialectTerminator;
 import io.aklivity.zilla.runtime.binding.llm.internal.mapper.LlmNativeEventOutput;
+import io.aklivity.zilla.runtime.binding.llm.internal.mapper.LlmResponseTransformFactory;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.AbortFW;
@@ -57,17 +55,21 @@ import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
+import io.aklivity.zilla.runtime.common.json.JsonEx;
+import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
+import io.aklivity.zilla.runtime.common.json.JsonParserEx;
+import io.aklivity.zilla.runtime.common.json.JsonPipeline;
+import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
+import io.aklivity.zilla.runtime.common.json.JsonPipelineResult;
+import io.aklivity.zilla.runtime.common.json.JsonSink;
+import io.aklivity.zilla.runtime.common.json.JsonStream;
+import io.aklivity.zilla.runtime.common.json.JsonTransform;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
-import io.aklivity.zilla.runtime.engine.model.ModelCache;
-import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
-import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
-import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
-import io.aklivity.zilla.runtime.engine.model.ModelStatus;
-import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 
 public final class LlmClientFactory implements LlmStreamFactory
 {
@@ -211,7 +213,7 @@ public final class LlmClientFactory implements LlmStreamFactory
             final String contentType = llmBeginEx != null ? llmBeginEx.contentType().asString() : null;
             final String requestContentType = contentType != null ? contentType : CONTENT_TYPE_JSON;
 
-            final LlmDialect target = binding.resolveDialect(ModelEnvelope.NONE);
+            final LlmDialect target = binding.resolveDialect(JsonEnvelope.NONE);
             final LlmDialect source = target != null
                 ? (target.name().equals(sourceName) ? target : binding.dialectNamed(sourceName))
                 : null;
@@ -277,13 +279,11 @@ public final class LlmClientFactory implements LlmStreamFactory
         private final LlmDialect source;
         private final LlmDialect target;
         private final boolean sameDialect;
-        private final LlmEventMapper targetEventMapper;
-        private final LlmEventMapper sourceEventMapper;
         private final boolean translateEvents;
         private final LlmModelEnvelope envelope;
         private final LlmContentEncoder requestEncoder;
-        private final ModelPipeline requestPipeline;
-        private final ModelPipeline responsePipeline;
+        private final JsonPipeline requestPipeline;
+        private final JsonPipeline responsePipeline;
         private final DirectBufferEx responseTerminator;
         private final LlmHttpClient delegate;
 
@@ -335,29 +335,79 @@ public final class LlmClientFactory implements LlmStreamFactory
             this.source = source;
             this.target = target;
             this.sameDialect = source == target;
-            this.targetEventMapper = sameDialect ? null : LlmEventMapperFactory.supply(target.name());
-            this.sourceEventMapper = sameDialect ? null : LlmEventMapperFactory.supply(source.name());
+            // A dialect pair only translates streaming response events when both sides have a genuine
+            // decode/encode pair (see LlmResponseTransformFactory) -- a third-party or test-only dialect
+            // with no such pair falls back to schema-validate-and-passthrough, exactly like a same-dialect
+            // route, rather than attempting (and failing) to stream-translate it.
+            this.translateEvents = !sameDialect &&
+                LlmResponseTransformFactory.supports(source.name()) &&
+                LlmResponseTransformFactory.supports(target.name());
             this.envelope = new LlmModelEnvelope();
             this.requestEncoder = codecs.createEncoder(requestContentType);
 
-            this.translateEvents = targetEventMapper != null && sourceEventMapper != null;
+            this.requestPipeline = requestEncoder != null ? buildRequestPipeline(source, target, sameDialect, envelope) : null;
 
-            final ModelTransform requestTransform = sameDialect
-                ? ModelTransform.NONE
-                : source.supplyDecoder(Kind.REQUEST, envelope).andThen(target.supplyEncoder(Kind.REQUEST, envelope));
-            this.requestPipeline = requestEncoder != null
-                ? binding.supplyModel(source, Kind.REQUEST).supplyDecoder(envelope, requestTransform, ModelCache.NONE)
-                : null;
-
-            final ModelTransform responseTransform = sameDialect
-                ? ModelTransform.NONE
-                : target.supplyDecoder(Kind.RESPONSE, envelope).andThen(source.supplyEncoder(Kind.RESPONSE, envelope));
-            this.responsePipeline = translateEvents
-                ? null
-                : binding.supplyModel(target, Kind.RESPONSE).supplyDecoder(envelope, responseTransform, ModelCache.NONE);
+            this.responsePipeline = translateEvents ? null : buildResponsePipeline(source, target, sameDialect, envelope);
             this.responseTerminator = translateEvents ? null : target.terminator(Kind.RESPONSE);
 
             this.delegate = new LlmHttpClient(this, routedId, resolvedId, server, requestContentType);
+        }
+
+        // Chains the source dialect's own schema validator ahead of any rename stage -- validating once,
+        // against the source's own schema only, matching this binding's existing behavior (the target's
+        // schema was never separately checked): a same-dialect route needs no rename stage at all.
+        private static JsonPipeline buildRequestPipeline(
+            LlmDialect source,
+            LlmDialect target,
+            boolean sameDialect,
+            JsonEnvelope envelope)
+        {
+            final JsonParserEx parser = JsonEx.createParser();
+            final JsonGeneratorEx generator = JsonEx.createGenerator();
+
+            JsonStream stream = JsonEx.stream(parser)
+                .envelope(envelope)
+                .transform(source.supplySchemaValidator(Kind.REQUEST));
+
+            if (!sameDialect)
+            {
+                stream = stream
+                    .transform(source.supplyDecoder(Kind.REQUEST, envelope))
+                    .transform(target.supplyEncoder(Kind.REQUEST, envelope));
+            }
+
+            return stream.into(generator);
+        }
+
+        // Built only when !translateEvents: either a genuine same-dialect route (validate-and-forward,
+        // never renamed), or a cross-dialect pair with no registered decode/encode pair of its own (e.g. a
+        // third-party or test-only dialect), which still renames field-by-field via each dialect's own
+        // supplyDecoder/supplyEncoder exactly like the request-side pipeline does -- for such a dialect
+        // this is normally an identity rename, so it reduces to schema-validate-and-passthrough in
+        // practice. Genuine cross-dialect streaming response translation (translateEvents == true) is
+        // handled entirely by LlmHttpClient's own eventPipeline (the decode/encode JsonTransform/JsonSink
+        // pair), not by a JsonPipeline built here.
+        private static JsonPipeline buildResponsePipeline(
+            LlmDialect source,
+            LlmDialect target,
+            boolean sameDialect,
+            JsonEnvelope envelope)
+        {
+            final JsonParserEx parser = JsonEx.createParser();
+            final JsonGeneratorEx generator = JsonEx.createGenerator();
+
+            JsonStream stream = JsonEx.stream(parser)
+                .envelope(envelope)
+                .transform(target.supplySchemaValidator(Kind.RESPONSE));
+
+            if (!sameDialect)
+            {
+                stream = stream
+                    .transform(target.supplyDecoder(Kind.RESPONSE, envelope))
+                    .transform(source.supplyEncoder(Kind.RESPONSE, envelope));
+            }
+
+            return stream.into(generator);
         }
 
         private int replyWindow()
@@ -495,13 +545,13 @@ public final class LlmClientFactory implements LlmStreamFactory
                 while (progress < decodeSlotOffset)
                 {
                     final boolean first = !requestStarted;
-                    final int callFlags = (first ? decodeSlotFlags & FLAG_INIT : 0) | (decodeSlotFlags & FLAG_FIN);
+                    final boolean last = (decodeSlotFlags & FLAG_FIN) != 0;
 
-                    final ModelPipelineResult result = requestPipeline.transform(traceId, routedId, authorization,
-                        callFlags, decodeBuffer, progress, decodeSlotOffset, transformBuffer, 0, transformBuffer.capacity());
-                    final ModelStatus status = result.status();
+                    final JsonPipelineResult result = requestPipeline.transform(decodeBuffer, progress, decodeSlotOffset,
+                        last, transformBuffer, 0, transformBuffer.capacity());
+                    final Status status = result.status();
 
-                    if (status == ModelStatus.REJECTED)
+                    if (status == Status.REJECTED)
                     {
                         requestPipeline.reset();
                         cleanupClient(traceId, authorization);
@@ -531,7 +581,7 @@ public final class LlmClientFactory implements LlmStreamFactory
                         }
                     }
 
-                    if (status == ModelStatus.COMPLETE)
+                    if (status == Status.COMPLETED)
                     {
                         final int flushLength = requestEncoder.encodeFlush(emptyRO.buffer(), 0, 0,
                             copyBuffer, 0, copyBuffer.capacity());
@@ -913,8 +963,17 @@ public final class LlmClientFactory implements LlmStreamFactory
         private int nativeEventLength;
         private String nativeEventName;
         private String pendingResponseEvent;
-        private final LlmCanonicalOutput canonicalOutput;
         private final LlmNativeEventOutput nativeOutput;
+
+        // Cross-dialect (translateEvents) response streaming only: a long-lived JsonPipeline chaining the
+        // source dialect's decode JsonTransform into the target dialect's encode JsonSink, built once here
+        // (rather than on the outer LlmClient) because the encode sink needs nativeOutput, which only
+        // exists once this inner class is constructed. decodeEvent/encodeTerminator are the same two
+        // objects, held as their narrower interfaces for the two calls LlmHttpClient itself needs to make
+        // directly (the native SSE event name, and the OpenAI-style out-of-band "[DONE]" bypass).
+        private final JsonPipeline eventPipeline;
+        private final LlmDialectEvent decodeEvent;
+        private final LlmDialectTerminator encodeTerminator;
 
         private LlmHttpClient(
             LlmClient client,
@@ -932,68 +991,26 @@ public final class LlmClientFactory implements LlmStreamFactory
             this.requestContentType = requestContentType;
             this.nativeEventBuffer = new UnsafeBufferEx(new byte[decodeMax]);
             this.nativeOutput = this::onNativeEvent;
-            this.canonicalOutput = new LlmCanonicalOutput()
+
+            if (client.translateEvents)
             {
-                @Override
-                public void messageStart(
-                    int choiceIndex,
-                    String id,
-                    String model,
-                    String role)
-                {
-                    client.sourceEventMapper.encodeMessageStart(choiceIndex, id, model, role, nativeOutput);
-                }
-
-                @Override
-                public void blockStart(
-                    int choiceIndex,
-                    int blockId,
-                    LlmCanonicalBlockKind type,
-                    String toolId,
-                    String toolName)
-                {
-                    client.sourceEventMapper.encodeBlockStart(choiceIndex, blockId, type, toolId, toolName, nativeOutput);
-                }
-
-                @Override
-                public void data(
-                    DirectBuffer buffer,
-                    int offset,
-                    int length)
-                {
-                    client.sourceEventMapper.encode(buffer, offset, length, nativeOutput);
-                }
-
-                @Override
-                public void blockEnd(
-                    int choiceIndex,
-                    int blockId)
-                {
-                    client.sourceEventMapper.encodeBlockEnd(choiceIndex, blockId, nativeOutput);
-                }
-
-                @Override
-                public void finish(
-                    int choiceIndex,
-                    LlmCanonicalFinishReason reason)
-                {
-                    client.sourceEventMapper.encodeFinish(choiceIndex, reason, nativeOutput);
-                }
-
-                @Override
-                public void usage(
-                    int inputTokens,
-                    int outputTokens)
-                {
-                    client.sourceEventMapper.encodeUsage(inputTokens, outputTokens, nativeOutput);
-                }
-
-                @Override
-                public void end()
-                {
-                    client.sourceEventMapper.encodeEnd(nativeOutput);
-                }
-            };
+                // Decodes the native bytes the upstream (target) API actually sends over net, encoding to
+                // the native shape the app-facing (source) side expects -- matching client.responsePipeline's
+                // own target.supplyDecoder(...)/source.supplyEncoder(...) direction for the same-dialect case.
+                final JsonTransform decodeTransform = LlmResponseTransformFactory.supplyDecodeTransform(client.target.name());
+                final JsonSink encodeSink = LlmResponseTransformFactory.supplyEncodeSink(client.source.name(), nativeOutput);
+                this.eventPipeline = decodeTransform != null && encodeSink != null
+                    ? JsonEx.stream(JsonEx.createParser()).transform(decodeTransform).into(encodeSink)
+                    : null;
+                this.decodeEvent = (LlmDialectEvent) decodeTransform;
+                this.encodeTerminator = (LlmDialectTerminator) encodeSink;
+            }
+            else
+            {
+                this.eventPipeline = null;
+                this.decodeEvent = null;
+                this.encodeTerminator = null;
+            }
         }
 
         private int initialWindow()
@@ -1386,13 +1403,11 @@ public final class LlmClientFactory implements LlmStreamFactory
 
             if (progress < limit)
             {
-                final int flags = responseStarted ? 0 : FLAG_INIT;
+                final JsonPipelineResult result = client.responsePipeline.transform(buffer, offset, limit, false,
+                    transformBuffer, 0, transformBuffer.capacity());
+                final Status status = result.status();
 
-                final ModelPipelineResult result = client.responsePipeline.transform(decodeTraceId, routedId,
-                    decodeAuthorization, flags, buffer, offset, limit, transformBuffer, 0, transformBuffer.capacity());
-                final ModelStatus status = result.status();
-
-                if (status == ModelStatus.REJECTED)
+                if (status == Status.REJECTED)
                 {
                     client.responsePipeline.reset();
                     cleanupNet(decodeTraceId, decodeAuthorization);
@@ -1403,7 +1418,7 @@ public final class LlmClientFactory implements LlmStreamFactory
                     responseStarted = true;
 
                     final int producedLength = result.produced();
-                    final boolean complete = status == ModelStatus.COMPLETE;
+                    final boolean complete = status == Status.COMPLETED;
                     if (producedLength > 0 || complete)
                     {
                         client.doAppData(decodeTraceId, decodeAuthorization, null, complete, transformBuffer, 0,
@@ -1412,7 +1427,6 @@ public final class LlmClientFactory implements LlmStreamFactory
 
                     if (complete)
                     {
-                        client.responsePipeline.reset();
                         responseStarted = false;
                     }
 
@@ -1495,16 +1509,15 @@ public final class LlmClientFactory implements LlmStreamFactory
 
         private void translateNativeEvent()
         {
-            String data = nativeEventBuffer.getStringWithoutLengthUtf8(0, nativeEventLength);
-
             if (streaming)
             {
-                client.targetEventMapper.decode(nativeEventName, data, canonicalOutput);
+                translateNativeStreamEvent();
             }
             else
             {
-                JsonObject canonical = client.targetEventMapper.decodeMessage(data);
-                String encoded = client.sourceEventMapper.encodeMessage(canonical);
+                String data = nativeEventBuffer.getStringWithoutLengthUtf8(0, nativeEventLength);
+                JsonObject canonical = client.target.decodeMessage(data);
+                String encoded = client.source.encodeMessage(canonical);
                 byte[] bytes = encoded.getBytes(UTF_8);
                 copyBuffer.putBytes(0, bytes);
                 onNativeEvent(null, copyBuffer, 0, bytes.length);
@@ -1512,6 +1525,40 @@ public final class LlmClientFactory implements LlmStreamFactory
 
             nativeEventName = null;
             nativeEventLength = 0;
+        }
+
+        // OpenAI's literal "[DONE]" sentinel is not JSON and never reaches eventPipeline -- checked here,
+        // before the pipeline is ever invoked for this chunk, exactly as the dialect's own terminator()
+        // contract intends. Each native chunk is a separate, complete input value from the parser's own
+        // perspective; nextDocument() (never reset(), which would wipe the decode/encode stages' own
+        // cross-chunk state -- see LlmCanonicalEmitter/LlmCanonicalEncodeSink) advances eventPipeline from
+        // one native chunk to the next within this same response stream.
+        private void translateNativeStreamEvent()
+        {
+            if (matchesTerminator(nativeEventBuffer, 0, nativeEventLength, client.target.terminator(Kind.RESPONSE)))
+            {
+                encodeTerminator.terminate();
+            }
+            else
+            {
+                decodeEvent.event(nativeEventName);
+
+                Status status = eventPipeline.transform(nativeEventBuffer, 0, nativeEventLength, true);
+                while (status == Status.SUSPENDED)
+                {
+                    status = eventPipeline.transform(nativeEventBuffer, 0, nativeEventLength, true);
+                }
+
+                if (status == Status.REJECTED)
+                {
+                    eventPipeline.reset();
+                    cleanupNet(decodeTraceId, decodeAuthorization);
+                }
+                else
+                {
+                    eventPipeline.nextDocument();
+                }
+            }
         }
 
         private void onNativeEvent(
@@ -1526,9 +1573,9 @@ public final class LlmClientFactory implements LlmStreamFactory
         private boolean matchesTerminator(
             DirectBuffer buffer,
             int offset,
-            int length)
+            int length,
+            DirectBufferEx terminator)
         {
-            final DirectBufferEx terminator = client.responseTerminator;
             boolean matches = terminator != null;
             if (matches)
             {
@@ -1538,6 +1585,9 @@ public final class LlmClientFactory implements LlmStreamFactory
             return matches;
         }
 
+        // Each native chunk is a separate, complete input value from the parser's own perspective;
+        // nextDocument() (never reset(), which would wipe the schema validator's own state) advances
+        // client.responsePipeline from one native chunk to the next within this same response stream.
         private void forwardResponseContent(
             String event,
             DirectBuffer buffer,
@@ -1546,20 +1596,18 @@ public final class LlmClientFactory implements LlmStreamFactory
         {
             if (length > 0)
             {
-                if (matchesTerminator(buffer, offset, length))
+                if (matchesTerminator(buffer, offset, length, client.responseTerminator))
                 {
                     client.doAppData(decodeTraceId, decodeAuthorization, event, true, buffer, offset, length);
                 }
                 else
                 {
-                    final ModelPipeline pipeline = client.responsePipeline;
-                    final int flags = FLAG_INIT | FLAG_FIN;
+                    final JsonPipeline pipeline = client.responsePipeline;
 
-                    final ModelPipelineResult result = pipeline.transform(decodeTraceId, routedId, decodeAuthorization,
-                        flags, (DirectBufferEx) buffer, offset, offset + length, transformBuffer, 0,
-                        transformBuffer.capacity());
+                    final JsonPipelineResult result = pipeline.transform((DirectBufferEx) buffer, offset, offset + length,
+                        true, transformBuffer, 0, transformBuffer.capacity());
 
-                    if (result.status() == ModelStatus.REJECTED)
+                    if (result.status() == Status.REJECTED)
                     {
                         pipeline.reset();
                         cleanupNet(decodeTraceId, decodeAuthorization);
@@ -1573,9 +1621,9 @@ public final class LlmClientFactory implements LlmStreamFactory
                                 producedLength);
                         }
 
-                        if (result.status() == ModelStatus.COMPLETE)
+                        if (result.status() == Status.COMPLETED)
                         {
-                            pipeline.reset();
+                            pipeline.nextDocument();
                         }
                     }
                 }
@@ -1704,6 +1752,10 @@ public final class LlmClientFactory implements LlmStreamFactory
             if (client.responsePipeline != null)
             {
                 client.responsePipeline.reset();
+            }
+            if (eventPipeline != null)
+            {
+                eventPipeline.reset();
             }
             responseStarted = false;
         }
