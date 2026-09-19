@@ -13,13 +13,17 @@
 # specific language governing permissions and limitations under the License.
 #
 
-connect "zilla://streams/app0"
+property clientAddress "zilla://streams/app0"
+property model "gpt-b"
+
+connect ${clientAddress}
         option zilla:window 8192
         option zilla:transmission "half-duplex"
 
 write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
                            .dialect("anthropic")
+                           .model(model)
                            .build()}
 
 connected

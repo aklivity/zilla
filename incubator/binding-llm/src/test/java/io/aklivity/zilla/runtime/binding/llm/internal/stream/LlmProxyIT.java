@@ -60,8 +60,9 @@ public class LlmProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Specification({
-        "${net}/proxy.route.openai.10k/client",
+        "${app}/openai.10k/client",
         "${app}/openai.10k/server"})
+    @ScriptProperty("clientAddress \"zilla://streams/net0\"")
     public void shouldRouteOpenai10kToAppZero() throws Exception
     {
         k3po.finish();
@@ -70,9 +71,9 @@ public class LlmProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Specification({
-        "${net}/proxy.route.anthropic.10k/client",
+        "${app}/anthropic.10k/client",
         "${app}/anthropic.10k/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @ScriptProperty({ "clientAddress \"zilla://streams/net0\"", "serverAddress \"zilla://streams/app1\"" })
     public void shouldRouteAnthropic10kToAppOne() throws Exception
     {
         k3po.finish();
@@ -81,8 +82,9 @@ public class LlmProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Specification({
-        "${net}/proxy.route.openai.100k/client",
+        "${app}/openai.100k/client",
         "${app}/openai.100k/server"})
+    @ScriptProperty("clientAddress \"zilla://streams/net0\"")
     public void shouldRouteOpenai100kToAppZero() throws Exception
     {
         k3po.finish();
@@ -91,9 +93,9 @@ public class LlmProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Specification({
-        "${net}/proxy.route.anthropic.100k/client",
+        "${app}/anthropic.100k/client",
         "${app}/anthropic.100k/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @ScriptProperty({ "clientAddress \"zilla://streams/net0\"", "serverAddress \"zilla://streams/app1\"" })
     public void shouldRouteAnthropic100kToAppOne() throws Exception
     {
         k3po.finish();
