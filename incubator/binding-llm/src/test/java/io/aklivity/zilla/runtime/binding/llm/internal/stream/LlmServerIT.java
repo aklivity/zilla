@@ -182,7 +182,7 @@ public class LlmServerIT
     @Configuration("server.guarded.yaml")
     @Specification({
         "${net}/openai.request.guarded/client",
-        "${app}/server.openai.request.guarded/server"})
+        "${app}/openai.request.guarded.forwarded/server"})
     public void shouldForwardOpenaiRequestGuarded() throws Exception
     {
         k3po.finish();
@@ -192,7 +192,7 @@ public class LlmServerIT
     @Configuration("server.guarded.yaml")
     @Specification({
         "${net}/anthropic.request.guarded/client",
-        "${app}/server.anthropic.request.guarded/server"})
+        "${app}/anthropic.request.guarded.forwarded/server"})
     public void shouldForwardAnthropicRequestGuarded() throws Exception
     {
         k3po.finish();

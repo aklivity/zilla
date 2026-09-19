@@ -56,8 +56,8 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/client.opaque.fallback/client",
-        "${net}/client.opaque.fallback/server"})
+        "${net}/opaque.fallback/client",
+        "${net}/opaque.fallback/server"})
     public void shouldForwardClientOpaqueFallback() throws Exception
     {
         k3po.finish();
@@ -65,8 +65,8 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/client.abort/client",
-        "${net}/client.abort/server"})
+        "${net}/abort/client",
+        "${net}/abort/server"})
     public void shouldAbortClientRequest() throws Exception
     {
         k3po.finish();

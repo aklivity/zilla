@@ -50,8 +50,8 @@ public class LlmClientIT
     @Test
     @Configuration("client.opaque.yaml")
     @Specification({
-        "${app}/client.opaque.fallback/client",
-        "${net}/client.opaque.fallback/server"})
+        "${app}/opaque.fallback/client",
+        "${net}/opaque.fallback/server"})
     public void shouldForwardClientOpaqueFallback() throws Exception
     {
         k3po.finish();
@@ -60,8 +60,8 @@ public class LlmClientIT
     @Test
     @Configuration("client.openai.yaml")
     @Specification({
-        "${app}/client.abort/client",
-        "${net}/client.abort/server"})
+        "${app}/abort/client",
+        "${net}/abort/server"})
     public void shouldAbortClientRequest() throws Exception
     {
         k3po.finish();

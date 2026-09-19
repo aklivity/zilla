@@ -38,8 +38,8 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/client.opaque.fallback/client",
-        "${app}/client.opaque.fallback/server"})
+        "${app}/opaque.fallback/client",
+        "${app}/opaque.fallback/server"})
     public void shouldForwardClientOpaqueFallback() throws Exception
     {
         k3po.finish();
@@ -47,8 +47,8 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/client.abort/client",
-        "${app}/client.abort/server"})
+        "${app}/abort/client",
+        "${app}/abort/server"})
     public void shouldAbortClientRequest() throws Exception
     {
         k3po.finish();
@@ -137,8 +137,8 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/server.openai.request.guarded/client",
-        "${app}/server.openai.request.guarded/server"})
+        "${app}/openai.request.guarded.forwarded/client",
+        "${app}/openai.request.guarded.forwarded/server"})
     public void shouldForwardOpenaiRequestGuardedFromServer() throws Exception
     {
         k3po.finish();
@@ -146,8 +146,8 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/server.anthropic.request.guarded/client",
-        "${app}/server.anthropic.request.guarded/server"})
+        "${app}/anthropic.request.guarded.forwarded/client",
+        "${app}/anthropic.request.guarded.forwarded/server"})
     public void shouldForwardAnthropicRequestGuardedFromServer() throws Exception
     {
         k3po.finish();
