@@ -16,14 +16,13 @@ package io.aklivity.zilla.runtime.binding.llm.dialect;
 
 import java.net.URL;
 
+import jakarta.json.Json;
+import jakarta.json.JsonObject;
+
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
-import io.aklivity.zilla.runtime.engine.model.ModelController;
-import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
-import io.aklivity.zilla.runtime.engine.model.ModelEvent;
-import io.aklivity.zilla.runtime.engine.model.ModelSink;
-import io.aklivity.zilla.runtime.engine.model.ModelSource;
-import io.aklivity.zilla.runtime.engine.model.ModelStatus;
-import io.aklivity.zilla.runtime.engine.model.ModelTransform;
+import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
+import io.aklivity.zilla.runtime.common.json.JsonSchema;
+import io.aklivity.zilla.runtime.common.json.JsonTransform;
 
 /**
  * A second test-only dialect, distinct from {@link LlmTestClientSseDialect} only by {@link #name()}, so an
@@ -34,6 +33,13 @@ import io.aklivity.zilla.runtime.engine.model.ModelTransform;
  */
 public final class LlmTestClientSseAltDialect implements LlmDialect
 {
+    private final JsonTransform schemaValidator;
+
+    public LlmTestClientSseAltDialect()
+    {
+        this.schemaValidator = JsonSchema.of(LlmTestClientSseDialect.readResource(schemaResource())).validator();
+    }
+
     @Override
     public String name()
     {
@@ -42,33 +48,40 @@ public final class LlmTestClientSseAltDialect implements LlmDialect
 
     @Override
     public boolean detect(
-        ModelEnvelope headers)
+        JsonEnvelope headers)
     {
         return false;
     }
 
     @Override
-    public ModelTransform supplyDecoder(
+    public JsonTransform supplyDecoder(
         Kind kind,
-        ModelEnvelope envelope)
+        JsonEnvelope envelope)
     {
-        return IdentityTransform.INSTANCE;
+        return LlmDialectTransforms.identity();
     }
 
     @Override
-    public ModelTransform supplyValidator(
+    public JsonTransform supplyValidator(
         Kind kind,
-        ModelEnvelope envelope)
+        JsonEnvelope envelope)
     {
         return supplyDecoder(kind, envelope);
     }
 
     @Override
-    public ModelTransform supplyEncoder(
+    public JsonTransform supplyEncoder(
         Kind kind,
-        ModelEnvelope envelope)
+        JsonEnvelope envelope)
     {
-        return IdentityTransform.INSTANCE;
+        return LlmDialectTransforms.identity();
+    }
+
+    @Override
+    public JsonTransform supplySchemaValidator(
+        Kind kind)
+    {
+        return schemaValidator;
     }
 
     @Override
@@ -78,29 +91,22 @@ public final class LlmTestClientSseAltDialect implements LlmDialect
         return null;
     }
 
+    @Override
+    public JsonObject decodeMessage(
+        String data)
+    {
+        return Json.createObjectBuilder().build();
+    }
+
+    @Override
+    public String encodeMessage(
+        JsonObject message)
+    {
+        return "{}";
+    }
+
     static URL schemaResource()
     {
         return LlmTestClientSseAltDialect.class.getResource("test.client.sse.schema.json");
-    }
-
-    private static final class IdentityTransform implements ModelTransform
-    {
-        private static final IdentityTransform INSTANCE = new IdentityTransform();
-
-        @Override
-        public ModelStatus transform(
-            ModelController control,
-            ModelSource source,
-            ModelEvent event,
-            ModelSink sink)
-        {
-            return sink.transform(control, source, event);
-        }
-
-        @Override
-        public boolean identity()
-        {
-            return true;
-        }
     }
 }

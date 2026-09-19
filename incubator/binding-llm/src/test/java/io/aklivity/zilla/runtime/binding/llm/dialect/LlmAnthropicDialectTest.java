@@ -23,7 +23,6 @@ import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
-import static org.hamcrest.Matchers.sameInstance;
 
 import java.util.Map;
 import java.util.ServiceLoader;
@@ -33,8 +32,7 @@ import org.junit.Test;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
-import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
-import io.aklivity.zilla.runtime.engine.model.ModelTransform;
+import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
 
 public class LlmAnthropicDialectTest
 {
@@ -96,7 +94,7 @@ public class LlmAnthropicDialectTest
     {
         LlmDialect dialect = new LlmAnthropicDialect();
 
-        TestModelEnvelope envelope = new TestModelEnvelope();
+        TestJsonEnvelope envelope = new TestJsonEnvelope();
         envelope.set(":method", value("POST"));
         envelope.set(":path", value("/v1/embeddings"));
         envelope.set("anthropic-version", value("2023-06-01"));
@@ -109,7 +107,7 @@ public class LlmAnthropicDialectTest
     {
         LlmDialect dialect = new LlmAnthropicDialect();
 
-        TestModelEnvelope envelope = new TestModelEnvelope();
+        TestJsonEnvelope envelope = new TestJsonEnvelope();
         envelope.set(":method", value("POST"));
         envelope.set(":path", value("/v1/embeddings"));
         envelope.set("x-api-key", value("sk-ant-test"));
@@ -122,7 +120,7 @@ public class LlmAnthropicDialectTest
     {
         LlmDialect dialect = new LlmAnthropicDialect();
 
-        TestModelEnvelope envelope = new TestModelEnvelope();
+        TestJsonEnvelope envelope = new TestJsonEnvelope();
         envelope.set(":method", value("POST"));
         envelope.set(":path", value("/v1/embeddings"));
         envelope.set("x-api-key", value("sk-ant-test"));
@@ -136,7 +134,7 @@ public class LlmAnthropicDialectTest
     {
         LlmDialect dialect = new LlmAnthropicDialect();
 
-        assertThat(dialect.detect(ModelEnvelope.NONE), is(false));
+        assertThat(dialect.detect(JsonEnvelope.NONE), is(false));
     }
 
     @Test
@@ -146,11 +144,14 @@ public class LlmAnthropicDialectTest
 
         for (LlmDialect.Kind kind : LlmDialect.Kind.values())
         {
-            assertThat(dialect.supplyDecoder(kind, ModelEnvelope.NONE), not(nullValue()));
-            assertThat(dialect.supplyEncoder(kind, ModelEnvelope.NONE), not(nullValue()));
-            assertThat(dialect.supplyDecoder(kind, ModelEnvelope.NONE).identity(), is(false));
-            assertThat(dialect.supplyEncoder(kind, ModelEnvelope.NONE).identity(), is(false));
+            assertThat(dialect.supplyDecoder(kind, JsonEnvelope.NONE), not(nullValue()));
+            assertThat(dialect.supplyEncoder(kind, JsonEnvelope.NONE), not(nullValue()));
         }
+
+        assertThat(dialect.supplyDecoder(LlmDialect.Kind.REQUEST, JsonEnvelope.NONE).identity(), is(false));
+        assertThat(dialect.supplyEncoder(LlmDialect.Kind.REQUEST, JsonEnvelope.NONE).identity(), is(false));
+        assertThat(dialect.supplyDecoder(LlmDialect.Kind.RESPONSE, JsonEnvelope.NONE).identity(), is(true));
+        assertThat(dialect.supplyEncoder(LlmDialect.Kind.RESPONSE, JsonEnvelope.NONE).identity(), is(true));
     }
 
     @Test
@@ -158,16 +159,25 @@ public class LlmAnthropicDialectTest
     {
         LlmDialect dialect = new LlmAnthropicDialect();
 
-        assertThat(dialect.supplyValidator(LlmDialect.Kind.REQUEST, ModelEnvelope.NONE), not(nullValue()));
-        assertThat(dialect.supplyValidator(LlmDialect.Kind.REQUEST, ModelEnvelope.NONE).identity(), is(true));
-        assertThat(dialect.supplyValidator(LlmDialect.Kind.RESPONSE, ModelEnvelope.NONE), sameInstance(ModelTransform.NONE));
+        assertThat(dialect.supplyValidator(LlmDialect.Kind.REQUEST, JsonEnvelope.NONE), not(nullValue()));
+        assertThat(dialect.supplyValidator(LlmDialect.Kind.REQUEST, JsonEnvelope.NONE).identity(), is(true));
+        assertThat(dialect.supplyValidator(LlmDialect.Kind.RESPONSE, JsonEnvelope.NONE).identity(), is(true));
     }
 
-    private static ModelEnvelope headers(
+    @Test
+    public void shouldSupplySchemaValidatorForBothKinds()
+    {
+        LlmDialect dialect = new LlmAnthropicDialect();
+
+        assertThat(dialect.supplySchemaValidator(LlmDialect.Kind.REQUEST), not(nullValue()));
+        assertThat(dialect.supplySchemaValidator(LlmDialect.Kind.RESPONSE), not(nullValue()));
+    }
+
+    private static JsonEnvelope headers(
         String method,
         String path)
     {
-        TestModelEnvelope envelope = new TestModelEnvelope();
+        TestJsonEnvelope envelope = new TestJsonEnvelope();
         envelope.set(":method", value(method));
         envelope.set(":path", value(path));
         return envelope;

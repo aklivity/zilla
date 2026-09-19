@@ -17,111 +17,93 @@ package io.aklivity.zilla.runtime.binding.llm.dialect;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.io.StringReader;
+
+import jakarta.json.Json;
+import jakarta.json.JsonObject;
+import jakarta.json.JsonReader;
 
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
-import io.aklivity.zilla.runtime.engine.model.ModelController;
-import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
-import io.aklivity.zilla.runtime.engine.model.ModelEvent;
-import io.aklivity.zilla.runtime.engine.model.ModelSink;
-import io.aklivity.zilla.runtime.engine.model.ModelSource;
-import io.aklivity.zilla.runtime.engine.model.ModelStatus;
-import io.aklivity.zilla.runtime.engine.model.ModelTransform;
+import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
+import io.aklivity.zilla.runtime.common.json.JsonEx;
+import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
+import io.aklivity.zilla.runtime.common.json.JsonParserEx;
+import io.aklivity.zilla.runtime.common.json.JsonPipeline;
+import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
+import io.aklivity.zilla.runtime.common.json.JsonPipelineResult;
+import io.aklivity.zilla.runtime.common.json.JsonTransform;
 
 public class LlmAnthropicRequestTransformTest
 {
-    private static final ModelController NO_CONTROL = new ModelController()
-    {
-        @Override
-        public long authorization()
-        {
-            return 0L;
-        }
-
-        @Override
-        public void reject(
-            String diagnostic)
-        {
-        }
-    };
-
     @Test
     public void shouldRenameEachKnownFieldToCanonical()
     {
-        Recorder recorder = new Recorder();
-        ModelTransform decoder = new LlmAnthropicRequestTransform(true, ModelEnvelope.NONE);
+        JsonTransform decoder = new LlmAnthropicRequestTransform(true, JsonEnvelope.NONE);
 
-        feed(decoder, recorder, "$.max_tokens", "256");
-        feed(decoder, recorder, "$.top_p", "0.9");
-        feed(decoder, recorder, "$.tool_choice", "auto");
+        JsonObject result = transform(decoder, JsonEnvelope.NONE,
+            "{\"max_tokens\":256,\"top_p\":0.9,\"tool_choice\":\"auto\"}");
 
-        assertThat(recorder.events, equalTo(List.of(
-            "$.maxOutputTokens=256",
-            "$.topP=0.9",
-            "$.toolChoice=auto")));
+        assertThat(result.getInt("maxOutputTokens"), equalTo(256));
+        assertThat(result.getJsonNumber("topP").doubleValue(), equalTo(0.9));
+        assertThat(result.getString("toolChoice"), equalTo("auto"));
     }
 
     @Test
     public void shouldRenameEachKnownFieldToNative()
     {
-        Recorder recorder = new Recorder();
-        ModelTransform encoder = new LlmAnthropicRequestTransform(false, ModelEnvelope.NONE);
+        JsonTransform encoder = new LlmAnthropicRequestTransform(false, JsonEnvelope.NONE);
 
-        feed(encoder, recorder, "$.maxOutputTokens", "256");
-        feed(encoder, recorder, "$.topP", "0.9");
-        feed(encoder, recorder, "$.toolChoice", "auto");
+        JsonObject result = transform(encoder, JsonEnvelope.NONE,
+            "{\"maxOutputTokens\":256,\"topP\":0.9,\"toolChoice\":\"auto\"}");
 
-        assertThat(recorder.events, equalTo(List.of(
-            "$.max_tokens=256",
-            "$.top_p=0.9",
-            "$.tool_choice=auto")));
+        assertThat(result.getInt("max_tokens"), equalTo(256));
+        assertThat(result.getJsonNumber("top_p").doubleValue(), equalTo(0.9));
+        assertThat(result.getString("tool_choice"), equalTo("auto"));
     }
 
     @Test
     public void shouldForwardUnknownFieldUnchanged()
     {
-        Recorder recorder = new Recorder();
-        ModelTransform decoder = new LlmAnthropicRequestTransform(true, ModelEnvelope.NONE);
+        JsonTransform decoder = new LlmAnthropicRequestTransform(true, JsonEnvelope.NONE);
 
-        feed(decoder, recorder, "$.model", "claude-3-opus-20240229");
-        feed(decoder, recorder, "$.stream", "true");
-        feed(decoder, recorder, "$.top_k", "40");
-        feed(decoder, recorder, "$.stop_sequences", "END");
+        JsonObject result = transform(decoder, JsonEnvelope.NONE,
+            "{\"model\":\"claude-3-opus-20240229\",\"stream\":true,\"top_k\":40,\"stop_sequences\":\"END\"}");
 
-        assertThat(recorder.events, equalTo(List.of(
-            "$.model=claude-3-opus-20240229",
-            "$.stream=true",
-            "$.top_k=40",
-            "$.stop_sequences=END")));
+        assertThat(result.getString("model"), equalTo("claude-3-opus-20240229"));
+        assertThat(result.getBoolean("stream"), is(true));
+        assertThat(result.getInt("top_k"), equalTo(40));
+        assertThat(result.getString("stop_sequences"), equalTo("END"));
     }
 
     @Test
     public void shouldNotRenameNestedFieldResemblingTopLevelName()
     {
-        Recorder recorder = new Recorder();
-        ModelTransform decoder = new LlmAnthropicRequestTransform(true, ModelEnvelope.NONE);
+        JsonTransform decoder = new LlmAnthropicRequestTransform(true, JsonEnvelope.NONE);
 
-        feed(decoder, recorder, "$.tools[0].input_schema.properties.max_tokens", "1");
+        JsonObject result = transform(decoder, JsonEnvelope.NONE,
+            "{\"tools\":[{\"input_schema\":{\"properties\":{\"max_tokens\":1}}}]}");
 
-        assertThat(recorder.events, equalTo(List.of("$.tools[0].input_schema.properties.max_tokens=1")));
+        JsonObject properties = result.getJsonArray("tools").getJsonObject(0)
+            .getJsonObject("input_schema").getJsonObject("properties");
+        assertThat(properties.getInt("max_tokens"), equalTo(1));
+        assertThat(properties.containsKey("maxOutputTokens"), is(false));
     }
 
     @Test
     public void shouldExtractModelIntoEnvelope()
     {
-        Recorder recorder = new Recorder();
-        TestModelEnvelope envelope = new TestModelEnvelope();
-        ModelTransform decoder = new LlmAnthropicRequestTransform(true, envelope);
+        TestJsonEnvelope envelope = new TestJsonEnvelope();
+        JsonTransform decoder = new LlmAnthropicRequestTransform(true, envelope);
 
-        feed(decoder, recorder, "$.model", "claude-3-opus-20240229");
+        transform(decoder, envelope, "{\"model\":\"claude-3-opus-20240229\"}");
 
-        assertThat(recorder.events, equalTo(List.of("$.model=claude-3-opus-20240229")));
         DirectBufferEx extracted = envelope.get("model", 0);
         assertThat(extracted.getStringWithoutLengthUtf8(0, extracted.capacity()), equalTo("claude-3-opus-20240229"));
     }
@@ -129,11 +111,11 @@ public class LlmAnthropicRequestTransformTest
     @Test
     public void shouldNotExtractNestedFieldNamedModel()
     {
-        Recorder recorder = new Recorder();
-        TestModelEnvelope envelope = new TestModelEnvelope();
-        ModelTransform decoder = new LlmAnthropicRequestTransform(true, envelope);
+        TestJsonEnvelope envelope = new TestJsonEnvelope();
+        JsonTransform decoder = new LlmAnthropicRequestTransform(true, envelope);
 
-        feed(decoder, recorder, "$.tools[0].input_schema.properties.model", "should-not-be-extracted");
+        transform(decoder, envelope,
+            "{\"tools\":[{\"input_schema\":{\"properties\":{\"model\":\"should-not-be-extracted\"}}}]}");
 
         assertThat(envelope.get("model", 0), nullValue());
     }
@@ -141,95 +123,42 @@ public class LlmAnthropicRequestTransformTest
     @Test
     public void shouldRoundTripKnownFieldsThroughCanonicalFormWithNoLoss()
     {
-        List<String[]> nativeFields = List.of(
-            new String[] { "$.max_tokens", "1024" },
-            new String[] { "$.top_p", "0.95" },
-            new String[] { "$.tool_choice", "auto" },
-            new String[] { "$.model", "claude-3-opus-20240229" },
-            new String[] { "$.stream", "true" },
-            new String[] { "$.top_k", "40" });
+        JsonTransform decoder = new LlmAnthropicRequestTransform(true, JsonEnvelope.NONE);
+        JsonObject canonical = transform(decoder, JsonEnvelope.NONE,
+            "{\"max_tokens\":1024,\"top_p\":0.95,\"tool_choice\":\"auto\"," +
+            "\"model\":\"claude-3-opus-20240229\",\"stream\":true,\"top_k\":40}");
 
-        Recorder canonical = new Recorder();
-        ModelTransform decoder = new LlmAnthropicRequestTransform(true, ModelEnvelope.NONE);
-        for (String[] field : nativeFields)
-        {
-            feed(decoder, canonical, field[0], field[1]);
-        }
+        JsonTransform encoder = new LlmAnthropicRequestTransform(false, JsonEnvelope.NONE);
+        JsonObject roundTripped = transform(encoder, JsonEnvelope.NONE, canonical.toString());
 
-        Recorder roundTripped = new Recorder();
-        ModelTransform encoder = new LlmAnthropicRequestTransform(false, ModelEnvelope.NONE);
-        for (String event : canonical.events)
-        {
-            int separator = event.indexOf('=');
-            feed(encoder, roundTripped, event.substring(0, separator), event.substring(separator + 1));
-        }
-
-        List<String> original = nativeFields.stream()
-            .map(field -> field[0] + "=" + field[1])
-            .toList();
-        assertThat(roundTripped.events, equalTo(original));
+        assertThat(roundTripped.getInt("max_tokens"), equalTo(1024));
+        assertThat(roundTripped.getJsonNumber("top_p").doubleValue(), equalTo(0.95));
+        assertThat(roundTripped.getString("tool_choice"), equalTo("auto"));
+        assertThat(roundTripped.getString("model"), equalTo("claude-3-opus-20240229"));
+        assertThat(roundTripped.getBoolean("stream"), is(true));
+        assertThat(roundTripped.getInt("top_k"), equalTo(40));
     }
 
-    private static void feed(
-        ModelTransform transform,
-        ModelSink sink,
-        String path,
-        String value)
+    private static JsonObject transform(
+        JsonTransform transform,
+        JsonEnvelope envelope,
+        String json)
     {
-        transform.transform(NO_CONTROL, new Field(path, value), ModelEvent.FIELD, sink);
-    }
+        JsonParserEx parser = JsonEx.createParser();
+        JsonGeneratorEx generator = JsonEx.createGenerator();
+        JsonPipeline pipeline = JsonEx.stream(parser).envelope(envelope).transform(transform).into(generator);
 
-    private static String text(
-        ModelSource source)
-    {
-        DirectBufferEx value = source.getValue();
-        return value.getStringWithoutLengthUtf8(0, value.capacity());
-    }
+        byte[] bytes = json.getBytes(UTF_8);
+        MutableDirectBufferEx output = new UnsafeBufferEx(new byte[8192]);
+        JsonPipelineResult result = pipeline.transform(new UnsafeBufferEx(bytes), 0, bytes.length, true, output, 0,
+            output.capacity());
 
-    private static final class Field implements ModelSource
-    {
-        private final String path;
-        private final DirectBufferEx value;
+        assertThat(result.status(), equalTo(Status.COMPLETED));
 
-        private Field(
-            String path,
-            String value)
+        String text = output.getStringWithoutLengthUtf8(0, result.produced());
+        try (JsonReader reader = Json.createReader(new StringReader(text)))
         {
-            this.path = path;
-            this.value = new UnsafeBufferEx(value.getBytes(UTF_8));
-        }
-
-        @Override
-        public String getPath()
-        {
-            return path;
-        }
-
-        @Override
-        public DirectBufferEx getValue()
-        {
-            return value;
-        }
-    }
-
-    private static final class Recorder implements ModelSink
-    {
-        private final List<String> events = new ArrayList<>();
-
-        @Override
-        public ModelStatus transform(
-            ModelController control,
-            ModelSource source,
-            ModelEvent event)
-        {
-            events.add(source.getPath() + "=" + text(source));
-            return ModelStatus.OK;
-        }
-
-        @Override
-        public boolean identity()
-        {
-            return false;
+            return reader.readObject();
         }
     }
 }

@@ -14,14 +14,18 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.dialect;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
+import jakarta.json.Json;
+import jakarta.json.JsonObject;
+
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
-import io.aklivity.zilla.runtime.engine.model.ModelController;
-import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
-import io.aklivity.zilla.runtime.engine.model.ModelEvent;
-import io.aklivity.zilla.runtime.engine.model.ModelSink;
-import io.aklivity.zilla.runtime.engine.model.ModelSource;
-import io.aklivity.zilla.runtime.engine.model.ModelStatus;
-import io.aklivity.zilla.runtime.engine.model.ModelTransform;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
+import io.aklivity.zilla.runtime.common.json.JsonEvent;
+import io.aklivity.zilla.runtime.common.json.JsonSchema;
+import io.aklivity.zilla.runtime.common.json.JsonSource;
+import io.aklivity.zilla.runtime.common.json.JsonTransform;
 
 public final class LlmTestConditionalDialect implements LlmDialect
 {
@@ -30,8 +34,9 @@ public final class LlmTestConditionalDialect implements LlmDialect
     private static final String METHOD_POST = "POST";
     private static final String PATH_TEST = "/v1/test";
 
-    private static final String MODEL_PATH = "$.model";
     private static final String MODEL_NAME = "model";
+
+    private static final JsonTransform PERMISSIVE_SCHEMA = JsonSchema.of("{}").validator();
 
     @Override
     public String name()
@@ -41,33 +46,40 @@ public final class LlmTestConditionalDialect implements LlmDialect
 
     @Override
     public boolean detect(
-        ModelEnvelope headers)
+        JsonEnvelope headers)
     {
         return METHOD_POST.equals(header(headers, HEADER_METHOD)) && PATH_TEST.equals(header(headers, HEADER_PATH));
     }
 
     @Override
-    public ModelTransform supplyDecoder(
+    public JsonTransform supplyDecoder(
         Kind kind,
-        ModelEnvelope envelope)
+        JsonEnvelope envelope)
     {
-        return kind == Kind.REQUEST ? new ModelExtractTransform(MODEL_PATH, MODEL_NAME, envelope) : ModelTransform.NONE;
+        return kind == Kind.REQUEST ? new ModelExtractTransform(MODEL_NAME, envelope) : LlmDialectTransforms.identity();
     }
 
     @Override
-    public ModelTransform supplyValidator(
+    public JsonTransform supplyValidator(
         Kind kind,
-        ModelEnvelope envelope)
+        JsonEnvelope envelope)
     {
         return supplyDecoder(kind, envelope);
     }
 
     @Override
-    public ModelTransform supplyEncoder(
+    public JsonTransform supplyEncoder(
         Kind kind,
-        ModelEnvelope envelope)
+        JsonEnvelope envelope)
     {
-        return ModelTransform.NONE;
+        return LlmDialectTransforms.identity();
+    }
+
+    @Override
+    public JsonTransform supplySchemaValidator(
+        Kind kind)
+    {
+        return PERMISSIVE_SCHEMA;
     }
 
     @Override
@@ -77,8 +89,22 @@ public final class LlmTestConditionalDialect implements LlmDialect
         return null;
     }
 
+    @Override
+    public JsonObject decodeMessage(
+        String data)
+    {
+        return Json.createObjectBuilder().build();
+    }
+
+    @Override
+    public String encodeMessage(
+        JsonObject message)
+    {
+        return "{}";
+    }
+
     private static String header(
-        ModelEnvelope headers,
+        JsonEnvelope headers,
         String name)
     {
         DirectBufferEx value = headers.get(name, 0);
@@ -86,42 +112,55 @@ public final class LlmTestConditionalDialect implements LlmDialect
     }
 
     // mirrors KafkaExtractTransform (runtime/binding-kafka/.../cache/KafkaExtractTransform.java): observes
-    // the field at path, copies its value into envelope under name, forwards the field unchanged
-    private static final class ModelExtractTransform implements ModelTransform
+    // a top-level scalar member named name, copies its value into envelope, forwards the field unchanged
+    private static final class ModelExtractTransform extends LlmRequestFieldTransform
     {
-        private final String path;
         private final String name;
-        private final ModelEnvelope envelope;
+        private final JsonEnvelope envelope;
 
         private ModelExtractTransform(
-            String path,
             String name,
-            ModelEnvelope envelope)
+            JsonEnvelope envelope)
         {
-            this.path = path;
             this.name = name;
             this.envelope = envelope;
         }
 
         @Override
-        public ModelStatus transform(
-            ModelController control,
-            ModelSource source,
-            ModelEvent event,
-            ModelSink sink)
+        protected String rename(
+            CharSequence key)
         {
-            if (event == ModelEvent.FIELD && path.equals(source.getPath()))
-            {
-                envelope.set(name, source.getValue());
-            }
+            return null;
+        }
 
-            return sink.transform(control, source, event);
+        @Override
+        protected void onValue(
+            CharSequence key,
+            JsonSource source,
+            JsonEvent event)
+        {
+            if (contentEquals(key, name) && event == JsonEvent.VALUE_STRING)
+            {
+                envelope.set(name, new UnsafeBufferEx(source.getString().getBytes(UTF_8)));
+            }
         }
 
         @Override
         public boolean identity()
         {
             return true;
+        }
+
+        private static boolean contentEquals(
+            CharSequence key,
+            String value)
+        {
+            boolean matches = key.length() == value.length();
+            for (int i = 0; matches && i < value.length(); i++)
+            {
+                matches = key.charAt(i) == value.charAt(i);
+            }
+            return matches;
         }
     }
 }

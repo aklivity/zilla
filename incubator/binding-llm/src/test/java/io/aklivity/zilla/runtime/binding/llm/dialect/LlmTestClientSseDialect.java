@@ -14,25 +14,36 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.dialect;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UncheckedIOException;
 import java.net.URL;
 
+import jakarta.json.Json;
+import jakarta.json.JsonObject;
+
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
-import io.aklivity.zilla.runtime.engine.model.ModelController;
-import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
-import io.aklivity.zilla.runtime.engine.model.ModelEvent;
-import io.aklivity.zilla.runtime.engine.model.ModelSink;
-import io.aklivity.zilla.runtime.engine.model.ModelSource;
-import io.aklivity.zilla.runtime.engine.model.ModelStatus;
-import io.aklivity.zilla.runtime.engine.model.ModelTransform;
+import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
+import io.aklivity.zilla.runtime.common.json.JsonSchema;
+import io.aklivity.zilla.runtime.common.json.JsonTransform;
 
 /**
  * A test-only dialect for the {@code llm client} k3po scenarios, fixed via {@code options.dialect} rather
- * than {@link #detect(ModelEnvelope)} (never called for this dialect, so it unconditionally declines), so
+ * than {@link #detect(JsonEnvelope)} (never called for this dialect, so it unconditionally declines), so
  * the client's same-dialect passthrough path can be exercised without depending on a real dialect
  * implementation (e.g. openai, anthropic).
  */
 public final class LlmTestClientSseDialect implements LlmDialect
 {
+    private final JsonTransform schemaValidator;
+
+    public LlmTestClientSseDialect()
+    {
+        this.schemaValidator = JsonSchema.of(readResource(schemaResource())).validator();
+    }
+
     @Override
     public String name()
     {
@@ -41,33 +52,40 @@ public final class LlmTestClientSseDialect implements LlmDialect
 
     @Override
     public boolean detect(
-        ModelEnvelope headers)
+        JsonEnvelope headers)
     {
         return false;
     }
 
     @Override
-    public ModelTransform supplyDecoder(
+    public JsonTransform supplyDecoder(
         Kind kind,
-        ModelEnvelope envelope)
+        JsonEnvelope envelope)
     {
-        return IdentityTransform.INSTANCE;
+        return LlmDialectTransforms.identity();
     }
 
     @Override
-    public ModelTransform supplyValidator(
+    public JsonTransform supplyValidator(
         Kind kind,
-        ModelEnvelope envelope)
+        JsonEnvelope envelope)
     {
         return supplyDecoder(kind, envelope);
     }
 
     @Override
-    public ModelTransform supplyEncoder(
+    public JsonTransform supplyEncoder(
         Kind kind,
-        ModelEnvelope envelope)
+        JsonEnvelope envelope)
     {
-        return IdentityTransform.INSTANCE;
+        return LlmDialectTransforms.identity();
+    }
+
+    @Override
+    public JsonTransform supplySchemaValidator(
+        Kind kind)
+    {
+        return schemaValidator;
     }
 
     @Override
@@ -77,29 +95,37 @@ public final class LlmTestClientSseDialect implements LlmDialect
         return null;
     }
 
+    @Override
+    public JsonObject decodeMessage(
+        String data)
+    {
+        return Json.createObjectBuilder().build();
+    }
+
+    @Override
+    public String encodeMessage(
+        JsonObject message)
+    {
+        return "{}";
+    }
+
     static URL schemaResource()
     {
         return LlmTestClientSseDialect.class.getResource("test.client.sse.schema.json");
     }
 
-    private static final class IdentityTransform implements ModelTransform
+    static String readResource(
+        URL resource)
     {
-        private static final IdentityTransform INSTANCE = new IdentityTransform();
-
-        @Override
-        public ModelStatus transform(
-            ModelController control,
-            ModelSource source,
-            ModelEvent event,
-            ModelSink sink)
+        String text;
+        try (InputStream input = resource.openStream())
         {
-            return sink.transform(control, source, event);
+            text = new String(input.readAllBytes(), UTF_8);
         }
-
-        @Override
-        public boolean identity()
+        catch (IOException ex)
         {
-            return true;
+            throw new UncheckedIOException(ex);
         }
+        return text;
     }
 }

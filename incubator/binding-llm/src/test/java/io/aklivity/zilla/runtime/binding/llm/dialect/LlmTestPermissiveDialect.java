@@ -16,14 +16,13 @@ package io.aklivity.zilla.runtime.binding.llm.dialect;
 
 import java.net.URL;
 
+import jakarta.json.Json;
+import jakarta.json.JsonObject;
+
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
-import io.aklivity.zilla.runtime.engine.model.ModelController;
-import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
-import io.aklivity.zilla.runtime.engine.model.ModelEvent;
-import io.aklivity.zilla.runtime.engine.model.ModelSink;
-import io.aklivity.zilla.runtime.engine.model.ModelSource;
-import io.aklivity.zilla.runtime.engine.model.ModelStatus;
-import io.aklivity.zilla.runtime.engine.model.ModelTransform;
+import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
+import io.aklivity.zilla.runtime.common.json.JsonSchema;
+import io.aklivity.zilla.runtime.common.json.JsonTransform;
 
 // Test fixture: detects unambiguously via a fixed content-type, contributes a permissive request schema
 // (accepts any JSON object) so k3po ITs can exercise the happy path end-to-end, including LlmBeginEx.model
@@ -33,8 +32,15 @@ public final class LlmTestPermissiveDialect implements LlmDialect
     private static final String HEADER_CONTENT_TYPE = "content-type";
     private static final String CONTENT_TYPE = "application/vnd.zilla.test-permissive+json";
 
-    private static final String MODEL_PATH = "$.model";
     private static final String MODEL_NAME = "model";
+
+    private final JsonTransform requestSchemaValidator;
+
+    public LlmTestPermissiveDialect()
+    {
+        this.requestSchemaValidator =
+            JsonSchema.of(LlmTestClientSseDialect.readResource(schemaResource())).validator();
+    }
 
     @Override
     public String name()
@@ -44,33 +50,40 @@ public final class LlmTestPermissiveDialect implements LlmDialect
 
     @Override
     public boolean detect(
-        ModelEnvelope headers)
+        JsonEnvelope headers)
     {
         return CONTENT_TYPE.equals(header(headers, HEADER_CONTENT_TYPE));
     }
 
     @Override
-    public ModelTransform supplyDecoder(
+    public JsonTransform supplyDecoder(
         Kind kind,
-        ModelEnvelope envelope)
+        JsonEnvelope envelope)
     {
-        return kind == Kind.REQUEST ? new ModelExtractTransform(MODEL_PATH, MODEL_NAME, envelope) : ModelTransform.NONE;
+        return kind == Kind.REQUEST ? new LlmModelExtractTransform(envelope) : LlmDialectTransforms.identity();
     }
 
     @Override
-    public ModelTransform supplyValidator(
+    public JsonTransform supplyValidator(
         Kind kind,
-        ModelEnvelope envelope)
+        JsonEnvelope envelope)
     {
         return supplyDecoder(kind, envelope);
     }
 
     @Override
-    public ModelTransform supplyEncoder(
+    public JsonTransform supplyEncoder(
         Kind kind,
-        ModelEnvelope envelope)
+        JsonEnvelope envelope)
     {
-        return ModelTransform.NONE;
+        return LlmDialectTransforms.identity();
+    }
+
+    @Override
+    public JsonTransform supplySchemaValidator(
+        Kind kind)
+    {
+        return kind == Kind.REQUEST ? requestSchemaValidator : LlmDialectTransforms.identity();
     }
 
     @Override
@@ -80,56 +93,30 @@ public final class LlmTestPermissiveDialect implements LlmDialect
         return null;
     }
 
+    @Override
+    public JsonObject decodeMessage(
+        String data)
+    {
+        return Json.createObjectBuilder().build();
+    }
+
+    @Override
+    public String encodeMessage(
+        JsonObject message)
+    {
+        return "{}";
+    }
+
     static URL schemaResource()
     {
         return LlmTestPermissiveDialect.class.getResource("test.permissive.request.schema.json");
     }
 
     private static String header(
-        ModelEnvelope headers,
+        JsonEnvelope headers,
         String name)
     {
         DirectBufferEx value = headers.get(name, 0);
         return value != null ? value.getStringWithoutLengthUtf8(0, value.capacity()) : null;
-    }
-
-    // mirrors LlmTestConditionalDialect / KafkaExtractTransform: observes the field at path, copies its
-    // value into envelope under name, forwards the field unchanged
-    private static final class ModelExtractTransform implements ModelTransform
-    {
-        private final String path;
-        private final String name;
-        private final ModelEnvelope envelope;
-
-        private ModelExtractTransform(
-            String path,
-            String name,
-            ModelEnvelope envelope)
-        {
-            this.path = path;
-            this.name = name;
-            this.envelope = envelope;
-        }
-
-        @Override
-        public ModelStatus transform(
-            ModelController control,
-            ModelSource source,
-            ModelEvent event,
-            ModelSink sink)
-        {
-            if (event == ModelEvent.FIELD && path.equals(source.getPath()))
-            {
-                envelope.set(name, source.getValue());
-            }
-
-            return sink.transform(control, source, event);
-        }
-
-        @Override
-        public boolean identity()
-        {
-            return true;
-        }
     }
 }

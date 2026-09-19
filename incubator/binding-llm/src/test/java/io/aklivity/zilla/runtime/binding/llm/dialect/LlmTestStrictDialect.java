@@ -16,17 +16,29 @@ package io.aklivity.zilla.runtime.binding.llm.dialect;
 
 import java.net.URL;
 
+import jakarta.json.Json;
+import jakarta.json.JsonObject;
+
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
-import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
-import io.aklivity.zilla.runtime.engine.model.ModelTransform;
+import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
+import io.aklivity.zilla.runtime.common.json.JsonSchema;
+import io.aklivity.zilla.runtime.common.json.JsonTransform;
 
 // Test fixture: detects unambiguously via a fixed content-type, contributes a request schema that requires
 // a "prompt" property -- genuinely rejects a payload missing it -- so k3po ITs can exercise schema
-// enforcement (ModelStatus.REJECTED) independently of dialect detection.
+// enforcement (JsonPipeline.Status.REJECTED) independently of dialect detection.
 public final class LlmTestStrictDialect implements LlmDialect
 {
     private static final String HEADER_CONTENT_TYPE = "content-type";
     private static final String CONTENT_TYPE = "application/vnd.zilla.test-strict+json";
+
+    private final JsonTransform requestSchemaValidator;
+
+    public LlmTestStrictDialect()
+    {
+        this.requestSchemaValidator =
+            JsonSchema.of(LlmTestClientSseDialect.readResource(schemaResource())).validator();
+    }
 
     @Override
     public String name()
@@ -36,33 +48,40 @@ public final class LlmTestStrictDialect implements LlmDialect
 
     @Override
     public boolean detect(
-        ModelEnvelope headers)
+        JsonEnvelope headers)
     {
         return CONTENT_TYPE.equals(header(headers, HEADER_CONTENT_TYPE));
     }
 
     @Override
-    public ModelTransform supplyDecoder(
+    public JsonTransform supplyDecoder(
         Kind kind,
-        ModelEnvelope envelope)
+        JsonEnvelope envelope)
     {
-        return ModelTransform.NONE;
+        return LlmDialectTransforms.identity();
     }
 
     @Override
-    public ModelTransform supplyValidator(
+    public JsonTransform supplyValidator(
         Kind kind,
-        ModelEnvelope envelope)
+        JsonEnvelope envelope)
     {
         return supplyDecoder(kind, envelope);
     }
 
     @Override
-    public ModelTransform supplyEncoder(
+    public JsonTransform supplyEncoder(
         Kind kind,
-        ModelEnvelope envelope)
+        JsonEnvelope envelope)
     {
-        return ModelTransform.NONE;
+        return LlmDialectTransforms.identity();
+    }
+
+    @Override
+    public JsonTransform supplySchemaValidator(
+        Kind kind)
+    {
+        return kind == Kind.REQUEST ? requestSchemaValidator : LlmDialectTransforms.identity();
     }
 
     @Override
@@ -72,13 +91,27 @@ public final class LlmTestStrictDialect implements LlmDialect
         return null;
     }
 
+    @Override
+    public JsonObject decodeMessage(
+        String data)
+    {
+        return Json.createObjectBuilder().build();
+    }
+
+    @Override
+    public String encodeMessage(
+        JsonObject message)
+    {
+        return "{}";
+    }
+
     static URL schemaResource()
     {
         return LlmTestStrictDialect.class.getResource("test.strict.request.schema.json");
     }
 
     private static String header(
-        ModelEnvelope headers,
+        JsonEnvelope headers,
         String name)
     {
         DirectBufferEx value = headers.get(name, 0);

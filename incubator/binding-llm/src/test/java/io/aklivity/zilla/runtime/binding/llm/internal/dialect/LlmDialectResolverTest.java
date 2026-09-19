@@ -31,7 +31,7 @@ import org.junit.Test;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialect;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
-import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
+import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
 
 public class LlmDialectResolverTest
 {
@@ -39,7 +39,7 @@ public class LlmDialectResolverTest
     public void shouldDetectRegisteredDialectByHeaders()
     {
         LlmDialectResolver resolver = new LlmDialectResolver(null);
-        ModelEnvelope headers = headers(":method", "POST", ":path", "/v1/test");
+        JsonEnvelope headers = headers(":method", "POST", ":path", "/v1/test");
 
         LlmDialect resolved = resolver.resolve(headers);
 
@@ -52,7 +52,7 @@ public class LlmDialectResolverTest
     {
         LlmDialectResolver resolver = new LlmDialectResolver(null);
 
-        LlmDialect resolved = resolver.resolve(ModelEnvelope.NONE);
+        LlmDialect resolved = resolver.resolve(JsonEnvelope.NONE);
 
         assertThat(resolved, nullValue());
     }
@@ -62,7 +62,7 @@ public class LlmDialectResolverTest
     {
         LlmDialect dialect = dialect("mock");
         LlmDialectResolver resolver = new LlmDialectResolver("mock", of(dialect));
-        ModelEnvelope headers = mock(ModelEnvelope.class);
+        JsonEnvelope headers = mock(JsonEnvelope.class);
 
         LlmDialect resolved = resolver.resolve(headers);
 
@@ -76,7 +76,7 @@ public class LlmDialectResolverTest
         LlmDialect dialect = dialect("mock");
         when(dialect.detect(any())).thenReturn(true);
         LlmDialectResolver resolver = new LlmDialectResolver("unregistered", of(dialect));
-        ModelEnvelope headers = mock(ModelEnvelope.class);
+        JsonEnvelope headers = mock(JsonEnvelope.class);
 
         LlmDialect resolved = resolver.resolve(headers);
 
@@ -92,7 +92,7 @@ public class LlmDialectResolverTest
         when(matching.detect(any())).thenReturn(true);
         when(other.detect(any())).thenReturn(false);
         LlmDialectResolver resolver = new LlmDialectResolver(null, of(matching, other));
-        ModelEnvelope headers = mock(ModelEnvelope.class);
+        JsonEnvelope headers = mock(JsonEnvelope.class);
 
         LlmDialect resolved = resolver.resolve(headers);
 
@@ -107,7 +107,7 @@ public class LlmDialectResolverTest
         when(first.detect(any())).thenReturn(true);
         when(second.detect(any())).thenReturn(true);
         LlmDialectResolver resolver = new LlmDialectResolver(null, of(first, second));
-        ModelEnvelope headers = mock(ModelEnvelope.class);
+        JsonEnvelope headers = mock(JsonEnvelope.class);
 
         LlmDialect resolved = resolver.resolve(headers);
 
@@ -143,13 +143,13 @@ public class LlmDialectResolverTest
         return dialect;
     }
 
-    private static ModelEnvelope headers(
+    private static JsonEnvelope headers(
         String name1,
         String value1,
         String name2,
         String value2)
     {
-        ModelEnvelope headers = mock(ModelEnvelope.class);
+        JsonEnvelope headers = mock(JsonEnvelope.class);
         when(headers.get(name1, 0)).thenReturn(buffer(value1));
         when(headers.get(name2, 0)).thenReturn(buffer(value2));
         return headers;

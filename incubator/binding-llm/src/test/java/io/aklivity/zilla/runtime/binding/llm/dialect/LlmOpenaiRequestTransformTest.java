@@ -17,115 +17,108 @@ package io.aklivity.zilla.runtime.binding.llm.dialect;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.io.StringReader;
+
+import jakarta.json.Json;
+import jakarta.json.JsonObject;
+import jakarta.json.JsonReader;
 
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
-import io.aklivity.zilla.runtime.engine.model.ModelController;
-import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
-import io.aklivity.zilla.runtime.engine.model.ModelEvent;
-import io.aklivity.zilla.runtime.engine.model.ModelSink;
-import io.aklivity.zilla.runtime.engine.model.ModelSource;
-import io.aklivity.zilla.runtime.engine.model.ModelStatus;
-import io.aklivity.zilla.runtime.engine.model.ModelTransform;
+import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
+import io.aklivity.zilla.runtime.common.json.JsonEx;
+import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
+import io.aklivity.zilla.runtime.common.json.JsonParserEx;
+import io.aklivity.zilla.runtime.common.json.JsonPipeline;
+import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
+import io.aklivity.zilla.runtime.common.json.JsonPipelineResult;
+import io.aklivity.zilla.runtime.common.json.JsonTransform;
 
 public class LlmOpenaiRequestTransformTest
 {
-    private static final ModelController NO_CONTROL = new ModelController()
-    {
-        @Override
-        public long authorization()
-        {
-            return 0L;
-        }
-
-        @Override
-        public void reject(
-            String diagnostic)
-        {
-        }
-    };
-
     @Test
     public void shouldRenameEachKnownFieldToCanonical()
     {
-        Recorder recorder = new Recorder();
-        ModelTransform decoder = new LlmOpenaiRequestTransform(true, ModelEnvelope.NONE);
+        JsonTransform decoder = new LlmOpenaiRequestTransform(true, JsonEnvelope.NONE);
 
-        feed(decoder, recorder, "$.max_tokens", "256");
-        feed(decoder, recorder, "$.top_p", "0.9");
-        feed(decoder, recorder, "$.n", "2");
-        feed(decoder, recorder, "$.presence_penalty", "0.1");
-        feed(decoder, recorder, "$.frequency_penalty", "0.2");
-        feed(decoder, recorder, "$.top_logprobs", "3");
-        feed(decoder, recorder, "$.tool_choice", "auto");
-        feed(decoder, recorder, "$.response_format", "json_object");
+        JsonObject result = transform(decoder, JsonEnvelope.NONE, "{" +
+            "\"max_tokens\":256,\"top_p\":0.9,\"n\":2,\"presence_penalty\":0.1," +
+            "\"frequency_penalty\":0.2,\"top_logprobs\":3,\"tool_choice\":\"auto\"," +
+            "\"response_format\":\"json_object\"}");
 
-        assertThat(recorder.events, equalTo(List.of(
-            "$.maxOutputTokens=256",
-            "$.topP=0.9",
-            "$.choiceCount=2",
-            "$.presencePenalty=0.1",
-            "$.frequencyPenalty=0.2",
-            "$.topLogprobs=3",
-            "$.toolChoice=auto",
-            "$.responseFormat=json_object")));
+        assertThat(result.getInt("maxOutputTokens"), equalTo(256));
+        assertThat(result.getJsonNumber("topP").doubleValue(), equalTo(0.9));
+        assertThat(result.getInt("choiceCount"), equalTo(2));
+        assertThat(result.getJsonNumber("presencePenalty").doubleValue(), equalTo(0.1));
+        assertThat(result.getJsonNumber("frequencyPenalty").doubleValue(), equalTo(0.2));
+        assertThat(result.getInt("topLogprobs"), equalTo(3));
+        assertThat(result.getString("toolChoice"), equalTo("auto"));
+        assertThat(result.getString("responseFormat"), equalTo("json_object"));
     }
 
     @Test
     public void shouldRenameEachKnownFieldToNative()
     {
-        Recorder recorder = new Recorder();
-        ModelTransform encoder = new LlmOpenaiRequestTransform(false, ModelEnvelope.NONE);
+        JsonTransform encoder = new LlmOpenaiRequestTransform(false, JsonEnvelope.NONE);
 
-        feed(encoder, recorder, "$.maxOutputTokens", "256");
-        feed(encoder, recorder, "$.topP", "0.9");
-        feed(encoder, recorder, "$.choiceCount", "2");
+        JsonObject result = transform(encoder, JsonEnvelope.NONE,
+            "{\"maxOutputTokens\":256,\"topP\":0.9,\"choiceCount\":2}");
 
-        assertThat(recorder.events, equalTo(List.of(
-            "$.max_tokens=256",
-            "$.top_p=0.9",
-            "$.n=2")));
+        assertThat(result.getInt("max_tokens"), equalTo(256));
+        assertThat(result.getJsonNumber("top_p").doubleValue(), equalTo(0.9));
+        assertThat(result.getInt("n"), equalTo(2));
     }
 
     @Test
     public void shouldForwardUnknownFieldUnchanged()
     {
-        Recorder recorder = new Recorder();
-        ModelTransform decoder = new LlmOpenaiRequestTransform(true, ModelEnvelope.NONE);
+        JsonTransform decoder = new LlmOpenaiRequestTransform(true, JsonEnvelope.NONE);
 
-        feed(decoder, recorder, "$.model", "gpt-4o");
-        feed(decoder, recorder, "$.stream", "true");
+        JsonObject result = transform(decoder, JsonEnvelope.NONE, "{\"model\":\"gpt-4o\",\"stream\":true}");
 
-        assertThat(recorder.events, equalTo(List.of("$.model=gpt-4o", "$.stream=true")));
+        assertThat(result.getString("model"), equalTo("gpt-4o"));
+        assertThat(result.getBoolean("stream"), is(true));
     }
 
     @Test
     public void shouldNotRenameNestedFieldResemblingTopLevelName()
     {
-        Recorder recorder = new Recorder();
-        ModelTransform decoder = new LlmOpenaiRequestTransform(true, ModelEnvelope.NONE);
+        JsonTransform decoder = new LlmOpenaiRequestTransform(true, JsonEnvelope.NONE);
 
-        feed(decoder, recorder, "$.tools[0].function.parameters.n", "1");
+        JsonObject result = transform(decoder, JsonEnvelope.NONE,
+            "{\"tools\":[{\"function\":{\"parameters\":{\"n\":1}}}]}");
 
-        assertThat(recorder.events, equalTo(List.of("$.tools[0].function.parameters.n=1")));
+        JsonObject parameters = result.getJsonArray("tools").getJsonObject(0)
+            .getJsonObject("function").getJsonObject("parameters");
+        assertThat(parameters.getInt("n"), equalTo(1));
+        assertThat(parameters.containsKey("choiceCount"), is(false));
+    }
+
+    @Test
+    public void shouldNotRenameContainerValuedTopLevelMember()
+    {
+        JsonTransform decoder = new LlmOpenaiRequestTransform(true, JsonEnvelope.NONE);
+
+        JsonObject result = transform(decoder, JsonEnvelope.NONE, "{\"response_format\":{\"type\":\"json_object\"}}");
+
+        assertThat(result.containsKey("responseFormat"), is(false));
+        assertThat(result.getJsonObject("response_format").getString("type"), equalTo("json_object"));
     }
 
     @Test
     public void shouldExtractModelIntoEnvelope()
     {
-        Recorder recorder = new Recorder();
-        TestModelEnvelope envelope = new TestModelEnvelope();
-        ModelTransform decoder = new LlmOpenaiRequestTransform(true, envelope);
+        TestJsonEnvelope envelope = new TestJsonEnvelope();
+        JsonTransform decoder = new LlmOpenaiRequestTransform(true, envelope);
 
-        feed(decoder, recorder, "$.model", "gpt-4o");
+        transform(decoder, envelope, "{\"model\":\"gpt-4o\"}");
 
-        assertThat(recorder.events, equalTo(List.of("$.model=gpt-4o")));
         DirectBufferEx extracted = envelope.get("model", 0);
         assertThat(extracted.getStringWithoutLengthUtf8(0, extracted.capacity()), equalTo("gpt-4o"));
     }
@@ -133,75 +126,34 @@ public class LlmOpenaiRequestTransformTest
     @Test
     public void shouldNotExtractNestedFieldNamedModel()
     {
-        Recorder recorder = new Recorder();
-        TestModelEnvelope envelope = new TestModelEnvelope();
-        ModelTransform decoder = new LlmOpenaiRequestTransform(true, envelope);
+        TestJsonEnvelope envelope = new TestJsonEnvelope();
+        JsonTransform decoder = new LlmOpenaiRequestTransform(true, envelope);
 
-        feed(decoder, recorder, "$.tools[0].function.model", "should-not-be-extracted");
+        transform(decoder, envelope, "{\"tools\":[{\"function\":{\"model\":\"should-not-be-extracted\"}}]}");
 
         assertThat(envelope.get("model", 0), nullValue());
     }
 
-    private static void feed(
-        ModelTransform transform,
-        ModelSink sink,
-        String path,
-        String value)
+    private static JsonObject transform(
+        JsonTransform transform,
+        JsonEnvelope envelope,
+        String json)
     {
-        transform.transform(NO_CONTROL, new Field(path, value), ModelEvent.FIELD, sink);
-    }
+        JsonParserEx parser = JsonEx.createParser();
+        JsonGeneratorEx generator = JsonEx.createGenerator();
+        JsonPipeline pipeline = JsonEx.stream(parser).envelope(envelope).transform(transform).into(generator);
 
-    private static String text(
-        ModelSource source)
-    {
-        DirectBufferEx value = source.getValue();
-        return value.getStringWithoutLengthUtf8(0, value.capacity());
-    }
+        byte[] bytes = json.getBytes(UTF_8);
+        MutableDirectBufferEx output = new UnsafeBufferEx(new byte[8192]);
+        JsonPipelineResult result = pipeline.transform(new UnsafeBufferEx(bytes), 0, bytes.length, true, output, 0,
+            output.capacity());
 
-    private static final class Field implements ModelSource
-    {
-        private final String path;
-        private final DirectBufferEx value;
+        assertThat(result.status(), equalTo(Status.COMPLETED));
 
-        private Field(
-            String path,
-            String value)
+        String text = output.getStringWithoutLengthUtf8(0, result.produced());
+        try (JsonReader reader = Json.createReader(new StringReader(text)))
         {
-            this.path = path;
-            this.value = new UnsafeBufferEx(value.getBytes(UTF_8));
-        }
-
-        @Override
-        public String getPath()
-        {
-            return path;
-        }
-
-        @Override
-        public DirectBufferEx getValue()
-        {
-            return value;
-        }
-    }
-
-    private static final class Recorder implements ModelSink
-    {
-        private final List<String> events = new ArrayList<>();
-
-        @Override
-        public ModelStatus transform(
-            ModelController control,
-            ModelSource source,
-            ModelEvent event)
-        {
-            events.add(source.getPath() + "=" + text(source));
-            return ModelStatus.OK;
-        }
-
-        @Override
-        public boolean identity()
-        {
-            return false;
+            return reader.readObject();
         }
     }
 }

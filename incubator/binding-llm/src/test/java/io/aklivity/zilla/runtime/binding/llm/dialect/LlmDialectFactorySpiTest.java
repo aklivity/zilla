@@ -24,12 +24,6 @@ import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 import java.util.Map;
 import java.util.ServiceLoader;
@@ -38,14 +32,16 @@ import java.util.function.Supplier;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
-import io.aklivity.zilla.runtime.engine.model.ModelController;
-import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
-import io.aklivity.zilla.runtime.engine.model.ModelEvent;
-import io.aklivity.zilla.runtime.engine.model.ModelSink;
-import io.aklivity.zilla.runtime.engine.model.ModelSource;
-import io.aklivity.zilla.runtime.engine.model.ModelStatus;
-import io.aklivity.zilla.runtime.engine.model.ModelTransform;
+import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
+import io.aklivity.zilla.runtime.common.json.JsonEx;
+import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
+import io.aklivity.zilla.runtime.common.json.JsonParserEx;
+import io.aklivity.zilla.runtime.common.json.JsonPipeline;
+import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
+import io.aklivity.zilla.runtime.common.json.JsonPipelineResult;
+import io.aklivity.zilla.runtime.common.json.JsonTransform;
 
 public class LlmDialectFactorySpiTest
 {
@@ -74,7 +70,7 @@ public class LlmDialectFactorySpiTest
     public void shouldDetectMatchingRequest()
     {
         LlmDialect dialect = factoriesByName.get("test").create();
-        ModelEnvelope headers = headers(":method", "POST", ":path", "/v1/test");
+        JsonEnvelope headers = headers(":method", "POST", ":path", "/v1/test");
 
         assertThat(dialect.detect(headers), is(true));
     }
@@ -83,7 +79,7 @@ public class LlmDialectFactorySpiTest
     public void shouldNotDetectUnrecognizedPath()
     {
         LlmDialect dialect = factoriesByName.get("test").create();
-        ModelEnvelope headers = headers(":method", "POST", ":path", "/v1/other");
+        JsonEnvelope headers = headers(":method", "POST", ":path", "/v1/other");
 
         assertThat(dialect.detect(headers), is(false));
     }
@@ -92,7 +88,7 @@ public class LlmDialectFactorySpiTest
     public void shouldNotDetectWrongMethod()
     {
         LlmDialect dialect = factoriesByName.get("test").create();
-        ModelEnvelope headers = headers(":method", "GET", ":path", "/v1/test");
+        JsonEnvelope headers = headers(":method", "GET", ":path", "/v1/test");
 
         assertThat(dialect.detect(headers), is(false));
     }
@@ -102,58 +98,59 @@ public class LlmDialectFactorySpiTest
     {
         LlmDialect dialect = factoriesByName.get("test").create();
 
-        assertThat(dialect.detect(ModelEnvelope.NONE), is(false));
+        assertThat(dialect.detect(JsonEnvelope.NONE), is(false));
     }
 
     @Test
     public void shouldExtractModelNameOnRequestDecode()
     {
         LlmDialect dialect = factoriesByName.get("test").create();
-        ModelEnvelope envelope = mock(ModelEnvelope.class);
-        ModelTransform decoder = dialect.supplyDecoder(LlmDialect.Kind.REQUEST, envelope);
+        TestJsonEnvelope envelope = new TestJsonEnvelope();
+        JsonTransform decoder = dialect.supplyDecoder(LlmDialect.Kind.REQUEST, envelope);
 
-        DirectBufferEx modelValue = buffer("gpt-4");
-        ModelStatus status = fieldEvent(decoder, "$.model", modelValue);
+        String output = transform(decoder, envelope, "{\"model\":\"gpt-4\"}");
 
-        assertThat(status, equalTo(ModelStatus.OK));
+        assertThat(output, equalTo("{\"model\":\"gpt-4\"}"));
         assertThat(decoder.identity(), is(true));
-        verify(envelope).set("model", modelValue);
+        DirectBufferEx extracted = envelope.get("model", 0);
+        assertThat(extracted.getStringWithoutLengthUtf8(0, extracted.capacity()), equalTo("gpt-4"));
     }
 
     @Test
     public void shouldNotExtractUnrelatedFieldOnRequestDecode()
     {
         LlmDialect dialect = factoriesByName.get("test").create();
-        ModelEnvelope envelope = mock(ModelEnvelope.class);
-        ModelTransform decoder = dialect.supplyDecoder(LlmDialect.Kind.REQUEST, envelope);
+        TestJsonEnvelope envelope = new TestJsonEnvelope();
+        JsonTransform decoder = dialect.supplyDecoder(LlmDialect.Kind.REQUEST, envelope);
 
-        fieldEvent(decoder, "$.other", buffer("ignored"));
+        transform(decoder, envelope, "{\"other\":\"ignored\"}");
 
-        verify(envelope, never()).set(anyString(), any());
+        assertThat(envelope.get("model", 0), nullValue());
     }
 
     @Test
     public void shouldForwardResponseDecodeUnchanged()
     {
         LlmDialect dialect = factoriesByName.get("test").create();
-        ModelEnvelope envelope = mock(ModelEnvelope.class);
+        TestJsonEnvelope envelope = new TestJsonEnvelope();
 
-        ModelTransform decoder = dialect.supplyDecoder(LlmDialect.Kind.RESPONSE, envelope);
+        JsonTransform decoder = dialect.supplyDecoder(LlmDialect.Kind.RESPONSE, envelope);
 
-        assertThat(decoder, equalTo(ModelTransform.NONE));
+        assertThat(decoder.identity(), is(true));
+        assertThat(transform(decoder, envelope, "{\"other\":\"value\"}"), equalTo("{\"other\":\"value\"}"));
     }
 
     @Test
     public void shouldSupplyIdentityEncoderForEachKind()
     {
         LlmDialect dialect = factoriesByName.get("test").create();
-        ModelEnvelope envelope = mock(ModelEnvelope.class);
+        TestJsonEnvelope envelope = new TestJsonEnvelope();
 
         for (LlmDialect.Kind kind : LlmDialect.Kind.values())
         {
-            ModelTransform encoder = dialect.supplyEncoder(kind, envelope);
+            JsonTransform encoder = dialect.supplyEncoder(kind, envelope);
 
-            assertThat(encoder, equalTo(ModelTransform.NONE));
+            assertThat(encoder.identity(), is(true));
         }
     }
 
@@ -170,34 +167,33 @@ public class LlmDialectFactorySpiTest
         assertThat(LlmDialect.Kind.values(), arrayContaining(LlmDialect.Kind.REQUEST, LlmDialect.Kind.RESPONSE));
     }
 
-    private static ModelStatus fieldEvent(
-        ModelTransform transform,
-        String path,
-        DirectBufferEx value)
+    private static String transform(
+        JsonTransform transform,
+        JsonEnvelope envelope,
+        String json)
     {
-        ModelController control = mock(ModelController.class);
-        ModelSource source = mock(ModelSource.class);
-        when(source.getPath()).thenReturn(path);
-        when(source.getValue()).thenReturn(value);
-        ModelSink sink = mock(ModelSink.class);
-        when(sink.transform(control, source, ModelEvent.FIELD)).thenReturn(ModelStatus.OK);
+        JsonParserEx parser = JsonEx.createParser();
+        JsonGeneratorEx generator = JsonEx.createGenerator();
+        JsonPipeline pipeline = JsonEx.stream(parser).envelope(envelope).transform(transform).into(generator);
 
-        ModelStatus status = transform.transform(control, source, ModelEvent.FIELD, sink);
+        byte[] bytes = json.getBytes(UTF_8);
+        MutableDirectBufferEx output = new UnsafeBufferEx(new byte[8192]);
+        JsonPipelineResult result = pipeline.transform(new UnsafeBufferEx(bytes), 0, bytes.length, true, output, 0,
+            output.capacity());
 
-        verify(sink).transform(control, source, ModelEvent.FIELD);
-
-        return status;
+        assertThat(result.status(), equalTo(Status.COMPLETED));
+        return output.getStringWithoutLengthUtf8(0, result.produced());
     }
 
-    private static ModelEnvelope headers(
+    private static JsonEnvelope headers(
         String name1,
         String value1,
         String name2,
         String value2)
     {
-        ModelEnvelope headers = mock(ModelEnvelope.class);
-        when(headers.get(name1, 0)).thenReturn(buffer(value1));
-        when(headers.get(name2, 0)).thenReturn(buffer(value2));
+        TestJsonEnvelope headers = new TestJsonEnvelope();
+        headers.set(name1, buffer(value1));
+        headers.set(name2, buffer(value2));
         return headers;
     }
 

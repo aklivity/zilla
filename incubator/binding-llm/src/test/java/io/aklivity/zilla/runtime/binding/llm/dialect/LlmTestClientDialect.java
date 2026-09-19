@@ -14,9 +14,13 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.dialect;
 
+import jakarta.json.Json;
+import jakarta.json.JsonObject;
+
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
-import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
-import io.aklivity.zilla.runtime.engine.model.ModelTransform;
+import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
+import io.aklivity.zilla.runtime.common.json.JsonSchema;
+import io.aklivity.zilla.runtime.common.json.JsonTransform;
 
 /**
  * A test-only dialect whose content-type has no registered {@code LlmContentCodecSpi}, so the client's
@@ -25,6 +29,8 @@ import io.aklivity.zilla.runtime.engine.model.ModelTransform;
  */
 public final class LlmTestClientDialect implements LlmDialect
 {
+    private static final JsonTransform PERMISSIVE_SCHEMA = JsonSchema.of("{}").validator();
+
     @Override
     public String name()
     {
@@ -33,33 +39,40 @@ public final class LlmTestClientDialect implements LlmDialect
 
     @Override
     public boolean detect(
-        ModelEnvelope headers)
+        JsonEnvelope headers)
     {
         return false;
     }
 
     @Override
-    public ModelTransform supplyDecoder(
+    public JsonTransform supplyDecoder(
         Kind kind,
-        ModelEnvelope envelope)
+        JsonEnvelope envelope)
     {
-        return ModelTransform.NONE;
+        return LlmDialectTransforms.identity();
     }
 
     @Override
-    public ModelTransform supplyValidator(
+    public JsonTransform supplyValidator(
         Kind kind,
-        ModelEnvelope envelope)
+        JsonEnvelope envelope)
     {
         return supplyDecoder(kind, envelope);
     }
 
     @Override
-    public ModelTransform supplyEncoder(
+    public JsonTransform supplyEncoder(
         Kind kind,
-        ModelEnvelope envelope)
+        JsonEnvelope envelope)
     {
-        return ModelTransform.NONE;
+        return LlmDialectTransforms.identity();
+    }
+
+    @Override
+    public JsonTransform supplySchemaValidator(
+        Kind kind)
+    {
+        return PERMISSIVE_SCHEMA;
     }
 
     @Override
@@ -67,5 +80,19 @@ public final class LlmTestClientDialect implements LlmDialect
         Kind kind)
     {
         return null;
+    }
+
+    @Override
+    public JsonObject decodeMessage(
+        String data)
+    {
+        return Json.createObjectBuilder().build();
+    }
+
+    @Override
+    public String encodeMessage(
+        JsonObject message)
+    {
+        return "{}";
     }
 }

@@ -18,10 +18,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
-import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
+import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
 
-// A minimal single-value-per-name ModelEnvelope test double, shared across this package's dialect tests.
-final class TestModelEnvelope implements ModelEnvelope
+// A minimal single-value-per-name JsonEnvelope test double, shared across this package's dialect tests.
+final class TestJsonEnvelope implements JsonEnvelope
 {
     private final Map<String, DirectBufferEx> valuesByName = new HashMap<>();
 
