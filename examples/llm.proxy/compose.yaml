@@ -1,0 +1,60 @@
+name: ${NAMESPACE:-zilla-llm-proxy}
+
+services:
+  zilla:
+    image: ghcr.io/aklivity/zilla:${ZILLA_VERSION:-latest}
+    restart: unless-stopped
+    hostname: zilla.examples.dev
+    ports:
+      - 7161:7161
+      - 7162:7162
+    # start_interval matters here: without it, `docker compose up --wait`
+    # only re-checks the healthcheck every `interval` (5s), so the compose
+    # command exits well after zilla is actually ready. With it, `up --wait`
+    # returns almost immediately once /var/run/zilla/ready exists.
+    healthcheck:
+      interval: 5s
+      timeout: 3s
+      retries: 15
+      start_period: 15s
+      start_interval: 250ms
+      test: ["CMD", "sh", "-c", "test -f /var/run/zilla/ready"]
+    environment:
+      ZILLA_INCUBATOR_ENABLED: "true"
+    volumes:
+      - ./etc:/etc/zilla
+    command: start -v -e
+
+  # One-off verification container -- `docker compose run --rm verify`, which is
+  # all .github/test.sh does. profiles gates it out of the default set, so a
+  # plain `docker compose up` never starts it, and `docker compose run` enables
+  # the profile of the service it targets. CI additionally merges in
+  # .github/compose.mock.yaml (see .github/.env.test) to point zilla at mock
+  # backends instead of the real OpenAI/Anthropic APIs this compose file
+  # targets by default -- depending only on zilla's own health is still enough
+  # to gate the whole topology either way, since only zilla (not verify) ever
+  # depends on the mocks. The docker socket is mounted so the credential
+  # pass-through assertions can read a mock's own logs via `docker logs`.
+  verify:
+    image: node:20-alpine
+    profiles: ["test"]
+    working_dir: /work
+    depends_on:
+      zilla:
+        condition: service_healthy
+    volumes:
+      - ./etc/test:/test:ro
+      - ../.github/test-lib.sh:/test-lib.sh:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      FAIL_FAST: "${FAIL_FAST:-1}"
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -e
+        apk add --no-cache curl docker-cli > /dev/null
+        exec sh /test/verify.sh
+
+networks:
+  default:
+    driver: bridge

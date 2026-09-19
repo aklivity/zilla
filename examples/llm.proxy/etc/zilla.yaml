@@ -1,0 +1,211 @@
+---
+name: example
+guards:
+  api_key:
+    type: inline
+bindings:
+  north_tcp_server_openai:
+    type: tcp
+    kind: server
+    options:
+      host: 0.0.0.0
+      port: 7161
+    exit: north_http_server_openai
+  north_http_server_openai:
+    type: http
+    kind: server
+    exit: north_llm_server_openai
+  north_llm_server_openai:
+    type: llm
+    kind: server
+    options:
+      dialect: openai
+      authorization:
+        api_key:
+          credentials: "Bearer {credentials}"
+    exit: north_llm_proxy
+
+  north_tcp_server_anthropic:
+    type: tcp
+    kind: server
+    options:
+      host: 0.0.0.0
+      port: 7162
+    exit: north_http_server_anthropic
+  north_http_server_anthropic:
+    type: http
+    kind: server
+    exit: north_llm_server_anthropic
+  north_llm_server_anthropic:
+    type: llm
+    kind: server
+    options:
+      dialect: anthropic
+      authorization:
+        api_key:
+          credentials: "{credentials}"
+    exit: north_llm_proxy
+
+  # Shared by both frontends: routes purely on LlmBeginEx.dialect/model, never on
+  # request content. The dialect-only routes (last, catch-all for their dialect)
+  # preserve today's cross-dialect translation demo unconditionally; the
+  # dialect+model routes ahead of them pick off two specific models and send
+  # them, same-dialect, to a second same-dialect deployment instead -- the
+  # intra-dialect failover/multi-backend routing this binding kind exists for.
+  north_llm_proxy:
+    type: llm
+    kind: proxy
+    routes:
+      - when:
+          - dialect: openai
+            model: [ gpt-4o ]
+        exit: south_llm_client_openai_secondary
+      - when:
+          - dialect: anthropic
+            model: [ claude-3-5-haiku-20241022 ]
+        exit: south_llm_client_anthropic_secondary
+      - when:
+          - dialect: openai
+        exit: south_llm_client_anthropic
+      - when:
+          - dialect: anthropic
+        exit: south_llm_client_openai
+
+  # Every south_llm_client_* below targets the real OpenAI/Anthropic API
+  # directly over TLS -- see README.md's "Credential pass-through" section:
+  # options.authorization templates the *caller's own* credential rather than
+  # configuring one of Zilla's own, so no API key is ever written here. The
+  # secondary deployments point at the same real API as their primary -- this
+  # example has only one real backend per dialect to demonstrate the
+  # model-based routing against, unlike CI's mocks, which use a distinct
+  # secondary instance specifically to prove which backend answered (see
+  # .github/zilla.yaml).
+  south_llm_client_anthropic:
+    type: llm
+    kind: client
+    options:
+      dialect: anthropic
+      server: api.anthropic.com:443
+      authorization:
+        api_key:
+          credentials: "{credentials}"
+    exit: south_http_client_anthropic
+  south_http_client_anthropic:
+    type: http
+    kind: client
+    exit: south_tls_client_anthropic
+  south_tls_client_anthropic:
+    type: tls
+    kind: client
+    vault: south_clients
+    options:
+      trustcacerts: true
+      sni:
+        - api.anthropic.com
+    exit: south_tcp_client_anthropic
+  south_tcp_client_anthropic:
+    type: tcp
+    kind: client
+    options:
+      host: api.anthropic.com
+      port: 443
+
+  south_llm_client_openai:
+    type: llm
+    kind: client
+    options:
+      dialect: openai
+      server: api.openai.com:443
+      authorization:
+        api_key:
+          credentials: "Bearer {credentials}"
+    exit: south_http_client_openai
+  south_http_client_openai:
+    type: http
+    kind: client
+    exit: south_tls_client_openai
+  south_tls_client_openai:
+    type: tls
+    kind: client
+    vault: south_clients
+    options:
+      trustcacerts: true
+      sni:
+        - api.openai.com
+    exit: south_tcp_client_openai
+  south_tcp_client_openai:
+    type: tcp
+    kind: client
+    options:
+      host: api.openai.com
+      port: 443
+
+  # Second same-dialect (openai) deployment: north_llm_proxy routes gpt-4o here
+  # instead of translating to Anthropic -- no dialect translation happens on
+  # this leg at all, same dialect in as out.
+  south_llm_client_openai_secondary:
+    type: llm
+    kind: client
+    options:
+      dialect: openai
+      server: api.openai.com:443
+      authorization:
+        api_key:
+          credentials: "Bearer {credentials}"
+    exit: south_http_client_openai_secondary
+  south_http_client_openai_secondary:
+    type: http
+    kind: client
+    exit: south_tls_client_openai_secondary
+  south_tls_client_openai_secondary:
+    type: tls
+    kind: client
+    vault: south_clients
+    options:
+      trustcacerts: true
+      sni:
+        - api.openai.com
+    exit: south_tcp_client_openai_secondary
+  south_tcp_client_openai_secondary:
+    type: tcp
+    kind: client
+    options:
+      host: api.openai.com
+      port: 443
+
+  # Second same-dialect (anthropic) deployment: north_llm_proxy routes
+  # claude-3-5-haiku-20241022 here instead of translating to OpenAI.
+  south_llm_client_anthropic_secondary:
+    type: llm
+    kind: client
+    options:
+      dialect: anthropic
+      server: api.anthropic.com:443
+      authorization:
+        api_key:
+          credentials: "{credentials}"
+    exit: south_http_client_anthropic_secondary
+  south_http_client_anthropic_secondary:
+    type: http
+    kind: client
+    exit: south_tls_client_anthropic_secondary
+  south_tls_client_anthropic_secondary:
+    type: tls
+    kind: client
+    vault: south_clients
+    options:
+      trustcacerts: true
+      sni:
+        - api.anthropic.com
+    exit: south_tcp_client_anthropic_secondary
+  south_tcp_client_anthropic_secondary:
+    type: tcp
+    kind: client
+    options:
+      host: api.anthropic.com
+      port: 443
+
+vaults:
+  south_clients:
+    type: filesystem
+    options: {}
