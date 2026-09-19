@@ -29,17 +29,16 @@ public final class LlmEventMapperFactory
     }
 
     public static LlmEventMapper supply(
-        String dialectName,
-        int typeId)
+        String dialectName)
     {
         final LlmEventMapper mapper;
         if (OPENAI.equals(dialectName))
         {
-            mapper = new LlmOpenaiEventMapper(typeId);
+            mapper = new LlmOpenaiEventMapper();
         }
         else if (ANTHROPIC.equals(dialectName))
         {
-            mapper = new LlmAnthropicEventMapper(typeId);
+            mapper = new LlmAnthropicEventMapper();
         }
         else
         {

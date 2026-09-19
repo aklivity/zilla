@@ -25,20 +25,15 @@ import org.agrona.DirectBuffer;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmBlockType;
-import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmFinishReason;
-
 public class LlmOpenaiEventMapperTest
 {
-    private static final int TYPE_ID = 1;
-
     private LlmOpenaiEventMapper mapper;
     private LlmEventMapperTestSupport support;
 
     @Before
     public void init()
     {
-        mapper = new LlmOpenaiEventMapper(TYPE_ID);
+        mapper = new LlmOpenaiEventMapper();
         support = new LlmEventMapperTestSupport();
     }
 
@@ -194,8 +189,8 @@ public class LlmOpenaiEventMapperTest
         assertThat(support.trace, contains("end"));
     }
 
-    // llm.idl LlmMessageStartFlushEx: choiceIndex never survives a cross-dialect route to
-    // Anthropic when n > 1 upstream -- only the first parallel completion is even decoded
+    // llm.idl LlmDataEx.type: choiceIndex never survives a cross-dialect route to Anthropic when
+    // n > 1 upstream -- only the first parallel completion is even decoded
     @Test
     public void shouldDropSecondChoiceOfParallelCompletions()
     {
@@ -220,9 +215,9 @@ public class LlmOpenaiEventMapperTest
         assertThat(support.trace, contains("data:A"));
     }
 
-    // llm.idl LlmUsageFlushEx: a source that discloses inputTokens late (OpenAI, which never
-    // reveals prompt_tokens before a terminal chunk) defers emitting usage rather than emitting
-    // a placeholder zero on messageStart and correcting it later
+    // a source that discloses inputTokens late (OpenAI, which never reveals prompt_tokens before a
+    // terminal chunk) defers emitting usage rather than emitting a placeholder zero on messageStart
+    // and correcting it later
     @Test
     public void shouldDeferUsageUntilOpenaiDisclosesInputTokens()
     {
@@ -276,7 +271,7 @@ public class LlmOpenaiEventMapperTest
     @Test
     public void shouldEncodeMessageStart()
     {
-        mapper.encode(support.messageStart(0, "chatcmpl_1", "gpt-4", "assistant"), support);
+        mapper.encodeMessageStart(0, "chatcmpl_1", "gpt-4", "assistant", support);
 
         assertThat(support.trace, contains(
             "event:null:{\"object\":\"chat.completion.chunk\",\"choices\":[{\"index\":0," +
@@ -286,7 +281,7 @@ public class LlmOpenaiEventMapperTest
     @Test
     public void shouldEncodeMessageStartWithoutModel()
     {
-        mapper.encode(support.messageStart(0, "chatcmpl_1", null, null), support);
+        mapper.encodeMessageStart(0, "chatcmpl_1", null, null, support);
 
         assertThat(support.trace, contains(
             "event:null:{\"object\":\"chat.completion.chunk\",\"choices\":[{\"index\":0," +
@@ -296,7 +291,7 @@ public class LlmOpenaiEventMapperTest
     @Test
     public void shouldEncodeBlockStartTextAsNoOp()
     {
-        mapper.encode(support.blockStart(0, 0, LlmBlockType.TEXT, null, null), support);
+        mapper.encodeBlockStart(0, 0, LlmCanonicalBlockKind.TEXT, null, null, support);
 
         assertThat(support.trace, empty());
     }
@@ -304,7 +299,7 @@ public class LlmOpenaiEventMapperTest
     @Test
     public void shouldEncodeBlockStartToolCall()
     {
-        mapper.encode(support.blockStart(0, 1, LlmBlockType.TOOL_CALL, "call_1", "get_weather"), support);
+        mapper.encodeBlockStart(0, 1, LlmCanonicalBlockKind.TOOL_CALL, "call_1", "get_weather", support);
 
         assertThat(support.trace, contains(
             "event:null:{\"object\":\"chat.completion.chunk\",\"choices\":[{\"index\":0," +
@@ -316,7 +311,7 @@ public class LlmOpenaiEventMapperTest
     @Test
     public void shouldEncodeBlockStartToolCallWithoutIdOrName()
     {
-        mapper.encode(support.blockStart(0, 1, LlmBlockType.TOOL_CALL, null, null), support);
+        mapper.encodeBlockStart(0, 1, LlmCanonicalBlockKind.TOOL_CALL, null, null, support);
 
         assertThat(support.trace, contains(
             "event:null:{\"object\":\"chat.completion.chunk\",\"choices\":[{\"index\":0," +
@@ -328,7 +323,7 @@ public class LlmOpenaiEventMapperTest
     public void shouldEncodeDataAsContent()
     {
         DirectBuffer buffer = support.utf8("Hello");
-        mapper.encode(buffer, 0, buffer.capacity(), null, support);
+        mapper.encode(buffer, 0, buffer.capacity(), support);
 
         assertThat(support.trace, contains(
             "event:null:{\"object\":\"chat.completion.chunk\",\"choices\":[{\"index\":0," +
@@ -338,11 +333,11 @@ public class LlmOpenaiEventMapperTest
     @Test
     public void shouldEncodeDataAsToolCallArguments()
     {
-        mapper.encode(support.blockStart(0, 1, LlmBlockType.TOOL_CALL, "call_1", "get_weather"), support);
+        mapper.encodeBlockStart(0, 1, LlmCanonicalBlockKind.TOOL_CALL, "call_1", "get_weather", support);
         support.trace.clear();
 
         DirectBuffer buffer = support.utf8("{\"city\":\"NYC\"}");
-        mapper.encode(buffer, 0, buffer.capacity(), null, support);
+        mapper.encode(buffer, 0, buffer.capacity(), support);
 
         assertThat(support.trace, contains(
             "event:null:{\"object\":\"chat.completion.chunk\",\"choices\":[{\"index\":0," +
@@ -353,12 +348,12 @@ public class LlmOpenaiEventMapperTest
     @Test
     public void shouldEncodeBlockEndResetsToolCallRouting()
     {
-        mapper.encode(support.blockStart(0, 1, LlmBlockType.TOOL_CALL, "call_1", "get_weather"), support);
-        mapper.encode(support.blockEnd(0, 1), support);
+        mapper.encodeBlockStart(0, 1, LlmCanonicalBlockKind.TOOL_CALL, "call_1", "get_weather", support);
+        mapper.encodeBlockEnd(0, 1, support);
         support.trace.clear();
 
         DirectBuffer buffer = support.utf8("Hello");
-        mapper.encode(buffer, 0, buffer.capacity(), null, support);
+        mapper.encode(buffer, 0, buffer.capacity(), support);
 
         assertThat(support.trace, contains(
             "event:null:{\"object\":\"chat.completion.chunk\",\"choices\":[{\"index\":0," +
@@ -368,7 +363,7 @@ public class LlmOpenaiEventMapperTest
     @Test
     public void shouldEncodeFinishStop()
     {
-        mapper.encode(support.finish(0, LlmFinishReason.STOP), support);
+        mapper.encodeFinish(0, LlmCanonicalFinishReason.STOP, support);
 
         assertThat(support.trace, contains(
             "event:null:{\"object\":\"chat.completion.chunk\",\"choices\":[{\"index\":0," +
@@ -378,7 +373,7 @@ public class LlmOpenaiEventMapperTest
     @Test
     public void shouldEncodeFinishLength()
     {
-        mapper.encode(support.finish(0, LlmFinishReason.LENGTH), support);
+        mapper.encodeFinish(0, LlmCanonicalFinishReason.LENGTH, support);
 
         assertThat(support.trace, contains(
             "event:null:{\"object\":\"chat.completion.chunk\",\"choices\":[{\"index\":0," +
@@ -388,7 +383,7 @@ public class LlmOpenaiEventMapperTest
     @Test
     public void shouldEncodeFinishToolCalls()
     {
-        mapper.encode(support.finish(0, LlmFinishReason.TOOL_CALL), support);
+        mapper.encodeFinish(0, LlmCanonicalFinishReason.TOOL_CALL, support);
 
         assertThat(support.trace, contains(
             "event:null:{\"object\":\"chat.completion.chunk\",\"choices\":[{\"index\":0," +
@@ -398,7 +393,7 @@ public class LlmOpenaiEventMapperTest
     @Test
     public void shouldEncodeFinishContentFilter()
     {
-        mapper.encode(support.finish(0, LlmFinishReason.CONTENT_FILTER), support);
+        mapper.encodeFinish(0, LlmCanonicalFinishReason.CONTENT_FILTER, support);
 
         assertThat(support.trace, contains(
             "event:null:{\"object\":\"chat.completion.chunk\",\"choices\":[{\"index\":0," +
@@ -408,7 +403,7 @@ public class LlmOpenaiEventMapperTest
     @Test
     public void shouldEncodeFinishError()
     {
-        mapper.encode(support.finish(0, LlmFinishReason.ERROR), support);
+        mapper.encodeFinish(0, LlmCanonicalFinishReason.ERROR, support);
 
         assertThat(support.trace, contains(
             "event:null:{\"object\":\"chat.completion.chunk\",\"choices\":[{\"index\":0," +
@@ -418,7 +413,7 @@ public class LlmOpenaiEventMapperTest
     @Test
     public void shouldEncodeUsage()
     {
-        mapper.encode(support.usage(25, 15), support);
+        mapper.encodeUsage(25, 15, support);
 
         assertThat(support.trace, contains(
             "event:null:{\"object\":\"chat.completion.chunk\",\"choices\":[]," +
@@ -428,18 +423,10 @@ public class LlmOpenaiEventMapperTest
     @Test
     public void shouldEncodeUsageWithoutTokens()
     {
-        mapper.encode(support.usage(-1, -1), support);
+        mapper.encodeUsage(-1, -1, support);
 
         assertThat(support.trace, contains(
             "event:null:{\"object\":\"chat.completion.chunk\",\"choices\":[],\"usage\":{}}"));
-    }
-
-    @Test
-    public void shouldEncodeKeepaliveAsNoOp()
-    {
-        mapper.encode(support.keepalive(), support);
-
-        assertThat(support.trace, empty());
     }
 
     @Test

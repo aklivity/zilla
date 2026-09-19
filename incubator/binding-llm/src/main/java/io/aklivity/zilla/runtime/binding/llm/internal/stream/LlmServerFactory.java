@@ -22,7 +22,6 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.function.LongUnaryOperator;
 
-import org.agrona.DirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
 
 import io.aklivity.zilla.config.engine.BindingConfig;
@@ -40,11 +39,9 @@ import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.ChallengeFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.EndFW;
-import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmBeginExFW;
-import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmFlushExFW;
-import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmNativeFlushExFW;
+import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmDataExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
@@ -79,7 +76,6 @@ public final class LlmServerFactory implements LlmStreamFactory
     private final DataFW dataRO = new DataFW();
     private final EndFW endRO = new EndFW();
     private final AbortFW abortRO = new AbortFW();
-    private final FlushFW flushRO = new FlushFW();
     private final ResetFW resetRO = new ResetFW();
     private final WindowFW windowRO = new WindowFW();
     private final ChallengeFW challengeRO = new ChallengeFW();
@@ -96,7 +92,7 @@ public final class LlmServerFactory implements LlmStreamFactory
     private final HttpBeginExFW.Builder httpBeginExRW = new HttpBeginExFW.Builder();
     private final LlmBeginExFW llmBeginExRO = new LlmBeginExFW();
     private final LlmBeginExFW.Builder llmBeginExRW = new LlmBeginExFW.Builder();
-    private final LlmFlushExFW llmFlushExRO = new LlmFlushExFW();
+    private final LlmDataExFW llmDataExRO = new LlmDataExFW();
 
     private final MutableDirectBufferEx writeBuffer;
     private final MutableDirectBufferEx extBuffer;
@@ -1028,14 +1024,12 @@ public final class LlmServerFactory implements LlmStreamFactory
         private boolean flushingRequest;
 
         private LlmContentEncoder encoder;
-        private final MutableDirectBufferEx pendingContent;
-        private int pendingContentLength;
+        private String pendingResponseEvent;
 
         private LlmStream(
             LlmServer server)
         {
             this.server = server;
-            this.pendingContent = new UnsafeBufferEx(new byte[copyBuffer.capacity()]);
         }
 
         private boolean requestAvailable()
@@ -1156,9 +1150,6 @@ public final class LlmServerFactory implements LlmStreamFactory
             case AbortFW.TYPE_ID:
                 onAppAbort(abortRO.wrap(buffer, index, index + length));
                 break;
-            case FlushFW.TYPE_ID:
-                onAppFlush(flushRO.wrap(buffer, index, index + length));
-                break;
             case WindowFW.TYPE_ID:
                 onAppWindow(windowRO.wrap(buffer, index, index + length));
                 break;
@@ -1197,6 +1188,12 @@ public final class LlmServerFactory implements LlmStreamFactory
             doAppWindow(traceId);
         }
 
+        // The app0 wire carries the LlmDataEx extension (its event name, when the dialect has one) only
+        // on the frame that starts a value (FLAG_INIT) -- captured here and applied once, on the same
+        // frame, via encodeEventName; encodeData runs once per frame (content-type-neutral: a no-op
+        // wrapper for JSON, one full "data:" line for SSE, so a value that fits in one frame -- true of
+        // every currently supported streaming payload -- encodes correctly either way); encodeFlush runs
+        // once, on the frame that finishes the value (FLAG_FIN), writing any trailing terminator.
         private void onAppData(
             DataFW data)
         {
@@ -1215,63 +1212,41 @@ public final class LlmServerFactory implements LlmStreamFactory
             }
             else
             {
-                appendPendingContent(payload.buffer(), payload.offset(), payload.sizeof());
-            }
-        }
+                final boolean first = (flags & FLAG_INIT) != 0;
+                final boolean last = (flags & FLAG_FIN) != 0;
 
-        private void appendPendingContent(
-            DirectBuffer buffer,
-            int offset,
-            int length)
-        {
-            final int available = pendingContent.capacity() - pendingContentLength;
-            final int appended = Math.min(length, available);
-
-            if (appended > 0)
-            {
-                pendingContent.putBytes(pendingContentLength, buffer, offset, appended);
-                pendingContentLength += appended;
-            }
-        }
-
-        private void onAppFlush(
-            FlushFW flush)
-        {
-            final long traceId = flush.traceId();
-            final long authorization = flush.authorization();
-            final long budgetId = flush.budgetId();
-            final OctetsFW extension = flush.extension();
-
-            replySeq = flush.sequence();
-
-            if (encoder != null)
-            {
-                final LlmFlushExFW llmFlushEx = extension.get(llmFlushExRO::tryWrap);
-                if (llmFlushEx != null && llmFlushEx.kind() == LlmFlushExFW.KIND_RAW)
+                if (first)
                 {
-                    final LlmNativeFlushExFW raw = llmFlushEx.raw();
-                    final String event = raw.type() != null ? raw.type().asString() : null;
-                    final OctetsFW payload = raw.payload();
-                    final int idLength = payload != null ? payload.sizeof() : 0;
+                    final OctetsFW extension = data.extension();
+                    final LlmDataExFW llmDataEx = extension.get(llmDataExRO::tryWrap);
+                    pendingResponseEvent = llmDataEx != null && llmDataEx.type() != null
+                        ? llmDataEx.type().asString()
+                        : null;
+                }
 
-                    int position = 0;
-                    position += encoder.encodeEventName(event, copyBuffer, position, copyBuffer.capacity());
-                    if (pendingContentLength > 0)
-                    {
-                        position += encoder.encodeData(pendingContent, 0, pendingContentLength,
-                            copyBuffer, position, copyBuffer.capacity());
-                    }
-                    position += payload != null
-                        ? encoder.encodeFlush(payload.buffer(), payload.offset(), idLength,
-                            copyBuffer, position, copyBuffer.capacity())
-                        : encoder.encodeFlush(EMPTY_OCTETS.buffer(), 0, 0,
-                            copyBuffer, position, copyBuffer.capacity());
-                    pendingContentLength = 0;
+                int position = 0;
+                if (first)
+                {
+                    position += encoder.encodeEventName(pendingResponseEvent, copyBuffer, position, copyBuffer.capacity());
+                }
+                if (payload.sizeof() > 0)
+                {
+                    position += encoder.encodeData(payload.buffer(), payload.offset(), payload.sizeof(),
+                        copyBuffer, position, copyBuffer.capacity());
+                }
+                if (last)
+                {
+                    position += encoder.encodeFlush(EMPTY_OCTETS.buffer(), 0, 0, copyBuffer, position, copyBuffer.capacity());
+                }
 
-                    if (position > 0)
-                    {
-                        server.doNetData(copyBuffer, 0, position, FLAG_INIT | FLAG_FIN, budgetId, traceId, authorization);
-                    }
+                if (position > 0)
+                {
+                    server.doNetData(copyBuffer, 0, position, FLAG_INIT | FLAG_FIN, budgetId, traceId, authorization);
+                }
+
+                if (last)
+                {
+                    pendingResponseEvent = null;
                 }
             }
         }

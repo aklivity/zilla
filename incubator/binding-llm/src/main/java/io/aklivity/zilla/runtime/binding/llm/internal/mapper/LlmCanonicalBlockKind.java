@@ -14,19 +14,12 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.internal.mapper;
 
-import org.agrona.DirectBuffer;
-
 /**
- * Receives the dialect-native events a mapper's {@code encode} produces from canonical events, as an
- * SSE event name (nullable, e.g. OpenAI names none) paired with its payload bytes (a JSON document,
- * except the dialect's own non-JSON terminal marker such as {@code [DONE]}). {@code buffer} is only
- * valid for the duration of the call.
+ * The canonical vocabulary's content block kind, carried between a dialect mapper's {@code decode}
+ * and another dialect mapper's {@code encode} -- purely in-process, never itself serialized.
  */
-public interface LlmNativeEventOutput
+public enum LlmCanonicalBlockKind
 {
-    void event(
-        String name,
-        DirectBuffer buffer,
-        int offset,
-        int length);
+    TEXT,
+    TOOL_CALL
 }

@@ -18,8 +18,7 @@ import static io.aklivity.zilla.runtime.binding.llm.internal.mapper.LlmEventMapp
 import static io.aklivity.zilla.runtime.binding.llm.internal.mapper.LlmEventMapperJson.getString;
 import static io.aklivity.zilla.runtime.binding.llm.internal.mapper.LlmEventMapperJson.orDefault;
 import static io.aklivity.zilla.runtime.binding.llm.internal.mapper.LlmEventMapperJson.readObject;
-
-import java.nio.charset.StandardCharsets;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 import jakarta.json.Json;
 import jakarta.json.JsonArray;
@@ -28,54 +27,56 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 
 import org.agrona.DirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
 
-import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmBlockEndFlushExFW;
-import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmBlockStartFlushExFW;
-import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmBlockType;
-import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmDataExFW;
-import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmFinishFlushExFW;
-import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmFinishReason;
-import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmFlushExFW;
-import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmMessageStartFlushExFW;
-import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmUsageFlushExFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.common.json.JsonEvent;
+import io.aklivity.zilla.runtime.common.json.JsonEx;
+import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
+import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 
 /**
- * Translates between Anthropic's native streaming event sequence and the canonical
- * vocabulary, in both directions. Holds per-stream state (input token count, the
- * currently open block's type, held output tokens pending a {@code finish}) so a
- * fresh instance is required per stream; instances are not shared across streams.
+ * Translates between Anthropic's native streaming event sequence and the canonical vocabulary, in
+ * both directions, genuinely against {@code common-json}: {@code decode} drives a {@link
+ * JsonParserEx} directly over each native event's data (a fresh, self-contained document every
+ * call), walking it via {@link #walk(String, FieldSink)} -- a shallow, dotted-path field reader,
+ * since none of the fields this dialect's events carry sit inside an array; {@code encode*} writes
+ * native JSON directly with a {@link JsonGeneratorEx}.
+ * <p>
+ * Holds per-stream state (input token count, the currently open block's type, held output tokens
+ * pending a {@code finish}) so a fresh instance is required per stream; instances are not shared
+ * across streams.
  */
 public final class LlmAnthropicEventMapper implements LlmEventMapper
 {
-    private static final int EXTENSION_BUFFER_CAPACITY = 512;
+    private static final int GENERATOR_BUFFER_CAPACITY = 8192;
 
-    private final int typeId;
-    private final MutableDirectBufferEx flushExBuffer;
-    private final LlmFlushExFW.Builder flushExRW;
+    // decode-direction: parses a fresh, self-contained document per decode() call
+    private final JsonParserEx parser;
+
+    // encode-direction: writes a fresh, self-contained native document per encode*() call
+    private final JsonGeneratorEx generator;
+    private final MutableDirectBufferEx generatorBuffer;
 
     private int inputTokens = -1;
-    private LlmBlockType openBlockType;
+    private LlmCanonicalBlockKind openBlockType;
     private int openBlockId;
 
     private int heldOutputTokens = -1;
     private boolean finishSent;
 
-    public LlmAnthropicEventMapper(
-        int typeId)
+    public LlmAnthropicEventMapper()
     {
-        this.typeId = typeId;
-        this.flushExBuffer = new UnsafeBufferEx(new byte[EXTENSION_BUFFER_CAPACITY]);
-        this.flushExRW = new LlmFlushExFW.Builder();
+        this.parser = JsonEx.createParser();
+        this.generator = JsonEx.createGenerator();
+        this.generatorBuffer = new UnsafeBufferEx(new byte[GENERATOR_BUFFER_CAPACITY]);
     }
 
     @Override
     public void decode(
         String event,
         String data,
-        LlmEventMapperOutput output)
+        LlmCanonicalOutput output)
     {
         switch (event)
         {
@@ -107,55 +108,147 @@ public final class LlmAnthropicEventMapper implements LlmEventMapper
         DirectBuffer buffer,
         int offset,
         int length,
-        LlmDataExFW dataEx,
         LlmNativeEventOutput output)
     {
         String text = buffer.getStringWithoutLengthUtf8(offset, length);
-        boolean toolCall = openBlockType == LlmBlockType.TOOL_CALL;
+        boolean toolCall = openBlockType == LlmCanonicalBlockKind.TOOL_CALL;
 
-        JsonObjectBuilder delta = Json.createObjectBuilder();
+        JsonGeneratorEx json = generator.wrap(generatorBuffer, 0, generatorBuffer.capacity());
+        json.writeStartObject();
+        json.write("type", "content_block_delta");
+        json.write("index", openBlockId);
+        json.writeStartObject("delta");
         if (toolCall)
         {
-            delta.add("type", "input_json_delta").add("partial_json", text);
+            json.write("type", "input_json_delta");
+            json.write("partial_json", text);
         }
         else
         {
-            delta.add("type", "text_delta").add("text", text);
+            json.write("type", "text_delta");
+            json.write("text", text);
         }
+        json.writeEnd();
+        json.writeEnd();
 
-        JsonObject event = Json.createObjectBuilder()
-            .add("type", "content_block_delta")
-            .add("index", openBlockId)
-            .add("delta", delta)
-            .build();
-
-        output.event("content_block_delta", compact(event));
+        emit("content_block_delta", json.length(), output);
     }
 
     @Override
-    public void encode(
-        LlmFlushExFW flushEx,
+    public void encodeMessageStart(
+        int choiceIndex,
+        String id,
+        String model,
+        String role,
         LlmNativeEventOutput output)
     {
-        switch (flushEx.kind())
+        JsonGeneratorEx json = generator.wrap(generatorBuffer, 0, generatorBuffer.capacity());
+        json.writeStartObject();
+        json.write("type", "message_start");
+        json.writeStartObject("message");
+        json.write("id", id);
+        json.write("type", "message");
+        json.write("role", orDefault(role, "assistant"));
+        if (model != null)
         {
-        case LlmFlushExFW.KIND_MESSAGE_START:
-            encodeMessageStart(flushEx.messageStart(), output);
-            break;
-        case LlmFlushExFW.KIND_BLOCK_START:
-            encodeBlockStart(flushEx.blockStart(), output);
-            break;
-        case LlmFlushExFW.KIND_BLOCK_END:
-            encodeBlockEnd(flushEx.blockEnd(), output);
-            break;
-        case LlmFlushExFW.KIND_FINISH:
-            encodeFinish(flushEx.finish(), output);
-            break;
-        case LlmFlushExFW.KIND_USAGE:
-            encodeUsage(flushEx.usage(), output);
-            break;
-        default:
-            break;
+            json.write("model", model);
+        }
+        json.writeEnd();
+        json.writeEnd();
+
+        emit("message_start", json.length(), output);
+    }
+
+    @Override
+    public void encodeBlockStart(
+        int choiceIndex,
+        int blockId,
+        LlmCanonicalBlockKind type,
+        String toolId,
+        String toolName,
+        LlmNativeEventOutput output)
+    {
+        openBlockType = type;
+        openBlockId = blockId;
+
+        JsonGeneratorEx json = generator.wrap(generatorBuffer, 0, generatorBuffer.capacity());
+        json.writeStartObject();
+        json.write("type", "content_block_start");
+        json.write("index", blockId);
+        json.writeStartObject("content_block");
+        if (type == LlmCanonicalBlockKind.TOOL_CALL)
+        {
+            json.write("type", "tool_use");
+            if (toolId != null)
+            {
+                json.write("id", toolId);
+            }
+            if (toolName != null)
+            {
+                json.write("name", toolName);
+            }
+        }
+        else
+        {
+            json.write("type", "text");
+            json.write("text", "");
+        }
+        json.writeEnd();
+        json.writeEnd();
+
+        emit("content_block_start", json.length(), output);
+    }
+
+    @Override
+    public void encodeBlockEnd(
+        int choiceIndex,
+        int blockId,
+        LlmNativeEventOutput output)
+    {
+        openBlockType = null;
+
+        JsonGeneratorEx json = generator.wrap(generatorBuffer, 0, generatorBuffer.capacity());
+        json.writeStartObject();
+        json.write("type", "content_block_stop");
+        json.write("index", blockId);
+        json.writeEnd();
+
+        emit("content_block_stop", json.length(), output);
+    }
+
+    @Override
+    public void encodeFinish(
+        int choiceIndex,
+        LlmCanonicalFinishReason reason,
+        LlmNativeEventOutput output)
+    {
+        String stopReason = stopReason(reason);
+        int outputTokens = Math.max(heldOutputTokens, 0);
+
+        JsonGeneratorEx json = generator.wrap(generatorBuffer, 0, generatorBuffer.capacity());
+        json.writeStartObject();
+        json.write("type", "message_delta");
+        json.writeStartObject("delta");
+        json.write("stop_reason", stopReason);
+        json.writeEnd();
+        json.writeStartObject("usage");
+        json.write("output_tokens", outputTokens);
+        json.writeEnd();
+        json.writeEnd();
+
+        emit("message_delta", json.length(), output);
+        finishSent = true;
+    }
+
+    @Override
+    public void encodeUsage(
+        int inputTokens,
+        int outputTokens,
+        LlmNativeEventOutput output)
+    {
+        if (!finishSent)
+        {
+            heldOutputTokens = outputTokens;
         }
     }
 
@@ -163,11 +256,12 @@ public final class LlmAnthropicEventMapper implements LlmEventMapper
     public void encodeEnd(
         LlmNativeEventOutput output)
     {
-        JsonObject event = Json.createObjectBuilder()
-            .add("type", "message_stop")
-            .build();
+        JsonGeneratorEx json = generator.wrap(generatorBuffer, 0, generatorBuffer.capacity());
+        json.writeStartObject();
+        json.write("type", "message_stop");
+        json.writeEnd();
 
-        output.event("message_stop", compact(event));
+        emit("message_stop", json.length(), output);
     }
 
     @Override
@@ -245,7 +339,7 @@ public final class LlmAnthropicEventMapper implements LlmEventMapper
         root.add("role", getString(message, "role", "assistant"));
         addIfPresent(root, "model", getString(message, "model", null));
         root.add("content", blocks);
-        root.add("stop_reason", stopReason(LlmFinishReason.valueOf(message.getString("finishReason"))));
+        root.add("stop_reason", stopReason(LlmCanonicalFinishReason.valueOf(message.getString("finishReason"))));
 
         JsonObject usage = message.getJsonObject("usage");
         root.add("usage", Json.createObjectBuilder()
@@ -257,80 +351,113 @@ public final class LlmAnthropicEventMapper implements LlmEventMapper
 
     private void onMessageStart(
         String data,
-        LlmEventMapperOutput output)
+        LlmCanonicalOutput output)
     {
-        JsonObject message = readObject(data).getJsonObject("message");
-        JsonObject usage = message.getJsonObject("usage");
-        inputTokens = usage != null ? usage.getInt("input_tokens", -1) : -1;
+        Fields fields = new Fields();
+        walk(data, (path, event) ->
+        {
+            switch (path)
+            {
+            case "message.id":
+                fields.id = parser.getString();
+                break;
+            case "message.model":
+                fields.model = parser.getString();
+                break;
+            case "message.role":
+                fields.role = parser.getString();
+                break;
+            case "message.usage.input_tokens":
+                fields.inputTokens = parser.getInt();
+                break;
+            default:
+                break;
+            }
+        });
 
-        LlmFlushExFW flushEx = flushExRW
-            .wrap(flushExBuffer, 0, flushExBuffer.capacity())
-            .typeId(typeId)
-            .messageStart(m -> m
-                .choiceIndex(0)
-                .id(message.getString("id"))
-                .model(getString(message, "model", null))
-                .role(getString(message, "role", null)))
-            .build();
-
-        output.flush(flushEx);
+        inputTokens = fields.inputTokens;
+        output.messageStart(0, fields.id, fields.model, fields.role);
     }
 
     private void onContentBlockStart(
         String data,
-        LlmEventMapperOutput output)
+        LlmCanonicalOutput output)
     {
-        JsonObject root = readObject(data);
-        JsonObject block = root.getJsonObject("content_block");
-        int blockId = root.getInt("index");
-        boolean toolCall = "tool_use".equals(getString(block, "type", null));
-        openBlockType = toolCall ? LlmBlockType.TOOL_CALL : LlmBlockType.TEXT;
+        Fields fields = new Fields();
+        walk(data, (path, event) ->
+        {
+            switch (path)
+            {
+            case "index":
+                fields.blockId = parser.getInt();
+                break;
+            case "content_block.type":
+                fields.blockType = parser.getString();
+                break;
+            case "content_block.id":
+                fields.toolId = parser.getString();
+                break;
+            case "content_block.name":
+                fields.toolName = parser.getString();
+                break;
+            default:
+                break;
+            }
+        });
+
+        boolean toolCall = "tool_use".equals(fields.blockType);
+        openBlockType = toolCall ? LlmCanonicalBlockKind.TOOL_CALL : LlmCanonicalBlockKind.TEXT;
 
         if (toolCall)
         {
-            LlmFlushExFW flushEx = flushExRW
-                .wrap(flushExBuffer, 0, flushExBuffer.capacity())
-                .typeId(typeId)
-                .blockStart(b -> b
-                    .choiceIndex(0)
-                    .blockId(blockId)
-                    .type(t -> t.set(LlmBlockType.TOOL_CALL))
-                    .toolId(getString(block, "id", null))
-                    .toolName(getString(block, "name", null)))
-                .build();
-
-            output.flush(flushEx);
+            output.blockStart(0, fields.blockId, LlmCanonicalBlockKind.TOOL_CALL, fields.toolId, fields.toolName);
         }
     }
 
     private void onContentBlockDelta(
         String data,
-        LlmEventMapperOutput output)
+        LlmCanonicalOutput output)
     {
-        JsonObject delta = readObject(data).getJsonObject("delta");
-        boolean toolCall = "input_json_delta".equals(getString(delta, "type", null));
-        String content = toolCall ? getString(delta, "partial_json", "") : getString(delta, "text", "");
+        Fields fields = new Fields();
+        walk(data, (path, event) ->
+        {
+            switch (path)
+            {
+            case "delta.type":
+                fields.blockType = parser.getString();
+                break;
+            case "delta.text":
+                fields.content = parser.getString();
+                break;
+            case "delta.partial_json":
+                fields.toolCallArguments = parser.getString();
+                break;
+            default:
+                break;
+            }
+        });
 
-        byte[] bytes = content.getBytes(StandardCharsets.UTF_8);
-        DirectBuffer buffer = new UnsafeBuffer(bytes);
-        output.data(buffer, 0, bytes.length, null);
+        boolean toolCall = "input_json_delta".equals(fields.blockType);
+        String content = toolCall ? orDefault(fields.toolCallArguments, "") : orDefault(fields.content, "");
+        emitData(content, output);
     }
 
     private void onContentBlockStop(
         String data,
-        LlmEventMapperOutput output)
+        LlmCanonicalOutput output)
     {
-        if (openBlockType == LlmBlockType.TOOL_CALL)
+        if (openBlockType == LlmCanonicalBlockKind.TOOL_CALL)
         {
-            int blockId = readObject(data).getInt("index");
+            Fields fields = new Fields();
+            walk(data, (path, event) ->
+            {
+                if ("index".equals(path))
+                {
+                    fields.blockId = parser.getInt();
+                }
+            });
 
-            LlmFlushExFW flushEx = flushExRW
-                .wrap(flushExBuffer, 0, flushExBuffer.capacity())
-                .typeId(typeId)
-                .blockEnd(b -> b.choiceIndex(0).blockId(blockId))
-                .build();
-
-            output.flush(flushEx);
+            output.blockEnd(0, fields.blockId);
         }
 
         openBlockType = null;
@@ -338,120 +465,107 @@ public final class LlmAnthropicEventMapper implements LlmEventMapper
 
     private void onMessageDelta(
         String data,
-        LlmEventMapperOutput output)
+        LlmCanonicalOutput output)
     {
-        JsonObject root = readObject(data);
-        JsonObject delta = root.getJsonObject("delta");
-        JsonObject usage = root.getJsonObject("usage");
-
-        LlmFinishReason reason = finishReason(getString(delta, "stop_reason", null));
-        int outputTokens = usage != null ? usage.getInt("output_tokens", -1) : -1;
-
-        LlmFlushExFW finishEx = flushExRW
-            .wrap(flushExBuffer, 0, flushExBuffer.capacity())
-            .typeId(typeId)
-            .finish(f -> f.choiceIndex(0).reason(r -> r.set(reason)))
-            .build();
-        output.flush(finishEx);
-
-        LlmFlushExFW usageEx = flushExRW
-            .wrap(flushExBuffer, 0, flushExBuffer.capacity())
-            .typeId(typeId)
-            .usage(u -> u.inputTokens(inputTokens).outputTokens(outputTokens))
-            .build();
-        output.flush(usageEx);
-    }
-
-    private void encodeMessageStart(
-        LlmMessageStartFlushExFW messageStart,
-        LlmNativeEventOutput output)
-    {
-        JsonObjectBuilder message = Json.createObjectBuilder()
-            .add("id", messageStart.id().asString())
-            .add("type", "message")
-            .add("role", orDefault(messageStart.role().asString(), "assistant"));
-
-        String model = messageStart.model().asString();
-        if (model != null)
+        Fields fields = new Fields();
+        walk(data, (path, event) ->
         {
-            message.add("model", model);
-        }
+            switch (path)
+            {
+            case "delta.stop_reason":
+                fields.finishReason = event == JsonEvent.VALUE_STRING ? parser.getString() : null;
+                break;
+            case "usage.output_tokens":
+                fields.outputTokens = parser.getInt();
+                break;
+            default:
+                break;
+            }
+        });
 
-        JsonObject event = Json.createObjectBuilder()
-            .add("type", "message_start")
-            .add("message", message)
-            .build();
-
-        output.event("message_start", compact(event));
+        output.finish(0, finishReason(fields.finishReason));
+        output.usage(inputTokens, fields.outputTokens);
     }
 
-    private void encodeBlockStart(
-        LlmBlockStartFlushExFW blockStart,
+    private void emitData(
+        String content,
+        LlmCanonicalOutput output)
+    {
+        byte[] bytes = content.getBytes(UTF_8);
+        output.data(new UnsafeBufferEx(bytes), 0, bytes.length);
+    }
+
+    private void emit(
+        String name,
+        int length,
         LlmNativeEventOutput output)
     {
-        LlmBlockType type = blockStart.type().get();
-        openBlockType = type;
-        openBlockId = blockStart.blockId();
+        output.event(name, generatorBuffer, 0, length);
+    }
 
-        JsonObjectBuilder contentBlock = Json.createObjectBuilder();
-        if (type == LlmBlockType.TOOL_CALL)
+    // Walks the whole native event document, calling sink once for every scalar (or null) value with
+    // the dotted path of object keys leading to it (root-level fields have no dot). None of this
+    // dialect's needed fields sit inside an array, so this shallow, path-based reader -- rather than
+    // OpenAI's index-tracking walk -- is all decode needs: no depth/position bookkeeping to get wrong.
+    private void walk(
+        String data,
+        FieldSink sink)
+    {
+        byte[] bytes = data.getBytes(UTF_8);
+        parser.reset();
+        parser.wrap(new UnsafeBufferEx(bytes), 0, bytes.length, true);
+
+        StringBuilder path = new StringBuilder();
+        int[] pathLengthAt = new int[16];
+        int depth = 0;
+        String pendingKey = null;
+
+        JsonEvent event;
+        while ((event = parser.nextEvent()) != null)
         {
-            contentBlock.add("type", "tool_use");
-            addIfPresent(contentBlock, "id", blockStart.toolId().asString());
-            addIfPresent(contentBlock, "name", blockStart.toolName().asString());
-        }
-        else
-        {
-            contentBlock.add("type", "text").add("text", "");
-        }
-
-        JsonObject event = Json.createObjectBuilder()
-            .add("type", "content_block_start")
-            .add("index", blockStart.blockId())
-            .add("content_block", contentBlock)
-            .build();
-
-        output.event("content_block_start", compact(event));
-    }
-
-    private void encodeBlockEnd(
-        LlmBlockEndFlushExFW blockEnd,
-        LlmNativeEventOutput output)
-    {
-        openBlockType = null;
-
-        JsonObject event = Json.createObjectBuilder()
-            .add("type", "content_block_stop")
-            .add("index", blockEnd.blockId())
-            .build();
-
-        output.event("content_block_stop", compact(event));
-    }
-
-    private void encodeFinish(
-        LlmFinishFlushExFW finish,
-        LlmNativeEventOutput output)
-    {
-        String stopReason = stopReason(finish.reason().get());
-        int outputTokens = Math.max(heldOutputTokens, 0);
-
-        JsonObject event = Json.createObjectBuilder()
-            .add("type", "message_delta")
-            .add("delta", Json.createObjectBuilder().add("stop_reason", stopReason))
-            .add("usage", Json.createObjectBuilder().add("output_tokens", outputTokens))
-            .build();
-
-        output.event("message_delta", compact(event));
-        finishSent = true;
-    }
-
-    private void encodeUsage(
-        LlmUsageFlushExFW usage,
-        LlmNativeEventOutput output)
-    {
-        if (!finishSent)
-        {
-            heldOutputTokens = usage.outputTokens();
+            switch (event)
+            {
+            case KEY_NAME:
+                pendingKey = parser.getString();
+                break;
+            case START_OBJECT:
+            case START_ARRAY:
+                pathLengthAt[depth++] = path.length();
+                if (pendingKey != null)
+                {
+                    if (path.length() > 0)
+                    {
+                        path.append('.');
+                    }
+                    path.append(pendingKey);
+                    pendingKey = null;
+                }
+                break;
+            case END_OBJECT:
+            case END_ARRAY:
+                path.setLength(pathLengthAt[--depth]);
+                break;
+            case VALUE_STRING:
+            case VALUE_NUMBER:
+            case VALUE_TRUE:
+            case VALUE_FALSE:
+            case VALUE_NULL:
+                if (pendingKey != null)
+                {
+                    int fieldAt = path.length();
+                    if (fieldAt > 0)
+                    {
+                        path.append('.');
+                    }
+                    path.append(pendingKey);
+                    sink.onField(path.toString(), event);
+                    path.setLength(fieldAt);
+                    pendingKey = null;
+                }
+                break;
+            default:
+                break;
+            }
         }
     }
 
@@ -466,27 +580,27 @@ public final class LlmAnthropicEventMapper implements LlmEventMapper
         }
     }
 
-    private static LlmFinishReason finishReason(
+    private static LlmCanonicalFinishReason finishReason(
         String stopReason)
     {
-        LlmFinishReason reason;
+        LlmCanonicalFinishReason reason;
         if ("max_tokens".equals(stopReason))
         {
-            reason = LlmFinishReason.LENGTH;
+            reason = LlmCanonicalFinishReason.LENGTH;
         }
         else if ("tool_use".equals(stopReason))
         {
-            reason = LlmFinishReason.TOOL_CALL;
+            reason = LlmCanonicalFinishReason.TOOL_CALL;
         }
         else
         {
-            reason = LlmFinishReason.STOP;
+            reason = LlmCanonicalFinishReason.STOP;
         }
         return reason;
     }
 
     private static String stopReason(
-        LlmFinishReason reason)
+        LlmCanonicalFinishReason reason)
     {
         String stopReason;
         switch (reason)
@@ -502,5 +616,31 @@ public final class LlmAnthropicEventMapper implements LlmEventMapper
             break;
         }
         return stopReason;
+    }
+
+    @FunctionalInterface
+    private interface FieldSink
+    {
+        void onField(
+            String path,
+            JsonEvent event);
+    }
+
+    // Scratch accumulator for one decode() call's fields, populated by a walk() callback and applied
+    // to canonical output afterward, in this dialect's own fixed sequencing.
+    private static final class Fields
+    {
+        private String id;
+        private String model;
+        private String role;
+        private int inputTokens = -1;
+        private int blockId;
+        private String blockType;
+        private String toolId;
+        private String toolName;
+        private String content;
+        private String toolCallArguments;
+        private String finishReason;
+        private int outputTokens = -1;
     }
 }

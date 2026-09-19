@@ -18,13 +18,16 @@ import jakarta.json.JsonObject;
 
 import org.agrona.DirectBuffer;
 
-import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmDataExFW;
-import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmFlushExFW;
-
 /**
  * Translates one LLM dialect's native events to and from the canonical vocabulary -- both the
- * streaming, event-by-event shape ({@link #decode}/{@link #encode}/{@link #encodeEnd}) and the
+ * streaming, event-by-event shape ({@link #decode}/{@code encode*}/{@link #encodeEnd}) and the
  * non-streaming, whole-document shape ({@link #decodeMessage}/{@link #encodeMessage}).
+ * <p>
+ * {@code decode} parses a native chunk structurally via a {@code common-json} {@code JsonSink}, calling
+ * {@code output} as it recognizes each canonical event; the {@code encode*} methods write a dialect's
+ * native JSON directly with a {@code common-json} {@code JsonGeneratorEx}, one per canonical event kind
+ * since there is no longer a single flyweight to dispatch on.
+ * </p>
  * <p>
  * {@link LlmOpenaiEventMapper} and {@link LlmAnthropicEventMapper} are the two current
  * implementations; {@link LlmEventMapperFactory} selects between them by dialect name. Holds
@@ -37,17 +40,42 @@ public interface LlmEventMapper
     void decode(
         String event,
         String data,
-        LlmEventMapperOutput output);
+        LlmCanonicalOutput output);
+
+    void encodeMessageStart(
+        int choiceIndex,
+        String id,
+        String model,
+        String role,
+        LlmNativeEventOutput output);
+
+    void encodeBlockStart(
+        int choiceIndex,
+        int blockId,
+        LlmCanonicalBlockKind type,
+        String toolId,
+        String toolName,
+        LlmNativeEventOutput output);
 
     void encode(
         DirectBuffer buffer,
         int offset,
         int length,
-        LlmDataExFW dataEx,
         LlmNativeEventOutput output);
 
-    void encode(
-        LlmFlushExFW flushEx,
+    void encodeBlockEnd(
+        int choiceIndex,
+        int blockId,
+        LlmNativeEventOutput output);
+
+    void encodeFinish(
+        int choiceIndex,
+        LlmCanonicalFinishReason reason,
+        LlmNativeEventOutput output);
+
+    void encodeUsage(
+        int inputTokens,
+        int outputTokens,
         LlmNativeEventOutput output);
 
     void encodeEnd(
@@ -58,8 +86,8 @@ public interface LlmEventMapper
      * non-streaming shape: {@code id}/{@code model} (both nullable, omitted when absent),
      * {@code role}, a {@code content} array of {@code {"type":"text","text":...}} and
      * {@code {"type":"tool_call","toolId":...,"toolName":...,"arguments":...}} entries,
-     * {@code finishReason} (an {@link io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmFinishReason}
-     * name), and a {@code usage} object with {@code inputTokens}/{@code outputTokens} (-1 when absent).
+     * {@code finishReason} (an {@link LlmCanonicalFinishReason} name), and a {@code usage} object
+     * with {@code inputTokens}/{@code outputTokens} (-1 when absent).
      *
      * @param data  the native response document
      * @return the canonical non-streaming document
