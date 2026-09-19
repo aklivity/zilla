@@ -64,8 +64,8 @@ import io.aklivity.zilla.runtime.engine.model.ModelTransform;
  * well-behaved backend never sends one, so this only ever fires against a malformed or malicious upstream,
  * which is exactly the boundary this decode direction sits on. {@code type} itself is still forwarded
  * unchanged; nothing renames it. Encoding is unaffected: this dialect authors both the outgoing
- * {@code event:} line and its {@code type} field from the same {@code LlmFlushExFW} kind, so they cannot
- * disagree the way untrusted inbound bytes can.
+ * {@code event:} line and its {@code type} field from the same canonical call, so they cannot disagree
+ * the way untrusted inbound bytes can.
  * </p>
  * <p>
  * {@link LlmOpenaiSubstitutedSource} is reused here despite its name -- it is a generic {@code path}/

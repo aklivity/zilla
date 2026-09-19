@@ -410,20 +410,52 @@ public final class LlmOpenaiEventMapper implements LlmEventMapper
         parser.reset();
         parser.wrap(new UnsafeBufferEx(bytes), 0, bytes.length, true);
 
-        int depth = 0;
-        Position position = Position.ROOT;
-        Position choiceKeyPosition = Position.ROOT;
-        Position deltaKeyPosition = Position.ROOT;
-        Position toolCallKeyPosition = Position.ROOT;
-        Position functionKeyPosition = Position.ROOT;
-        Position usageKeyPosition = Position.ROOT;
-        int choicesArrayIndex = -1;
-        int toolCallsArrayIndex = -1;
-        boolean inChoice0 = false;
-        boolean inToolCall0 = false;
-
+        ChunkWalker walker = new ChunkWalker(chunk);
         JsonEvent event;
         while ((event = parser.nextEvent()) != null)
+        {
+            walker.onEvent(event);
+        }
+
+        apply(chunk, output);
+    }
+
+    // Holds the position/depth/array-index state a single onChunk() walk mutates across parser events,
+    // split out of onChunk() itself only to keep that method under the checkstyle method-length limit --
+    // the three onEvent() steps below still run once per event, in the same fixed order, against the
+    // same shared state, exactly as onChunk()'s single loop body did before the split.
+    private final class ChunkWalker
+    {
+        private final Chunk chunk;
+
+        private int depth;
+        private Position position = Position.ROOT;
+        private Position choiceKeyPosition = Position.ROOT;
+        private Position deltaKeyPosition = Position.ROOT;
+        private Position toolCallKeyPosition = Position.ROOT;
+        private Position functionKeyPosition = Position.ROOT;
+        private Position usageKeyPosition = Position.ROOT;
+        private int choicesArrayIndex = -1;
+        private int toolCallsArrayIndex = -1;
+        private boolean inChoice0;
+        private boolean inToolCall0;
+
+        private ChunkWalker(
+            Chunk chunk)
+        {
+            this.chunk = chunk;
+        }
+
+        private void onEvent(
+            JsonEvent event)
+        {
+            onStructural(event);
+            onContainerTransition(event);
+            onLeafValue(event);
+        }
+
+        private void onStructural(
+            JsonEvent event)
         {
             switch (event)
             {
@@ -462,122 +494,129 @@ public final class LlmOpenaiEventMapper implements LlmEventMapper
                 }
                 break;
             case KEY_NAME:
-            {
-                CharSequence key = parser.getStringView();
-                if (depth == 1 && position == Position.ROOT)
-                {
-                    if (matches(key, "id"))
-                    {
-                        position = Position.ROOT_ID;
-                    }
-                    else if (matches(key, "model"))
-                    {
-                        position = Position.ROOT_MODEL;
-                    }
-                    else if (matches(key, "choices"))
-                    {
-                        position = Position.CHOICES_KEY;
-                    }
-                    else if (matches(key, "usage"))
-                    {
-                        position = Position.USAGE_KEY;
-                    }
-                }
-                else if (depth == 3 && position == Position.CHOICE)
-                {
-                    if (matches(key, "index"))
-                    {
-                        choiceKeyPosition = Position.CHOICE_INDEX;
-                    }
-                    else if (matches(key, "delta"))
-                    {
-                        choiceKeyPosition = Position.DELTA_KEY;
-                    }
-                    else if (matches(key, "finish_reason"))
-                    {
-                        choiceKeyPosition = Position.FINISH_REASON;
-                    }
-                    else
-                    {
-                        choiceKeyPosition = Position.ROOT;
-                    }
-                }
-                else if (depth == 4 && position == Position.DELTA)
-                {
-                    if (matches(key, "role"))
-                    {
-                        deltaKeyPosition = Position.DELTA_ROLE;
-                    }
-                    else if (matches(key, "content"))
-                    {
-                        deltaKeyPosition = Position.DELTA_CONTENT;
-                    }
-                    else if (matches(key, "tool_calls"))
-                    {
-                        deltaKeyPosition = Position.TOOL_CALLS_KEY;
-                    }
-                    else
-                    {
-                        deltaKeyPosition = Position.ROOT;
-                    }
-                }
-                else if (depth == 6 && position == Position.TOOL_CALL)
-                {
-                    if (matches(key, "index"))
-                    {
-                        toolCallKeyPosition = Position.TOOL_CALL_INDEX;
-                    }
-                    else if (matches(key, "id"))
-                    {
-                        toolCallKeyPosition = Position.TOOL_CALL_ID;
-                    }
-                    else if (matches(key, "function"))
-                    {
-                        toolCallKeyPosition = Position.FUNCTION_KEY;
-                    }
-                    else
-                    {
-                        toolCallKeyPosition = Position.ROOT;
-                    }
-                }
-                else if (depth == 7 && position == Position.FUNCTION)
-                {
-                    if (matches(key, "name"))
-                    {
-                        functionKeyPosition = Position.FUNCTION_NAME;
-                    }
-                    else if (matches(key, "arguments"))
-                    {
-                        functionKeyPosition = Position.FUNCTION_ARGUMENTS;
-                    }
-                    else
-                    {
-                        functionKeyPosition = Position.ROOT;
-                    }
-                }
-                else if (depth == 2 && position == Position.USAGE)
-                {
-                    if (matches(key, "prompt_tokens"))
-                    {
-                        usageKeyPosition = Position.USAGE_PROMPT_TOKENS;
-                    }
-                    else if (matches(key, "completion_tokens"))
-                    {
-                        usageKeyPosition = Position.USAGE_COMPLETION_TOKENS;
-                    }
-                    else
-                    {
-                        usageKeyPosition = Position.ROOT;
-                    }
-                }
+                onKeyName();
                 break;
-            }
             default:
                 break;
             }
+        }
 
-            // container transitions decided after a KEY_NAME's next START_OBJECT/START_ARRAY, or after a
-            // scalar value at the position the preceding KEY_NAME selected
+        private void onKeyName()
+        {
+            CharSequence key = parser.getStringView();
+            if (depth == 1 && position == Position.ROOT)
+            {
+                if (matches(key, "id"))
+                {
+                    position = Position.ROOT_ID;
+                }
+                else if (matches(key, "model"))
+                {
+                    position = Position.ROOT_MODEL;
+                }
+                else if (matches(key, "choices"))
+                {
+                    position = Position.CHOICES_KEY;
+                }
+                else if (matches(key, "usage"))
+                {
+                    position = Position.USAGE_KEY;
+                }
+            }
+            else if (depth == 3 && position == Position.CHOICE)
+            {
+                if (matches(key, "index"))
+                {
+                    choiceKeyPosition = Position.CHOICE_INDEX;
+                }
+                else if (matches(key, "delta"))
+                {
+                    choiceKeyPosition = Position.DELTA_KEY;
+                }
+                else if (matches(key, "finish_reason"))
+                {
+                    choiceKeyPosition = Position.FINISH_REASON;
+                }
+                else
+                {
+                    choiceKeyPosition = Position.ROOT;
+                }
+            }
+            else if (depth == 4 && position == Position.DELTA)
+            {
+                if (matches(key, "role"))
+                {
+                    deltaKeyPosition = Position.DELTA_ROLE;
+                }
+                else if (matches(key, "content"))
+                {
+                    deltaKeyPosition = Position.DELTA_CONTENT;
+                }
+                else if (matches(key, "tool_calls"))
+                {
+                    deltaKeyPosition = Position.TOOL_CALLS_KEY;
+                }
+                else
+                {
+                    deltaKeyPosition = Position.ROOT;
+                }
+            }
+            else if (depth == 6 && position == Position.TOOL_CALL)
+            {
+                if (matches(key, "index"))
+                {
+                    toolCallKeyPosition = Position.TOOL_CALL_INDEX;
+                }
+                else if (matches(key, "id"))
+                {
+                    toolCallKeyPosition = Position.TOOL_CALL_ID;
+                }
+                else if (matches(key, "function"))
+                {
+                    toolCallKeyPosition = Position.FUNCTION_KEY;
+                }
+                else
+                {
+                    toolCallKeyPosition = Position.ROOT;
+                }
+            }
+            else if (depth == 7 && position == Position.FUNCTION)
+            {
+                if (matches(key, "name"))
+                {
+                    functionKeyPosition = Position.FUNCTION_NAME;
+                }
+                else if (matches(key, "arguments"))
+                {
+                    functionKeyPosition = Position.FUNCTION_ARGUMENTS;
+                }
+                else
+                {
+                    functionKeyPosition = Position.ROOT;
+                }
+            }
+            else if (depth == 2 && position == Position.USAGE)
+            {
+                if (matches(key, "prompt_tokens"))
+                {
+                    usageKeyPosition = Position.USAGE_PROMPT_TOKENS;
+                }
+                else if (matches(key, "completion_tokens"))
+                {
+                    usageKeyPosition = Position.USAGE_COMPLETION_TOKENS;
+                }
+                else
+                {
+                    usageKeyPosition = Position.ROOT;
+                }
+            }
+        }
+
+        // Container transitions decided after a KEY_NAME's next START_OBJECT/START_ARRAY, or after a
+        // scalar value at the position the preceding KEY_NAME selected.
+        private void onContainerTransition(
+            JsonEvent event)
+        {
             switch (position)
             {
             case CHOICES_KEY:
@@ -620,65 +659,18 @@ public final class LlmOpenaiEventMapper implements LlmEventMapper
             default:
                 break;
             }
+        }
 
+        private void onLeafValue(
+            JsonEvent event)
+        {
             if (position == Position.CHOICE && inChoice0)
             {
-                switch (choiceKeyPosition)
-                {
-                case CHOICE_INDEX:
-                    if (event == JsonEvent.VALUE_NUMBER)
-                    {
-                        chunk.choiceIndex = parser.getInt();
-                        choiceKeyPosition = Position.ROOT;
-                    }
-                    break;
-                case DELTA_KEY:
-                    if (event == JsonEvent.START_OBJECT)
-                    {
-                        chunk.hasDelta = true;
-                        position = Position.DELTA;
-                        deltaKeyPosition = Position.ROOT;
-                    }
-                    break;
-                case FINISH_REASON:
-                    if (event == JsonEvent.VALUE_STRING)
-                    {
-                        chunk.finishReason = parser.getString();
-                        choiceKeyPosition = Position.ROOT;
-                    }
-                    break;
-                default:
-                    break;
-                }
+                onChoiceLeafValue(event);
             }
             else if (position == Position.DELTA)
             {
-                switch (deltaKeyPosition)
-                {
-                case DELTA_ROLE:
-                    if (event == JsonEvent.VALUE_STRING)
-                    {
-                        chunk.role = parser.getString();
-                        deltaKeyPosition = Position.ROOT;
-                    }
-                    break;
-                case DELTA_CONTENT:
-                    if (event == JsonEvent.VALUE_STRING)
-                    {
-                        chunk.content = parser.getString();
-                        deltaKeyPosition = Position.ROOT;
-                    }
-                    break;
-                case TOOL_CALLS_KEY:
-                    if (event == JsonEvent.START_ARRAY)
-                    {
-                        position = Position.TOOL_CALLS_ARRAY;
-                        toolCallsArrayIndex = -1;
-                    }
-                    break;
-                default:
-                    break;
-                }
+                onDeltaLeafValue(event);
             }
             else if (position == Position.TOOL_CALLS_ARRAY)
             {
@@ -696,80 +688,159 @@ public final class LlmOpenaiEventMapper implements LlmEventMapper
             }
             else if (position == Position.TOOL_CALL && inToolCall0)
             {
-                switch (toolCallKeyPosition)
-                {
-                case TOOL_CALL_INDEX:
-                    if (event == JsonEvent.VALUE_NUMBER)
-                    {
-                        chunk.toolCallIndex = parser.getInt();
-                        toolCallKeyPosition = Position.ROOT;
-                    }
-                    break;
-                case TOOL_CALL_ID:
-                    if (event == JsonEvent.VALUE_STRING)
-                    {
-                        chunk.toolCallId = parser.getString();
-                        toolCallKeyPosition = Position.ROOT;
-                    }
-                    break;
-                case FUNCTION_KEY:
-                    if (event == JsonEvent.START_OBJECT)
-                    {
-                        position = Position.FUNCTION;
-                        functionKeyPosition = Position.ROOT;
-                    }
-                    break;
-                default:
-                    break;
-                }
+                onToolCallLeafValue(event);
             }
             else if (position == Position.FUNCTION)
             {
-                switch (functionKeyPosition)
-                {
-                case FUNCTION_NAME:
-                    if (event == JsonEvent.VALUE_STRING)
-                    {
-                        chunk.toolCallName = parser.getString();
-                        functionKeyPosition = Position.ROOT;
-                    }
-                    break;
-                case FUNCTION_ARGUMENTS:
-                    if (event == JsonEvent.VALUE_STRING)
-                    {
-                        chunk.toolCallArguments = parser.getString();
-                        functionKeyPosition = Position.ROOT;
-                    }
-                    break;
-                default:
-                    break;
-                }
+                onFunctionLeafValue(event);
             }
             else if (position == Position.USAGE)
             {
-                switch (usageKeyPosition)
-                {
-                case USAGE_PROMPT_TOKENS:
-                    if (event == JsonEvent.VALUE_NUMBER)
-                    {
-                        chunk.inputTokens = parser.getInt();
-                        usageKeyPosition = Position.ROOT;
-                    }
-                    break;
-                case USAGE_COMPLETION_TOKENS:
-                    if (event == JsonEvent.VALUE_NUMBER)
-                    {
-                        chunk.outputTokens = parser.getInt();
-                        usageKeyPosition = Position.ROOT;
-                    }
-                    break;
-                default:
-                    break;
-                }
+                onUsageLeafValue(event);
             }
         }
 
-        apply(chunk, output);
+        private void onChoiceLeafValue(
+            JsonEvent event)
+        {
+            switch (choiceKeyPosition)
+            {
+            case CHOICE_INDEX:
+                if (event == JsonEvent.VALUE_NUMBER)
+                {
+                    chunk.choiceIndex = parser.getInt();
+                    choiceKeyPosition = Position.ROOT;
+                }
+                break;
+            case DELTA_KEY:
+                if (event == JsonEvent.START_OBJECT)
+                {
+                    chunk.hasDelta = true;
+                    position = Position.DELTA;
+                    deltaKeyPosition = Position.ROOT;
+                }
+                break;
+            case FINISH_REASON:
+                if (event == JsonEvent.VALUE_STRING)
+                {
+                    chunk.finishReason = parser.getString();
+                    choiceKeyPosition = Position.ROOT;
+                }
+                break;
+            default:
+                break;
+            }
+        }
+
+        private void onDeltaLeafValue(
+            JsonEvent event)
+        {
+            switch (deltaKeyPosition)
+            {
+            case DELTA_ROLE:
+                if (event == JsonEvent.VALUE_STRING)
+                {
+                    chunk.role = parser.getString();
+                    deltaKeyPosition = Position.ROOT;
+                }
+                break;
+            case DELTA_CONTENT:
+                if (event == JsonEvent.VALUE_STRING)
+                {
+                    chunk.content = parser.getString();
+                    deltaKeyPosition = Position.ROOT;
+                }
+                break;
+            case TOOL_CALLS_KEY:
+                if (event == JsonEvent.START_ARRAY)
+                {
+                    position = Position.TOOL_CALLS_ARRAY;
+                    toolCallsArrayIndex = -1;
+                }
+                break;
+            default:
+                break;
+            }
+        }
+
+        private void onToolCallLeafValue(
+            JsonEvent event)
+        {
+            switch (toolCallKeyPosition)
+            {
+            case TOOL_CALL_INDEX:
+                if (event == JsonEvent.VALUE_NUMBER)
+                {
+                    chunk.toolCallIndex = parser.getInt();
+                    toolCallKeyPosition = Position.ROOT;
+                }
+                break;
+            case TOOL_CALL_ID:
+                if (event == JsonEvent.VALUE_STRING)
+                {
+                    chunk.toolCallId = parser.getString();
+                    toolCallKeyPosition = Position.ROOT;
+                }
+                break;
+            case FUNCTION_KEY:
+                if (event == JsonEvent.START_OBJECT)
+                {
+                    position = Position.FUNCTION;
+                    functionKeyPosition = Position.ROOT;
+                }
+                break;
+            default:
+                break;
+            }
+        }
+
+        private void onFunctionLeafValue(
+            JsonEvent event)
+        {
+            switch (functionKeyPosition)
+            {
+            case FUNCTION_NAME:
+                if (event == JsonEvent.VALUE_STRING)
+                {
+                    chunk.toolCallName = parser.getString();
+                    functionKeyPosition = Position.ROOT;
+                }
+                break;
+            case FUNCTION_ARGUMENTS:
+                if (event == JsonEvent.VALUE_STRING)
+                {
+                    chunk.toolCallArguments = parser.getString();
+                    functionKeyPosition = Position.ROOT;
+                }
+                break;
+            default:
+                break;
+            }
+        }
+
+        private void onUsageLeafValue(
+            JsonEvent event)
+        {
+            switch (usageKeyPosition)
+            {
+            case USAGE_PROMPT_TOKENS:
+                if (event == JsonEvent.VALUE_NUMBER)
+                {
+                    chunk.inputTokens = parser.getInt();
+                    usageKeyPosition = Position.ROOT;
+                }
+                break;
+            case USAGE_COMPLETION_TOKENS:
+                if (event == JsonEvent.VALUE_NUMBER)
+                {
+                    chunk.outputTokens = parser.getInt();
+                    usageKeyPosition = Position.ROOT;
+                }
+                break;
+            default:
+                break;
+            }
+        }
     }
 
     // Fires canonical output calls from the fully-accumulated chunk, in the same fixed order the
