@@ -123,7 +123,7 @@ public class LlmClientIT
         "${app}/openai.streaming.transformed/client",
         "${net}/anthropic.streaming.transformed/server"})
     @ScriptProperty({ "model \"gpt-4\"", "id \"chatcmpl_1\"" })
-    public void shouldTranslateOpenaiToAnthropicStreaming() throws Exception
+    public void shouldTransformOpenaiToAnthropicStreaming() throws Exception
     {
         k3po.finish();
     }
@@ -134,7 +134,7 @@ public class LlmClientIT
         "${app}/anthropic.streaming.transformed/client",
         "${net}/openai.streaming.transformed/server"})
     @ScriptProperty({ "model \"claude-3-opus-20240229\"", "id \"msg_01\"" })
-    public void shouldTranslateAnthropicToOpenaiStreaming() throws Exception
+    public void shouldTransformAnthropicToOpenaiStreaming() throws Exception
     {
         k3po.finish();
     }
@@ -145,7 +145,7 @@ public class LlmClientIT
         "${app}/openai.nonstreaming.transformed/client",
         "${net}/anthropic.nonstreaming.transformed/server"})
     @ScriptProperty({ "model \"gpt-4\"", "id \"chatcmpl_2\"" })
-    public void shouldTranslateOpenaiToAnthropicNonstreaming() throws Exception
+    public void shouldTransformOpenaiToAnthropicNonstreaming() throws Exception
     {
         k3po.finish();
     }
@@ -156,7 +156,7 @@ public class LlmClientIT
         "${app}/anthropic.nonstreaming.transformed/client",
         "${net}/openai.nonstreaming.transformed/server"})
     @ScriptProperty({ "model \"claude-3-opus-20240229\"", "id \"msg_01\"" })
-    public void shouldTranslateAnthropicToOpenaiNonstreaming() throws Exception
+    public void shouldTransformAnthropicToOpenaiNonstreaming() throws Exception
     {
         k3po.finish();
     }
@@ -223,11 +223,11 @@ public class LlmClientIT
 
     // openai.100k/anthropic.100k hang on the response-decode path: LlmClientFactory.decodeJsonContent() calls
     // responsePipeline.transform() exactly once and never retries on Status.SUSPENDED, unlike the working
-    // retry loop in this same file's translateNativeStreamEvent(). Tracked for a fix; the two tests above
+    // retry loop in this same file's transformNativeStreamEvent(). Tracked for a fix; the two tests above
     // remain red until then.
 
-    // Cross-dialect request translation for content this large hits a separate, tracked bug
-    // (aklivity/zilla#2597): the request forwards verbatim, untranslated, once content spans multiple
-    // incremental transform() calls. Add shouldTranslateAnthropicToOpenai10k/shouldTranslateOpenaiToAnthropic10k
+    // Cross-dialect request transformation for content this large hits a separate, tracked bug
+    // (aklivity/zilla#2597): the request forwards verbatim, untransformed, once content spans multiple
+    // incremental transform() calls. Add shouldTransformAnthropicToOpenai10k/shouldTransformOpenaiToAnthropic10k
     // back once that is fixed.
 }

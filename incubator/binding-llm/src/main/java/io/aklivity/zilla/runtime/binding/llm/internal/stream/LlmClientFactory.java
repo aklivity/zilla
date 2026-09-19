@@ -275,7 +275,7 @@ public final class LlmClientFactory implements LlmStreamFactory
         private final LlmDialect source;
         private final LlmDialect target;
         private final boolean sameDialect;
-        private final boolean translateEvents;
+        private final boolean transformEvents;
         private final LlmModelEnvelope envelope;
         private final LlmContentEncoder requestEncoder;
         private final JsonPipeline requestPipeline;
@@ -332,15 +332,15 @@ public final class LlmClientFactory implements LlmStreamFactory
             this.target = target;
             this.sameDialect = source == target;
             // Every registered dialect (openai, anthropic) has a genuine streaming decode/encode pair (see
-            // LlmResponseTransformFactory), so any cross-dialect route translates streaming response events.
-            this.translateEvents = !sameDialect;
+            // LlmResponseTransformFactory), so any cross-dialect route transforms streaming response events.
+            this.transformEvents = !sameDialect;
             this.envelope = new LlmModelEnvelope();
             this.requestEncoder = codecs.createEncoder(requestContentType);
 
             this.requestPipeline = requestEncoder != null ? buildRequestPipeline(source, target, sameDialect, envelope) : null;
 
-            this.responsePipeline = translateEvents ? null : buildResponsePipeline(target, envelope);
-            this.responseTerminator = translateEvents ? null : target.terminator(Kind.RESPONSE);
+            this.responsePipeline = transformEvents ? null : buildResponsePipeline(target, envelope);
+            this.responseTerminator = transformEvents ? null : target.terminator(Kind.RESPONSE);
 
             this.delegate = new LlmHttpClient(this, routedId, resolvedId, server, requestContentType);
         }
@@ -371,7 +371,7 @@ public final class LlmClientFactory implements LlmStreamFactory
             return stream.into(generator);
         }
 
-        // Built only for a same-dialect route (translateEvents == false): still runs through the JsonPipeline
+        // Built only for a same-dialect route (transformEvents == false): still runs through the JsonPipeline
         // for schema validation, but injects no decode/encode rename stage, since a same-dialect rename would
         // be a no-op identity round trip. Genuine cross-dialect streaming response translation is handled
         // entirely by LlmHttpClient's own eventPipeline (the decode/encode JsonTransform/JsonSink pair), not
@@ -944,7 +944,7 @@ public final class LlmClientFactory implements LlmStreamFactory
         private String pendingResponseEvent;
         private final LlmNativeEventOutput nativeOutput;
 
-        // Cross-dialect (translateEvents) response streaming only: a long-lived JsonPipeline chaining the
+        // Cross-dialect (transformEvents) response streaming only: a long-lived JsonPipeline chaining the
         // source dialect's decode JsonTransform into the target dialect's encode JsonSink, built once here
         // (rather than on the outer LlmClient) because the encode sink needs nativeOutput, which only
         // exists once this inner class is constructed. decodeEvent/encodeTerminator are the same two
@@ -971,7 +971,7 @@ public final class LlmClientFactory implements LlmStreamFactory
             this.nativeEventBuffer = new UnsafeBufferEx(new byte[decodeMax]);
             this.nativeOutput = this::onNativeEvent;
 
-            if (client.translateEvents)
+            if (client.transformEvents)
             {
                 // Decodes the native bytes the upstream (target) API actually sends over net, encoding to
                 // the native shape the app-facing (source) side expects.
@@ -1355,7 +1355,7 @@ public final class LlmClientFactory implements LlmStreamFactory
                 final int decodeLimit = offset + Math.min(limit - offset, window);
                 progress = decoder.decode(buffer, offset, decodeLimit, this);
             }
-            else if (client.translateEvents)
+            else if (client.transformEvents)
             {
                 if (LlmState.replyClosing(state))
                 {
@@ -1451,7 +1451,7 @@ public final class LlmClientFactory implements LlmStreamFactory
         {
             if (event != null)
             {
-                if (client.translateEvents)
+                if (client.transformEvents)
                 {
                     nativeEventName = event;
                 }
@@ -1469,7 +1469,7 @@ public final class LlmClientFactory implements LlmStreamFactory
             int offset,
             int length)
         {
-            if (client.translateEvents)
+            if (client.transformEvents)
             {
                 nativeEventBuffer.putBytes(nativeEventLength, buffer, offset, length);
                 nativeEventLength += length;
@@ -1487,9 +1487,9 @@ public final class LlmClientFactory implements LlmStreamFactory
             int offset,
             int length)
         {
-            if (client.translateEvents)
+            if (client.transformEvents)
             {
-                translateNativeEvent();
+                transformNativeEvent();
             }
             else
             {
@@ -1497,11 +1497,11 @@ public final class LlmClientFactory implements LlmStreamFactory
             }
         }
 
-        private void translateNativeEvent()
+        private void transformNativeEvent()
         {
             if (streaming)
             {
-                translateNativeStreamEvent();
+                transformNativeStreamEvent();
             }
             else
             {
@@ -1523,7 +1523,7 @@ public final class LlmClientFactory implements LlmStreamFactory
         // perspective; nextDocument() (never reset(), which would wipe the decode/encode stages' own
         // cross-chunk state -- see LlmCanonicalEmitter/LlmCanonicalEncodeSink) advances eventPipeline from
         // one native chunk to the next within this same response stream.
-        private void translateNativeStreamEvent()
+        private void transformNativeStreamEvent()
         {
             if (matchesTerminator(nativeEventBuffer, 0, nativeEventLength, client.target.terminator(Kind.RESPONSE)))
             {

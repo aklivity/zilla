@@ -182,7 +182,7 @@ public interface LlmDialect
         Kind kind);
 
     /**
-     * Translates a non-streaming response's whole native JSON document into the canonical non-streaming
+     * Transforms a non-streaming response's whole native JSON document into the canonical non-streaming
      * shape: {@code id}/{@code model} (both nullable, omitted when absent), {@code role}, a {@code content}
      * array of {@code {"type":"text","text":...}} and {@code {"type":"tool_call","toolId":...,
      * "toolName":...,"arguments":...}} entries, {@code finishReason} (an {@code LlmCanonicalFinishReason}
@@ -195,7 +195,7 @@ public interface LlmDialect
         String data);
 
     /**
-     * Translates the canonical non-streaming document {@link #decodeMessage} produces into this dialect's
+     * Transforms the canonical non-streaming document {@link #decodeMessage} produces into this dialect's
      * native non-streaming response document.
      *
      * @param message  the canonical non-streaming document

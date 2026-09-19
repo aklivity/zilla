@@ -30,7 +30,7 @@ import io.aklivity.zilla.runtime.common.json.JsonSource;
  * private {@code JsonParserEx}: the same walk now happens one real parser event at a time.
  * <p>
  * OpenAI's {@code index} counts tool calls only, unlike the canonical (Anthropic-shaped) block index, which
- * counts every content block including text; {@code blockIdByToolCallIndex} translates between the two
+ * counts every content block including text; {@code blockIdByToolCallIndex} maps between the two
  * spaces for the stream's lifetime. OpenAI also has no explicit block-close event, so a canonical
  * {@code blockEnd} is synthesized lazily, only once the next tool call starts or the stream finishes.
  * <p>
