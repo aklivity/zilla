@@ -50,9 +50,9 @@ public class LlmClientIT
     @Test
     @Configuration("client.openai.yaml")
     @Specification({
-        "${app}/response.rejected.contenttype/client",
-        "${net}/response.rejected.contenttype/server"})
-    public void shouldRejectResponseWithUnrecognizedContentType() throws Exception
+        "${app}/openai.response.invalid.content.type/client",
+        "${net}/openai.response.invalid.content.type/server"})
+    public void shouldRejectResponseWithInvalidContentType() throws Exception
     {
         k3po.finish();
     }
@@ -80,8 +80,8 @@ public class LlmClientIT
     @Test
     @Configuration("client.openai.yaml")
     @Specification({
-        "${app}/openai.nonstreaming/client",
-        "${net}/openai.nonstreaming/server"})
+        "${app}/openai/client",
+        "${net}/openai/server"})
     public void shouldForwardOpenaiNonstreamingSameDialect() throws Exception
     {
         k3po.finish();
@@ -110,8 +110,8 @@ public class LlmClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @Specification({
-        "${app}/anthropic.nonstreaming/client",
-        "${net}/anthropic.nonstreaming/server"})
+        "${app}/anthropic/client",
+        "${net}/anthropic/server"})
     public void shouldForwardAnthropicNonstreamingSameDialect() throws Exception
     {
         k3po.finish();
@@ -142,8 +142,8 @@ public class LlmClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @Specification({
-        "${app}/openai.nonstreaming.transformed/client",
-        "${net}/anthropic.nonstreaming.transformed/server"})
+        "${app}/openai.transformed/client",
+        "${net}/anthropic.transformed/server"})
     @ScriptProperty({ "model \"gpt-4\"", "id \"chatcmpl_2\"" })
     public void shouldTransformOpenaiToAnthropicNonstreaming() throws Exception
     {
@@ -153,8 +153,8 @@ public class LlmClientIT
     @Test
     @Configuration("client.openai.yaml")
     @Specification({
-        "${app}/anthropic.nonstreaming.transformed/client",
-        "${net}/openai.nonstreaming.transformed/server"})
+        "${app}/anthropic.transformed/client",
+        "${net}/openai.transformed/server"})
     @ScriptProperty({ "model \"claude-3-opus-20240229\"", "id \"msg_01\"" })
     public void shouldTransformAnthropicToOpenaiNonstreaming() throws Exception
     {
@@ -164,8 +164,8 @@ public class LlmClientIT
     @Test
     @Configuration("client.openai.guarded.yaml")
     @Specification({
-        "${app}/openai.request.authorized/client",
-        "${net}/openai.request.authorized/server"})
+        "${app}/openai.authorized/client",
+        "${net}/openai.authorized/server"})
     public void shouldForwardOpenaiRequestWithAuthorizedCredentials() throws Exception
     {
         k3po.finish();
@@ -174,8 +174,8 @@ public class LlmClientIT
     @Test
     @Configuration("client.anthropic.guarded.yaml")
     @Specification({
-        "${app}/anthropic.request.authorized/client",
-        "${net}/anthropic.request.authorized/server"})
+        "${app}/anthropic.authorized/client",
+        "${net}/anthropic.authorized/server"})
     public void shouldForwardAnthropicRequestWithAuthorizedCredentials() throws Exception
     {
         k3po.finish();

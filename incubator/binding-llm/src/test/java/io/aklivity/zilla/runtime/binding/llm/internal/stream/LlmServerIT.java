@@ -49,7 +49,7 @@ public class LlmServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/anthropic.request.invalid/client"})
+        "${net}/anthropic.invalid/client"})
     public void shouldRejectInvalidAnthropicRequest() throws Exception
     {
         k3po.finish();
@@ -58,7 +58,7 @@ public class LlmServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/request.rejected.dialect/client"})
+        "${net}/reject.unknown.dialect/client"})
     public void shouldRejectRequestWithUnresolvedDialect() throws Exception
     {
         k3po.finish();
@@ -67,8 +67,8 @@ public class LlmServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/openai.request.echo/client",
-        "${app}/openai.request.echo/server"})
+        "${net}/openai.echo/client",
+        "${app}/openai.echo/server"})
     public void shouldDetectOpenaiDialectFromPath() throws Exception
     {
         k3po.finish();
@@ -77,8 +77,8 @@ public class LlmServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/anthropic.request.echo/client",
-        "${app}/anthropic.request.echo/server"})
+        "${net}/anthropic.echo/client",
+        "${app}/anthropic.echo/server"})
     public void shouldDetectAnthropicDialectFromPath() throws Exception
     {
         k3po.finish();
@@ -87,7 +87,7 @@ public class LlmServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/openai.request.invalid/client"})
+        "${net}/openai.invalid/client"})
     public void shouldRejectInvalidOpenaiRequest() throws Exception
     {
         k3po.finish();
@@ -106,8 +106,8 @@ public class LlmServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/openai.nonstreaming/client",
-        "${app}/openai.nonstreaming/server"})
+        "${net}/openai/client",
+        "${app}/openai/server"})
     public void shouldForwardOpenaiNonstreaming() throws Exception
     {
         k3po.finish();
@@ -126,8 +126,8 @@ public class LlmServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/anthropic.nonstreaming/client",
-        "${app}/anthropic.nonstreaming/server"})
+        "${net}/anthropic/client",
+        "${app}/anthropic/server"})
     public void shouldForwardAnthropicNonstreaming() throws Exception
     {
         k3po.finish();
@@ -181,8 +181,8 @@ public class LlmServerIT
     @Test
     @Configuration("server.guarded.yaml")
     @Specification({
-        "${net}/openai.request.authorized/client",
-        "${app}/openai.request.authorized/server"})
+        "${net}/openai.authorized/client",
+        "${app}/openai.authorized/server"})
     public void shouldForwardOpenaiRequestAuthorized() throws Exception
     {
         k3po.finish();
@@ -191,8 +191,8 @@ public class LlmServerIT
     @Test
     @Configuration("server.guarded.yaml")
     @Specification({
-        "${net}/anthropic.request.authorized/client",
-        "${app}/anthropic.request.authorized/server"})
+        "${net}/anthropic.authorized/client",
+        "${app}/anthropic.authorized/server"})
     public void shouldForwardAnthropicRequestAuthorized() throws Exception
     {
         k3po.finish();
@@ -201,7 +201,7 @@ public class LlmServerIT
     @Test
     @Configuration("server.guarded.yaml")
     @Specification({
-        "${net}/openai.request.rejected.authorization/client"})
+        "${net}/openai.rejected.authorization/client"})
     public void shouldRejectOpenaiRequestFailingAuthorization() throws Exception
     {
         k3po.finish();
@@ -210,7 +210,7 @@ public class LlmServerIT
     @Test
     @Configuration("server.guarded.yaml")
     @Specification({
-        "${net}/anthropic.request.rejected.authorization/client"})
+        "${net}/anthropic.rejected.authorization/client"})
     public void shouldRejectAnthropicRequestFailingAuthorization() throws Exception
     {
         k3po.finish();
