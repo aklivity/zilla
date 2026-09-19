@@ -229,6 +229,15 @@ public final class JsonTokenizer
         this.scalarSegment = scalarSegment;
     }
 
+    // Ends the current document (state must be DOC_DONE, reached only once its own event delivered
+    // END_DOCUMENT) and begins the next top-level value at the current stream position -- distinct from
+    // reset(), which rewinds streamOffset and every other field to their start-of-input values.
+    public void nextDocument()
+    {
+        assert state == ParseState.DOC_DONE;
+        state = ParseState.DOC_START;
+    }
+
     // Set per input window: when true this window's EOF is the terminal delimiter (one-shot or final
     // window), so a trailing scalar completes at EOF and an incomplete value is rejected; when false EOF
     // is a frame boundary with more bytes still to come.

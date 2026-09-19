@@ -2455,6 +2455,24 @@ public final class JsonSchemaImpl implements JsonSchema
             }
         }
 
+        // rearms for the next document in the same session: rewinds this pass's own validation state exactly
+        // as reset() does, but delegates to the underlying parser's nextDocument() so its stream position
+        // and scratch state carry over rather than rewinding to the start of input
+        @Override
+        public void nextDocument()
+        {
+            if (delegateEx != null)
+            {
+                delegateEx.nextDocument();
+            }
+            eval.reset();
+            verdict = Verdict.PENDING;
+            if (diagnostics != null)
+            {
+                diagnostics.clear();
+            }
+        }
+
         @Override
         public boolean identity()
         {

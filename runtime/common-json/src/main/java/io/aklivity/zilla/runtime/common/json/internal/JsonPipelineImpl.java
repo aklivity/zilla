@@ -94,6 +94,14 @@ public final class JsonPipelineImpl implements JsonPipeline
     }
 
     @Override
+    public void nextDocument()
+    {
+        assert completed : "nextDocument() requires the prior transform() to have returned COMPLETED";
+        parser.nextDocument();
+        completed = false;
+    }
+
+    @Override
     public void authorization(
         long authorization)
     {
