@@ -60,6 +60,17 @@ public class LlmProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Specification({
+        "${app}/openai.proxy/client",
+        "${app}/openai.proxy/server"})
+    @ScriptProperty("clientAddress \"zilla://streams/net0\"")
+    public void shouldRouteOpenaiToAppZero() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
         "${app}/openai.10k/client",
         "${app}/openai.10k/server"})
     @ScriptProperty("clientAddress \"zilla://streams/net0\"")

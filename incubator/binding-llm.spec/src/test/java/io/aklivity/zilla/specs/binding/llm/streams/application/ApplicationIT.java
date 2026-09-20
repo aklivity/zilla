@@ -92,6 +92,33 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/openai.reply.padded/client",
+        "${app}/openai.reply.padded/server"})
+    public void shouldForwardOpenaiNonstreamingWithReplyPadding() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.request.padded/client",
+        "${app}/openai.request.padded/server"})
+    public void shouldForwardOpenaiRequestWithReplyPadding() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy/client",
+        "${app}/openai.proxy/server"})
+    public void shouldRouteOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/openai.response.invalid/client",
         "${app}/openai.response.invalid/server"})
     public void shouldAbortInvalidOpenaiResponse() throws Exception

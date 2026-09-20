@@ -934,6 +934,7 @@ public final class LlmClientFactory implements LlmStreamFactory
         private long initialSeq;
         private long initialAck;
         private int initialMax;
+        private int initialPad;
 
         private long replySeq;
         private long replyAck;
@@ -1087,7 +1088,7 @@ public final class LlmClientFactory implements LlmStreamFactory
             int limit)
         {
             final int maxLength = limit - offset;
-            final int initialWin = initialMax - (int) (initialSeq - initialAck);
+            final int initialWin = initialMax - (int) (initialSeq - initialAck) - initialPad;
             final int length = Math.max(Math.min(initialWin, maxLength), 0);
 
             if (length > 0)
@@ -1095,9 +1096,9 @@ public final class LlmClientFactory implements LlmStreamFactory
                 final int flags = initialStarted ? 0 : FLAG_INIT;
 
                 LlmClientFactory.this.doData(net, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                    traceId, authorization, flags, 0L, length, buffer, offset, length, emptyRO);
+                    traceId, authorization, flags, 0L, length + initialPad, buffer, offset, length, emptyRO);
 
-                initialSeq += length;
+                initialSeq += length + initialPad;
                 initialStarted = true;
             }
 
@@ -1853,6 +1854,7 @@ public final class LlmClientFactory implements LlmStreamFactory
 
             initialAck = acknowledge;
             initialMax = maximum;
+            initialPad = window.padding();
 
             if (transportReady)
             {

@@ -110,6 +110,24 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/openai.reply.padded/client",
+        "${net}/openai.reply.padded/server"})
+    public void shouldEncodeOpenaiNonstreamingWithReplyPadding() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.request.padded/client",
+        "${net}/openai.request.padded/server"})
+    public void shouldEncodeOpenaiRequestWithReplyPadding() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/openai.custom.base.path/client",
         "${net}/openai.custom.base.path/server"})
     public void shouldEncodeOpenaiUnderCustomBasePath() throws Exception

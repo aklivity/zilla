@@ -324,6 +324,7 @@ public final class LlmServerFactory implements LlmStreamFactory
         private long replySeq;
         private long replyAck;
         private int replyMax;
+        private int replyPad;
 
         private int state;
         private boolean requestStarted;
@@ -635,6 +636,7 @@ public final class LlmServerFactory implements LlmStreamFactory
 
             replyAck = acknowledge;
             replyMax = maximum;
+            replyPad = window.padding();
             state = LlmState.openReply(state);
 
             flushEncodeSlot(traceId);
@@ -723,7 +725,7 @@ public final class LlmServerFactory implements LlmStreamFactory
                 final MutableDirectBufferEx buffer = encodePool.buffer(encodeSlot);
                 while (!encodeChunks.isEmpty())
                 {
-                    final long available = replyMax - (replySeq - replyAck);
+                    final long available = replyMax - (replySeq - replyAck) - replyPad;
                     if (available <= 0)
                     {
                         break;
@@ -744,7 +746,7 @@ public final class LlmServerFactory implements LlmStreamFactory
                     final int sliceOffset = chunk.sent;
                     chunk.sent += sliceLength;
                     doNetData(chunk.traceId, chunk.authorization, outputFlags, chunk.budgetId,
-                        sliceLength, buffer, sliceOffset, sliceLength);
+                        sliceLength + replyPad, buffer, sliceOffset, sliceLength);
 
                     if (chunk.sent >= chunk.length)
                     {

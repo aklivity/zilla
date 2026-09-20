@@ -88,6 +88,16 @@ public class LlmClientIT
     }
 
     @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.request.padded/client",
+        "${net}/openai.request.padded/server"})
+    public void shouldForwardOpenaiRequestWithReplyPadding() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("client.openai.custom.base.path.yaml")
     @Specification({
         "${app}/openai/client",

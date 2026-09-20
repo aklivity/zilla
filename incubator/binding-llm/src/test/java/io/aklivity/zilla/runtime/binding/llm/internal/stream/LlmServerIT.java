@@ -116,6 +116,16 @@ public class LlmServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/openai.reply.padded/client",
+        "${app}/openai.reply.padded/server"})
+    public void shouldForwardOpenaiNonstreamingWithReplyPadding() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/anthropic.streaming/client",
         "${app}/anthropic.streaming/server"})
     public void shouldForwardAnthropicStreaming() throws Exception
