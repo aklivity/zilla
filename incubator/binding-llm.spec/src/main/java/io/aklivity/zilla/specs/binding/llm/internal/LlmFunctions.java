@@ -22,8 +22,10 @@ import io.aklivity.k3po.runtime.lang.el.spi.FunctionMapperSpi;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmAbortExFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmBeginExFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmDataExFW;
+import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmEndExFW;
 
 public final class LlmFunctions
 {
@@ -49,6 +51,30 @@ public final class LlmFunctions
     public static LlmDataExMatcherBuilder matchDataEx()
     {
         return new LlmDataExMatcherBuilder();
+    }
+
+    @Function
+    public static LlmEndExBuilder endEx()
+    {
+        return new LlmEndExBuilder();
+    }
+
+    @Function
+    public static LlmEndExMatcherBuilder matchEndEx()
+    {
+        return new LlmEndExMatcherBuilder();
+    }
+
+    @Function
+    public static LlmAbortExBuilder abortEx()
+    {
+        return new LlmAbortExBuilder();
+    }
+
+    @Function
+    public static LlmAbortExMatcherBuilder matchAbortEx()
+    {
+        return new LlmAbortExMatcherBuilder();
     }
 
     public static final class LlmBeginExBuilder
@@ -223,20 +249,6 @@ public final class LlmFunctions
             return this;
         }
 
-        public LlmDataExBuilder inputTokens(
-            int inputTokens)
-        {
-            dataExRW.inputTokens(inputTokens);
-            return this;
-        }
-
-        public LlmDataExBuilder outputTokens(
-            int outputTokens)
-        {
-            dataExRW.outputTokens(outputTokens);
-            return this;
-        }
-
         public byte[] build()
         {
             final LlmDataExFW dataEx = dataExRW.build();
@@ -257,8 +269,6 @@ public final class LlmFunctions
         private boolean typeNull;
         private String logProbability;
         private boolean logProbabilityNull;
-        private Integer inputTokens;
-        private Integer outputTokens;
 
         public LlmDataExMatcherBuilder typeId(
             int typeId)
@@ -293,20 +303,6 @@ public final class LlmFunctions
             return this;
         }
 
-        public LlmDataExMatcherBuilder inputTokens(
-            int inputTokens)
-        {
-            this.inputTokens = inputTokens;
-            return this;
-        }
-
-        public LlmDataExMatcherBuilder outputTokens(
-            int outputTokens)
-        {
-            this.outputTokens = outputTokens;
-            return this;
-        }
-
         public BytesMatcher build()
         {
             return this::match;
@@ -326,9 +322,7 @@ public final class LlmFunctions
             if (dataEx != null &&
                 matchTypeId(dataEx) &&
                 matchType(dataEx) &&
-                matchLogProbability(dataEx) &&
-                matchInputTokens(dataEx) &&
-                matchOutputTokens(dataEx))
+                matchLogProbability(dataEx))
             {
                 byteBuf.position(byteBuf.position() + dataEx.sizeof());
                 return dataEx;
@@ -356,17 +350,515 @@ public final class LlmFunctions
             return logProbabilityNull ? dataEx.logProbability().asString() == null
                 : logProbability == null || logProbability.equals(dataEx.logProbability().asString());
         }
+    }
+
+    public static final class LlmEndExBuilder
+    {
+        private final MutableDirectBufferEx writeBuffer;
+        private final LlmEndExFW.Builder endExRW;
+
+        private Integer inputTokens;
+        private Integer cacheWriteTokens;
+        private Integer cacheReadTokens;
+        private Integer outputTokens;
+        private Integer reasoningTokens;
+        private Integer totalTokens;
+        private String nativeUsage;
+
+        private LlmEndExBuilder()
+        {
+            this.writeBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
+            this.endExRW = new LlmEndExFW.Builder().wrap(writeBuffer, 0, writeBuffer.capacity());
+        }
+
+        public LlmEndExBuilder typeId(
+            int typeId)
+        {
+            endExRW.typeId(typeId);
+            return this;
+        }
+
+        public LlmEndExBuilder inputTokens(
+            int inputTokens)
+        {
+            this.inputTokens = inputTokens;
+            return this;
+        }
+
+        public LlmEndExBuilder cacheWriteTokens(
+            int cacheWriteTokens)
+        {
+            this.cacheWriteTokens = cacheWriteTokens;
+            return this;
+        }
+
+        public LlmEndExBuilder cacheReadTokens(
+            int cacheReadTokens)
+        {
+            this.cacheReadTokens = cacheReadTokens;
+            return this;
+        }
+
+        public LlmEndExBuilder outputTokens(
+            int outputTokens)
+        {
+            this.outputTokens = outputTokens;
+            return this;
+        }
+
+        public LlmEndExBuilder reasoningTokens(
+            int reasoningTokens)
+        {
+            this.reasoningTokens = reasoningTokens;
+            return this;
+        }
+
+        public LlmEndExBuilder totalTokens(
+            int totalTokens)
+        {
+            this.totalTokens = totalTokens;
+            return this;
+        }
+
+        public LlmEndExBuilder nativeUsage(
+            String nativeUsage)
+        {
+            this.nativeUsage = nativeUsage;
+            return this;
+        }
+
+        public byte[] build()
+        {
+            endExRW.usage(u ->
+            {
+                u.inputTokens(inputTokens != null ? inputTokens : -1);
+                u.cacheWriteTokens(cacheWriteTokens != null ? cacheWriteTokens : -1);
+                u.cacheReadTokens(cacheReadTokens != null ? cacheReadTokens : -1);
+                u.outputTokens(outputTokens != null ? outputTokens : -1);
+                u.reasoningTokens(reasoningTokens != null ? reasoningTokens : -1);
+                u.totalTokens(totalTokens != null ? totalTokens : -1);
+                u.nativeUsage(nativeUsage);
+            });
+            final LlmEndExFW endEx = endExRW.build();
+            final byte[] array = new byte[endEx.sizeof()];
+            endEx.buffer().getBytes(endEx.offset(), array);
+            return array;
+        }
+    }
+
+    public static final class LlmEndExMatcherBuilder
+    {
+        private final DirectBufferEx bufferRO = new UnsafeBufferEx();
+
+        private final LlmEndExFW endExRO = new LlmEndExFW();
+
+        private Integer typeId;
+        private Integer inputTokens;
+        private Integer cacheWriteTokens;
+        private Integer cacheReadTokens;
+        private Integer outputTokens;
+        private Integer reasoningTokens;
+        private Integer totalTokens;
+        private String nativeUsage;
+        private boolean nativeUsageNull;
+
+        public LlmEndExMatcherBuilder typeId(
+            int typeId)
+        {
+            this.typeId = typeId;
+            return this;
+        }
+
+        public LlmEndExMatcherBuilder inputTokens(
+            int inputTokens)
+        {
+            this.inputTokens = inputTokens;
+            return this;
+        }
+
+        public LlmEndExMatcherBuilder cacheWriteTokens(
+            int cacheWriteTokens)
+        {
+            this.cacheWriteTokens = cacheWriteTokens;
+            return this;
+        }
+
+        public LlmEndExMatcherBuilder cacheReadTokens(
+            int cacheReadTokens)
+        {
+            this.cacheReadTokens = cacheReadTokens;
+            return this;
+        }
+
+        public LlmEndExMatcherBuilder outputTokens(
+            int outputTokens)
+        {
+            this.outputTokens = outputTokens;
+            return this;
+        }
+
+        public LlmEndExMatcherBuilder reasoningTokens(
+            int reasoningTokens)
+        {
+            this.reasoningTokens = reasoningTokens;
+            return this;
+        }
+
+        public LlmEndExMatcherBuilder totalTokens(
+            int totalTokens)
+        {
+            this.totalTokens = totalTokens;
+            return this;
+        }
+
+        public LlmEndExMatcherBuilder nativeUsage(
+            String nativeUsage)
+        {
+            this.nativeUsage = nativeUsage;
+            return this;
+        }
+
+        public LlmEndExMatcherBuilder nativeUsageNull()
+        {
+            this.nativeUsageNull = true;
+            return this;
+        }
+
+        public BytesMatcher build()
+        {
+            return this::match;
+        }
+
+        private LlmEndExFW match(
+            ByteBuffer byteBuf) throws Exception
+        {
+            if (!byteBuf.hasRemaining())
+            {
+                return null;
+            }
+
+            bufferRO.wrap(byteBuf);
+            final LlmEndExFW endEx = endExRO.tryWrap(bufferRO, byteBuf.position(), byteBuf.capacity());
+
+            if (endEx != null &&
+                matchTypeId(endEx) &&
+                matchInputTokens(endEx) &&
+                matchCacheWriteTokens(endEx) &&
+                matchCacheReadTokens(endEx) &&
+                matchOutputTokens(endEx) &&
+                matchReasoningTokens(endEx) &&
+                matchTotalTokens(endEx) &&
+                matchNativeUsage(endEx))
+            {
+                byteBuf.position(byteBuf.position() + endEx.sizeof());
+                return endEx;
+            }
+
+            throw new Exception(endEx.toString());
+        }
+
+        private boolean matchTypeId(
+            LlmEndExFW endEx)
+        {
+            return typeId == null || typeId == endEx.typeId();
+        }
 
         private boolean matchInputTokens(
-            LlmDataExFW dataEx)
+            LlmEndExFW endEx)
         {
-            return inputTokens == null || inputTokens == dataEx.inputTokens();
+            return inputTokens == null || inputTokens == endEx.usage().inputTokens();
+        }
+
+        private boolean matchCacheWriteTokens(
+            LlmEndExFW endEx)
+        {
+            return cacheWriteTokens == null || cacheWriteTokens == endEx.usage().cacheWriteTokens();
+        }
+
+        private boolean matchCacheReadTokens(
+            LlmEndExFW endEx)
+        {
+            return cacheReadTokens == null || cacheReadTokens == endEx.usage().cacheReadTokens();
         }
 
         private boolean matchOutputTokens(
-            LlmDataExFW dataEx)
+            LlmEndExFW endEx)
         {
-            return outputTokens == null || outputTokens == dataEx.outputTokens();
+            return outputTokens == null || outputTokens == endEx.usage().outputTokens();
+        }
+
+        private boolean matchReasoningTokens(
+            LlmEndExFW endEx)
+        {
+            return reasoningTokens == null || reasoningTokens == endEx.usage().reasoningTokens();
+        }
+
+        private boolean matchTotalTokens(
+            LlmEndExFW endEx)
+        {
+            return totalTokens == null || totalTokens == endEx.usage().totalTokens();
+        }
+
+        private boolean matchNativeUsage(
+            LlmEndExFW endEx)
+        {
+            return nativeUsageNull ? endEx.usage().nativeUsage().asString() == null
+                : nativeUsage == null || nativeUsage.equals(endEx.usage().nativeUsage().asString());
+        }
+    }
+
+    public static final class LlmAbortExBuilder
+    {
+        private final MutableDirectBufferEx writeBuffer;
+        private final LlmAbortExFW.Builder abortExRW;
+
+        private Integer inputTokens;
+        private Integer cacheWriteTokens;
+        private Integer cacheReadTokens;
+        private Integer outputTokens;
+        private Integer reasoningTokens;
+        private Integer totalTokens;
+        private String nativeUsage;
+
+        private LlmAbortExBuilder()
+        {
+            this.writeBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
+            this.abortExRW = new LlmAbortExFW.Builder().wrap(writeBuffer, 0, writeBuffer.capacity());
+        }
+
+        public LlmAbortExBuilder typeId(
+            int typeId)
+        {
+            abortExRW.typeId(typeId);
+            return this;
+        }
+
+        public LlmAbortExBuilder inputTokens(
+            int inputTokens)
+        {
+            this.inputTokens = inputTokens;
+            return this;
+        }
+
+        public LlmAbortExBuilder cacheWriteTokens(
+            int cacheWriteTokens)
+        {
+            this.cacheWriteTokens = cacheWriteTokens;
+            return this;
+        }
+
+        public LlmAbortExBuilder cacheReadTokens(
+            int cacheReadTokens)
+        {
+            this.cacheReadTokens = cacheReadTokens;
+            return this;
+        }
+
+        public LlmAbortExBuilder outputTokens(
+            int outputTokens)
+        {
+            this.outputTokens = outputTokens;
+            return this;
+        }
+
+        public LlmAbortExBuilder reasoningTokens(
+            int reasoningTokens)
+        {
+            this.reasoningTokens = reasoningTokens;
+            return this;
+        }
+
+        public LlmAbortExBuilder totalTokens(
+            int totalTokens)
+        {
+            this.totalTokens = totalTokens;
+            return this;
+        }
+
+        public LlmAbortExBuilder nativeUsage(
+            String nativeUsage)
+        {
+            this.nativeUsage = nativeUsage;
+            return this;
+        }
+
+        public byte[] build()
+        {
+            abortExRW.usage(u ->
+            {
+                u.inputTokens(inputTokens != null ? inputTokens : -1);
+                u.cacheWriteTokens(cacheWriteTokens != null ? cacheWriteTokens : -1);
+                u.cacheReadTokens(cacheReadTokens != null ? cacheReadTokens : -1);
+                u.outputTokens(outputTokens != null ? outputTokens : -1);
+                u.reasoningTokens(reasoningTokens != null ? reasoningTokens : -1);
+                u.totalTokens(totalTokens != null ? totalTokens : -1);
+                u.nativeUsage(nativeUsage);
+            });
+            final LlmAbortExFW abortEx = abortExRW.build();
+            final byte[] array = new byte[abortEx.sizeof()];
+            abortEx.buffer().getBytes(abortEx.offset(), array);
+            return array;
+        }
+    }
+
+    public static final class LlmAbortExMatcherBuilder
+    {
+        private final DirectBufferEx bufferRO = new UnsafeBufferEx();
+
+        private final LlmAbortExFW abortExRO = new LlmAbortExFW();
+
+        private Integer typeId;
+        private Integer inputTokens;
+        private Integer cacheWriteTokens;
+        private Integer cacheReadTokens;
+        private Integer outputTokens;
+        private Integer reasoningTokens;
+        private Integer totalTokens;
+        private String nativeUsage;
+        private boolean nativeUsageNull;
+
+        public LlmAbortExMatcherBuilder typeId(
+            int typeId)
+        {
+            this.typeId = typeId;
+            return this;
+        }
+
+        public LlmAbortExMatcherBuilder inputTokens(
+            int inputTokens)
+        {
+            this.inputTokens = inputTokens;
+            return this;
+        }
+
+        public LlmAbortExMatcherBuilder cacheWriteTokens(
+            int cacheWriteTokens)
+        {
+            this.cacheWriteTokens = cacheWriteTokens;
+            return this;
+        }
+
+        public LlmAbortExMatcherBuilder cacheReadTokens(
+            int cacheReadTokens)
+        {
+            this.cacheReadTokens = cacheReadTokens;
+            return this;
+        }
+
+        public LlmAbortExMatcherBuilder outputTokens(
+            int outputTokens)
+        {
+            this.outputTokens = outputTokens;
+            return this;
+        }
+
+        public LlmAbortExMatcherBuilder reasoningTokens(
+            int reasoningTokens)
+        {
+            this.reasoningTokens = reasoningTokens;
+            return this;
+        }
+
+        public LlmAbortExMatcherBuilder totalTokens(
+            int totalTokens)
+        {
+            this.totalTokens = totalTokens;
+            return this;
+        }
+
+        public LlmAbortExMatcherBuilder nativeUsage(
+            String nativeUsage)
+        {
+            this.nativeUsage = nativeUsage;
+            return this;
+        }
+
+        public LlmAbortExMatcherBuilder nativeUsageNull()
+        {
+            this.nativeUsageNull = true;
+            return this;
+        }
+
+        public BytesMatcher build()
+        {
+            return this::match;
+        }
+
+        private LlmAbortExFW match(
+            ByteBuffer byteBuf) throws Exception
+        {
+            if (!byteBuf.hasRemaining())
+            {
+                return null;
+            }
+
+            bufferRO.wrap(byteBuf);
+            final LlmAbortExFW abortEx = abortExRO.tryWrap(bufferRO, byteBuf.position(), byteBuf.capacity());
+
+            if (abortEx != null &&
+                matchTypeId(abortEx) &&
+                matchInputTokens(abortEx) &&
+                matchCacheWriteTokens(abortEx) &&
+                matchCacheReadTokens(abortEx) &&
+                matchOutputTokens(abortEx) &&
+                matchReasoningTokens(abortEx) &&
+                matchTotalTokens(abortEx) &&
+                matchNativeUsage(abortEx))
+            {
+                byteBuf.position(byteBuf.position() + abortEx.sizeof());
+                return abortEx;
+            }
+
+            throw new Exception(abortEx.toString());
+        }
+
+        private boolean matchTypeId(
+            LlmAbortExFW abortEx)
+        {
+            return typeId == null || typeId == abortEx.typeId();
+        }
+
+        private boolean matchInputTokens(
+            LlmAbortExFW abortEx)
+        {
+            return inputTokens == null || inputTokens == abortEx.usage().inputTokens();
+        }
+
+        private boolean matchCacheWriteTokens(
+            LlmAbortExFW abortEx)
+        {
+            return cacheWriteTokens == null || cacheWriteTokens == abortEx.usage().cacheWriteTokens();
+        }
+
+        private boolean matchCacheReadTokens(
+            LlmAbortExFW abortEx)
+        {
+            return cacheReadTokens == null || cacheReadTokens == abortEx.usage().cacheReadTokens();
+        }
+
+        private boolean matchOutputTokens(
+            LlmAbortExFW abortEx)
+        {
+            return outputTokens == null || outputTokens == abortEx.usage().outputTokens();
+        }
+
+        private boolean matchReasoningTokens(
+            LlmAbortExFW abortEx)
+        {
+            return reasoningTokens == null || reasoningTokens == abortEx.usage().reasoningTokens();
+        }
+
+        private boolean matchTotalTokens(
+            LlmAbortExFW abortEx)
+        {
+            return totalTokens == null || totalTokens == abortEx.usage().totalTokens();
+        }
+
+        private boolean matchNativeUsage(
+            LlmAbortExFW abortEx)
+        {
+            return nativeUsageNull ? abortEx.usage().nativeUsage().asString() == null
+                : nativeUsage == null || nativeUsage.equals(abortEx.usage().nativeUsage().asString());
         }
     }
 

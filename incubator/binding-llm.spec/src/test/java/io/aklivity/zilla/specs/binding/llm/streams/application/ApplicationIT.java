@@ -83,6 +83,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/openai.streaming.usage/client",
+        "${app}/openai.streaming.usage/server"})
+    public void shouldForwardOpenaiStreamingUsage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/openai/client",
         "${app}/openai/server"})
     public void shouldForwardOpenaiNonstreaming() throws Exception
@@ -131,6 +140,24 @@ public class ApplicationIT
         "${app}/anthropic.streaming/client",
         "${app}/anthropic.streaming/server"})
     public void shouldForwardAnthropicStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.streaming.usage/client",
+        "${app}/anthropic.streaming.usage/server"})
+    public void shouldForwardAnthropicStreamingUsage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.streaming.abort/client",
+        "${app}/anthropic.streaming.abort/server"})
+    public void shouldAbortAnthropicStreamingWithPartialUsage() throws Exception
     {
         k3po.finish();
     }

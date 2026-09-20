@@ -27,8 +27,27 @@ scope llm
         {
             string16 type = null;
             string16 logProbability = null;
+        }
+
+        struct LlmUsage
+        {
             int32 inputTokens = -1;
+            int32 cacheWriteTokens = -1;
+            int32 cacheReadTokens = -1;
             int32 outputTokens = -1;
+            int32 reasoningTokens = -1;
+            int32 totalTokens = -1;
+            string16 nativeUsage = null;
+        }
+
+        struct LlmEndEx extends core::stream::Extension
+        {
+            LlmUsage usage;
+        }
+
+        struct LlmAbortEx extends core::stream::Extension
+        {
+            LlmUsage usage;
         }
     }
 }

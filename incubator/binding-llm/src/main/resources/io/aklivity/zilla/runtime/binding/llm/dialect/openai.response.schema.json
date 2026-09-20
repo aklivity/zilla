@@ -103,6 +103,22 @@
                 },
                 "total_tokens": {
                     "type": "integer"
+                },
+                "prompt_tokens_details": {
+                    "type": "object",
+                    "properties": {
+                        "cached_tokens": {
+                            "type": "integer"
+                        }
+                    }
+                },
+                "completion_tokens_details": {
+                    "type": "object",
+                    "properties": {
+                        "reasoning_tokens": {
+                            "type": "integer"
+                        }
+                    }
                 }
             }
         }
