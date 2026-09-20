@@ -78,6 +78,11 @@ public final class JsonTokenizer
     // byte length of the current input window; a value whose own bytes reach this length without
     // completing fills the window and is delivered as fragments rather than reassembled across windows.
     private int windowLength = Integer.MAX_VALUE;
+    // absolute stream offset where the current input window began; onScalarStarved() measures a value's
+    // own bytes against the room actually left for it in this window (windowStart + windowLength), not
+    // against the window's full length, since preceding tokens (a key, sibling values) sharing the same
+    // window with the value's own start already used up some of that length
+    private long windowStart;
 
     // path tracking — pre-allocated, no per-event allocation
     private final boolean[] pathInArray = new boolean[MAX_DEPTH];
@@ -253,6 +258,7 @@ public final class JsonTokenizer
         int length)
     {
         this.windowLength = length;
+        this.windowStart = streamOffset;
     }
 
     public boolean advance(
@@ -308,10 +314,15 @@ public final class JsonTokenizer
         if (midScalar)
         {
             final long valueBytes = streamOffset - valueStreamStart;
+            // room actually left for the value in this window, not the window's own full length: a key or
+            // sibling value sharing the window ahead of this value's start already spent some of that
+            // length, so comparing against windowLength directly would never trip for a value that doesn't
+            // begin at the window's own first byte, however large the value truly is
+            final long valueRoom = windowStart + windowLength - valueStreamStart;
             // a kept scalar leaf fragments verbatim on any starve; a decoded value (or key) only once it
-            // fills the window
+            // fills the room left for it in the window
             final boolean fragment =
-                !terminalEof && (scalarSegment || fragmenting || valueBytes >= windowLength);
+                !terminalEof && (scalarSegment || fragmenting || valueBytes >= valueRoom);
             if (fragment && (resumeOp == ResumeOp.VALUE_STRING || resumeOp == ResumeOp.KEY_STRING))
             {
                 // rewind to the last complete code-point/escape boundary, leaving the partial unit for the caller
