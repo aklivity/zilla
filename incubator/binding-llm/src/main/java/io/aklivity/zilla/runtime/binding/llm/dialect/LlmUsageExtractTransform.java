@@ -213,6 +213,16 @@ abstract class LlmUsageExtractTransform implements JsonTransform
     private void onContainerEnd()
     {
         path.setLength(pathLengthAt[--depth]);
+        if (depth == 0)
+        {
+            // The terminal sink may report the document complete as soon as this, the top-level value's own
+            // closing token, is written -- without the pump ever delivering a distinct END_DOCUMENT event to
+            // this stage (observed for a plain re-serializing sink; a canonical action-based sink does still
+            // deliver one). Flushing here as well, keyed on the top-level container actually closing rather
+            // than on which event the pump happens to deliver next, covers both. clearChunk() makes a
+            // redundant flush from a genuine END_DOCUMENT that follows a harmless no-op.
+            onDocumentEnd();
+        }
     }
 
     private void onKeyName(
