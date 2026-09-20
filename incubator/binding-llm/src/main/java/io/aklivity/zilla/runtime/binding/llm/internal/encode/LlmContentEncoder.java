@@ -49,10 +49,16 @@ public interface LlmContentEncoder
 
     /**
      * Encodes the content bytes of the event currently being written into {@code encoded[encodedOffset, encodedLimit)}.
+     * A single event's content may arrive in more than one fragment (e.g. when the content is too large for one
+     * caller-side buffer); {@code first} and {@code last} identify a fragment's position within that content so a
+     * content-type whose wire form frames the content once per event (e.g. SSE's {@code data:} prefix and line
+     * terminator) writes that framing exactly once across every fragment rather than once per fragment.
      *
      * @param buffer        the buffer holding the content bytes
      * @param offset        the offset of the content bytes within {@code buffer}
      * @param length        the number of content bytes
+     * @param first         {@code true} when this fragment is the first (or only) fragment of the event's content
+     * @param last          {@code true} when this fragment is the last (or only) fragment of the event's content
      * @param encoded       the destination buffer
      * @param encodedOffset the offset to write at within {@code encoded}
      * @param encodedLimit  the limit of the destination region within {@code encoded}
@@ -62,6 +68,8 @@ public interface LlmContentEncoder
         DirectBuffer buffer,
         int offset,
         int length,
+        boolean first,
+        boolean last,
         MutableDirectBuffer encoded,
         int encodedOffset,
         int encodedLimit);

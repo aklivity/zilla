@@ -71,6 +71,12 @@ public final class LlmServerFactory implements LlmStreamFactory
     private static final int FLAG_FIN = 0x01;
     private static final int FLAG_INIT = 0x02;
 
+    // encoding a response chunk adds SSE framing (event:/data:/id: field prefixes and line
+    // terminators) on top of the raw application payload bytes, so the encode slot must always
+    // keep this much headroom free; otherwise a raw-byte-sized reply window could admit a chunk
+    // whose encoded form no longer fits the same slot
+    private static final int RESPONSE_ENCODE_OVERHEAD_RESERVE = 256;
+
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBufferEx(new byte[0]), 0, 0);
 
     private final BeginFW beginRO = new BeginFW();
@@ -272,6 +278,7 @@ public final class LlmServerFactory implements LlmStreamFactory
     private static final class SlotChunk
     {
         private final int length;
+        private final int rawLength;
         private final int flags;
         private final long budgetId;
         private final long traceId;
@@ -280,12 +287,14 @@ public final class LlmServerFactory implements LlmStreamFactory
 
         private SlotChunk(
             int length,
+            int rawLength,
             int flags,
             long budgetId,
             long traceId,
             long authorization)
         {
             this.length = length;
+            this.rawLength = rawLength;
             this.flags = flags;
             this.budgetId = budgetId;
             this.traceId = traceId;
@@ -329,6 +338,7 @@ public final class LlmServerFactory implements LlmStreamFactory
 
         private int encodeSlot = NO_SLOT;
         private int encodeSlotOffset;
+        private int encodeSlotRawOffset;
         private final Deque<SlotChunk> encodeChunks = new ArrayDeque<>();
         private boolean flushingReply;
 
@@ -663,13 +673,15 @@ public final class LlmServerFactory implements LlmStreamFactory
             long traceId,
             long authorization)
         {
-            doNetData(payload.buffer(), payload.offset(), payload.sizeof(), flags, budgetId, traceId, authorization);
+            doNetData(payload.buffer(), payload.offset(), payload.sizeof(), payload.sizeof(), flags, budgetId,
+                traceId, authorization);
         }
 
         private void doNetData(
             DirectBufferEx buffer,
             int offset,
             int length,
+            int rawLength,
             int flags,
             long budgetId,
             long traceId,
@@ -691,7 +703,8 @@ public final class LlmServerFactory implements LlmStreamFactory
                 final MutableDirectBufferEx slotBuffer = encodePool.buffer(encodeSlot);
                 slotBuffer.putBytes(encodeSlotOffset, buffer, offset, length);
                 encodeSlotOffset += length;
-                encodeChunks.add(new SlotChunk(length, flags, budgetId, traceId, authorization));
+                encodeSlotRawOffset += rawLength;
+                encodeChunks.add(new SlotChunk(length, rawLength, flags, budgetId, traceId, authorization));
 
                 flushEncodeSlot(traceId);
             }
@@ -742,6 +755,7 @@ public final class LlmServerFactory implements LlmStreamFactory
                             buffer.putBytes(0, buffer, chunk.length, encodeSlotOffset - chunk.length);
                         }
                         encodeSlotOffset -= chunk.length;
+                        encodeSlotRawOffset -= chunk.rawLength;
                     }
                 }
 
@@ -750,6 +764,7 @@ public final class LlmServerFactory implements LlmStreamFactory
                     encodePool.release(encodeSlot);
                     encodeSlot = NO_SLOT;
                     encodeSlotOffset = 0;
+                    encodeSlotRawOffset = 0;
                 }
             }
             finally
@@ -759,7 +774,7 @@ public final class LlmServerFactory implements LlmStreamFactory
 
             if (stream != null)
             {
-                final long replyAckMax = stream.replySeq - encodeSlotOffset;
+                final long replyAckMax = stream.replySeq - encodeSlotRawOffset;
                 if (replyAckMax > stream.replyAck)
                 {
                     stream.replyAck = replyAckMax;
@@ -1172,7 +1187,7 @@ public final class LlmServerFactory implements LlmStreamFactory
 
             replySeq = sequence;
             replyAck = acknowledge;
-            replyMax = encodePool.slotCapacity();
+            replyMax = encodePool.slotCapacity() - RESPONSE_ENCODE_OVERHEAD_RESERVE;
             state = LlmState.openingReply(state);
 
             encoder = codecs.createEncoder(responseContentType);
@@ -1216,9 +1231,9 @@ public final class LlmServerFactory implements LlmStreamFactory
                 {
                     position += encoder.encodeEvent(pendingResponseEvent, copyBuffer, position, copyBuffer.capacity());
                 }
-                if (payload.sizeof() > 0)
+                if (payload.sizeof() > 0 || first || last)
                 {
-                    position += encoder.encodeData(payload.buffer(), payload.offset(), payload.sizeof(),
+                    position += encoder.encodeData(payload.buffer(), payload.offset(), payload.sizeof(), first, last,
                         copyBuffer, position, copyBuffer.capacity());
                 }
                 if (last)
@@ -1228,7 +1243,8 @@ public final class LlmServerFactory implements LlmStreamFactory
 
                 if (position > 0)
                 {
-                    server.doNetData(copyBuffer, 0, position, FLAG_INIT | FLAG_FIN, budgetId, traceId, authorization);
+                    server.doNetData(copyBuffer, 0, position, reserved, sliceFlags(FLAG_INIT | FLAG_FIN, first, last),
+                        budgetId, traceId, authorization);
                 }
 
                 if (last)

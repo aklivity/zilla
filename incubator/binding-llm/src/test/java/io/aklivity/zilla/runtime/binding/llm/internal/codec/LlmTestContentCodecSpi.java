@@ -58,6 +58,8 @@ public final class LlmTestContentCodecSpi implements LlmContentCodecSpi
                 DirectBuffer buffer,
                 int offset,
                 int length,
+                boolean first,
+                boolean last,
                 MutableDirectBuffer encoded,
                 int encodedOffset,
                 int encodedLimit)

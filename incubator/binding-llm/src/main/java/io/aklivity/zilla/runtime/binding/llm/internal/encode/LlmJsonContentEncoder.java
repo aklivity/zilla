@@ -39,6 +39,8 @@ public final class LlmJsonContentEncoder implements LlmContentEncoder
         DirectBuffer buffer,
         int offset,
         int length,
+        boolean first,
+        boolean last,
         MutableDirectBuffer encoded,
         int encodedOffset,
         int encodedLimit)

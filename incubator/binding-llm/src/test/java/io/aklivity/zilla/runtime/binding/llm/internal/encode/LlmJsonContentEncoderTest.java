@@ -42,9 +42,20 @@ public class LlmJsonContentEncoderTest
         byte[] bytes = "{\"ok\":true}".getBytes(UTF_8);
         DirectBuffer buffer = new UnsafeBuffer(bytes);
 
-        int written = encoder.encodeData(buffer, 0, bytes.length, encoded, 0, 3);
+        int written = encoder.encodeData(buffer, 0, bytes.length, true, true, encoded, 0, 3);
 
         assertThat(written, equalTo(0));
+    }
+
+    @Test
+    public void shouldCopyDataFragmentsThroughUnchanged()
+    {
+        byte[] bytes = "{\"ok\":true}".getBytes(UTF_8);
+        DirectBuffer buffer = new UnsafeBuffer(bytes);
+
+        int written = encoder.encodeData(buffer, 0, bytes.length, false, false, encoded, 0, encoded.capacity());
+
+        assertThat(text(written), equalTo("{\"ok\":true}"));
     }
 
     @Test
@@ -70,7 +81,7 @@ public class LlmJsonContentEncoderTest
     {
         byte[] bytes = data.getBytes(UTF_8);
         DirectBuffer buffer = new UnsafeBuffer(bytes);
-        return encoder.encodeData(buffer, 0, bytes.length, encoded, 0, encoded.capacity());
+        return encoder.encodeData(buffer, 0, bytes.length, true, true, encoded, 0, encoded.capacity());
     }
 
     private String text(

@@ -97,7 +97,7 @@ public class LlmContentCodecFactoryTest
         DirectBuffer buffer = new UnsafeBuffer(bytes);
         MutableDirectBuffer encoded = new UnsafeBuffer(new byte[16]);
 
-        int written = encoder.encodeData(buffer, 0, bytes.length, encoded, 0, encoded.capacity());
+        int written = encoder.encodeData(buffer, 0, bytes.length, true, true, encoded, 0, encoded.capacity());
 
         assertThat(written, not(0));
     }

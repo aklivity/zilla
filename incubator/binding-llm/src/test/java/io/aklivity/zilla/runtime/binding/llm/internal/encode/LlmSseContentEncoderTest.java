@@ -92,7 +92,28 @@ public class LlmSseContentEncoderTest
         byte[] bytes = "hello".getBytes(UTF_8);
         DirectBuffer buffer = new UnsafeBuffer(bytes);
 
-        int written = encoder.encodeData(buffer, 0, bytes.length, encoded, 0, 3);
+        int written = encoder.encodeData(buffer, 0, bytes.length, true, true, encoded, 0, 3);
+
+        assertThat(written, equalTo(0));
+    }
+
+    @Test
+    public void shouldEncodeDataAcrossFragmentsWithoutRepeatingFraming()
+    {
+        int position = encodeDataFragmentAt(0, "hello ", true, false);
+        position += encodeDataFragmentAt(position, "there ", false, false);
+        position += encodeDataFragmentAt(position, "world", false, true);
+
+        assertThat(text(position), equalTo("data: hello there world\n"));
+    }
+
+    @Test
+    public void shouldReturnZeroWhenDestinationTooSmallForDataFragment()
+    {
+        byte[] bytes = "hello".getBytes(UTF_8);
+        DirectBuffer buffer = new UnsafeBuffer(bytes);
+
+        int written = encoder.encodeData(buffer, 0, bytes.length, false, false, encoded, 0, 3);
 
         assertThat(written, equalTo(0));
     }
@@ -113,7 +134,7 @@ public class LlmSseContentEncoderTest
     {
         byte[] bytes = data.getBytes(UTF_8);
         DirectBuffer buffer = new UnsafeBuffer(bytes);
-        return encoder.encodeData(buffer, 0, bytes.length, encoded, 0, encoded.capacity());
+        return encoder.encodeData(buffer, 0, bytes.length, true, true, encoded, 0, encoded.capacity());
     }
 
     private int encodeDataAt(
@@ -122,7 +143,18 @@ public class LlmSseContentEncoderTest
     {
         byte[] bytes = data.getBytes(UTF_8);
         DirectBuffer buffer = new UnsafeBuffer(bytes);
-        return encoder.encodeData(buffer, 0, bytes.length, encoded, position, encoded.capacity());
+        return encoder.encodeData(buffer, 0, bytes.length, true, true, encoded, position, encoded.capacity());
+    }
+
+    private int encodeDataFragmentAt(
+        int position,
+        String data,
+        boolean first,
+        boolean last)
+    {
+        byte[] bytes = data.getBytes(UTF_8);
+        DirectBuffer buffer = new UnsafeBuffer(bytes);
+        return encoder.encodeData(buffer, 0, bytes.length, first, last, encoded, position, encoded.capacity());
     }
 
     private int encodeFlush(

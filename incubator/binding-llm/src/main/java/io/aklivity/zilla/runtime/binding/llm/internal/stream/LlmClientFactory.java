@@ -609,7 +609,7 @@ public final class LlmClientFactory implements LlmStreamFactory
         {
             if (producedLength > 0)
             {
-                final int encoded = requestEncoder.encodeData(transformBuffer, 0, producedLength,
+                final int encoded = requestEncoder.encodeData(transformBuffer, 0, producedLength, true, true,
                     copyBuffer, 0, copyBuffer.capacity());
                 if (encoded > 0)
                 {

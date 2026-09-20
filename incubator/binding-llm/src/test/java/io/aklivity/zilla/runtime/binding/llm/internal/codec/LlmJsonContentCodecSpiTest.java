@@ -98,7 +98,7 @@ public class LlmJsonContentCodecSpiTest
         DirectBuffer buffer = new UnsafeBuffer(bytes);
         MutableDirectBuffer encoded = new UnsafeBuffer(new byte[32]);
 
-        int written = encoder.encodeData(buffer, 0, bytes.length, encoded, 0, encoded.capacity());
+        int written = encoder.encodeData(buffer, 0, bytes.length, true, true, encoded, 0, encoded.capacity());
 
         assertThat(written, equalTo(bytes.length));
         assertThat(encoded.getStringWithoutLengthUtf8(0, written), equalTo("{\"ok\":true}"));

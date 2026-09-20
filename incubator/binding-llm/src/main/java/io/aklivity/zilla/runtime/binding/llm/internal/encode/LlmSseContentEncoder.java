@@ -27,7 +27,10 @@ import org.agrona.MutableDirectBuffer;
  * blank line) so the wire form matches the field order every real SSE sender uses, since the event
  * name, when present, always precedes its data on the wire. A single data chunk is written as one
  * {@code data:} line; splitting embedded newlines across multiple {@code data:} lines is not
- * implemented here.
+ * implemented here. {@code encodeData} may be called more than once for one event's content, when
+ * that content arrives in more than one fragment; its {@code first}/{@code last} parameters mark
+ * which fragment is being written so the {@code data:} prefix and the line's terminating newline
+ * are each written exactly once across the whole sequence of fragments, not once per fragment.
  * </p>
  */
 public final class LlmSseContentEncoder implements LlmContentEncoder
@@ -68,21 +71,31 @@ public final class LlmSseContentEncoder implements LlmContentEncoder
         DirectBuffer buffer,
         int offset,
         int length,
+        boolean first,
+        boolean last,
         MutableDirectBuffer encoded,
         int encodedOffset,
         int encodedLimit)
     {
-        int required = DATA_FIELD.length() + length + 1;
+        final int prefixLength = first ? DATA_FIELD.length() : 0;
+        final int suffixLength = last ? 1 : 0;
+        int required = prefixLength + length + suffixLength;
         int written = 0;
 
         if (encodedOffset + required <= encodedLimit)
         {
             int position = encodedOffset;
-            position += encoded.putStringWithoutLengthUtf8(position, DATA_FIELD);
+            if (first)
+            {
+                position += encoded.putStringWithoutLengthUtf8(position, DATA_FIELD);
+            }
             encoded.putBytes(position, buffer, offset, length);
             position += length;
-            encoded.putByte(position, LF);
-            position++;
+            if (last)
+            {
+                encoded.putByte(position, LF);
+                position++;
+            }
             written = position - encodedOffset;
         }
 
