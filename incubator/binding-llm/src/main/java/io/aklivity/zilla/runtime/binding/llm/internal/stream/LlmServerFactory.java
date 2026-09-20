@@ -72,10 +72,9 @@ public final class LlmServerFactory implements LlmStreamFactory
     private static final int FLAG_INIT = 0x02;
 
     // encoding a response chunk adds SSE framing (event:/data:/id: field prefixes and line
-    // terminators) on top of the raw application payload bytes, so the encode slot must always
-    // keep this much headroom free; otherwise a raw-byte-sized reply window could admit a chunk
-    // whose encoded form no longer fits the same slot
-    private static final int RESPONSE_ENCODE_OVERHEAD_RESERVE = 256;
+    // terminators) on top of the raw application payload bytes, so the reply window reserves this
+    // much per-frame padding, keeping each frame's own reserved credit sized for its encoded form
+    private static final int RESPONSE_ENCODE_PADDING = 128;
 
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBufferEx(new byte[0]), 0, 0);
 
@@ -1187,7 +1186,7 @@ public final class LlmServerFactory implements LlmStreamFactory
 
             replySeq = sequence;
             replyAck = acknowledge;
-            replyMax = encodePool.slotCapacity() - RESPONSE_ENCODE_OVERHEAD_RESERVE;
+            replyMax = encodePool.slotCapacity();
             state = LlmState.openingReply(state);
 
             encoder = codecs.createEncoder(responseContentType);
@@ -1459,7 +1458,7 @@ public final class LlmServerFactory implements LlmStreamFactory
                 .maximum(replyMax)
                 .traceId(traceId)
                 .budgetId(0L)
-                .padding(0)
+                .padding(RESPONSE_ENCODE_PADDING)
                 .build();
 
             app.accept(window.typeId(), window.buffer(), window.offset(), window.sizeof());
