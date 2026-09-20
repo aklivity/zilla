@@ -20,8 +20,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BooleanSupplier;
 
+import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
+
 /**
- * Encodes the canonical vocabulary into OpenAI's native streaming chunk shape -- replaces the old
+ * Encodes the canonical vocabulary into OpenAI's native chunk shape -- replaces the old
  * {@code LlmOpenaiEventMapper}'s {@code encode*} public-method-per-action shape with one
  * {@link #write(String)} dispatching on the accumulated canonical {@code "type"} value.
  * <p>
@@ -29,6 +31,13 @@ import java.util.function.BooleanSupplier;
  * dialect never reads the canonical {@code blockId} back, since its own native shape addresses a tool call
  * purely by its own {@code index} sequence ({@code nextToolCallIndex}/{@code openToolCallIndex}), which
  * lives for the whole response stream, across every native chunk.
+ * <p>
+ * {@link #streaming()} (read once at {@code TYPE_MESSAGE_START}, cached in {@code streaming}) picks between
+ * two disjoint write strategies: streaming emits one native chunk per canonical action, exactly as before;
+ * non-streaming instead only accumulates each action's fields (see {@code held*}) and writes the whole
+ * native document once, at {@code TYPE_END} -- the same {@code null} native event name
+ * {@code LlmDialect.encodeMessage} used for whole-document output, so the app-facing wire contract is
+ * unchanged.
  */
 final class LlmOpenaiEncodeSink extends LlmCanonicalEncodeSink implements LlmDialectTerminator
 {
@@ -38,10 +47,29 @@ final class LlmOpenaiEncodeSink extends LlmCanonicalEncodeSink implements LlmDia
     private int nextToolCallIndex;
     private int openToolCallIndex = NO_BLOCK;
 
+    // Defaults true so an action fed in isolation (e.g. a unit test driving one write() call with no
+    // preceding messageStart) behaves exactly as every dialect did before non-streaming accumulation
+    // existed; onMessageStart() -- always the real first action of any actual response -- overwrites this
+    // with the envelope's real value before anything else is ever checked.
+    private boolean streaming = true;
+
+    private String heldId;
+    private String heldModel;
+    private String heldRole;
+    private final StringBuilder heldText;
+    private final List<HeldToolCall> heldToolCalls;
+    private HeldToolCall openHeldToolCall;
+    private String heldFinishReasonText;
+    private int heldInputTokens = -1;
+    private int heldOutputTokens = -1;
+
     LlmOpenaiEncodeSink(
+        JsonEnvelope envelope,
         LlmNativeEventOutput output)
     {
-        super(output);
+        super(envelope, output);
+        this.heldText = new StringBuilder();
+        this.heldToolCalls = new ArrayList<>();
     }
 
     @Override
@@ -58,31 +86,151 @@ final class LlmOpenaiEncodeSink extends LlmCanonicalEncodeSink implements LlmDia
         switch (type)
         {
         case LlmCanonicalEvent.TYPE_MESSAGE_START:
-            done = run(messageStartSteps());
+            done = onMessageStart();
             break;
         case LlmCanonicalEvent.TYPE_BLOCK_START:
-            done = writeBlockStart();
+            done = onBlockStart();
             break;
         case LlmCanonicalEvent.TYPE_DATA:
-            done = run(dataSteps());
+            done = onData();
             break;
         case LlmCanonicalEvent.TYPE_BLOCK_END:
-            openToolCallIndex = NO_BLOCK;
-            done = true;
+            done = onBlockEnd();
             break;
         case LlmCanonicalEvent.TYPE_FINISH:
-            done = run(finishSteps());
+            done = onFinish();
             break;
         case LlmCanonicalEvent.TYPE_USAGE:
-            done = run(usageSteps());
+            done = onUsage();
             break;
         case LlmCanonicalEvent.TYPE_END:
-            end(DONE_BYTES);
-            done = true;
+            done = onEnd();
             break;
         default:
             done = true;
             break;
+        }
+        return done;
+    }
+
+    private boolean onMessageStart()
+    {
+        boolean done;
+        streaming = streaming();
+
+        if (streaming)
+        {
+            done = run(messageStartSteps());
+        }
+        else
+        {
+            heldId = id();
+            heldModel = model();
+            heldRole = role();
+            done = true;
+        }
+        return done;
+    }
+
+    private boolean onBlockStart()
+    {
+        return streaming ? writeBlockStart() : holdBlockStart();
+    }
+
+    private boolean holdBlockStart()
+    {
+        if (isToolCall())
+        {
+            openHeldToolCall = new HeldToolCall(toolId(), toolName());
+            heldToolCalls.add(openHeldToolCall);
+        }
+        else
+        {
+            openHeldToolCall = null;
+        }
+        return true;
+    }
+
+    private boolean onData()
+    {
+        boolean done;
+        if (streaming)
+        {
+            done = run(dataSteps());
+        }
+        else
+        {
+            if (openHeldToolCall != null)
+            {
+                openHeldToolCall.arguments.append(text());
+            }
+            else
+            {
+                heldText.append(text());
+            }
+            done = true;
+        }
+        return done;
+    }
+
+    private boolean onBlockEnd()
+    {
+        boolean done;
+        if (streaming)
+        {
+            openToolCallIndex = NO_BLOCK;
+            done = true;
+        }
+        else
+        {
+            openHeldToolCall = null;
+            done = true;
+        }
+        return done;
+    }
+
+    private boolean onFinish()
+    {
+        boolean done;
+        if (streaming)
+        {
+            done = run(finishSteps());
+        }
+        else
+        {
+            heldFinishReasonText = finishReasonText(reason());
+            done = true;
+        }
+        return done;
+    }
+
+    private boolean onUsage()
+    {
+        boolean done;
+        if (streaming)
+        {
+            done = run(usageSteps());
+        }
+        else
+        {
+            heldInputTokens = inputTokens();
+            heldOutputTokens = outputTokens();
+            done = true;
+        }
+        return done;
+    }
+
+    private boolean onEnd()
+    {
+        boolean done;
+        if (streaming)
+        {
+            end(DONE_BYTES);
+            done = true;
+        }
+        else
+        {
+            done = run(wholeDocumentSteps());
         }
         return done;
     }
@@ -260,6 +408,83 @@ final class LlmOpenaiEncodeSink extends LlmCanonicalEncodeSink implements LlmDia
         return steps;
     }
 
+    // The whole-document counterpart to messageStartSteps()/toolCallStartSteps()/dataSteps()/finishSteps()/
+    // usageSteps() combined -- one native document built from every held field, matching the field order
+    // (and null-vs-omitted rules) the old LlmDialect.encodeMessage() produced: "content" is always present,
+    // null when no text block ever opened; "tool_calls" is present only when at least one tool call block
+    // did; "usage" is present only when at least one of its two counters is non-negative.
+    private List<BooleanSupplier> wholeDocumentSteps()
+    {
+        final String id = heldId;
+        final String model = heldModel;
+        final String role = orDefault(heldRole, "assistant");
+        final String text = heldText.length() > 0 ? heldText.toString() : null;
+        final List<HeldToolCall> toolCalls = heldToolCalls;
+        final String finishReasonText = heldFinishReasonText;
+        final int inputTokens = heldInputTokens;
+        final int outputTokens = heldOutputTokens;
+
+        List<BooleanSupplier> steps = new ArrayList<>();
+        steps.add(this::tryWriteStartObject);
+        steps.add(() -> tryWrite("object", "chat.completion"));
+        if (id != null)
+        {
+            steps.add(() -> tryWrite("id", id));
+        }
+        if (model != null)
+        {
+            steps.add(() -> tryWrite("model", model));
+        }
+        steps.add(() -> tryWriteStartArray("choices"));
+        steps.add(this::tryWriteStartObject);
+        steps.add(() -> tryWrite("index", 0));
+        steps.add(() -> tryWriteStartObject("message"));
+        steps.add(() -> tryWrite("role", role));
+        steps.add(text != null ? () -> tryWrite("content", text) : () -> tryWriteNull("content"));
+        if (!toolCalls.isEmpty())
+        {
+            steps.add(() -> tryWriteStartArray("tool_calls"));
+            for (HeldToolCall toolCall : toolCalls)
+            {
+                steps.add(this::tryWriteStartObject);
+                if (toolCall.id != null)
+                {
+                    steps.add(() -> tryWrite("id", toolCall.id));
+                }
+                steps.add(() -> tryWrite("type", "function"));
+                steps.add(() -> tryWriteStartObject("function"));
+                if (toolCall.name != null)
+                {
+                    steps.add(() -> tryWrite("name", toolCall.name));
+                }
+                steps.add(() -> tryWrite("arguments", toolCall.arguments.toString()));
+                steps.add(this::tryWriteEnd);
+                steps.add(this::tryWriteEnd);
+            }
+            steps.add(this::tryWriteEnd);
+        }
+        steps.add(this::tryWriteEnd);
+        steps.add(() -> tryWrite("finish_reason", finishReasonText));
+        steps.add(this::tryWriteEnd);
+        steps.add(this::tryWriteEnd);
+        if (inputTokens >= 0 || outputTokens >= 0)
+        {
+            steps.add(() -> tryWriteStartObject("usage"));
+            if (inputTokens >= 0)
+            {
+                steps.add(() -> tryWrite("prompt_tokens", inputTokens));
+            }
+            if (outputTokens >= 0)
+            {
+                steps.add(() -> tryWrite("completion_tokens", outputTokens));
+            }
+            steps.add(this::tryWriteEnd);
+        }
+        steps.add(this::tryWriteEnd);
+        steps.add(() -> emitted(null));
+        return steps;
+    }
+
     private boolean emitted(
         String nativeEventName)
     {
@@ -294,5 +519,21 @@ final class LlmOpenaiEncodeSink extends LlmCanonicalEncodeSink implements LlmDia
             break;
         }
         return value;
+    }
+
+    private static final class HeldToolCall
+    {
+        private final String id;
+        private final String name;
+        private final StringBuilder arguments;
+
+        private HeldToolCall(
+            String id,
+            String name)
+        {
+            this.id = id;
+            this.name = name;
+            this.arguments = new StringBuilder();
+        }
     }
 }

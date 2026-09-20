@@ -19,8 +19,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.util.function.LongUnaryOperator;
 
-import jakarta.json.JsonObject;
-
 import org.agrona.DirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
 
@@ -83,6 +81,7 @@ public final class LlmClientFactory implements LlmStreamFactory
     private static final String METHOD_POST = "POST";
     private static final String CONTENT_TYPE_JSON = "application/json";
     private static final String ENVELOPE_EVENT = "event";
+    private static final String ENVELOPE_STREAMING = "streaming";
 
     private static final int FLAG_FIN = 0x01;
     private static final int FLAG_INIT = 0x02;
@@ -990,8 +989,12 @@ public final class LlmClientFactory implements LlmStreamFactory
             if (client.transformEvents)
             {
                 final JsonTransform decodeTransform = LlmResponseTransformFactory.supplyDecodeTransform(client.target.name());
-                final JsonSink encodeSink = LlmResponseTransformFactory.supplyEncodeSink(client.source.name(), nativeOutput);
-                this.eventPipeline = JsonEx.stream(JsonEx.createParser()).transform(decodeTransform).into(encodeSink);
+                final JsonSink encodeSink =
+                    LlmResponseTransformFactory.supplyEncodeSink(client.source.name(), client.envelope, nativeOutput);
+                this.eventPipeline = JsonEx.stream(JsonEx.createParser())
+                    .envelope(client.envelope)
+                    .transform(decodeTransform)
+                    .into(encodeSink);
                 this.decodeEvent = (LlmDialectEvent) decodeTransform;
                 this.encodeTerminator = (LlmDialectTerminator) encodeSink;
             }
@@ -1248,6 +1251,7 @@ public final class LlmClientFactory implements LlmStreamFactory
 
             this.decoder = codecs.createDecoder(responseContentType);
             this.streaming = decoder instanceof LlmSseContentDecoder;
+            client.envelope.set(ENVELOPE_STREAMING, asBuffer(Boolean.toString(streaming)));
 
             client.doAppBegin(traceId, authorization, client.source.name(), responseContentType);
 
@@ -1512,27 +1516,10 @@ public final class LlmClientFactory implements LlmStreamFactory
             }
         }
 
+        // Drives the same event pipeline whether this native event is one increment of a streaming response
+        // or the whole body of a non-streaming one -- LlmHttpClient.streaming (written into the envelope at
+        // response-begin) is what tells the decode/encode pair apart, not this call site.
         private void transformNativeEvent()
-        {
-            if (streaming)
-            {
-                transformNativeStreamEvent();
-            }
-            else
-            {
-                String data = nativeEventBuffer.getStringWithoutLengthUtf8(0, nativeEventLength);
-                JsonObject canonical = client.target.decodeMessage(data);
-                String encoded = client.source.encodeMessage(canonical);
-                byte[] bytes = encoded.getBytes(UTF_8);
-                copyBuffer.putBytes(0, bytes);
-                onNativeEvent(null, copyBuffer, 0, bytes.length);
-            }
-
-            nativeEventName = null;
-            nativeEventLength = 0;
-        }
-
-        private void transformNativeStreamEvent()
         {
             if (matchesTerminator(nativeEventBuffer, 0, nativeEventLength, client.target.terminator(Kind.RESPONSE)))
             {
@@ -1558,6 +1545,9 @@ public final class LlmClientFactory implements LlmStreamFactory
                     eventPipeline.nextDocument();
                 }
             }
+
+            nativeEventName = null;
+            nativeEventLength = 0;
         }
 
         private void onNativeEvent(

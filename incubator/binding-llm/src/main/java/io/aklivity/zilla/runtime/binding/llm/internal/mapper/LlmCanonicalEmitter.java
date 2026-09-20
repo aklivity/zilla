@@ -90,7 +90,10 @@ abstract class LlmCanonicalEmitter implements JsonTransform
     {
         List<Field> action = newAction(LlmCanonicalEvent.TYPE_MESSAGE_START);
         addField(action, LlmCanonicalEvent.CHOICE_INDEX, choiceIndex);
-        addField(action, LlmCanonicalEvent.ID, id);
+        if (id != null)
+        {
+            addField(action, LlmCanonicalEvent.ID, id);
+        }
         if (model != null)
         {
             addField(action, LlmCanonicalEvent.MODEL, model);

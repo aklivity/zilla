@@ -31,6 +31,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
@@ -51,7 +52,7 @@ public class LlmOpenaiToAnthropicResponseTransformTest
     {
         JsonParserEx parser = JsonEx.createParser();
         JsonTransform decode = new LlmOpenaiDecodeTransform();
-        JsonSink encode = new LlmAnthropicEncodeSink(this::onEvent);
+        JsonSink encode = new LlmAnthropicEncodeSink(JsonEnvelope.NONE, this::onEvent);
         this.pipeline = JsonEx.stream(parser).transform(decode).into(encode);
     }
 
@@ -140,7 +141,7 @@ public class LlmOpenaiToAnthropicResponseTransformTest
     @Test
     public void shouldTerminateOnDoneBypassingPipeline()
     {
-        LlmAnthropicEncodeSink encode = new LlmAnthropicEncodeSink(this::onEvent);
+        LlmAnthropicEncodeSink encode = new LlmAnthropicEncodeSink(JsonEnvelope.NONE, this::onEvent);
         ((LlmDialectTerminator) encode).terminate();
 
         assertThat(events.size(), equalTo(1));

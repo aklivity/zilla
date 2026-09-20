@@ -17,9 +17,11 @@ package io.aklivity.zilla.runtime.binding.llm.internal.mapper;
 import java.util.List;
 import java.util.function.BooleanSupplier;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonController;
+import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
@@ -45,9 +47,17 @@ abstract class LlmCanonicalEncodeSink implements JsonSink
 {
     private static final int GENERATOR_BUFFER_CAPACITY = 8192;
 
+    // The per-stream metadata channel LlmClientFactory writes the exchange's streaming/non-streaming flag
+    // to at response-begin -- this sink has no native signal of its own to read that from (unlike a decode
+    // transform, it only ever sees canonical actions), so it reads the flag from here instead. See
+    // streaming().
+    private static final String ENVELOPE_STREAMING = "streaming";
+
     protected final LlmNativeEventOutput output;
     protected final JsonGeneratorEx generator;
     protected final MutableDirectBufferEx generatorBuffer;
+
+    private final JsonEnvelope envelope;
 
     private String pendingKey;
     private String type;
@@ -69,12 +79,27 @@ abstract class LlmCanonicalEncodeSink implements JsonSink
     private int step;
 
     LlmCanonicalEncodeSink(
+        JsonEnvelope envelope,
         LlmNativeEventOutput output)
     {
+        this.envelope = envelope;
         this.output = output;
         this.generator = JsonEx.createGenerator();
         this.generatorBuffer = new UnsafeBufferEx(new byte[GENERATOR_BUFFER_CAPACITY]);
         this.generator.wrap(generatorBuffer, 0, generatorBuffer.capacity());
+    }
+
+    /**
+     * Whether this response exchange is streaming, read from the envelope once (a caller reads this at
+     * {@code TYPE_MESSAGE_START} and caches the result, since the envelope entry never changes mid-stream)
+     * rather than on every action. Defaults to {@code true} (the per-action emission every dialect used
+     * before non-streaming accumulation existed) when the envelope carries no entry -- e.g. a unit test
+     * driving this sink directly, with no {@code LlmHttpClient} to have written one.
+     */
+    protected final boolean streaming()
+    {
+        DirectBufferEx value = envelope.get(ENVELOPE_STREAMING, 0);
+        return value == null || "true".equals(value.getStringWithoutLengthUtf8(0, value.capacity()));
     }
 
     @Override

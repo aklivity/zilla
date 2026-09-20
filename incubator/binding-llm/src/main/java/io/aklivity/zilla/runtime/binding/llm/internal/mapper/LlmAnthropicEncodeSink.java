@@ -14,30 +14,67 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.internal.mapper;
 
+import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BooleanSupplier;
 
+import jakarta.json.Json;
+import jakarta.json.JsonObject;
+import jakarta.json.JsonReader;
+
+import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
+
 /**
- * Encodes the canonical vocabulary into Anthropic's native streaming event shape -- replaces the old
+ * Encodes the canonical vocabulary into Anthropic's native event shape -- replaces the old
  * {@code LlmAnthropicEventMapper}'s {@code encode*} public-method-per-action shape with one
  * {@link #write(String)} dispatching on the accumulated canonical {@code "type"} value.
  * <p>
  * {@code openBlockType}/{@code openBlockId}/{@code heldOutputTokens}/{@code finishSent} live for the whole
  * response stream, across every native chunk.
+ * <p>
+ * {@link #streaming()} (read once at {@code TYPE_MESSAGE_START}, cached in {@code streaming}) picks between
+ * two disjoint write strategies: streaming emits one native chunk per canonical action, exactly as before;
+ * non-streaming instead only accumulates each action's fields (see {@code doc*}) and writes the whole native
+ * document once, at {@code TYPE_END} -- the same {@code null} native event name
+ * {@code LlmDialect.encodeMessage} used for whole-document output, so the app-facing wire contract is
+ * unchanged. A tool-call block's canonical {@code arguments} is a JSON-encoded string (the same shape the
+ * streaming {@code partial_json} field already carries); Anthropic's own {@code input} is the parsed object
+ * itself, so {@link #wholeDocumentSteps()} parses it back with the standard {@code jakarta.json} reader --
+ * a small, self-contained document, not the multi-field whole-message DOM conversion
+ * {@code LlmDialect.encodeMessage} used to perform.
  */
 final class LlmAnthropicEncodeSink extends LlmCanonicalEncodeSink implements LlmDialectTerminator
 {
+    private static final JsonObject EMPTY_INPUT = Json.createObjectBuilder().build();
+
     private LlmCanonicalBlockKind openBlockType;
     private int openBlockId;
 
     private int heldOutputTokens = -1;
     private boolean finishSent;
 
+    // Defaults true so an action fed in isolation (e.g. a unit test driving one write() call with no
+    // preceding messageStart) behaves exactly as every dialect did before non-streaming accumulation
+    // existed; onMessageStart() -- always the real first action of any actual response -- overwrites this
+    // with the envelope's real value before anything else is ever checked.
+    private boolean streaming = true;
+
+    private String docId;
+    private String docModel;
+    private String docRole;
+    private final List<HeldBlock> docBlocks;
+    private HeldBlock openDocBlock;
+    private String docStopReason;
+    private int docInputTokens = -1;
+    private int docOutputTokens = -1;
+
     LlmAnthropicEncodeSink(
+        JsonEnvelope envelope,
         LlmNativeEventOutput output)
     {
-        super(output);
+        super(envelope, output);
+        this.docBlocks = new ArrayList<>();
     }
 
     // Anthropic's own stream termination (message_stop) is itself a JSON document that reaches this sink
@@ -59,35 +96,137 @@ final class LlmAnthropicEncodeSink extends LlmCanonicalEncodeSink implements Llm
         switch (type)
         {
         case LlmCanonicalEvent.TYPE_MESSAGE_START:
-            done = run(messageStartSteps());
+            done = onMessageStart();
             break;
         case LlmCanonicalEvent.TYPE_BLOCK_START:
-            done = writeBlockStart();
+            done = onBlockStart();
             break;
         case LlmCanonicalEvent.TYPE_DATA:
-            done = run(dataSteps());
+            done = onData();
             break;
         case LlmCanonicalEvent.TYPE_BLOCK_END:
-            done = writeBlockEnd();
+            done = onBlockEnd();
             break;
         case LlmCanonicalEvent.TYPE_FINISH:
-            done = writeFinish();
+            done = onFinish();
             break;
         case LlmCanonicalEvent.TYPE_USAGE:
-            if (!finishSent)
-            {
-                heldOutputTokens = outputTokens();
-            }
-            done = true;
+            done = onUsage();
             break;
         case LlmCanonicalEvent.TYPE_END:
-            done = run(endSteps());
+            done = onEnd();
             break;
         default:
             done = true;
             break;
         }
         return done;
+    }
+
+    private boolean onMessageStart()
+    {
+        boolean done;
+        streaming = streaming();
+
+        if (streaming)
+        {
+            done = run(messageStartSteps());
+        }
+        else
+        {
+            docId = id();
+            docModel = model();
+            docRole = role();
+            done = true;
+        }
+        return done;
+    }
+
+    private boolean onBlockStart()
+    {
+        boolean done;
+        if (streaming)
+        {
+            done = writeBlockStart();
+        }
+        else
+        {
+            openDocBlock = new HeldBlock(isToolCall() ? LlmCanonicalBlockKind.TOOL_CALL : LlmCanonicalBlockKind.TEXT,
+                toolId(), toolName());
+            docBlocks.add(openDocBlock);
+            done = true;
+        }
+        return done;
+    }
+
+    private boolean onData()
+    {
+        boolean done;
+        if (streaming)
+        {
+            done = run(dataSteps());
+        }
+        else
+        {
+            openDocBlock.text.append(text());
+            done = true;
+        }
+        return done;
+    }
+
+    private boolean onBlockEnd()
+    {
+        boolean done;
+        if (streaming)
+        {
+            done = writeBlockEnd();
+        }
+        else
+        {
+            openDocBlock = null;
+            done = true;
+        }
+        return done;
+    }
+
+    private boolean onFinish()
+    {
+        boolean done;
+        if (streaming)
+        {
+            done = writeFinish();
+        }
+        else
+        {
+            docStopReason = stopReason(reason());
+            done = true;
+        }
+        return done;
+    }
+
+    private boolean onUsage()
+    {
+        boolean done;
+        if (streaming)
+        {
+            if (!finishSent)
+            {
+                heldOutputTokens = outputTokens();
+            }
+            done = true;
+        }
+        else
+        {
+            docInputTokens = inputTokens();
+            docOutputTokens = outputTokens();
+            done = true;
+        }
+        return done;
+    }
+
+    private boolean onEnd()
+    {
+        return streaming ? run(endSteps()) : run(wholeDocumentSteps());
     }
 
     private List<BooleanSupplier> messageStartSteps()
@@ -252,6 +391,89 @@ final class LlmAnthropicEncodeSink extends LlmCanonicalEncodeSink implements Llm
         return steps;
     }
 
+    // The whole-document counterpart to messageStartSteps()/blockStartSteps()/dataSteps()/blockEndSteps()/
+    // finishSteps() combined -- one native document built from every held field, matching the field order
+    // (and always-present "usage", -1-defaulted) the old LlmDialect.encodeMessage() produced.
+    private List<BooleanSupplier> wholeDocumentSteps()
+    {
+        final String id = docId;
+        final String model = docModel;
+        final String role = orDefault(docRole, "assistant");
+        final List<HeldBlock> blocks = docBlocks;
+        final String stopReason = docStopReason;
+        final int inputTokens = docInputTokens;
+        final int outputTokens = docOutputTokens;
+
+        List<BooleanSupplier> steps = new ArrayList<>();
+        steps.add(this::tryWriteStartObject);
+        if (id != null)
+        {
+            steps.add(() -> tryWrite("id", id));
+        }
+        steps.add(() -> tryWrite("type", "message"));
+        steps.add(() -> tryWrite("role", role));
+        if (model != null)
+        {
+            steps.add(() -> tryWrite("model", model));
+        }
+        steps.add(() -> tryWriteStartArray("content"));
+        for (HeldBlock block : blocks)
+        {
+            steps.add(this::tryWriteStartObject);
+            if (block.kind == LlmCanonicalBlockKind.TOOL_CALL)
+            {
+                steps.add(() -> tryWrite("type", "tool_use"));
+                if (block.toolId != null)
+                {
+                    steps.add(() -> tryWrite("id", block.toolId));
+                }
+                if (block.toolName != null)
+                {
+                    steps.add(() -> tryWrite("name", block.toolName));
+                }
+                steps.add(() -> tryWriteInput(block.text.toString()));
+            }
+            else
+            {
+                steps.add(() -> tryWrite("type", "text"));
+                steps.add(() -> tryWrite("text", block.text.toString()));
+            }
+            steps.add(this::tryWriteEnd);
+        }
+        steps.add(this::tryWriteEnd);
+        steps.add(() -> tryWrite("stop_reason", stopReason));
+        steps.add(() -> tryWriteStartObject("usage"));
+        steps.add(() -> tryWrite("input_tokens", inputTokens));
+        steps.add(() -> tryWrite("output_tokens", outputTokens));
+        steps.add(this::tryWriteEnd);
+        steps.add(this::tryWriteEnd);
+        steps.add(() -> emitted(null));
+        return steps;
+    }
+
+    // A tool-call block's canonical arguments is a JSON-encoded string; Anthropic's own "input" is the
+    // parsed object, so this re-parses it with the standard jakarta.json reader -- a small, self-contained
+    // value, not the multi-field whole-message DOM conversion LlmDialect.encodeMessage used to perform.
+    private boolean tryWriteInput(
+        String arguments)
+    {
+        boolean fits = fits(arguments.length());
+        if (fits)
+        {
+            generator.write("input", arguments.isEmpty() ? EMPTY_INPUT : parseObject(arguments));
+        }
+        return fits;
+    }
+
+    private static JsonObject parseObject(
+        String data)
+    {
+        try (JsonReader reader = Json.createReader(new StringReader(data)))
+        {
+            return reader.readObject();
+        }
+    }
+
     private boolean emitted(
         String nativeEventName)
     {
@@ -283,5 +505,24 @@ final class LlmAnthropicEncodeSink extends LlmCanonicalEncodeSink implements Llm
             break;
         }
         return stopReason;
+    }
+
+    private static final class HeldBlock
+    {
+        private final LlmCanonicalBlockKind kind;
+        private final String toolId;
+        private final String toolName;
+        private final StringBuilder text;
+
+        private HeldBlock(
+            LlmCanonicalBlockKind kind,
+            String toolId,
+            String toolName)
+        {
+            this.kind = kind;
+            this.toolId = toolId;
+            this.toolName = toolName;
+            this.text = new StringBuilder();
+        }
     }
 }

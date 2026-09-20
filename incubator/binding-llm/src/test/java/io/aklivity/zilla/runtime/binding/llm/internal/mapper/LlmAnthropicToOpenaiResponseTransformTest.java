@@ -34,6 +34,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
@@ -55,7 +56,7 @@ public class LlmAnthropicToOpenaiResponseTransformTest
     {
         JsonParserEx parser = JsonEx.createParser();
         this.decode = new LlmAnthropicDecodeTransform();
-        JsonSink encode = new LlmOpenaiEncodeSink(this::onEvent);
+        JsonSink encode = new LlmOpenaiEncodeSink(JsonEnvelope.NONE, this::onEvent);
         this.pipeline = JsonEx.stream(parser).transform(decode).into(encode);
     }
 

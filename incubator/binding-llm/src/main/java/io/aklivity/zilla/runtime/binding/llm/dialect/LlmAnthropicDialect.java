@@ -14,10 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.dialect;
 
-import static io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectJson.compact;
-import static io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectJson.getString;
-import static io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectJson.orDefault;
-import static io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectJson.readObject;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.IOException;
@@ -25,13 +21,6 @@ import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.net.URL;
 
-import jakarta.json.Json;
-import jakarta.json.JsonArray;
-import jakarta.json.JsonArrayBuilder;
-import jakarta.json.JsonObject;
-import jakarta.json.JsonObjectBuilder;
-
-import io.aklivity.zilla.runtime.binding.llm.internal.mapper.LlmCanonicalFinishReason;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
 import io.aklivity.zilla.runtime.common.json.JsonSchema;
@@ -167,140 +156,6 @@ public final class LlmAnthropicDialect implements LlmDialect
         Kind kind)
     {
         return null;
-    }
-
-    @Override
-    public JsonObject decodeMessage(
-        String data)
-    {
-        JsonObject root = readObject(data);
-        JsonArray blocks = root.getJsonArray("content");
-
-        JsonArrayBuilder content = Json.createArrayBuilder();
-        if (blocks != null)
-        {
-            for (int i = 0; i < blocks.size(); i++)
-            {
-                JsonObject block = blocks.getJsonObject(i);
-                if ("tool_use".equals(getString(block, "type", null)))
-                {
-                    JsonObject input = block.getJsonObject("input");
-                    JsonObjectBuilder canonicalBlock = Json.createObjectBuilder().add("type", "tool_call");
-                    addIfPresent(canonicalBlock, "toolId", getString(block, "id", null));
-                    addIfPresent(canonicalBlock, "toolName", getString(block, "name", null));
-                    canonicalBlock.add("arguments", input != null ? compact(input) : "{}");
-                    content.add(canonicalBlock);
-                }
-                else
-                {
-                    content.add(Json.createObjectBuilder().add("type", "text").add("text", getString(block, "text", "")));
-                }
-            }
-        }
-
-        JsonObject usage = root.getJsonObject("usage");
-
-        JsonObjectBuilder canonical = Json.createObjectBuilder();
-        addIfPresent(canonical, "id", getString(root, "id", null));
-        addIfPresent(canonical, "model", getString(root, "model", null));
-        canonical.add("role", orDefault(getString(root, "role", null), "assistant"));
-        canonical.add("content", content);
-        canonical.add("finishReason", finishReason(getString(root, "stop_reason", null)).name());
-        canonical.add("usage", Json.createObjectBuilder()
-            .add("inputTokens", usage != null ? usage.getInt("input_tokens", -1) : -1)
-            .add("outputTokens", usage != null ? usage.getInt("output_tokens", -1) : -1));
-
-        return canonical.build();
-    }
-
-    @Override
-    public String encodeMessage(
-        JsonObject message)
-    {
-        JsonArray content = message.getJsonArray("content");
-        JsonArrayBuilder blocks = Json.createArrayBuilder();
-
-        for (int i = 0; i < content.size(); i++)
-        {
-            JsonObject block = content.getJsonObject(i);
-            if ("tool_call".equals(block.getString("type")))
-            {
-                JsonObjectBuilder toolUse = Json.createObjectBuilder().add("type", "tool_use");
-                addIfPresent(toolUse, "id", getString(block, "toolId", null));
-                addIfPresent(toolUse, "name", getString(block, "toolName", null));
-                String arguments = getString(block, "arguments", "");
-                toolUse.add("input", arguments.isEmpty() ? Json.createObjectBuilder().build() : readObject(arguments));
-                blocks.add(toolUse);
-            }
-            else
-            {
-                blocks.add(Json.createObjectBuilder().add("type", "text").add("text", getString(block, "text", "")));
-            }
-        }
-
-        JsonObjectBuilder root = Json.createObjectBuilder();
-        addIfPresent(root, "id", getString(message, "id", null));
-        root.add("type", "message");
-        root.add("role", getString(message, "role", "assistant"));
-        addIfPresent(root, "model", getString(message, "model", null));
-        root.add("content", blocks);
-        root.add("stop_reason", stopReason(LlmCanonicalFinishReason.valueOf(message.getString("finishReason"))));
-
-        JsonObject usage = message.getJsonObject("usage");
-        root.add("usage", Json.createObjectBuilder()
-            .add("input_tokens", usage != null ? usage.getInt("inputTokens", -1) : -1)
-            .add("output_tokens", usage != null ? usage.getInt("outputTokens", -1) : -1));
-
-        return compact(root.build());
-    }
-
-    private static void addIfPresent(
-        JsonObjectBuilder builder,
-        String name,
-        String value)
-    {
-        if (value != null)
-        {
-            builder.add(name, value);
-        }
-    }
-
-    private static LlmCanonicalFinishReason finishReason(
-        String stopReason)
-    {
-        LlmCanonicalFinishReason reason;
-        if ("max_tokens".equals(stopReason))
-        {
-            reason = LlmCanonicalFinishReason.LENGTH;
-        }
-        else if ("tool_use".equals(stopReason))
-        {
-            reason = LlmCanonicalFinishReason.TOOL_CALL;
-        }
-        else
-        {
-            reason = LlmCanonicalFinishReason.STOP;
-        }
-        return reason;
-    }
-
-    private static String stopReason(
-        LlmCanonicalFinishReason reason)
-    {
-        String stopReason;
-        switch (reason)
-        {
-        case LENGTH:
-            stopReason = "max_tokens";
-            break;
-        case TOOL_CALL:
-            stopReason = "tool_use";
-            break;
-        default:
-            stopReason = "end_turn";
-            break;
-        }
-        return stopReason;
     }
 
     private static String header(

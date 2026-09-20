@@ -23,34 +23,45 @@ import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.common.json.JsonSource;
 
 /**
- * Decodes OpenAI's native streaming chunk sequence into the canonical vocabulary, driven directly by real
+ * Decodes OpenAI's native chunk sequence into the canonical vocabulary, driven directly by real
  * {@link JsonEvent}s from a long-lived {@link io.aklivity.zilla.runtime.common.json.JsonPipeline} (one
  * instance per response stream, reused for every native chunk over the stream's lifetime -- see
  * {@link LlmCanonicalEmitter}). Replaces the old {@code ChunkWalker}/{@code Position}-enum loop over a
  * private {@code JsonParserEx}: the same walk now happens one real parser event at a time.
  * <p>
+ * A streaming delta carries its per-choice payload under {@code delta}; a non-streaming whole document
+ * carries the exact same shape (role/content/tool_calls at the same relative position) under {@code
+ * message} instead -- {@link #onKeyName(JsonController, JsonSource)} treats the two as aliases, so the same
+ * structural walk below decodes both without otherwise knowing which one it is looking at.
+ * <p>
  * OpenAI's {@code index} counts tool calls only, unlike the canonical (Anthropic-shaped) block index, which
  * counts every content block including text; {@code blockIdByToolCallIndex} maps between the two
- * spaces for the stream's lifetime. OpenAI also has no explicit block-close event, so a canonical
- * {@code blockEnd} is synthesized lazily, only once the next tool call starts or the stream finishes.
+ * spaces for the stream's lifetime. A streaming delta always carries an explicit {@code index}; a
+ * non-streaming {@code tool_calls} array entry never does, so entering a tool call defaults it to the
+ * entry's own array position, overwritten by an explicit {@code index} key when one arrives. OpenAI also has
+ * no explicit block-close event, so a canonical {@code blockEnd} is synthesized as soon as the current tool
+ * call object closes (a streaming delta's {@code tool_calls} array holds at most one entry, so this fires at
+ * most once per chunk there; a non-streaming document's array can hold several, each closing and reopening a
+ * block in turn) or once the stream finishes.
  * <p>
- * {@code messageStarted}/{@code nextBlockId}/{@code openBlockId}/{@code blockIdByToolCallIndex}/
- * {@code nextToolCallIndex}/{@code openToolCallIndex} live for the whole response stream, across every
- * native chunk -- {@link #reset()} is never called between chunks under normal operation (see
- * {@code LlmClientFactory}'s document-boundary policy: {@code nextDocument()} advances between chunks
- * without cascading a reset to this stage), so these fields need no special preservation.
+ * The canonical TEXT block opens lazily, on the first real text content (or immediately before the first
+ * tool-call block, if no text precedes it) rather than unconditionally at message start -- a tool-call-only
+ * response must not produce a spurious empty leading text block.
+ * <p>
+ * {@code messageStarted}/{@code nextBlockId}/{@code openBlockId}/{@code blockIdByToolCallIndex} live for
+ * the whole response stream, across every native chunk --
+ * {@link #reset()} is never called between chunks under normal operation (see {@code LlmClientFactory}'s
+ * document-boundary policy: {@code nextDocument()} advances between chunks without cascading a reset to this
+ * stage), so these fields need no special preservation.
  */
 final class LlmOpenaiDecodeTransform extends LlmCanonicalEmitter implements LlmDialectEvent
 {
     private static final int NO_BLOCK = -1;
 
     private boolean messageStarted;
-    private int nextBlockId = 1;
+    private int nextBlockId;
     private int openBlockId = NO_BLOCK;
     private final Int2IntHashMap blockIdByToolCallIndex;
-
-    private int nextToolCallIndex;
-    private int openToolCallIndex = NO_BLOCK;
 
     private int depth;
     private Position position = Position.ROOT;
@@ -62,15 +73,14 @@ final class LlmOpenaiDecodeTransform extends LlmCanonicalEmitter implements LlmD
     private int choicesArrayIndex = -1;
     private int toolCallsArrayIndex = -1;
     private boolean inChoice0;
-    private boolean inToolCall0;
 
     private String chunkId;
     private String chunkModel;
     private int chunkChoiceIndex;
-    private boolean chunkHasDelta;
+    private boolean chunkHasChoicePayload;
+    private boolean chunkWholeDocument;
     private String chunkRole;
     private String chunkContent;
-    private boolean chunkHasToolCall;
     private int chunkToolCallIndex;
     private String chunkToolCallId;
     private String chunkToolCallName;
@@ -145,7 +155,7 @@ final class LlmOpenaiDecodeTransform extends LlmCanonicalEmitter implements LlmD
             }
             else if (depth == 5 && position == Position.TOOL_CALL)
             {
-                inToolCall0 = false;
+                onToolCallEnd();
                 position = Position.TOOL_CALLS_ARRAY;
             }
             else if (depth == 6 && position == Position.FUNCTION)
@@ -212,6 +222,11 @@ final class LlmOpenaiDecodeTransform extends LlmCanonicalEmitter implements LlmD
             else if (matches(key, "delta"))
             {
                 choiceKeyPosition = Position.DELTA_KEY;
+            }
+            else if (matches(key, "message"))
+            {
+                choiceKeyPosition = Position.DELTA_KEY;
+                chunkWholeDocument = true;
             }
             else if (matches(key, "finish_reason"))
             {
@@ -364,16 +379,12 @@ final class LlmOpenaiDecodeTransform extends LlmCanonicalEmitter implements LlmD
             if (event == JsonEvent.START_OBJECT && depth == 6)
             {
                 toolCallsArrayIndex++;
-                inToolCall0 = toolCallsArrayIndex == 0;
                 position = Position.TOOL_CALL;
                 toolCallKeyPosition = Position.ROOT;
-                if (inToolCall0)
-                {
-                    chunkHasToolCall = true;
-                }
+                chunkToolCallIndex = toolCallsArrayIndex;
             }
         }
-        else if (position == Position.TOOL_CALL && inToolCall0)
+        else if (position == Position.TOOL_CALL)
         {
             onToolCallLeafValue(source, event);
         }
@@ -403,7 +414,7 @@ final class LlmOpenaiDecodeTransform extends LlmCanonicalEmitter implements LlmD
         case DELTA_KEY:
             if (event == JsonEvent.START_OBJECT)
             {
-                chunkHasDelta = true;
+                chunkHasChoicePayload = true;
                 position = Position.DELTA;
                 deltaKeyPosition = Position.ROOT;
             }
@@ -535,27 +546,22 @@ final class LlmOpenaiDecodeTransform extends LlmCanonicalEmitter implements LlmD
     }
 
     // Queues canonical actions from the fully-accumulated chunk, in the same fixed order the dialect's
-    // own streaming semantics always resolve to, regardless of the order this chunk's own keys arrived in.
+    // own streaming semantics always resolve to, regardless of the order this chunk's own keys arrived in --
+    // in particular, a whole non-streaming document's text always precedes its tool calls in the canonical
+    // block order (matching the old decodeMessage()'s field-based assembly), regardless of which of
+    // "content"/"tool_calls" the native document happens to carry first -- see flushTextIfPending(), called
+    // from here and eagerly from onToolCallEnd() so a tool call never queues its block ahead of pending text.
+    // A tool call's own block start/data/end already fired eagerly as its array entry closed (see
+    // onToolCallEnd(), called from onStructural()) -- a non-streaming document's tool_calls array can hold
+    // several entries, each needing its own block, so that cannot wait for this method the way a single
+    // streaming delta's at-most-one entry could -- and messageStart must fire before any of them, so
+    // ensureMessageStarted() (not just this method) is also called eagerly from onToolCallEnd(), never
+    // deferred to this method the way it safely can be for a streaming delta's at-most-one entry.
     private void onDocumentEnd()
     {
-        if (!messageStarted)
-        {
-            messageStarted = true;
-            String role = chunkHasDelta ? orDefault(chunkRole, "assistant") : "assistant";
-            queueMessageStart(chunkChoiceIndex, chunkId, chunkModel, role);
-            queueBlockStart(chunkChoiceIndex, 0, LlmCanonicalBlockKind.TEXT, null, null);
-            openBlockId = 0;
-        }
+        ensureMessageStarted();
 
-        if (chunkContent != null && !chunkContent.isEmpty())
-        {
-            queueData(chunkContent);
-        }
-
-        if (chunkHasToolCall)
-        {
-            onToolCallDelta();
-        }
+        flushTextIfPending();
 
         if (chunkFinishReason != null)
         {
@@ -567,10 +573,70 @@ final class LlmOpenaiDecodeTransform extends LlmCanonicalEmitter implements LlmD
         {
             queueUsage(chunkInputTokens, chunkOutputTokens);
         }
+
+        // A streaming response ends out-of-band, via its own literal terminator (OpenAI's "[DONE]",
+        // matched and handled before this pipeline is ever invoked -- see LlmClientFactory) rather than a
+        // queued canonical action; a whole non-streaming document has no such terminator, so this is the
+        // only place its own TYPE_END ever queues, telling the encode sink to build and flush the document
+        // it has been accumulating.
+        if (chunkWholeDocument)
+        {
+            queueEnd();
+        }
     }
 
-    private void onToolCallDelta()
+    // A genuine streaming delta's very first chunk (role-announcing, no content yet) still opens the
+    // canonical TEXT block eagerly here, exactly as every dialect's own real streaming protocol does
+    // (Anthropic's own content_block_start always precedes its first text delta, empty-bodied or not) --
+    // only a non-streaming whole document defers opening it until real text is seen (or skips it entirely
+    // for a tool-call-only response), since its target native shape has no "empty placeholder block" concept
+    // at all. chunkWholeDocument (true only when this chunk's payload arrived under "message", never
+    // "delta") is exactly that signal.
+    private void ensureMessageStarted()
     {
+        if (!messageStarted)
+        {
+            messageStarted = true;
+            String role = chunkHasChoicePayload ? orDefault(chunkRole, "assistant") : "assistant";
+            queueMessageStart(chunkChoiceIndex, chunkId, chunkModel, role);
+            if (!chunkWholeDocument)
+            {
+                ensureTextBlockOpen();
+            }
+        }
+    }
+
+    private void flushTextIfPending()
+    {
+        if (chunkContent != null)
+        {
+            if (!chunkContent.isEmpty())
+            {
+                ensureTextBlockOpen();
+                queueData(chunkContent);
+            }
+            chunkContent = null;
+        }
+    }
+
+    private void ensureTextBlockOpen()
+    {
+        if (openBlockId == NO_BLOCK)
+        {
+            int blockId = nextBlockId++;
+            queueBlockStart(chunkChoiceIndex, blockId, LlmCanonicalBlockKind.TEXT, null, null);
+            openBlockId = blockId;
+        }
+    }
+
+    // Fires as soon as one tool_calls array entry closes -- a streaming delta's array holds at most one
+    // entry, so this fires at most once per chunk there; a non-streaming document's array can hold several,
+    // each opening (closing whatever block preceded it) and leaving its own block open in turn.
+    private void onToolCallEnd()
+    {
+        ensureMessageStarted();
+        flushTextIfPending();
+
         int blockId = blockIdByToolCallIndex.get(chunkToolCallIndex);
         if (blockId == NO_BLOCK)
         {
@@ -587,6 +653,10 @@ final class LlmOpenaiDecodeTransform extends LlmCanonicalEmitter implements LlmD
         {
             queueData(chunkToolCallArguments);
         }
+
+        chunkToolCallId = null;
+        chunkToolCallName = null;
+        chunkToolCallArguments = null;
     }
 
     private void closeOpenBlock()
@@ -610,15 +680,14 @@ final class LlmOpenaiDecodeTransform extends LlmCanonicalEmitter implements LlmD
         choicesArrayIndex = -1;
         toolCallsArrayIndex = -1;
         inChoice0 = false;
-        inToolCall0 = false;
 
         chunkId = null;
         chunkModel = null;
         chunkChoiceIndex = 0;
-        chunkHasDelta = false;
+        chunkHasChoicePayload = false;
+        chunkWholeDocument = false;
         chunkRole = null;
         chunkContent = null;
-        chunkHasToolCall = false;
         chunkToolCallIndex = 0;
         chunkToolCallId = null;
         chunkToolCallName = null;

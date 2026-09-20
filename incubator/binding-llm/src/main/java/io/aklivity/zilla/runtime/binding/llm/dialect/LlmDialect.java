@@ -14,8 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.dialect;
 
-import jakarta.json.JsonObject;
-
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
 import io.aklivity.zilla.runtime.common.json.JsonTransform;
@@ -177,27 +175,4 @@ public interface LlmDialect
      */
     DirectBufferEx terminator(
         Kind kind);
-
-    /**
-     * Transforms a non-streaming response's whole native JSON document into the canonical non-streaming
-     * shape: {@code id}/{@code model} (both nullable, omitted when absent), {@code role}, a {@code content}
-     * array of {@code {"type":"text","text":...}} and {@code {"type":"tool_call","toolId":...,
-     * "toolName":...,"arguments":...}} entries, {@code finishReason} (an {@code LlmCanonicalFinishReason}
-     * name), and a {@code usage} object with {@code inputTokens}/{@code outputTokens} (-1 when absent).
-     *
-     * @param data  the native response document
-     * @return the canonical non-streaming document
-     */
-    JsonObject decodeMessage(
-        String data);
-
-    /**
-     * Transforms the canonical non-streaming document {@link #decodeMessage} produces into this dialect's
-     * native non-streaming response document.
-     *
-     * @param message  the canonical non-streaming document
-     * @return the native response document
-     */
-    String encodeMessage(
-        JsonObject message);
 }
