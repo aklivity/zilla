@@ -147,6 +147,52 @@ public class LlmOptionsConfigAdapterTest
     }
 
     @Test
+    public void shouldReadBasePathOption()
+    {
+        String text =
+                "{" +
+                    "\"server\": \"localhost:11434\"," +
+                    "\"basePath\": \"/aicomp/v1\"" +
+                "}";
+
+        LlmOptionsConfig options = jsonb.fromJson(text, LlmOptionsConfig.class);
+
+        assertThat(options, not(nullValue()));
+        assertThat(options.basePath, equalTo("/aicomp/v1"));
+    }
+
+    @Test
+    public void shouldWriteBasePathOption()
+    {
+        LlmOptionsConfig options = LlmOptionsConfig.builder()
+            .server()
+                .host("localhost")
+                .port(11434)
+                .build()
+            .basePath("/aicomp/v1")
+            .build();
+
+        String text = jsonb.toJson(options);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, equalTo("{\"server\":\"localhost:11434\",\"basePath\":\"/aicomp/v1\"}"));
+    }
+
+    @Test
+    public void shouldReadOptionsWithoutBasePath()
+    {
+        String text =
+                "{" +
+                    "\"server\": \"localhost:11434\"" +
+                "}";
+
+        LlmOptionsConfig options = jsonb.fromJson(text, LlmOptionsConfig.class);
+
+        assertThat(options, not(nullValue()));
+        assertThat(options.basePath, nullValue());
+    }
+
+    @Test
     public void shouldReadDialectAndServerOptions()
     {
         String text =

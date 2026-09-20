@@ -23,6 +23,7 @@ public final class LlmOptionsConfig extends OptionsConfig
     public final String dialect;
     public final LlmAuthorizationConfig authorization;
     public final LlmServerConfig server;
+    public final String basePath;
 
     public static LlmOptionsConfigBuilder<LlmOptionsConfig> builder()
     {
@@ -38,11 +39,13 @@ public final class LlmOptionsConfig extends OptionsConfig
     LlmOptionsConfig(
         String dialect,
         LlmAuthorizationConfig authorization,
-        LlmServerConfig server)
+        LlmServerConfig server,
+        String basePath)
     {
         super(null, null);
         this.dialect = dialect;
         this.authorization = authorization;
         this.server = server;
+        this.basePath = basePath;
     }
 }

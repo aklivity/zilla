@@ -123,6 +123,13 @@
                                             "type": "string",
                                             "pattern": "([^\\:]+):(\\d+)"
                                         },
+                                        "basePath":
+                                        {
+                                            "title": "Base Path",
+                                            "description": "Base path prefixed to the resolved dialect's own fixed operation suffix to form the outbound request path (for example /chat/completions for openai, /messages for anthropic), mirroring the base_url convention of the official SDKs -- the whole origin and shared path prefix, with each SDK appending only its own operation suffix on top. Defaults to /v1.",
+                                            "type": "string",
+                                            "default": "/v1"
+                                        },
                                         "authorization":
                                         {
                                             "title": "Authorization",

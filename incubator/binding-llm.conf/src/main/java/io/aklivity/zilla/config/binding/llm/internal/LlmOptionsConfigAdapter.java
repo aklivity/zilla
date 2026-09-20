@@ -34,6 +34,7 @@ public final class LlmOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, 
     private static final String AUTHORIZATION_CREDENTIALS_NAME = "credentials";
     private static final String AUTHORIZATION_CREDENTIALS_DEFAULT = "Bearer {credentials}";
     private static final String SERVER_NAME = "server";
+    private static final String BASE_PATH_NAME = "basePath";
 
     private static final Pattern SERVER_PATTERN = Pattern.compile("([^\\:]+):(\\d+)");
 
@@ -65,6 +66,11 @@ public final class LlmOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, 
         if (llmOptions.server != null)
         {
             object.add(SERVER_NAME, String.format("%s:%d", llmOptions.server.host, llmOptions.server.port));
+        }
+
+        if (llmOptions.basePath != null)
+        {
+            object.add(BASE_PATH_NAME, llmOptions.basePath);
         }
 
         return object.build();
@@ -107,6 +113,11 @@ public final class LlmOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, 
                     .port(Integer.parseInt(matcher.group(2)))
                     .build();
             }
+        }
+
+        if (object.containsKey(BASE_PATH_NAME))
+        {
+            llmOptions.basePath(object.getString(BASE_PATH_NAME));
         }
 
         return llmOptions.build();

@@ -94,6 +94,16 @@ public class LlmOptionsConfigTest
     }
 
     @Test
+    public void shouldBuildBasePathViaSetter()
+    {
+        LlmOptionsConfig options = LlmOptionsConfig.builder()
+            .basePath("/aicomp/v1")
+            .build();
+
+        assertThat(options.basePath, equalTo("/aicomp/v1"));
+    }
+
+    @Test
     public void shouldBuildAuthorizationViaCustomMapper()
     {
         String name = LlmAuthorizationConfig

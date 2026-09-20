@@ -58,6 +58,15 @@ public class LlmAnthropicDialectTest
     }
 
     @Test
+    public void shouldResolveRequestPathUnderConfiguredBasePath()
+    {
+        LlmDialect dialect = new LlmAnthropicDialect();
+
+        assertThat(dialect.requestPath("/v1"), equalTo("/v1/messages"));
+        assertThat(dialect.requestPath("/aicomp/v1"), equalTo("/aicomp/v1/messages"));
+    }
+
+    @Test
     public void shouldDetectMessagesPostByPathAlone()
     {
         LlmDialect dialect = new LlmAnthropicDialect();

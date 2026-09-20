@@ -79,6 +79,7 @@ public final class LlmAnthropicDialect implements LlmDialect
     private static final String METHOD_POST = "POST";
 
     private static final String MESSAGES_PATH = "/v1/messages";
+    private static final String MESSAGES_SUFFIX = "/messages";
 
     private static final String REQUEST_SCHEMA_RESOURCE = "anthropic.request.schema.json";
     private static final String RESPONSE_SCHEMA_RESOURCE = "anthropic.response.schema.json";
@@ -111,9 +112,10 @@ public final class LlmAnthropicDialect implements LlmDialect
     }
 
     @Override
-    public String requestPath()
+    public String requestPath(
+        String basePath)
     {
-        return MESSAGES_PATH;
+        return basePath + MESSAGES_SUFFIX;
     }
 
     @Override

@@ -88,6 +88,16 @@ public class LlmClientIT
     }
 
     @Test
+    @Configuration("client.openai.custom.base.path.yaml")
+    @Specification({
+        "${app}/openai/client",
+        "${net}/openai.custom.base.path/server"})
+    public void shouldForwardOpenaiRequestUnderCustomBasePath() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.response.invalid/client",

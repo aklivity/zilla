@@ -110,6 +110,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/openai.custom.base.path/client",
+        "${net}/openai.custom.base.path/server"})
+    public void shouldEncodeOpenaiUnderCustomBasePath() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/openai.invalid/client",
         "${net}/openai.invalid/server"})
     public void shouldRejectInvalidOpenaiRequest() throws Exception

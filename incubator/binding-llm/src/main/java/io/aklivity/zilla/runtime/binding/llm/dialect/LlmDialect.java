@@ -65,12 +65,15 @@ public interface LlmDialect
 
     /**
      * Returns the request path this dialect's API expects a request at, used by a {@code kind: client}
-     * binding dialing out to this dialect's upstream (e.g. {@code /v1/chat/completions} for OpenAI's Chat
-     * Completions API).
+     * binding dialing out to this dialect's upstream: {@code basePath} followed by this dialect's own
+     * fixed operation suffix (e.g. {@code /chat/completions} for OpenAI's Chat Completions API, appended
+     * after {@code basePath} to form {@code /v1/chat/completions} when {@code basePath} is {@code /v1}).
      *
+     * @param basePath  the configured base path preceding this dialect's operation suffix
      * @return the request path
      */
-    String requestPath();
+    String requestPath(
+        String basePath);
 
     /**
      * Returns the name of the request header this dialect's API carries client credentials in, read from

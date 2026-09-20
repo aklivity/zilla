@@ -58,6 +58,15 @@ public class LlmOpenaiDialectTest
     }
 
     @Test
+    public void shouldResolveRequestPathUnderConfiguredBasePath()
+    {
+        LlmDialect dialect = new LlmOpenaiDialect();
+
+        assertThat(dialect.requestPath("/v1"), equalTo("/v1/chat/completions"));
+        assertThat(dialect.requestPath("/aicomp/v1"), equalTo("/aicomp/v1/chat/completions"));
+    }
+
+    @Test
     public void shouldDetectChatCompletionsPost()
     {
         LlmDialect dialect = new LlmOpenaiDialect();

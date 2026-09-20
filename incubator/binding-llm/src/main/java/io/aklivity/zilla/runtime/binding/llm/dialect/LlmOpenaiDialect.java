@@ -68,6 +68,7 @@ public final class LlmOpenaiDialect implements LlmDialect
 
     private static final String CHAT_COMPLETIONS_PATH = "/v1/chat/completions";
     private static final String COMPLETIONS_PATH = "/v1/completions";
+    private static final String CHAT_COMPLETIONS_SUFFIX = "/chat/completions";
     private static final String CONTENT_TYPE_JSON = "application/json";
 
     private static final String REQUEST_SCHEMA_RESOURCE = "openai.request.schema.json";
@@ -103,9 +104,10 @@ public final class LlmOpenaiDialect implements LlmDialect
     }
 
     @Override
-    public String requestPath()
+    public String requestPath(
+        String basePath)
     {
-        return CHAT_COMPLETIONS_PATH;
+        return basePath + CHAT_COMPLETIONS_SUFFIX;
     }
 
     @Override
