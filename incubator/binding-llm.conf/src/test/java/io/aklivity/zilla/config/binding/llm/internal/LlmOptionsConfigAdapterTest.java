@@ -216,6 +216,20 @@ public class LlmOptionsConfigAdapterTest
     }
 
     @Test
+    public void shouldReadServerOptionWithDefaultHttpPort()
+    {
+        String text =
+                "{" +
+                    "\"server\": \"http://example.com\"" +
+                "}";
+
+        LlmOptionsConfig options = jsonb.fromJson(text, LlmOptionsConfig.class);
+
+        assertThat(options, not(nullValue()));
+        assertThat(options.server.port, equalTo(80));
+    }
+
+    @Test
     public void shouldWriteDialectAndServerOptions()
     {
         LlmOptionsConfig options = LlmOptionsConfig.builder()
@@ -239,6 +253,20 @@ public class LlmOptionsConfigAdapterTest
         String text =
                 "{" +
                     "\"server\": \"not-a-host-and-port\"" +
+                "}";
+
+        LlmOptionsConfig options = jsonb.fromJson(text, LlmOptionsConfig.class);
+
+        assertThat(options, not(nullValue()));
+        assertThat(options.server, nullValue());
+    }
+
+    @Test
+    public void shouldReadInvalidServerUriAsAbsent()
+    {
+        String text =
+                "{" +
+                    "\"server\": \"http://[invalid\"" +
                 "}";
 
         LlmOptionsConfig options = jsonb.fromJson(text, LlmOptionsConfig.class);
