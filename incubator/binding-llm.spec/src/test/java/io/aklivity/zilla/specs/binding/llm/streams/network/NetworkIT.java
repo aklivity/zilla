@@ -119,6 +119,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/openai.usage/client",
+        "${net}/openai.usage/server"})
+    public void shouldEncodeOpenaiNonstreamingUsage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/openai.reply.padded/client",
         "${net}/openai.reply.padded/server"})
     public void shouldEncodeOpenaiNonstreamingWithReplyPadding() throws Exception
@@ -185,6 +194,15 @@ public class NetworkIT
         "${net}/anthropic.streaming.abort/client",
         "${net}/anthropic.streaming.abort/server"})
     public void shouldAbortAnthropicStreamingWithPartialUsage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.usage/client",
+        "${net}/anthropic.usage/server"})
+    public void shouldEncodeAnthropicNonstreamingUsage() throws Exception
     {
         k3po.finish();
     }
