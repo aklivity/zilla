@@ -81,10 +81,8 @@ public final class LlmClientFactory implements LlmStreamFactory
     private static final String HEADER_PATH = ":path";
     private static final String HEADER_CONTENT_TYPE = "content-type";
     private static final String METHOD_POST = "POST";
-    private static final String SCHEME_HTTP = "http";
     private static final String CONTENT_TYPE_JSON = "application/json";
     private static final String ENVELOPE_EVENT = "event";
-    private static final String DEFAULT_BASE_PATH = "/v1";
 
     private static final int FLAG_FIN = 0x01;
     private static final int FLAG_INIT = 0x02;
@@ -926,7 +924,9 @@ public final class LlmClientFactory implements LlmStreamFactory
         private final long routedId;
         private final long initialId;
         private final long replyId;
+        private final String scheme;
         private final String authority;
+        private final String requestPath;
         private final String requestContentType;
 
         private LlmContentDecoder decoder;
@@ -980,7 +980,9 @@ public final class LlmClientFactory implements LlmStreamFactory
             this.routedId = routedId;
             this.initialId = supplyInitialId.applyAsLong(routedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
+            this.scheme = server.scheme;
             this.authority = server.host + ":" + server.port;
+            this.requestPath = client.target.requestPath(server.path);
             this.requestContentType = requestContentType;
             this.nativeEventBuffer = new UnsafeBufferEx(new byte[decodeMax]);
             this.nativeOutput = this::onNativeEvent;
@@ -1018,16 +1020,13 @@ public final class LlmClientFactory implements LlmStreamFactory
             state = LlmState.openingInitial(state);
 
             final String credentials = authorizationCredentials(client.binding, authorization);
-            final String basePath = client.binding.options.basePath != null
-                ? client.binding.options.basePath
-                : DEFAULT_BASE_PATH;
 
             final HttpBeginExFW.Builder httpBeginExBuilder = httpBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(httpTypeId)
                 .headersItem(h -> h.name(HEADER_METHOD).value(METHOD_POST))
-                .headersItem(h -> h.name(HEADER_SCHEME).value(SCHEME_HTTP))
+                .headersItem(h -> h.name(HEADER_SCHEME).value(scheme))
                 .headersItem(h -> h.name(HEADER_AUTHORITY).value(authority))
-                .headersItem(h -> h.name(HEADER_PATH).value(client.target.requestPath(basePath)))
+                .headersItem(h -> h.name(HEADER_PATH).value(requestPath))
                 .headersItem(h -> h.name(HEADER_CONTENT_TYPE).value(requestContentType));
 
             if (credentials != null)

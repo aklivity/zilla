@@ -80,7 +80,7 @@ bindings:
     kind: client
     options:
       dialect: anthropic
-      server: mock-anthropic:4102
+      server: http://mock-anthropic:4102
       authorization:
         api_key:
           credentials: "{credentials}"
@@ -101,7 +101,7 @@ bindings:
     kind: client
     options:
       dialect: openai
-      server: mock-openai:4101
+      server: http://mock-openai:4101
       authorization:
         api_key:
           credentials: "Bearer {credentials}"
@@ -125,7 +125,7 @@ bindings:
     kind: client
     options:
       dialect: openai
-      server: mock-openai-secondary:4103
+      server: http://mock-openai-secondary:4103
       authorization:
         api_key:
           credentials: "Bearer {credentials}"
@@ -148,7 +148,7 @@ bindings:
     kind: client
     options:
       dialect: anthropic
-      server: mock-anthropic-secondary:4104
+      server: http://mock-anthropic-secondary:4104
       authorization:
         api_key:
           credentials: "{credentials}"

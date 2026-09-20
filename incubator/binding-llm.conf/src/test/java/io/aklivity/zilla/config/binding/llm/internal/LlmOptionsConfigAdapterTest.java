@@ -94,14 +94,16 @@ public class LlmOptionsConfigAdapterTest
     {
         String text =
                 "{" +
-                    "\"server\": \"localhost:11434\"" +
+                    "\"server\": \"http://localhost:11434\"" +
                 "}";
 
         LlmOptionsConfig options = jsonb.fromJson(text, LlmOptionsConfig.class);
 
         assertThat(options, not(nullValue()));
+        assertThat(options.server.scheme, equalTo("http"));
         assertThat(options.server.host, equalTo("localhost"));
         assertThat(options.server.port, equalTo(11434));
+        assertThat(options.server.path, equalTo("/v1"));
     }
 
     @Test
@@ -109,15 +111,17 @@ public class LlmOptionsConfigAdapterTest
     {
         LlmOptionsConfig options = LlmOptionsConfig.builder()
             .server()
+                .scheme("http")
                 .host("localhost")
                 .port(11434)
+                .path("/v1")
                 .build()
             .build();
 
         String text = jsonb.toJson(options);
 
         assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"server\":\"localhost:11434\"}"));
+        assertThat(text, equalTo("{\"server\":\"http://localhost:11434/v1\"}"));
     }
 
     @Test
@@ -147,49 +151,35 @@ public class LlmOptionsConfigAdapterTest
     }
 
     @Test
-    public void shouldReadBasePathOption()
+    public void shouldReadServerOptionWithCustomPath()
     {
         String text =
                 "{" +
-                    "\"server\": \"localhost:11434\"," +
-                    "\"basePath\": \"/aicomp/v1\"" +
+                    "\"server\": \"http://localhost:11434/aicomp/v1\"" +
                 "}";
 
         LlmOptionsConfig options = jsonb.fromJson(text, LlmOptionsConfig.class);
 
         assertThat(options, not(nullValue()));
-        assertThat(options.basePath, equalTo("/aicomp/v1"));
+        assertThat(options.server.path, equalTo("/aicomp/v1"));
     }
 
     @Test
-    public void shouldWriteBasePathOption()
+    public void shouldWriteServerOptionWithCustomPath()
     {
         LlmOptionsConfig options = LlmOptionsConfig.builder()
             .server()
+                .scheme("http")
                 .host("localhost")
                 .port(11434)
+                .path("/aicomp/v1")
                 .build()
-            .basePath("/aicomp/v1")
             .build();
 
         String text = jsonb.toJson(options);
 
         assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"server\":\"localhost:11434\",\"basePath\":\"/aicomp/v1\"}"));
-    }
-
-    @Test
-    public void shouldReadOptionsWithoutBasePath()
-    {
-        String text =
-                "{" +
-                    "\"server\": \"localhost:11434\"" +
-                "}";
-
-        LlmOptionsConfig options = jsonb.fromJson(text, LlmOptionsConfig.class);
-
-        assertThat(options, not(nullValue()));
-        assertThat(options.basePath, nullValue());
+        assertThat(text, equalTo("{\"server\":\"http://localhost:11434/aicomp/v1\"}"));
     }
 
     @Test
@@ -198,15 +188,31 @@ public class LlmOptionsConfigAdapterTest
         String text =
                 "{" +
                     "\"dialect\": \"openai\"," +
-                    "\"server\": \"example.com:8080\"" +
+                    "\"server\": \"https://example.com:8080\"" +
                 "}";
 
         LlmOptionsConfig options = jsonb.fromJson(text, LlmOptionsConfig.class);
 
         assertThat(options, not(nullValue()));
         assertThat(options.dialect, equalTo("openai"));
+        assertThat(options.server.scheme, equalTo("https"));
         assertThat(options.server.host, equalTo("example.com"));
         assertThat(options.server.port, equalTo(8080));
+        assertThat(options.server.path, equalTo("/v1"));
+    }
+
+    @Test
+    public void shouldReadServerOptionWithDefaultHttpsPort()
+    {
+        String text =
+                "{" +
+                    "\"server\": \"https://example.com\"" +
+                "}";
+
+        LlmOptionsConfig options = jsonb.fromJson(text, LlmOptionsConfig.class);
+
+        assertThat(options, not(nullValue()));
+        assertThat(options.server.port, equalTo(443));
     }
 
     @Test
@@ -215,14 +221,16 @@ public class LlmOptionsConfigAdapterTest
         LlmOptionsConfig options = LlmOptionsConfig.builder()
             .dialect("openai")
             .server()
+                .scheme("https")
                 .host("example.com")
                 .port(8080)
+                .path("/v1")
                 .build()
             .build();
 
         String text = jsonb.toJson(options);
 
-        assertThat(text, equalTo("{\"dialect\":\"openai\",\"server\":\"example.com:8080\"}"));
+        assertThat(text, equalTo("{\"dialect\":\"openai\",\"server\":\"https://example.com:8080/v1\"}"));
     }
 
     @Test

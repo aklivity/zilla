@@ -26,7 +26,6 @@ public final class LlmOptionsConfigBuilder<T> extends ConfigBuilder<T, LlmOption
     private String dialect;
     private LlmAuthorizationConfig authorization;
     private LlmServerConfig server;
-    private String basePath;
 
     LlmOptionsConfigBuilder(
         Function<OptionsConfig, T> mapper)
@@ -72,16 +71,9 @@ public final class LlmOptionsConfigBuilder<T> extends ConfigBuilder<T, LlmOption
         return this;
     }
 
-    public LlmOptionsConfigBuilder<T> basePath(
-        String basePath)
-    {
-        this.basePath = basePath;
-        return this;
-    }
-
     @Override
     public T build()
     {
-        return mapper.apply(new LlmOptionsConfig(dialect, authorization, server, basePath));
+        return mapper.apply(new LlmOptionsConfig(dialect, authorization, server));
     }
 }

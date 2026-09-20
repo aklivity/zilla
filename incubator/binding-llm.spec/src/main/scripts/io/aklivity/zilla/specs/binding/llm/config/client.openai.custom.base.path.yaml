@@ -21,6 +21,5 @@ bindings:
     kind: client
     options:
       dialect: openai
-      server: example.com:8080
-      basePath: /aicomp/v1
+      server: http://example.com:8080/aicomp/v1
     exit: net0

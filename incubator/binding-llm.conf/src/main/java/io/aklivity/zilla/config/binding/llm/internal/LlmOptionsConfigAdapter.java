@@ -14,8 +14,8 @@
  */
 package io.aklivity.zilla.config.binding.llm.internal;
 
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.net.URI;
+import java.net.URISyntaxException;
 
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
@@ -34,9 +34,12 @@ public final class LlmOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, 
     private static final String AUTHORIZATION_CREDENTIALS_NAME = "credentials";
     private static final String AUTHORIZATION_CREDENTIALS_DEFAULT = "Bearer {credentials}";
     private static final String SERVER_NAME = "server";
-    private static final String BASE_PATH_NAME = "basePath";
 
-    private static final Pattern SERVER_PATTERN = Pattern.compile("([^\\:]+):(\\d+)");
+    private static final String SCHEME_HTTP = "http";
+    private static final String SCHEME_HTTPS = "https";
+    private static final int PORT_HTTP = 80;
+    private static final int PORT_HTTPS = 443;
+    private static final String DEFAULT_PATH = "/v1";
 
     @Override
     public JsonObject adaptToJson(
@@ -65,12 +68,7 @@ public final class LlmOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, 
 
         if (llmOptions.server != null)
         {
-            object.add(SERVER_NAME, String.format("%s:%d", llmOptions.server.host, llmOptions.server.port));
-        }
-
-        if (llmOptions.basePath != null)
-        {
-            object.add(BASE_PATH_NAME, llmOptions.basePath);
+            object.add(SERVER_NAME, llmOptions.server.toString());
         }
 
         return object.build();
@@ -105,21 +103,45 @@ public final class LlmOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, 
 
         if (object.containsKey(SERVER_NAME))
         {
-            Matcher matcher = SERVER_PATTERN.matcher(object.getString(SERVER_NAME));
-            if (matcher.matches())
-            {
-                llmOptions.server()
-                    .host(matcher.group(1))
-                    .port(Integer.parseInt(matcher.group(2)))
-                    .build();
-            }
-        }
-
-        if (object.containsKey(BASE_PATH_NAME))
-        {
-            llmOptions.basePath(object.getString(BASE_PATH_NAME));
+            adaptServer(llmOptions, object.getString(SERVER_NAME));
         }
 
         return llmOptions.build();
+    }
+
+    // a server value that fails to parse as an http(s) URI is left absent, the same as an
+    // unparseable host:port was before the option became a full URL
+    private static void adaptServer(
+        LlmOptionsConfigBuilder<LlmOptionsConfig> llmOptions,
+        String server)
+    {
+        try
+        {
+            URI uri = new URI(server);
+            String scheme = uri.getScheme();
+            String host = uri.getHost();
+
+            if (host != null && (SCHEME_HTTP.equals(scheme) || SCHEME_HTTPS.equals(scheme)))
+            {
+                int port = uri.getPort() != -1 ? uri.getPort() : defaultPort(scheme);
+                String path = uri.getPath() == null || uri.getPath().isEmpty() ? DEFAULT_PATH : uri.getPath();
+
+                llmOptions.server()
+                    .scheme(scheme)
+                    .host(host)
+                    .port(port)
+                    .path(path)
+                    .build();
+            }
+        }
+        catch (URISyntaxException ex)
+        {
+        }
+    }
+
+    private static int defaultPort(
+        String scheme)
+    {
+        return SCHEME_HTTPS.equals(scheme) ? PORT_HTTPS : PORT_HTTP;
     }
 }

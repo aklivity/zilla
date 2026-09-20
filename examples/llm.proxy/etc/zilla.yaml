@@ -85,7 +85,7 @@ bindings:
     kind: client
     options:
       dialect: anthropic
-      server: api.anthropic.com:443
+      server: https://api.anthropic.com:443
       authorization:
         api_key:
           credentials: "{credentials}"
@@ -115,7 +115,7 @@ bindings:
     kind: client
     options:
       dialect: openai
-      server: api.openai.com:443
+      server: https://api.openai.com:443
       authorization:
         api_key:
           credentials: "Bearer {credentials}"
@@ -148,7 +148,7 @@ bindings:
     kind: client
     options:
       dialect: openai
-      server: api.openai.com:443
+      server: https://api.openai.com:443
       authorization:
         api_key:
           credentials: "Bearer {credentials}"
@@ -180,7 +180,7 @@ bindings:
     kind: client
     options:
       dialect: anthropic
-      server: api.anthropic.com:443
+      server: https://api.anthropic.com:443
       authorization:
         api_key:
           credentials: "{credentials}"

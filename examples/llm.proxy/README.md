@@ -111,7 +111,7 @@ bindings:
     kind: client
     options:
       dialect: anthropic
-      server: api.anthropic.com:443
+      server: https://api.anthropic.com:443
       authorization:
         api_key:
           credentials: "{credentials}"

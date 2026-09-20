@@ -48,21 +48,26 @@ public class LlmOptionsConfigTest
     {
         LlmOptionsConfig options = LlmOptionsConfig.builder()
             .server()
+                .scheme("http")
                 .host("localhost")
                 .port(11434)
+                .path("/v1")
                 .build()
             .build();
 
         assertThat(options.server.host, equalTo("localhost"));
         assertThat(options.server.port, equalTo(11434));
+        assertThat(options.server.path, equalTo("/v1"));
     }
 
     @Test
     public void shouldBuildServerViaSetter()
     {
         LlmServerConfig server = LlmServerConfig.builder()
+            .scheme("http")
             .host("localhost")
             .port(11434)
+            .path("/v1")
             .build();
 
         LlmOptionsConfig options = LlmOptionsConfig.builder()
@@ -76,11 +81,13 @@ public class LlmOptionsConfigTest
     public void shouldConvertServerToString()
     {
         LlmServerConfig server = LlmServerConfig.builder()
+            .scheme("http")
             .host("localhost")
             .port(11434)
+            .path("/v1")
             .build();
 
-        assertThat(server.toString(), equalTo("localhost:11434"));
+        assertThat(server.toString(), equalTo("http://localhost:11434/v1"));
     }
 
     @Test
@@ -91,16 +98,6 @@ public class LlmOptionsConfigTest
         LlmServerConfigBuilder<LlmServerConfig> injected = builder.inject(identity -> identity);
 
         assertThat(injected, sameInstance(builder));
-    }
-
-    @Test
-    public void shouldBuildBasePathViaSetter()
-    {
-        LlmOptionsConfig options = LlmOptionsConfig.builder()
-            .basePath("/aicomp/v1")
-            .build();
-
-        assertThat(options.basePath, equalTo("/aicomp/v1"));
     }
 
     @Test
