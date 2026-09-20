@@ -251,4 +251,40 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.transformed.100k/client",
+        "${app}/anthropic.transformed.100k/server"})
+    public void shouldForwardAnthropicNonstreamingTransformed100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.transformed.tool.only/client",
+        "${app}/openai.transformed.tool.only/server"})
+    public void shouldForwardOpenaiNonstreamingTransformedToolOnly() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.transformed.tool.only/client",
+        "${app}/anthropic.transformed.tool.only/server"})
+    public void shouldForwardAnthropicNonstreamingTransformedToolOnly() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.transformed.multi.tool/client",
+        "${app}/openai.transformed.multi.tool/server"})
+    public void shouldForwardOpenaiNonstreamingTransformedMultiTool() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -183,6 +183,50 @@ public class LlmClientIT
     }
 
     @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/anthropic.transformed.100k/client",
+        "${net}/openai.transformed.100k/server"})
+    @ScriptProperty({ "model \"claude-3-opus-20240229\"", "id \"msg_01\"" })
+    public void shouldTransformAnthropicToOpenai100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/openai.transformed.tool.only/client",
+        "${net}/anthropic.transformed.tool.only/server"})
+    @ScriptProperty({ "model \"gpt-4\"", "id \"chatcmpl_2\"" })
+    public void shouldTransformOpenaiToAnthropicToolOnly() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/anthropic.transformed.tool.only/client",
+        "${net}/openai.transformed.tool.only/server"})
+    @ScriptProperty({ "model \"claude-3-opus-20240229\"", "id \"msg_01\"" })
+    public void shouldTransformAnthropicToOpenaiToolOnly() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/openai.transformed.multi.tool/client",
+        "${net}/anthropic.transformed.multi.tool/server"})
+    @ScriptProperty({ "model \"gpt-4\"", "id \"chatcmpl_2\"" })
+    public void shouldTransformOpenaiToAnthropicMultiTool() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("client.openai.guarded.yaml")
     @Specification({
         "${app}/openai.authorized/client",

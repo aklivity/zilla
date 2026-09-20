@@ -292,4 +292,40 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/openai.transformed.100k/client",
+        "${net}/openai.transformed.100k/server"})
+    public void shouldEncodeOpenaiNonstreamingTransformed100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transformed.tool.only/client",
+        "${net}/openai.transformed.tool.only/server"})
+    public void shouldEncodeOpenaiNonstreamingTransformedToolOnly() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transformed.tool.only/client",
+        "${net}/anthropic.transformed.tool.only/server"})
+    public void shouldEncodeAnthropicNonstreamingTransformedToolOnly() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transformed.multi.tool/client",
+        "${net}/anthropic.transformed.multi.tool/server"})
+    public void shouldEncodeAnthropicNonstreamingTransformedMultiTool() throws Exception
+    {
+        k3po.finish();
+    }
 }
