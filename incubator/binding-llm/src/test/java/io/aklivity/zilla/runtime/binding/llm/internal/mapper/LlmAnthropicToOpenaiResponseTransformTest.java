@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.llm.internal.mapper;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.nullValue;
 
 import java.io.StringReader;
@@ -103,6 +104,22 @@ public class LlmAnthropicToOpenaiResponseTransformTest
 
         assertThat(chunks.size(), equalTo(1));
         assertThat(choice(chunks.get(0), 0).getJsonObject("delta").getString("content"), equalTo("Hi"));
+    }
+
+    @Test
+    public void shouldFragmentTextDeltaLargerThanGeneratorBufferAcrossMultipleChunks()
+    {
+        String largeText = "x".repeat(5000);
+        feed("content_block_delta", "{\"type\":\"content_block_delta\",\"index\":0," +
+            "\"delta\":{\"type\":\"text_delta\",\"text\":\"" + largeText + "\"}}");
+
+        assertThat(chunks.size(), greaterThan(1));
+        StringBuilder reassembled = new StringBuilder();
+        for (JsonObject chunk : chunks)
+        {
+            reassembled.append(choice(chunk, 0).getJsonObject("delta").getString("content"));
+        }
+        assertThat(reassembled.toString(), equalTo(largeText));
     }
 
     @Test
@@ -235,7 +252,12 @@ public class LlmAnthropicToOpenaiResponseTransformTest
     {
         decode.event(eventName);
         byte[] bytes = json.getBytes(UTF_8);
-        Status status = pipeline.transform(new UnsafeBufferEx(bytes), 0, bytes.length, true);
+        UnsafeBufferEx buffer = new UnsafeBufferEx(bytes);
+        Status status = pipeline.transform(buffer, 0, bytes.length, true);
+        while (status == Status.SUSPENDED)
+        {
+            status = pipeline.transform(buffer, 0, bytes.length, true);
+        }
         assertThat(status, equalTo(Status.COMPLETED));
     }
 

@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.llm.internal.mapper;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.nullValue;
 
 import java.io.StringReader;
@@ -88,6 +89,28 @@ public class LlmOpenaiToAnthropicResponseTransformTest
         JsonObject delta = events.get(0).body.getJsonObject("delta");
         assertThat(delta.getString("type"), equalTo("text_delta"));
         assertThat(delta.getString("text"), equalTo("Hello"));
+    }
+
+    @Test
+    public void shouldFragmentContentLargerThanGeneratorBufferAcrossMultipleDeltas()
+    {
+        feed("{\"id\":\"1\",\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\"},\"finish_reason\":null}]}");
+        pipeline.nextDocument();
+        events.clear();
+
+        String largeContent = "x".repeat(5000);
+        feed("{\"choices\":[{\"index\":0,\"delta\":{\"content\":\"" + largeContent + "\"},\"finish_reason\":null}]}");
+
+        assertThat(events.size(), greaterThan(1));
+        StringBuilder reassembled = new StringBuilder();
+        for (Event event : events)
+        {
+            assertThat(event.name, equalTo("content_block_delta"));
+            JsonObject delta = event.body.getJsonObject("delta");
+            assertThat(delta.getString("type"), equalTo("text_delta"));
+            reassembled.append(delta.getString("text"));
+        }
+        assertThat(reassembled.toString(), equalTo(largeContent));
     }
 
     @Test
@@ -232,7 +255,12 @@ public class LlmOpenaiToAnthropicResponseTransformTest
         String json)
     {
         byte[] bytes = json.getBytes(UTF_8);
-        Status status = pipeline.transform(new UnsafeBufferEx(bytes), 0, bytes.length, true);
+        UnsafeBufferEx buffer = new UnsafeBufferEx(bytes);
+        Status status = pipeline.transform(buffer, 0, bytes.length, true);
+        while (status == Status.SUSPENDED)
+        {
+            status = pipeline.transform(buffer, 0, bytes.length, true);
+        }
         assertThat(status, equalTo(Status.COMPLETED));
     }
 

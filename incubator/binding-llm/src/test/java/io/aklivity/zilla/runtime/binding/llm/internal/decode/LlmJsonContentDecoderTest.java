@@ -51,7 +51,8 @@ public class LlmJsonContentDecoderTest
         public void data(
             DirectBuffer buffer,
             int offset,
-            int length)
+            int length,
+            boolean last)
         {
             data.append(buffer.getStringWithoutLengthUtf8(offset, length));
         }

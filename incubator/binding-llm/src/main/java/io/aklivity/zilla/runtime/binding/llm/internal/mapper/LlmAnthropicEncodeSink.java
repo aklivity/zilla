@@ -35,9 +35,11 @@ import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
 final class LlmAnthropicEncodeSink extends LlmCanonicalEncodeSink implements LlmDialectTerminator
 {
     private static final JsonObject EMPTY_INPUT = Json.createObjectBuilder().build();
+    private static final int MAX_DATA_FRAGMENT_CHARS = 1024;
 
     private LlmCanonicalBlockKind openBlockType;
     private int openBlockId;
+    private int dataCursor;
 
     private int heldOutputTokens = -1;
     private boolean finishSent;
@@ -143,7 +145,7 @@ final class LlmAnthropicEncodeSink extends LlmCanonicalEncodeSink implements Llm
         boolean done;
         if (streaming)
         {
-            done = run(dataSteps());
+            done = writeDataFragment();
         }
         else
         {
@@ -281,12 +283,41 @@ final class LlmAnthropicEncodeSink extends LlmCanonicalEncodeSink implements Llm
         return steps;
     }
 
-    private List<BooleanSupplier> dataSteps()
+    private boolean writeDataFragment()
     {
         final String text = text();
         final boolean toolCall = openBlockType == LlmCanonicalBlockKind.TOOL_CALL;
         final int blockId = openBlockId;
 
+        final int start = dataCursor;
+        final int end = Math.min(text.length(), start + MAX_DATA_FRAGMENT_CHARS);
+        final boolean lastFragment = end >= text.length();
+
+        boolean fragmentDone = run(dataSteps(text.substring(start, end), toolCall, blockId));
+
+        boolean done;
+        if (!fragmentDone)
+        {
+            done = false;
+        }
+        else if (lastFragment)
+        {
+            dataCursor = 0;
+            done = true;
+        }
+        else
+        {
+            dataCursor = end;
+            done = false;
+        }
+        return done;
+    }
+
+    private List<BooleanSupplier> dataSteps(
+        String text,
+        boolean toolCall,
+        int blockId)
+    {
         List<BooleanSupplier> steps = new ArrayList<>();
         steps.add(this::tryWriteStartObject);
         steps.add(() -> tryWrite("type", "content_block_delta"));

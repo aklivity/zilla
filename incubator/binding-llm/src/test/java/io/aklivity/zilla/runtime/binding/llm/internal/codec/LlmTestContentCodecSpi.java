@@ -33,7 +33,7 @@ public final class LlmTestContentCodecSpi implements LlmContentCodecSpi
     {
         return (buffer, offset, limit, output) ->
         {
-            output.data(buffer, offset, limit - offset);
+            output.data(buffer, offset, limit - offset, true);
             return limit;
         };
     }

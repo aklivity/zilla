@@ -957,10 +957,17 @@ public final class LlmClientFactory implements LlmStreamFactory
         private int encodeSlotOffset;
         private boolean initialStarted;
 
-        private final MutableDirectBufferEx nativeEventBuffer;
-        private int nativeEventLength;
-        private String nativeEventName;
+        private final DirectBufferEx eventTerminator;
+        private final MutableDirectBufferEx terminatorPeek;
+        private int terminatorPeekLength;
+        private boolean terminatorMismatched;
+        private boolean eventPipelineSuspended;
+        private boolean eventPipelineRejected;
+        private boolean lastEventFeedFinal;
+        private boolean responsePipelineSuspended;
+        private boolean lastResponseFeedFinal;
         private String pendingResponseEvent;
+        private String suspendedResponseEvent;
         private final LlmNativeEventOutput nativeOutput;
 
         private final JsonPipeline eventPipeline;
@@ -983,7 +990,8 @@ public final class LlmClientFactory implements LlmStreamFactory
             this.authority = server.host + ":" + server.port;
             this.requestPath = client.target.requestPath(server.path);
             this.requestContentType = requestContentType;
-            this.nativeEventBuffer = new UnsafeBufferEx(new byte[decodeMax]);
+            this.eventTerminator = client.transformEvents ? client.target.terminator(Kind.RESPONSE) : null;
+            this.terminatorPeek = new UnsafeBufferEx(new byte[eventTerminator != null ? eventTerminator.capacity() : 0]);
             this.nativeOutput = this::onNativeEvent;
 
             if (client.transformEvents)
@@ -1472,7 +1480,7 @@ public final class LlmClientFactory implements LlmStreamFactory
             {
                 if (client.transformEvents)
                 {
-                    nativeEventName = event;
+                    decodeEvent.event(event);
                 }
                 else
                 {
@@ -1486,16 +1494,16 @@ public final class LlmClientFactory implements LlmStreamFactory
         public void data(
             DirectBuffer buffer,
             int offset,
-            int length)
+            int length,
+            boolean last)
         {
             if (client.transformEvents)
             {
-                nativeEventBuffer.putBytes(nativeEventLength, buffer, offset, length);
-                nativeEventLength += length;
+                onEventData(buffer, offset, length, last);
             }
             else
             {
-                forwardResponseContent(pendingResponseEvent, buffer, offset, length);
+                forwardResponseContent(pendingResponseEvent, buffer, offset, length, last);
             }
         }
 
@@ -1508,7 +1516,7 @@ public final class LlmClientFactory implements LlmStreamFactory
         {
             if (client.transformEvents)
             {
-                transformNativeEvent();
+                onEventFlush();
             }
             else
             {
@@ -1516,35 +1524,174 @@ public final class LlmClientFactory implements LlmStreamFactory
             }
         }
 
-        private void transformNativeEvent()
+        private void onEventData(
+            DirectBuffer buffer,
+            int offset,
+            int length,
+            boolean last)
         {
-            if (matchesTerminator(nativeEventBuffer, 0, nativeEventLength, client.target.terminator(Kind.RESPONSE)))
+            int pos = offset;
+            int remaining = length;
+
+            if (eventTerminator != null && !terminatorMismatched && terminatorPeekLength < eventTerminator.capacity())
+            {
+                final int toCopy = Math.min(remaining, eventTerminator.capacity() - terminatorPeekLength);
+                terminatorPeek.putBytes(terminatorPeekLength, buffer, pos, toCopy);
+                terminatorPeekLength += toCopy;
+                pos += toCopy;
+                remaining -= toCopy;
+
+                if (terminatorPeekLength == eventTerminator.capacity() &&
+                    !matchesTerminator(terminatorPeek, 0, terminatorPeekLength, eventTerminator))
+                {
+                    terminatorMismatched = true;
+                    feedEventPipeline(terminatorPeek, 0, terminatorPeekLength, last && remaining == 0);
+                }
+            }
+
+            if (remaining > 0 && (eventTerminator == null || terminatorMismatched))
+            {
+                feedEventPipeline(buffer, pos, remaining, last);
+            }
+        }
+
+        private void onEventFlush()
+        {
+            final boolean matchedTerminator = eventTerminator != null && !terminatorMismatched &&
+                terminatorPeekLength == eventTerminator.capacity();
+
+            if (matchedTerminator)
             {
                 encodeTerminator.terminate();
             }
             else
             {
-                decodeEvent.event(nativeEventName);
-
-                Status status = eventPipeline.transform(nativeEventBuffer, 0, nativeEventLength, true);
-                while (status == Status.SUSPENDED)
+                if (terminatorPeekLength > 0 && !terminatorMismatched)
                 {
-                    status = eventPipeline.transform(nativeEventBuffer, 0, nativeEventLength, true);
+                    feedEventPipeline(terminatorPeek, 0, terminatorPeekLength, true);
                 }
 
-                if (status == Status.REJECTED)
-                {
-                    eventPipeline.reset();
-                    cleanupNet(decodeTraceId, decodeAuthorization);
-                }
-                else
+                if (!eventPipelineSuspended && !eventPipelineRejected)
                 {
                     eventPipeline.nextDocument();
                 }
             }
 
-            nativeEventName = null;
-            nativeEventLength = 0;
+            terminatorPeekLength = 0;
+            terminatorMismatched = false;
+            eventPipelineRejected = false;
+        }
+
+        private void feedEventPipeline(
+            DirectBuffer buffer,
+            int offset,
+            int length,
+            boolean last)
+        {
+            lastEventFeedFinal = last;
+
+            Status status = eventPipeline.transform((DirectBufferEx) buffer, offset, offset + length, last);
+
+            boolean forwarded = true;
+            while (status == Status.SUSPENDED && forwarded)
+            {
+                forwarded = client.replyAvailable();
+                if (forwarded)
+                {
+                    status = eventPipeline.transform((DirectBufferEx) buffer, offset, offset + length, last);
+                }
+            }
+
+            eventPipelineSuspended = status == Status.SUSPENDED;
+
+            if (status == Status.REJECTED)
+            {
+                eventPipelineRejected = true;
+                eventPipeline.reset();
+                cleanupNet(decodeTraceId, decodeAuthorization);
+            }
+        }
+
+        private void resumeEventPipeline(
+            long traceId,
+            long authorization)
+        {
+            Status status = eventPipeline.transform(emptyRO.buffer(), 0, 0, lastEventFeedFinal);
+
+            boolean forwarded = true;
+            while (status == Status.SUSPENDED && forwarded)
+            {
+                forwarded = client.replyAvailable();
+                if (forwarded)
+                {
+                    status = eventPipeline.transform(emptyRO.buffer(), 0, 0, lastEventFeedFinal);
+                }
+            }
+
+            eventPipelineSuspended = status == Status.SUSPENDED;
+
+            if (status == Status.REJECTED)
+            {
+                eventPipeline.reset();
+                cleanupNet(traceId, authorization);
+            }
+            else if (!eventPipelineSuspended && lastEventFeedFinal)
+            {
+                eventPipeline.nextDocument();
+            }
+        }
+
+        private void resumeResponsePipeline(
+            long traceId,
+            long authorization)
+        {
+            final JsonPipeline pipeline = client.responsePipeline;
+            final String event = suspendedResponseEvent;
+
+            JsonPipelineResult result = pipeline.transform(emptyRO.buffer(), 0, 0, lastResponseFeedFinal,
+                transformBuffer, 0, transformBuffer.capacity());
+
+            boolean forwarded = true;
+            while (result.status() == Status.SUSPENDED && forwarded)
+            {
+                if (result.produced() > 0)
+                {
+                    client.doAppData(traceId, authorization, event, false, transformBuffer, 0, result.produced());
+                }
+
+                forwarded = client.replyAvailable();
+                if (forwarded)
+                {
+                    result = pipeline.transform(emptyRO.buffer(), 0, 0, lastResponseFeedFinal,
+                        transformBuffer, 0, transformBuffer.capacity());
+                }
+            }
+
+            responsePipelineSuspended = result.status() == Status.SUSPENDED;
+
+            if (!responsePipelineSuspended)
+            {
+                if (result.status() == Status.REJECTED)
+                {
+                    pipeline.reset();
+                    cleanupNet(traceId, authorization);
+                }
+                else
+                {
+                    final int producedLength = result.produced();
+                    final boolean complete = result.status() == Status.COMPLETED;
+                    if (producedLength > 0 || complete && lastResponseFeedFinal)
+                    {
+                        client.doAppData(traceId, authorization, event, complete && lastResponseFeedFinal,
+                            transformBuffer, 0, producedLength);
+                    }
+
+                    if (complete && lastResponseFeedFinal)
+                    {
+                        pipeline.nextDocument();
+                    }
+                }
+            }
         }
 
         private void onNativeEvent(
@@ -1575,20 +1722,24 @@ public final class LlmClientFactory implements LlmStreamFactory
             String event,
             DirectBuffer buffer,
             int offset,
-            int length)
+            int length,
+            boolean last)
         {
-            if (length > 0)
+            if (length > 0 || last)
             {
-                if (matchesTerminator(buffer, offset, length, client.responseTerminator))
+                if (length > 0 && matchesTerminator(buffer, offset, length, client.responseTerminator))
                 {
                     client.doAppData(decodeTraceId, decodeAuthorization, event, true, buffer, offset, length);
                 }
                 else
                 {
+                    lastResponseFeedFinal = last;
+                    suspendedResponseEvent = event;
+
                     final JsonPipeline pipeline = client.responsePipeline;
 
                     JsonPipelineResult result = pipeline.transform((DirectBufferEx) buffer, offset, offset + length,
-                        true, transformBuffer, 0, transformBuffer.capacity());
+                        last, transformBuffer, 0, transformBuffer.capacity());
 
                     boolean forwarded = true;
                     while (result.status() == Status.SUSPENDED && forwarded)
@@ -1603,33 +1754,33 @@ public final class LlmClientFactory implements LlmStreamFactory
                         if (forwarded)
                         {
                             result = pipeline.transform((DirectBufferEx) buffer, offset, offset + length,
-                                true, transformBuffer, 0, transformBuffer.capacity());
+                                last, transformBuffer, 0, transformBuffer.capacity());
                         }
                     }
 
-                    if (!forwarded)
-                    {
-                        pipeline.reset();
-                        cleanupNet(decodeTraceId, decodeAuthorization);
-                    }
-                    else if (result.status() == Status.REJECTED)
-                    {
-                        pipeline.reset();
-                        cleanupNet(decodeTraceId, decodeAuthorization);
-                    }
-                    else
-                    {
-                        final int producedLength = result.produced();
-                        final boolean complete = result.status() == Status.COMPLETED;
-                        if (producedLength > 0 || complete)
-                        {
-                            client.doAppData(decodeTraceId, decodeAuthorization, event, true, transformBuffer, 0,
-                                producedLength);
-                        }
+                    responsePipelineSuspended = result.status() == Status.SUSPENDED;
 
-                        if (result.status() == Status.COMPLETED)
+                    if (!responsePipelineSuspended)
+                    {
+                        if (result.status() == Status.REJECTED)
                         {
-                            pipeline.nextDocument();
+                            pipeline.reset();
+                            cleanupNet(decodeTraceId, decodeAuthorization);
+                        }
+                        else
+                        {
+                            final int producedLength = result.produced();
+                            final boolean complete = result.status() == Status.COMPLETED;
+                            if (producedLength > 0 || complete && last)
+                            {
+                                client.doAppData(decodeTraceId, decodeAuthorization, event, complete && last,
+                                    transformBuffer, 0, producedLength);
+                            }
+
+                            if (complete && last)
+                            {
+                                pipeline.nextDocument();
+                            }
                         }
                     }
                 }
@@ -1731,6 +1882,16 @@ public final class LlmClientFactory implements LlmStreamFactory
             long traceId,
             long authorization)
         {
+            if (eventPipelineSuspended && client.replyAvailable())
+            {
+                resumeEventPipeline(traceId, authorization);
+            }
+
+            if (responsePipelineSuspended && client.replyAvailable())
+            {
+                resumeResponsePipeline(traceId, authorization);
+            }
+
             if (decodeSlot != NO_SLOT)
             {
                 final MutableDirectBufferEx slotBuffer = decodePool.buffer(decodeSlot);

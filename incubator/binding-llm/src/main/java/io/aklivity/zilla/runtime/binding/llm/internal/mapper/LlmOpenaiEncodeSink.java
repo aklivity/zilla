@@ -33,9 +33,11 @@ final class LlmOpenaiEncodeSink extends LlmCanonicalEncodeSink implements LlmDia
 {
     private static final int NO_BLOCK = -1;
     private static final byte[] DONE_BYTES = "[DONE]".getBytes(UTF_8);
+    private static final int MAX_DATA_FRAGMENT_CHARS = 1024;
 
     private int nextToolCallIndex;
     private int openToolCallIndex = NO_BLOCK;
+    private int dataCursor;
 
     private boolean streaming = true;
 
@@ -142,7 +144,7 @@ final class LlmOpenaiEncodeSink extends LlmCanonicalEncodeSink implements LlmDia
         boolean done;
         if (streaming)
         {
-            done = run(dataSteps());
+            done = writeDataFragment();
         }
         else
         {
@@ -311,12 +313,41 @@ final class LlmOpenaiEncodeSink extends LlmCanonicalEncodeSink implements LlmDia
         return steps;
     }
 
-    private List<BooleanSupplier> dataSteps()
+    private boolean writeDataFragment()
     {
         final String text = text();
         final boolean toolCall = openToolCallIndex != NO_BLOCK;
         final int toolCallIndex = openToolCallIndex;
 
+        final int start = dataCursor;
+        final int end = Math.min(text.length(), start + MAX_DATA_FRAGMENT_CHARS);
+        final boolean lastFragment = end >= text.length();
+
+        boolean fragmentDone = run(dataSteps(text.substring(start, end), toolCall, toolCallIndex));
+
+        boolean done;
+        if (!fragmentDone)
+        {
+            done = false;
+        }
+        else if (lastFragment)
+        {
+            dataCursor = 0;
+            done = true;
+        }
+        else
+        {
+            dataCursor = end;
+            done = false;
+        }
+        return done;
+    }
+
+    private List<BooleanSupplier> dataSteps(
+        String text,
+        boolean toolCall,
+        int toolCallIndex)
+    {
         List<BooleanSupplier> steps = new ArrayList<>();
         steps.add(this::tryWriteStartObject);
         steps.add(() -> tryWrite("object", "chat.completion.chunk"));

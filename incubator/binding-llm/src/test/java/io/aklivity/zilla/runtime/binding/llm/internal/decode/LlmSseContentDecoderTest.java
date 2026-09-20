@@ -51,7 +51,8 @@ public class LlmSseContentDecoderTest
         public void data(
             DirectBuffer buffer,
             int offset,
-            int length)
+            int length,
+            boolean last)
         {
             data.append(buffer.getStringWithoutLengthUtf8(offset, length));
         }
@@ -141,33 +142,100 @@ public class LlmSseContentDecoderTest
     @Test
     public void shouldTreatBareCrAsLineTerminator()
     {
-        // trailing "X" makes the final CR unambiguous (not a possible CRLF pair awaiting more bytes)
         decode("data: hello\r\rX");
 
         assertThat(flushes.get(0).data, equalTo("hello"));
     }
 
     @Test
-    public void shouldNotConsumeIncompleteTrailingLine()
+    public void shouldStreamIncompleteTrailingDataValue()
     {
         int progress = decode("data: hel");
 
-        assertThat(progress, equalTo(0));
+        assertThat(progress, equalTo(byteLength("data: hel")));
         assertThat(flushes.size(), equalTo(0));
+        assertThat(data.toString(), equalTo("hel"));
     }
 
     @Test
-    public void shouldNotConsumeAmbiguousTrailingCr()
+    public void shouldReassembleDataValueStreamedAcrossDecodeCalls()
+    {
+        decode("data: abc");
+        assertThat(flushes.size(), equalTo(0));
+        assertThat(data.toString(), equalTo("abc"));
+
+        decode("def\n\n");
+
+        assertThat(flushes.size(), equalTo(1));
+        assertThat(flushes.get(0).data, equalTo("abcdef"));
+    }
+
+    @Test
+    public void shouldNotConsumeAmbiguousTrailingCrMidValue()
     {
         byte[] bytes = "data: a\n\ndata: hello\r".getBytes(UTF_8);
         DirectBuffer buffer = new UnsafeBuffer(bytes);
 
         int progress = decoder.decode(buffer, 0, bytes.length, output);
 
-        int firstEventLength = byteLength("data: a\n\n");
-        assertThat(progress, equalTo(firstEventLength));
+        int expected = byteLength("data: a\n\n") + byteLength("data: hello");
+        assertThat(progress, equalTo(expected));
         assertThat(flushes.size(), equalTo(1));
         assertThat(flushes.get(0).data, equalTo("a"));
+        assertThat(data.toString(), equalTo("hello"));
+    }
+
+    @Test
+    public void shouldStopStreamingMidValueWhenOutputUnavailable()
+    {
+        List<String> dataCalls = new ArrayList<>();
+        boolean[] available = { true };
+        LlmContentDecoderOutput blocking = new LlmContentDecoderOutput()
+        {
+            @Override
+            public boolean available()
+            {
+                return available[0];
+            }
+
+            @Override
+            public void event(
+                String event)
+            {
+            }
+
+            @Override
+            public void data(
+                DirectBuffer buffer,
+                int offset,
+                int length,
+                boolean last)
+            {
+                dataCalls.add(buffer.getStringWithoutLengthUtf8(offset, length));
+                available[0] = false;
+            }
+
+            @Override
+            public void flush(
+                String event,
+                DirectBuffer buffer,
+                int offset,
+                int length)
+            {
+            }
+        };
+
+        byte[] first = "data: abc".getBytes(UTF_8);
+        int progress = decoder.decode(new UnsafeBuffer(first), 0, first.length, blocking);
+
+        assertThat(progress, equalTo(first.length));
+        assertThat(dataCalls, equalTo(List.of("abc")));
+
+        available[0] = true;
+        byte[] second = "def\n\n".getBytes(UTF_8);
+        decoder.decode(new UnsafeBuffer(second), 0, second.length, blocking);
+
+        assertThat(dataCalls, equalTo(List.of("abc", "def")));
     }
 
     @Test

@@ -51,11 +51,15 @@ public interface LlmContentDecoderOutput
      * @param buffer  the buffer holding the content bytes
      * @param offset  the offset of the content bytes within {@code buffer}
      * @param length  the number of content bytes
+     * @param last    {@code true} when these bytes conclude the current field's value (its own line
+     *                terminator was found, or the whole content is buffered in one call); {@code false}
+     *                when more of the same value follows in a later call
      */
     void data(
         DirectBuffer buffer,
         int offset,
-        int length);
+        int length,
+        boolean last);
 
     /**
      * Emits an event boundary reached by the decoder.

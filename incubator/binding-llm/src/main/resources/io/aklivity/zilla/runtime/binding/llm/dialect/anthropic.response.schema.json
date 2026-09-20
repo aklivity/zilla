@@ -15,6 +15,78 @@
         "model": {
             "type": "string"
         },
+        "index": {
+            "type": "integer"
+        },
+        "content_block": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "type": "string"
+                },
+                "text": {},
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "input": {}
+            }
+        },
+        "delta": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "type": "string"
+                },
+                "text": {},
+                "partial_json": {},
+                "stop_reason": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "stop_sequence": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                }
+            }
+        },
+        "message": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "role": {
+                    "type": "string"
+                },
+                "model": {
+                    "type": "string"
+                },
+                "content": {
+                    "type": "array"
+                },
+                "usage": {
+                    "type": "object",
+                    "properties": {
+                        "input_tokens": {
+                            "type": "integer"
+                        },
+                        "output_tokens": {
+                            "type": "integer"
+                        }
+                    }
+                }
+            }
+        },
         "content": {
             "type": "array",
             "items": {

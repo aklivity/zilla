@@ -66,7 +66,8 @@ public class LlmSseContentCodecSpiTest
             public void data(
                 DirectBuffer data,
                 int offset,
-                int length)
+                int length,
+                boolean last)
             {
                 decodedLength[0] = length;
             }
