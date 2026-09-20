@@ -3793,9 +3793,10 @@
                                                 },
                                                 "server": {
                                                     "title": "Server",
-                                                    "description": "Host and port of the large language model server this client connects to, formatted as host:port.",
+                                                    "description": "Base URL of the large language model server this client connects to, mirroring the base_url convention of the official SDKs: the whole origin plus a shared path prefix (for example https://aicomp.ai/v1), with the resolved dialect appending only its own fixed operation suffix on top (/chat/completions for openai, /messages for anthropic). The path defaults to /v1 when omitted (for example https://aicomp.ai resolves the same as https://aicomp.ai/v1).",
                                                     "type": "string",
-                                                    "pattern": "([^\\:]+):(\\d+)"
+                                                    "format": "uri",
+                                                    "pattern": "^https?://"
                                                 },
                                                 "authorization": {
                                                     "title": "Authorization",
