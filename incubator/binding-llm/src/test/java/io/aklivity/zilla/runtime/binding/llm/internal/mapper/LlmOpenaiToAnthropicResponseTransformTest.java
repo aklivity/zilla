@@ -17,12 +17,14 @@ package io.aklivity.zilla.runtime.binding.llm.internal.mapper;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.nullValue;
 
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.List;
 
 import jakarta.json.Json;
+import jakarta.json.JsonArray;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonReader;
 
@@ -30,6 +32,7 @@ import org.agrona.DirectBuffer;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
@@ -149,6 +152,90 @@ public class LlmOpenaiToAnthropicResponseTransformTest
         assertThat(events.get(0).body.getString("type"), equalTo("message_stop"));
     }
 
+    // A whole non-streaming OpenAI document ("message" key, no SSE framing at all) must accumulate and
+    // flush as one native Anthropic document -- unlike every other test here, which drives the shared
+    // @Before pipeline (its JsonEnvelope.NONE always reads back as streaming, per streaming()'s own
+    // documented default), so this builds its own pipeline over an envelope that reads back "streaming" as
+    // false, exactly as LlmHttpClient writes it for a real application/json response.
+    @Test
+    public void shouldEncodeWholeDocumentWhenNonStreaming()
+    {
+        JsonEnvelope envelope = streamingEnvelope(false);
+        JsonParserEx parser = JsonEx.createParser();
+        JsonTransform wholeDocumentDecode = new LlmOpenaiDecodeTransform();
+        List<Event> wholeDocumentEvents = new ArrayList<>();
+        JsonSink wholeDocumentEncode = new LlmAnthropicEncodeSink(envelope,
+            (name, buffer, offset, length) -> wholeDocumentEvents.add(new Event(name, readBody(buffer, offset, length))));
+        JsonPipeline wholeDocumentPipeline = JsonEx.stream(parser)
+            .envelope(envelope)
+            .transform(wholeDocumentDecode)
+            .into(wholeDocumentEncode);
+
+        String json = "{\"id\":\"chatcmpl-1\",\"object\":\"chat.completion\",\"model\":\"gpt-4o\"," +
+            "\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"Hello world\"}," +
+            "\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":10,\"completion_tokens\":5}}";
+        byte[] bytes = json.getBytes(UTF_8);
+        Status status = wholeDocumentPipeline.transform(new UnsafeBufferEx(bytes), 0, bytes.length, true);
+
+        assertThat(status, equalTo(Status.COMPLETED));
+        assertThat(wholeDocumentEvents.size(), equalTo(1));
+        Event event = wholeDocumentEvents.get(0);
+        assertThat(event.name, nullValue());
+        assertThat(event.body.getString("id"), equalTo("chatcmpl-1"));
+        assertThat(event.body.getString("type"), equalTo("message"));
+        assertThat(event.body.getString("role"), equalTo("assistant"));
+        assertThat(event.body.getString("model"), equalTo("gpt-4o"));
+        JsonArray content = event.body.getJsonArray("content");
+        assertThat(content.size(), equalTo(1));
+        assertThat(content.getJsonObject(0).getString("type"), equalTo("text"));
+        assertThat(content.getJsonObject(0).getString("text"), equalTo("Hello world"));
+        assertThat(event.body.getString("stop_reason"), equalTo("end_turn"));
+        assertThat(event.body.getJsonObject("usage").getInt("input_tokens"), equalTo(10));
+        assertThat(event.body.getJsonObject("usage").getInt("output_tokens"), equalTo(5));
+    }
+
+    private static JsonEnvelope streamingEnvelope(
+        boolean streaming)
+    {
+        DirectBufferEx value = new UnsafeBufferEx(Boolean.toString(streaming).getBytes(UTF_8));
+        return new JsonEnvelope()
+        {
+            @Override
+            public int count(
+                String name)
+            {
+                return "streaming".equals(name) ? 1 : 0;
+            }
+
+            @Override
+            public DirectBufferEx get(
+                String name,
+                int index)
+            {
+                return "streaming".equals(name) && index == 0 ? value : null;
+            }
+
+            @Override
+            public void set(
+                String name,
+                DirectBufferEx value)
+            {
+            }
+        };
+    }
+
+    private static JsonObject readBody(
+        DirectBuffer buffer,
+        int offset,
+        int length)
+    {
+        String text = buffer.getStringWithoutLengthUtf8(offset, length);
+        try (JsonReader reader = Json.createReader(new StringReader(text)))
+        {
+            return reader.readObject();
+        }
+    }
+
     private void feed(
         String json)
     {
@@ -163,12 +250,7 @@ public class LlmOpenaiToAnthropicResponseTransformTest
         int offset,
         int length)
     {
-        String text = buffer.getStringWithoutLengthUtf8(offset, length);
-        JsonObject body;
-        try (JsonReader reader = Json.createReader(new StringReader(text)))
-        {
-            body = reader.readObject();
-        }
+        JsonObject body = readBody(buffer, offset, length);
         events.add(new Event(name != null ? name : body.getString("type"), body));
     }
 

@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.llm.internal.mapper;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.nullValue;
 
 import java.io.StringReader;
 import java.util.ArrayList;
@@ -33,6 +34,7 @@ import org.agrona.DirectBuffer;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
@@ -40,6 +42,7 @@ import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 import io.aklivity.zilla.runtime.common.json.JsonSink;
+import io.aklivity.zilla.runtime.common.json.JsonTransform;
 
 // Drives a genuine JsonPipeline (JsonEx.stream(parser).transform(decode).into(encode)) exactly as
 // LlmClientFactory wires it for a cross-dialect response stream -- to prove the Anthropic decode /
@@ -145,6 +148,92 @@ public class LlmAnthropicToOpenaiResponseTransformTest
             .getJsonArray("tool_calls").getJsonObject(0);
         assertThat(toolCall.getInt("index"), equalTo(1));
         assertThat(toolCall.getString("id"), equalTo("call_2"));
+    }
+
+    // A whole non-streaming Anthropic document (no SSE framing, so event() is never called and nativeEvent
+    // stays null) must accumulate and flush as one native OpenAI document -- unlike every other test here,
+    // which drives the shared @Before pipeline (its JsonEnvelope.NONE always reads back as streaming, per
+    // streaming()'s own documented default), so this builds its own pipeline over an envelope that reads
+    // back "streaming" as false, exactly as LlmHttpClient writes it for a real application/json response.
+    @Test
+    public void shouldEncodeWholeDocumentWhenNonStreaming()
+    {
+        JsonEnvelope envelope = streamingEnvelope(false);
+        JsonParserEx parser = JsonEx.createParser();
+        JsonTransform wholeDocumentDecode = new LlmAnthropicDecodeTransform();
+        List<JsonObject> wholeDocumentChunks = new ArrayList<>();
+        List<String> wholeDocumentNames = new ArrayList<>();
+        JsonSink wholeDocumentEncode = new LlmOpenaiEncodeSink(envelope, (name, buffer, offset, length) ->
+        {
+            wholeDocumentNames.add(name);
+            wholeDocumentChunks.add(readBody(buffer, offset, length));
+        });
+        JsonPipeline wholeDocumentPipeline = JsonEx.stream(parser)
+            .envelope(envelope)
+            .transform(wholeDocumentDecode)
+            .into(wholeDocumentEncode);
+
+        String json = "{\"id\":\"msg_1\",\"type\":\"message\",\"role\":\"assistant\",\"model\":\"claude-3\"," +
+            "\"content\":[{\"type\":\"text\",\"text\":\"Hi there\"}],\"stop_reason\":\"end_turn\"," +
+            "\"usage\":{\"input_tokens\":8,\"output_tokens\":3}}";
+        byte[] bytes = json.getBytes(UTF_8);
+        Status status = wholeDocumentPipeline.transform(new UnsafeBufferEx(bytes), 0, bytes.length, true);
+
+        assertThat(status, equalTo(Status.COMPLETED));
+        assertThat(wholeDocumentChunks.size(), equalTo(1));
+        assertThat(wholeDocumentNames.get(0), nullValue());
+        JsonObject chunk = wholeDocumentChunks.get(0);
+        assertThat(chunk.getString("object"), equalTo("chat.completion"));
+        assertThat(chunk.getString("id"), equalTo("msg_1"));
+        assertThat(chunk.getString("model"), equalTo("claude-3"));
+        JsonObject choice = choice(chunk, 0);
+        assertThat(choice.getJsonObject("message").getString("role"), equalTo("assistant"));
+        assertThat(choice.getJsonObject("message").getString("content"), equalTo("Hi there"));
+        assertThat(choice.getString("finish_reason"), equalTo("stop"));
+        assertThat(chunk.getJsonObject("usage").getInt("prompt_tokens"), equalTo(8));
+        assertThat(chunk.getJsonObject("usage").getInt("completion_tokens"), equalTo(3));
+    }
+
+    private static JsonEnvelope streamingEnvelope(
+        boolean streaming)
+    {
+        DirectBufferEx value = new UnsafeBufferEx(Boolean.toString(streaming).getBytes(UTF_8));
+        return new JsonEnvelope()
+        {
+            @Override
+            public int count(
+                String name)
+            {
+                return "streaming".equals(name) ? 1 : 0;
+            }
+
+            @Override
+            public DirectBufferEx get(
+                String name,
+                int index)
+            {
+                return "streaming".equals(name) && index == 0 ? value : null;
+            }
+
+            @Override
+            public void set(
+                String name,
+                DirectBufferEx value)
+            {
+            }
+        };
+    }
+
+    private static JsonObject readBody(
+        DirectBuffer buffer,
+        int offset,
+        int length)
+    {
+        String text = buffer.getStringWithoutLengthUtf8(offset, length);
+        try (JsonReader reader = Json.createReader(new StringReader(text)))
+        {
+            return reader.readObject();
+        }
     }
 
     private final List<String> rawChunks = new ArrayList<>();
