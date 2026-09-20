@@ -218,6 +218,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/openai.streaming.transformed.100k/client",
+        "${app}/openai.streaming.transformed.100k/server"})
+    public void shouldForwardOpenaiStreamingTransformed100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/anthropic.streaming.transformed/client",
         "${app}/anthropic.streaming.transformed/server"})
     public void shouldForwardAnthropicStreamingTransformed() throws Exception

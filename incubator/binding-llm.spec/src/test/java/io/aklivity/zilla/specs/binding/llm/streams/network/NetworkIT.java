@@ -268,6 +268,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/anthropic.streaming.transformed.100k/client",
+        "${net}/anthropic.streaming.transformed.100k/server"})
+    public void shouldEncodeAnthropicStreamingTransformed100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/openai.transformed/client",
         "${net}/openai.transformed/server"})
     public void shouldEncodeOpenaiNonstreamingTransformed() throws Exception

@@ -963,6 +963,7 @@ public final class LlmClientFactory implements LlmStreamFactory
         private boolean terminatorMismatched;
         private boolean eventPipelineSuspended;
         private boolean eventPipelineRejected;
+        private boolean eventPipelineCompleted;
         private boolean lastEventFeedFinal;
         private boolean responsePipelineSuspended;
         private boolean lastResponseFeedFinal;
@@ -1571,15 +1572,27 @@ public final class LlmClientFactory implements LlmStreamFactory
                     feedEventPipeline(terminatorPeek, 0, terminatorPeekLength, true);
                 }
 
-                if (!eventPipelineSuspended && !eventPipelineRejected)
-                {
-                    eventPipeline.nextDocument();
-                }
+                advanceEventDocument();
             }
 
             terminatorPeekLength = 0;
             terminatorMismatched = false;
             eventPipelineRejected = false;
+        }
+
+        // eventPipelineCompleted latches a completed transform() until the next opportunity to call
+        // nextDocument() -- which may be here (the common case, once the SSE blank line for this event has
+        // already been decoded) or later from resumeEventPipeline (when the completing transform() only
+        // resolves after a suspend/resume, and the SSE decoder has not reached this event's blank line yet,
+        // so onEventFlush has not run and will not run again for this document). Whichever caller observes
+        // the flag first clears it, so nextDocument() is never called twice for the same document.
+        private void advanceEventDocument()
+        {
+            if (eventPipelineCompleted)
+            {
+                eventPipeline.nextDocument();
+                eventPipelineCompleted = false;
+            }
         }
 
         private void feedEventPipeline(
@@ -1603,6 +1616,7 @@ public final class LlmClientFactory implements LlmStreamFactory
             }
 
             eventPipelineSuspended = status == Status.SUSPENDED;
+            eventPipelineCompleted = status == Status.COMPLETED;
 
             if (status == Status.REJECTED)
             {
@@ -1629,15 +1643,16 @@ public final class LlmClientFactory implements LlmStreamFactory
             }
 
             eventPipelineSuspended = status == Status.SUSPENDED;
+            eventPipelineCompleted = status == Status.COMPLETED;
 
             if (status == Status.REJECTED)
             {
                 eventPipeline.reset();
                 cleanupNet(traceId, authorization);
             }
-            else if (!eventPipelineSuspended && lastEventFeedFinal)
+            else
             {
-                eventPipeline.nextDocument();
+                advanceEventDocument();
             }
         }
 
