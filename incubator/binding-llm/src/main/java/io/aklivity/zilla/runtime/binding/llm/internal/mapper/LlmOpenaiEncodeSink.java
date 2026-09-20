@@ -23,21 +23,11 @@ import java.util.function.BooleanSupplier;
 import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
 
 /**
- * Encodes the canonical vocabulary into OpenAI's native chunk shape -- replaces the old
- * {@code LlmOpenaiEventMapper}'s {@code encode*} public-method-per-action shape with one
- * {@link #write(String)} dispatching on the accumulated canonical {@code "type"} value.
- * <p>
- * OpenAI's {@code index} counts tool calls only, unlike the canonical (Anthropic-shaped) block index; this
- * dialect never reads the canonical {@code blockId} back, since its own native shape addresses a tool call
- * purely by its own {@code index} sequence ({@code nextToolCallIndex}/{@code openToolCallIndex}), which
- * lives for the whole response stream, across every native chunk.
- * <p>
- * {@link #streaming()} (read once at {@code TYPE_MESSAGE_START}, cached in {@code streaming}) picks between
- * two disjoint write strategies: streaming emits one native chunk per canonical action, exactly as before;
- * non-streaming instead only accumulates each action's fields (see {@code held*}) and writes the whole
- * native document once, at {@code TYPE_END} -- the same {@code null} native event name
- * {@code LlmDialect.encodeMessage} used for whole-document output, so the app-facing wire contract is
- * unchanged.
+ * Encodes the canonical vocabulary into OpenAI's native chunk shape, dispatching on the accumulated
+ * canonical {@code "type"} in {@link #write(String)}. {@link #streaming()} (cached at
+ * {@code TYPE_MESSAGE_START}) picks between emitting one native chunk per canonical action (streaming)
+ * or accumulating into {@code held*} fields and writing the whole document once at {@code TYPE_END}
+ * (non-streaming).
  */
 final class LlmOpenaiEncodeSink extends LlmCanonicalEncodeSink implements LlmDialectTerminator
 {
@@ -47,10 +37,6 @@ final class LlmOpenaiEncodeSink extends LlmCanonicalEncodeSink implements LlmDia
     private int nextToolCallIndex;
     private int openToolCallIndex = NO_BLOCK;
 
-    // Defaults true so an action fed in isolation (e.g. a unit test driving one write() call with no
-    // preceding messageStart) behaves exactly as every dialect did before non-streaming accumulation
-    // existed; onMessageStart() -- always the real first action of any actual response -- overwrites this
-    // with the envelope's real value before anything else is ever checked.
     private boolean streaming = true;
 
     private String heldId;
@@ -408,11 +394,6 @@ final class LlmOpenaiEncodeSink extends LlmCanonicalEncodeSink implements LlmDia
         return steps;
     }
 
-    // The whole-document counterpart to messageStartSteps()/toolCallStartSteps()/dataSteps()/finishSteps()/
-    // usageSteps() combined -- one native document built from every held field, matching the field order
-    // (and null-vs-omitted rules) the old LlmDialect.encodeMessage() produced: "content" is always present,
-    // null when no text block ever opened; "tool_calls" is present only when at least one tool call block
-    // did; "usage" is present only when at least one of its two counters is non-negative.
     private List<BooleanSupplier> wholeDocumentSteps()
     {
         final String id = heldId;

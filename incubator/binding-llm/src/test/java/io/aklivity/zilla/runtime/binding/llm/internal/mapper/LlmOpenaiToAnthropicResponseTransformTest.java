@@ -42,9 +42,6 @@ import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.common.json.JsonTransform;
 
-// Drives a genuine JsonPipeline (JsonEx.stream(parser).transform(decode).into(encode)) exactly as
-// LlmClientFactory wires it for a cross-dialect response stream -- never calling transform()/write()
-// by hand -- to prove the fan-out mechanism and the OpenAI decode / Anthropic encode pair together.
 public class LlmOpenaiToAnthropicResponseTransformTest
 {
     private final List<Event> events = new ArrayList<>();
@@ -152,11 +149,6 @@ public class LlmOpenaiToAnthropicResponseTransformTest
         assertThat(events.get(0).body.getString("type"), equalTo("message_stop"));
     }
 
-    // A whole non-streaming OpenAI document ("message" key, no SSE framing at all) must accumulate and
-    // flush as one native Anthropic document -- unlike every other test here, which drives the shared
-    // @Before pipeline (its JsonEnvelope.NONE always reads back as streaming, per streaming()'s own
-    // documented default), so this builds its own pipeline over an envelope that reads back "streaming" as
-    // false, exactly as LlmHttpClient writes it for a real application/json response.
     @Test
     public void shouldEncodeWholeDocumentWhenNonStreaming()
     {

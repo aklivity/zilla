@@ -19,13 +19,7 @@ import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.common.json.JsonTransform;
 
 /**
- * Creates the decode {@link JsonTransform}/encode {@link JsonSink} pair for a dialect name -- every
- * registered dialect (openai, anthropic) has one. A decode transform tells a whole non-streaming document
- * apart from one streaming increment using its own native signal (e.g. Anthropic's out-of-band SSE event
- * name), so it needs no {@link JsonEnvelope}. An encode sink has no native signal of its own to read that
- * from -- it only ever sees canonical actions -- so {@code envelope} carries the per-stream streaming flag
- * the client stream handler writes at response-begin, letting the sink choose between emitting per action
- * (streaming) and accumulating into one document emitted once at the end (non-streaming).
+ * Creates the decode {@link JsonTransform}/encode {@link JsonSink} pair for a dialect name.
  */
 public final class LlmResponseTransformFactory
 {

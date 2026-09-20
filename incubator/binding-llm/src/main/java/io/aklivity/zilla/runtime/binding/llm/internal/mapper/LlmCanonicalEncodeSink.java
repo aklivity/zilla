@@ -31,26 +31,14 @@ import io.aklivity.zilla.runtime.common.json.JsonSource;
 
 /**
  * The pipeline's terminal {@link JsonSink}: consumes the canonical event stream {@link LlmCanonicalEmitter}
- * fires and writes the <em>target</em> native dialect's JSON directly via a bounded {@link JsonGeneratorEx},
- * one canonical action per real {@link JsonEvent#END_DOCUMENT}. Accumulates each action's fields as they
- * stream in ({@link JsonEvent#KEY_NAME} then a value event), then dispatches by the accumulated {@code
- * "type"} to a dialect-specific {@code writeXxx()} implementation (see {@link #write(String)}).
- * <p>
- * A {@code writeXxx()} implementation drives {@link #generator} through a small step-indexed state machine
- * (using {@link #step}) so a checked write that does not fit the bounded {@link #generatorBuffer} suspends
- * cleanly and resumes from exactly that step on the next {@link #resume} call -- replacing the old
- * {@code encodeMessageStart}/{@code encodeBlockStart}/{@code encode}/{@code encodeBlockEnd}/
- * {@code encodeFinish}/{@code encodeUsage}/{@code encodeEnd} public-method-per-action shape with one
- * {@code transform()} dispatching on the accumulated canonical {@code "type"} value.
+ * fires and writes the <em>target</em> native dialect's JSON via a bounded {@link JsonGeneratorEx},
+ * dispatching by the accumulated canonical {@code "type"} to a dialect-specific {@code writeXxx()} (see
+ * {@link #write(String)}).
  */
 abstract class LlmCanonicalEncodeSink implements JsonSink
 {
     private static final int GENERATOR_BUFFER_CAPACITY = 8192;
 
-    // The per-stream metadata channel LlmClientFactory writes the exchange's streaming/non-streaming flag
-    // to at response-begin -- this sink has no native signal of its own to read that from (unlike a decode
-    // transform, it only ever sees canonical actions), so it reads the flag from here instead. See
-    // streaming().
     private static final String ENVELOPE_STREAMING = "streaming";
 
     protected final LlmNativeEventOutput output;
@@ -89,13 +77,6 @@ abstract class LlmCanonicalEncodeSink implements JsonSink
         this.generator.wrap(generatorBuffer, 0, generatorBuffer.capacity());
     }
 
-    /**
-     * Whether this response exchange is streaming, read from the envelope once (a caller reads this at
-     * {@code TYPE_MESSAGE_START} and caches the result, since the envelope entry never changes mid-stream)
-     * rather than on every action. Defaults to {@code true} (the per-action emission every dialect used
-     * before non-streaming accumulation existed) when the envelope carries no entry -- e.g. a unit test
-     * driving this sink directly, with no {@code LlmHttpClient} to have written one.
-     */
     protected final boolean streaming()
     {
         DirectBufferEx value = envelope.get(ENVELOPE_STREAMING, 0);
@@ -156,32 +137,9 @@ abstract class LlmCanonicalEncodeSink implements JsonSink
         return false;
     }
 
-    /**
-     * Dispatches to the dialect-specific write for {@code type}, returning a step-machine driver:
-     * {@code false} while more calls are needed (buffer exhausted -- see {@link #run(List)}), {@code true}
-     * once the whole native document is written. An implementation that produces native bytes for
-     * {@code type} calls {@link #emit(String)} as the last entry of the plan it hands to {@link #run(List)};
-     * an implementation for a {@code type} that produces no native output (e.g. a lazily-closed block, or a
-     * usage value held until a later {@code finish}) hands {@link #run(List)} an empty plan.
-     */
     protected abstract boolean write(
         String type);
 
-    /**
-     * Drives {@code steps} to completion, one atomic checked write per entry, suspending (returning
-     * {@code false}) at the first entry that reports it did not fit -- {@link #step} stays put so the very
-     * same entry is retried, unchanged, on the next call once the caller has drained {@link #generatorBuffer}.
-     * {@code steps} is only adopted on a fresh dispatch (when nothing is already in flight); a resumed call
-     * keeps driving the plan already in progress, ignoring whatever fresh (but equivalent) list the caller
-     * built this time.
-     */
-    /**
-     * Whether a {@code write(type)} plan is already mid-flight (a previous call suspended partway through
-     * {@link #run(List)}). A {@code write(type)} implementation that mutates instance state before building
-     * its plan (e.g. allocating the next block id) must guard that mutation behind {@code !inProgress()} --
-     * {@code write(type)} is called again, from scratch, on every resumed attempt, and only {@link #run(List)}
-     * itself remembers which plan is actually in flight.
-     */
     protected final boolean inProgress()
     {
         return plan != null;
@@ -375,11 +333,6 @@ abstract class LlmCanonicalEncodeSink implements JsonSink
         return outputTokens;
     }
 
-    // A dialect-specific writeXxx() checks this before an atomic key/value pair to decide whether to
-    // attempt the write now or suspend first -- a generous, allocation-free estimate (worst-case UTF-8
-    // escaping expansion plus structural overhead) rather than an exact byte count, since this bounded
-    // 8KB buffer is sized for canonical control fields and small content fragments, not for precision at
-    // the very edge of the buffer.
     protected final boolean fits(
         int chars)
     {

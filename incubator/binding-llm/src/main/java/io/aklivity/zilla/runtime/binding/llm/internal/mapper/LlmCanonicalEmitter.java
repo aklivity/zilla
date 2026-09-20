@@ -32,20 +32,9 @@ import io.aklivity.zilla.runtime.common.json.JsonTransform;
 import io.aklivity.zilla.runtime.common.json.JsonVerbatim;
 
 /**
- * Shared fan-out machinery for a dialect's decode {@link JsonTransform}: accumulates canonical actions
- * (each a flat object such as {@code {"type":"messageStart",...}}) via the {@code queueXxx} methods, then
- * fires the whole queue to {@code sink} as genuine {@link JsonEvent#START_DOCUMENT}...{@link
- * JsonEvent#END_DOCUMENT} cycles -- one complete cycle per queued action, several in a row within one
- * {@link #fireQueued(JsonSink)} call -- via {@link #fireQueued(JsonSink)}, called by a subclass once it
- * decides its native input document is fully observed (typically on the native document's own real
- * {@code END_DOCUMENT}).
- * <p>
- * A single reusable synthetic {@link JsonSource}/{@link JsonController} carries each field's key or value
- * text (or number) to {@code sink}; a resumable text write ({@link JsonEvent#KEY_NAME} or
- * {@link JsonEvent#VALUE_STRING}) tracks its own progress across repeated {@link #resume} calls exactly like
- * {@code runtime/model-json}'s {@code JsonModelFieldTransform.TextSource}, generalized to a longer, queued
- * sequence of actions instead of one key-then-value pair.
- * </p>
+ * Shared fan-out machinery for a dialect's decode {@link JsonTransform}: accumulates canonical actions via
+ * the {@code queueXxx} methods, then fires the whole queue to {@code sink} as
+ * {@link JsonEvent#START_DOCUMENT}...{@link JsonEvent#END_DOCUMENT} cycles via {@link #fireQueued(JsonSink)}.
  */
 abstract class LlmCanonicalEmitter implements JsonTransform
 {
@@ -210,9 +199,6 @@ abstract class LlmCanonicalEmitter implements JsonTransform
         JsonSink sink,
         boolean resuming)
     {
-        // Status.COMPLETED, not ADVANCED, when nothing was ever queued: fireQueued() is only ever called
-        // at the real native document's own END_DOCUMENT, so an empty queue still means that real document
-        // finished cleanly -- there is simply nothing this dialect pair renders for it.
         Status status = Status.COMPLETED;
         boolean looping = true;
         boolean firstIteration = true;
@@ -365,10 +351,6 @@ abstract class LlmCanonicalEmitter implements JsonTransform
         private int intValue;
     }
 
-    // Reused for every synthetic key/value write this emitter drives -- a text write's progress survives
-    // across a SUSPENDED write's later resume() (see LlmCanonicalEmitter.drive()) because that resume path
-    // never re-wraps this instance, exactly mirroring the KEY/VALUE resumable-write idiom in
-    // runtime/model-json's JsonModelFieldTransform.
     private static final class Synthetic implements JsonSource, JsonController
     {
         private CharSequence text;

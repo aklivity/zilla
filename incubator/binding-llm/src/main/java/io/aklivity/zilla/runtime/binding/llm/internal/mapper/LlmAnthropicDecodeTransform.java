@@ -29,34 +29,12 @@ import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.common.json.JsonSource;
 
 /**
- * Decodes Anthropic's native event sequence into the canonical vocabulary, driven directly by real
- * {@link JsonEvent}s from a long-lived {@link io.aklivity.zilla.runtime.common.json.JsonPipeline} (one
- * instance per response stream, reused for every native chunk over the stream's lifetime -- see
- * {@link LlmCanonicalEmitter}). A streaming chunk's dispatch is keyed by its out-of-band SSE {@code event:}
- * name, set via {@link #event(String)} before the chunk is fed to the pipeline -- that key arrives from SSE
- * framing, not the JSON body, so it is not itself something a {@code JsonTransform} observes as an event. A
- * non-streaming whole document has no SSE framing at all, so {@code event(null)} is the natural signal for
- * it -- {@link #onDocumentEnd()} branches on {@code nativeEvent == null} to walk that document's own
- * different (and, unlike every streaming event body, array-of-blocks) shape directly.
- * <p>
- * Rather than walking the (often trivial) native body field-by-field before deciding what to queue, this
- * waits for the native chunk's own real {@code END_DOCUMENT} -- exactly like {@link LlmOpenaiDecodeTransform}
- * -- so both dialects share one fan-out timing rule; only {@code message_start}/{@code content_block_start}/
- * {@code content_block_delta}/{@code message_delta} (streaming) and the non-streaming whole document itself
- * actually read fields from the body via the shallow dotted-path accumulation below. A streaming event body
- * never nests its needed fields inside an array, so a depth/path tracker is all that is needed there; a
- * non-streaming document's {@code content} array can hold several blocks, so {@code inContentElement}/
- * {@code contentElementDepth} track one array element's own span the path tracker alone cannot express, and
- * {@code capturingArgs}/{@code argsGenerator} separately reconstruct a {@code tool_use} block's {@code input}
- * object (itself arbitrary JSON, not a string) into the same JSON-encoded string shape the streaming {@code
- * delta.partial_json} field already carries, so both paths hand the canonical vocabulary the same kind of
- * value for a tool call's arguments.
- * <p>
- * {@code inputTokens}/{@code openBlockType}/{@code openBlockId}/{@code nextBlockId}/{@code contentBlocks}
- * live for the whole response stream, across every native chunk -- {@link #reset()} is never called between
- * chunks under normal operation (see {@code LlmClientFactory}'s document-boundary policy: {@code
- * nextDocument()} advances between chunks without cascading a reset to this stage), so these fields need no
- * special preservation.
+ * Decodes Anthropic's native event sequence into the canonical vocabulary, driven by real
+ * {@link JsonEvent}s from a long-lived {@link io.aklivity.zilla.runtime.common.json.JsonPipeline}
+ * (see {@link LlmCanonicalEmitter}). A streaming chunk's dispatch is keyed by its out-of-band SSE
+ * {@code event:} name, set via {@link #event(String)} before the chunk reaches the pipeline; a
+ * non-streaming whole document has no such framing, so {@code event(null)} signals
+ * {@link #onDocumentEnd()} to walk that document's own array-of-blocks shape via {@link #onWholeMessage()}.
  */
 final class LlmAnthropicDecodeTransform extends LlmCanonicalEmitter implements LlmDialectEvent
 {
@@ -145,11 +123,6 @@ final class LlmAnthropicDecodeTransform extends LlmCanonicalEmitter implements L
         return status;
     }
 
-    // Walks the native event's whole document, tracking the dotted path of object keys leading to the
-    // current scalar (root-level fields have no dot) -- see LlmCanonicalEmitter's javadoc for why this
-    // stays shallow rather than reproducing OpenAI's index-tracking walk. A non-streaming document's
-    // content-array elements and a tool_use block's own input object each need bookkeeping this shallow
-    // path alone cannot express -- see onContainerStart()/onContainerEnd() and onCaptureEvent().
     private void onEvent(
         JsonController control,
         JsonSource source,
@@ -238,9 +211,6 @@ final class LlmAnthropicDecodeTransform extends LlmCanonicalEmitter implements L
         path.setLength(pathLengthAt[--depth]);
     }
 
-    // Reconstructs a tool_use block's input object -- itself arbitrary JSON, not a string -- into a
-    // JSON-encoded string, the same shape the streaming delta.partial_json field already carries, echoing
-    // each structural event 1:1 into argsGenerator instead of the outer path-based accumulation above.
     private void onCaptureEvent(
         JsonController control,
         JsonSource source,
@@ -508,10 +478,6 @@ final class LlmAnthropicDecodeTransform extends LlmCanonicalEmitter implements L
         }
     }
 
-    // Fires as soon as one content array element closes, whole-document mode's counterpart to the streaming
-    // content_block_start/content_block_delta/content_block_stop trio: a non-streaming document's content
-    // array can hold several blocks in one document, unlike streaming's one-block-per-chunk framing, so each
-    // element is recorded (not yet queued -- see onWholeMessage()) as soon as it is fully parsed.
     private void onContentElementEnd()
     {
         ContentBlock block = new ContentBlock();
@@ -600,9 +566,6 @@ final class LlmAnthropicDecodeTransform extends LlmCanonicalEmitter implements L
         queueUsage(inputTokens, fieldOutputTokens);
     }
 
-    // The whole-document counterpart to onMessageStart()/onContentBlockStart()/onContentBlockStop()/
-    // onMessageDelta() combined: queueMessageStart() must fire before any block, so every content-array
-    // element recorded by onContentElementEnd() during the walk is only flushed here, after it.
     private void onWholeMessage()
     {
         queueMessageStart(0, fieldId, fieldModel, fieldRole);
@@ -623,11 +586,6 @@ final class LlmAnthropicDecodeTransform extends LlmCanonicalEmitter implements L
 
         queueFinish(0, finishReason(fieldFinishReasonPresent ? fieldFinishReason : null));
         queueUsage(fieldInputTokens, fieldOutputTokens);
-
-        // A streaming response ends via its own real message_stop document (queueEnd() above, in the
-        // nativeEvent switch); a whole non-streaming document has no such framing, so this is the only
-        // place its own TYPE_END ever queues, telling the encode sink to build and flush the document it
-        // has been accumulating.
         queueEnd();
     }
 
@@ -688,8 +646,6 @@ final class LlmAnthropicDecodeTransform extends LlmCanonicalEmitter implements L
         return reason;
     }
 
-    // One recorded content-array element, held only until onWholeMessage() flushes it -- queueMessageStart()
-    // must fire first, which is not known until the whole document (and so every element) has been walked.
     private static final class ContentBlock
     {
         private LlmCanonicalBlockKind kind;

@@ -44,10 +44,6 @@ import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.common.json.JsonTransform;
 
-// Drives a genuine JsonPipeline (JsonEx.stream(parser).transform(decode).into(encode)) exactly as
-// LlmClientFactory wires it for a cross-dialect response stream -- to prove the Anthropic decode /
-// OpenAI encode pair, including cross-chunk state (openToolCallIndex/nextToolCallIndex) surviving
-// nextDocument() between native chunks.
 public class LlmAnthropicToOpenaiResponseTransformTest
 {
     private final List<JsonObject> chunks = new ArrayList<>();
@@ -150,11 +146,6 @@ public class LlmAnthropicToOpenaiResponseTransformTest
         assertThat(toolCall.getString("id"), equalTo("call_2"));
     }
 
-    // A whole non-streaming Anthropic document (no SSE framing, so event() is never called and nativeEvent
-    // stays null) must accumulate and flush as one native OpenAI document -- unlike every other test here,
-    // which drives the shared @Before pipeline (its JsonEnvelope.NONE always reads back as streaming, per
-    // streaming()'s own documented default), so this builds its own pipeline over an envelope that reads
-    // back "streaming" as false, exactly as LlmHttpClient writes it for a real application/json response.
     @Test
     public void shouldEncodeWholeDocumentWhenNonStreaming()
     {

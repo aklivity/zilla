@@ -26,23 +26,11 @@ import jakarta.json.JsonReader;
 import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
 
 /**
- * Encodes the canonical vocabulary into Anthropic's native event shape -- replaces the old
- * {@code LlmAnthropicEventMapper}'s {@code encode*} public-method-per-action shape with one
- * {@link #write(String)} dispatching on the accumulated canonical {@code "type"} value.
- * <p>
- * {@code openBlockType}/{@code openBlockId}/{@code heldOutputTokens}/{@code finishSent} live for the whole
- * response stream, across every native chunk.
- * <p>
- * {@link #streaming()} (read once at {@code TYPE_MESSAGE_START}, cached in {@code streaming}) picks between
- * two disjoint write strategies: streaming emits one native chunk per canonical action, exactly as before;
- * non-streaming instead only accumulates each action's fields (see {@code doc*}) and writes the whole native
- * document once, at {@code TYPE_END} -- the same {@code null} native event name
- * {@code LlmDialect.encodeMessage} used for whole-document output, so the app-facing wire contract is
- * unchanged. A tool-call block's canonical {@code arguments} is a JSON-encoded string (the same shape the
- * streaming {@code partial_json} field already carries); Anthropic's own {@code input} is the parsed object
- * itself, so {@link #wholeDocumentSteps()} parses it back with the standard {@code jakarta.json} reader --
- * a small, self-contained document, not the multi-field whole-message DOM conversion
- * {@code LlmDialect.encodeMessage} used to perform.
+ * Encodes the canonical vocabulary into Anthropic's native event shape, dispatching on the accumulated
+ * canonical {@code "type"} in {@link #write(String)}. {@link #streaming()} (cached at
+ * {@code TYPE_MESSAGE_START}) picks between emitting one native chunk per canonical action (streaming)
+ * or accumulating into {@code doc*} fields and writing the whole document once at {@code TYPE_END}
+ * (non-streaming).
  */
 final class LlmAnthropicEncodeSink extends LlmCanonicalEncodeSink implements LlmDialectTerminator
 {
@@ -54,10 +42,6 @@ final class LlmAnthropicEncodeSink extends LlmCanonicalEncodeSink implements Llm
     private int heldOutputTokens = -1;
     private boolean finishSent;
 
-    // Defaults true so an action fed in isolation (e.g. a unit test driving one write() call with no
-    // preceding messageStart) behaves exactly as every dialect did before non-streaming accumulation
-    // existed; onMessageStart() -- always the real first action of any actual response -- overwrites this
-    // with the envelope's real value before anything else is ever checked.
     private boolean streaming = true;
 
     private String docId;
@@ -77,11 +61,6 @@ final class LlmAnthropicEncodeSink extends LlmCanonicalEncodeSink implements Llm
         this.docBlocks = new ArrayList<>();
     }
 
-    // Anthropic's own stream termination (message_stop) is itself a JSON document that reaches this sink
-    // like any other canonical action -- but the SOURCE dialect this sink is paired with may terminate
-    // out-of-band instead (e.g. OpenAI's literal "[DONE]", bypassed around the pipeline entirely), and an
-    // Anthropic-speaking target still needs its own native message_stop for that termination. Drives the
-    // exact same write this sink would produce for a canonical "end" action.
     @Override
     public void terminate()
     {
@@ -391,9 +370,6 @@ final class LlmAnthropicEncodeSink extends LlmCanonicalEncodeSink implements Llm
         return steps;
     }
 
-    // The whole-document counterpart to messageStartSteps()/blockStartSteps()/dataSteps()/blockEndSteps()/
-    // finishSteps() combined -- one native document built from every held field, matching the field order
-    // (and always-present "usage", -1-defaulted) the old LlmDialect.encodeMessage() produced.
     private List<BooleanSupplier> wholeDocumentSteps()
     {
         final String id = docId;
@@ -451,9 +427,6 @@ final class LlmAnthropicEncodeSink extends LlmCanonicalEncodeSink implements Llm
         return steps;
     }
 
-    // A tool-call block's canonical arguments is a JSON-encoded string; Anthropic's own "input" is the
-    // parsed object, so this re-parses it with the standard jakarta.json reader -- a small, self-contained
-    // value, not the multi-field whole-message DOM conversion LlmDialect.encodeMessage used to perform.
     private boolean tryWriteInput(
         String arguments)
     {

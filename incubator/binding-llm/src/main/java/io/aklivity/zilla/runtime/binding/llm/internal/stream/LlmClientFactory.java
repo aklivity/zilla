@@ -1516,9 +1516,6 @@ public final class LlmClientFactory implements LlmStreamFactory
             }
         }
 
-        // Drives the same event pipeline whether this native event is one increment of a streaming response
-        // or the whole body of a non-streaming one -- LlmHttpClient.streaming (written into the envelope at
-        // response-begin) is what tells the decode/encode pair apart, not this call site.
         private void transformNativeEvent()
         {
             if (matchesTerminator(nativeEventBuffer, 0, nativeEventLength, client.target.terminator(Kind.RESPONSE)))
