@@ -117,10 +117,11 @@ public interface LlmDialect
 
     /**
      * Creates a new {@link JsonTransform} that observes one stream's native {@code kind} payload -- e.g.
-     * extracting {@code model} into {@code envelope} -- without any canonical rewriting: every field
-     * passes through unchanged. Field name and location are dialect-specific (both current dialects
-     * happen to carry {@code model} as a top-level scalar, but a future dialect is not bound to that
-     * shape), so each implementation supplies its own extractor.
+     * extracting {@code model} from a request into {@code envelope}, or {@code usage} from a response --
+     * without any canonical rewriting: every field passes through unchanged. Field name and location are
+     * dialect-specific (both current dialects happen to carry {@code model} as a top-level request scalar,
+     * but a future dialect is not bound to that shape, and each dialect's {@code usage} object occurs at
+     * its own native path), so each implementation supplies its own extractor per {@code kind}.
      * <p>
      * A binding with no target dialect to bridge toward (e.g. a {@code kind: server} accepting a native
      * request it only needs to detect, extract routing signals from, and forward byte-for-byte to its own

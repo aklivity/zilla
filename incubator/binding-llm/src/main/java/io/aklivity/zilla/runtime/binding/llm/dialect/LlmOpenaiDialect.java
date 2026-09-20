@@ -125,7 +125,9 @@ public final class LlmOpenaiDialect implements LlmDialect
         Kind kind,
         JsonEnvelope envelope)
     {
-        return kind == Kind.REQUEST ? new LlmModelExtractTransform(envelope) : LlmDialectTransforms.identity();
+        return kind == Kind.REQUEST
+            ? new LlmModelExtractTransform(envelope)
+            : new LlmOpenaiUsageExtractTransform(envelope);
     }
 
     @Override

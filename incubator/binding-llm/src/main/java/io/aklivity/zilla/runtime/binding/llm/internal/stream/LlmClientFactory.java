@@ -19,6 +19,10 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.util.function.LongUnaryOperator;
 
+import jakarta.json.Json;
+import jakarta.json.JsonObject;
+import jakarta.json.JsonObjectBuilder;
+
 import org.agrona.DirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
 
@@ -46,8 +50,11 @@ import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.ChallengeFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.HttpBeginExFW;
+import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmAbortExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmBeginExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmDataExFW;
+import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmEndExFW;
+import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmUsageFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
@@ -82,6 +89,12 @@ public final class LlmClientFactory implements LlmStreamFactory
     private static final String CONTENT_TYPE_JSON = "application/json";
     private static final String ENVELOPE_EVENT = "event";
     private static final String ENVELOPE_STREAMING = "streaming";
+    private static final String ENVELOPE_USAGE_INPUT_TOKENS = "usage.inputTokens";
+    private static final String ENVELOPE_USAGE_CACHE_WRITE_TOKENS = "usage.cacheWriteTokens";
+    private static final String ENVELOPE_USAGE_CACHE_READ_TOKENS = "usage.cacheReadTokens";
+    private static final String ENVELOPE_USAGE_OUTPUT_TOKENS = "usage.outputTokens";
+    private static final String ENVELOPE_USAGE_REASONING_TOKENS = "usage.reasoningTokens";
+    private static final String ENVELOPE_USAGE_TOTAL_TOKENS = "usage.totalTokens";
 
     private static final int FLAG_FIN = 0x01;
     private static final int FLAG_INIT = 0x02;
@@ -108,6 +121,8 @@ public final class LlmClientFactory implements LlmStreamFactory
     private final HttpBeginExFW.Builder httpBeginExRW = new HttpBeginExFW.Builder();
     private final LlmBeginExFW.Builder llmBeginExRW = new LlmBeginExFW.Builder();
     private final LlmDataExFW.Builder llmDataExRW = new LlmDataExFW.Builder();
+    private final LlmEndExFW.Builder llmEndExRW = new LlmEndExFW.Builder();
+    private final LlmAbortExFW.Builder llmAbortExRW = new LlmAbortExFW.Builder();
 
     private final OctetsFW emptyRO = new OctetsFW().wrap(new UnsafeBufferEx(new byte[0]), 0, 0);
     private final DirectBufferEx emptyBufferRO = new UnsafeBufferEx(new byte[0]);
@@ -255,6 +270,82 @@ public final class LlmClientFactory implements LlmStreamFactory
         return header;
     }
 
+    private static void populateUsage(
+        LlmUsageFW.Builder usage,
+        JsonEnvelope envelope)
+    {
+        int inputTokens = usageTokens(envelope, ENVELOPE_USAGE_INPUT_TOKENS);
+        int cacheWriteTokens = usageTokens(envelope, ENVELOPE_USAGE_CACHE_WRITE_TOKENS);
+        int cacheReadTokens = usageTokens(envelope, ENVELOPE_USAGE_CACHE_READ_TOKENS);
+        int outputTokens = usageTokens(envelope, ENVELOPE_USAGE_OUTPUT_TOKENS);
+        int reasoningTokens = usageTokens(envelope, ENVELOPE_USAGE_REASONING_TOKENS);
+        int totalTokens = usageTokens(envelope, ENVELOPE_USAGE_TOTAL_TOKENS);
+
+        usage.inputTokens(inputTokens)
+            .cacheWriteTokens(cacheWriteTokens)
+            .cacheReadTokens(cacheReadTokens)
+            .outputTokens(outputTokens)
+            .reasoningTokens(reasoningTokens)
+            .totalTokens(totalTokens);
+
+        String nativeUsage = nativeUsage(inputTokens, cacheWriteTokens, cacheReadTokens, outputTokens,
+            reasoningTokens, totalTokens);
+        if (nativeUsage != null)
+        {
+            usage.nativeUsage(nativeUsage);
+        }
+    }
+
+    private static int usageTokens(
+        JsonEnvelope envelope,
+        String name)
+    {
+        int count = envelope.count(name);
+        int value = -1;
+
+        if (count > 0)
+        {
+            DirectBufferEx buffer = envelope.get(name, count - 1);
+            value = Integer.parseInt(buffer.getStringWithoutLengthUtf8(0, buffer.capacity()));
+        }
+
+        return value;
+    }
+
+    // Reconstructed from whichever fields were actually recognized -- not a byte-exact capture of the
+    // provider's own usage object -- so a caller reconciling billing sees every field Zilla extracted,
+    // named consistently across dialects, without needing the raw wire bytes this binding never retains.
+    private static String nativeUsage(
+        int inputTokens,
+        int cacheWriteTokens,
+        int cacheReadTokens,
+        int outputTokens,
+        int reasoningTokens,
+        int totalTokens)
+    {
+        JsonObjectBuilder builder = Json.createObjectBuilder();
+        addIfPresent(builder, "input_tokens", inputTokens);
+        addIfPresent(builder, "cache_write_tokens", cacheWriteTokens);
+        addIfPresent(builder, "cache_read_tokens", cacheReadTokens);
+        addIfPresent(builder, "output_tokens", outputTokens);
+        addIfPresent(builder, "reasoning_tokens", reasoningTokens);
+        addIfPresent(builder, "total_tokens", totalTokens);
+
+        JsonObject usage = builder.build();
+        return usage.isEmpty() ? null : usage.toString();
+    }
+
+    private static void addIfPresent(
+        JsonObjectBuilder builder,
+        String name,
+        int value)
+    {
+        if (value != -1)
+        {
+            builder.add(name, value);
+        }
+    }
+
     private final class LlmClient
     {
         private final MessageConsumer app;
@@ -369,6 +460,7 @@ public final class LlmClientFactory implements LlmStreamFactory
             return JsonEx.stream(parser)
                 .envelope(envelope)
                 .transform(target.supplySchemaValidator(Kind.RESPONSE))
+                .transform(target.supplyExtractor(Kind.RESPONSE, envelope))
                 .into(generator);
         }
 
@@ -809,7 +901,7 @@ public final class LlmClientFactory implements LlmStreamFactory
 
                 if (LlmState.replyClosing(state))
                 {
-                    doAppEndNow(traceId, authorization);
+                    doAppEnd(traceId, authorization);
                 }
             }
         }
@@ -820,21 +912,15 @@ public final class LlmClientFactory implements LlmStreamFactory
         {
             state = LlmState.closingReply(state);
 
-            if (encodeSlot == NO_SLOT)
-            {
-                doAppEndNow(traceId, authorization);
-            }
-        }
-
-        private void doAppEndNow(
-            long traceId,
-            long authorization)
-        {
-            if (!LlmState.replyClosed(state))
+            if (encodeSlot == NO_SLOT && !LlmState.replyClosed(state))
             {
                 state = LlmState.closeReply(state);
+                final LlmEndExFW endEx = llmEndExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                    .typeId(llmTypeId)
+                    .usage(u -> populateUsage(u, envelope))
+                    .build();
                 LlmClientFactory.this.doEnd(app, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, authorization, emptyRO);
+                    traceId, authorization, endEx);
             }
         }
 
@@ -846,8 +932,12 @@ public final class LlmClientFactory implements LlmStreamFactory
             {
                 state = LlmState.closeReply(state);
                 cleanupEncodeSlot();
+                final LlmAbortExFW abortEx = llmAbortExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                    .typeId(llmTypeId)
+                    .usage(u -> populateUsage(u, envelope))
+                    .build();
                 LlmClientFactory.this.doAbort(app, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, authorization, emptyRO);
+                    traceId, authorization, abortEx);
             }
         }
 
@@ -1002,6 +1092,7 @@ public final class LlmClientFactory implements LlmStreamFactory
                     LlmResponseTransformFactory.supplyEncodeSink(client.source.name(), client.envelope, nativeOutput);
                 this.eventPipeline = JsonEx.stream(JsonEx.createParser())
                     .envelope(client.envelope)
+                    .transform(client.source.supplyExtractor(Kind.RESPONSE, client.envelope))
                     .transform(decodeTransform)
                     .into(encodeSink);
                 this.decodeEvent = (LlmDialectEvent) decodeTransform;
@@ -2083,7 +2174,7 @@ public final class LlmClientFactory implements LlmStreamFactory
         int maximum,
         long traceId,
         long authorization,
-        OctetsFW extension)
+        Flyweight extension)
     {
         final EndFW end = endRW.wrap(writeBuffer, 0, writeBuffer.capacity())
             .originId(originId)
@@ -2094,7 +2185,7 @@ public final class LlmClientFactory implements LlmStreamFactory
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
-            .extension(extension)
+            .extension(extension.buffer(), extension.offset(), extension.sizeof())
             .build();
 
         receiver.accept(end.typeId(), end.buffer(), end.offset(), end.sizeof());
@@ -2110,7 +2201,7 @@ public final class LlmClientFactory implements LlmStreamFactory
         int maximum,
         long traceId,
         long authorization,
-        OctetsFW extension)
+        Flyweight extension)
     {
         final AbortFW abort = abortRW.wrap(writeBuffer, 0, writeBuffer.capacity())
             .originId(originId)
@@ -2121,7 +2212,7 @@ public final class LlmClientFactory implements LlmStreamFactory
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
-            .extension(extension)
+            .extension(extension.buffer(), extension.offset(), extension.sizeof())
             .build();
 
         receiver.accept(abort.typeId(), abort.buffer(), abort.offset(), abort.sizeof());
