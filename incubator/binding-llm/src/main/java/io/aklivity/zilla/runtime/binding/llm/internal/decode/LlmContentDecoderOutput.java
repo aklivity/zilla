@@ -23,6 +23,20 @@ import org.agrona.DirectBuffer;
 public interface LlmContentDecoderOutput
 {
     /**
+     * Reports whether the decoder may start emitting a new event boundary. A decoder that scans
+     * multiple event boundaries within a single {@link LlmContentDecoder#decode} call checks this
+     * between boundaries and stops early once it returns {@code false}, leaving the unscanned bytes
+     * for a later {@code decode} call once the caller can accept more. The default always allows it,
+     * since a content-type with no concept of named events (e.g. plain JSON) has nothing to stop for.
+     *
+     * @return {@code true} if decoding may continue past the boundary just reached
+     */
+    default boolean available()
+    {
+        return true;
+    }
+
+    /**
      * Signals that decoding has entered a new content-type-specific named event -- e.g. the SSE
      * {@code event:} field's value -- before any {@link #data} belonging to it is emitted. The default
      * does nothing, since a content-type with no concept of named events (e.g. plain JSON) never calls it.

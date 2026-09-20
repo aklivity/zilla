@@ -457,12 +457,11 @@ public final class LlmServerFactory implements LlmStreamFactory
 
                 while (progress < decodeSlotOffset && (stream == null || stream.requestAvailable()))
                 {
-                    final boolean first = !requestStarted;
                     final boolean last = (decodeSlotFlags & FLAG_FIN) != 0;
 
-                    final JsonPipelineResult result = pipeline.transform(decodeBuffer, progress, decodeSlotOffset, last,
+                    JsonPipelineResult result = pipeline.transform(decodeBuffer, progress, decodeSlotOffset, last,
                         transformBuffer, 0, transformBuffer.capacity());
-                    final Status status = result.status();
+                    Status status = result.status();
 
                     if (status == Status.REJECTED)
                     {
@@ -476,24 +475,46 @@ public final class LlmServerFactory implements LlmStreamFactory
                         return;
                     }
 
-                    requestStarted = true;
-
                     if (stream == null)
                     {
                         stream = new LlmStream(this);
                         stream.doAppBegin(traceId, authorization);
                     }
 
-                    final int producedLength = result.produced();
-                    if (producedLength > 0)
+                    boolean forwarded = true;
+                    while (status == Status.SUSPENDED && forwarded)
                     {
-                        final int outputFlags = (first ? FLAG_INIT : 0) | (status == Status.COMPLETED ? FLAG_FIN : 0);
-                        stream.doAppData(transformBuffer, producedLength, outputFlags, traceId, authorization);
+                        forwardDecodedRequest(result.produced(), false, traceId, authorization);
+
+                        forwarded = stream.requestAvailable();
+                        if (forwarded)
+                        {
+                            result = pipeline.transform(decodeBuffer, progress, decodeSlotOffset, last,
+                                transformBuffer, 0, transformBuffer.capacity());
+                            status = result.status();
+
+                            if (status == Status.REJECTED)
+                            {
+                                pipeline.reset();
+                                doNetReset(traceId);
+                                stream.doAppAbort(traceId);
+                                cleanup(traceId);
+                                return;
+                            }
+                        }
                     }
+
+                    if (!forwarded)
+                    {
+                        break;
+                    }
+
+                    forwardDecodedRequest(result.produced(), status == Status.COMPLETED, traceId, authorization);
 
                     if (status == Status.COMPLETED)
                     {
                         pipeline.reset();
+                        requestStarted = false;
                     }
 
                     final int consumed = result.consumed();
@@ -538,6 +559,20 @@ public final class LlmServerFactory implements LlmStreamFactory
                         cleanup(traceId);
                     }
                 }
+            }
+        }
+
+        private void forwardDecodedRequest(
+            int producedLength,
+            boolean complete,
+            long traceId,
+            long authorization)
+        {
+            if (producedLength > 0 || complete)
+            {
+                final int outputFlags = (requestStarted ? 0 : FLAG_INIT) | (complete ? FLAG_FIN : 0);
+                stream.doAppData(transformBuffer, producedLength, outputFlags, traceId, authorization);
+                requestStarted = true;
             }
         }
 

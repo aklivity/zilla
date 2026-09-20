@@ -89,27 +89,35 @@ public final class LlmSseContentDecoder implements LlmContentDecoder
                 break;
             }
 
-            onLine(buffer, lineStart, contentEnd, output);
+            final boolean boundary = onLine(buffer, lineStart, contentEnd, output);
 
             lineStart = nextLineStart;
             progress = nextLineStart;
+
+            if (boundary && !output.available())
+            {
+                break;
+            }
         }
 
         return progress;
     }
 
-    private void onLine(
+    private boolean onLine(
         DirectBuffer buffer,
         int start,
         int end,
         LlmContentDecoderOutput output)
     {
+        boolean boundary = false;
+
         if (start == end)
         {
             if (dataFieldSeen)
             {
                 output.flush(eventName, eventId, 0, eventIdLength);
                 dataFieldSeen = false;
+                boundary = true;
             }
             eventName = null;
         }
@@ -117,6 +125,8 @@ public final class LlmSseContentDecoder implements LlmContentDecoder
         {
             onField(buffer, start, end, output);
         }
+
+        return boundary;
     }
 
     private void onField(
