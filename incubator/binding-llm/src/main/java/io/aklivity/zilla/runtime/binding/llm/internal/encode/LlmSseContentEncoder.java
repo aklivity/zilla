@@ -20,9 +20,9 @@ import org.agrona.MutableDirectBuffer;
 /**
  * Encodes {@code text/event-stream} (SSE) framing, the inverse of {@code LlmSseContentDecoder}.
  * <p>
- * Each {@code encodeEventName}/{@code encodeData}/{@code encodeFlush} call writes one complete SSE
+ * Each {@code encodeEvent}/{@code encodeData}/{@code encodeFlush} call writes one complete SSE
  * field line (or the blank line terminating an event). A caller must sequence a full event as
- * {@code encodeEventName} (writing {@code event:} when present) followed by {@code encodeData}
+ * {@code encodeEvent} (writing {@code event:} when present) followed by {@code encodeData}
  * (writing {@code data:}) followed by {@code encodeFlush} (writing {@code id:} and the terminating
  * blank line) so the wire form matches the field order every real SSE sender uses, since the event
  * name, when present, always precedes its data on the wire. A single data chunk is written as one
@@ -38,7 +38,7 @@ public final class LlmSseContentEncoder implements LlmContentEncoder
     private static final byte LF = '\n';
 
     @Override
-    public int encodeEventName(
+    public int encodeEvent(
         String event,
         MutableDirectBuffer encoded,
         int encodedOffset,

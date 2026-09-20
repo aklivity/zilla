@@ -25,7 +25,7 @@ import org.agrona.MutableDirectBuffer;
 public final class LlmJsonContentEncoder implements LlmContentEncoder
 {
     @Override
-    public int encodeEventName(
+    public int encodeEvent(
         String event,
         MutableDirectBuffer encoded,
         int encodedOffset,

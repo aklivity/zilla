@@ -79,30 +79,23 @@ public interface LlmDialect
      * Returns the name of the request header this dialect's API carries client credentials in, read from
      * a request's {@link JsonEnvelope} to extract credentials for an {@code options.authorization} guard
      * check on a {@code kind: server} binding -- e.g. {@code authorization} for a dialect that follows the
-     * bearer-token convention, {@code x-api-key} for one that expects a raw API key of its own.
-     * <p>
-     * Defaults to {@code authorization}, the conventional bearer-token header; a dialect whose API expects
-     * credentials elsewhere overrides this to name that header instead.
-     * </p>
+     * bearer-token convention, {@code x-api-key} for one that expects a raw API key of its own. This is a
+     * fixed fact of the dialect's real upstream API, not an operator-configurable choice, so every
+     * implementation must declare its own -- there is no generally-valid fallback.
      *
      * @return the credentials header name
      */
-    default String credentialsHeader()
-    {
-        return "authorization";
-    }
+    String credentialsHeader();
 
     /**
      * Returns this dialect's own JSON error body for a request an {@code options.authorization} guard
      * rejected on a {@code kind: server} binding, shaped the way this dialect's own API reports an
-     * authentication failure.
+     * authentication failure. Like {@link #credentialsHeader()}, this is dialect-specific with no
+     * generally-valid fallback, so every implementation must declare its own.
      *
      * @return the error response body, JSON-encoded
      */
-    default String unauthorizedBody()
-    {
-        return "{\"error\":{\"message\":\"Unauthorized\",\"type\":\"authentication_error\"}}";
-    }
+    String unauthorizedBody();
 
     /**
      * Creates a new {@link JsonTransform} decoding one stream's native {@code kind} payload into this
@@ -126,25 +119,26 @@ public interface LlmDialect
 
     /**
      * Creates a new {@link JsonTransform} that observes one stream's native {@code kind} payload -- e.g.
-     * extracting {@code model} -- without any canonical rewriting: every field passes through unchanged.
+     * extracting {@code model} into {@code envelope} -- without any canonical rewriting: every field
+     * passes through unchanged. Field name and location are dialect-specific (both current dialects
+     * happen to carry {@code model} as a top-level scalar, but a future dialect is not bound to that
+     * shape), so each implementation supplies its own extractor.
      * <p>
      * A binding with no target dialect to bridge toward (e.g. a {@code kind: server} accepting a native
-     * request it only needs to detect, validate, and forward byte-for-byte to its own application-facing
-     * side) uses this instead of {@link #supplyDecoder(Kind, JsonEnvelope)}: canonical rewriting is
-     * meaningful only when bridging between two different dialects, which is a {@code kind: client}
-     * binding's job alone.
+     * request it only needs to detect, extract routing signals from, and forward byte-for-byte to its own
+     * application-facing side) uses this instead of {@link #supplyDecoder(Kind, JsonEnvelope)}: canonical
+     * rewriting is meaningful only when bridging between two different dialects, which is a
+     * {@code kind: client} binding's job alone.
      * </p>
      * <p>
-     * {@code envelope} is the same per-stream metadata channel {@link #detect(JsonEnvelope)} reads from. A
-     * validator may still extract a signal (e.g. {@code model}) into it as the payload streams through,
-     * exactly as {@link #supplyDecoder(Kind, JsonEnvelope)} does, but performs no field substitution.
+     * {@code envelope} is the same per-stream metadata channel {@link #detect(JsonEnvelope)} reads from.
      * </p>
      *
      * @param kind      the request or response direction
      * @param envelope  the per-stream metadata channel
-     * @return a new validating transform
+     * @return a new extracting transform
      */
-    JsonTransform supplyValidator(
+    JsonTransform supplyExtractor(
         Kind kind,
         JsonEnvelope envelope);
 

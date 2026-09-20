@@ -28,9 +28,11 @@ import io.aklivity.zilla.runtime.common.json.JsonSource;
  * how a Kafka cache model's {@code extractKey}/{@code extractHeaders} transform observes a field and copies
  * its value into an envelope while it flows through unchanged.
  * <p>
- * {@code model} sits at the identical top-level key in every dialect this binding supports so far, so one
- * dialect-neutral instance backs every {@link LlmDialect#supplyValidator(LlmDialect.Kind, JsonEnvelope)}
- * implementation rather than duplicating identical extraction logic per dialect.
+ * {@code model} sits at the identical top-level key in every dialect this binding supports so far, so this
+ * one instance currently backs every {@link LlmDialect#supplyExtractor(LlmDialect.Kind, JsonEnvelope)}
+ * implementation rather than duplicating identical extraction logic per dialect -- each dialect still
+ * supplies its own extractor, since a future dialect whose {@code model} field differs in name or depth
+ * would need its own.
  * </p>
  */
 final class LlmModelExtractTransform extends LlmRequestFieldTransform

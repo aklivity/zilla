@@ -44,7 +44,7 @@ public final class LlmTestContentCodecSpi implements LlmContentCodecSpi
         return new LlmContentEncoder()
         {
             @Override
-            public int encodeEventName(
+            public int encodeEvent(
                 String event,
                 MutableDirectBuffer encoded,
                 int encodedOffset,

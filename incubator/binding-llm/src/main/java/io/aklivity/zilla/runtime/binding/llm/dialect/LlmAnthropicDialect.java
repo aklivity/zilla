@@ -50,7 +50,7 @@ import io.aklivity.zilla.runtime.common.json.JsonTransform;
  * Anthropic-native request members that {@link LlmAnthropicRequestTransform} gives a canonical synonym for;
  * the response direction is always identity here, since genuine cross-dialect response streaming translation
  * lives entirely in {@code internal.mapper.LlmAnthropicDecodeTransform}/{@code LlmAnthropicEncodeSink}, and a
- * same-dialect response needs no rename at all. {@link #supplyValidator(Kind, JsonEnvelope)} performs no such renaming,
+ * same-dialect response needs no rename at all. {@link #supplyExtractor(Kind, JsonEnvelope)} performs no such renaming,
  * only {@code model} extraction. Anthropic's own streaming block lifecycle ({@code message_start}/
  * {@code content_block_start}/{@code content_block_delta}/{@code content_block_stop}/{@code message_delta}/
  * {@code message_stop}) is already the skeleton this binding's canonical representation is modeled on, so
@@ -140,7 +140,7 @@ public final class LlmAnthropicDialect implements LlmDialect
     }
 
     @Override
-    public JsonTransform supplyValidator(
+    public JsonTransform supplyExtractor(
         Kind kind,
         JsonEnvelope envelope)
     {

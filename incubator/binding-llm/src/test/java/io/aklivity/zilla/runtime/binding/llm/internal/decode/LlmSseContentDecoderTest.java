@@ -36,6 +36,18 @@ public class LlmSseContentDecoderTest
     private final LlmContentDecoderOutput output = new LlmContentDecoderOutput()
     {
         @Override
+        public boolean available()
+        {
+            return true;
+        }
+
+        @Override
+        public void event(
+            String event)
+        {
+        }
+
+        @Override
         public void data(
             DirectBuffer buffer,
             int offset,

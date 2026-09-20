@@ -29,7 +29,7 @@ public interface LlmContentEncoder
     /**
      * Encodes the event name announcing the event currently being written into
      * {@code encoded[encodedOffset, encodedLimit)}. A caller sequences a complete event as
-     * {@code encodeEventName} followed by {@code encodeData} (against the content bytes accumulated since the
+     * {@code encodeEvent} followed by {@code encodeData} (against the content bytes accumulated since the
      * previous event boundary) followed by {@code encodeFlush}, so that a content-type whose wire form
      * requires the event name ahead of its content (e.g. SSE's {@code event:} field before {@code data:})
      * is written in that order.
@@ -41,7 +41,7 @@ public interface LlmContentEncoder
      * @return the number of bytes written, or {@code 0} when {@code event} is {@code null}, the content-type
      *         has no event-name concept, or the destination region is too small
      */
-    int encodeEventName(
+    int encodeEvent(
         String event,
         MutableDirectBuffer encoded,
         int encodedOffset,
@@ -68,7 +68,7 @@ public interface LlmContentEncoder
 
     /**
      * Encodes the event boundary terminator into {@code encoded[encodedOffset, encodedLimit)}, after any event
-     * name and content bytes already encoded for the same event via {@link #encodeEventName} and
+     * name and content bytes already encoded for the same event via {@link #encodeEvent} and
      * {@link #encodeData}.
      *
      * @param id            the buffer holding any bytes associated with the event boundary

@@ -64,6 +64,7 @@ public final class LlmOpenaiDialect implements LlmDialect
     private static final String METHOD_HEADER = ":method";
     private static final String PATH_HEADER = ":path";
     private static final String CONTENT_TYPE_HEADER = "content-type";
+    private static final String AUTHORIZATION_HEADER = "authorization";
     private static final String METHOD_POST = "POST";
 
     private static final String CHAT_COMPLETIONS_PATH = "/v1/chat/completions";
@@ -111,6 +112,12 @@ public final class LlmOpenaiDialect implements LlmDialect
     }
 
     @Override
+    public String credentialsHeader()
+    {
+        return AUTHORIZATION_HEADER;
+    }
+
+    @Override
     public String unauthorizedBody()
     {
         return "{\"error\":{\"message\":\"Incorrect API key provided.\"," +
@@ -126,7 +133,7 @@ public final class LlmOpenaiDialect implements LlmDialect
     }
 
     @Override
-    public JsonTransform supplyValidator(
+    public JsonTransform supplyExtractor(
         Kind kind,
         JsonEnvelope envelope)
     {

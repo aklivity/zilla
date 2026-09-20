@@ -20,7 +20,7 @@ import org.agrona.DirectBuffer;
  * Decodes a single stream's content-type framing, reporting decoded event frames to an
  * {@link LlmContentDecoderOutput} as progress is made.
  * <p>
- * An instance is confined to one stream; {@link LlmContentDecoderSpi#supply()} creates a fresh
+ * An instance is confined to one stream; {@link LlmContentCodecSpi#supplyDecoder()} creates a fresh
  * instance per stream so decode state is never shared.
  * </p>
  */

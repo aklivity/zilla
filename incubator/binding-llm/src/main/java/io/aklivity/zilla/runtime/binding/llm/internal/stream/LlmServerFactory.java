@@ -219,7 +219,7 @@ public final class LlmServerFactory implements LlmStreamFactory
         return JsonEx.stream(parser)
             .envelope(envelope)
             .transform(dialect.supplySchemaValidator(LlmDialect.Kind.REQUEST))
-            .transform(dialect.supplyValidator(LlmDialect.Kind.REQUEST, envelope))
+            .transform(dialect.supplyExtractor(LlmDialect.Kind.REQUEST, envelope))
             .into(generator);
     }
 
@@ -1214,7 +1214,7 @@ public final class LlmServerFactory implements LlmStreamFactory
                 int position = 0;
                 if (first)
                 {
-                    position += encoder.encodeEventName(pendingResponseEvent, copyBuffer, position, copyBuffer.capacity());
+                    position += encoder.encodeEvent(pendingResponseEvent, copyBuffer, position, copyBuffer.capacity());
                 }
                 if (payload.sizeof() > 0)
                 {

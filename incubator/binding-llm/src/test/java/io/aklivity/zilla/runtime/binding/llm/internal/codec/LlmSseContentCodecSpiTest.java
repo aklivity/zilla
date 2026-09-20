@@ -51,6 +51,18 @@ public class LlmSseContentCodecSpiTest
         LlmContentDecoderOutput output = new LlmContentDecoderOutput()
         {
             @Override
+            public boolean available()
+            {
+                return true;
+            }
+
+            @Override
+            public void event(
+                String event)
+            {
+            }
+
+            @Override
             public void data(
                 DirectBuffer data,
                 int offset,

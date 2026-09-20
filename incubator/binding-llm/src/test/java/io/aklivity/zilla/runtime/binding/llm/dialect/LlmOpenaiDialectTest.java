@@ -157,13 +157,13 @@ public class LlmOpenaiDialectTest
     }
 
     @Test
-    public void shouldSupplyValidatorOnlyForRequestKind()
+    public void shouldSupplyExtractorOnlyForRequestKind()
     {
         LlmDialect dialect = new LlmOpenaiDialect();
 
-        assertThat(dialect.supplyValidator(LlmDialect.Kind.REQUEST, JsonEnvelope.NONE), not(nullValue()));
-        assertThat(dialect.supplyValidator(LlmDialect.Kind.REQUEST, JsonEnvelope.NONE).identity(), is(true));
-        assertThat(dialect.supplyValidator(LlmDialect.Kind.RESPONSE, JsonEnvelope.NONE).identity(), is(true));
+        assertThat(dialect.supplyExtractor(LlmDialect.Kind.REQUEST, JsonEnvelope.NONE), not(nullValue()));
+        assertThat(dialect.supplyExtractor(LlmDialect.Kind.REQUEST, JsonEnvelope.NONE).identity(), is(true));
+        assertThat(dialect.supplyExtractor(LlmDialect.Kind.RESPONSE, JsonEnvelope.NONE).identity(), is(true));
     }
 
     @Test

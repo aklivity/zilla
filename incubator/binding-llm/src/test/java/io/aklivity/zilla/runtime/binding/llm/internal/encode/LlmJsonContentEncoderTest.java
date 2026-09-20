@@ -50,7 +50,7 @@ public class LlmJsonContentEncoderTest
     @Test
     public void shouldEncodeEventNameAsNoBytes()
     {
-        int written = encoder.encodeEventName("message", encoded, 0, encoded.capacity());
+        int written = encoder.encodeEvent("message", encoded, 0, encoded.capacity());
 
         assertThat(written, equalTo(0));
     }

@@ -524,7 +524,7 @@ public final class LlmClientFactory implements LlmStreamFactory
 
                     if (first)
                     {
-                        final int nameLength = requestEncoder.encodeEventName(pendingRequestEvent, copyBuffer, 0,
+                        final int nameLength = requestEncoder.encodeEvent(pendingRequestEvent, copyBuffer, 0,
                             copyBuffer.capacity());
                         if (nameLength > 0)
                         {

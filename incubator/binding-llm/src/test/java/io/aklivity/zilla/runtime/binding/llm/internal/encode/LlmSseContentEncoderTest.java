@@ -31,7 +31,7 @@ public class LlmSseContentEncoderTest
     @Test
     public void shouldEncodeEventName()
     {
-        int written = encoder.encodeEventName("message", encoded, 0, encoded.capacity());
+        int written = encoder.encodeEvent("message", encoded, 0, encoded.capacity());
 
         assertThat(text(written), equalTo("event: message\n"));
     }
@@ -39,7 +39,7 @@ public class LlmSseContentEncoderTest
     @Test
     public void shouldEncodeNoEventNameWhenNull()
     {
-        int written = encoder.encodeEventName(null, encoded, 0, encoded.capacity());
+        int written = encoder.encodeEvent(null, encoded, 0, encoded.capacity());
 
         assertThat(written, equalTo(0));
     }
@@ -71,7 +71,7 @@ public class LlmSseContentEncoderTest
     @Test
     public void shouldEncodeFullEventInOrder()
     {
-        int position = encoder.encodeEventName("message", encoded, 0, encoded.capacity());
+        int position = encoder.encodeEvent("message", encoded, 0, encoded.capacity());
         position += encodeDataAt(position, "hello there");
         position += encodeFlushAt(position, "42");
 
@@ -81,7 +81,7 @@ public class LlmSseContentEncoderTest
     @Test
     public void shouldReturnZeroWhenDestinationTooSmallForEventName()
     {
-        int written = encoder.encodeEventName("message", encoded, 0, 3);
+        int written = encoder.encodeEvent("message", encoded, 0, 3);
 
         assertThat(written, equalTo(0));
     }
