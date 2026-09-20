@@ -283,4 +283,13 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transformed.100k/client",
+        "${net}/anthropic.transformed.100k/server"})
+    public void shouldEncodeAnthropicNonstreamingTransformed100k() throws Exception
+    {
+        k3po.finish();
+    }
 }

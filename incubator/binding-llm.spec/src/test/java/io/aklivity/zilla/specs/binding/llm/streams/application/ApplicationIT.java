@@ -242,4 +242,13 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/openai.transformed.100k/client",
+        "${app}/openai.transformed.100k/server"})
+    public void shouldForwardOpenaiNonstreamingTransformed100k() throws Exception
+    {
+        k3po.finish();
+    }
 }

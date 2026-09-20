@@ -161,6 +161,17 @@ public class LlmClientIT
     }
 
     @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/openai.transformed.100k/client",
+        "${net}/anthropic.transformed.100k/server"})
+    @ScriptProperty({ "model \"gpt-4\"", "id \"chatcmpl_2\"" })
+    public void shouldTransformOpenaiToAnthropic100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("client.openai.yaml")
     @Specification({
         "${app}/anthropic.transformed/client",
