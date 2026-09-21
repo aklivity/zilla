@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BooleanSupplier;
 
+import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectTerminator;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmNativeEventOutput;
 import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
 

@@ -137,7 +137,7 @@ final class LlmTestDialect implements LlmDialect
         };
     }
 
-    static final class LlmTestResponseDecodeTransform implements JsonTransform
+    static final class LlmTestResponseDecodeTransform implements JsonTransform, LlmDialectEvent
     {
         @Override
         public Status transform(
@@ -148,9 +148,15 @@ final class LlmTestDialect implements LlmDialect
         {
             return sink.transform(control, source, event);
         }
+
+        @Override
+        public void event(
+            String name)
+        {
+        }
     }
 
-    static final class LlmTestResponseEncodeSink implements JsonSink
+    static final class LlmTestResponseEncodeSink implements JsonSink, LlmDialectTerminator
     {
         @Override
         public Status transform(
@@ -165,6 +171,11 @@ final class LlmTestDialect implements LlmDialect
         public boolean identity()
         {
             return true;
+        }
+
+        @Override
+        public void terminate()
+        {
         }
     }
 }

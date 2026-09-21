@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.binding.llm.internal.mapper;
 
 import org.agrona.collections.Int2IntHashMap;
 
+import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectEvent;
 import io.aklivity.zilla.runtime.common.json.JsonController;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
