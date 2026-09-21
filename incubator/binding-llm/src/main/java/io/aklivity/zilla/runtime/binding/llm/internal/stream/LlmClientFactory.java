@@ -956,7 +956,6 @@ public final class LlmClientFactory implements LlmStreamFactory
 
         private int encodeSlot = NO_SLOT;
         private int encodeSlotOffset;
-        private boolean initialStarted;
 
         private final DirectBufferEx eventTerminator;
         private final MutableDirectBufferEx terminatorPeek;
@@ -1093,13 +1092,10 @@ public final class LlmClientFactory implements LlmStreamFactory
 
             if (length > 0)
             {
-                final int flags = initialStarted ? 0 : FLAG_INIT;
-
                 LlmClientFactory.this.doData(net, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                    traceId, authorization, flags, 0L, length + initialPad, buffer, offset, length, emptyRO);
+                    traceId, authorization, FLAG_INIT | FLAG_FIN, 0L, length + initialPad, buffer, offset, length, emptyRO);
 
                 initialSeq += length + initialPad;
-                initialStarted = true;
             }
 
             final int remaining = maxLength - length;
