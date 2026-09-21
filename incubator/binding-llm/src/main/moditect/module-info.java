@@ -19,10 +19,11 @@ module io.aklivity.zilla.runtime.binding.llm
     requires io.aklivity.zilla.runtime.common.json;
     requires io.aklivity.zilla.runtime.common.agrona;
 
+    exports io.aklivity.zilla.runtime.binding.llm.codec;
     exports io.aklivity.zilla.runtime.binding.llm.dialect;
 
+    uses io.aklivity.zilla.runtime.binding.llm.codec.LlmContentCodecSpi;
     uses io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectFactorySpi;
-    uses io.aklivity.zilla.runtime.binding.llm.internal.codec.LlmContentCodecSpi;
 
     provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
         with io.aklivity.zilla.runtime.binding.llm.internal.LlmBindingFactorySpi;
@@ -31,7 +32,7 @@ module io.aklivity.zilla.runtime.binding.llm
         with io.aklivity.zilla.runtime.binding.llm.dialect.LlmOpenaiDialectFactorySpi,
              io.aklivity.zilla.runtime.binding.llm.dialect.LlmAnthropicDialectFactorySpi;
 
-    provides io.aklivity.zilla.runtime.binding.llm.internal.codec.LlmContentCodecSpi
+    provides io.aklivity.zilla.runtime.binding.llm.codec.LlmContentCodecSpi
         with io.aklivity.zilla.runtime.binding.llm.internal.codec.LlmSseContentCodecSpi,
              io.aklivity.zilla.runtime.binding.llm.internal.codec.LlmJsonContentCodecSpi;
 }

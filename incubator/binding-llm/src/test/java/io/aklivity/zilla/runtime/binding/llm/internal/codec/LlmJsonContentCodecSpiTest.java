@@ -25,9 +25,9 @@ import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.binding.llm.internal.decode.LlmContentDecoder;
-import io.aklivity.zilla.runtime.binding.llm.internal.decode.LlmContentDecoderOutput;
-import io.aklivity.zilla.runtime.binding.llm.internal.encode.LlmContentEncoder;
+import io.aklivity.zilla.runtime.binding.llm.codec.LlmContentDecoder;
+import io.aklivity.zilla.runtime.binding.llm.codec.LlmContentDecoderOutput;
+import io.aklivity.zilla.runtime.binding.llm.codec.LlmContentEncoder;
 
 public class LlmJsonContentCodecSpiTest
 {
