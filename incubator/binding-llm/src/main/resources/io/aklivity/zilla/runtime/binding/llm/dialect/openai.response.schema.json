@@ -93,7 +93,10 @@
             }
         },
         "usage": {
-            "type": "object",
+            "type": [
+                "object",
+                "null"
+            ],
             "properties": {
                 "prompt_tokens": {
                     "type": "integer"
