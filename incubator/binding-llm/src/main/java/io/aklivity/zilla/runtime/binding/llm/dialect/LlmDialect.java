@@ -157,7 +157,10 @@ public interface LlmDialect
     /**
      * Creates a new {@link JsonTransform} decoding this dialect's native RESPONSE events into the canonical
      * representation, for a kind: client binding proxying a response to a differently-dialected caller. A
-     * fresh instance backs each cross-dialect response stream.
+     * fresh instance backs each cross-dialect response stream. The returned instance must also implement
+     * {@link LlmDialectEvent} -- as a no-op when this dialect's decode behavior does not depend on the native
+     * out-of-band event name -- since a caller drives every dialect's transform through that interface
+     * uniformly, with no {@code instanceof} check.
      *
      * @return a new decoding transform
      */
@@ -168,7 +171,9 @@ public interface LlmDialect
      * for a kind: client binding proxying a response to a differently-dialected caller. {@code envelope} is
      * the same per-stream metadata channel {@link #detect(JsonEnvelope)} reads from; {@code output} receives
      * the encoded native event name/bytes as they're produced. A fresh instance backs each cross-dialect
-     * response stream.
+     * response stream. The returned instance must also implement {@link LlmDialectTerminator} -- as a no-op
+     * when this dialect has no literal, non-JSON completion terminator -- for the same reason
+     * {@link #supplyResponseDecodeTransform()}'s result must implement {@link LlmDialectEvent}.
      *
      * @param envelope  the per-stream metadata channel
      * @param output    receives each encoded native event

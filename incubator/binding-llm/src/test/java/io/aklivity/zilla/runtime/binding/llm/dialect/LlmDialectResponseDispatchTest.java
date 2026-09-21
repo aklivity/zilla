@@ -57,6 +57,10 @@ public class LlmDialectResponseDispatchTest
         assertThat(decode, not(instanceOf(LlmAnthropicDecodeTransform.class)));
         assertThat(encode, instanceOf(LlmOpenaiEncodeSink.class));
         assertThat(encode, not(instanceOf(LlmAnthropicEncodeSink.class)));
+        assertThat("LlmClientFactory casts every dialect's result to these, unconditionally",
+            decode, instanceOf(LlmDialectEvent.class));
+        assertThat("LlmClientFactory casts every dialect's result to these, unconditionally",
+            encode, instanceOf(LlmDialectTerminator.class));
     }
 
     @Test
@@ -71,6 +75,8 @@ public class LlmDialectResponseDispatchTest
         assertThat(decode, not(instanceOf(LlmOpenaiDecodeTransform.class)));
         assertThat(encode, instanceOf(LlmAnthropicEncodeSink.class));
         assertThat(encode, not(instanceOf(LlmOpenaiEncodeSink.class)));
+        assertThat(decode, instanceOf(LlmDialectEvent.class));
+        assertThat(encode, instanceOf(LlmDialectTerminator.class));
     }
 
     @Test
@@ -87,6 +93,23 @@ public class LlmDialectResponseDispatchTest
         assertThat(encode, instanceOf(LlmTestResponseEncodeSink.class));
         assertThat(encode, not(instanceOf(LlmAnthropicEncodeSink.class)));
         assertThat(encode, not(instanceOf(LlmOpenaiEncodeSink.class)));
+    }
+
+    @Test
+    public void shouldSatisfyTheCastEveryDialectsResponseTransformsMustSupport()
+    {
+        // LlmClientFactory unconditionally casts every dialect's supplyResponseDecodeTransform()/
+        // supplyResponseEncodeSink(...) result to these two interfaces -- a third-party dialect that
+        // forgets to implement them (as a no-op, if it has no real use for either) would compile fine
+        // here but throw ClassCastException the moment a live engine actually builds a cross-dialect
+        // response pipeline for it.
+        LlmDialect dialect = new LlmTestDialect();
+
+        JsonTransform decode = dialect.supplyResponseDecodeTransform();
+        JsonSink encode = dialect.supplyResponseEncodeSink(JsonEnvelope.NONE, LlmDialectResponseDispatchTest::discard);
+
+        assertThat(decode, instanceOf(LlmDialectEvent.class));
+        assertThat(encode, instanceOf(LlmDialectTerminator.class));
     }
 
     private static void discard(
