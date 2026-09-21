@@ -27,6 +27,8 @@ import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.binding.llm.codec.LlmContentDecoderOutput;
+
 public class LlmJsonContentDecoderTest
 {
     private final LlmJsonContentDecoder decoder = new LlmJsonContentDecoder();

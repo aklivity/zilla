@@ -17,8 +17,9 @@ package io.aklivity.zilla.runtime.binding.llm.internal.codec;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 
-import io.aklivity.zilla.runtime.binding.llm.internal.decode.LlmContentDecoder;
-import io.aklivity.zilla.runtime.binding.llm.internal.encode.LlmContentEncoder;
+import io.aklivity.zilla.runtime.binding.llm.codec.LlmContentCodecSpi;
+import io.aklivity.zilla.runtime.binding.llm.codec.LlmContentDecoder;
+import io.aklivity.zilla.runtime.binding.llm.codec.LlmContentEncoder;
 
 public final class LlmTestContentCodecSpi implements LlmContentCodecSpi
 {

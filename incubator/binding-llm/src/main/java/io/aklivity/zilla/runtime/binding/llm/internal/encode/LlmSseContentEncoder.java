@@ -17,6 +17,8 @@ package io.aklivity.zilla.runtime.binding.llm.internal.encode;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 
+import io.aklivity.zilla.runtime.binding.llm.codec.LlmContentEncoder;
+
 /**
  * Encodes {@code text/event-stream} (SSE) framing, the inverse of {@code LlmSseContentDecoder}.
  * <p>

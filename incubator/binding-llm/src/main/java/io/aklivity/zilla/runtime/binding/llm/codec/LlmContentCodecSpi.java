@@ -12,10 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.llm.internal.codec;
-
-import io.aklivity.zilla.runtime.binding.llm.internal.decode.LlmContentDecoder;
-import io.aklivity.zilla.runtime.binding.llm.internal.encode.LlmContentEncoder;
+package io.aklivity.zilla.runtime.binding.llm.codec;
 
 /**
  * Service provider interface for a pluggable content-type codec: a paired {@link LlmContentDecoder}
@@ -23,8 +20,8 @@ import io.aklivity.zilla.runtime.binding.llm.internal.encode.LlmContentEncoder;
  * can never end up with one direction supported and not the other.
  * <p>
  * Each supported content-type provides an implementation, registered via {@link java.util.ServiceLoader}
- * in {@code META-INF/services/io.aklivity.zilla.runtime.binding.llm.internal.codec.LlmContentCodecSpi}.
- * {@link LlmContentCodecFactory} selects the correct provider by matching {@link #contentType()} against
+ * in {@code META-INF/services/io.aklivity.zilla.runtime.binding.llm.codec.LlmContentCodecSpi}.
+ * A dispatcher selects the correct provider by matching {@link #contentType()} against
  * the content-type of the stream being decoded or encoded.
  * </p>
  */

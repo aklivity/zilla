@@ -21,8 +21,9 @@ import java.util.Map;
 import java.util.ServiceLoader;
 import java.util.function.Supplier;
 
-import io.aklivity.zilla.runtime.binding.llm.internal.decode.LlmContentDecoder;
-import io.aklivity.zilla.runtime.binding.llm.internal.encode.LlmContentEncoder;
+import io.aklivity.zilla.runtime.binding.llm.codec.LlmContentCodecSpi;
+import io.aklivity.zilla.runtime.binding.llm.codec.LlmContentDecoder;
+import io.aklivity.zilla.runtime.binding.llm.codec.LlmContentEncoder;
 
 /**
  * Dispatches to the {@link LlmContentCodecSpi} registered for a stream's content-type.
