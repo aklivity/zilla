@@ -91,6 +91,7 @@ public final class LlmClientFactory implements LlmStreamFactory
     private static final String METHOD_POST = "POST";
     private static final String CONTENT_TYPE_JSON = "application/json";
     private static final String ENVELOPE_EVENT = "event";
+    private static final String ENVELOPE_MODEL = "model";
     private static final String ENVELOPE_STREAMING = "streaming";
     private static final String ENVELOPE_USAGE_INPUT_TOKENS = "usage.inputTokens";
     private static final String ENVELOPE_USAGE_CACHE_WRITE_TOKENS = "usage.cacheWriteTokens";
@@ -527,7 +528,7 @@ public final class LlmClientFactory implements LlmStreamFactory
             state = LlmState.openingInitial(state);
             state = LlmState.openInitial(state);
 
-            if (binding.signer == null)
+            if (binding.signer == null && !delegate.needsModel)
             {
                 delegate.doNetBegin(traceId, authorization);
             }
@@ -733,7 +734,7 @@ public final class LlmClientFactory implements LlmStreamFactory
             state = LlmState.closingInitial(state);
             state = LlmState.closeInitial(state);
 
-            if (binding.signer != null)
+            if (binding.signer != null || delegate.needsModel)
             {
                 delegate.doNetBeginSigned(traceId, authorization);
             }
@@ -1037,6 +1038,7 @@ public final class LlmClientFactory implements LlmStreamFactory
         private final String scheme;
         private final String authority;
         private final String requestPath;
+        private final boolean needsModel;
         private final String requestContentType;
 
         private LlmContentDecoder decoder;
@@ -1068,7 +1070,7 @@ public final class LlmClientFactory implements LlmStreamFactory
         private int encodeSlot = NO_SLOT;
         private int encodeSlotOffset;
 
-        private final boolean signing;
+        private final boolean buffered;
         private ExpandableArrayBuffer signBuffer;
         private int signLength;
 
@@ -1105,9 +1107,10 @@ public final class LlmClientFactory implements LlmStreamFactory
             this.scheme = server.scheme;
             this.authority = server.host + ":" + server.port;
             this.requestPath = client.target.requestPath(server.path);
+            this.needsModel = requestPath.contains(LlmDialect.MODEL_PLACEHOLDER);
             this.requestContentType = requestContentType;
-            this.signing = client.binding.signer != null;
-            this.signBuffer = signing ? new ExpandableArrayBuffer() : null;
+            this.buffered = client.binding.signer != null || needsModel;
+            this.signBuffer = buffered ? new ExpandableArrayBuffer() : null;
             this.eventTerminator = client.transformEvents ? client.target.terminator(Kind.RESPONSE) : null;
             this.terminatorPeek = new UnsafeBufferEx(new byte[eventTerminator != null ? eventTerminator.capacity() : 0]);
             this.nativeOutput = this::onNativeEvent;
@@ -1178,7 +1181,7 @@ public final class LlmClientFactory implements LlmStreamFactory
             int offset,
             int length)
         {
-            if (signing && net == null)
+            if (buffered && net == null)
             {
                 appendSignRequest(traceId, authorization, buffer, offset, length);
             }
@@ -1239,51 +1242,64 @@ public final class LlmClientFactory implements LlmStreamFactory
         {
             if (signBuffer != null)
             {
-                state = LlmState.openingInitial(state);
+                final String resolvedPath = needsModel
+                    ? LlmRequestPathResolver.resolve(requestPath, client.envelope.get(ENVELOPE_MODEL, 0))
+                    : requestPath;
 
-                final String credentials = authorizationCredentials(client.binding, authorization);
-
-                final List<Map.Entry<String, String>> headers = new ArrayList<>(6);
-                headers.add(Map.entry(HEADER_METHOD, METHOD_POST));
-                headers.add(Map.entry(HEADER_SCHEME, scheme));
-                headers.add(Map.entry(HEADER_AUTHORITY, authority));
-                headers.add(Map.entry(HEADER_PATH, requestPath));
-                headers.add(Map.entry(HEADER_CONTENT_TYPE, requestContentType));
-                if (credentials != null)
+                if (resolvedPath == null)
                 {
-                    headers.add(Map.entry(client.target.credentialsHeader(), credentials));
+                    cleanupSigning(traceId, authorization);
                 }
-
-                final List<Map.Entry<String, String>> signedHeaders = client.binding.signer.sign(METHOD_POST, scheme,
-                    authority, requestPath, headers, signBuffer, 0, signLength);
-
-                final HttpBeginExFW.Builder httpBeginExBuilder = httpBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
-                    .typeId(httpTypeId);
-
-                headers.forEach(h -> httpBeginExBuilder.headersItem(i -> i.name(h.getKey()).value(h.getValue())));
-                if (signedHeaders != null)
+                else
                 {
-                    signedHeaders.forEach(h -> httpBeginExBuilder.headersItem(i -> i.name(h.getKey()).value(h.getValue())));
+                    state = LlmState.openingInitial(state);
+
+                    final String credentials = authorizationCredentials(client.binding, authorization);
+
+                    final List<Map.Entry<String, String>> headers = new ArrayList<>(6);
+                    headers.add(Map.entry(HEADER_METHOD, METHOD_POST));
+                    headers.add(Map.entry(HEADER_SCHEME, scheme));
+                    headers.add(Map.entry(HEADER_AUTHORITY, authority));
+                    headers.add(Map.entry(HEADER_PATH, resolvedPath));
+                    headers.add(Map.entry(HEADER_CONTENT_TYPE, requestContentType));
+                    if (credentials != null)
+                    {
+                        headers.add(Map.entry(client.target.credentialsHeader(), credentials));
+                    }
+
+                    final List<Map.Entry<String, String>> signedHeaders = client.binding.signer != null
+                        ? client.binding.signer.sign(METHOD_POST, scheme, authority, resolvedPath, headers,
+                            signBuffer, 0, signLength)
+                        : null;
+
+                    final HttpBeginExFW.Builder httpBeginExBuilder = httpBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                        .typeId(httpTypeId);
+
+                    headers.forEach(h -> httpBeginExBuilder.headersItem(i -> i.name(h.getKey()).value(h.getValue())));
+                    if (signedHeaders != null)
+                    {
+                        signedHeaders.forEach(h -> httpBeginExBuilder.headersItem(i -> i.name(h.getKey()).value(h.getValue())));
+                    }
+
+                    final HttpBeginExFW httpBeginEx = httpBeginExBuilder.build();
+
+                    net = LlmClientFactory.this.newStream(this::onNetMessage, originId, routedId, initialId,
+                        initialSeq, initialAck, initialMax, traceId, authorization, client.affinity, httpBeginEx);
+
+                    state = LlmState.openInitial(state);
+
+                    final int bufferedLength = signLength;
+                    signedRequestRO.wrap(signBuffer, 0, bufferedLength);
+                    signBuffer = null;
+                    signLength = 0;
+
+                    if (bufferedLength > 0)
+                    {
+                        encodeNet(traceId, authorization, signedRequestRO, 0, bufferedLength);
+                    }
+
+                    doNetEnd(traceId, authorization);
                 }
-
-                final HttpBeginExFW httpBeginEx = httpBeginExBuilder.build();
-
-                net = LlmClientFactory.this.newStream(this::onNetMessage, originId, routedId, initialId,
-                    initialSeq, initialAck, initialMax, traceId, authorization, client.affinity, httpBeginEx);
-
-                state = LlmState.openInitial(state);
-
-                final int bufferedLength = signLength;
-                signedRequestRO.wrap(signBuffer, 0, bufferedLength);
-                signBuffer = null;
-                signLength = 0;
-
-                if (bufferedLength > 0)
-                {
-                    encodeNet(traceId, authorization, signedRequestRO, 0, bufferedLength);
-                }
-
-                doNetEnd(traceId, authorization);
             }
         }
 

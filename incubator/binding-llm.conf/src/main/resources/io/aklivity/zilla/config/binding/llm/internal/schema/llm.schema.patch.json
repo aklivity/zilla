@@ -153,8 +153,31 @@
                                         "sign":
                                         {
                                             "title": "Sign",
-                                            "description": "Signs the fully-buffered outbound request using the named request signer before it is sent, for an upstream that requires a signature computed over the complete request -- method, path, headers and body -- rather than a single static credential value in one header. Accepts the name of any request signer registered with the binding.",
-                                            "type": "string"
+                                            "description": "Signs the fully-buffered outbound request using the named request signer before it is sent, for an upstream that requires a signature computed over the complete request -- method, path, headers and body -- rather than a single static credential value in one header. Accepts the name of any request signer registered with the binding, either bare or paired with an options object the named signer resolves itself.",
+                                            "oneOf":
+                                            [
+                                                {
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties":
+                                                    {
+                                                        "name":
+                                                        {
+                                                            "title": "Name",
+                                                            "type": "string"
+                                                        },
+                                                        "options":
+                                                        {
+                                                            "title": "Options",
+                                                            "type": "object"
+                                                        }
+                                                    },
+                                                    "required": [ "name" ],
+                                                    "additionalProperties": false
+                                                }
+                                            ]
                                         }
                                     },
                                     "required": [ "dialect", "server" ],

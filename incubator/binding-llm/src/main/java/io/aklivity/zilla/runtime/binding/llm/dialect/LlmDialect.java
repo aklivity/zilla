@@ -30,6 +30,14 @@ import io.aklivity.zilla.runtime.common.json.JsonTransform;
 public interface LlmDialect
 {
     /**
+     * Literal token a {@link #requestPath(String)} result may contain, resolved per request -- not by the
+     * dialect itself -- from the request's own selected model, percent-encoded as a URL path segment. A
+     * dialect that never needs this simply never includes the token, at no cost beyond a single substring
+     * check for the caller resolving it.
+     */
+    String MODEL_PLACEHOLDER = "{model}";
+
+    /**
      * Distinguishes the request direction from the response direction of an exchange, since each has its
      * own schema and its own mapping to the canonical representation.
      */
@@ -67,9 +75,14 @@ public interface LlmDialect
      * binding dialing out to this dialect's upstream: {@code basePath} followed by this dialect's own
      * fixed operation suffix (e.g. {@code /chat/completions} for OpenAI's Chat Completions API, appended
      * after {@code basePath} to form {@code /v1/chat/completions} when {@code basePath} is {@code /v1}).
+     * <p>
+     * The returned path may carry the literal token {@link #MODEL_PLACEHOLDER}, for an upstream whose own
+     * path names the model rather than carrying it only in the request body -- resolved once the request's
+     * model is known, since this method is called once per stream before any request body byte arrives.
+     * </p>
      *
      * @param basePath  the configured base path preceding this dialect's operation suffix
-     * @return the request path
+     * @return the request path, possibly carrying {@link #MODEL_PLACEHOLDER}
      */
     String requestPath(
         String basePath);

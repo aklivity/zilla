@@ -23,7 +23,7 @@ public final class LlmOptionsConfig extends OptionsConfig
     public final String dialect;
     public final LlmAuthorizationConfig authorization;
     public final LlmServerConfig server;
-    public final String sign;
+    public final LlmSignConfig sign;
 
     public static LlmOptionsConfigBuilder<LlmOptionsConfig> builder()
     {
@@ -40,7 +40,7 @@ public final class LlmOptionsConfig extends OptionsConfig
         String dialect,
         LlmAuthorizationConfig authorization,
         LlmServerConfig server,
-        String sign)
+        LlmSignConfig sign)
     {
         super(null, null);
         this.dialect = dialect;

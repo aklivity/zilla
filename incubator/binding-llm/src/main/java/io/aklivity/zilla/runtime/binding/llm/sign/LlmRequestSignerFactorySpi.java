@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.sign;
 
+import io.aklivity.zilla.config.engine.OptionsConfig;
+
 /**
  * Service provider interface for a pluggable {@link LlmRequestSigner} implementation.
  * <p>
@@ -35,8 +37,12 @@ public interface LlmRequestSignerFactorySpi
      *
      * @param context  the context giving access to engine services this signer may need, e.g. a store for
      *                 cross-worker credential coordination
+     * @param options  this signer's own configuration, resolved from the {@code options} sub-object paired
+     *                 with its name in the binding's {@code sign} configuration, or {@code null} when the
+     *                 binding selected this signer by its bare name with no options
      * @return a new signer
      */
     LlmRequestSigner create(
-        LlmRequestSignerContext context);
+        LlmRequestSignerContext context,
+        OptionsConfig options);
 }

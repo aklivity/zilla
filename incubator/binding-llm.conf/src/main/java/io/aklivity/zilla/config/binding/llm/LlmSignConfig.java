@@ -12,26 +12,36 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.llm.internal.sign;
+package io.aklivity.zilla.config.binding.llm;
 
+import static java.util.function.Function.identity;
+
+import java.util.function.Function;
+
+import io.aklivity.zilla.config.engine.Config;
 import io.aklivity.zilla.config.engine.OptionsConfig;
-import io.aklivity.zilla.runtime.binding.llm.sign.LlmRequestSigner;
-import io.aklivity.zilla.runtime.binding.llm.sign.LlmRequestSignerContext;
-import io.aklivity.zilla.runtime.binding.llm.sign.LlmRequestSignerFactorySpi;
 
-public final class LlmTestRequestSignerFactorySpi implements LlmRequestSignerFactorySpi
+public final class LlmSignConfig extends Config
 {
-    @Override
-    public String name()
+    public final String name;
+    public final OptionsConfig options;
+
+    public static LlmSignConfigBuilder<LlmSignConfig> builder()
     {
-        return "test";
+        return new LlmSignConfigBuilder<>(identity());
     }
 
-    @Override
-    public LlmRequestSigner create(
-        LlmRequestSignerContext context,
+    public static <T> LlmSignConfigBuilder<T> builder(
+        Function<LlmSignConfig, T> mapper)
+    {
+        return new LlmSignConfigBuilder<>(mapper);
+    }
+
+    LlmSignConfig(
+        String name,
         OptionsConfig options)
     {
-        return new LlmTestRequestSigner();
+        this.name = name;
+        this.options = options;
     }
 }

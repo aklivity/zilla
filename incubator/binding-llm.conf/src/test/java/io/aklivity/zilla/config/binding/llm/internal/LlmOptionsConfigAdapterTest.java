@@ -79,7 +79,8 @@ public class LlmOptionsConfigAdapterTest
         LlmOptionsConfig options = jsonb.fromJson(text, LlmOptionsConfig.class);
 
         assertThat(options, not(nullValue()));
-        assertThat(options.sign, equalTo("test"));
+        assertThat(options.sign.name, equalTo("test"));
+        assertThat(options.sign.options, nullValue());
     }
 
     @Test
@@ -94,6 +95,119 @@ public class LlmOptionsConfigAdapterTest
 
         assertThat(text, not(nullValue()));
         assertThat(text, equalTo("{\"dialect\":\"openai\",\"sign\":\"test\"}"));
+    }
+
+    @Test
+    public void shouldReadSignWithNameOnlyObjectForm()
+    {
+        String text =
+                "{" +
+                    "\"dialect\": \"openai\"," +
+                    "\"sign\": {" +
+                        "\"name\": \"test\"" +
+                    "}" +
+                "}";
+
+        LlmOptionsConfig options = jsonb.fromJson(text, LlmOptionsConfig.class);
+
+        assertThat(options, not(nullValue()));
+        assertThat(options.sign.name, equalTo("test"));
+        assertThat(options.sign.options, nullValue());
+    }
+
+    @Test
+    public void shouldWriteSignWithNameOnlyObjectFormAsBareString()
+    {
+        LlmOptionsConfig options = LlmOptionsConfig.builder()
+            .dialect("openai")
+            .sign()
+                .name("test")
+                .build()
+            .build();
+
+        String text = jsonb.toJson(options);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, equalTo("{\"dialect\":\"openai\",\"sign\":\"test\"}"));
+    }
+
+    @Test
+    public void shouldReadSignWithOptions()
+    {
+        String text =
+                "{" +
+                    "\"dialect\": \"openai\"," +
+                    "\"sign\": {" +
+                        "\"name\": \"test-options\"," +
+                        "\"options\": {" +
+                            "\"value\": \"region-1\"" +
+                        "}" +
+                    "}" +
+                "}";
+
+        LlmOptionsConfig options = jsonb.fromJson(text, LlmOptionsConfig.class);
+
+        assertThat(options, not(nullValue()));
+        assertThat(options.sign.name, equalTo("test-options"));
+        assertThat(options.sign.options, not(nullValue()));
+        assertThat(((LlmTestSignOptionsConfig) options.sign.options).value, equalTo("region-1"));
+    }
+
+    @Test
+    public void shouldWriteSignWithOptions()
+    {
+        LlmOptionsConfig options = LlmOptionsConfig.builder()
+            .dialect("openai")
+            .sign()
+                .name("test-options")
+                .options(new LlmTestSignOptionsConfig("region-1"))
+                .build()
+            .build();
+
+        String text = jsonb.toJson(options);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, equalTo(
+            "{\"dialect\":\"openai\",\"sign\":{\"name\":\"test-options\",\"options\":{\"value\":\"region-1\"}}}"));
+    }
+
+    @Test
+    public void shouldRoundTripSignWithOptions()
+    {
+        LlmOptionsConfig options = LlmOptionsConfig.builder()
+            .dialect("openai")
+            .sign()
+                .name("test-options")
+                .options(new LlmTestSignOptionsConfig("region-1"))
+                .build()
+            .build();
+
+        String text = jsonb.toJson(options);
+        LlmOptionsConfig roundTripped = jsonb.fromJson(text, LlmOptionsConfig.class);
+
+        assertThat(roundTripped.sign.name, equalTo("test-options"));
+        assertThat(((LlmTestSignOptionsConfig) roundTripped.sign.options).value, equalTo("region-1"));
+    }
+
+    @Test
+    public void shouldReadSignWithUnregisteredNameAndOptionsAsAbsentOptions()
+    {
+        String text =
+                "{" +
+                    "\"dialect\": \"openai\"," +
+                    "\"sign\": {" +
+                        "\"name\": \"unregistered\"," +
+                        "\"options\": {" +
+                            "\"value\": \"region-1\"" +
+                        "}" +
+                    "}" +
+                "}";
+
+        LlmOptionsConfig options = jsonb.fromJson(text, LlmOptionsConfig.class);
+
+        assertThat(options, not(nullValue()));
+        assertThat(options.sign.name, equalTo("unregistered"));
+        assertThat(options.sign.options, nullValue());
     }
 
     @Test

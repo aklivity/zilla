@@ -26,7 +26,7 @@ public final class LlmOptionsConfigBuilder<T> extends ConfigBuilder<T, LlmOption
     private String dialect;
     private LlmAuthorizationConfig authorization;
     private LlmServerConfig server;
-    private String sign;
+    private LlmSignConfig sign;
 
     LlmOptionsConfigBuilder(
         Function<OptionsConfig, T> mapper)
@@ -73,10 +73,22 @@ public final class LlmOptionsConfigBuilder<T> extends ConfigBuilder<T, LlmOption
     }
 
     public LlmOptionsConfigBuilder<T> sign(
-        String sign)
+        String name)
+    {
+        this.sign = LlmSignConfig.builder().name(name).build();
+        return this;
+    }
+
+    public LlmOptionsConfigBuilder<T> sign(
+        LlmSignConfig sign)
     {
         this.sign = sign;
         return this;
+    }
+
+    public LlmSignConfigBuilder<LlmOptionsConfigBuilder<T>> sign()
+    {
+        return LlmSignConfig.builder(this::sign);
     }
 
     @Override

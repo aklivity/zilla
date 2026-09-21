@@ -26,6 +26,8 @@ import static org.mockito.Mockito.when;
 
 import org.junit.Test;
 
+import io.aklivity.zilla.config.binding.llm.LlmSignConfig;
+import io.aklivity.zilla.config.engine.OptionsConfig;
 import io.aklivity.zilla.runtime.binding.llm.sign.LlmRequestSigner;
 import io.aklivity.zilla.runtime.binding.llm.sign.LlmRequestSignerContext;
 import io.aklivity.zilla.runtime.binding.llm.sign.LlmRequestSignerFactorySpi;
@@ -43,14 +45,15 @@ public class LlmRequestSignerResolverTest
         LlmRequestSigner resolved = resolver.resolve();
 
         assertThat(resolved, nullValue());
-        verify(factory, never()).create(any());
+        verify(factory, never()).create(any(), any());
     }
 
     @Test
     public void shouldResolveConfiguredSigner()
     {
         LlmRequestSigner signer = mock(LlmRequestSigner.class);
-        LlmRequestSignerResolver resolver = new LlmRequestSignerResolver("mock", context, of(factory("mock", signer)));
+        LlmRequestSignerResolver resolver = new LlmRequestSignerResolver(sign("mock", null), context,
+            of(factory("mock", signer)));
 
         LlmRequestSigner resolved = resolver.resolve();
 
@@ -61,22 +64,44 @@ public class LlmRequestSignerResolverTest
     public void shouldPassContextToFactory()
     {
         LlmRequestSignerFactorySpi factory = factory("mock", mock(LlmRequestSigner.class));
-        LlmRequestSignerResolver resolver = new LlmRequestSignerResolver("mock", context, of(factory));
+        LlmRequestSignerResolver resolver = new LlmRequestSignerResolver(sign("mock", null), context, of(factory));
 
         resolver.resolve();
 
-        verify(factory).create(context);
+        verify(factory).create(context, null);
+    }
+
+    @Test
+    public void shouldPassParsedOptionsToFactory()
+    {
+        OptionsConfig options = mock(OptionsConfig.class);
+        LlmRequestSignerFactorySpi factory = factory("mock", mock(LlmRequestSigner.class));
+        LlmRequestSignerResolver resolver = new LlmRequestSignerResolver(sign("mock", options), context, of(factory));
+
+        resolver.resolve();
+
+        verify(factory).create(context, options);
     }
 
     @Test
     public void shouldReturnNullForUnregisteredSign()
     {
-        LlmRequestSignerResolver resolver = new LlmRequestSignerResolver("unregistered", context,
+        LlmRequestSignerResolver resolver = new LlmRequestSignerResolver(sign("unregistered", null), context,
             of(factory("mock", mock(LlmRequestSigner.class))));
 
         LlmRequestSigner resolved = resolver.resolve();
 
         assertThat(resolved, nullValue());
+    }
+
+    private static LlmSignConfig sign(
+        String name,
+        OptionsConfig options)
+    {
+        return LlmSignConfig.builder()
+            .name(name)
+            .options(options)
+            .build();
     }
 
     private static LlmRequestSignerFactorySpi factory(
@@ -85,7 +110,7 @@ public class LlmRequestSignerResolverTest
     {
         LlmRequestSignerFactorySpi factory = mock(LlmRequestSignerFactorySpi.class);
         when(factory.name()).thenReturn(name);
-        when(factory.create(any())).thenReturn(signer);
+        when(factory.create(any(), any())).thenReturn(signer);
         return factory;
     }
 }

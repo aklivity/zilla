@@ -12,15 +12,18 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-module io.aklivity.zilla.config.binding.llm
+package io.aklivity.zilla.config.binding.llm.internal;
+
+import io.aklivity.zilla.config.engine.OptionsConfig;
+
+final class LlmTestSignOptionsConfig extends OptionsConfig
 {
-    requires io.aklivity.zilla.config.engine;
-    requires io.aklivity.zilla.runtime.common.feature;
+    final String value;
 
-    exports io.aklivity.zilla.config.binding.llm;
-
-    uses io.aklivity.zilla.config.binding.llm.LlmSignInfo;
-
-    provides io.aklivity.zilla.config.engine.BindingInfo
-        with io.aklivity.zilla.config.binding.llm.internal.LlmBindingInfo;
+    LlmTestSignOptionsConfig(
+        String value)
+    {
+        super(null, null);
+        this.value = value;
+    }
 }

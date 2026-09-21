@@ -444,6 +444,98 @@ public class LlmSchemaValidationTest
         reader.read(text);
     }
 
+    @Test
+    public void shouldAcceptClientWithSignObjectForm()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: openai
+                  server: http://example.com:8080
+                  sign:
+                    name: test
+                exit: net0
+            """;
+
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
+    }
+
+    @Test
+    public void shouldAcceptClientWithSignObjectFormAndOptions()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: openai
+                  server: http://example.com:8080
+                  sign:
+                    name: test
+                    options:
+                      region: us-east-1
+                exit: net0
+            """;
+
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectClientWithSignObjectFormMissingName()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: openai
+                  server: http://example.com:8080
+                  sign:
+                    options:
+                      region: us-east-1
+                exit: net0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectClientWithSignObjectFormUnknownProperty()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: openai
+                  server: http://example.com:8080
+                  sign:
+                    name: test
+                    unknown: value
+                exit: net0
+            """;
+
+        reader.read(text);
+    }
+
     @Test(expected = RuntimeException.class)
     public void shouldRejectClientWithNonStringServer()
     {

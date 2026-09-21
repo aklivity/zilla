@@ -14,18 +14,26 @@
  */
 package io.aklivity.zilla.config.binding.llm.internal;
 
+import static java.util.stream.Collectors.toMap;
+
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Map;
+import java.util.ServiceLoader;
 
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonString;
+import jakarta.json.JsonValue;
 
 import io.aklivity.zilla.config.binding.llm.LlmOptionsConfig;
 import io.aklivity.zilla.config.binding.llm.LlmOptionsConfigBuilder;
+import io.aklivity.zilla.config.binding.llm.LlmSignConfig;
+import io.aklivity.zilla.config.binding.llm.LlmSignInfo;
 import io.aklivity.zilla.config.engine.ConfigAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfig;
+import io.aklivity.zilla.config.engine.factory.Factory;
 
 public final class LlmOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, JsonObject>
 {
@@ -35,12 +43,23 @@ public final class LlmOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, 
     private static final String AUTHORIZATION_CREDENTIALS_DEFAULT = "Bearer {credentials}";
     private static final String SERVER_NAME = "server";
     private static final String SIGN_NAME = "sign";
+    private static final String SIGN_TYPE_NAME = "name";
+    private static final String SIGN_OPTIONS_NAME = "options";
 
     private static final String SCHEME_HTTP = "http";
     private static final String SCHEME_HTTPS = "https";
     private static final int PORT_HTTP = 80;
     private static final int PORT_HTTPS = 443;
     private static final String DEFAULT_PATH = "/v1";
+
+    private final Map<String, ConfigAdapter<OptionsConfig, JsonObject>> signOptionsByType;
+
+    public LlmOptionsConfigAdapter()
+    {
+        this.signOptionsByType = Factory.instantiate(ServiceLoader.load(LlmSignInfo.class))
+            .stream()
+            .collect(toMap(LlmSignInfo::type, LlmSignInfo::options));
+    }
 
     @Override
     public JsonObject adaptToJson(
@@ -74,7 +93,7 @@ public final class LlmOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, 
 
         if (llmOptions.sign != null)
         {
-            object.add(SIGN_NAME, llmOptions.sign);
+            object.add(SIGN_NAME, adaptSignToJson(llmOptions.sign));
         }
 
         return object.build();
@@ -114,10 +133,60 @@ public final class LlmOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, 
 
         if (object.containsKey(SIGN_NAME))
         {
-            llmOptions.sign(object.getString(SIGN_NAME));
+            llmOptions.sign(adaptSign(object.get(SIGN_NAME)));
         }
 
         return llmOptions.build();
+    }
+
+    private JsonValue adaptSignToJson(
+        LlmSignConfig sign)
+    {
+        JsonValue value;
+        if (sign.options != null)
+        {
+            JsonObjectBuilder signObject = Json.createObjectBuilder()
+                .add(SIGN_TYPE_NAME, sign.name);
+
+            ConfigAdapter<OptionsConfig, JsonObject> adapter = signOptionsByType.get(sign.name);
+            if (adapter != null)
+            {
+                signObject.add(SIGN_OPTIONS_NAME, adapter.adaptToJson(sign.options));
+            }
+
+            value = signObject.build();
+        }
+        else
+        {
+            value = Json.createValue(sign.name);
+        }
+        return value;
+    }
+
+    private LlmSignConfig adaptSign(
+        JsonValue value)
+    {
+        JsonObject object = value instanceof JsonString
+            ? Json.createObjectBuilder().add(SIGN_TYPE_NAME, ((JsonString) value).getString()).build()
+            : (JsonObject) value;
+
+        String name = object.getString(SIGN_TYPE_NAME);
+        OptionsConfig options = object.containsKey(SIGN_OPTIONS_NAME)
+            ? adaptSignOptions(name, object.getJsonObject(SIGN_OPTIONS_NAME))
+            : null;
+
+        return LlmSignConfig.builder()
+            .name(name)
+            .options(options)
+            .build();
+    }
+
+    private OptionsConfig adaptSignOptions(
+        String name,
+        JsonObject object)
+    {
+        ConfigAdapter<OptionsConfig, JsonObject> adapter = signOptionsByType.get(name);
+        return adapter != null ? adapter.adaptFromJson(object) : null;
     }
 
     // a server value that fails to parse as an http(s) URI is left absent, the same as an

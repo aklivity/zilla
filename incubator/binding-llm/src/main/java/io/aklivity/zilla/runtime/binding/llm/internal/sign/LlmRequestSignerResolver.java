@@ -23,6 +23,7 @@ import java.util.Optional;
 import java.util.ServiceLoader;
 import java.util.function.Supplier;
 
+import io.aklivity.zilla.config.binding.llm.LlmSignConfig;
 import io.aklivity.zilla.runtime.binding.llm.sign.LlmRequestSigner;
 import io.aklivity.zilla.runtime.binding.llm.sign.LlmRequestSignerContext;
 import io.aklivity.zilla.runtime.binding.llm.sign.LlmRequestSignerFactorySpi;
@@ -40,21 +41,21 @@ public final class LlmRequestSignerResolver
     private final LlmRequestSigner signer;
 
     public LlmRequestSignerResolver(
-        String sign,
+        LlmSignConfig sign,
         LlmRequestSignerContext context)
     {
         this(sign, context, loadFactories());
     }
 
     LlmRequestSignerResolver(
-        String sign,
+        LlmSignConfig sign,
         LlmRequestSignerContext context,
         Collection<LlmRequestSignerFactorySpi> factories)
     {
         final Map<String, LlmRequestSignerFactorySpi> factoriesByName = factories.stream()
             .collect(toMap(LlmRequestSignerFactorySpi::name, identity()));
         this.signer = sign != null
-            ? Optional.ofNullable(factoriesByName.get(sign)).map(f -> f.create(context)).orElse(null)
+            ? Optional.ofNullable(factoriesByName.get(sign.name)).map(f -> f.create(context, sign.options)).orElse(null)
             : null;
     }
 
