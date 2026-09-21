@@ -12,24 +12,20 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.llm.internal.sign;
+package io.aklivity.zilla.runtime.binding.llm.dialect;
 
-import io.aklivity.zilla.runtime.binding.llm.sign.LlmRequestSigner;
-import io.aklivity.zilla.runtime.binding.llm.sign.LlmRequestSignerContext;
-import io.aklivity.zilla.runtime.binding.llm.sign.LlmRequestSignerFactorySpi;
-
-public final class LlmTestRequestSignerFactorySpi implements LlmRequestSignerFactorySpi
+public final class LlmSigningUnavailableTestDialectFactorySpi implements LlmDialectFactorySpi
 {
     @Override
     public String name()
     {
-        return "test";
+        return "test-signing-unavailable";
     }
 
     @Override
-    public LlmRequestSigner create(
-        LlmRequestSignerContext context)
+    public LlmDialect create(
+        LlmDialectContext context)
     {
-        return new LlmTestRequestSigner();
+        return new LlmSigningUnavailableTestDialect();
     }
 }

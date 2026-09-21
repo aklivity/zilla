@@ -26,15 +26,11 @@ import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialect;
 import io.aklivity.zilla.runtime.binding.llm.internal.dialect.LlmDialectResolver;
-import io.aklivity.zilla.runtime.binding.llm.internal.sign.LlmRequestSignerResolver;
 import io.aklivity.zilla.runtime.binding.llm.sign.LlmRequestSigner;
-import io.aklivity.zilla.runtime.binding.llm.sign.LlmRequestSignerContext;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
-import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 
 public final class LlmBindingConfig
 {
@@ -67,7 +63,7 @@ public final class LlmBindingConfig
         this.kind = binding.kind;
         this.options = binding.options instanceof LlmOptionsConfig o ? o : DEFAULT_OPTIONS;
         this.routes = binding.routes.stream().map(LlmRouteConfig::new).collect(toList());
-        this.dialects = new LlmDialectResolver(this.options.dialect);
+        this.dialects = new LlmDialectResolver(this.options.dialect, context::signaler);
         this.guard = Optional.ofNullable(this.options.authorization)
             .map(a -> a.name)
             .map(binding.resolveId::applyAsLong)
@@ -80,7 +76,9 @@ public final class LlmBindingConfig
         this.credentialsPattern = credentials != null
             ? Pattern.compile(credentials.replace(CREDENTIALS_PLACEHOLDER, "(?<credentials>[^\\s]+)"))
             : null;
-        this.signer = new LlmRequestSignerResolver(this.options.sign, new LlmSignerContext(binding, context)).resolve();
+        this.signer = this.options.dialect != null
+            ? Optional.ofNullable(dialects.dialectNamed(this.options.dialect)).map(LlmDialect::signer).orElse(null)
+            : null;
     }
 
     public LlmAuthorizationResult authorize(
@@ -156,32 +154,5 @@ public final class LlmBindingConfig
         String name)
     {
         return dialects.dialectNamed(name);
-    }
-
-    private static final class LlmSignerContext implements LlmRequestSignerContext
-    {
-        private final BindingConfig binding;
-        private final EngineContext context;
-
-        private LlmSignerContext(
-            BindingConfig binding,
-            EngineContext context)
-        {
-            this.binding = binding;
-            this.context = context;
-        }
-
-        @Override
-        public StoreHandler store(
-            String name)
-        {
-            return context.supplyStore(binding.resolveId.applyAsLong(name));
-        }
-
-        @Override
-        public Signaler signaler()
-        {
-            return context.signaler();
-        }
     }
 }

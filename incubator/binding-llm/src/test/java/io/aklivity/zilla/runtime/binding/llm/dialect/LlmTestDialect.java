@@ -31,6 +31,19 @@ import io.aklivity.zilla.runtime.common.json.JsonTransform;
 // this dialect's own response mapping.
 final class LlmTestDialect implements LlmDialect
 {
+    private final boolean modelPlaceholder;
+
+    LlmTestDialect()
+    {
+        this(false);
+    }
+
+    LlmTestDialect(
+        boolean modelPlaceholder)
+    {
+        this.modelPlaceholder = modelPlaceholder;
+    }
+
     @Override
     public String name()
     {
@@ -48,7 +61,7 @@ final class LlmTestDialect implements LlmDialect
     public String requestPath(
         String basePath)
     {
-        return basePath;
+        return modelPlaceholder ? basePath + "/models/" + MODEL_PLACEHOLDER : basePath;
     }
 
     @Override

@@ -19,6 +19,8 @@ import java.util.Map;
 
 import org.agrona.DirectBuffer;
 
+import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialect;
+
 /**
  * Computes the additional headers required to authenticate a fully-buffered outbound request to its upstream,
  * for a {@code kind: client} binding whose upstream requires a signature computed over the complete request --
@@ -28,14 +30,21 @@ import org.agrona.DirectBuffer;
  * before opening the network connection, rather than streaming the request as it arrives.
  * </p>
  * <p>
- * Implementations are created by a registered {@link LlmRequestSignerFactorySpi}, discovered via
- * {@link java.util.ServiceLoader}, so signers can be contributed from outside this module.
+ * Obtained from the binding's own configured {@link LlmDialect#signer()}, since requiring this kind of
+ * signature is a fixed fact of a dialect's upstream, not a separately-selectable concern.
  * </p>
  */
 public interface LlmRequestSigner
 {
     /**
      * Signs a fully-buffered outbound request.
+     * <p>
+     * May throw an unchecked exception if a signature cannot currently be produced -- e.g. the credentials a
+     * signature depends on are refreshed in the background and have not yet completed their first fetch. The
+     * caller does not propagate such an exception into the shared engine worker thread it runs on; it cleanly
+     * fails the one request being signed instead, the same recovery already used when this request's own path
+     * cannot be resolved.
+     * </p>
      *
      * @param method      the request method, e.g. {@code POST}
      * @param scheme      the request scheme, e.g. {@code https}

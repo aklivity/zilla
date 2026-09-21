@@ -25,9 +25,6 @@ module io.aklivity.zilla.runtime.binding.llm
 
     uses io.aklivity.zilla.runtime.binding.llm.codec.LlmContentCodecSpi;
     uses io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectFactorySpi;
-    uses io.aklivity.zilla.runtime.binding.llm.sign.LlmRequestSignerFactorySpi;
-
-    uses io.aklivity.zilla.runtime.binding.llm.internal.decode.LlmContentDecoderSpi;
 
     provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
         with io.aklivity.zilla.runtime.binding.llm.internal.LlmBindingFactorySpi;

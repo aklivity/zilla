@@ -20,6 +20,6 @@ bindings:
     type: llm
     kind: client
     options:
-      dialect: test-signed
+      dialect: test-signing-unavailable
       server: http://example.com:8080
     exit: net0

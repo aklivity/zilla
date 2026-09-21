@@ -63,6 +63,12 @@ public final class LlmSseContentDecoder implements LlmContentDecoder
     private final GrowableBuffer fieldValue = new GrowableBuffer();
 
     @Override
+    public boolean streaming()
+    {
+        return true;
+    }
+
+    @Override
     public int decode(
         DirectBuffer buffer,
         int offset,

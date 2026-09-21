@@ -14,32 +14,18 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.dialect;
 
-import java.net.URL;
-import java.util.Map;
+import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 
-import io.aklivity.zilla.config.engine.BindingExtInfo;
-import io.aklivity.zilla.config.engine.ConfigExtAdapter;
-import io.aklivity.zilla.config.engine.OptionsConfig;
-
-public final class LlmTestDialectExtInfo implements BindingExtInfo
+/**
+ * Engine services a {@link LlmDialect} may need beyond the request it is asked to encode/decode, e.g. a
+ * signaler for scheduling background credential refresh behind a {@link LlmDialect#signer()}.
+ */
+public interface LlmDialectContext
 {
-    public static final String TYPE = "llm";
-
-    @Override
-    public String type()
-    {
-        return TYPE;
-    }
-
-    @Override
-    public URL schema()
-    {
-        return getClass().getResource("test-dialect.schema.patch.json");
-    }
-
-    @Override
-    public ConfigExtAdapter<OptionsConfig> options()
-    {
-        return new ConfigExtAdapter<>(Map.of());
-    }
+    /**
+     * The signaler for scheduling work strictly later on this binding's worker thread.
+     *
+     * @return the signaler
+     */
+    Signaler signaler();
 }

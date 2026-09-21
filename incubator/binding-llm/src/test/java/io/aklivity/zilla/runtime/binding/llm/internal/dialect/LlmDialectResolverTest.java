@@ -29,16 +29,19 @@ import static org.mockito.Mockito.when;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialect;
+import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectContext;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
 
 public class LlmDialectResolverTest
 {
+    private final LlmDialectContext context = mock(LlmDialectContext.class);
+
     @Test
     public void shouldDetectRegisteredDialectByHeaders()
     {
-        LlmDialectResolver resolver = new LlmDialectResolver(null);
+        LlmDialectResolver resolver = new LlmDialectResolver(null, context);
         JsonEnvelope headers = headers(":method", "POST", ":path", "/v1/messages");
 
         LlmDialect resolved = resolver.resolve(headers);
@@ -50,7 +53,7 @@ public class LlmDialectResolverTest
     @Test
     public void shouldReturnNullWhenNoDialectDetected()
     {
-        LlmDialectResolver resolver = new LlmDialectResolver(null);
+        LlmDialectResolver resolver = new LlmDialectResolver(null, context);
 
         LlmDialect resolved = resolver.resolve(JsonEnvelope.NONE);
 

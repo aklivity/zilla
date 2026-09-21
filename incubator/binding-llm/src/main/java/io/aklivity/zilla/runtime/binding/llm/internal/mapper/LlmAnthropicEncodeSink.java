@@ -222,7 +222,10 @@ public final class LlmAnthropicEncodeSink extends LlmCanonicalEncodeSink impleme
         steps.add(this::tryWriteStartObject);
         steps.add(() -> tryWrite("type", "message_start"));
         steps.add(() -> tryWriteStartObject("message"));
-        steps.add(() -> tryWrite("id", id));
+        if (id != null)
+        {
+            steps.add(() -> tryWrite("id", id));
+        }
         steps.add(() -> tryWrite("type", "message"));
         steps.add(() -> tryWrite("role", role));
         if (model != null)

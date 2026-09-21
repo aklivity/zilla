@@ -12,33 +12,34 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.llm.internal;
+package io.aklivity.zilla.runtime.binding.llm.dialect;
 
-import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.binding.Binding;
+import java.net.URL;
+import java.util.Map;
 
-public final class LlmBinding implements Binding
+import io.aklivity.zilla.config.engine.BindingExtInfo;
+import io.aklivity.zilla.config.engine.ConfigExtAdapter;
+import io.aklivity.zilla.config.engine.OptionsConfig;
+
+public final class LlmSignedTestExtInfo implements BindingExtInfo
 {
-    public static final String NAME = "llm";
+    private static final String LLM = "llm";
 
-    private final LlmConfiguration config;
-
-    LlmBinding(
-        LlmConfiguration config)
+    @Override
+    public String type()
     {
-        this.config = config;
+        return LLM;
     }
 
     @Override
-    public String name()
+    public URL schema()
     {
-        return LlmBinding.NAME;
+        return getClass().getResource("schema/test-signed.schema.patch.json");
     }
 
     @Override
-    public LlmBindingContext supply(
-        EngineContext context)
+    public ConfigExtAdapter<OptionsConfig> options()
     {
-        return new LlmBindingContext(config, context);
+        return new ConfigExtAdapter<>(Map.of());
     }
 }

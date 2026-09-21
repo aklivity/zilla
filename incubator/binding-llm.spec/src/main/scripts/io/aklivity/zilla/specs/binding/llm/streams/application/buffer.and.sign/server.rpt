@@ -21,7 +21,7 @@ accepted
 
 read zilla:begin.ext ${llm:matchBeginEx()
                           .typeId(zilla:id("llm"))
-                          .dialect("openai")
+                          .dialect("test-signed")
                           .build()}
 
 connected
@@ -34,7 +34,7 @@ read closed
 
 write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
-                           .dialect("openai")
+                           .dialect("test-signed")
                            .contentType("application/json")
                            .build()}
 write flush

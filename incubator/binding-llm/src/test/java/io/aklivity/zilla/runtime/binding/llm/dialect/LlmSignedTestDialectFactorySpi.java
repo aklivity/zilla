@@ -12,23 +12,20 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.llm.internal.decode;
+package io.aklivity.zilla.runtime.binding.llm.dialect;
 
-public final class LlmTestContentDecoderFactorySpi implements LlmContentDecoderSpi
+public final class LlmSignedTestDialectFactorySpi implements LlmDialectFactorySpi
 {
     @Override
-    public String contentType()
+    public String name()
     {
-        return "test/echo";
+        return "test-signed";
     }
 
     @Override
-    public LlmContentDecoder supply()
+    public LlmDialect create(
+        LlmDialectContext context)
     {
-        return (buffer, offset, limit, output) ->
-        {
-            output.data(buffer, offset, limit - offset);
-            return limit;
-        };
+        return new LlmSignedTestDialect();
     }
 }

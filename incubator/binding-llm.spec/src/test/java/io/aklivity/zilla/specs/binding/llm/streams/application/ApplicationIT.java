@@ -146,6 +146,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/signing.unavailable/client",
+        "${app}/signing.unavailable/server"})
+    public void shouldAbortRequestWhenSigningUnavailable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/anthropic.streaming/client",
         "${app}/anthropic.streaming/server"})
     public void shouldForwardAnthropicStreaming() throws Exception

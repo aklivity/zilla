@@ -2,11 +2,11 @@
     {
         "op": "add",
         "path": "/$defs/binding-ext/llm/dialect/enum/-",
-        "value": "test-client"
+        "value": "test-signed"
     },
     {
         "op": "add",
         "path": "/$defs/binding-ext/llm/dialect/enum/-",
-        "value": "test-client-sse"
+        "value": "test-signing-unavailable"
     }
 ]
