@@ -56,7 +56,7 @@
                                         "dialect":
                                         {
                                             "title": "Dialect",
-                                            "description": "Fixes the dialect assumed for inbound requests instead of detecting it automatically. Accepts the name of any dialect registered with the binding, for example openai or anthropic.",
+                                            "description": "Fixes the dialect assumed for inbound requests instead of detecting it automatically. Accepts the name of any dialect registered with the binding (e.g. openai, anthropic).",
                                             "$ref": "#/$defs/binding-ext/llm/dialect"
                                         },
                                         "authorization":
@@ -113,7 +113,7 @@
                                         "dialect":
                                         {
                                             "title": "Dialect",
-                                            "description": "The dialect this client speaks to the large language model server named by server. Accepts the name of any dialect registered with the binding, for example openai or anthropic. When it differs from the dialect resolved on the paired server side, requests and responses are translated between the two dialects automatically, subject to each dialect's own capabilities.",
+                                            "description": "The dialect this client speaks to the large language model server named by server. Accepts the name of any dialect registered with the binding (e.g. openai, anthropic). When it differs from the dialect resolved on the paired server side, requests and responses are translated between the two dialects automatically, subject to each dialect's own capabilities.",
                                             "$ref": "#/$defs/binding-ext/llm/dialect"
                                         },
                                         "server":
@@ -149,6 +149,12 @@
                                             },
                                             "additionalProperties": false,
                                             "maxProperties": 1
+                                        },
+                                        "sign":
+                                        {
+                                            "title": "Sign",
+                                            "description": "Signs the fully-buffered outbound request using the named request signer before it is sent, for an upstream that requires a signature computed over the complete request -- method, path, headers and body -- rather than a single static credential value in one header. Accepts the name of any request signer registered with the binding.",
+                                            "type": "string"
                                         }
                                     },
                                     "required": [ "dialect", "server" ],
@@ -228,8 +234,7 @@
             "dialect":
             {
                 "title": "Dialect",
-                "type": "string",
-                "enum": [ "openai", "anthropic" ]
+                "type": "string"
             }
         }
     }

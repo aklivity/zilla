@@ -17,6 +17,9 @@ package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.function.LongUnaryOperator;
 
 import jakarta.json.Json;
@@ -24,6 +27,7 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 
 import org.agrona.DirectBuffer;
+import org.agrona.ExpandableArrayBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
 
 import io.aklivity.zilla.config.binding.llm.LlmServerConfig;
@@ -126,6 +130,7 @@ public final class LlmClientFactory implements LlmStreamFactory
 
     private final OctetsFW emptyRO = new OctetsFW().wrap(new UnsafeBufferEx(new byte[0]), 0, 0);
     private final DirectBufferEx emptyBufferRO = new UnsafeBufferEx(new byte[0]);
+    private final UnsafeBufferEx signedRequestRO = new UnsafeBufferEx(new byte[0]);
 
     private final EngineContext context;
     private final BindingHandler streamFactory;
@@ -150,6 +155,8 @@ public final class LlmClientFactory implements LlmStreamFactory
 
     private final Long2ObjectHashMap<LlmBindingConfig> bindings;
 
+    private final int signedRequestMaxBytes;
+
     public LlmClientFactory(
         LlmConfiguration config,
         EngineContext context)
@@ -170,6 +177,7 @@ public final class LlmClientFactory implements LlmStreamFactory
         this.comparisonRO = new UnsafeBufferEx(new byte[0]);
         this.codecs = new LlmContentCodecFactory();
         this.bindings = new Long2ObjectHashMap<>();
+        this.signedRequestMaxBytes = config.signedRequestMaxBytes();
     }
 
     @Override
@@ -520,7 +528,14 @@ public final class LlmClientFactory implements LlmStreamFactory
             state = LlmState.openingInitial(state);
             state = LlmState.openInitial(state);
 
-            delegate.doNetBegin(traceId, authorization);
+            if (binding.signer == null)
+            {
+                delegate.doNetBegin(traceId, authorization);
+            }
+            else
+            {
+                doAppWindow(traceId, authorization);
+            }
         }
 
         private void onAppData(
@@ -719,7 +734,14 @@ public final class LlmClientFactory implements LlmStreamFactory
             state = LlmState.closingInitial(state);
             state = LlmState.closeInitial(state);
 
-            delegate.doNetEnd(traceId, authorization);
+            if (binding.signer != null)
+            {
+                delegate.doNetBeginSigned(traceId, authorization);
+            }
+            else
+            {
+                delegate.doNetEnd(traceId, authorization);
+            }
         }
 
         private void onAppAbort(
@@ -1047,6 +1069,10 @@ public final class LlmClientFactory implements LlmStreamFactory
         private int encodeSlot = NO_SLOT;
         private int encodeSlotOffset;
 
+        private final boolean signing;
+        private ExpandableArrayBuffer signBuffer;
+        private int signLength;
+
         private final DirectBufferEx eventTerminator;
         private final MutableDirectBufferEx terminatorPeek;
         private int terminatorPeekLength;
@@ -1081,6 +1107,8 @@ public final class LlmClientFactory implements LlmStreamFactory
             this.authority = server.host + ":" + server.port;
             this.requestPath = client.target.requestPath(server.path);
             this.requestContentType = requestContentType;
+            this.signing = client.binding.signer != null;
+            this.signBuffer = signing ? new ExpandableArrayBuffer() : null;
             this.eventTerminator = client.transformEvents ? client.target.terminator(Kind.RESPONSE) : null;
             this.terminatorPeek = new UnsafeBufferEx(new byte[eventTerminator != null ? eventTerminator.capacity() : 0]);
             this.nativeOutput = this::onNativeEvent;
@@ -1152,22 +1180,113 @@ public final class LlmClientFactory implements LlmStreamFactory
             int offset,
             int length)
         {
-            DirectBufferEx encodeBuffer = buffer;
-            int encodeOffset = offset;
-            int encodeLimit = offset + length;
-
-            if (encodeSlot != NO_SLOT)
+            if (signing && net == null)
             {
-                final MutableDirectBufferEx slotBuffer = encodePool.buffer(encodeSlot);
-                slotBuffer.putBytes(encodeSlotOffset, buffer, offset, length);
-                encodeSlotOffset += length;
-
-                encodeBuffer = slotBuffer;
-                encodeOffset = 0;
-                encodeLimit = encodeSlotOffset;
+                appendSignRequest(traceId, authorization, buffer, offset, length);
             }
+            else
+            {
+                DirectBufferEx encodeBuffer = buffer;
+                int encodeOffset = offset;
+                int encodeLimit = offset + length;
 
-            encodeNet(traceId, authorization, encodeBuffer, encodeOffset, encodeLimit);
+                if (encodeSlot != NO_SLOT)
+                {
+                    final MutableDirectBufferEx slotBuffer = encodePool.buffer(encodeSlot);
+                    slotBuffer.putBytes(encodeSlotOffset, buffer, offset, length);
+                    encodeSlotOffset += length;
+
+                    encodeBuffer = slotBuffer;
+                    encodeOffset = 0;
+                    encodeLimit = encodeSlotOffset;
+                }
+
+                encodeNet(traceId, authorization, encodeBuffer, encodeOffset, encodeLimit);
+            }
+        }
+
+        private void appendSignRequest(
+            long traceId,
+            long authorization,
+            DirectBufferEx buffer,
+            int offset,
+            int length)
+        {
+            if (signBuffer != null)
+            {
+                if (signLength + length > signedRequestMaxBytes)
+                {
+                    cleanupSigning(traceId, authorization);
+                }
+                else
+                {
+                    signBuffer.putBytes(signLength, buffer, offset, length);
+                    signLength += length;
+                }
+            }
+        }
+
+        private void cleanupSigning(
+            long traceId,
+            long authorization)
+        {
+            signBuffer = null;
+            signLength = 0;
+            client.doAppReset(traceId, authorization);
+        }
+
+        private void doNetBeginSigned(
+            long traceId,
+            long authorization)
+        {
+            if (signBuffer != null)
+            {
+                state = LlmState.openingInitial(state);
+
+                final String credentials = authorizationCredentials(client.binding, authorization);
+
+                final List<Map.Entry<String, String>> headers = new ArrayList<>(6);
+                headers.add(Map.entry(HEADER_METHOD, METHOD_POST));
+                headers.add(Map.entry(HEADER_SCHEME, scheme));
+                headers.add(Map.entry(HEADER_AUTHORITY, authority));
+                headers.add(Map.entry(HEADER_PATH, requestPath));
+                headers.add(Map.entry(HEADER_CONTENT_TYPE, requestContentType));
+                if (credentials != null)
+                {
+                    headers.add(Map.entry(client.target.credentialsHeader(), credentials));
+                }
+
+                final List<Map.Entry<String, String>> signedHeaders = client.binding.signer.sign(METHOD_POST, scheme,
+                    authority, requestPath, headers, signBuffer, 0, signLength);
+
+                final HttpBeginExFW.Builder httpBeginExBuilder = httpBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                    .typeId(httpTypeId);
+
+                headers.forEach(h -> httpBeginExBuilder.headersItem(i -> i.name(h.getKey()).value(h.getValue())));
+                if (signedHeaders != null)
+                {
+                    signedHeaders.forEach(h -> httpBeginExBuilder.headersItem(i -> i.name(h.getKey()).value(h.getValue())));
+                }
+
+                final HttpBeginExFW httpBeginEx = httpBeginExBuilder.build();
+
+                net = LlmClientFactory.this.newStream(this::onNetMessage, originId, routedId, initialId,
+                    initialSeq, initialAck, initialMax, traceId, authorization, client.affinity, httpBeginEx);
+
+                state = LlmState.openInitial(state);
+
+                final int bufferedLength = signLength;
+                signedRequestRO.wrap(signBuffer, 0, bufferedLength);
+                signBuffer = null;
+                signLength = 0;
+
+                if (bufferedLength > 0)
+                {
+                    encodeNet(traceId, authorization, signedRequestRO, 0, bufferedLength);
+                }
+
+                doNetEnd(traceId, authorization);
+            }
         }
 
         private void encodeNet(
@@ -1251,8 +1370,13 @@ public final class LlmClientFactory implements LlmStreamFactory
             {
                 state = LlmState.closeInitial(state);
                 cleanupEncodeSlot();
-                LlmClientFactory.this.doAbort(net, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                    traceId, authorization, emptyRO);
+                signBuffer = null;
+                signLength = 0;
+                if (net != null)
+                {
+                    LlmClientFactory.this.doAbort(net, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                        traceId, authorization, emptyRO);
+                }
             }
         }
 
@@ -1262,8 +1386,11 @@ public final class LlmClientFactory implements LlmStreamFactory
             if (!LlmState.replyClosed(state))
             {
                 state = LlmState.closeReply(state);
-                LlmClientFactory.this.doReset(net, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, 0L, emptyRO);
+                if (net != null)
+                {
+                    LlmClientFactory.this.doReset(net, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                        traceId, 0L, emptyRO);
+                }
             }
         }
 

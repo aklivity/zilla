@@ -18,11 +18,14 @@ import io.aklivity.zilla.runtime.engine.Configuration;
 
 public class LlmConfiguration extends Configuration
 {
+    public static final IntPropertyDef LLM_SIGNED_REQUEST_MAX_BYTES;
+
     private static final ConfigurationDef LLM_CONFIG;
 
     static
     {
         final ConfigurationDef config = new ConfigurationDef(String.format("zilla.binding.%s", LlmBinding.NAME));
+        LLM_SIGNED_REQUEST_MAX_BYTES = config.property("signed.request.max.bytes", 10 * 1024 * 1024);
         LLM_CONFIG = config;
     }
 
@@ -30,5 +33,10 @@ public class LlmConfiguration extends Configuration
         Configuration config)
     {
         super(LLM_CONFIG, config);
+    }
+
+    public int signedRequestMaxBytes()
+    {
+        return LLM_SIGNED_REQUEST_MAX_BYTES.get(this);
     }
 }

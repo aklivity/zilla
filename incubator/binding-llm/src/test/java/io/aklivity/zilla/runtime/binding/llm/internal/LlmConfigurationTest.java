@@ -14,7 +14,9 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.internal;
 
+import static io.aklivity.zilla.runtime.binding.llm.internal.LlmConfiguration.LLM_SIGNED_REQUEST_MAX_BYTES;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
@@ -30,5 +32,19 @@ public class LlmConfigurationTest
         final LlmConfiguration config = new LlmConfiguration(new Configuration());
 
         assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldVerifyConstants()
+    {
+        assertThat(LLM_SIGNED_REQUEST_MAX_BYTES.name(), equalTo("zilla.binding.llm.signed.request.max.bytes"));
+    }
+
+    @Test
+    public void shouldDefaultSignedRequestMaxBytes()
+    {
+        final LlmConfiguration config = new LlmConfiguration(new Configuration());
+
+        assertThat(config.signedRequestMaxBytes(), equalTo(10 * 1024 * 1024));
     }
 }

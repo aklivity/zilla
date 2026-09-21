@@ -396,4 +396,14 @@ public class LlmClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.signed.yaml")
+    @Specification({
+        "${app}/buffer.and.sign/client",
+        "${net}/buffer.and.sign/server"})
+    public void shouldBufferAndSignRequestBeforeSending() throws Exception
+    {
+        k3po.finish();
+    }
 }

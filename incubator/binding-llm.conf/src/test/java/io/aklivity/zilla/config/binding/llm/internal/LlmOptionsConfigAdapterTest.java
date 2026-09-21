@@ -68,6 +68,35 @@ public class LlmOptionsConfigAdapterTest
     }
 
     @Test
+    public void shouldReadSign()
+    {
+        String text =
+                "{" +
+                    "\"dialect\": \"openai\"," +
+                    "\"sign\": \"test\"" +
+                "}";
+
+        LlmOptionsConfig options = jsonb.fromJson(text, LlmOptionsConfig.class);
+
+        assertThat(options, not(nullValue()));
+        assertThat(options.sign, equalTo("test"));
+    }
+
+    @Test
+    public void shouldWriteSign()
+    {
+        LlmOptionsConfig options = LlmOptionsConfig.builder()
+            .dialect("openai")
+            .sign("test")
+            .build();
+
+        String text = jsonb.toJson(options);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, equalTo("{\"dialect\":\"openai\",\"sign\":\"test\"}"));
+    }
+
+    @Test
     public void shouldReadOptionsWithoutDialect()
     {
         String text = "{}";
