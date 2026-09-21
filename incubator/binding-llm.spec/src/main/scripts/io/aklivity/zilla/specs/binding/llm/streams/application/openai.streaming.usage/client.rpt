@@ -24,7 +24,7 @@ write zilla:begin.ext ${llm:beginEx()
 
 connected
 
-write "{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}],\"stream\":true}"
+write "{\"model\":\"gpt-4o-mini\",\"messages\":[{\"role\":\"user\",\"content\":\"Say hello in one sentence.\"}],\"stream\":true,\"stream_options\":{\"include_usage\":true}}"
 
 write close
 
@@ -38,19 +38,25 @@ read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .typeNull()
                           .build()}
-read "{\"id\":\"chatcmpl_1\",\"model\":\"gpt-4\",\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\",\"content\":\"Hello\"},\"finish_reason\":null}]}"
+read "{\"id\":\"chatcmpl-EQNL5kPFWGuGSBO2lca3rDUj9mrfi\",\"object\":\"chat.completion.chunk\",\"created\":1789954951,\"model\":\"gpt-4o-mini-2024-07-18\",\"service_tier\":\"default\",\"system_fingerprint\":\"fp_c28ee603a6\",\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\",\"content\":\"\",\"refusal\":null},\"logprobs\":null,\"finish_reason\":null}],\"usage\":null,\"obfuscation\":\"HHHL8bgoj\"}"
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .typeNull()
                           .build()}
-read "{\"choices\":[{\"index\":0,\"delta\":{},\"finish_reason\":\"stop\"}]}"
+read "{\"id\":\"chatcmpl-EQNL5kPFWGuGSBO2lca3rDUj9mrfi\",\"object\":\"chat.completion.chunk\",\"created\":1789954951,\"model\":\"gpt-4o-mini-2024-07-18\",\"service_tier\":\"default\",\"system_fingerprint\":\"fp_c28ee603a6\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\"Hello\"},\"logprobs\":null,\"finish_reason\":null}],\"usage\":null,\"obfuscation\":\"wruix7\"}"
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .typeNull()
                           .build()}
-read "{\"choices\":[],\"usage\":{\"prompt_tokens\":25,\"completion_tokens\":15,\"total_tokens\":40,\"prompt_tokens_details\":{\"cached_tokens\":10},\"completion_tokens_details\":{\"reasoning_tokens\":5}}}"
+read "{\"id\":\"chatcmpl-EQNL5kPFWGuGSBO2lca3rDUj9mrfi\",\"object\":\"chat.completion.chunk\",\"created\":1789954951,\"model\":\"gpt-4o-mini-2024-07-18\",\"service_tier\":\"default\",\"system_fingerprint\":\"fp_c28ee603a6\",\"choices\":[{\"index\":0,\"delta\":{},\"logprobs\":null,\"finish_reason\":\"stop\"}],\"usage\":null,\"obfuscation\":\"0N4dN\"}"
+
+read zilla:data.ext ${llm:matchDataEx()
+                          .typeId(zilla:id("llm"))
+                          .typeNull()
+                          .build()}
+read "{\"id\":\"chatcmpl-EQNL5kPFWGuGSBO2lca3rDUj9mrfi\",\"object\":\"chat.completion.chunk\",\"created\":1789954951,\"model\":\"gpt-4o-mini-2024-07-18\",\"service_tier\":\"default\",\"system_fingerprint\":\"fp_c28ee603a6\",\"choices\":[],\"usage\":{\"prompt_tokens\":13,\"completion_tokens\":9,\"total_tokens\":22,\"prompt_tokens_details\":{\"cached_tokens\":0,\"audio_tokens\":0},\"completion_tokens_details\":{\"reasoning_tokens\":0,\"audio_tokens\":0,\"accepted_prediction_tokens\":0,\"rejected_prediction_tokens\":0}},\"obfuscation\":\"TM5m3oG3ttJ\"}"
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
@@ -60,11 +66,11 @@ read "[DONE]"
 
 read zilla:end.ext ${llm:matchEndEx()
                            .typeId(zilla:id("llm"))
-                           .inputTokens(25)
-                           .cacheReadTokens(10)
-                           .outputTokens(15)
-                           .reasoningTokens(5)
-                           .totalTokens(40)
+                           .inputTokens(13)
+                           .cacheReadTokens(0)
+                           .outputTokens(9)
+                           .reasoningTokens(0)
+                           .totalTokens(22)
                            .build()}
 
 read closed
