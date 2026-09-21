@@ -13,10 +13,7 @@ const PORT = Number(process.env.PORT ?? 4104);
 const app = express();
 app.use(express.json());
 
-// south_llm_client_anthropic_secondary always issues its outbound request to
-// "/", regardless of dialect -- it does not carry the dialect's own
-// canonical path (e.g. /v1/messages) upstream.
-app.post("/", (req, res) =>
+app.post("/v1/messages", (req, res) =>
 {
     // Zilla's south_llm_client_anthropic_secondary forwards the caller's own
     // credential here via options.authorization pass-through; logged so
