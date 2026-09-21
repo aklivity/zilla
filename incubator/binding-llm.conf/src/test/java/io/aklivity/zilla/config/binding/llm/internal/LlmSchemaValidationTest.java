@@ -287,8 +287,8 @@ public class LlmSchemaValidationTest
         reader.read(text);
     }
 
-    @Test(expected = RuntimeException.class)
-    public void shouldRejectServerWithUnregisteredDialect()
+    @Test
+    public void shouldAcceptServerWithUnregisteredDialect()
     {
         String text =
             """
@@ -302,7 +302,9 @@ public class LlmSchemaValidationTest
                 exit: app0
             """;
 
-        reader.read(text);
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
     }
 
     @Test(expected = RuntimeException.class)
@@ -360,8 +362,8 @@ public class LlmSchemaValidationTest
         reader.read(text);
     }
 
-    @Test(expected = RuntimeException.class)
-    public void shouldRejectClientWithUnregisteredDialect()
+    @Test
+    public void shouldAcceptClientWithUnregisteredDialect()
     {
         String text =
             """
@@ -376,7 +378,9 @@ public class LlmSchemaValidationTest
                 exit: net0
             """;
 
-        reader.read(text);
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
     }
 
     @Test(expected = RuntimeException.class)
@@ -392,6 +396,48 @@ public class LlmSchemaValidationTest
                 options:
                   dialect: 42
                   server: http://example.com:8080
+                exit: net0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test
+    public void shouldAcceptClientWithSign()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: openai
+                  server: http://example.com:8080
+                  sign: test
+                exit: net0
+            """;
+
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectClientWithNonStringSign()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: openai
+                  server: http://example.com:8080
+                  sign: 42
                 exit: net0
             """;
 
@@ -476,8 +522,8 @@ public class LlmSchemaValidationTest
         reader.read(text);
     }
 
-    @Test(expected = RuntimeException.class)
-    public void shouldRejectProxyRouteWhenWithUnregisteredDialect()
+    @Test
+    public void shouldAcceptProxyRouteWhenWithUnregisteredDialect()
     {
         String text =
             """
@@ -492,6 +538,8 @@ public class LlmSchemaValidationTest
                   exit: app0
             """;
 
-        reader.read(text);
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
     }
 }

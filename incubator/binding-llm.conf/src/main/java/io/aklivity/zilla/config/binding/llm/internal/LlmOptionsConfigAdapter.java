@@ -34,6 +34,7 @@ public final class LlmOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, 
     private static final String AUTHORIZATION_CREDENTIALS_NAME = "credentials";
     private static final String AUTHORIZATION_CREDENTIALS_DEFAULT = "Bearer {credentials}";
     private static final String SERVER_NAME = "server";
+    private static final String SIGN_NAME = "sign";
 
     private static final String SCHEME_HTTP = "http";
     private static final String SCHEME_HTTPS = "https";
@@ -71,6 +72,11 @@ public final class LlmOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, 
             object.add(SERVER_NAME, llmOptions.server.toString());
         }
 
+        if (llmOptions.sign != null)
+        {
+            object.add(SIGN_NAME, llmOptions.sign);
+        }
+
         return object.build();
     }
 
@@ -104,6 +110,11 @@ public final class LlmOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, 
         if (object.containsKey(SERVER_NAME))
         {
             adaptServer(llmOptions, object.getString(SERVER_NAME));
+        }
+
+        if (object.containsKey(SIGN_NAME))
+        {
+            llmOptions.sign(object.getString(SIGN_NAME));
         }
 
         return llmOptions.build();

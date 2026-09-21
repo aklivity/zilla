@@ -368,4 +368,13 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/buffer.and.sign/client",
+        "${app}/buffer.and.sign/server"})
+    public void shouldBufferAndSign() throws Exception
+    {
+        k3po.finish();
+    }
 }

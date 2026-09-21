@@ -40,7 +40,7 @@ import io.aklivity.zilla.runtime.common.json.JsonVerbatim;
  * paired value (or container) event decides whether it was a rename candidate at all.
  * </p>
  */
-abstract class LlmRequestFieldTransform implements JsonTransform
+public abstract class LlmRequestFieldTransform implements JsonTransform
 {
     private final StringBuilder pendingKey;
     private final KeyText keySource;
@@ -51,7 +51,7 @@ abstract class LlmRequestFieldTransform implements JsonTransform
     private boolean keyPending;
     private WriteStep writeStep;
 
-    LlmRequestFieldTransform()
+    protected LlmRequestFieldTransform()
     {
         this.pendingKey = new StringBuilder();
         this.keySource = new KeyText();

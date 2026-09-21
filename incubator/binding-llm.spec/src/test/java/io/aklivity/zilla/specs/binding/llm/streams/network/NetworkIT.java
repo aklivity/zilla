@@ -400,4 +400,13 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/buffer.and.sign/client",
+        "${net}/buffer.and.sign/server"})
+    public void shouldBufferAndSign() throws Exception
+    {
+        k3po.finish();
+    }
 }
