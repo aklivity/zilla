@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.llm.internal.mapper;
+package io.aklivity.zilla.runtime.binding.llm.dialect;
 
 import org.agrona.DirectBuffer;
 

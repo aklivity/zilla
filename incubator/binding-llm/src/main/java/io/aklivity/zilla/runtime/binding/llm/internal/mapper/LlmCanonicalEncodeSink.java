@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.llm.internal.mapper;
 import java.util.List;
 import java.util.function.BooleanSupplier;
 
+import io.aklivity.zilla.runtime.binding.llm.dialect.LlmNativeEventOutput;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;

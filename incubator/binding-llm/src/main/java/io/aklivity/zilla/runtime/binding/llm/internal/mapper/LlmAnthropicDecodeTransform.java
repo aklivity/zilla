@@ -36,7 +36,7 @@ import io.aklivity.zilla.runtime.common.json.JsonSource;
  * non-streaming whole document has no such framing, so {@code event(null)} signals
  * {@link #onDocumentEnd()} to walk that document's own array-of-blocks shape via {@link #onWholeMessage()}.
  */
-final class LlmAnthropicDecodeTransform extends LlmCanonicalEmitter implements LlmDialectEvent
+public final class LlmAnthropicDecodeTransform extends LlmCanonicalEmitter implements LlmDialectEvent
 {
     private static final String MESSAGE_START = "message_start";
     private static final String CONTENT_BLOCK_START = "content_block_start";
@@ -84,7 +84,7 @@ final class LlmAnthropicDecodeTransform extends LlmCanonicalEmitter implements L
     private boolean fieldFinishReasonPresent;
     private int fieldOutputTokens = -1;
 
-    LlmAnthropicDecodeTransform()
+    public LlmAnthropicDecodeTransform()
     {
         this.path = new StringBuilder();
         this.pathLengthAt = new int[16];

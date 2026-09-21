@@ -37,6 +37,7 @@ import io.aklivity.zilla.runtime.binding.llm.codec.LlmContentDecoderOutput;
 import io.aklivity.zilla.runtime.binding.llm.codec.LlmContentEncoder;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialect;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialect.Kind;
+import io.aklivity.zilla.runtime.binding.llm.dialect.LlmNativeEventOutput;
 import io.aklivity.zilla.runtime.binding.llm.internal.LlmConfiguration;
 import io.aklivity.zilla.runtime.binding.llm.internal.codec.LlmContentCodecFactory;
 import io.aklivity.zilla.runtime.binding.llm.internal.config.LlmBindingConfig;
@@ -44,8 +45,6 @@ import io.aklivity.zilla.runtime.binding.llm.internal.config.LlmRouteConfig;
 import io.aklivity.zilla.runtime.binding.llm.internal.decode.LlmSseContentDecoder;
 import io.aklivity.zilla.runtime.binding.llm.internal.mapper.LlmDialectEvent;
 import io.aklivity.zilla.runtime.binding.llm.internal.mapper.LlmDialectTerminator;
-import io.aklivity.zilla.runtime.binding.llm.internal.mapper.LlmNativeEventOutput;
-import io.aklivity.zilla.runtime.binding.llm.internal.mapper.LlmResponseTransformFactory;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.AbortFW;
@@ -1115,9 +1114,8 @@ public final class LlmClientFactory implements LlmStreamFactory
 
             if (client.transformEvents)
             {
-                final JsonTransform decodeTransform = LlmResponseTransformFactory.supplyDecodeTransform(client.target.name());
-                final JsonSink encodeSink =
-                    LlmResponseTransformFactory.supplyEncodeSink(client.source.name(), client.envelope, nativeOutput);
+                final JsonTransform decodeTransform = client.target.supplyResponseDecodeTransform();
+                final JsonSink encodeSink = client.source.supplyResponseEncodeSink(client.envelope, nativeOutput);
                 this.eventPipeline = JsonEx.stream(JsonEx.createParser())
                     .envelope(client.envelope)
                     .transform(client.source.supplyExtractor(Kind.RESPONSE, client.envelope))
