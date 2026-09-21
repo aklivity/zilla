@@ -21,9 +21,12 @@ import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.net.URL;
 
+import io.aklivity.zilla.runtime.binding.llm.internal.mapper.LlmAnthropicDecodeTransform;
+import io.aklivity.zilla.runtime.binding.llm.internal.mapper.LlmAnthropicEncodeSink;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
 import io.aklivity.zilla.runtime.common.json.JsonSchema;
+import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.common.json.JsonTransform;
 
 /**
@@ -145,6 +148,20 @@ public final class LlmAnthropicDialect implements LlmDialect
         JsonEnvelope envelope)
     {
         return kind == Kind.REQUEST ? new LlmAnthropicRequestTransform(false, envelope) : LlmDialectTransforms.identity();
+    }
+
+    @Override
+    public JsonTransform supplyResponseDecodeTransform()
+    {
+        return new LlmAnthropicDecodeTransform();
+    }
+
+    @Override
+    public JsonSink supplyResponseEncodeSink(
+        JsonEnvelope envelope,
+        LlmNativeEventOutput output)
+    {
+        return new LlmAnthropicEncodeSink(envelope, output);
     }
 
     @Override

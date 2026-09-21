@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.binding.llm.dialect;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
+import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.common.json.JsonTransform;
 
 /**
@@ -152,6 +153,30 @@ public interface LlmDialect
     JsonTransform supplyEncoder(
         Kind kind,
         JsonEnvelope envelope);
+
+    /**
+     * Creates a new {@link JsonTransform} decoding this dialect's native RESPONSE events into the canonical
+     * representation, for a kind: client binding proxying a response to a differently-dialected caller. A
+     * fresh instance backs each cross-dialect response stream.
+     *
+     * @return a new decoding transform
+     */
+    JsonTransform supplyResponseDecodeTransform();
+
+    /**
+     * Creates a new {@link JsonSink} encoding canonical events into this dialect's native RESPONSE events,
+     * for a kind: client binding proxying a response to a differently-dialected caller. {@code envelope} is
+     * the same per-stream metadata channel {@link #detect(JsonEnvelope)} reads from; {@code output} receives
+     * the encoded native event name/bytes as they're produced. A fresh instance backs each cross-dialect
+     * response stream.
+     *
+     * @param envelope  the per-stream metadata channel
+     * @param output    receives each encoded native event
+     * @return a new encoding sink
+     */
+    JsonSink supplyResponseEncodeSink(
+        JsonEnvelope envelope,
+        LlmNativeEventOutput output);
 
     /**
      * Returns a {@link JsonTransform} validating one stream's native {@code kind} payload against this

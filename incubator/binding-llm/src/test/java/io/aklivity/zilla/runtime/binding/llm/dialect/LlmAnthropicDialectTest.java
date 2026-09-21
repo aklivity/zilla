@@ -20,19 +20,37 @@ import static java.util.stream.Collectors.toMap;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
+import java.io.StringReader;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.ServiceLoader;
 import java.util.function.Supplier;
 
+import jakarta.json.Json;
+import jakarta.json.JsonObject;
+import jakarta.json.JsonReader;
+
+import org.agrona.DirectBuffer;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.binding.llm.internal.mapper.LlmAnthropicDecodeTransform;
+import io.aklivity.zilla.runtime.binding.llm.internal.mapper.LlmAnthropicEncodeSink;
+import io.aklivity.zilla.runtime.binding.llm.internal.mapper.LlmDialectEvent;
+import io.aklivity.zilla.runtime.binding.llm.internal.mapper.LlmOpenaiEncodeSink;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
+import io.aklivity.zilla.runtime.common.json.JsonEx;
+import io.aklivity.zilla.runtime.common.json.JsonPipeline;
+import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
+import io.aklivity.zilla.runtime.common.json.JsonSink;
+import io.aklivity.zilla.runtime.common.json.JsonTransform;
 
 public class LlmAnthropicDialectTest
 {
@@ -180,6 +198,81 @@ public class LlmAnthropicDialectTest
 
         assertThat(dialect.supplySchemaValidator(LlmDialect.Kind.REQUEST), not(nullValue()));
         assertThat(dialect.supplySchemaValidator(LlmDialect.Kind.RESPONSE), not(nullValue()));
+    }
+
+    @Test
+    public void shouldSupplyResponseDecodeTransform()
+    {
+        LlmDialect dialect = new LlmAnthropicDialect();
+
+        JsonTransform transform = dialect.supplyResponseDecodeTransform();
+
+        assertThat(transform, instanceOf(LlmAnthropicDecodeTransform.class));
+    }
+
+    @Test
+    public void shouldSupplyResponseEncodeSink()
+    {
+        LlmDialect dialect = new LlmAnthropicDialect();
+        List<String> discarded = new ArrayList<>();
+
+        JsonSink sink = dialect.supplyResponseEncodeSink(JsonEnvelope.NONE,
+            (name, buffer, offset, length) -> discarded.add(name));
+
+        assertThat(sink, instanceOf(LlmAnthropicEncodeSink.class));
+    }
+
+    @Test
+    public void shouldRoundTripResponseDecodeIntoAnotherDialectsResponseEncode()
+    {
+        LlmDialect anthropic = new LlmAnthropicDialect();
+        LlmDialect openai = new LlmOpenaiDialect();
+        List<Event> events = new ArrayList<>();
+
+        JsonTransform decode = anthropic.supplyResponseDecodeTransform();
+        JsonSink encode = openai.supplyResponseEncodeSink(JsonEnvelope.NONE, (name, buffer, offset, length) ->
+            events.add(new Event(readBody(buffer, offset, length))));
+
+        assertThat(decode, instanceOf(LlmAnthropicDecodeTransform.class));
+        assertThat(encode, instanceOf(LlmOpenaiEncodeSink.class));
+
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser()).transform(decode).into(encode);
+
+        ((LlmDialectEvent) decode).event("message_start");
+        String json = "{\"type\":\"message_start\",\"message\":{\"id\":\"msg_1\",\"model\":\"claude-3\"," +
+            "\"role\":\"assistant\",\"usage\":{\"input_tokens\":10}}}";
+        byte[] bytes = json.getBytes(UTF_8);
+        Status status = pipeline.transform(new UnsafeBufferEx(bytes), 0, bytes.length, true);
+
+        assertThat(status, equalTo(Status.COMPLETED));
+        assertThat(events.size(), equalTo(1));
+        JsonObject choice = events.get(0).body.getJsonArray("choices").getJsonObject(0);
+        assertThat(choice.getJsonObject("delta").getString("role"), equalTo("assistant"));
+        assertThat(events.get(0).body.getString("id"), equalTo("msg_1"));
+        assertThat(events.get(0).body.getString("model"), equalTo("claude-3"));
+    }
+
+    private static JsonObject readBody(
+        DirectBuffer buffer,
+        int offset,
+        int length)
+    {
+        String text = buffer.getStringWithoutLengthUtf8(offset, length);
+        try (JsonReader reader = Json.createReader(new StringReader(text)))
+        {
+            return reader.readObject();
+        }
+    }
+
+    private static final class Event
+    {
+        private final JsonObject body;
+
+        private Event(
+            JsonObject body)
+        {
+            this.body = body;
+        }
     }
 
     private static JsonEnvelope headers(

@@ -29,7 +29,7 @@ import io.aklivity.zilla.runtime.common.json.JsonSource;
  * {@code message} instead of {@code delta}; {@link #onKeyName(JsonController, JsonSource)} treats
  * the two as aliases.
  */
-final class LlmOpenaiDecodeTransform extends LlmCanonicalEmitter implements LlmDialectEvent
+public final class LlmOpenaiDecodeTransform extends LlmCanonicalEmitter implements LlmDialectEvent
 {
     private static final int NO_BLOCK = -1;
 
@@ -64,7 +64,7 @@ final class LlmOpenaiDecodeTransform extends LlmCanonicalEmitter implements LlmD
     private int chunkInputTokens = -1;
     private int chunkOutputTokens = -1;
 
-    LlmOpenaiDecodeTransform()
+    public LlmOpenaiDecodeTransform()
     {
         this.blockIdByToolCallIndex = new Int2IntHashMap(NO_BLOCK);
     }
