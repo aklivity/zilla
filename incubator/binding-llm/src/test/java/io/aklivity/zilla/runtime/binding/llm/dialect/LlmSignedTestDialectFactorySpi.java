@@ -12,25 +12,20 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.config.binding.llm.internal;
+package io.aklivity.zilla.runtime.binding.llm.dialect;
 
-import jakarta.json.JsonObject;
-
-import io.aklivity.zilla.config.binding.llm.LlmSignInfo;
-import io.aklivity.zilla.config.engine.ConfigAdapter;
-import io.aklivity.zilla.config.engine.OptionsConfig;
-
-public final class LlmTestSignInfo implements LlmSignInfo
+public final class LlmSignedTestDialectFactorySpi implements LlmDialectFactorySpi
 {
     @Override
-    public String type()
+    public String name()
     {
-        return "test-options";
+        return "test-signed";
     }
 
     @Override
-    public ConfigAdapter<OptionsConfig, JsonObject> options()
+    public LlmDialect create(
+        LlmDialectContext context)
     {
-        return new LlmTestSignOptionsConfigAdapter();
+        return new LlmSignedTestDialect();
     }
 }

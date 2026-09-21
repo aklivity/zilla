@@ -19,8 +19,6 @@ module io.aklivity.zilla.config.binding.llm
 
     exports io.aklivity.zilla.config.binding.llm;
 
-    uses io.aklivity.zilla.config.binding.llm.LlmSignInfo;
-
     provides io.aklivity.zilla.config.engine.BindingInfo
         with io.aklivity.zilla.config.binding.llm.internal.LlmBindingInfo;
 }

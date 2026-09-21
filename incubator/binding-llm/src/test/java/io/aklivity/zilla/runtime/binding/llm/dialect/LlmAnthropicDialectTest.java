@@ -24,6 +24,7 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
+import static org.mockito.Mockito.mock;
 
 import java.io.StringReader;
 import java.util.ArrayList;
@@ -68,7 +69,7 @@ public class LlmAnthropicDialectTest
     @Test
     public void shouldCreateMatchingDialect()
     {
-        LlmDialect dialect = factoriesByName.get("anthropic").create();
+        LlmDialect dialect = factoriesByName.get("anthropic").create(mock(LlmDialectContext.class));
 
         assertThat(dialect, not(nullValue()));
         assertThat(dialect.name(), equalTo("anthropic"));

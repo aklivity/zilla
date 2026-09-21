@@ -23,6 +23,7 @@ import java.util.ServiceLoader;
 import java.util.function.Supplier;
 
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialect;
+import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectContext;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectFactorySpi;
 import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
 
@@ -43,9 +44,10 @@ public final class LlmDialectResolver
     private final boolean dialectFixed;
 
     public LlmDialectResolver(
-        String dialect)
+        String dialect,
+        LlmDialectContext context)
     {
-        this(dialect, loadDialects());
+        this(dialect, loadDialects(context));
     }
 
     LlmDialectResolver(
@@ -87,13 +89,14 @@ public final class LlmDialectResolver
         return ambiguous ? null : matched;
     }
 
-    private static Collection<LlmDialect> loadDialects()
+    private static Collection<LlmDialect> loadDialects(
+        LlmDialectContext context)
     {
         return ServiceLoader
             .load(LlmDialectFactorySpi.class)
             .stream()
             .map(Supplier::get)
-            .map(LlmDialectFactorySpi::create)
+            .map(f -> f.create(context))
             .toList();
     }
 }

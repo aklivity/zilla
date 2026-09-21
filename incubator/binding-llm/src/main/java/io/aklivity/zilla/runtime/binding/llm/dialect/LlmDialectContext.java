@@ -12,18 +12,20 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.config.binding.llm.internal;
+package io.aklivity.zilla.runtime.binding.llm.dialect;
 
-import io.aklivity.zilla.config.engine.OptionsConfig;
+import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 
-final class LlmTestSignOptionsConfig extends OptionsConfig
+/**
+ * Engine services a {@link LlmDialect} may need beyond the request it is asked to encode/decode, e.g. a
+ * signaler for scheduling background credential refresh behind a {@link LlmDialect#signer()}.
+ */
+public interface LlmDialectContext
 {
-    final String value;
-
-    LlmTestSignOptionsConfig(
-        String value)
-    {
-        super(null, null);
-        this.value = value;
-    }
+    /**
+     * The signaler for scheduling work strictly later on this binding's worker thread.
+     *
+     * @return the signaler
+     */
+    Signaler signaler();
 }

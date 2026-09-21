@@ -33,7 +33,9 @@ public interface LlmDialectFactorySpi
     /**
      * Creates a new {@link LlmDialect} instance.
      *
+     * @param context  the context giving access to engine services this dialect may need
      * @return a new dialect
      */
-    LlmDialect create();
+    LlmDialect create(
+        LlmDialectContext context);
 }

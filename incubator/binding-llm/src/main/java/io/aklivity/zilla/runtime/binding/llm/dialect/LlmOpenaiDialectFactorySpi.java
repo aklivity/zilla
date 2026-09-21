@@ -23,7 +23,8 @@ public final class LlmOpenaiDialectFactorySpi implements LlmDialectFactorySpi
     }
 
     @Override
-    public LlmDialect create()
+    public LlmDialect create(
+        LlmDialectContext context)
     {
         return new LlmOpenaiDialect();
     }

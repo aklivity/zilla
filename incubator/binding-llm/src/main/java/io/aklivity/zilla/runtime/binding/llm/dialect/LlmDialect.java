@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.dialect;
 
+import io.aklivity.zilla.runtime.binding.llm.sign.LlmRequestSigner;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
 import io.aklivity.zilla.runtime.common.json.JsonSink;
@@ -219,4 +220,18 @@ public interface LlmDialect
      */
     DirectBufferEx terminator(
         Kind kind);
+
+    /**
+     * Returns the {@link LlmRequestSigner} this dialect's upstream requires for a {@code kind: client}
+     * binding dialing out to it -- e.g. a dialect whose upstream requires a signature computed over the
+     * complete request rather than a single static credential value carried in one header -- or
+     * {@code null} when this dialect needs no such signer, the same {@code null}-when-unneeded convention
+     * {@link #terminator(Kind)} follows.
+     *
+     * @return the request signer, or {@code null}
+     */
+    default LlmRequestSigner signer()
+    {
+        return null;
+    }
 }

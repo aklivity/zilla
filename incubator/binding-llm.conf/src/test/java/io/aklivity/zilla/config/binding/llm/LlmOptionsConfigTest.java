@@ -16,7 +16,6 @@ package io.aklivity.zilla.config.binding.llm;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.sameInstance;
 
 import org.junit.Test;
@@ -119,64 +118,6 @@ public class LlmOptionsConfigTest
         LlmAuthorizationConfigBuilder<LlmAuthorizationConfig> builder = LlmAuthorizationConfig.builder();
 
         LlmAuthorizationConfigBuilder<LlmAuthorizationConfig> injected = builder.inject(identity -> identity);
-
-        assertThat(injected, sameInstance(builder));
-    }
-
-    @Test
-    public void shouldBuildSignViaBareName()
-    {
-        LlmOptionsConfig options = LlmOptionsConfig.builder()
-            .sign("test")
-            .build();
-
-        assertThat(options.sign.name, equalTo("test"));
-        assertThat(options.sign.options, nullValue());
-    }
-
-    @Test
-    public void shouldBuildSignViaNestedBuilder()
-    {
-        LlmOptionsConfig options = LlmOptionsConfig.builder()
-            .sign()
-                .name("test")
-                .build()
-            .build();
-
-        assertThat(options.sign.name, equalTo("test"));
-    }
-
-    @Test
-    public void shouldBuildSignViaSetter()
-    {
-        LlmSignConfig sign = LlmSignConfig.builder()
-            .name("test")
-            .build();
-
-        LlmOptionsConfig options = LlmOptionsConfig.builder()
-            .sign(sign)
-            .build();
-
-        assertThat(options.sign, sameInstance(sign));
-    }
-
-    @Test
-    public void shouldBuildSignViaCustomMapper()
-    {
-        String name = LlmSignConfig
-            .builder(sign -> sign.name)
-            .name("test")
-            .build();
-
-        assertThat(name, equalTo("test"));
-    }
-
-    @Test
-    public void shouldInjectSignBuilder()
-    {
-        LlmSignConfigBuilder<LlmSignConfig> builder = LlmSignConfig.builder();
-
-        LlmSignConfigBuilder<LlmSignConfig> injected = builder.inject(identity -> identity);
 
         assertThat(injected, sameInstance(builder));
     }

@@ -19,7 +19,7 @@ connect "zilla://streams/app0"
 
 write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
-                           .dialect("openai")
+                           .dialect("test-signed")
                            .build()}
 
 connected
@@ -32,7 +32,7 @@ write close
 
 read zilla:begin.ext ${llm:matchBeginEx()
                            .typeId(zilla:id("llm"))
-                           .dialect("openai")
+                           .dialect("test-signed")
                            .contentType("application/json")
                            .build()}
 

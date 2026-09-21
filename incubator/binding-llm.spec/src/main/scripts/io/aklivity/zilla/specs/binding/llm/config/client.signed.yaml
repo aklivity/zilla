@@ -20,7 +20,6 @@ bindings:
     type: llm
     kind: client
     options:
-      dialect: openai
+      dialect: test-signed
       server: http://example.com:8080
-      sign: test
     exit: net0
