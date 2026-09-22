@@ -1121,7 +1121,7 @@ public final class LlmClientFactory implements LlmStreamFactory
                 final JsonSink encodeSink = client.source.supplyResponseEncodeSink(client.envelope, nativeOutput);
                 this.eventPipeline = JsonEx.stream(JsonEx.createParser())
                     .envelope(client.envelope)
-                    .transform(client.source.supplyExtractor(Kind.RESPONSE, client.envelope))
+                    .transform(client.target.supplyExtractor(Kind.RESPONSE, client.envelope))
                     .transform(decodeTransform)
                     .into(encodeSink);
                 this.decodeEvent = (LlmDialectEvent) decodeTransform;
