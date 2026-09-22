@@ -189,8 +189,57 @@ curl -s http://localhost:7162/v1/messages \
 ```
 
 Add a `tools` definition to either cross-dialect request (see
-`etc/test/verify.sh` for the full shape) to see a tool-call response
+`etc/test/verify.py` for the full shape) to see a tool-call response
 translated across dialects too.
+
+## Using the official SDKs
+
+The `curl` calls above prove the wire shapes match; pointing the real
+`openai`/`anthropic` Python SDKs at the same frontends proves those dialects
+are complete enough for an off-the-shelf client to succeed unmodified --
+`base_url` is the only override, exactly as a caller would repoint an
+existing integration at a self-hosted gateway:
+
+```bash
+pip install openai anthropic
+```
+
+```python
+from openai import OpenAI
+
+client = OpenAI(base_url="http://localhost:7161/v1", api_key="your-openai-key")
+resp = client.chat.completions.create(
+    model="gpt-4",
+    messages=[{"role": "user", "content": "Hello"}])
+print(resp.choices[0].message.content)
+
+for chunk in client.chat.completions.create(
+        model="gpt-4", messages=[{"role": "user", "content": "Hello"}], stream=True):
+    if chunk.choices[0].delta.content:
+        print(chunk.choices[0].delta.content, end="")
+```
+
+```python
+from anthropic import Anthropic
+
+client = Anthropic(base_url="http://localhost:7162", api_key="your-anthropic-key")
+resp = client.messages.create(
+    model="claude-3-opus-20240229",
+    max_tokens=1024,
+    messages=[{"role": "user", "content": "Hello"}])
+print(resp.content[0].text)
+
+with client.messages.stream(
+        model="claude-3-opus-20240229", max_tokens=1024,
+        messages=[{"role": "user", "content": "Hello"}]) as stream:
+    for text in stream.text_stream:
+        print(text, end="")
+```
+
+Both round-trip through the exact same cross-dialect translation as the
+`curl` examples above -- the openai client's request lands on
+`mock-anthropic`, the anthropic client's on `mock-openai` -- the SDKs are
+simply unaware of it.
 
 ## Verify
 
@@ -198,11 +247,12 @@ translated across dialects too.
 ./.github/test.sh
 ```
 
-Runs the assertions in `etc/test/verify.sh` inside the compose stack: both
-translation directions, both tool-call round trips, both credential
-pass-through directions (confirmed by grepping each mock backend's own log
-for the caller's forwarded token), and both model-based routes to the
-secondary, same-dialect deployments.
+Runs the assertions in `etc/test/verify.py` inside the compose stack, driven
+through the real `openai`/`anthropic` Python SDKs rather than hand-built HTTP
+calls: both translation directions (non-streaming and streaming), both
+tool-call round trips, both credential pass-through directions (confirmed by
+grepping each mock backend's own log for the caller's forwarded token), and
+both model-based routes to the secondary, same-dialect deployments.
 
 ## Using the real OpenAI/Anthropic APIs instead of the mocks
 

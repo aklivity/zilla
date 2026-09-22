@@ -118,8 +118,13 @@ services:
   # zilla's health is enough to gate the whole topology, since zilla already
   # depends on both mocks. The docker socket is mounted so the credential
   # pass-through assertions can read a mock's own logs via `docker logs`.
+  #
+  # Runs the checks through the real openai / anthropic Python SDKs rather
+  # than hand-built HTTP calls, so python3 + docker-cli (for the credential
+  # pass-through log reads) are the only extra tools this needs -- no Node
+  # here, unlike the mocks above.
   verify:
-    image: node:20-alpine
+    image: python:3.13-alpine
     profiles: ["test"]
     working_dir: /work
     depends_on:
@@ -127,7 +132,6 @@ services:
         condition: service_healthy
     volumes:
       - ./etc/test:/test:ro
-      - ../.github/test-lib.sh:/test-lib.sh:ro
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
       FAIL_FAST: "${FAIL_FAST:-1}"
@@ -135,8 +139,9 @@ services:
     command:
       - |
         set -e
-        apk add --no-cache curl docker-cli > /dev/null
-        exec sh /test/verify.sh
+        apk add --no-cache docker-cli > /dev/null
+        pip install --no-cache-dir --quiet openai anthropic
+        exec python3 /test/verify.py
 
 networks:
   default:
