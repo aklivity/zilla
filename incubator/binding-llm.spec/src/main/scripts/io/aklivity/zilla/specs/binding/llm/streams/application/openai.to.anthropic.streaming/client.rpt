@@ -34,7 +34,7 @@ read zilla:begin.ext ${llm:matchBeginEx()
                            .contentType("text/event-stream")
                            .build()}
 
-read "{\"type\":\"message_start\",\"message\":{\"id\":\"chatcmpl_1\",\"type\":\"message\",\"role\":\"assistant\",\"model\":\"gpt-4\"}}"
+read "{\"type\":\"message_start\",\"message\":{\"id\":\"chatcmpl_1\",\"type\":\"message\",\"role\":\"assistant\",\"model\":\"gpt-4\",\"content\":[],\"stop_reason\":null,\"stop_sequence\":null}}"
 read advised zilla:flush ${llm:matchFlushEx()
                                .typeId(zilla:id("llm"))
                                .raw()

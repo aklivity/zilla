@@ -377,6 +377,10 @@ public final class LlmAnthropicEventMapper implements LlmEventMapper
             message.add("model", model);
         }
 
+        message.add("content", Json.createArrayBuilder())
+            .addNull("stop_reason")
+            .addNull("stop_sequence");
+
         JsonObject event = Json.createObjectBuilder()
             .add("type", "message_start")
             .add("message", message)
