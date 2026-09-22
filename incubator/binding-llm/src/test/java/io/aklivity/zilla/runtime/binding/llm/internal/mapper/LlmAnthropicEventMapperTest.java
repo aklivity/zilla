@@ -169,7 +169,8 @@ public class LlmAnthropicEventMapperTest
         assertThat(support.trace, contains(
             "event:message_start:{\"type\":\"message_start\",\"message\":" +
                 "{\"id\":\"msg_1\",\"type\":\"message\",\"role\":\"assistant\",\"model\":\"claude-3\"," +
-                "\"content\":[],\"stop_reason\":null,\"stop_sequence\":null}}"));
+                "\"content\":[],\"stop_reason\":null,\"stop_sequence\":null," +
+                "\"usage\":{\"input_tokens\":0,\"output_tokens\":0}}}"));
     }
 
     @Test
@@ -180,7 +181,8 @@ public class LlmAnthropicEventMapperTest
         assertThat(support.trace, contains(
             "event:message_start:{\"type\":\"message_start\",\"message\":" +
                 "{\"id\":\"msg_1\",\"type\":\"message\",\"role\":\"assistant\"," +
-                "\"content\":[],\"stop_reason\":null,\"stop_sequence\":null}}"));
+                "\"content\":[],\"stop_reason\":null,\"stop_sequence\":null," +
+                "\"usage\":{\"input_tokens\":0,\"output_tokens\":0}}}"));
     }
 
     // llm.idl LlmMessageStartFlushEx: choiceIndex never survives a cross-dialect route to
@@ -194,7 +196,8 @@ public class LlmAnthropicEventMapperTest
         assertThat(support.trace, contains(
             "event:message_start:{\"type\":\"message_start\",\"message\":" +
                 "{\"id\":\"msg_1\",\"type\":\"message\",\"role\":\"assistant\",\"model\":\"claude-3\"," +
-                "\"content\":[],\"stop_reason\":null,\"stop_sequence\":null}}"));
+                "\"content\":[],\"stop_reason\":null,\"stop_sequence\":null," +
+                "\"usage\":{\"input_tokens\":0,\"output_tokens\":0}}}"));
     }
 
     @Test

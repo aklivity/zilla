@@ -377,9 +377,17 @@ public final class LlmAnthropicEventMapper implements LlmEventMapper
             message.add("model", model);
         }
 
+        // input_tokens isn't known yet when the source dialect discloses it late (OpenAI,
+        // via LlmUsageFlushEx, never before its terminal chunk) -- unlike that flush event,
+        // this structural usage object can't simply be deferred: a real Anthropic client
+        // (anthropic-sdk-python's streaming accumulator, confirmed against it directly)
+        // initializes its per-message state from message_start and then patches
+        // usage.output_tokens in place on message_delta, so message_start has to carry a
+        // usage object from the start, even a provisional one corrected on message_delta
         message.add("content", Json.createArrayBuilder())
             .addNull("stop_reason")
-            .addNull("stop_sequence");
+            .addNull("stop_sequence")
+            .add("usage", Json.createObjectBuilder().add("input_tokens", 0).add("output_tokens", 0));
 
         JsonObject event = Json.createObjectBuilder()
             .add("type", "message_start")
