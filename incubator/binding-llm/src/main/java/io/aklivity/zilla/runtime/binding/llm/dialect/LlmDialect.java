@@ -89,6 +89,24 @@ public interface LlmDialect
         String basePath);
 
     /**
+     * Returns the request path this dialect's API expects a request at, same as {@link #requestPath(String)},
+     * but additionally distinguishing a streaming request from a non-streaming one -- e.g. for an upstream
+     * whose streaming operation lives at an entirely different path than its non-streaming one, rather than
+     * differing only in the request body. A dialect whose streaming and non-streaming requests share one path
+     * never needs to override this default, which simply delegates to {@link #requestPath(String)}.
+     *
+     * @param basePath   the configured base path preceding this dialect's operation suffix
+     * @param streaming  {@code true} for a streaming request, {@code false} otherwise
+     * @return the request path, possibly carrying {@link #MODEL_PLACEHOLDER}
+     */
+    default String requestPath(
+        String basePath,
+        boolean streaming)
+    {
+        return requestPath(basePath);
+    }
+
+    /**
      * Returns the name of the request header this dialect's API carries client credentials in, read from
      * a request's {@link JsonEnvelope} to extract credentials for an {@code options.authorization} guard
      * check on a {@code kind: server} binding -- e.g. {@code authorization} for a dialect that follows the

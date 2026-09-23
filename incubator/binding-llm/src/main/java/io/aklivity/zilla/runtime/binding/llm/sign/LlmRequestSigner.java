@@ -38,6 +38,13 @@ public interface LlmRequestSigner
 {
     /**
      * Signs a fully-buffered outbound request.
+     * <p>
+     * May throw an unchecked exception if a signature cannot currently be produced -- e.g. the credentials a
+     * signature depends on are refreshed in the background and have not yet completed their first fetch. The
+     * caller does not propagate such an exception into the shared engine worker thread it runs on; it cleanly
+     * fails the one request being signed instead, the same recovery already used when this request's own path
+     * cannot be resolved.
+     * </p>
      *
      * @param method      the request method, e.g. {@code POST}
      * @param scheme      the request scheme, e.g. {@code https}

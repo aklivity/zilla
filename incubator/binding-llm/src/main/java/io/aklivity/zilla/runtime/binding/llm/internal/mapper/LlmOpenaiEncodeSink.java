@@ -244,7 +244,10 @@ public final class LlmOpenaiEncodeSink extends LlmCanonicalEncodeSink implements
         steps.add(() -> tryWriteNull("finish_reason"));
         steps.add(this::tryWriteEnd);
         steps.add(this::tryWriteEnd);
-        steps.add(() -> tryWrite("id", id));
+        if (id != null)
+        {
+            steps.add(() -> tryWrite("id", id));
+        }
         if (model != null)
         {
             steps.add(() -> tryWrite("model", model));

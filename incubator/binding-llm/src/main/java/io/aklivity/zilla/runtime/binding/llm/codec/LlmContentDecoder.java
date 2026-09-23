@@ -42,4 +42,20 @@ public interface LlmContentDecoder
         int offset,
         int limit,
         LlmContentDecoderOutput output);
+
+    /**
+     * Reports whether this content-type's own framing carries a response as a sequence of incremental
+     * event frames rather than one whole document -- e.g. {@code text/event-stream}'s blank-line-delimited
+     * events, or an upstream's own binary event-stream framing -- regardless of how that framing is
+     * decoded. A caller reads this to decide response-handling behavior that depends on incremental
+     * delivery (e.g. how many canonical documents a cross-dialect response encode produces) without
+     * needing to know which concrete decoder implementation is in use.
+     *
+     * @return {@code true} when this content-type's framing is inherently multi-frame, {@code false}
+     *         when a response is always exactly one whole document
+     */
+    default boolean streaming()
+    {
+        return false;
+    }
 }
