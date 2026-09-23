@@ -50,7 +50,7 @@ write '{"type":"message_start","message":{"id":"'
       ${id}
       '","type":"message","role":"assistant","model":"'
       ${model}
-      '"}}'
+      '","content":[],"stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":0,"output_tokens":0}}}'
 write flush
 
 write zilla:data.ext ${llm:dataEx()

@@ -11,14 +11,42 @@ const PORT = Number(process.env.PORT ?? 4101);
 const app = express();
 app.use(express.json());
 
+function streamChatCompletion(res, model, content)
+{
+    res.set("Content-Type", "text/event-stream");
+    res.set("Cache-Control", "no-cache");
+    res.set("Connection", "keep-alive");
+
+    const id = "chatcmpl_1";
+    const created = Math.floor(Date.now() / 1000);
+    const send = (delta, finishReason) => res.write(`data: ${JSON.stringify({
+        id,
+        object: "chat.completion.chunk",
+        created,
+        model,
+        choices: [{ index: 0, delta, finish_reason: finishReason }]
+    })}\n\n`);
+
+    const cut1 = Math.floor(content.length / 3);
+    const cut2 = Math.floor(2 * content.length / 3);
+
+    send({ role: "assistant" }, null);
+    send({ content: content.slice(0, cut1) }, null);
+    send({ content: content.slice(cut1, cut2) }, null);
+    send({ content: content.slice(cut2) }, null);
+    send({}, "stop");
+    res.write("data: [DONE]\n\n");
+    res.end();
+}
+
 app.post("/v1/chat/completions", (req, res) =>
 {
     // Zilla's south_llm_client_openai forwards the caller's own credential
-    // here via options.authorization pass-through; logged so verify.sh can
+    // here via options.authorization pass-through; logged so verify.py can
     // confirm it arrived unchanged.
     console.log(`authorization: ${req.headers["authorization"] ?? "(none)"}`);
 
-    const { model, tools } = req.body ?? {};
+    const { model, tools, stream } = req.body ?? {};
 
     const message = Array.isArray(tools) && tools.length > 0
         ? {
@@ -39,6 +67,12 @@ app.post("/v1/chat/completions", (req, res) =>
             role: "assistant",
             content: "Hello! How can I help you today?"
         };
+
+    if (stream && typeof message.content === "string")
+    {
+        streamChatCompletion(res, model, message.content);
+        return;
+    }
 
     // res.json() sends "application/json; charset=utf-8", but the llm
     // binding looks up its response codec by an exact content-type match

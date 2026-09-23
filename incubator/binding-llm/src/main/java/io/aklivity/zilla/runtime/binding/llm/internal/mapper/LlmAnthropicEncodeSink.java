@@ -227,6 +227,20 @@ final class LlmAnthropicEncodeSink extends LlmCanonicalEncodeSink implements Llm
         {
             steps.add(() -> tryWrite("model", model));
         }
+        // A real Anthropic client (anthropic-sdk-python's streaming accumulator, confirmed
+        // against it directly) initializes its per-message state from message_start's
+        // content/stop_reason/stop_sequence/usage and then patches usage.output_tokens on it
+        // in place at message_delta -- omitting any of these crashes the accumulator, even
+        // though input_tokens isn't known yet for a source dialect that discloses it late
+        // (OpenAI, via LlmUsageFlushEx, never before its terminal chunk)
+        steps.add(() -> tryWriteStartArray("content"));
+        steps.add(this::tryWriteEnd);
+        steps.add(() -> tryWriteNull("stop_reason"));
+        steps.add(() -> tryWriteNull("stop_sequence"));
+        steps.add(() -> tryWriteStartObject("usage"));
+        steps.add(() -> tryWrite("input_tokens", 0));
+        steps.add(() -> tryWrite("output_tokens", 0));
+        steps.add(this::tryWriteEnd);
         steps.add(this::tryWriteEnd);
         steps.add(this::tryWriteEnd);
         steps.add(() -> emitted("message_start"));
