@@ -39,6 +39,7 @@ public final class TestBindingOptionsConfig extends OptionsConfig
     public final String embedding;
     public final List<EnvelopeValue> envelope;
     public final List<EnvelopeAssertion> envelopeAssertions;
+    public final String originType;
 
     public static TestBindingOptionsConfigBuilder<TestBindingOptionsConfig> builder()
     {
@@ -66,6 +67,7 @@ public final class TestBindingOptionsConfig extends OptionsConfig
         String embedding,
         List<EnvelopeValue> envelope,
         List<EnvelopeAssertion> envelopeAssertions,
+        String originType,
         List<Config.Reference> refs)
     {
         super(null, refs);
@@ -83,6 +85,7 @@ public final class TestBindingOptionsConfig extends OptionsConfig
         this.embedding = embedding;
         this.envelope = envelope;
         this.envelopeAssertions = envelopeAssertions;
+        this.originType = originType;
     }
 
     public static final class Event

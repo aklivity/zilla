@@ -40,7 +40,7 @@ public class TestExporterContext implements ExporterContext
         List<AttributeConfig> attributes,
         Collector collector)
     {
-        return new TestExporterHandler(context, exporter);
+        return new TestExporterHandler(context, exporter, collector);
     }
 
     @Override
