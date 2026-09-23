@@ -2455,6 +2455,24 @@ public final class JsonSchemaImpl implements JsonSchema
             }
         }
 
+        // rearms for the next document in the same session: rewinds this pass's own validation state exactly
+        // as reset() does, but delegates to the underlying parser's nextDocument() so its stream position
+        // and scratch state carry over rather than rewinding to the start of input
+        @Override
+        public void nextDocument()
+        {
+            if (delegateEx != null)
+            {
+                delegateEx.nextDocument();
+            }
+            eval.reset();
+            verdict = Verdict.PENDING;
+            if (diagnostics != null)
+            {
+                diagnostics.clear();
+            }
+        }
+
         @Override
         public boolean identity()
         {
@@ -2688,6 +2706,17 @@ public final class JsonSchemaImpl implements JsonSchema
             boolean scalar = event == JsonEvent.VALUE_STRING || event == JsonEvent.VALUE_NUMBER;
             if (event.segmented() || event == JsonEvent.START_DOCUMENT || event == JsonEvent.END_DOCUMENT)
             {
+                if (event == JsonEvent.START_DOCUMENT)
+                {
+                    // nextDocument() intentionally leaves an accumulator stage's state alone across the
+                    // records of a multi-document feed, but this stage's verdict is scoped to exactly one
+                    // top-level value: carrying an already-VALID verdict into the next document would report
+                    // it complete from its very first event, before any of its own content is validated.
+                    diagnostics.clear();
+                    trace.reset();
+                    eval.reset();
+                    failed = false;
+                }
                 Status downstream = sink.transform(decline, source, event);
                 if (lenient && failed && event == JsonEvent.END_DOCUMENT && downstream != Status.SUSPENDED)
                 {

@@ -1,0 +1,10 @@
+{
+  "name": "mock-openai-secondary",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Second mock openai-dialect deployment, routed to by north_llm_proxy for a specific model",
+  "dependencies": {
+    "express": "^5.2.1"
+  }
+}

@@ -4511,6 +4511,8 @@ public final class HttpClientFactory implements HttpStreamFactory
                     if (client != null)
                     {
                         httpExchange.doRequestBegin(traceId, authorization, queueEntry.value());
+                        httpExchange.remoteBudget = httpExchange.client.remoteSharedBudget;
+                        httpExchange.client.encoder.onApplicationBegin(httpExchange.client, httpExchange, traceId, authorization);
                     }
                     else
                     {
@@ -4815,9 +4817,8 @@ public final class HttpClientFactory implements HttpStreamFactory
             if (HttpState.replyOpened(client.state))
             {
                 remoteBudget = client.remoteSharedBudget;
+                client.encoder.onApplicationBegin(client, this, traceId, authorization);
             }
-
-            client.encoder.onApplicationBegin(client, this, traceId, authorization);
         }
 
         private void doRequestBegin(
