@@ -3744,7 +3744,7 @@
                                             "properties": {
                                                 "dialect": {
                                                     "title": "Dialect",
-                                                    "description": "Fixes the dialect assumed for inbound requests instead of detecting it automatically. Accepts the name of any dialect registered with the binding, for example openai or anthropic.",
+                                                    "description": "Fixes the dialect assumed for inbound requests instead of detecting it automatically. Accepts the name of any dialect registered with the binding (e.g. openai, anthropic).",
                                                     "$ref": "#/$defs/binding-ext/llm/dialect"
                                                 },
                                                 "authorization": {
@@ -3788,7 +3788,7 @@
                                             "properties": {
                                                 "dialect": {
                                                     "title": "Dialect",
-                                                    "description": "The dialect this client speaks to the large language model server named by server. Accepts the name of any dialect registered with the binding, for example openai or anthropic. When it differs from the dialect resolved on the paired server side, requests and responses are translated between the two dialects automatically, subject to each dialect's own capabilities.",
+                                                    "description": "The dialect this client speaks to the large language model server named by server. Accepts the name of any dialect registered with the binding (e.g. openai, anthropic). When it differs from the dialect resolved on the paired server side, requests and responses are translated between the two dialects automatically, subject to each dialect's own capabilities.",
                                                     "$ref": "#/$defs/binding-ext/llm/dialect"
                                                 },
                                                 "server": {
@@ -7533,11 +7533,7 @@
             "llm": {
                 "dialect": {
                     "title": "Dialect",
-                    "type": "string",
-                    "enum": [
-                        "openai",
-                        "anthropic"
-                    ]
+                    "type": "string"
                 }
             },
             "mcp": {
