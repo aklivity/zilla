@@ -142,67 +142,20 @@ docker compose up -d
 
 ## Try it
 
-Send an OpenAI-shaped request to the openai-facing frontend; the reply comes
-back openai-shaped even though the real upstream (`mock-anthropic`) only
-speaks Anthropic:
-
-```bash
-curl -s http://localhost:7161/v1/chat/completions \
-    -H 'Content-Type: application/json' \
-    -H 'Authorization: Bearer your-openai-key' \
-    -d '{"model":"gpt-4","messages":[{"role":"user","content":"Hello"}]}'
-```
-
-Ask for `gpt-4o` instead, and `north_llm_proxy` routes it to the second
-openai-dialect deployment (`mock-openai-secondary`) rather than translating
-it to Anthropic:
-
-```bash
-curl -s http://localhost:7161/v1/chat/completions \
-    -H 'Content-Type: application/json' \
-    -H 'Authorization: Bearer your-openai-key' \
-    -d '{"model":"gpt-4o","messages":[{"role":"user","content":"Hello"}]}'
-```
-
-Send an Anthropic-shaped request to the anthropic-facing frontend; the reply
-comes back anthropic-shaped even though the real upstream (`mock-openai`)
-only speaks OpenAI:
-
-```bash
-curl -s http://localhost:7162/v1/messages \
-    -H 'Content-Type: application/json' \
-    -H 'anthropic-version: 2023-06-01' \
-    -H 'x-api-key: your-anthropic-key' \
-    -d '{"model":"claude-3-opus-20240229","max_tokens":1024,"messages":[{"role":"user","content":"Hello"}]}'
-```
-
-Ask for `claude-3-5-haiku-20241022` instead, and `north_llm_proxy` routes it
-to the second anthropic-dialect deployment (`mock-anthropic-secondary`)
-rather than translating it to OpenAI:
-
-```bash
-curl -s http://localhost:7162/v1/messages \
-    -H 'Content-Type: application/json' \
-    -H 'anthropic-version: 2023-06-01' \
-    -H 'x-api-key: your-anthropic-key' \
-    -d '{"model":"claude-3-5-haiku-20241022","max_tokens":1024,"messages":[{"role":"user","content":"Hello"}]}'
-```
-
-Add a `tools` definition to either cross-dialect request (see
-`etc/test/verify.py` for the full shape) to see a tool-call response
-translated across dialects too.
-
-## Using the official SDKs
-
-The `curl` calls above prove the wire shapes match; pointing the real
-`openai`/`anthropic` Python SDKs at the same frontends proves those dialects
-are complete enough for an off-the-shelf client to succeed unmodified --
+Point the official `openai`/`anthropic` Python SDKs at the two frontends --
 `base_url` is the only override, exactly as a caller would repoint an
-existing integration at a self-hosted gateway:
+existing integration at a self-hosted gateway. Since the SDKs enforce the
+real wire contract (not just a matching substring), a successful call here
+proves each dialect is complete enough for an off-the-shelf client to
+succeed unmodified:
 
 ```bash
 pip install openai anthropic
 ```
+
+Send an OpenAI-shaped request to the openai-facing frontend; the reply comes
+back openai-shaped even though the real upstream (`mock-anthropic`) only
+speaks Anthropic:
 
 ```python
 from openai import OpenAI
@@ -212,12 +165,31 @@ resp = client.chat.completions.create(
     model="gpt-4",
     messages=[{"role": "user", "content": "Hello"}])
 print(resp.choices[0].message.content)
+```
 
+Ask for `gpt-4o` instead, and `north_llm_proxy` routes it to the second
+openai-dialect deployment (`mock-openai-secondary`) rather than translating
+it to Anthropic:
+
+```python
+resp = client.chat.completions.create(
+    model="gpt-4o",
+    messages=[{"role": "user", "content": "Hello"}])
+print(resp.choices[0].message.content)
+```
+
+Streaming works the same way, including across the translated leg:
+
+```python
 for chunk in client.chat.completions.create(
         model="gpt-4", messages=[{"role": "user", "content": "Hello"}], stream=True):
     if chunk.choices[0].delta.content:
         print(chunk.choices[0].delta.content, end="")
 ```
+
+Send an Anthropic-shaped request to the anthropic-facing frontend; the reply
+comes back anthropic-shaped even though the real upstream (`mock-openai`)
+only speaks OpenAI:
 
 ```python
 from anthropic import Anthropic
@@ -228,7 +200,23 @@ resp = client.messages.create(
     max_tokens=1024,
     messages=[{"role": "user", "content": "Hello"}])
 print(resp.content[0].text)
+```
 
+Ask for `claude-3-5-haiku-20241022` instead, and `north_llm_proxy` routes it
+to the second anthropic-dialect deployment (`mock-anthropic-secondary`)
+rather than translating it to OpenAI:
+
+```python
+resp = client.messages.create(
+    model="claude-3-5-haiku-20241022",
+    max_tokens=1024,
+    messages=[{"role": "user", "content": "Hello"}])
+print(resp.content[0].text)
+```
+
+Streaming:
+
+```python
 with client.messages.stream(
         model="claude-3-opus-20240229", max_tokens=1024,
         messages=[{"role": "user", "content": "Hello"}]) as stream:
@@ -236,10 +224,13 @@ with client.messages.stream(
         print(text, end="")
 ```
 
-Both round-trip through the exact same cross-dialect translation as the
-`curl` examples above -- the openai client's request lands on
-`mock-anthropic`, the anthropic client's on `mock-openai` -- the SDKs are
-simply unaware of it.
+Both directions round-trip through the exact same cross-dialect translation
+-- the openai client's request lands on `mock-anthropic`, the anthropic
+client's on `mock-openai` -- the SDKs are simply unaware of it.
+
+Add a `tools` definition to either cross-dialect request (see
+`etc/test/verify.py` for the full shape) to see a tool-call response
+translated across dialects too.
 
 ## Verify
 
