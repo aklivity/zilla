@@ -42,7 +42,7 @@ import io.aklivity.zilla.runtime.common.json.JsonTransform;
  * its own.
  * </p>
  */
-abstract class LlmUsageExtractTransform implements JsonTransform
+public abstract class LlmUsageExtractTransform implements JsonTransform
 {
     static final String USAGE_INPUT_TOKENS = "usage.inputTokens";
     static final String USAGE_CACHE_WRITE_TOKENS = "usage.cacheWriteTokens";
@@ -67,7 +67,7 @@ abstract class LlmUsageExtractTransform implements JsonTransform
     private int chunkReasoningTokens = -1;
     private int chunkTotalTokens = -1;
 
-    LlmUsageExtractTransform(
+    protected LlmUsageExtractTransform(
         JsonEnvelope envelope)
     {
         this.envelope = envelope;
