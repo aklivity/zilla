@@ -31,8 +31,6 @@ read '{"model":"gpt-4","messages":[{"role":"user","content":"'
 read ${core:randomBase64(100000)}
 read '"}],"stream":false}'
 
-read closed
-
 write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
                            .dialect("openai")
@@ -49,3 +47,5 @@ write '{"id":"chatcmpl_2","object":"chat.completion","model":"gpt-4","choices":[
 write flush
 
 write close
+
+read closed

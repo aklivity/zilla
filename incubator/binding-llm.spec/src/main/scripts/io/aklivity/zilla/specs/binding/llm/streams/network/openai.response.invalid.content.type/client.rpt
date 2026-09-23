@@ -37,6 +37,4 @@ read zilla:begin.ext ${http:matchBeginEx()
                            .header("content-type", "application/octet-stream")
                            .build()}
 
-read "this response is not JSON or SSE"
-
-read closed
+read abort

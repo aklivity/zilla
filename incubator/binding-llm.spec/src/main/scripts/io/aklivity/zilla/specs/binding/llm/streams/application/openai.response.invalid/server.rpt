@@ -28,6 +28,6 @@ connected
 
 read "{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}],\"stream\":false}"
 
-read closed
-
 write abort
+
+read closed

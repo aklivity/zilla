@@ -32,8 +32,6 @@ write '{"model":"gpt-4","messages":[{"role":"user","content":"'
       ${core:randomBase64(10000)}
       '"}],"stream":false}'
 
-write close
-
 read zilla:begin.ext ${llm:matchBeginEx()
                            .typeId(zilla:id("llm"))
                            .dialect("openai")
@@ -49,3 +47,5 @@ read ${core:randomBase64(10000)}
 read '"},"finish_reason":"stop"}],"usage":{"prompt_tokens":25,"completion_tokens":15,"total_tokens":40}}'
 
 read closed
+
+write close

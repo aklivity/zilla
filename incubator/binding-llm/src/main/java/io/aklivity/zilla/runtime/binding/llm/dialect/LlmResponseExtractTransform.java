@@ -27,11 +27,12 @@ import io.aklivity.zilla.runtime.common.json.JsonSource;
 import io.aklivity.zilla.runtime.common.json.JsonTransform;
 
 /**
- * Observes a response document's {@code usage} field(s), at whatever depth and under whatever dialect-native
- * path they occur, copying each recognized value into the supplied {@link JsonEnvelope} while forwarding
- * every field unchanged, at any depth: no canonical rewriting. Mirrors {@link LlmModelExtractTransform} and
- * a Kafka cache model's {@code extractKey}/{@code extractHeaders} transform, generalized from a single
- * depth-1 field to the nested, dialect-specific paths a native {@code usage} object occurs at.
+ * Observes a response document's {@code usage} field(s) and any error it reports, at whatever depth and under
+ * whatever dialect-native path they occur, copying each recognized value into the supplied {@link JsonEnvelope}
+ * while forwarding every field unchanged, at any depth: no canonical rewriting. Mirrors
+ * {@link LlmModelExtractTransform} and a Kafka cache model's {@code extractKey}/{@code extractHeaders}
+ * transform, generalized from a single depth-1 field to the nested, dialect-specific paths a native
+ * {@code usage} object occurs at.
  * <p>
  * Every value captured this document is only written to {@code envelope} once the whole document has been
  * seen ({@link JsonEvent#END_DOCUMENT}), so a partially-decoded number never reaches the envelope. Because
@@ -41,8 +42,16 @@ import io.aklivity.zilla.runtime.common.json.JsonTransform;
  * each name sees the latest-known figure without this transform needing to track cross-document state of
  * its own.
  * </p>
+ * <p>
+ * An error is captured the same way, via {@link #errorStatus(int)}, {@link #errorType(String)} and
+ * {@link #errorMessage(String)}, whether the document is an error body answering the request as a whole or
+ * an error reported in the middle of a streaming response. A caller treats any captured error as the
+ * response having failed. A dialect whose transport names each streaming document out of band (e.g. an SSE
+ * {@code event:} name) receives that name via {@link #event(String)} before the document's first field; the
+ * default implementation ignores it.
+ * </p>
  */
-public abstract class LlmUsageExtractTransform implements JsonTransform
+public abstract class LlmResponseExtractTransform implements JsonTransform, LlmDialectEvent
 {
     static final String USAGE_INPUT_TOKENS = "usage.inputTokens";
     static final String USAGE_CACHE_WRITE_TOKENS = "usage.cacheWriteTokens";
@@ -50,6 +59,9 @@ public abstract class LlmUsageExtractTransform implements JsonTransform
     static final String USAGE_OUTPUT_TOKENS = "usage.outputTokens";
     static final String USAGE_REASONING_TOKENS = "usage.reasoningTokens";
     static final String USAGE_TOTAL_TOKENS = "usage.totalTokens";
+    static final String ERROR_STATUS = "error.status";
+    static final String ERROR_TYPE = "error.type";
+    static final String ERROR_MESSAGE = "error.message";
 
     private final JsonEnvelope envelope;
     private final StringBuilder path;
@@ -66,8 +78,11 @@ public abstract class LlmUsageExtractTransform implements JsonTransform
     private int chunkOutputTokens = -1;
     private int chunkReasoningTokens = -1;
     private int chunkTotalTokens = -1;
+    private int chunkErrorStatus = -1;
+    private String chunkErrorType;
+    private String chunkErrorMessage;
 
-    protected LlmUsageExtractTransform(
+    protected LlmResponseExtractTransform(
         JsonEnvelope envelope)
     {
         this.envelope = envelope;
@@ -149,11 +164,21 @@ public abstract class LlmUsageExtractTransform implements JsonTransform
         return true;
     }
 
+    @Override
+    public void event(
+        String name)
+    {
+    }
+
     /**
      * Observes the scalar at {@code fieldPath} (the dot-joined key path from the document root), captured
-     * on {@link JsonEvent#END_DOCUMENT} only when one of the {@code usageXxx} setters below was called for
+     * on {@link JsonEvent#END_DOCUMENT} only when one of the usage or error setters below was called for
      * it. Called for every scalar in the document, not only usage fields -- an implementation matches its
      * own dialect's known paths and ignores everything else.
+     *
+     * @param fieldPath  the dot-joined key path from the document root
+     * @param source     the source positioned at the scalar value
+     * @param event      the scalar's event kind
      */
     protected abstract void onField(
         String fieldPath,
@@ -194,6 +219,24 @@ public abstract class LlmUsageExtractTransform implements JsonTransform
         int value)
     {
         chunkTotalTokens = value;
+    }
+
+    protected final void errorStatus(
+        int value)
+    {
+        chunkErrorStatus = value;
+    }
+
+    protected final void errorType(
+        String value)
+    {
+        chunkErrorType = value;
+    }
+
+    protected final void errorMessage(
+        String value)
+    {
+        chunkErrorMessage = value;
     }
 
     private void onContainerStart()
@@ -274,6 +317,9 @@ public abstract class LlmUsageExtractTransform implements JsonTransform
         flush(USAGE_OUTPUT_TOKENS, chunkOutputTokens);
         flush(USAGE_REASONING_TOKENS, chunkReasoningTokens);
         flush(USAGE_TOTAL_TOKENS, chunkTotalTokens);
+        flush(ERROR_STATUS, chunkErrorStatus);
+        flush(ERROR_TYPE, chunkErrorType);
+        flush(ERROR_MESSAGE, chunkErrorMessage);
         clearChunk();
     }
 
@@ -287,6 +333,16 @@ public abstract class LlmUsageExtractTransform implements JsonTransform
         }
     }
 
+    private void flush(
+        String name,
+        String value)
+    {
+        if (value != null)
+        {
+            envelope.set(name, asBuffer(value));
+        }
+    }
+
     private void clearChunk()
     {
         chunkInputTokens = -1;
@@ -295,6 +351,9 @@ public abstract class LlmUsageExtractTransform implements JsonTransform
         chunkOutputTokens = -1;
         chunkReasoningTokens = -1;
         chunkTotalTokens = -1;
+        chunkErrorStatus = -1;
+        chunkErrorType = null;
+        chunkErrorMessage = null;
     }
 
     private static DirectBufferEx asBuffer(

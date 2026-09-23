@@ -40,6 +40,13 @@ scope llm
             string16 nativeUsage = null;
         }
 
+        struct LlmError
+        {
+            int32 status = -1;
+            string16 type = null;
+            string16 message = null;
+        }
+
         struct LlmEndEx extends core::stream::Extension
         {
             LlmUsage usage;
@@ -48,6 +55,12 @@ scope llm
         struct LlmAbortEx extends core::stream::Extension
         {
             LlmUsage usage;
+            LlmError error;
+        }
+
+        struct LlmResetEx extends core::stream::Extension
+        {
+            LlmError error;
         }
     }
 }

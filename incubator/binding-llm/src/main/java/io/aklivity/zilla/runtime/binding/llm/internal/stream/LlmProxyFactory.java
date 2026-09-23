@@ -23,6 +23,7 @@ import org.agrona.collections.Long2ObjectHashMap;
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.runtime.binding.llm.internal.LlmBinding;
 import io.aklivity.zilla.runtime.binding.llm.internal.LlmConfiguration;
+import io.aklivity.zilla.runtime.binding.llm.internal.codec.LlmContentCodecFactory;
 import io.aklivity.zilla.runtime.binding.llm.internal.config.LlmBindingConfig;
 import io.aklivity.zilla.runtime.binding.llm.internal.config.LlmRouteConfig;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.OctetsFW;
@@ -73,6 +74,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
     private final int llmTypeId;
     private final EngineContext context;
     private final Long2ObjectHashMap<LlmBindingConfig> bindings;
+    private final LlmContentCodecFactory codecs;
 
     public LlmProxyFactory(
         LlmConfiguration config,
@@ -85,13 +87,14 @@ public final class LlmProxyFactory implements LlmStreamFactory
         this.llmTypeId = context.supplyTypeId(LlmBinding.NAME);
         this.context = context;
         this.bindings = new Long2ObjectHashMap<>();
+        this.codecs = new LlmContentCodecFactory();
     }
 
     @Override
     public void attach(
         BindingConfig binding)
     {
-        bindings.put(binding.id, new LlmBindingConfig(binding, context));
+        bindings.put(binding.id, new LlmBindingConfig(binding, context, codecs));
     }
 
     @Override
@@ -300,7 +303,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
         {
             this.state = LlmState.closeReply(state);
 
-            app.doAppReset(reset.traceId(), reset.authorization());
+            app.doAppReset(reset.traceId(), reset.authorization(), reset.extension());
         }
 
         private void onNetChallenge(
@@ -393,11 +396,13 @@ public final class LlmProxyFactory implements LlmStreamFactory
 
         private void doNetReset(
             long traceId,
-            long authorization)
+            long authorization,
+            OctetsFW extension)
         {
             if (!LlmState.initialClosed(state))
             {
-                doReset(network, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization);
+                doReset(network, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization,
+                    extension);
                 this.state = LlmState.closeInitial(state);
             }
         }
@@ -587,7 +592,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
         {
             this.state = LlmState.closeInitial(state);
 
-            net.doNetReset(reset.traceId(), reset.authorization());
+            net.doNetReset(reset.traceId(), reset.authorization(), reset.extension());
         }
 
         private void onAppChallenge(
@@ -671,11 +676,12 @@ public final class LlmProxyFactory implements LlmStreamFactory
 
         private void doAppReset(
             long traceId,
-            long authorization)
+            long authorization,
+            OctetsFW extension)
         {
             if (!LlmState.replyClosed(state))
             {
-                doReset(app, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization);
+                doReset(app, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization, extension);
                 this.state = LlmState.closeReply(state);
             }
         }
@@ -880,7 +886,8 @@ public final class LlmProxyFactory implements LlmStreamFactory
         long acknowledge,
         int maximum,
         long traceId,
-        long authorization)
+        long authorization,
+        OctetsFW extension)
     {
         final ResetFW reset = resetRW.wrap(writeBuffer, 0, writeBuffer.capacity())
             .originId(originId)
@@ -891,6 +898,7 @@ public final class LlmProxyFactory implements LlmStreamFactory
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
+            .extension(extension)
             .build();
 
         receiver.accept(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());

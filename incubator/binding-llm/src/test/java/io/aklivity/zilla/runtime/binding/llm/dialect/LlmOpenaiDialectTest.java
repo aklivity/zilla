@@ -18,6 +18,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toMap;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.instanceOf;
@@ -182,6 +183,52 @@ public class LlmOpenaiDialectTest
         assertThat(dialect.supplyExtractor(LlmDialect.Kind.REQUEST, JsonEnvelope.NONE), not(nullValue()));
         assertThat(dialect.supplyExtractor(LlmDialect.Kind.REQUEST, JsonEnvelope.NONE).identity(), is(true));
         assertThat(dialect.supplyExtractor(LlmDialect.Kind.RESPONSE, JsonEnvelope.NONE).identity(), is(true));
+    }
+
+    @Test
+    public void shouldDeclareContentTypes()
+    {
+        LlmDialect dialect = new LlmOpenaiDialect();
+
+        assertThat(dialect.requestContentType(), equalTo("application/json"));
+        assertThat(dialect.responseContentTypes(), containsInAnyOrder("application/json", "text/event-stream"));
+    }
+
+    @Test
+    public void shouldSupplyResponseExtractorReceivingEvents()
+    {
+        LlmDialect dialect = new LlmOpenaiDialect();
+
+        assertThat(dialect.supplyExtractor(LlmDialect.Kind.RESPONSE, JsonEnvelope.NONE), instanceOf(LlmDialectEvent.class));
+    }
+
+    @Test
+    public void shouldEncodeRateLimitErrorBody()
+    {
+        LlmDialect dialect = new LlmOpenaiDialect();
+
+        assertThat(dialect.errorBody(429, "rate_limit_error", "Too many requests"), equalTo(
+            "{\"error\":{\"message\":\"Too many requests\",\"type\":\"requests\",\"param\":null," +
+                "\"code\":\"rate_limit_exceeded\"}}"));
+    }
+
+    @Test
+    public void shouldEncodeServerErrorBodyWithDefaultMessage()
+    {
+        LlmDialect dialect = new LlmOpenaiDialect();
+
+        assertThat(dialect.errorBody(502, null, null), equalTo(
+            "{\"error\":{\"message\":\"Bad Gateway\",\"type\":\"server_error\",\"param\":null,\"code\":null}}"));
+    }
+
+    @Test
+    public void shouldEncodeClientErrorBodyEscapingMessage()
+    {
+        LlmDialect dialect = new LlmOpenaiDialect();
+
+        assertThat(dialect.errorBody(400, null, "bad \"field\""), equalTo(
+            "{\"error\":{\"message\":\"bad \\\"field\\\"\",\"type\":\"invalid_request_error\",\"param\":null," +
+                "\"code\":null}}"));
     }
 
     @Test

@@ -28,8 +28,6 @@ connected
 
 read "{\"model\":\"claude-3-opus-20240229\",\"max_tokens\":1024,\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}],\"stream\":true}"
 
-read closed
-
 write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
                            .dialect("anthropic")
@@ -82,3 +80,5 @@ write "{\"type\":\"message_stop\"}"
 write flush
 
 write close
+
+read closed

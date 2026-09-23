@@ -26,8 +26,6 @@ connected
 
 write "{\"model\":\"claude-haiku-4-5-20251001\",\"max_tokens\":100,\"messages\":[{\"role\":\"user\",\"content\":\"Say hello in one sentence.\"}],\"stream\":false}"
 
-write close
-
 read zilla:begin.ext ${llm:matchBeginEx()
                            .typeId(zilla:id("llm"))
                            .dialect("anthropic")
@@ -49,3 +47,5 @@ read zilla:end.ext ${llm:matchEndEx()
                            .build()}
 
 read closed
+
+write close

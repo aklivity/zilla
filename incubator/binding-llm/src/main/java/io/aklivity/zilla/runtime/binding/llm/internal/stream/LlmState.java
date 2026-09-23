@@ -93,6 +93,12 @@ final class LlmState
         return closingReply(state) | REPLY_CLOSED;
     }
 
+    static boolean replyOpening(
+        int state)
+    {
+        return (state & REPLY_OPENING) != 0;
+    }
+
     static boolean replyOpened(
         int state)
     {

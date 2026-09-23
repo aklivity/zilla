@@ -33,8 +33,6 @@ read '{"model":"'
      ${model}
      '","messages":[{"role":"user","content":"What is the weather in San Francisco?"}],"stream":false}'
 
-read closed
-
 write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
                            .dialect("anthropic")
@@ -53,3 +51,5 @@ write '{"id":"'
 write flush
 
 write close
+
+read closed

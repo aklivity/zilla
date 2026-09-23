@@ -31,8 +31,6 @@ write '{"model":"'
       ${model}
       '","messages":[{"role":"user","content":"What is the weather in San Francisco?"}],"stream":false}'
 
-write close
-
 read zilla:begin.ext ${llm:matchBeginEx()
                            .typeId(zilla:id("llm"))
                            .dialect("anthropic")
@@ -50,3 +48,5 @@ read '{"id":"'
      '","content":[{"type":"tool_use","id":"toolu_01","name":"get_weather","input":{"city":"San Francisco"}}],"stop_reason":"tool_use","usage":{"input_tokens":25,"output_tokens":15}}'
 
 read closed
+
+write close

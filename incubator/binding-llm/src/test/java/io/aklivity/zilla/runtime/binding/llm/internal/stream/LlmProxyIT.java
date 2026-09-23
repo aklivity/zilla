@@ -111,4 +111,15 @@ public class LlmProxyIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${app}/openai.proxy.rejected/client",
+        "${app}/openai.proxy.rejected/server"})
+    @ScriptProperty("clientAddress \"zilla://streams/net0\"")
+    public void shouldForwardResetExtensionFromAppZero() throws Exception
+    {
+        k3po.finish();
+    }
 }

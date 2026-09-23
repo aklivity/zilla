@@ -409,4 +409,112 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/openai.rejected.rate.limit/client",
+        "${net}/openai.rejected.rate.limit/server"})
+    public void shouldRejectOpenaiRateLimited() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.rejected.rate.limit/client",
+        "${net}/anthropic.rejected.rate.limit/server"})
+    public void shouldRejectAnthropicRateLimited() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transformed.rejected.rate.limit/client",
+        "${net}/anthropic.transformed.rejected.rate.limit/server"})
+    public void shouldRejectAnthropicTransformedRateLimited() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.rejected.bad.gateway/client",
+        "${net}/openai.rejected.bad.gateway/server"})
+    public void shouldRejectOpenaiBadGateway() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.rejected.reset/client",
+        "${net}/openai.rejected.reset/server"})
+    public void shouldRejectOpenaiReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.request.invalid/client",
+        "${net}/openai.request.invalid/server"})
+    public void shouldAbortOpenaiInvalidRequest() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.request.unsupported.content.type/client",
+        "${net}/anthropic.request.unsupported.content.type/server"})
+    public void shouldRejectAnthropicUnsupportedContentType() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.streaming.error/client",
+        "${net}/openai.streaming.error/server"})
+    public void shouldRelayOpenaiStreamingError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.streaming.error/client",
+        "${net}/anthropic.streaming.error/server"})
+    public void shouldRelayAnthropicStreamingError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.streaming.transformed.error/client",
+        "${net}/anthropic.streaming.transformed.error/server"})
+    public void shouldRelayAnthropicStreamingTransformedError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.streaming.error.aborted/client",
+        "${net}/openai.streaming.error.aborted/server"})
+    public void shouldAbortOpenaiStreamingError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.streaming.error.aborted/client",
+        "${net}/anthropic.streaming.error.aborted/server"})
+    public void shouldAbortAnthropicStreamingError() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -42,6 +42,8 @@ import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmBeginExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmDataExFW;
+import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmErrorFW;
+import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmResetExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
@@ -65,6 +67,8 @@ public final class LlmServerFactory implements LlmStreamFactory
     private static final String HEADER_CONTENT_TYPE = "content-type";
     private static final String STATUS_OK = "200";
     private static final String STATUS_UNAUTHORIZED = "401";
+    private static final int STATUS_UNSUPPORTED_MEDIA_TYPE = 415;
+    private static final int STATUS_INTERNAL_SERVER_ERROR = 500;
     private static final String CONTENT_TYPE_JSON = "application/json";
     private static final String ENVELOPE_MODEL = "model";
 
@@ -99,6 +103,7 @@ public final class LlmServerFactory implements LlmStreamFactory
     private final LlmBeginExFW llmBeginExRO = new LlmBeginExFW();
     private final LlmBeginExFW.Builder llmBeginExRW = new LlmBeginExFW.Builder();
     private final LlmDataExFW llmDataExRO = new LlmDataExFW();
+    private final LlmResetExFW llmResetExRO = new LlmResetExFW();
 
     private final MutableDirectBufferEx writeBuffer;
     private final MutableDirectBufferEx extBuffer;
@@ -139,7 +144,7 @@ public final class LlmServerFactory implements LlmStreamFactory
     public void attach(
         BindingConfig binding)
     {
-        bindings.put(binding.id, new LlmBindingConfig(binding, context));
+        bindings.put(binding.id, new LlmBindingConfig(binding, context, codecs));
     }
 
     @Override
@@ -178,19 +183,27 @@ public final class LlmServerFactory implements LlmStreamFactory
                 {
                     final LlmDialect dialect = binding.resolveDialect(envelope);
 
-                    if (dialect != null)
+                    final String contentType = header(envelope, HEADER_CONTENT_TYPE);
+
+                    if (dialect != null &&
+                        !dialect.requestContentType().equals(LlmContentCodecFactory.mediaType(contentType)))
+                    {
+                        newStream = new LlmErrorResponder(network, begin.originId(), routedId, begin.streamId(),
+                            Integer.toString(STATUS_UNSUPPORTED_MEDIA_TYPE),
+                            dialect.errorBody(STATUS_UNSUPPORTED_MEDIA_TYPE, null, null))::onNetMessage;
+                    }
+                    else if (dialect != null)
                     {
                         final LlmAuthorizationResult authResult = binding.authorize(
                             begin.traceId(), routedId, begin.streamId(), authorization, envelope, dialect);
 
                         if (!authResult.authorized())
                         {
-                            newStream = new LlmUnauthorizedResponder(
-                                network, begin.originId(), routedId, begin.streamId(), dialect)::onNetMessage;
+                            newStream = new LlmErrorResponder(network, begin.originId(), routedId, begin.streamId(),
+                                STATUS_UNAUTHORIZED, dialect.unauthorizedBody())::onNetMessage;
                         }
                         else
                         {
-                            final String contentType = header(envelope, HEADER_CONTENT_TYPE);
                             final JsonPipeline pipeline = buildRequestPipeline(dialect, envelope);
 
                             newStream = new LlmServer(
@@ -331,6 +344,7 @@ public final class LlmServerFactory implements LlmStreamFactory
 
         private final long initialAuthorization;
         private long pendingEndTraceId;
+        private boolean appEndPending;
 
         private int decodeSlot = NO_SLOT;
         private int decodeSlotOffset;
@@ -560,14 +574,7 @@ public final class LlmServerFactory implements LlmStreamFactory
                 if (LlmState.initialEndDeferred(state) && decodeSlotOffset == 0)
                 {
                     state = LlmState.clearInitialEndDeferred(state);
-                    if (stream != null)
-                    {
-                        stream.doAppEnd(traceId);
-                    }
-                    else
-                    {
-                        cleanup(traceId);
-                    }
+                    doAppEnd(traceId);
                 }
             }
         }
@@ -596,20 +603,60 @@ public final class LlmServerFactory implements LlmStreamFactory
 
             if (decodeSlotOffset == 0 && (stream == null || stream.requestAvailable()))
             {
-                if (stream != null)
-                {
-                    stream.doAppEnd(traceId);
-                }
-                else
-                {
-                    cleanup(traceId);
-                }
+                doAppEnd(traceId);
             }
             else
             {
                 state = LlmState.deferInitialEnd(state);
                 pendingEndTraceId = traceId;
             }
+        }
+
+        private void doAppEnd(
+            long traceId)
+        {
+            if (stream == null)
+            {
+                cleanup(traceId);
+            }
+            else if (LlmState.replyClosed(stream.state))
+            {
+                appEndPending = false;
+                stream.doAppEnd(traceId);
+            }
+            else
+            {
+                appEndPending = true;
+            }
+        }
+
+        private void doNetError(
+            long traceId,
+            long authorization,
+            LlmErrorFW error)
+        {
+            final int status = error.status() != -1 ? error.status() : STATUS_INTERNAL_SERVER_ERROR;
+            final DirectBufferEx body = asBuffer(dialect.errorBody(status, error.type().asString(),
+                error.message().asString()));
+
+            pipeline.reset();
+            cleanupDecodeSlot();
+
+            doNetBegin(traceId, authorization, 0L, Integer.toString(status), CONTENT_TYPE_JSON);
+            doNetData(body, 0, body.capacity(), 0, FLAG_INIT | FLAG_FIN, 0L, traceId, authorization);
+
+            if (encodeSlot != NO_SLOT)
+            {
+                state = LlmState.deferReplyEnd(state);
+                pendingReplyEndTraceId = traceId;
+                pendingReplyEndAuthorization = authorization;
+            }
+            else
+            {
+                doNetEnd(traceId, authorization, EMPTY_OCTETS);
+            }
+
+            doNetReset(traceId);
         }
 
         private void onNetAbort(
@@ -794,11 +841,12 @@ public final class LlmServerFactory implements LlmStreamFactory
             long traceId,
             long authorization,
             long affinity,
+            String status,
             String responseContentType)
         {
             final HttpBeginExFW.Builder httpBeginExBuilder = httpBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(httpTypeId)
-                .headersItem(h -> h.name(HEADER_STATUS).value(STATUS_OK));
+                .headersItem(h -> h.name(HEADER_STATUS).value(status));
 
             if (responseContentType != null)
             {
@@ -1193,7 +1241,7 @@ public final class LlmServerFactory implements LlmStreamFactory
 
             encoder = codecs.createEncoder(responseContentType);
 
-            server.doNetBegin(traceId, authorization, affinity, responseContentType);
+            server.doNetBegin(traceId, authorization, affinity, STATUS_OK, responseContentType);
             doAppWindow(traceId);
         }
 
@@ -1275,6 +1323,11 @@ public final class LlmServerFactory implements LlmStreamFactory
             {
                 server.doNetEnd(traceId, authorization, extension);
             }
+
+            if (server.appEndPending)
+            {
+                server.doAppEnd(traceId);
+            }
         }
 
         private void onAppAbort(
@@ -1288,17 +1341,34 @@ public final class LlmServerFactory implements LlmStreamFactory
             state = LlmState.closeReply(state);
 
             server.doNetAbort(traceId, authorization, extension);
+
+            if (server.appEndPending)
+            {
+                server.doAppEnd(traceId);
+            }
         }
 
         private void onAppReset(
             ResetFW reset)
         {
             final long traceId = reset.traceId();
+            final long authorization = reset.authorization();
+            final OctetsFW extension = reset.extension();
+            final LlmResetExFW resetEx = extension.get(llmResetExRO::tryWrap);
 
             state = LlmState.closeInitial(state);
+            server.appEndPending = false;
 
-            server.doNetReset(traceId);
-            server.cleanup(traceId);
+            if (resetEx != null && !LlmState.replyOpening(server.state))
+            {
+                server.doNetError(traceId, authorization, resetEx.error());
+                cleanup();
+            }
+            else
+            {
+                server.doNetReset(traceId);
+                server.cleanup(traceId);
+            }
         }
 
         private void onAppWindow(
@@ -1498,13 +1568,14 @@ public final class LlmServerFactory implements LlmStreamFactory
         }
     }
 
-    private final class LlmUnauthorizedResponder
+    private final class LlmErrorResponder
     {
         private final MessageConsumer network;
         private final long originId;
         private final long routedId;
         private final long initialId;
         private final long replyId;
+        private final String status;
         private final DirectBufferEx body;
 
         private long initialSeq;
@@ -1518,19 +1589,21 @@ public final class LlmServerFactory implements LlmStreamFactory
         private boolean began;
         private int bodySent;
 
-        private LlmUnauthorizedResponder(
+        private LlmErrorResponder(
             MessageConsumer network,
             long originId,
             long routedId,
             long initialId,
-            LlmDialect dialect)
+            String status,
+            String body)
         {
             this.network = network;
             this.originId = originId;
             this.routedId = routedId;
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
-            this.body = asBuffer(dialect.unauthorizedBody());
+            this.status = status;
+            this.body = asBuffer(body);
         }
 
         private void onNetMessage(
@@ -1633,7 +1706,7 @@ public final class LlmServerFactory implements LlmStreamFactory
         {
             final HttpBeginExFW httpBeginEx = httpBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(httpTypeId)
-                .headersItem(h -> h.name(HEADER_STATUS).value(STATUS_UNAUTHORIZED))
+                .headersItem(h -> h.name(HEADER_STATUS).value(status))
                 .headersItem(h -> h.name(HEADER_CONTENT_TYPE).value(CONTENT_TYPE_JSON))
                 .build();
 

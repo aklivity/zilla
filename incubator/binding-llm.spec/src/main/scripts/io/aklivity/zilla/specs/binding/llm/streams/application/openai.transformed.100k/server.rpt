@@ -35,8 +35,6 @@ read '{"model":"'
 read ${core:randomBase64(100000)}
 read '"}],"stream":false}'
 
-read closed
-
 write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
                            .dialect("openai")
@@ -55,3 +53,5 @@ write '{"object":"chat.completion","id":"'
 write flush
 
 write close
+
+read closed

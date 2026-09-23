@@ -20,6 +20,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.net.URL;
+import java.util.Set;
+
+import jakarta.json.Json;
+import jakarta.json.JsonObjectBuilder;
 
 import io.aklivity.zilla.runtime.binding.llm.internal.mapper.LlmOpenaiDecodeTransform;
 import io.aklivity.zilla.runtime.binding.llm.internal.mapper.LlmOpenaiEncodeSink;
@@ -62,6 +66,8 @@ public final class LlmOpenaiDialect implements LlmDialect
     private static final String COMPLETIONS_PATH = "/v1/completions";
     private static final String CHAT_COMPLETIONS_SUFFIX = "/chat/completions";
     private static final String CONTENT_TYPE_JSON = "application/json";
+    private static final String CONTENT_TYPE_EVENT_STREAM = "text/event-stream";
+    private static final Set<String> RESPONSE_CONTENT_TYPES = Set.of(CONTENT_TYPE_JSON, CONTENT_TYPE_EVENT_STREAM);
 
     private static final String REQUEST_SCHEMA_RESOURCE = "openai.request.schema.json";
     private static final String RESPONSE_SCHEMA_RESOURCE = "openai.response.schema.json";
@@ -116,6 +122,44 @@ public final class LlmOpenaiDialect implements LlmDialect
     }
 
     @Override
+    public String errorBody(
+        int status,
+        String type,
+        String message)
+    {
+        final JsonObjectBuilder error = Json.createObjectBuilder()
+            .add("message", message != null ? message : LlmStatusReason.of(status))
+            .add("type", status == 429 ? "requests" : status >= 500 ? "server_error" : "invalid_request_error")
+            .addNull("param");
+
+        if (status == 429)
+        {
+            error.add("code", "rate_limit_exceeded");
+        }
+        else
+        {
+            error.addNull("code");
+        }
+
+        return Json.createObjectBuilder()
+            .add("error", error)
+            .build()
+            .toString();
+    }
+
+    @Override
+    public String requestContentType()
+    {
+        return CONTENT_TYPE_JSON;
+    }
+
+    @Override
+    public Set<String> responseContentTypes()
+    {
+        return RESPONSE_CONTENT_TYPES;
+    }
+
+    @Override
     public JsonTransform supplyDecoder(
         Kind kind,
         JsonEnvelope envelope)
@@ -130,7 +174,7 @@ public final class LlmOpenaiDialect implements LlmDialect
     {
         return kind == Kind.REQUEST
             ? new LlmModelExtractTransform(envelope)
-            : new LlmOpenaiUsageExtractTransform(envelope);
+            : new LlmOpenaiResponseExtractTransform(envelope);
     }
 
     @Override

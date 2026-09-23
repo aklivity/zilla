@@ -33,8 +33,6 @@ read '{"model":"'
      ${model}
      '","messages":[{"role":"user","content":"What is the weather in San Francisco?"}],"stream":false}'
 
-read closed
-
 write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
                            .dialect("openai")
@@ -55,3 +53,5 @@ write '{"object":"chat.completion","id":"'
 write flush
 
 write close
+
+read closed

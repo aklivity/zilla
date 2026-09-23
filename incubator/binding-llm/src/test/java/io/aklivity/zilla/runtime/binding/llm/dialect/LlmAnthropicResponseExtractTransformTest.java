@@ -40,13 +40,13 @@ import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 import io.aklivity.zilla.runtime.common.json.JsonPipelineResult;
 import io.aklivity.zilla.runtime.common.json.JsonTransform;
 
-public class LlmAnthropicUsageExtractTransformTest
+public class LlmAnthropicResponseExtractTransformTest
 {
     @Test
     public void shouldExtractInputAndCacheTokensFromMessageStart()
     {
         TestJsonEnvelope envelope = new TestJsonEnvelope();
-        JsonTransform transform = new LlmAnthropicUsageExtractTransform(envelope);
+        JsonTransform transform = new LlmAnthropicResponseExtractTransform(envelope);
 
         transform(transform, envelope,
             "{\"type\":\"message_start\",\"message\":{\"id\":\"msg_1\",\"model\":\"claude-3-opus-20240229\"," +
@@ -63,7 +63,7 @@ public class LlmAnthropicUsageExtractTransformTest
     public void shouldExtractOutputTokensFromMessageDeltaAcrossDocuments()
     {
         TestJsonEnvelope envelope = new TestJsonEnvelope();
-        JsonTransform transform = new LlmAnthropicUsageExtractTransform(envelope);
+        JsonTransform transform = new LlmAnthropicResponseExtractTransform(envelope);
 
         transform(transform, envelope,
             "{\"type\":\"message_start\",\"message\":{\"id\":\"msg_1\",\"model\":\"claude-3-opus-20240229\"," +
@@ -79,7 +79,7 @@ public class LlmAnthropicUsageExtractTransformTest
     public void shouldExtractFromWholeNonStreamingMessage()
     {
         TestJsonEnvelope envelope = new TestJsonEnvelope();
-        JsonTransform transform = new LlmAnthropicUsageExtractTransform(envelope);
+        JsonTransform transform = new LlmAnthropicResponseExtractTransform(envelope);
 
         transform(transform, envelope,
             "{\"id\":\"msg_1\",\"model\":\"claude-3-opus-20240229\",\"role\":\"assistant\"," +
@@ -93,7 +93,7 @@ public class LlmAnthropicUsageExtractTransformTest
     public void shouldNotExtractFromDocumentWithoutUsage()
     {
         TestJsonEnvelope envelope = new TestJsonEnvelope();
-        JsonTransform transform = new LlmAnthropicUsageExtractTransform(envelope);
+        JsonTransform transform = new LlmAnthropicResponseExtractTransform(envelope);
 
         transform(transform, envelope,
             "{\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"Hi\"}}");
@@ -106,7 +106,7 @@ public class LlmAnthropicUsageExtractTransformTest
     public void shouldForwardEveryOtherFieldUnchanged()
     {
         TestJsonEnvelope envelope = new TestJsonEnvelope();
-        JsonTransform transform = new LlmAnthropicUsageExtractTransform(envelope);
+        JsonTransform transform = new LlmAnthropicResponseExtractTransform(envelope);
 
         JsonObject result = transform(transform, envelope,
             "{\"type\":\"message_start\",\"message\":{\"id\":\"msg_1\",\"model\":\"claude-3-opus-20240229\"," +
@@ -121,9 +121,44 @@ public class LlmAnthropicUsageExtractTransformTest
     @Test
     public void shouldBeIdentity()
     {
-        JsonTransform transform = new LlmAnthropicUsageExtractTransform(new TestJsonEnvelope());
+        JsonTransform transform = new LlmAnthropicResponseExtractTransform(new TestJsonEnvelope());
 
         assertThat(transform.identity(), is(true));
+    }
+
+    @Test
+    public void shouldExtractErrorIntoEnvelope()
+    {
+        TestJsonEnvelope envelope = new TestJsonEnvelope();
+        JsonTransform transform = new LlmAnthropicResponseExtractTransform(envelope);
+
+        transform(transform, envelope,
+            "{\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"}}");
+
+        assertThat(stringValue(envelope, "error.type"), equalTo("overloaded_error"));
+        assertThat(stringValue(envelope, "error.message"), equalTo("Overloaded"));
+        assertThat(envelope.get("error.status", 0), nullValue());
+    }
+
+    @Test
+    public void shouldNotExtractErrorFromMessage()
+    {
+        TestJsonEnvelope envelope = new TestJsonEnvelope();
+        JsonTransform transform = new LlmAnthropicResponseExtractTransform(envelope);
+
+        transform(transform, envelope,
+            "{\"type\":\"message_delta\",\"delta\":{\"type\":\"text\",\"stop_reason\":\"end_turn\"}}");
+
+        assertThat(envelope.get("error.type", 0), nullValue());
+        assertThat(envelope.get("error.message", 0), nullValue());
+    }
+
+    private static String stringValue(
+        JsonEnvelope envelope,
+        String name)
+    {
+        DirectBufferEx value = envelope.get(name, 0);
+        return value.getStringWithoutLengthUtf8(0, value.capacity());
     }
 
     private static int intValue(

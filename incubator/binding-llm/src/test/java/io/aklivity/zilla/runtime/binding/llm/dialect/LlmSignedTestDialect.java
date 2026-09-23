@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.binding.llm.dialect;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.agrona.DirectBuffer;
 
@@ -68,6 +69,27 @@ final class LlmSignedTestDialect implements LlmDialect
     public String unauthorizedBody()
     {
         return delegate.unauthorizedBody();
+    }
+
+    @Override
+    public String errorBody(
+        int status,
+        String type,
+        String message)
+    {
+        return delegate.errorBody(status, type, message);
+    }
+
+    @Override
+    public String requestContentType()
+    {
+        return delegate.requestContentType();
+    }
+
+    @Override
+    public Set<String> responseContentTypes()
+    {
+        return delegate.responseContentTypes();
     }
 
     @Override

@@ -26,8 +26,6 @@ connected
 
 write "{\"model\":\"gpt-4o-mini\",\"messages\":[{\"role\":\"user\",\"content\":\"Say hello in one sentence.\"}],\"stream\":false}"
 
-write close
-
 read zilla:begin.ext ${llm:matchBeginEx()
                            .typeId(zilla:id("llm"))
                            .dialect("openai")
@@ -50,3 +48,5 @@ read zilla:end.ext ${llm:matchEndEx()
                            .build()}
 
 read closed
+
+write close

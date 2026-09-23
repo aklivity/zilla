@@ -386,4 +386,112 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/openai.rejected.rate.limit/client",
+        "${app}/openai.rejected.rate.limit/server"})
+    public void shouldRejectOpenaiRateLimited() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.rejected.rate.limit/client",
+        "${app}/anthropic.rejected.rate.limit/server"})
+    public void shouldRejectAnthropicRateLimited() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.transformed.rejected.rate.limit/client",
+        "${app}/openai.transformed.rejected.rate.limit/server"})
+    public void shouldRejectOpenaiTransformedRateLimited() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.rejected.bad.gateway/client",
+        "${app}/openai.rejected.bad.gateway/server"})
+    public void shouldRejectOpenaiBadGateway() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.rejected.reset/client",
+        "${app}/openai.rejected.reset/server"})
+    public void shouldRejectOpenaiReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.request.invalid/client",
+        "${app}/openai.request.invalid/server"})
+    public void shouldRejectOpenaiInvalidRequest() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.request.trailing/client",
+        "${app}/openai.request.trailing/server"})
+    public void shouldRejectOpenaiTrailingRequest() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.request.unsupported.content.type/client",
+        "${app}/openai.request.unsupported.content.type/server"})
+    public void shouldRejectOpenaiUnsupportedContentType() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.streaming.error/client",
+        "${app}/openai.streaming.error/server"})
+    public void shouldAbortOpenaiStreamingError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.streaming.error/client",
+        "${app}/anthropic.streaming.error/server"})
+    public void shouldAbortAnthropicStreamingError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.streaming.transformed.error/client",
+        "${app}/openai.streaming.transformed.error/server"})
+    public void shouldAbortOpenaiStreamingTransformedError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.proxy.rejected/client",
+        "${app}/openai.proxy.rejected/server"})
+    public void shouldRejectOpenaiProxy() throws Exception
+    {
+        k3po.finish();
+    }
 }

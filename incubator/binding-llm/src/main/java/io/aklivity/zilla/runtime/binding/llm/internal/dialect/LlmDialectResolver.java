@@ -65,6 +65,11 @@ public final class LlmDialectResolver
         return dialectFixed ? fixedDialect : detect(headers);
     }
 
+    public Collection<LlmDialect> dialects()
+    {
+        return dialectsByName.values();
+    }
+
     public LlmDialect dialectNamed(
         String name)
     {

@@ -25,6 +25,7 @@ import io.aklivity.zilla.config.binding.llm.LlmOptionsConfig;
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialect;
+import io.aklivity.zilla.runtime.binding.llm.internal.codec.LlmContentCodecFactory;
 import io.aklivity.zilla.runtime.binding.llm.internal.dialect.LlmDialectResolver;
 import io.aklivity.zilla.runtime.binding.llm.sign.LlmRequestSigner;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
@@ -56,7 +57,8 @@ public final class LlmBindingConfig
 
     public LlmBindingConfig(
         BindingConfig binding,
-        EngineContext context)
+        EngineContext context,
+        LlmContentCodecFactory codecs)
     {
         this.id = binding.id;
         this.name = binding.name;
@@ -64,6 +66,7 @@ public final class LlmBindingConfig
         this.options = binding.options instanceof LlmOptionsConfig o ? o : DEFAULT_OPTIONS;
         this.routes = binding.routes.stream().map(LlmRouteConfig::new).collect(toList());
         this.dialects = new LlmDialectResolver(this.options.dialect, context::signaler);
+        this.dialects.dialects().forEach(codecs::validate);
         this.guard = Optional.ofNullable(this.options.authorization)
             .map(a -> a.name)
             .map(binding.resolveId::applyAsLong)

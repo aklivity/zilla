@@ -25,7 +25,7 @@ import java.util.Map;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.binding.llm.dialect.LlmUsageExtractTransform;
+import io.aklivity.zilla.runtime.binding.llm.dialect.LlmResponseExtractTransform;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
@@ -37,13 +37,13 @@ import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 import io.aklivity.zilla.runtime.common.json.JsonPipelineResult;
 import io.aklivity.zilla.runtime.common.json.JsonSource;
 
-public class LlmUsageExtractTransformExtensionTest
+public class LlmResponseExtractTransformExtensionTest
 {
     @Test
     public void shouldExtractEveryUsageFieldFromSubclassOutsideDialectPackage()
     {
         Envelope envelope = new Envelope();
-        UsageExtractTransform transform = new UsageExtractTransform(envelope);
+        ResponseExtractTransform transform = new ResponseExtractTransform(envelope);
 
         String text = transform(transform, envelope,
             "{\"meter\":{\"in\":1,\"cacheWrite\":2,\"cacheRead\":3,\"out\":4,\"reasoning\":5,\"total\":15}}");
@@ -59,10 +59,52 @@ public class LlmUsageExtractTransformExtensionTest
     }
 
     @Test
+    public void shouldExtractEveryErrorFieldFromSubclassOutsideDialectPackage()
+    {
+        Envelope envelope = new Envelope();
+        ResponseExtractTransform transform = new ResponseExtractTransform(envelope);
+
+        String text = transform(transform, envelope,
+            "{\"fault\":{\"code\":503,\"kind\":\"overloaded\",\"text\":\"try later\"}}");
+
+        assertThat(text, equalTo("{\"fault\":{\"code\":503,\"kind\":\"overloaded\",\"text\":\"try later\"}}"));
+        assertThat(intValue(envelope, "error.status"), equalTo(503));
+        assertThat(stringValue(envelope, "error.type"), equalTo("overloaded"));
+        assertThat(stringValue(envelope, "error.message"), equalTo("try later"));
+    }
+
+    @Test
+    public void shouldExtractErrorFromEventName()
+    {
+        Envelope envelope = new Envelope();
+        ResponseExtractTransform transform = new ResponseExtractTransform(envelope);
+
+        transform.event("failure");
+        transform(transform, envelope, "{\"text\":\"stream broke\"}");
+
+        assertThat(stringValue(envelope, "error.type"), equalTo("failure"));
+        assertThat(stringValue(envelope, "error.message"), equalTo("stream broke"));
+    }
+
+    @Test
+    public void shouldNotExtractErrorForOrdinaryEvent()
+    {
+        Envelope envelope = new Envelope();
+        ResponseExtractTransform transform = new ResponseExtractTransform(envelope);
+
+        transform.event("delta");
+        transform(transform, envelope, "{\"text\":\"hello\"}");
+
+        assertThat(envelope.get("error.type", 0), nullValue());
+        assertThat(envelope.get("error.message", 0), nullValue());
+        assertThat(envelope.get("error.status", 0), nullValue());
+    }
+
+    @Test
     public void shouldNotExtractUnrecognizedFields()
     {
         Envelope envelope = new Envelope();
-        UsageExtractTransform transform = new UsageExtractTransform(envelope);
+        ResponseExtractTransform transform = new ResponseExtractTransform(envelope);
 
         transform(transform, envelope, "{\"other\":{\"in\":1}}");
 
@@ -72,7 +114,7 @@ public class LlmUsageExtractTransformExtensionTest
     @Test
     public void shouldBeIdentity()
     {
-        assertThat(new UsageExtractTransform(new Envelope()).identity(), is(true));
+        assertThat(new ResponseExtractTransform(new Envelope()).identity(), is(true));
     }
 
     private static int intValue(
@@ -83,8 +125,16 @@ public class LlmUsageExtractTransformExtensionTest
         return Integer.parseInt(value.getStringWithoutLengthUtf8(0, value.capacity()));
     }
 
+    private static String stringValue(
+        JsonEnvelope envelope,
+        String name)
+    {
+        DirectBufferEx value = envelope.get(name, 0);
+        return value.getStringWithoutLengthUtf8(0, value.capacity());
+    }
+
     private static String transform(
-        UsageExtractTransform transform,
+        ResponseExtractTransform transform,
         JsonEnvelope envelope,
         String json)
     {
@@ -103,12 +153,21 @@ public class LlmUsageExtractTransformExtensionTest
         return output.getStringWithoutLengthUtf8(0, result.produced());
     }
 
-    private static final class UsageExtractTransform extends LlmUsageExtractTransform
+    private static final class ResponseExtractTransform extends LlmResponseExtractTransform
     {
-        private UsageExtractTransform(
+        private String eventName;
+
+        private ResponseExtractTransform(
             JsonEnvelope envelope)
         {
             super(envelope);
+        }
+
+        @Override
+        public void event(
+            String name)
+        {
+            this.eventName = name;
         }
 
         @Override
@@ -136,6 +195,22 @@ public class LlmUsageExtractTransformExtensionTest
                 break;
             case "meter.total":
                 totalTokens(source.getInt());
+                break;
+            case "fault.code":
+                errorStatus(source.getInt());
+                break;
+            case "fault.kind":
+                errorType(source.getString());
+                break;
+            case "fault.text":
+                errorMessage(source.getString());
+                break;
+            case "text":
+                if ("failure".equals(eventName))
+                {
+                    errorType(eventName);
+                    errorMessage(source.getString());
+                }
                 break;
             default:
                 break;
