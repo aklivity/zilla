@@ -40,13 +40,13 @@ import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 import io.aklivity.zilla.runtime.common.json.JsonPipelineResult;
 import io.aklivity.zilla.runtime.common.json.JsonTransform;
 
-public class LlmOpenaiUsageExtractTransformTest
+public class LlmOpenaiResponseExtractTransformTest
 {
     @Test
     public void shouldExtractUsageIntoEnvelope()
     {
         TestJsonEnvelope envelope = new TestJsonEnvelope();
-        JsonTransform transform = new LlmOpenaiUsageExtractTransform(envelope);
+        JsonTransform transform = new LlmOpenaiResponseExtractTransform(envelope);
 
         transform(transform, envelope,
             "{\"choices\":[],\"usage\":{\"prompt_tokens\":25,\"completion_tokens\":15,\"total_tokens\":40}}");
@@ -63,7 +63,7 @@ public class LlmOpenaiUsageExtractTransformTest
     public void shouldExtractCacheAndReasoningTokensIntoEnvelope()
     {
         TestJsonEnvelope envelope = new TestJsonEnvelope();
-        JsonTransform transform = new LlmOpenaiUsageExtractTransform(envelope);
+        JsonTransform transform = new LlmOpenaiResponseExtractTransform(envelope);
 
         transform(transform, envelope,
             "{\"choices\":[],\"usage\":{\"prompt_tokens\":25,\"completion_tokens\":15," +
@@ -78,7 +78,7 @@ public class LlmOpenaiUsageExtractTransformTest
     public void shouldNotExtractFromDocumentWithoutUsage()
     {
         TestJsonEnvelope envelope = new TestJsonEnvelope();
-        JsonTransform transform = new LlmOpenaiUsageExtractTransform(envelope);
+        JsonTransform transform = new LlmOpenaiResponseExtractTransform(envelope);
 
         transform(transform, envelope,
             "{\"choices\":[{\"index\":0,\"delta\":{\"content\":\"Hello\"},\"finish_reason\":null}]}");
@@ -91,7 +91,7 @@ public class LlmOpenaiUsageExtractTransformTest
     public void shouldForwardEveryOtherFieldUnchanged()
     {
         TestJsonEnvelope envelope = new TestJsonEnvelope();
-        JsonTransform transform = new LlmOpenaiUsageExtractTransform(envelope);
+        JsonTransform transform = new LlmOpenaiResponseExtractTransform(envelope);
 
         JsonObject result = transform(transform, envelope,
             "{\"choices\":[],\"usage\":{\"prompt_tokens\":25,\"completion_tokens\":15}}");
@@ -104,9 +104,45 @@ public class LlmOpenaiUsageExtractTransformTest
     @Test
     public void shouldBeIdentity()
     {
-        JsonTransform transform = new LlmOpenaiUsageExtractTransform(new TestJsonEnvelope());
+        JsonTransform transform = new LlmOpenaiResponseExtractTransform(new TestJsonEnvelope());
 
         assertThat(transform.identity(), is(true));
+    }
+
+    @Test
+    public void shouldExtractErrorIntoEnvelope()
+    {
+        TestJsonEnvelope envelope = new TestJsonEnvelope();
+        JsonTransform transform = new LlmOpenaiResponseExtractTransform(envelope);
+
+        transform(transform, envelope,
+            "{\"error\":{\"message\":\"Rate limit reached\",\"type\":\"requests\",\"param\":null," +
+                "\"code\":\"rate_limit_exceeded\"}}");
+
+        assertThat(stringValue(envelope, "error.type"), equalTo("requests"));
+        assertThat(stringValue(envelope, "error.message"), equalTo("Rate limit reached"));
+        assertThat(envelope.get("error.status", 0), nullValue());
+    }
+
+    @Test
+    public void shouldNotExtractErrorFromCompletion()
+    {
+        TestJsonEnvelope envelope = new TestJsonEnvelope();
+        JsonTransform transform = new LlmOpenaiResponseExtractTransform(envelope);
+
+        transform(transform, envelope,
+            "{\"object\":\"chat.completion\",\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":\"Hi\"}}]}");
+
+        assertThat(envelope.get("error.type", 0), nullValue());
+        assertThat(envelope.get("error.message", 0), nullValue());
+    }
+
+    private static String stringValue(
+        JsonEnvelope envelope,
+        String name)
+    {
+        DirectBufferEx value = envelope.get(name, 0);
+        return value.getStringWithoutLengthUtf8(0, value.capacity());
     }
 
     private static int intValue(

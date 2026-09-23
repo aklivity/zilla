@@ -20,6 +20,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.net.URL;
+import java.util.Set;
+
+import jakarta.json.Json;
 
 import io.aklivity.zilla.runtime.binding.llm.internal.mapper.LlmAnthropicDecodeTransform;
 import io.aklivity.zilla.runtime.binding.llm.internal.mapper.LlmAnthropicEncodeSink;
@@ -73,6 +76,9 @@ public final class LlmAnthropicDialect implements LlmDialect
 
     private static final String MESSAGES_PATH = "/v1/messages";
     private static final String MESSAGES_SUFFIX = "/messages";
+    private static final String CONTENT_TYPE_JSON = "application/json";
+    private static final String CONTENT_TYPE_EVENT_STREAM = "text/event-stream";
+    private static final Set<String> RESPONSE_CONTENT_TYPES = Set.of(CONTENT_TYPE_JSON, CONTENT_TYPE_EVENT_STREAM);
 
     private static final String REQUEST_SCHEMA_RESOURCE = "anthropic.request.schema.json";
     private static final String RESPONSE_SCHEMA_RESOURCE = "anthropic.response.schema.json";
@@ -125,6 +131,33 @@ public final class LlmAnthropicDialect implements LlmDialect
     }
 
     @Override
+    public String errorBody(
+        int status,
+        String type,
+        String message)
+    {
+        return Json.createObjectBuilder()
+            .add("type", "error")
+            .add("error", Json.createObjectBuilder()
+                .add("type", errorType(status))
+                .add("message", message != null ? message : LlmStatusReason.of(status)))
+            .build()
+            .toString();
+    }
+
+    @Override
+    public String requestContentType()
+    {
+        return CONTENT_TYPE_JSON;
+    }
+
+    @Override
+    public Set<String> responseContentTypes()
+    {
+        return RESPONSE_CONTENT_TYPES;
+    }
+
+    @Override
     public JsonTransform supplyDecoder(
         Kind kind,
         JsonEnvelope envelope)
@@ -139,7 +172,7 @@ public final class LlmAnthropicDialect implements LlmDialect
     {
         return kind == Kind.REQUEST
             ? new LlmModelExtractTransform(envelope)
-            : new LlmAnthropicUsageExtractTransform(envelope);
+            : new LlmAnthropicResponseExtractTransform(envelope);
     }
 
     @Override
@@ -176,6 +209,21 @@ public final class LlmAnthropicDialect implements LlmDialect
         Kind kind)
     {
         return null;
+    }
+
+    private static String errorType(
+        int status)
+    {
+        return switch (status)
+        {
+        case 401 -> "authentication_error";
+        case 403 -> "permission_error";
+        case 404 -> "not_found_error";
+        case 413 -> "request_too_large";
+        case 429 -> "rate_limit_error";
+        case 529 -> "overloaded_error";
+        default -> status >= 500 ? "api_error" : "invalid_request_error";
+        };
     }
 
     private static String header(

@@ -260,4 +260,53 @@ public class LlmServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.rejected.rate.limit/client",
+        "${app}/openai.rejected.rate.limit/server"})
+    public void shouldRejectOpenaiRequestRateLimited() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.rejected.rate.limit/client",
+        "${app}/anthropic.rejected.rate.limit/server"})
+    public void shouldRejectAnthropicRequestRateLimited() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.streaming.error.aborted/client",
+        "${app}/openai.streaming.error/server"})
+    public void shouldAbortOpenaiStreamingError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.streaming.error.aborted/client",
+        "${app}/anthropic.streaming.error/server"})
+    public void shouldAbortAnthropicStreamingError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.request.unsupported.content.type/client"})
+    public void shouldRejectAnthropicRequestWithUnsupportedContentType() throws Exception
+    {
+        k3po.finish();
+    }
 }

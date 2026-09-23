@@ -18,6 +18,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toMap;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.instanceOf;
@@ -192,6 +193,50 @@ public class LlmAnthropicDialectTest
     }
 
     @Test
+    public void shouldDeclareContentTypes()
+    {
+        LlmDialect dialect = new LlmAnthropicDialect();
+
+        assertThat(dialect.requestContentType(), equalTo("application/json"));
+        assertThat(dialect.responseContentTypes(), containsInAnyOrder("application/json", "text/event-stream"));
+    }
+
+    @Test
+    public void shouldSupplyResponseExtractorReceivingEvents()
+    {
+        LlmDialect dialect = new LlmAnthropicDialect();
+
+        assertThat(dialect.supplyExtractor(LlmDialect.Kind.RESPONSE, JsonEnvelope.NONE), instanceOf(LlmDialectEvent.class));
+    }
+
+    @Test
+    public void shouldEncodeErrorBodyTypeFromStatus()
+    {
+        LlmDialect dialect = new LlmAnthropicDialect();
+
+        assertThat(dialect.errorBody(400, null, "m"), equalTo(anthropicError("invalid_request_error", "m")));
+        assertThat(dialect.errorBody(401, null, "m"), equalTo(anthropicError("authentication_error", "m")));
+        assertThat(dialect.errorBody(403, null, "m"), equalTo(anthropicError("permission_error", "m")));
+        assertThat(dialect.errorBody(404, null, "m"), equalTo(anthropicError("not_found_error", "m")));
+        assertThat(dialect.errorBody(413, null, "m"), equalTo(anthropicError("request_too_large", "m")));
+        assertThat(dialect.errorBody(415, null, "m"), equalTo(anthropicError("invalid_request_error", "m")));
+        assertThat(dialect.errorBody(429, "requests", "m"), equalTo(anthropicError("rate_limit_error", "m")));
+        assertThat(dialect.errorBody(500, null, "m"), equalTo(anthropicError("api_error", "m")));
+        assertThat(dialect.errorBody(529, null, "m"), equalTo(anthropicError("overloaded_error", "m")));
+        assertThat(dialect.errorBody(503, null, "m"), equalTo(anthropicError("api_error", "m")));
+    }
+
+    @Test
+    public void shouldEncodeErrorBodyWithDefaultMessage()
+    {
+        LlmDialect dialect = new LlmAnthropicDialect();
+
+        assertThat(dialect.errorBody(415, null, null),
+            equalTo(anthropicError("invalid_request_error", "Unsupported Media Type")));
+        assertThat(dialect.errorBody(599, null, null), equalTo(anthropicError("api_error", "Error")));
+    }
+
+    @Test
     public void shouldSupplySchemaValidatorForBothKinds()
     {
         LlmDialect dialect = new LlmAnthropicDialect();
@@ -289,5 +334,12 @@ public class LlmAnthropicDialectTest
         String text)
     {
         return new UnsafeBufferEx(text.getBytes(UTF_8));
+    }
+
+    private static String anthropicError(
+        String type,
+        String message)
+    {
+        return "{\"type\":\"error\",\"error\":{\"type\":\"" + type + "\",\"message\":\"" + message + "\"}}";
     }
 }

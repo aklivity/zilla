@@ -25,10 +25,15 @@ import io.aklivity.zilla.runtime.common.json.JsonSource;
  * future API revision repeats them there -- the cache fields too). A non-streaming whole message carries
  * the same top-level {@code usage.*} shape. Anthropic reports no reasoning-token or total-token breakdown of
  * its own, so {@link #reasoningTokens(int)}/{@link #totalTokens(int)} are never called by this dialect.
+ * <p>
+ * Also extracts the {@code error.type}/{@code error.message} of Anthropic's {@code "type":"error"} document,
+ * carried the same way in a non-2xx response body and in an {@code event: error} reported in the middle of a
+ * streaming response.
+ * </p>
  */
-final class LlmAnthropicUsageExtractTransform extends LlmUsageExtractTransform
+final class LlmAnthropicResponseExtractTransform extends LlmResponseExtractTransform
 {
-    LlmAnthropicUsageExtractTransform(
+    LlmAnthropicResponseExtractTransform(
         JsonEnvelope envelope)
     {
         super(envelope);
@@ -40,11 +45,40 @@ final class LlmAnthropicUsageExtractTransform extends LlmUsageExtractTransform
         JsonSource source,
         JsonEvent event)
     {
-        if (event != JsonEvent.VALUE_NUMBER)
+        switch (event)
         {
-            return;
+        case VALUE_NUMBER:
+            onNumber(fieldPath, source);
+            break;
+        case VALUE_STRING:
+            onString(fieldPath, source);
+            break;
+        default:
+            break;
         }
+    }
 
+    private void onString(
+        String fieldPath,
+        JsonSource source)
+    {
+        switch (fieldPath)
+        {
+        case "error.type":
+            errorType(source.getString());
+            break;
+        case "error.message":
+            errorMessage(source.getString());
+            break;
+        default:
+            break;
+        }
+    }
+
+    private void onNumber(
+        String fieldPath,
+        JsonSource source)
+    {
         switch (fieldPath)
         {
         case "message.usage.input_tokens":

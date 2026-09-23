@@ -33,8 +33,6 @@ read '{"model":"'
      ${model}
      '","messages":[{"role":"user","content":"Hello"}],"stream":true}'
 
-read closed
-
 write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
                            .dialect("openai")
@@ -870,3 +868,5 @@ write "[DONE]"
 write flush
 
 write close
+
+read closed

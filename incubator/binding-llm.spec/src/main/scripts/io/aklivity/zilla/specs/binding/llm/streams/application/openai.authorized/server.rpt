@@ -29,8 +29,6 @@ connected
 
 read "{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}],\"stream\":false}"
 
-read closed
-
 write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
                            .dialect("openai")
@@ -45,3 +43,5 @@ write "{\"id\":\"chatcmpl_2\",\"object\":\"chat.completion\",\"model\":\"gpt-4\"
 write flush
 
 write close
+
+read closed

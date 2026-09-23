@@ -19,6 +19,11 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertThrows;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.util.Set;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
@@ -28,10 +33,43 @@ import org.junit.Test;
 import io.aklivity.zilla.runtime.binding.llm.codec.LlmContentDecoder;
 import io.aklivity.zilla.runtime.binding.llm.codec.LlmContentDecoderOutput;
 import io.aklivity.zilla.runtime.binding.llm.codec.LlmContentEncoder;
+import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialect;
 
 public class LlmContentCodecFactoryTest
 {
     private final LlmContentCodecFactory factory = new LlmContentCodecFactory();
+
+    @Test
+    public void shouldAcceptDialectDeclaringRegisteredContentTypes()
+    {
+        LlmDialect dialect = mock(LlmDialect.class);
+        when(dialect.requestContentType()).thenReturn("test/echo");
+        when(dialect.responseContentTypes()).thenReturn(Set.of("test/echo", "application/json", "text/event-stream"));
+
+        factory.validate(dialect);
+    }
+
+    @Test
+    public void shouldRejectDialectDeclaringUnregisteredRequestContentType()
+    {
+        LlmDialect dialect = mock(LlmDialect.class);
+        when(dialect.name()).thenReturn("broken");
+        when(dialect.requestContentType()).thenReturn("application/x-unknown");
+        when(dialect.responseContentTypes()).thenReturn(Set.of("application/json"));
+
+        assertThrows(IllegalStateException.class, () -> factory.validate(dialect));
+    }
+
+    @Test
+    public void shouldRejectDialectDeclaringUnregisteredResponseContentType()
+    {
+        LlmDialect dialect = mock(LlmDialect.class);
+        when(dialect.name()).thenReturn("broken");
+        when(dialect.requestContentType()).thenReturn("application/json");
+        when(dialect.responseContentTypes()).thenReturn(Set.of("application/json", "application/x-unknown"));
+
+        assertThrows(IllegalStateException.class, () -> factory.validate(dialect));
+    }
 
     @Test
     public void shouldResolveRegisteredContentType()

@@ -31,8 +31,6 @@ write '{"model":"'
       ${model}
       '","messages":[{"role":"user","content":"What is the weather in San Francisco and New York?"}],"stream":false}'
 
-write close
-
 read zilla:begin.ext ${llm:matchBeginEx()
                            .typeId(zilla:id("llm"))
                            .dialect("openai")
@@ -54,3 +52,5 @@ read '{"object":"chat.completion","id":"'
      '"}}]},"finish_reason":"tool_calls"}],"usage":{"prompt_tokens":30,"completion_tokens":25}}'
 
 read closed
+
+write close

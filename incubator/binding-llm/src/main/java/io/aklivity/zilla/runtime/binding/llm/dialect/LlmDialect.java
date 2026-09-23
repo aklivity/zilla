@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.dialect;
 
+import java.util.Set;
+
 import io.aklivity.zilla.runtime.binding.llm.sign.LlmRequestSigner;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
@@ -129,6 +131,43 @@ public interface LlmDialect
     String unauthorizedBody();
 
     /**
+     * Returns this dialect's own JSON error body reporting that a request failed with {@code status}, shaped the
+     * way this dialect's own API reports an error of that status, for a {@code kind: server} binding answering a
+     * request its application-facing side rejected. The dialect derives its own native error kind from
+     * {@code status}; {@code type} is the canonical error type observed wherever the failure originated,
+     * possibly from another dialect's vocabulary, so a dialect may ignore it. Either of {@code type} and
+     * {@code message} may be {@code null} when unknown, and a dialect then supplies its own fallback message.
+     * Like {@link #unauthorizedBody()}, this is dialect-specific with no generally-valid fallback, so every
+     * implementation must declare its own.
+     *
+     * @param status   the status the request failed with
+     * @param type     the canonical error type, or {@code null}
+     * @param message  the canonical error message, or {@code null}
+     * @return the error response body, JSON-encoded
+     */
+    String errorBody(
+        int status,
+        String type,
+        String message);
+
+    /**
+     * Returns the content type of this dialect's request body, e.g. {@code application/json}. A request
+     * declaring any other content type is not this dialect's traffic and is rejected rather than forwarded.
+     *
+     * @return the request content type
+     */
+    String requestContentType();
+
+    /**
+     * Returns every content type this dialect's successful response may carry, e.g. {@code application/json}
+     * for a whole response and {@code text/event-stream} for a streaming one. A successful response carrying
+     * any other content type is treated as a failed response rather than decoded.
+     *
+     * @return the response content types
+     */
+    Set<String> responseContentTypes();
+
+    /**
      * Creates a new {@link JsonTransform} decoding one stream's native {@code kind} payload into this
      * binding's canonical representation, field by field.
      * <p>
@@ -164,6 +203,13 @@ public interface LlmDialect
      * </p>
      * <p>
      * {@code envelope} is the same per-stream metadata channel {@link #detect(JsonEnvelope)} reads from.
+     * </p>
+     * <p>
+     * The {@code RESPONSE} extractor also reports whether the response failed, by recording the error the
+     * response carries -- see {@link LlmResponseExtractTransform}, which a dialect typically extends. It runs
+     * over a non-2xx response body as well as over every document of a successful one, and must implement
+     * {@link LlmDialectEvent} -- as a no-op when the native out-of-band event name carries no error signal --
+     * since a caller delivers each document's event name to it uniformly, with no {@code instanceof} check.
      * </p>
      *
      * @param kind      the request or response direction
