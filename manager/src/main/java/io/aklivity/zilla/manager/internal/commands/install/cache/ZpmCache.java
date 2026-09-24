@@ -96,6 +96,7 @@ public final class ZpmCache
     private final RepositorySystemSession optionalSession;
 
     private final List<RemoteRepository> repositories;
+    private final boolean excludeRemote;
     private final ConsoleLogger logger;
 
     public ZpmCache(
@@ -110,6 +111,7 @@ public final class ZpmCache
         this.optionalSession = newRepositorySystemSession(repositorySystem, directory, excludeRemote, true);
 
         this.repositories = repositories;
+        this.excludeRemote = excludeRemote;
     }
 
     public List<ZpmArtifact> resolve(
@@ -148,7 +150,10 @@ public final class ZpmCache
                 {
                     ArtifactDescriptorResult descriptorResult =
                         repositorySystem.readArtifactDescriptor(session, descriptorRequest);
-                    aggregatedRepositories.addAll(descriptorResult.getRepositories());
+                    if (!excludeRemote)
+                    {
+                        aggregatedRepositories.addAll(descriptorResult.getRepositories());
+                    }
                     List<Dependency> bomManaged = descriptorResult.getManagedDependencies();
                     bomManaged.forEach(dep ->
                     {
@@ -191,6 +196,7 @@ public final class ZpmCache
             {
                 throw new RuntimeException("Failed to resolve dependencies", e);
             }
+            logger.warn(String.format("Partially resolved optional dependencies: %s", e.getMessage()));
             result = e.getResult();
         }
         catch (Exception e)
@@ -201,6 +207,7 @@ public final class ZpmCache
             {
                 throw new RuntimeException("Failed to resolve dependencies", e);
             }
+            logger.warn(String.format("Skipped optional dependencies: %s", e.getMessage()));
             result = null;
         }
 
