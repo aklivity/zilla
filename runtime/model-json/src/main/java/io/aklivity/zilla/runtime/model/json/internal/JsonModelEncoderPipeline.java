@@ -25,13 +25,17 @@ import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 import io.aklivity.zilla.runtime.common.json.JsonPipelineResult;
+import io.aklivity.zilla.runtime.common.json.JsonTransform;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
+import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 
 // Per-stream write transform session vended by JsonModelHandlerImpl: owns its own generator and
 // schema-keyed pipeline cache. transform emits the catalog framing prefix into the destination on the
-// first fragment, then drives the common-json transform into the destination after it.
+// first fragment, then drives the common-json transform into the destination after it; a wired
+// ModelTransform (via JsonModelFieldTransform) sees and can substitute or redirect every scalar field, at
+// any nesting depth, as the value streams through.
 final class JsonModelEncoderPipeline implements ModelPipeline
 {
     private static final int FLAGS_INIT = 0x02;
@@ -39,6 +43,7 @@ final class JsonModelEncoderPipeline implements ModelPipeline
 
     private final JsonModelHandlerImpl handler;
     private final JsonGeneratorEx generator;
+    private final JsonTransform fieldTransform;
     private final Int2ObjectCache<JsonPipeline> pipelines;
     private final JsonEnvelope envelope;
     private final ModelPipelineResult result;
@@ -54,11 +59,14 @@ final class JsonModelEncoderPipeline implements ModelPipeline
 
     JsonModelEncoderPipeline(
         JsonModelHandlerImpl handler,
-        JsonEnvelope envelope)
+        JsonEnvelope envelope,
+        ModelTransform transform)
     {
         this.envelope = envelope;
         this.handler = handler;
         this.generator = JsonEx.createGenerator();
+        // a NONE transform keeps the verbatim/SEGMENTED fast path: no field-transform stage at all
+        this.fieldTransform = transform != ModelTransform.NONE ? new JsonModelFieldTransform(transform) : null;
         this.pipelines = new Int2ObjectCache<>(1, 16, p -> {});
         this.result = new ModelPipelineResult();
     }
@@ -176,7 +184,7 @@ final class JsonModelEncoderPipeline implements ModelPipeline
         int schemaId)
     {
         return pipelines.computeIfAbsent(schemaId,
-            id -> handler.newPipeline(id, handler.encodeLenient, generator, this::onRejected, envelope));
+            id -> handler.newPipeline(id, handler.encodeLenient, generator, fieldTransform, this::onRejected, envelope));
     }
 
     private void onRejected(
