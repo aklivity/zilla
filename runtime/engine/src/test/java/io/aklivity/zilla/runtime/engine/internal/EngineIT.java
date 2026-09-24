@@ -103,6 +103,16 @@ public class EngineIT
     }
 
     @Test
+    @Configuration("server.metrics.yaml")
+    @Specification({
+        "${net}/handshake/client",
+        "${app}/handshake/server"})
+    public void shouldExportMetrics() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("server.value.envelope.yaml")
     @Specification({
         "${net}/value.envelope/client",
