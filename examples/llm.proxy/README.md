@@ -232,6 +232,22 @@ Add a `tools` definition to either cross-dialect request (see
 `etc/test/verify.py` for the full shape) to see a tool-call response
 translated across dialects too.
 
+## Metrics
+
+Every `llm` binding records `llm.*` metrics -- per-exchange token usage
+(`llm.tokens.input`, `llm.tokens.output`, `llm.tokens.total`,
+`llm.tokens.cache.read`, `llm.tokens.cache.write`, `llm.tokens.reasoning`),
+`llm.duration` and `llm.active.requests` -- exported for Prometheus on port
+7190:
+
+```bash
+curl -s http://localhost:7190/metrics | grep '^llm_tokens_input_count'
+```
+
+A token count the upstream dialect does not report is left unrecorded rather
+than recorded as zero, so `llm_tokens_total_count` stays at `0` when the
+upstream is Anthropic, which never reports a total.
+
 ## Verify
 
 ```bash
@@ -243,7 +259,8 @@ through the real `openai`/`anthropic` Python SDKs rather than hand-built HTTP
 calls: both translation directions (non-streaming and streaming), both
 tool-call round trips, both credential pass-through directions (confirmed by
 grepping each mock backend's own log for the caller's forwarded token), and
-both model-based routes to the secondary, same-dialect deployments.
+both model-based routes to the secondary, same-dialect deployments, and the
+`llm.*` metrics recorded at every `llm` binding an exchange passes through.
 
 ## Using the real OpenAI/Anthropic APIs instead of the mocks
 

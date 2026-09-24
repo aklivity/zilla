@@ -8,6 +8,7 @@ services:
     ports:
       - 7161:7161
       - 7162:7162
+      - 7190:7190
     # start_interval matters here: without it, `docker compose up --wait`
     # only re-checks the healthcheck every `interval` (5s), so the compose
     # command exits well after zilla is actually ready. With it, `up --wait`
