@@ -1,5 +1,19 @@
 # Changelog
 
+## [2.4.4](https://github.com/aklivity/zilla/tree/2.4.4) (2026-09-24)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/2.4.3...2.4.4)
+
+**Closed issues:**
+
+- engine: enhance test exporter to verify recorded metric values declaratively in k3po ITs [\#2606](https://github.com/aklivity/zilla/issues/2606) ([jfallows](https://github.com/jfallows))
+
+**Merged pull requests:**
+
+- chore: mark two support/1.x kafka-cache fixes as no-merge [\#2602](https://github.com/aklivity/zilla/pull/2602) ([jfallows](https://github.com/jfallows))
+- feat\(engine\): verify recorded metric values with the test exporter [\#2609](https://github.com/aklivity/zilla/pull/2609) ([jfallows](https://github.com/jfallows))
+- fix\(manager\): honor --exclude-remote-repositories for import BOM repositories [\#2610](https://github.com/aklivity/zilla/pull/2610) ([jfallows](https://github.com/jfallows))
+
 ## [2.4.3](https://github.com/aklivity/zilla/tree/2.4.3) (2026-09-17)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/2.4.2...2.4.3)
