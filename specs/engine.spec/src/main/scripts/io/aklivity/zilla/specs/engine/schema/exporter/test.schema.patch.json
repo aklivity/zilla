@@ -65,6 +65,117 @@
                                         "message"
                                     ]
                                 }
+                            },
+                            "metrics":
+                            {
+                                "type": "array",
+                                "items":
+                                {
+                                    "type": "object",
+                                    "properties":
+                                    {
+                                        "name":
+                                        {
+                                            "type": "string"
+                                        },
+                                        "binding":
+                                        {
+                                            "type": "string"
+                                        },
+                                        "kind":
+                                        {
+                                            "enum": [ "counter", "gauge", "histogram" ]
+                                        },
+                                        "attributes":
+                                        {
+                                            "type": "object",
+                                            "additionalProperties":
+                                            {
+                                                "type": "string"
+                                            }
+                                        },
+                                        "value":
+                                        {
+                                            "type": "integer"
+                                        },
+                                        "count":
+                                        {
+                                            "type": "integer"
+                                        },
+                                        "buckets":
+                                        {
+                                            "type": "array",
+                                            "items":
+                                            {
+                                                "type": "object",
+                                                "properties":
+                                                {
+                                                    "limit":
+                                                    {
+                                                        "type": "integer"
+                                                    },
+                                                    "count":
+                                                    {
+                                                        "type": "integer"
+                                                    }
+                                                },
+                                                "required":
+                                                [
+                                                    "limit",
+                                                    "count"
+                                                ],
+                                                "additionalProperties": false
+                                            }
+                                        }
+                                    },
+                                    "required":
+                                    [
+                                        "name",
+                                        "binding",
+                                        "kind"
+                                    ],
+                                    "allOf":
+                                    [
+                                        {
+                                            "if":
+                                            {
+                                                "properties":
+                                                {
+                                                    "kind":
+                                                    {
+                                                        "const": "histogram"
+                                                    }
+                                                }
+                                            },
+                                            "then":
+                                            {
+                                                "properties":
+                                                {
+                                                    "value": false
+                                                },
+                                                "anyOf":
+                                                [
+                                                    {
+                                                        "required": [ "count" ]
+                                                    },
+                                                    {
+                                                        "required": [ "buckets" ]
+                                                    }
+                                                ]
+                                            },
+                                            "else":
+                                            {
+                                                "properties":
+                                                {
+                                                    "count": false,
+                                                    "buckets": false
+                                                },
+                                                "required": [ "value" ]
+                                            }
+                                        }
+                                    ],
+                                    "additionalProperties": false
+                                }
                             }
                         }
                     }
