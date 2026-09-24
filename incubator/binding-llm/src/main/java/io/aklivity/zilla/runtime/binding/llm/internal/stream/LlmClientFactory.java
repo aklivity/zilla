@@ -197,6 +197,12 @@ public final class LlmClientFactory implements LlmStreamFactory
     }
 
     @Override
+    public int originTypeId()
+    {
+        return llmTypeId;
+    }
+
+    @Override
     public int routedTypeId()
     {
         return httpTypeId;
