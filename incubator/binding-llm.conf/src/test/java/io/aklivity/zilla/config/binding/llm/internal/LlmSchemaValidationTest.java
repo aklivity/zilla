@@ -287,8 +287,8 @@ public class LlmSchemaValidationTest
         reader.read(text);
     }
 
-    @Test
-    public void shouldAcceptServerWithUnregisteredDialect()
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectServerWithUnregisteredDialect()
     {
         String text =
             """
@@ -302,9 +302,7 @@ public class LlmSchemaValidationTest
                 exit: app0
             """;
 
-        EngineConfig engine = reader.read(text);
-
-        assertThat(engine, not(nullValue()));
+        reader.read(text);
     }
 
     @Test(expected = RuntimeException.class)
@@ -362,8 +360,8 @@ public class LlmSchemaValidationTest
         reader.read(text);
     }
 
-    @Test
-    public void shouldAcceptClientWithUnregisteredDialect()
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectClientWithUnregisteredDialect()
     {
         String text =
             """
@@ -378,9 +376,7 @@ public class LlmSchemaValidationTest
                 exit: net0
             """;
 
-        EngineConfig engine = reader.read(text);
-
-        assertThat(engine, not(nullValue()));
+        reader.read(text);
     }
 
     @Test(expected = RuntimeException.class)
@@ -480,8 +476,8 @@ public class LlmSchemaValidationTest
         reader.read(text);
     }
 
-    @Test
-    public void shouldAcceptProxyRouteWhenWithUnregisteredDialect()
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectProxyRouteWhenWithUnregisteredDialect()
     {
         String text =
             """
@@ -496,8 +492,6 @@ public class LlmSchemaValidationTest
                   exit: app0
             """;
 
-        EngineConfig engine = reader.read(text);
-
-        assertThat(engine, not(nullValue()));
+        reader.read(text);
     }
 }
