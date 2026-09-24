@@ -86,7 +86,8 @@ public class JsonModelDecoderPipelineTest
         }""";
 
     // "note" has no content-constraining keyword (pattern/minLength/maxLength), so the validator forwards
-    // a value spanning an input window in fragments instead of reassembling it first (see JsonExtractor)
+    // a value spanning an input window in fragments; JsonModelFieldTransform still reassembles it before
+    // extracting, regardless of how the validator itself delivered it
     private static final String UNCONSTRAINED_VALUE_SCHEMA = """
         {
             "type": "object",
