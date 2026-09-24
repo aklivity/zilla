@@ -56,16 +56,17 @@ public class GaugesLayoutTest
         writer1.accept(1L);
         writer2.accept(100L);
         writer3.accept(77L);
-        assertThat(reader1.getAsLong(), equalTo(1L));
+        assertThat(reader1.getAsLong(), equalTo(2L));
         assertThat(reader2.getAsLong(), equalTo(100L));
         assertThat(reader3.getAsLong(), equalTo(77L));
-        writer2.accept(10L);
+        writer1.accept(-1L);
+        writer2.accept(-10L);
         writer3.accept(1L);
         writer2.accept(20L);
-        writer3.accept(1L);
-        writer3.accept(1L);
-        assertThat(reader2.getAsLong(), equalTo(20L));
-        assertThat(reader3.getAsLong(), equalTo(1L));
+        writer3.accept(-78L);
+        assertThat(reader1.getAsLong(), equalTo(1L));
+        assertThat(reader2.getAsLong(), equalTo(110L));
+        assertThat(reader3.getAsLong(), equalTo(0L));
 
         layout.close();
         assertTrue(Files.exists(path));

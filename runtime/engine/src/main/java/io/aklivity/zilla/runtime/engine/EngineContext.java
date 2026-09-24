@@ -585,7 +585,8 @@ public interface EngineContext
         ModelConfig config);
 
     /**
-     * Returns a {@link LongConsumer} that records CPU utilization samples for this thread.
+     * Returns a {@link LongConsumer} that adjusts this worker's utilization gauge by each
+     * accepted delta.
      *
      * @return the utilization metric writer
      */
@@ -637,6 +638,11 @@ public interface EngineContext
     /**
      * Returns a {@link LongConsumer} that writes a metric value for the given binding, metric,
      * and attributes, using the appropriate recording mechanism for the metric's kind.
+     * <p>
+     * Counter and gauge writers add each accepted value to the current value, so a gauge is
+     * adjusted by deltas, such as {@code +1} and {@code -1}; histogram writers record each
+     * accepted value as a sample.
+     * </p>
      *
      * @param kind          the metric kind (counter, gauge, or histogram)
      * @param bindingId     the namespaced binding id

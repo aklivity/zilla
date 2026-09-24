@@ -15,7 +15,6 @@
 package io.aklivity.zilla.runtime.metrics.http.internal;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
-import io.aklivity.zilla.runtime.metrics.http.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.metrics.http.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.metrics.http.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.metrics.http.internal.types.String8FW;
@@ -50,9 +49,10 @@ final class HttpUtils
         final OctetsFW extension = begin.extension();
         final HttpBeginExFW httpBeginExRO = new HttpBeginExFW();
         final HttpBeginExFW httpBeginEx = extension.get(httpBeginExRO::tryWrap);
-        final Array32FW<HttpHeaderFW> headers = httpBeginEx.headers();
         final String8FW httpContentLength = new String8FW("content-length");
-        return headers.matchFirst(header -> httpContentLength.equals(header.name()));
+        return httpBeginEx != null
+            ? httpBeginEx.headers().matchFirst(header -> httpContentLength.equals(header.name()))
+            : null;
     }
 
     public static long parseContentLength(
