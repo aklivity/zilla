@@ -17,7 +17,6 @@ package io.aklivity.zilla.runtime.metrics.llm.internal;
 import static io.aklivity.zilla.runtime.engine.metrics.MetricContext.Direction.BOTH;
 import static io.aklivity.zilla.runtime.metrics.llm.internal.LlmUtils.RECEIVED;
 import static io.aklivity.zilla.runtime.metrics.llm.internal.LlmUtils.SENT;
-import static io.aklivity.zilla.runtime.metrics.llm.internal.LlmUtils.direction;
 import static io.aklivity.zilla.runtime.metrics.llm.internal.LlmUtils.initialId;
 
 import java.util.function.LongConsumer;
@@ -107,7 +106,7 @@ public final class LlmActiveRequestsMetricContext implements MetricContext
             final FrameFW frame = frameRO.wrap(buffer, index, index + length);
             final long streamId = frame.streamId();
             final long exchangeId = initialId(streamId);
-            final long direction = direction(streamId);
+            final long direction = LlmUtils.direction(streamId);
 
             switch (msgTypeId)
             {

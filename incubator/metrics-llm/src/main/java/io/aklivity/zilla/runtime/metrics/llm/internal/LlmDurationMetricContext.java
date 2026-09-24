@@ -17,7 +17,6 @@ package io.aklivity.zilla.runtime.metrics.llm.internal;
 import static io.aklivity.zilla.runtime.engine.metrics.MetricContext.Direction.BOTH;
 import static io.aklivity.zilla.runtime.metrics.llm.internal.LlmUtils.RECEIVED;
 import static io.aklivity.zilla.runtime.metrics.llm.internal.LlmUtils.SENT;
-import static io.aklivity.zilla.runtime.metrics.llm.internal.LlmUtils.direction;
 import static io.aklivity.zilla.runtime.metrics.llm.internal.LlmUtils.initialId;
 
 import java.util.function.LongConsumer;
@@ -110,7 +109,7 @@ public final class LlmDurationMetricContext implements MetricContext
             case BeginFW.TYPE_ID:
                 final BeginFW begin = beginRO.wrap(buffer, index, index + length);
                 final ExtensionFW beginEx = begin.extension().get(extensionRO::tryWrap);
-                if (direction(streamId) == RECEIVED &&
+                if (LlmUtils.direction(streamId) == RECEIVED &&
                     beginEx != null && beginEx.typeId() == llmTypeId &&
                     timestamp != NOT_STARTED)
                 {
@@ -118,7 +117,7 @@ public final class LlmDurationMetricContext implements MetricContext
                 }
                 break;
             case EndFW.TYPE_ID:
-                if (direction(streamId) == SENT)
+                if (LlmUtils.direction(streamId) == SENT)
                 {
                     final long start = timestamps.remove(exchangeId);
                     if (start != NOT_STARTED)
