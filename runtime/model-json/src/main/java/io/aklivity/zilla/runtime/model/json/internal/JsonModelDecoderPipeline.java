@@ -27,27 +27,27 @@ import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 import io.aklivity.zilla.runtime.common.json.JsonPipelineResult;
+import io.aklivity.zilla.runtime.common.json.JsonTransform;
 import io.aklivity.zilla.runtime.engine.model.ModelCache;
-import io.aklivity.zilla.runtime.engine.model.ModelFieldBridge;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 
-// Per-stream read transform session vended by JsonModelHandlerImpl: owns its own generator, extractor and
+// Per-stream read transform session vended by JsonModelHandlerImpl: owns its own generator and
 // schema-keyed pipeline cache so concurrent streams on a worker never share in-flight state. transform
-// strips the catalog framing on the first fragment, drives the common-json transform into the caller's
-// destination, and surfaces extracted fields to the wired ModelTransform when a value completes. Delivery
-// is observation-only, through ModelFieldBridge, until model-json grows a native ModelTransform adapter.
+// strips the catalog framing on the first fragment and drives the common-json transform into the caller's
+// destination; a wired ModelTransform (via JsonModelFieldTransform) sees and can substitute or redirect
+// every scalar field, at any nesting depth, as the value streams through -- not merely observe it after
+// the fact.
 final class JsonModelDecoderPipeline implements ModelPipeline
 {
     private static final int FLAGS_INIT = 0x02;
     private static final int FLAGS_FIN = 0x01;
 
     private final JsonModelHandlerImpl handler;
-    private final ModelFieldBridge bridge;
     private final JsonGeneratorEx generator;
-    private final JsonExtractor extractor;
+    private final JsonTransform fieldTransform;
     private final Int2ObjectCache<JsonPipeline> pipelines;
     private final JsonEnvelope envelope;
     private final ModelPipelineResult result;
@@ -68,10 +68,9 @@ final class JsonModelDecoderPipeline implements ModelPipeline
     {
         this.envelope = envelope;
         this.handler = handler;
-        this.bridge = transform != ModelTransform.NONE ? new ModelFieldBridge(transform) : null;
         this.generator = JsonEx.createGenerator();
-        // a NONE transform keeps the verbatim/SEGMENTED fast path: no extractor stage, no structured field events
-        this.extractor = transform != ModelTransform.NONE ? new JsonExtractor() : null;
+        // a NONE transform keeps the verbatim/SEGMENTED fast path: no field-transform stage at all
+        this.fieldTransform = transform != ModelTransform.NONE ? new JsonModelFieldTransform(transform) : null;
         this.pipelines = new Int2ObjectCache<>(1, 16, p -> {});
         this.result = new ModelPipelineResult();
         this.cache = cache;
@@ -132,10 +131,6 @@ final class JsonModelDecoderPipeline implements ModelPipeline
             produced = json.produced();
             // a parse or schema-validation failure already fired the validation-failed event via onRejected;
             // under LENIENT the value still completes (original bytes passed through) and the event still fired
-            if (status == ModelStatus.COMPLETE && extractor != null)
-            {
-                visitExtracted(authorization);
-            }
         }
         return result.set(status, consumed, produced);
     }
@@ -166,22 +161,11 @@ final class JsonModelDecoderPipeline implements ModelPipeline
         diagnostic = null;
     }
 
-    private void visitExtracted(
-        long authorization)
-    {
-        bridge.start(authorization);
-        for (int i = 0; i < extractor.captured(); i++)
-        {
-            bridge.field(extractor.path(i), extractor.value(i), 0, extractor.length(i));
-        }
-        bridge.end();
-    }
-
     private JsonPipeline supplyPipeline(
         int schemaId)
     {
         return pipelines.computeIfAbsent(schemaId,
-            id -> handler.newPipeline(id, handler.decodeLenient, generator, extractor, this::onRejected, envelope,
+            id -> handler.newPipeline(id, handler.decodeLenient, generator, fieldTransform, this::onRejected, envelope,
                 cache));
     }
 
