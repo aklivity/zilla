@@ -141,6 +141,18 @@ public final class LlmServerFactory implements LlmStreamFactory
     }
 
     @Override
+    public int originTypeId()
+    {
+        return httpTypeId;
+    }
+
+    @Override
+    public int routedTypeId()
+    {
+        return llmTypeId;
+    }
+
+    @Override
     public void attach(
         BindingConfig binding)
     {

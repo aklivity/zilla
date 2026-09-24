@@ -91,6 +91,12 @@ public final class LlmProxyFactory implements LlmStreamFactory
     }
 
     @Override
+    public int originTypeId()
+    {
+        return llmTypeId;
+    }
+
+    @Override
     public void attach(
         BindingConfig binding)
     {
