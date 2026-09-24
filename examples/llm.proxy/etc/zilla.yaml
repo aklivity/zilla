@@ -1,5 +1,23 @@
 ---
 name: example
+telemetry:
+  metrics:
+    - llm.tokens.input
+    - llm.tokens.output
+    - llm.tokens.total
+    - llm.tokens.cache.read
+    - llm.tokens.cache.write
+    - llm.tokens.reasoning
+    - llm.duration
+    - llm.active.requests
+  exporters:
+    prometheus_exporter:
+      type: prometheus
+      options:
+        endpoints:
+          - scheme: http
+            port: 7190
+            path: /metrics
 guards:
   api_key:
     type: inline
@@ -23,6 +41,9 @@ bindings:
       authorization:
         api_key:
           credentials: "Bearer {credentials}"
+    telemetry:
+      metrics:
+        - llm.*
     exit: north_llm_proxy
 
   north_tcp_server_anthropic:
@@ -44,6 +65,9 @@ bindings:
       authorization:
         api_key:
           credentials: "{credentials}"
+    telemetry:
+      metrics:
+        - llm.*
     exit: north_llm_proxy
 
   # Shared by both frontends: routes purely on LlmBeginEx.dialect/model, never on
@@ -55,6 +79,9 @@ bindings:
   north_llm_proxy:
     type: llm
     kind: proxy
+    telemetry:
+      metrics:
+        - llm.*
     routes:
       - when:
           - dialect: openai
@@ -89,6 +116,9 @@ bindings:
       authorization:
         api_key:
           credentials: "{credentials}"
+    telemetry:
+      metrics:
+        - llm.*
     exit: south_http_client_anthropic
   south_http_client_anthropic:
     type: http
@@ -119,6 +149,9 @@ bindings:
       authorization:
         api_key:
           credentials: "Bearer {credentials}"
+    telemetry:
+      metrics:
+        - llm.*
     exit: south_http_client_openai
   south_http_client_openai:
     type: http
@@ -152,6 +185,9 @@ bindings:
       authorization:
         api_key:
           credentials: "Bearer {credentials}"
+    telemetry:
+      metrics:
+        - llm.*
     exit: south_http_client_openai_secondary
   south_http_client_openai_secondary:
     type: http
@@ -184,6 +220,9 @@ bindings:
       authorization:
         api_key:
           credentials: "{credentials}"
+    telemetry:
+      metrics:
+        - llm.*
     exit: south_http_client_anthropic_secondary
   south_http_client_anthropic_secondary:
     type: http
