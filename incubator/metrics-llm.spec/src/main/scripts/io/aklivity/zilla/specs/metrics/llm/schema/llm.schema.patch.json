@@ -1,0 +1,42 @@
+[
+    {
+        "op": "add",
+        "path": "/$defs/telemetry/metrics/items/enum/-",
+        "value": "llm.tokens.input"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/telemetry/metrics/items/enum/-",
+        "value": "llm.tokens.output"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/telemetry/metrics/items/enum/-",
+        "value": "llm.tokens.total"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/telemetry/metrics/items/enum/-",
+        "value": "llm.tokens.cache.read"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/telemetry/metrics/items/enum/-",
+        "value": "llm.tokens.cache.write"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/telemetry/metrics/items/enum/-",
+        "value": "llm.tokens.reasoning"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/telemetry/metrics/items/enum/-",
+        "value": "llm.duration"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/telemetry/metrics/items/enum/-",
+        "value": "llm.active.requests"
+    }
+]
