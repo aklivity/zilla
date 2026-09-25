@@ -18,6 +18,7 @@
 
   <modules>
     <module>flyweight-maven-plugin</module>
+    <module>zpm-maven-plugin</module>
   </modules>
 
   <build>

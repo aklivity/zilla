@@ -297,6 +297,12 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
+      <artifactId>command</artifactId>
+      <version>${project.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
       <artifactId>command-dump</artifactId>
       <version>${project.version}</version>
       <scope>runtime</scope>
@@ -507,6 +513,23 @@
             <phase>process-sources</phase>
             <goals>
               <goal>java</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>zpm-maven-plugin</artifactId>
+        <version>${project.version}</version>
+        <configuration>
+          <properties>
+            <VERSION>${project.version}</VERSION>
+          </properties>
+        </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>resolve</goal>
             </goals>
           </execution>
         </executions>

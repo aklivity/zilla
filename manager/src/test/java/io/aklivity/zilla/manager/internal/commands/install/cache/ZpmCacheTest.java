@@ -112,7 +112,7 @@ public class ZpmCacheTest
         ZpmCache cache = new ZpmCache(repositories, true, cacheDir, new ConsoleLogger(LEVEL_DISABLED, "test"));
 
         assertThrows(RuntimeException.class, () -> cache.resolve(IMPORTS, DEPENDENCIES));
-        assertThat(cache.resolveOptional(IMPORTS, DEPENDENCIES), empty());
+        assertThat(cache.resolveOptional(IMPORTS, List.of(new ZpmArtifactId("test", "lib", "1.0")), List.of()), empty());
         assertThat(requests.get(), equalTo(0));
     }
 
