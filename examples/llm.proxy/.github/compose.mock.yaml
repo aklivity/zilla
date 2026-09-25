@@ -1,0 +1,101 @@
+# CI-only overlay: merged in via COMPOSE_FILE in .github/.env.test. Stands up
+# the four mock backends and points zilla at .github/zilla.yaml (mock
+# hostnames, no TLS) instead of ../etc/zilla.yaml (the real OpenAI/Anthropic
+# APIs), so this example is verifiable without real API keys or network
+# access to either provider.
+services:
+  # Mock OpenAI chat completions API backing south_llm_client_openai.
+  mock-openai:
+    image: node:20-alpine
+    hostname: mock-openai
+    restart: unless-stopped
+    working_dir: /app
+    command: ["sh", "-c", "npm install --no-audit --no-fund --silent && node server.mjs"]
+    environment:
+      PORT: "4101"
+    volumes:
+      - ./mock-openai:/app
+    healthcheck:
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 30s
+      start_interval: 250ms
+      test: ["CMD", "nc", "-z", "127.0.0.1", "4101"]
+
+  # Mock Anthropic messages API backing south_llm_client_anthropic.
+  mock-anthropic:
+    image: node:20-alpine
+    hostname: mock-anthropic
+    restart: unless-stopped
+    working_dir: /app
+    command: ["sh", "-c", "npm install --no-audit --no-fund --silent && node server.mjs"]
+    environment:
+      PORT: "4102"
+    volumes:
+      - ./mock-anthropic:/app
+    healthcheck:
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 30s
+      start_interval: 250ms
+      test: ["CMD", "nc", "-z", "127.0.0.1", "4102"]
+
+  # Second openai-dialect deployment backing south_llm_client_openai_secondary;
+  # north_llm_proxy routes gpt-4o here instead of translating to mock-anthropic
+  # -- no dialect translation happens on this leg at all.
+  mock-openai-secondary:
+    image: node:20-alpine
+    hostname: mock-openai-secondary
+    restart: unless-stopped
+    working_dir: /app
+    command: ["sh", "-c", "npm install --no-audit --no-fund --silent && node server.mjs"]
+    environment:
+      PORT: "4103"
+    volumes:
+      - ./mock-openai-secondary:/app
+    healthcheck:
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 30s
+      start_interval: 250ms
+      test: ["CMD", "nc", "-z", "127.0.0.1", "4103"]
+
+  # Second anthropic-dialect deployment backing south_llm_client_anthropic_secondary;
+  # north_llm_proxy routes claude-3-5-haiku-20241022 here instead of translating
+  # to mock-openai.
+  mock-anthropic-secondary:
+    image: node:20-alpine
+    hostname: mock-anthropic-secondary
+    restart: unless-stopped
+    working_dir: /app
+    command: ["sh", "-c", "npm install --no-audit --no-fund --silent && node server.mjs"]
+    environment:
+      PORT: "4104"
+    volumes:
+      - ./mock-anthropic-secondary:/app
+    healthcheck:
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 30s
+      start_interval: 250ms
+      test: ["CMD", "nc", "-z", "127.0.0.1", "4104"]
+
+  # Overrides the base compose.yaml's zilla service: swaps in the mock-backed
+  # config and waits on every mock's health, neither of which the real-API
+  # default needs.
+  zilla:
+    volumes:
+      - ./.github/zilla.yaml:/etc/zilla/zilla.yaml:ro
+    depends_on:
+      mock-openai:
+        condition: service_healthy
+      mock-anthropic:
+        condition: service_healthy
+      mock-openai-secondary:
+        condition: service_healthy
+      mock-anthropic-secondary:
+        condition: service_healthy
