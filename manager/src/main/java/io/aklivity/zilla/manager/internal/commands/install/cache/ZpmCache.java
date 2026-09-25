@@ -116,7 +116,9 @@ public final class ZpmCache
     {
         this.logger = logger;
         this.directory = directory.toAbsolutePath().normalize();
-        this.resolvedPaths = new LinkedHashSet<>();
+        // maven-resolver's collector resolves descriptors on a thread pool, so artifactResolved
+        // events arrive concurrently; an unsynchronized set silently drops entries from the export
+        this.resolvedPaths = ConcurrentHashMap.newKeySet();
         this.repositorySystem = ZpmSupplierRepositorySystemFactory.newRepositorySystem();
         this.session = newRepositorySystemSession(repositorySystem, directory, excludeRemote, false);
         this.optionalSession = newRepositorySystemSession(repositorySystem, directory, excludeRemote, true);
