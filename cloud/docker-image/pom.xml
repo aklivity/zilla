@@ -500,6 +500,23 @@
         </executions>
       </plugin>
       <plugin>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>zpm-maven-plugin</artifactId>
+        <version>${project.version}</version>
+        <configuration>
+          <properties>
+            <VERSION>${project.version}</VERSION>
+          </properties>
+        </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>resolve</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
         <groupId>io.fabric8</groupId>
         <artifactId>docker-maven-plugin</artifactId>
         <version>0.45.0</version>

@@ -43,7 +43,7 @@ public final class ZpmModule
         this.automatic = false;
         this.paths = new LinkedHashSet<>();
         this.id = DELEGATE_ID;
-        this.depends = emptySet();
+        this.depends = new LinkedHashSet<>();
         this.delegating = false;
     }
 
