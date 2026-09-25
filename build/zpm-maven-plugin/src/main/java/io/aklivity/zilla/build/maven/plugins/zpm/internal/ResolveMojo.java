@@ -21,8 +21,10 @@ import static org.apache.maven.plugins.annotations.LifecyclePhase.PREPARE_PACKAG
 import static org.apache.maven.plugins.annotations.ResolutionScope.RUNTIME;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -96,7 +98,9 @@ public final class ResolveMojo extends AbstractMojo
                 Path configDir = Files.createDirectories(executionDir.resolve("config"));
                 Files.writeString(configDir.resolve("zpm.json"), config, UTF_8);
 
-                new ZpmLauncher(managerJar()).run(resolveArgs(configDir, executionDir));
+                Artifact manager = manager();
+                new ZpmLauncher(manager.getFile()).run(resolveArgs(configDir, executionDir));
+                exportManager(manager);
             }
             catch (MojoFailureException | MojoExecutionException ex)
             {
@@ -152,13 +156,26 @@ public final class ResolveMojo extends AbstractMojo
         return args;
     }
 
-    private File managerJar() throws MojoExecutionException
+    private void exportManager(
+        Artifact manager) throws IOException
+    {
+        String version = manager.getBaseVersion();
+        Path exported = repositoryDirectory.toPath()
+            .resolve(manager.getGroupId().replace('.', '/'))
+            .resolve(manager.getArtifactId())
+            .resolve(version)
+            .resolve(String.format("%s-%s.jar", manager.getArtifactId(), version));
+        Files.createDirectories(exported.getParent());
+        Files.copy(manager.getFile().toPath(), exported, StandardCopyOption.REPLACE_EXISTING);
+    }
+
+    private Artifact manager() throws MojoExecutionException
     {
         Artifact manager = plugin.getArtifactMap().get(MANAGER_KEY);
         if (manager == null || manager.getFile() == null)
         {
             throw new MojoExecutionException(String.format("Unable to locate %s plugin dependency", MANAGER_KEY));
         }
-        return manager.getFile();
+        return manager;
     }
 }

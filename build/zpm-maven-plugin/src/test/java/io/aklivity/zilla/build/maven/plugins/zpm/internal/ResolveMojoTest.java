@@ -117,6 +117,8 @@ public class ResolveMojoTest
             "--local-repository", mojo.localRepository.getAbsolutePath(),
             "--repository-directory", mojo.repositoryDirectory.getAbsolutePath(),
             "--exclude-remote-repositories")));
+        assertThat(mojo.repositoryDirectory.toPath().resolve("io/aklivity/zilla/manager/1.0/manager-1.0.jar").toFile(),
+            anExistingFile());
     }
 
     private Artifact manager() throws IOException
