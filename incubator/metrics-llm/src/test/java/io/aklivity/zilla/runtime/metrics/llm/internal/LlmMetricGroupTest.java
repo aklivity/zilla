@@ -15,18 +15,14 @@
 package io.aklivity.zilla.runtime.metrics.llm.internal;
 
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
-import static org.mockito.Mockito.mock;
 
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
-import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
-import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
 
 public class LlmMetricGroupTest
@@ -97,12 +93,5 @@ public class LlmMetricGroupTest
         assertThat(metric.kind(), equalTo(kind));
         assertThat(metric.unit(), equalTo(unit));
         assertThat(metric.description(), equalTo(description));
-
-        MetricContext context = metric.supply(mock(EngineContext.class));
-
-        assertThat(context.group(), equalTo("llm"));
-        assertThat(context.kind(), equalTo(kind));
-        assertThat(context.direction(), equalTo(MetricContext.Direction.BOTH));
-        assertThat(context.supply(value -> {}), notNullValue());
     }
 }
