@@ -1,5 +1,13 @@
 # Changelog
 
+## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/2.4.4...HEAD)
+
+**Merged pull requests:**
+
+- feat\(manager,zpm-maven-plugin\): resolve zpm dependencies ahead of an offline install [\#2612](https://github.com/aklivity/zilla/pull/2612) ([jfallows](https://github.com/jfallows))
+
 ## [2.4.4](https://github.com/aklivity/zilla/tree/2.4.4) (2026-09-24)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/2.4.3...2.4.4)
