@@ -12,4 +12,5 @@ specific language governing permissions and limitations under the License.
 This project includes:
   ANTLR 4 Runtime under BSD-3-Clause
   JavaPoet under Apache 2.0
+  zilla::manager under The Apache Software License, Version 2.0 or Aklivity Community License
 

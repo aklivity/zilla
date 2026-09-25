@@ -16,33 +16,23 @@
 package io.aklivity.zilla.manager.internal.commands.install;
 
 import static java.io.OutputStream.nullOutputStream;
-import static java.lang.Integer.parseInt;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.nio.file.Files.createDirectories;
 import static java.nio.file.Files.getLastModifiedTime;
 import static java.nio.file.Files.newInputStream;
 import static java.nio.file.Files.newOutputStream;
-import static java.util.Collections.emptyList;
 import static java.util.Collections.list;
-import static java.util.Collections.singletonMap;
-import static java.util.Comparator.reverseOrder;
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintStream;
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.lang.module.ModuleDescriptor;
 import java.lang.module.ModuleFinder;
 import java.lang.module.ModuleReference;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -53,14 +43,10 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.IdentityHashMap;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.jar.JarOutputStream;
@@ -74,46 +60,21 @@ import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.bind.JsonbConfig;
 
-import org.apache.maven.settings.Server;
-import org.apache.maven.settings.Settings;
-import org.apache.maven.settings.building.DefaultSettingsBuilder;
-import org.apache.maven.settings.building.DefaultSettingsBuildingRequest;
-import org.apache.maven.settings.building.SettingsBuildingResult;
-import org.apache.maven.settings.io.DefaultSettingsReader;
-import org.apache.maven.settings.io.DefaultSettingsWriter;
-import org.apache.maven.settings.io.SettingsReader;
-import org.apache.maven.settings.io.SettingsWriter;
-import org.apache.maven.settings.validation.DefaultSettingsValidator;
-import org.apache.maven.settings.validation.SettingsValidator;
 import org.codehaus.plexus.logging.console.ConsoleLogger;
 import org.eclipse.aether.repository.RemoteRepository;
-import org.eclipse.aether.util.repository.AuthenticationBuilder;
 
 import com.github.rvesse.airline.annotations.Command;
 import com.github.rvesse.airline.annotations.Option;
 
-import io.aklivity.zilla.manager.internal.ZpmCommand;
 import io.aklivity.zilla.manager.internal.commands.install.cache.ZpmArtifact;
-import io.aklivity.zilla.manager.internal.commands.install.cache.ZpmArtifactId;
 import io.aklivity.zilla.manager.internal.commands.install.cache.ZpmCache;
 import io.aklivity.zilla.manager.internal.commands.install.cache.ZpmModule;
 
 @Command(
     name = "install",
     description = "Install dependencies")
-public final class ZpmInstall extends ZpmCommand
+public final class ZpmInstall extends ZpmDependencyCommand
 {
-    private static final String MODULE_INFO_JAVA_FILENAME = "module-info.java";
-    private static final String MODULE_INFO_CLASS_FILENAME = "module-info.class";
-
-    private static final Pattern PATTERN_MAJOR_VERSION = Pattern.compile("(?<major>\\d+)\\.[^\\.]+\\.[^\\.]+");
-
-    private static final Map<String, String> DEFAULT_REALMS = initDefaultRealms();
-
-    @Option(name = { "--verbose" },
-        description = "Enable verbose logging")
-    public Boolean verbose = false;
-
     @Option(name = {"--debug"},
         description = "Link jdk.jdwp.agent module")
     public Boolean debug = false;
@@ -132,9 +93,9 @@ public final class ZpmInstall extends ZpmCommand
         description = "Exclude the local Maven repository")
     public boolean excludeLocalRepo;
 
-    @Option(name = {"--exclude-remote-repositories"},
-        description = "Exclude remote Maven repositories")
-    public boolean excludeRemoteRepos;
+    @Option(name = {"--strict"},
+        description = "Fail when the delegate module references dependencies that cannot be resolved")
+    public boolean strict;
 
     @Option(name = {"--ignore-missing-dependencies"},
         hidden = true)
@@ -147,8 +108,7 @@ public final class ZpmInstall extends ZpmCommand
     @Override
     public void invoke()
     {
-        int level = silent ? ConsoleLogger.LEVEL_WARN : verbose ? ConsoleLogger.LEVEL_DEBUG : ConsoleLogger.LEVEL_INFO;
-        ConsoleLogger logger = new ConsoleLogger(level, "ZpmInstall");
+        ConsoleLogger logger = newLogger("ZpmInstall");
 
         try
         {
@@ -165,36 +125,10 @@ public final class ZpmInstall extends ZpmCommand
 
             logger.info("resolving dependencies");
             createDirectories(cacheDir);
-            List<ZpmRepository> repositories = new ArrayList<>(config.repositories);
-
-            final String home = System.getProperty("user.home");
-            if (!excludeLocalRepo)
-            {
-                String localRepo = String.format("file://%s/.m2/repository", home);
-                repositories.add(0, new ZpmRepository(localRepo));
-            }
-
-            if (excludeRemoteRepos)
-            {
-                repositories.removeIf(r -> !r.location.startsWith("file:"));
-            }
-
-            File settingsFile = new File(String.format("/%s/.m2/settings.xml", home));
-
-            SettingsReader settingsReader = new DefaultSettingsReader();
-            SettingsWriter settingsWriter = new DefaultSettingsWriter();
-            SettingsValidator settingsValidator = new DefaultSettingsValidator();
-
-            DefaultSettingsBuilder settingsBuilder = new DefaultSettingsBuilder(
-                settingsReader, settingsWriter, settingsValidator);
-            DefaultSettingsBuildingRequest request = new DefaultSettingsBuildingRequest();
-            request.setGlobalSettingsFile(settingsFile);
-            request.setUserSettingsFile(settingsFile);
-
-            SettingsBuildingResult result = settingsBuilder.build(request);
-            Settings settings = result.getEffectiveSettings();
-
-            List<RemoteRepository> remoteRepositories = asRemoteRepositories(settings, repositories);
+            String localRepository = excludeLocalRepo
+                ? null
+                : String.format("file://%s/.m2/repository", System.getProperty("user.home"));
+            List<RemoteRepository> remoteRepositories = remoteRepositories(config, localRepository);
 
             ZpmCache cache = new ZpmCache(remoteRepositories, excludeRemoteRepos, cacheDir, logger);
 
@@ -252,7 +186,7 @@ public final class ZpmInstall extends ZpmCommand
             {
                 begin = System.nanoTime();
                 logger.info("resolving optional dependencies");
-                Collection<ZpmArtifact> optional = cache.resolveOptional(config.imports, config.dependencies);
+                Collection<ZpmArtifact> optional = cache.resolveOptional(config.imports, delegate.depends, artifacts);
                 logger.info(String.format("resolved %d optional dependencies in %s", optional.size(), elapsed(begin)));
 
                 begin = System.nanoTime();
@@ -280,56 +214,6 @@ public final class ZpmInstall extends ZpmCommand
             logger.error(String.format("Error: %s", ex.getMessage()));
             throw new RuntimeException(ex);
         }
-    }
-
-    private List<RemoteRepository> asRemoteRepositories(
-        Settings settings,
-        List<ZpmRepository> repositories) throws URISyntaxException
-    {
-        final List<RemoteRepository> remoteRepositories = new ArrayList<>();
-
-        for (ZpmRepository repository : repositories)
-        {
-            final String host = new URI(repository.location).getHost();
-            final RemoteRepository.Builder repoBuilder =
-                new RemoteRepository.Builder(host, "default", repository.location)
-                    .setRepositoryManager(true)
-                    .setId(host);
-
-            final Server server = settings.getServer(host);
-            if (server != null)
-            {
-                AuthenticationBuilder authenticationBuilder = new AuthenticationBuilder()
-                    .addUsername(server.getUsername())
-                    .addPassword(server.getPassword());
-                repoBuilder.setAuthentication(authenticationBuilder.build());
-            }
-            remoteRepositories.add(repoBuilder.build());
-        }
-        return remoteRepositories;
-    }
-
-    private ZpmConfiguration readOrDefaultConfig(
-        Path zpmFile) throws IOException
-    {
-        ZpmConfiguration config = new ZpmConfiguration();
-        config.repositories = emptyList();
-        config.imports = emptyList();
-        config.dependencies = emptyList();
-
-        Jsonb builder = JsonbBuilder.newBuilder()
-            .withConfig(new JsonbConfig().withFormatting(true))
-            .build();
-
-        if (Files.exists(zpmFile))
-        {
-            try (InputStream in = newInputStream(zpmFile))
-            {
-                config = builder.fromJson(in, ZpmConfiguration.class);
-            }
-        }
-
-        return config;
     }
 
     private ZpmConfiguration overrideConfigIfLocked(
@@ -364,176 +248,6 @@ public final class ZpmInstall extends ZpmCommand
         try (OutputStream out = newOutputStream(lockFile))
         {
             builder.toJson(config, out);
-        }
-    }
-
-    private Collection<ZpmModule> discoverModules(
-        Collection<ZpmArtifact> artifacts)
-    {
-        Path[] artifactPaths = artifacts.stream().map(a -> a.path).toArray(Path[]::new);
-        Set<ModuleReference> references = new HashSet<>();
-
-        for (Path path : artifactPaths)
-        {
-            ModuleFinder finder = ModuleFinder.of(path);
-            references.addAll(finder.findAll());
-        }
-
-        Map<URI, ModuleDescriptor> descriptors = references
-            .stream()
-            .filter(r -> r.location().isPresent())
-            .collect(Collectors.toMap(r -> r.location().get(), r -> r.descriptor()));
-
-        Collection<ZpmModule> modules = new LinkedHashSet<>();
-        for (ZpmArtifact artifact : artifacts)
-        {
-            URI artifactURI = artifact.path.toUri();
-            ModuleDescriptor descriptor = descriptors.get(artifactURI);
-            ZpmModule module = descriptor != null ? new ZpmModule(descriptor, artifact) : new ZpmModule(artifact);
-            modules.add(module);
-        }
-
-        return modules;
-    }
-
-    private void migrateUnnamed(
-        Collection<ZpmModule> modules,
-        ZpmModule delegate)
-    {
-        for (Iterator<ZpmModule> iterator = modules.iterator(); iterator.hasNext(); )
-        {
-            ZpmModule module = iterator.next();
-            if (module.name == null)
-            {
-                delegate.paths.addAll(module.paths);
-                iterator.remove();
-            }
-        }
-
-        assert !modules.stream().anyMatch(m -> m.name == null);
-    }
-
-    private void delegateAutomatic(
-        Collection<ZpmModule> modules,
-        ZpmModule delegate)
-    {
-        Map<ZpmArtifactId, ZpmModule> modulesMap = new LinkedHashMap<>();
-        modules.forEach(m -> modulesMap.put(m.id, m));
-
-        for (ZpmModule module : modules)
-        {
-            if (module.automatic)
-            {
-                delegateModule(delegate, module, modulesMap::get);
-            }
-        }
-
-        assert !modules.stream().anyMatch(m -> m.automatic && !m.delegating);
-    }
-
-    private void delegateModule(
-        ZpmModule delegate,
-        ZpmModule module,
-        Function<ZpmArtifactId, ZpmModule> lookup)
-    {
-        if (!module.delegating)
-        {
-            delegate.paths.addAll(module.paths);
-            module.paths.clear();
-            module.delegating = true;
-
-            for (ZpmArtifactId dependId : module.depends)
-            {
-                ZpmModule depend = lookup.apply(dependId);
-                delegateModule(delegate, depend, lookup);
-            }
-        }
-    }
-
-    private void generateSystemOnlyAutomatic(
-        ConsoleLogger logger,
-        Collection<ZpmModule> modules) throws IOException
-    {
-        Map<ZpmModule, Path> promotions = new IdentityHashMap<>();
-
-        for (ZpmModule module : modules)
-        {
-            if (module.automatic && module.depends.isEmpty())
-            {
-                Path generatedModulesDir = generatedDir.resolve("modules");
-                Path generatedModuleDir = generatedModulesDir.resolve(module.name);
-
-                deleteDirectories(generatedModuleDir);
-
-                Files.createDirectories(generatedModuleDir);
-
-                assert module.paths.size() == 1;
-                Path artifactPath = module.paths.iterator().next();
-
-                ToolProvider jdeps = ToolProvider.findFirst("jdeps").get();
-                PrintStream nullOutput = new PrintStream(nullOutputStream());
-                jdeps.run(
-                    nullOutput,
-                    nullOutput,
-                    "--generate-open-module", generatedModulesDir.toString(),
-                    artifactPath.toString());
-
-                Path generatedModuleInfo = generatedModuleDir.resolve(MODULE_INFO_JAVA_FILENAME);
-                if (Files.exists(generatedModuleInfo))
-                {
-                    logger.debug(String.format("Generating module info for system-only automatic module: %s", module.name));
-
-                    long begin = System.nanoTime();
-
-                    expandJar(generatedModuleDir, artifactPath);
-
-                    ToolProvider javac = ToolProvider.findFirst("javac").get();
-
-                    List<String> args = new ArrayList<>();
-                    if (atLeastVersion(javac, 21))
-                    {
-                        args.add("-proc:none");
-                    }
-
-                    args.add("-d");
-                    args.add(generatedModuleDir.toString());
-
-                    args.add(generatedModuleInfo.toString());
-
-                    javac.run(
-                        nullOutput,
-                        nullOutput,
-                        args.toArray(String[]::new));
-
-                    Path compiledModuleInfo = generatedModuleDir.resolve(MODULE_INFO_CLASS_FILENAME);
-                    assert Files.exists(compiledModuleInfo);
-
-                    Path generatedModulePath = generatedModulesDir.resolve(String.format("%s.jar", module.name));
-                    JarEntry moduleInfoEntry = new JarEntry(MODULE_INFO_CLASS_FILENAME);
-                    moduleInfoEntry.setTime(318240000000L);
-                    extendJar(artifactPath, generatedModulePath, moduleInfoEntry, compiledModuleInfo);
-
-                    promotions.put(module, generatedModulePath);
-
-                    logger.info(String.format("Generated module info for system-only automatic module: %s (%s)",
-                        module.name, elapsed(begin)));
-                }
-            }
-        }
-
-        for (Map.Entry<ZpmModule, Path> entry : promotions.entrySet())
-        {
-            ZpmModule module = entry.getKey();
-            Path newArtifactPath = entry.getValue();
-
-            ModuleDescriptor descriptor = moduleDescriptor(newArtifactPath);
-            assert descriptor != null;
-
-            ZpmArtifact newArtifact = new ZpmArtifact(module.id, newArtifactPath, module.depends);
-            ZpmModule promotion = new ZpmModule(descriptor, newArtifact);
-
-            modules.remove(module);
-            modules.add(promotion);
         }
     }
 
@@ -590,8 +304,8 @@ public final class ZpmInstall extends ZpmCommand
         Path generatedModuleInfo = generatedDelegateDir.resolve(MODULE_INFO_JAVA_FILENAME);
         ToolProvider jdeps = ToolProvider.findFirst("jdeps").get();
 
-        boolean strict = !ignoreMissingDependencies;
-        if (strict)
+        boolean resolved = !ignoreMissingDependencies;
+        if (resolved)
         {
             begin = System.nanoTime();
             logger.info("running jdeps --generate-module-info for delegate module");
@@ -602,10 +316,10 @@ public final class ZpmInstall extends ZpmCommand
                 "--module-path", optionalModulesDir.toString(),
                 generatedDelegatePath.toString());
             logger.info(String.format("completed jdeps --generate-module-info in %s", elapsed(begin)));
-            strict = result == 0 && Files.exists(generatedModuleInfo);
+            resolved = result == 0 && Files.exists(generatedModuleInfo);
         }
 
-        if (!strict)
+        if (!resolved)
         {
             // jdeps could not resolve every reference against the optional dependency tree (for example
             // offline with an incomplete tree); fall back to generating while ignoring missing
@@ -615,12 +329,20 @@ public final class ZpmInstall extends ZpmCommand
             Set<String> missing = missingDependencies(generatedDelegatePath, optionalModulesDir);
             logger.info(String.format("completed jdeps --missing-deps in %s", elapsed(begin)));
 
+            String details = missing.stream()
+                .sorted()
+                .map(c -> String.format("    %s", c))
+                .collect(Collectors.joining("\n"));
+
+            if (strict)
+            {
+                throw new IOException(String.format(
+                    "delegate module references %d dependencies not resolved by the optional dependency tree:%n%s",
+                    missing.size(), details));
+            }
+
             if (!missing.isEmpty())
             {
-                String details = missing.stream()
-                    .sorted()
-                    .map(c -> String.format("    %s", c))
-                    .collect(Collectors.joining("\n"));
                 logger.warn(String.format(
                     "delegate module references %d dependencies not resolved by the optional dependency tree;" +
                     " generating module info while ignoring them:%n%s", missing.size(), details));
@@ -1064,121 +786,9 @@ public final class ZpmInstall extends ZpmCommand
         zillaPath.toFile().setExecutable(true);
     }
 
-    private ModuleDescriptor moduleDescriptor(
-        Path archive)
-    {
-        ModuleDescriptor module = null;
-        Set<ModuleReference> moduleRefs = ModuleFinder.of(archive).findAll();
-        if (!moduleRefs.isEmpty())
-        {
-            module = moduleRefs.iterator().next().descriptor();
-        }
-        return module;
-    }
-
     private Path modulePath(
         ZpmModule module)
     {
         return modulesDir.resolve(String.format("%s.jar", module.name));
-    }
-
-    private void expandJar(
-        Path targetDir,
-        Path sourcePath) throws IOException
-    {
-        try (JarFile sourceJar = new JarFile(sourcePath.toFile()))
-        {
-            for (JarEntry entry : list(sourceJar.entries()))
-            {
-                Path entryPath = targetDir.resolve(entry.getName()).normalize();
-                if (!entryPath.startsWith(targetDir))
-                {
-                    throw new IOException("Bad zip entry");
-                }
-                else if (entry.isDirectory())
-                {
-                    createDirectories(entryPath);
-                }
-                else
-                {
-                    Path parentPath = entryPath.getParent();
-                    if (!Files.exists(parentPath))
-                    {
-                        createDirectories(parentPath);
-                    }
-
-                    try (InputStream input = sourceJar.getInputStream(entry))
-                    {
-                        Files.write(entryPath, input.readAllBytes());
-                    }
-                }
-            }
-        }
-    }
-
-    private void extendJar(
-        Path sourcePath,
-        Path targetPath,
-        JarEntry newEntry,
-        Path newEntryPath) throws IOException
-    {
-        try (JarFile sourceJar = new JarFile(sourcePath.toFile());
-             JarOutputStream targetJar = new JarOutputStream(Files.newOutputStream(targetPath)))
-        {
-            for (JarEntry entry : list(sourceJar.entries()))
-            {
-                targetJar.putNextEntry(entry);
-                if (!entry.isDirectory())
-                {
-                    try (InputStream input = sourceJar.getInputStream(entry))
-                    {
-                        targetJar.write(input.readAllBytes());
-                    }
-                }
-                targetJar.closeEntry();
-            }
-
-            targetJar.putNextEntry(newEntry);
-            targetJar.write(Files.readAllBytes(newEntryPath));
-            targetJar.closeEntry();
-        }
-    }
-
-    private void deleteDirectories(
-        Path dir) throws IOException
-    {
-        if (Files.exists(dir))
-        {
-            Files.walk(dir)
-                .sorted(reverseOrder())
-                .map(Path::toFile)
-                .forEach(File::delete);
-        }
-    }
-
-    private static String elapsed(
-        long begin)
-    {
-        return String.format("%.3fs", (System.nanoTime() - begin) * 1e-9);
-    }
-
-    private static boolean atLeastVersion(
-        ToolProvider tool,
-        int major)
-    {
-        StringWriter out = new StringWriter();
-        StringWriter err = new StringWriter();
-        tool.run(
-            new PrintWriter(out),
-            new PrintWriter(err),
-            "--version");
-
-        Matcher matcher = PATTERN_MAJOR_VERSION.matcher(out.toString());
-        return matcher.find() && parseInt(matcher.group("major")) >= major;
-    }
-
-    private static Map<String, String> initDefaultRealms()
-    {
-        return singletonMap("maven.pkg.github.com", "GitHub Package Registry");
     }
 }

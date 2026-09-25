@@ -24,7 +24,7 @@ RUN apk add --no-cache gettext
 RUN cat zpm.json.template | env VERSION=${project.version} envsubst > zpm.json
 
 RUN apk add --no-cache wget
-RUN ./zpmw install --debug --exclude-remote-repositories
+RUN ./zpmw install --debug --exclude-remote-repositories --strict
 RUN ./zpmw clean --keep-image
 
 FROM alpine:3.24.1
