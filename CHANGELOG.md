@@ -2,7 +2,16 @@
 
 ## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/2.4.4...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/2.4.5...HEAD)
+
+**Merged pull requests:**
+
+- build: fix remote repository filter for maven.packages.aklivity.io [\#2613](https://github.com/aklivity/zilla/pull/2613) ([jfallows](https://github.com/jfallows))
+- feat\(manager\): Maven repository ids and resolver configuration for zpm [\#2614](https://github.com/aklivity/zilla/pull/2614) ([jfallows](https://github.com/jfallows))
+
+## [2.4.5](https://github.com/aklivity/zilla/tree/2.4.5) (2026-09-25)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/2.4.4...2.4.5)
 
 **Merged pull requests:**
 
