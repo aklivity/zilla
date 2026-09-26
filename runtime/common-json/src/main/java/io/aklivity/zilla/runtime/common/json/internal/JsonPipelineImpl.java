@@ -57,6 +57,7 @@ public final class JsonPipelineImpl implements JsonPipeline
     private final boolean lenient;
 
     private boolean suspended;
+    private boolean suspendedByFlush;
     private boolean completed;
     // the value event in flight across a suspend, handed to root.resume() so no stage stores it
     private JsonEvent resumeEvent;
@@ -87,10 +88,19 @@ public final class JsonPipelineImpl implements JsonPipeline
         parser.reset();
         root.reset();
         suspended = false;
+        suspendedByFlush = false;
         completed = false;
         diagnostic.message = null;
         diagnostic.category = null;
         resumeEvent = null;
+    }
+
+    @Override
+    public void nextDocument()
+    {
+        assert completed : "nextDocument() requires the prior transform() to have returned COMPLETED";
+        parser.nextDocument();
+        completed = false;
     }
 
     @Override
@@ -132,7 +142,11 @@ public final class JsonPipelineImpl implements JsonPipeline
         try
         {
             boolean resumingDocumentEnd = false;
-            if (suspended)
+            if (suspendedByFlush)
+            {
+                status = root.flush(control, source);
+            }
+            else if (suspended)
             {
                 resumingDocumentEnd = resumeEvent == JsonEvent.END_DOCUMENT;
                 status = root.resume(control, source, resumeEvent);
@@ -160,6 +174,7 @@ public final class JsonPipelineImpl implements JsonPipeline
                 {
                     // the pump owns the resume cursor: remember the in-flight event for the next entry
                     resumeEvent = event;
+                    suspendedByFlush = false;
                 }
             }
             if (status == Status.COMPLETED)
@@ -180,6 +195,7 @@ public final class JsonPipelineImpl implements JsonPipeline
                 if (drained == Status.SUSPENDED)
                 {
                     status = Status.SUSPENDED;
+                    suspendedByFlush = true;
                 }
                 else if (last)
                 {
@@ -254,6 +270,7 @@ public final class JsonPipelineImpl implements JsonPipeline
             if (status == Status.SUSPENDED)
             {
                 resumeEvent = event;
+                suspendedByFlush = false;
             }
             else
             {
