@@ -1,0 +1,75 @@
+#
+# Copyright 2021-2026 Aklivity Inc
+#
+# Licensed under the Aklivity Community License (the "License"); you may not use
+# this file except in compliance with the License.  You may obtain a copy of the
+# License at
+#
+#   https://www.aklivity.io/aklivity-community-license/
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations under the License.
+#
+
+---
+name: test
+telemetry:
+    metrics:
+        - llm.tokens.input
+        - llm.tokens.output
+        - llm.tokens.total
+        - llm.tokens.cache.read
+        - llm.tokens.cache.write
+        - llm.tokens.reasoning
+        - llm.duration
+        - llm.active.requests
+    exporters:
+        exporter0:
+            type: test
+            options:
+                metrics:
+                    - name: llm.tokens.input
+                      binding: app0
+                      kind: histogram
+                      count: 0
+                    - name: llm.tokens.output
+                      binding: app0
+                      kind: histogram
+                      count: 0
+                    - name: llm.tokens.total
+                      binding: app0
+                      kind: histogram
+                      count: 0
+                    - name: llm.tokens.cache.read
+                      binding: app0
+                      kind: histogram
+                      count: 0
+                    - name: llm.tokens.cache.write
+                      binding: app0
+                      kind: histogram
+                      count: 0
+                    - name: llm.tokens.reasoning
+                      binding: app0
+                      kind: histogram
+                      count: 0
+                    - name: llm.duration
+                      binding: app0
+                      kind: histogram
+                      count: 0
+                    - name: llm.active.requests
+                      binding: app0
+                      kind: gauge
+                      value: 0
+bindings:
+    app0:
+        type: test
+        kind: proxy
+        options:
+            originType: llm
+        routes:
+            - exit: app1
+        telemetry:
+            metrics:
+                - llm.*

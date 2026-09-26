@@ -1,0 +1,51 @@
+#
+# Copyright 2021-2026 Aklivity Inc
+#
+# Licensed under the Aklivity Community License (the "License"); you may not use
+# this file except in compliance with the License.  You may obtain a copy of the
+# License at
+#
+#   https://www.aklivity.io/aklivity-community-license/
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations under the License.
+#
+
+connect "zilla://streams/app0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+
+write zilla:begin.ext ${llm:beginEx()
+                           .typeId(zilla:id("llm"))
+                           .dialect("anthropic")
+                           .build()}
+
+connected
+
+write "{\"model\":\"claude-haiku-4-5-20251001\",\"max_tokens\":100,\"messages\":[{\"role\":\"user\",\"content\":\"Say hello in one sentence.\"}],\"stream\":false}"
+
+read zilla:begin.ext ${llm:matchBeginEx()
+                           .typeId(zilla:id("llm"))
+                           .dialect("anthropic")
+                           .contentType("application/json")
+                           .build()}
+
+read zilla:data.ext ${llm:matchDataEx()
+                          .typeId(zilla:id("llm"))
+                          .typeNull()
+                          .build()}
+read "{\"model\":\"claude-haiku-4-5-20251001\",\"id\":\"msg_011CfFkXGJGvcevU8tu1qHAP\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"Hello! I'm happy to help you with whatever you need.\"}],\"container\":null,\"stop_reason\":\"end_turn\",\"stop_sequence\":null,\"stop_details\":null,\"usage\":{\"input_tokens\":13,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"cache_creation\":{\"ephemeral_5m_input_tokens\":0,\"ephemeral_1h_input_tokens\":0},\"output_tokens\":16,\"service_tier\":\"standard\",\"inference_geo\":\"not_available\"}}"
+
+read zilla:end.ext ${llm:matchEndEx()
+                           .typeId(zilla:id("llm"))
+                           .inputTokens(13)
+                           .cacheWriteTokens(0)
+                           .cacheReadTokens(0)
+                           .outputTokens(16)
+                           .build()}
+
+read closed
+
+write close

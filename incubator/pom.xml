@@ -19,21 +19,27 @@
   <modules>
     <module>binding-amqp.spec</module>
     <module>binding-amqp.conf</module>
+    <module>binding-llm.spec</module>
+    <module>binding-llm.conf</module>
     <module>binding-pgsql.spec</module>
     <module>binding-pgsql.conf</module>
     <module>binding-pgsql-kafka.spec</module>
     <module>binding-pgsql-kafka.conf</module>
     <module>binding-risingwave.spec</module>
     <module>binding-risingwave.conf</module>
+    <module>metrics-llm.spec</module>
+    <module>metrics-llm.conf</module>
     <module>embedding-glove.spec</module>
     <module>embedding-glove.conf</module>
     <module>model-vector.spec</module>
     <module>model-vector.conf</module>
 
     <module>binding-amqp</module>
+    <module>binding-llm</module>
     <module>binding-pgsql</module>
     <module>binding-pgsql-kafka</module>
     <module>binding-risingwave</module>
+    <module>metrics-llm</module>
     <module>embedding-glove</module>
     <module>model-vector</module>
 
@@ -78,6 +84,26 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>binding-amqp.conf</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>binding-llm</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>binding-llm.conf</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>metrics-llm</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>metrics-llm.conf</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

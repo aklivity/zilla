@@ -408,6 +408,19 @@ final class TestBindingFactory implements BindingHandler
         }
     }
 
+    private DirectBufferEx copyExtension(
+        OctetsFW extension)
+    {
+        DirectBufferEx copy = null;
+        if (extension.sizeof() > 0)
+        {
+            byte[] bytes = new byte[extension.sizeof()];
+            extension.buffer().getBytes(extension.offset(), bytes);
+            copy = new UnsafeBufferEx(bytes);
+        }
+        return copy;
+    }
+
     private DirectBufferEx buildEnvelopeExtension(
         TestModelEnvelope envelope)
     {
@@ -1207,7 +1220,7 @@ final class TestBindingFactory implements BindingHandler
             if (pipeline == null)
             {
                 boolean fin = (flags & FLAGS_FIN) != 0;
-                target.doInitialData(traceId, fin, payload);
+                target.doInitialData(traceId, fin, payload, copyExtension(data.extension()));
             }
             else if (decodeSlotOffset + payload.sizeof() > decodeMax)
             {
@@ -1854,7 +1867,7 @@ final class TestBindingFactory implements BindingHandler
                 if (pipeline == null)
                 {
                     boolean fin = (flags & FLAGS_FIN) != 0;
-                    source.doReplyData(traceId, fin, payload);
+                    source.doReplyData(traceId, fin, payload, copyExtension(data.extension()));
                 }
                 else if (decodeSlotOffset + payload.sizeof() > decodeMax)
                 {
