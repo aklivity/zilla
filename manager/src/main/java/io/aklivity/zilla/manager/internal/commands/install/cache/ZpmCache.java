@@ -17,6 +17,8 @@ package io.aklivity.zilla.manager.internal.commands.install.cache;
 
 import static java.util.Objects.requireNonNull;
 import static java.util.Optional.ofNullable;
+import static java.util.function.Function.identity;
+import static java.util.stream.Collectors.toMap;
 import static org.eclipse.aether.ConfigurationProperties.CONNECT_TIMEOUT;
 import static org.eclipse.aether.ConfigurationProperties.REQUEST_TIMEOUT;
 import static org.eclipse.aether.util.graph.transformer.ConflictResolver.CONFIG_PROP_VERBOSE;
@@ -96,6 +98,10 @@ public final class ZpmCache
     // both so a stuck transfer fails while there is still budget left to report it.
     private static final int CONNECT_TIMEOUT_MS = 10000;
     private static final int REQUEST_TIMEOUT_MS = 60000;
+
+    // maven-resolver configuration passed as -Daether.* system properties, as Maven itself does,
+    // for example aether.remoteRepositoryFilter.groupId to restrict which groups a repository serves
+    private static final String RESOLVER_PROPERTY_PREFIX = "aether.";
 
     private final RepositorySystem repositorySystem;
 
@@ -305,6 +311,13 @@ public final class ZpmCache
         return artifacts;
     }
 
+    private static Map<String, String> resolverProperties()
+    {
+        return System.getProperties().stringPropertyNames().stream()
+            .filter(name -> name.startsWith(RESOLVER_PROPERTY_PREFIX))
+            .collect(toMap(identity(), System::getProperty));
+    }
+
     private RepositorySystemSession newRepositorySystemSession(
         RepositorySystem system,
         Path dir,
@@ -361,6 +374,7 @@ public final class ZpmCache
                         ScopeDependencySelector.fromRoot(null, List.of("test", "provided"))))
                 .setRepositoryListener(new ZpmConsoleRepositoryListener())
                 .setTransferListener(new ZpmConsoleTransferListener())
+                .setConfigProperties(resolverProperties())
                 .setConfigProperty(CONFIG_PROP_VERBOSE, "true")
                 .setConfigProperty(CONFIG_PROP_NAMED_LOCK_FACTORY, "noop")
                 .setConfigProperty(CONNECT_TIMEOUT, CONNECT_TIMEOUT_MS)
