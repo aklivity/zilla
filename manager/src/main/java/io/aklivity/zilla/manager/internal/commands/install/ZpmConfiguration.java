@@ -18,10 +18,15 @@ package io.aklivity.zilla.manager.internal.commands.install;
 import java.util.List;
 import java.util.Objects;
 
+import jakarta.json.bind.annotation.JsonbTypeAdapter;
+
+import io.aklivity.zilla.manager.internal.commands.install.adapters.ZpmRepositoriesAdapter;
+
 public final class ZpmConfiguration
 {
     public List<ZpmDependency> dependencies;
     public List<ZpmDependency> imports;
+    @JsonbTypeAdapter(ZpmRepositoriesAdapter.class)
     public List<ZpmRepository> repositories;
 
     @Override

@@ -160,13 +160,12 @@ public abstract class ZpmDependencyCommand extends ZpmCommand
 
         for (ZpmRepository repository : repositories)
         {
-            final String host = new URI(repository.location).getHost();
+            final String id = repository.id != null ? repository.id : new URI(repository.location).getHost();
             final RemoteRepository.Builder repoBuilder =
-                new RemoteRepository.Builder(host, "default", repository.location)
-                    .setRepositoryManager(true)
-                    .setId(host);
+                new RemoteRepository.Builder(id, "default", repository.location)
+                    .setRepositoryManager(true);
 
-            final Server server = settings.getServer(host);
+            final Server server = settings.getServer(id);
             if (server != null)
             {
                 AuthenticationBuilder authenticationBuilder = new AuthenticationBuilder()
