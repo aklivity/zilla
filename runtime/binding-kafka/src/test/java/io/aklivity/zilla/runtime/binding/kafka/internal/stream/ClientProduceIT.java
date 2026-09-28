@@ -115,6 +115,16 @@ public class ClientProduceIT
     @Test
     @Configuration("client.when.topic.yaml")
     @Specification({
+        "${app}/leader.not.available/client",
+        "${net}/broker.disconnect/server"})
+    public void shouldRefreshMetaWhenBrokerDisconnects() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.when.topic.yaml")
+    @Specification({
         "${app}/message.key/client",
         "${net}/message.key/server"})
     public void shouldSendMessageKey() throws Exception

@@ -2363,6 +2363,8 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
 
                 state = KafkaState.closingReply(state);
 
+                clientRoute.metaFlush.accept(traceId);
+
                 if (!isApplicationReplyOpen())
                 {
                     cleanupNetwork(traceId);
@@ -2386,6 +2388,8 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
 
                 state = KafkaState.closedReply(state);
 
+                clientRoute.metaFlush.accept(traceId);
+
                 cleanupNetwork(traceId);
             }
 
@@ -2401,6 +2405,8 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                 }
 
                 state = KafkaState.closedInitial(state);
+
+                clientRoute.metaFlush.accept(traceId);
 
                 cleanupNetwork(traceId);
             }

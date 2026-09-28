@@ -76,6 +76,15 @@ public class ProduceIT
 
     @Test
     @Specification({
+        "${net}/broker.disconnect/client",
+        "${net}/broker.disconnect/server"})
+    public void shouldRefreshMetaWhenBrokerDisconnects() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/message.key/client",
         "${net}/message.key/server"})
     public void shouldSendMessageKey() throws Exception
