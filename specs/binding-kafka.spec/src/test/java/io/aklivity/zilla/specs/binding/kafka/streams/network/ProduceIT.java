@@ -313,6 +313,15 @@ public class ProduceIT
 
     @Test
     @Specification({
+        "${net}/message.headers.large/client",
+        "${net}/message.headers.large/server"})
+    public void shouldSendMessageHeadersLarge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/message.header.null/client",
         "${net}/message.header.null/server"})
     public void shouldSendMessageHeaderNull() throws Exception

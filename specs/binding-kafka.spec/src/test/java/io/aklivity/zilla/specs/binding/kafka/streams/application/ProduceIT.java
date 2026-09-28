@@ -331,6 +331,15 @@ public class ProduceIT
 
     @Test
     @Specification({
+        "${app}/message.headers.large/client",
+        "${app}/message.headers.large/server"})
+    public void shouldSendMessageHeadersLarge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/message.value.repeated.fragmented/client",
         "${app}/message.value.repeated.fragmented/server"})
     public void shouldSendMessageValueRepeatedWhenFragmented() throws Exception
