@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_BUFFER_SLOT_CAPACITY;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
+import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_SLOT_CAPACITY_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -390,6 +391,17 @@ public class ClientProduceIT
 
     @Test
     @Configuration("client.yaml")
+    @Specification({
+        "${app}/message.headers.large/client",
+        "${net}/message.headers.large/server"})
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "4096")
+    public void shouldSendMessageHeadersLarge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/message.value.repeated.fragmented/client",
         "${net}/message.value.repeated/server"})
