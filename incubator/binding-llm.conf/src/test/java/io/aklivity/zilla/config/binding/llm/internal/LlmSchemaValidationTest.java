@@ -20,6 +20,7 @@ import static org.hamcrest.Matchers.nullValue;
 
 import org.junit.Test;
 
+import io.aklivity.zilla.config.engine.ConfigException;
 import io.aklivity.zilla.config.engine.EngineConfig;
 import io.aklivity.zilla.config.engine.EngineConfigReader;
 import io.aklivity.zilla.config.engine.EngineInfo;
@@ -547,7 +548,7 @@ public class LlmSchemaValidationTest
         reader.read(text);
     }
 
-    @Test(expected = RuntimeException.class)
+    @Test(expected = ConfigException.class)
     public void shouldRejectServerRouteWith()
     {
         String text =
@@ -591,9 +592,6 @@ public class LlmSchemaValidationTest
         String text =
             """
             name: test
-            guards:
-              guard0:
-                type: test
             bindings:
               b0:
                 type: llm
@@ -646,7 +644,7 @@ public class LlmSchemaValidationTest
         reader.read(text);
     }
 
-    @Test(expected = RuntimeException.class)
+    @Test(expected = ConfigException.class)
     public void shouldRejectProxyRouteWith()
     {
         String text =
@@ -707,7 +705,7 @@ public class LlmSchemaValidationTest
         reader.read(text);
     }
 
-    @Test(expected = RuntimeException.class)
+    @Test(expected = ConfigException.class)
     public void shouldRejectClientRouteWith()
     {
         String text =
@@ -757,9 +755,6 @@ public class LlmSchemaValidationTest
         String text =
             """
             name: test
-            guards:
-              guard0:
-                type: test
             bindings:
               b0:
                 type: llm
