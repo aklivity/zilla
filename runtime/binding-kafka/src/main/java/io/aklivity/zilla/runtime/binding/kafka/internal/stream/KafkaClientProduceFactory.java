@@ -1451,6 +1451,8 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
 
                 state = KafkaState.closedReply(state);
 
+                clientRoute.metaFlush.accept(traceId);
+
                 if (decodeSlot == NO_SLOT)
                 {
                     stream.doApplicationEnd(traceId);
@@ -1470,6 +1472,8 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
 
                 state = KafkaState.closedReply(state);
 
+                clientRoute.metaFlush.accept(traceId);
+
                 cleanupNetwork(traceId);
             }
 
@@ -1485,6 +1489,8 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                 }
 
                 state = KafkaState.closedInitial(state);
+
+                clientRoute.metaFlush.accept(traceId);
 
                 cleanupNetwork(traceId);
             }
