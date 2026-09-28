@@ -1287,7 +1287,10 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
                         if ((entryFlags & CACHE_ENTRY_FLAGS_DIRTY) != 0)
                         {
                             cursor.advance(partitionOffset + 1);
-                            doFlushServerReply(NO_ERROR, traceId);
+                            if (fan.initialAck == fan.initialSeq)
+                            {
+                                doFlushServerReply(NO_ERROR, traceId);
+                            }
                             break produce;
                         }
 
