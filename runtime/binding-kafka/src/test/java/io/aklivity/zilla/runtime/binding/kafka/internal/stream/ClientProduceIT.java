@@ -116,6 +116,16 @@ public class ClientProduceIT
     @Test
     @Configuration("client.when.topic.yaml")
     @Specification({
+        "${app}/network.exception/client",
+        "${net}/network.exception/server"})
+    public void shouldRejectNetworkException() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.when.topic.yaml")
+    @Specification({
         "${app}/message.key/client",
         "${net}/message.key/server"})
     public void shouldSendMessageKey() throws Exception

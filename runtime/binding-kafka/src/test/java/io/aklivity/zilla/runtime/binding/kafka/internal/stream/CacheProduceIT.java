@@ -118,6 +118,18 @@ public class CacheProduceIT
     @Configuration("cache.yaml")
     @Specification({
         "${app}/message.value/client",
+        "${app}/network.exception.reconnect/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @Configure(name = KAFKA_CACHE_SERVER_RECONNECT_DELAY_NAME, value = "1")
+    public void shouldReconnectNetworkException() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.yaml")
+    @Specification({
+        "${app}/message.value/client",
         "${app}/partition.not.leader.reconnect.after.meta/server"})
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     @Configure(name = KAFKA_CACHE_SERVER_RECONNECT_DELAY_NAME, value = "1")

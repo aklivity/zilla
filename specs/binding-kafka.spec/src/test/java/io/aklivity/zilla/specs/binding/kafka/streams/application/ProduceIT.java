@@ -94,6 +94,24 @@ public class ProduceIT
 
     @Test
     @Specification({
+        "${app}/network.exception.reconnect/client",
+        "${app}/network.exception.reconnect/server"})
+    public void shouldReconnectNetworkException() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/network.exception/client",
+        "${app}/network.exception/server"})
+    public void shouldRejectNetworkException() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/partition.not.leader.reconnect.after.meta/client",
         "${app}/partition.not.leader.reconnect.after.meta/server"})
     public void shouldReconnectPartitionNotLeaderAfterMeta() throws Exception

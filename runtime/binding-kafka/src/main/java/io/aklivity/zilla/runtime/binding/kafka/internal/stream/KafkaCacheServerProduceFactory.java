@@ -84,6 +84,7 @@ import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 public final class KafkaCacheServerProduceFactory implements BindingHandler
 {
     private static final int ERROR_NOT_LEADER_FOR_PARTITION = 6;
+    private static final int ERROR_NETWORK_EXCEPTION = 13;
     private static final int NO_ERROR = -1;
     private static final int UNKNOWN_ERROR = -2;
 
@@ -791,9 +792,12 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
                 System.out.format("%d %s PRODUCE disconnect, error %d\n", partitionId, partionTopic, error);
             }
 
-            if (error == ERROR_NOT_LEADER_FOR_PARTITION || error == UNKNOWN_ERROR)
+            if (error == ERROR_NOT_LEADER_FOR_PARTITION ||
+                error == ERROR_NETWORK_EXCEPTION ||
+                error == UNKNOWN_ERROR)
             {
-                if (error == ERROR_NOT_LEADER_FOR_PARTITION)
+                if (error == ERROR_NOT_LEADER_FOR_PARTITION ||
+                    error == ERROR_NETWORK_EXCEPTION)
                 {
                     leaderId = LEADER_UNKNOWN;
                 }

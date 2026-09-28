@@ -108,6 +108,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
     private static final int RECORD_LENGTH_MAX = 5; // varint32(max_value)
 
     private static final int ERROR_NONE = 0;
+    private static final int ERROR_NETWORK_EXCEPTION = 13;
 
     private static final int SIGNAL_NEXT_REQUEST = 1;
 
@@ -1474,7 +1475,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
 
                 clientRoute.metaFlush.accept(traceId);
 
-                cleanupNetwork(traceId);
+                cleanupNetwork(traceId, ERROR_NETWORK_EXCEPTION);
             }
 
             private void onNetworkReset(
@@ -1492,7 +1493,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
 
                 clientRoute.metaFlush.accept(traceId);
 
-                cleanupNetwork(traceId);
+                cleanupNetwork(traceId, ERROR_NETWORK_EXCEPTION);
             }
 
             private void onNetworkWindow(
@@ -2394,6 +2395,16 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                 doNetworkAbortIfNecessary(traceId);
 
                 stream.cleanupApplication(traceId, EMPTY_OCTETS);
+            }
+
+            private void cleanupNetwork(
+                long traceId,
+                int error)
+            {
+                doNetworkResetIfNecessary(traceId);
+                doNetworkAbortIfNecessary(traceId);
+
+                stream.cleanupApplication(traceId, error);
             }
 
             private void cleanupDecodeSlotIfNecessary()
