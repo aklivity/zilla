@@ -85,6 +85,15 @@ public class ProduceIT
 
     @Test
     @Specification({
+        "${net}/network.exception/client",
+        "${net}/network.exception/server"})
+    public void shouldNetworkException() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/message.key/client",
         "${net}/message.key/server"})
     public void shouldSendMessageKey() throws Exception
