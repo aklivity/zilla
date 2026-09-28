@@ -494,4 +494,288 @@ public class LlmSchemaValidationTest
 
         reader.read(text);
     }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectClientWithoutOptions()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                exit: net0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectServerWithVault()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              b0:
+                type: llm
+                kind: server
+                vault: vault0
+                exit: app0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectServerWithCatalog()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              b0:
+                type: llm
+                kind: server
+                catalog:
+                  catalog0:
+                    - subject: subject0
+                exit: app0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectServerRouteWith()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              b0:
+                type: llm
+                kind: server
+                routes:
+                  - with:
+                      unknown: value
+                    exit: app0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectServerRouteWhen()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              b0:
+                type: llm
+                kind: server
+                routes:
+                  - when:
+                      - dialect: openai
+                    exit: app0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test
+    public void shouldAcceptServerGuardedRoute()
+    {
+        String text =
+            """
+            name: test
+            guards:
+              guard0:
+                type: test
+            bindings:
+              b0:
+                type: llm
+                kind: server
+                routes:
+                  - guarded:
+                      guard0:
+                        - read
+                    exit: app0
+            """;
+
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectProxyWithVault()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              b0:
+                type: llm
+                kind: proxy
+                vault: vault0
+                exit: app0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectProxyWithCatalog()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              b0:
+                type: llm
+                kind: proxy
+                catalog:
+                  catalog0:
+                    - subject: subject0
+                exit: app0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectProxyRouteWith()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              b0:
+                type: llm
+                kind: proxy
+                routes:
+                  - with:
+                      unknown: value
+                    exit: app0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectClientWithVault()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              b0:
+                type: llm
+                kind: client
+                vault: vault0
+                options:
+                  dialect: openai
+                  server: http://example.com:8080
+                exit: net0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectClientWithCatalog()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              b0:
+                type: llm
+                kind: client
+                catalog:
+                  catalog0:
+                    - subject: subject0
+                options:
+                  dialect: openai
+                  server: http://example.com:8080
+                exit: net0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectClientRouteWith()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              b0:
+                type: llm
+                kind: client
+                options:
+                  dialect: openai
+                  server: http://example.com:8080
+                routes:
+                  - with:
+                      unknown: value
+                    exit: net0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectClientRouteWhen()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              b0:
+                type: llm
+                kind: client
+                options:
+                  dialect: openai
+                  server: http://example.com:8080
+                routes:
+                  - when:
+                      - dialect: openai
+                    exit: net0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test
+    public void shouldAcceptClientGuardedRoute()
+    {
+        String text =
+            """
+            name: test
+            guards:
+              guard0:
+                type: test
+            bindings:
+              b0:
+                type: llm
+                kind: client
+                options:
+                  dialect: openai
+                  server: http://example.com:8080
+                routes:
+                  - guarded:
+                      guard0:
+                        - read
+                    exit: net0
+            """;
+
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
+    }
 }
