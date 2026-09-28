@@ -1266,7 +1266,10 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
                         if ((entryFlags & CACHE_ENTRY_FLAGS_DIRTY) != 0)
                         {
                             cursor.advance(partitionOffset + 1);
-                            doFlushServerReply(NO_ERROR, traceId);
+                            if (fan.initialAck == fan.initialSeq)
+                            {
+                                doFlushServerReply(NO_ERROR, traceId);
+                            }
                             break produce;
                         }
 
@@ -1524,13 +1527,15 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
             int error,
             long traceId)
         {
+            final long flushOffset = error == NO_ERROR ? Math.min(partitionOffset, cursor.offset - 1) : partitionOffset;
+
             isProgressing = error == NO_ERROR;
             doFlush(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, 0L, SIZE_OF_FLUSH_WITH_EXTENSION,
                 ex -> ex.set((b, o, l) -> kafkaFlushExRW.wrap(b, o, l)
                                                         .typeId(kafkaTypeId)
                                                         .produce(f -> f.partition(p -> p.partitionId(partition.id())
-                                                                                        .partitionOffset(partitionOffset))
+                                                                                        .partitionOffset(flushOffset))
                                                                        .error(error))
                                                         .build()
                                                         .sizeof()));
