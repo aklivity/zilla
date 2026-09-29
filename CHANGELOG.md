@@ -1,5 +1,13 @@
 # Changelog
 
+## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+
+[Full Changelog](https://github.com/aklivity/zilla/compare/1.3.2...HEAD)
+
+**Merged pull requests:**
+
+- fix\(`binding-kafka`\): recover produce and fetch when a broker connection is lost [\#2616](https://github.com/aklivity/zilla/pull/2616) ([ankitk-me](https://github.com/ankitk-me))
+
 ## [1.3.2](https://github.com/aklivity/zilla/tree/1.3.2) (2026-09-07)
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/1.3.1...1.3.2)
