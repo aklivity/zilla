@@ -94,6 +94,33 @@ public class ProduceIT
 
     @Test
     @Specification({
+        "${app}/partition.not.leader.reconnect.in.flight/client",
+        "${app}/partition.not.leader.reconnect.in.flight/server"})
+    public void shouldReconnectPartitionNotLeaderInFlight() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/network.exception.reconnect/client",
+        "${app}/network.exception.reconnect/server"})
+    public void shouldReconnectNetworkException() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/network.exception/client",
+        "${app}/network.exception/server"})
+    public void shouldRejectNetworkException() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/partition.not.leader.reconnect.after.meta/client",
         "${app}/partition.not.leader.reconnect.after.meta/server"})
     public void shouldReconnectPartitionNotLeaderAfterMeta() throws Exception
@@ -307,6 +334,15 @@ public class ProduceIT
         "${app}/message.value.repeated/client",
         "${app}/message.value.repeated/server"})
     public void shouldSendMessageValueRepeated() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/message.headers.large/client",
+        "${app}/message.headers.large/server"})
+    public void shouldSendMessageHeadersLarge() throws Exception
     {
         k3po.finish();
     }

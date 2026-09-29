@@ -103,8 +103,12 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
     private static final int TIMESTAMP_NONE = 0;
 
     private static final int RECORD_LENGTH_MAX = 5; // varint32(max_value)
+    private static final int RECORD_FRAMING_MAX =
+        FIELD_OFFSET_RECORD_COUNT + Integer.BYTES + // record batch
+        RECORD_LENGTH_MAX * 4 + Byte.BYTES;         // length, attributes, timestamp, offset, value length
 
     private static final int ERROR_NONE = 0;
+    private static final int ERROR_NETWORK_EXCEPTION = 13;
 
     private static final int SIGNAL_NEXT_REQUEST = 1;
 
@@ -546,8 +550,12 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
         final int deferred = kafkaProduceDataEx.deferred();
         final int valueSize = payload != null ? payload.sizeof() : 0;
         final int valueCompleteSize = valueSize + deferred;
+        final int recordFramingSize = RECORD_FRAMING_MAX + key.sizeof() + headers.sizeof();
 
-        final int maxEncodeableBytes = client.encodeSlotLimit + client.valueCompleteSize + produceRecordFramingSize;
+        client.stream.initialPadMin = Math.max(client.stream.initialPadMin, recordFramingSize);
+
+        final int maxEncodeableBytes = client.encodeSlotLimit + valueSize +
+            Math.max(recordFramingSize, produceRecordFramingSize);
 
         if (client.encodeSlot != NO_SLOT &&
             maxEncodeableBytes > encodePool.slotCapacity())
@@ -555,19 +563,29 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
             client.doEncodeRequestIfNecessary(traceId, budgetId);
         }
 
-        client.valueChecksum = kafkaProduceDataEx.crc32c();
-        client.encodeableRecordBytesDeferred = deferred;
-        client.valueCompleteSize = valueCompleteSize;
+        final int encodeSlotLimit = client.encodeSlot != NO_SLOT ? client.encodeSlotLimit : PRODUCE_REQUEST_RECORDS_OFFSET_MAX;
 
-        client.doEncodeRecordInit(traceId, timestamp, producerId, producerEpoch, sequence, ackMode, key, payload, headers);
-        if (client.encodeSlot != NO_SLOT)
-        {
-            client.flusher = flushRecordContFin;
-        }
-        else
+        if (encodeSlotLimit + recordFramingSize + valueSize > encodePool.slotCapacity())
         {
             client.cleanupNetwork(traceId);
             client.flusher = flushRecordIgnoreAll;
+        }
+        else
+        {
+            client.valueChecksum = kafkaProduceDataEx.crc32c();
+            client.encodeableRecordBytesDeferred = deferred;
+            client.valueCompleteSize = valueCompleteSize;
+
+            client.doEncodeRecordInit(traceId, timestamp, producerId, producerEpoch, sequence, ackMode, key, payload, headers);
+            if (client.encodeSlot != NO_SLOT)
+            {
+                client.flusher = flushRecordContFin;
+            }
+            else
+            {
+                client.cleanupNetwork(traceId);
+                client.flusher = flushRecordIgnoreAll;
+            }
         }
 
         return progress;
@@ -586,15 +604,12 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
         int limit)
     {
         final int length = payload != null ? payload.sizeof() : 0;
-        client.doEncodeRecordCont(traceId, budgetId, payload, flags);
-        client.flushFlags = FLAGS_CON;
 
-        progress += length;
+        Array32FW<KafkaHeaderFW> headers = EMPTY_HEADERS;
+        int trailerSize = 0;
 
         if ((flags & FLAGS_FIN) == FLAGS_FIN)
         {
-            Array32FW<KafkaHeaderFW> headers = EMPTY_HEADERS;
-
             final KafkaDataExFW kafkaDataEx = extension.get(kafkaDataExRO::tryWrap);
             if (kafkaDataEx != null)
             {
@@ -603,11 +618,35 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                 headers = kafkaProduceDataEx.headers();
             }
 
-            client.doEncodeRecordFin(traceId, budgetId, headers);
-            assert progress == limit;
-            client.flusher = flushRecord;
-            client.flushFlags = FLAGS_FIN;
-            client.encodeableRecordBytesDeferred = 0;
+            trailerSize = RECORD_LENGTH_MAX + headers.sizeof();
+        }
+
+        if (payload != null &&
+            produceRecordFramingSize + client.encodeSlotLimit + length >= encodePool.slotCapacity())
+        {
+            client.doEncodeRequestIfNecessary(traceId, budgetId);
+        }
+
+        if (client.encodeSlotLimit + length + trailerSize > encodePool.slotCapacity())
+        {
+            client.cleanupNetwork(traceId);
+            client.flusher = flushRecordIgnoreAll;
+        }
+        else
+        {
+            client.doEncodeRecordCont(traceId, budgetId, payload, flags);
+            client.flushFlags = FLAGS_CON;
+
+            progress += length;
+
+            if ((flags & FLAGS_FIN) == FLAGS_FIN)
+            {
+                client.doEncodeRecordFin(traceId, budgetId, headers);
+                assert progress == limit;
+                client.flusher = flushRecord;
+                client.flushFlags = FLAGS_FIN;
+                client.encodeableRecordBytesDeferred = 0;
+            }
         }
 
         return progress;
@@ -908,6 +947,8 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
         private long initialSeq;
         private long initialAck;
         private int initialMax;
+        private int initialPad;
+        private int initialPadMin;
 
         private long replySeq;
         private long replyAck;
@@ -931,6 +972,8 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.affinity = affinity;
+            this.initialPad = produceRecordFramingSize;
+            this.initialPadMin = produceRecordFramingSize;
             this.client = new KafkaProduceClient(this, resolvedId, topic, partitionId, server, sasl);
         }
 
@@ -1025,6 +1068,12 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
             else
             {
                 client.flush(traceId, authorization, budgetId, reserved, flags, payload, extension, progress, limit);
+
+                if (initialPadMin > initialPad &&
+                    !KafkaState.initialClosed(state))
+                {
+                    doAppWindow(traceId, (int)(initialSeq - initialAck), initialMax);
+                }
             }
         }
 
@@ -1122,7 +1171,8 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
         {
             final long newInitialAck = Math.max(initialSeq - minInitialNoAck, initialAck);
 
-            if (newInitialAck > initialAck || minInitialMax > initialMax || !KafkaState.initialOpened(state))
+            if (newInitialAck > initialAck || minInitialMax > initialMax || initialPadMin > initialPad ||
+                !KafkaState.initialOpened(state))
             {
                 if (KafkaConfiguration.DEBUG_PRODUCE)
                 {
@@ -1138,11 +1188,12 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                 assert initialAck <= initialSeq;
 
                 initialMax = minInitialMax;
+                initialPad = initialPadMin;
 
                 state = KafkaState.openedInitial(state);
 
                 doWindow(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                        traceId, client.authorization, client.initialBud, produceRecordFramingSize);
+                        traceId, client.authorization, client.initialBud, initialPad);
             }
         }
 
@@ -1392,6 +1443,8 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
 
                 state = KafkaState.closedReply(state);
 
+                clientRoute.metaFlush.accept(traceId);
+
                 if (decodeSlot == NO_SLOT)
                 {
                     stream.doApplicationEnd(traceId);
@@ -1411,7 +1464,9 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
 
                 state = KafkaState.closedReply(state);
 
-                cleanupNetwork(traceId);
+                clientRoute.metaFlush.accept(traceId);
+
+                cleanupNetwork(traceId, ERROR_NETWORK_EXCEPTION);
             }
 
             private void onNetworkReset(
@@ -1427,7 +1482,9 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
 
                 state = KafkaState.closedInitial(state);
 
-                cleanupNetwork(traceId);
+                clientRoute.metaFlush.accept(traceId);
+
+                cleanupNetwork(traceId, ERROR_NETWORK_EXCEPTION);
             }
 
             private void onNetworkWindow(
@@ -1760,12 +1817,6 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                 if (value != null)
                 {
                     final int length = value.sizeof();
-
-                    final int encodeableBytes = produceRecordFramingSize + encodeSlotLimit + length;
-                    if (encodeableBytes >= encodePool.slotCapacity())
-                    {
-                        doEncodeRequestIfNecessary(traceId, budgetId);
-                    }
 
                     assert encodeSlot != NO_SLOT;
                     final MutableDirectBuffer encodeSlotBuffer = encodePool.buffer(encodeSlot);
@@ -2319,6 +2370,16 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                 doNetworkAbortIfNecessary(traceId);
 
                 stream.cleanupApplication(traceId, EMPTY_OCTETS);
+            }
+
+            private void cleanupNetwork(
+                long traceId,
+                int error)
+            {
+                doNetworkResetIfNecessary(traceId);
+                doNetworkAbortIfNecessary(traceId);
+
+                stream.cleanupApplication(traceId, error);
             }
 
             private void cleanupDecodeSlotIfNecessary()

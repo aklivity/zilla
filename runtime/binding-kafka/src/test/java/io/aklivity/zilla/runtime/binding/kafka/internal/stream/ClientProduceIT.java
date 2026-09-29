@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_BUFFER_SLOT_CAPACITY;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
+import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_SLOT_CAPACITY_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -108,6 +109,26 @@ public class ClientProduceIT
         "${app}/storage.error/client",
         "${net}/storage.error/server"})
     public void shouldRejectStorageError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.when.topic.yaml")
+    @Specification({
+        "${app}/leader.not.available/client",
+        "${net}/broker.disconnect/server"})
+    public void shouldRefreshMetaWhenBrokerDisconnects() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.when.topic.yaml")
+    @Specification({
+        "${app}/network.exception/client",
+        "${net}/network.exception/server"})
+    public void shouldRejectNetworkException() throws Exception
     {
         k3po.finish();
     }
@@ -373,6 +394,17 @@ public class ClientProduceIT
         "${net}/message.value.repeated/server"})
     @Configure(name = KafkaConfigurationTest.KAFKA_CLIENT_PRODUCE_MAX_REQUEST_MILLIS_NAME, value = "200")
     public void shouldSendMessageValueRepeated() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.when.topic.yaml")
+    @Specification({
+        "${app}/message.headers.large/client",
+        "${net}/message.headers.large/server"})
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "4096")
+    public void shouldSendMessageHeadersLarge() throws Exception
     {
         k3po.finish();
     }
