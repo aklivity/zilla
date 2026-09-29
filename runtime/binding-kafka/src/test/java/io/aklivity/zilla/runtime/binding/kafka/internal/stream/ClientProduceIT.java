@@ -115,7 +115,7 @@ public class ClientProduceIT
     }
 
     @Test
-    @Configuration("client.when.topic.yaml")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/network.exception/client",
         "${net}/network.exception/server"})
@@ -125,7 +125,7 @@ public class ClientProduceIT
     }
 
     @Test
-    @Configuration("client.when.topic.yaml")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/message.key/client",
         "${net}/message.key/server"})
@@ -401,7 +401,7 @@ public class ClientProduceIT
     }
 
     @Test
-    @Configuration("client.when.topic.yaml")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/message.value.repeated.fragmented/client",
         "${net}/message.value.repeated/server"})
