@@ -103,6 +103,15 @@ public class ProduceIT
 
     @Test
     @Specification({
+        "${app}/partition.not.leader.reconnect.in.flight.acknowledged/client",
+        "${app}/partition.not.leader.reconnect.in.flight.acknowledged/server"})
+    public void shouldReconnectPartitionNotLeaderInFlightAcknowledged() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/network.exception.reconnect/client",
         "${app}/network.exception.reconnect/server"})
     public void shouldReconnectNetworkException() throws Exception
