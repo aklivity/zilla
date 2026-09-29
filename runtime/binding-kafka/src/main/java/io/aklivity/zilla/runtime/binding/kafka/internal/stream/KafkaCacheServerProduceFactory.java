@@ -792,8 +792,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
                 error == ERROR_NETWORK_EXCEPTION ||
                 error == UNKNOWN_ERROR)
             {
-                if (error == ERROR_NOT_LEADER_FOR_PARTITION ||
-                    error == ERROR_NETWORK_EXCEPTION)
+                if (error != UNKNOWN_ERROR)
                 {
                     leaderId = LEADER_UNKNOWN;
                 }
