@@ -80,6 +80,19 @@ public final class LlmAnthropicDialect implements LlmDialect
     }
 
     @Override
+    public String credentialsHeader()
+    {
+        return API_KEY_HEADER;
+    }
+
+    @Override
+    public String unauthorizedBody()
+    {
+        return "{\"type\":\"error\",\"error\":{\"type\":\"authentication_error\"," +
+            "\"message\":\"invalid x-api-key\"}}";
+    }
+
+    @Override
     public ModelTransform supplyDecoder(
         Kind kind,
         ModelEnvelope envelope)
