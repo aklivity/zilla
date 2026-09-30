@@ -15,6 +15,10 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.watcher;
 
+import static io.aklivity.zilla.runtime.filesystem.http.HttpFilesystemEnvironment.POLL_INTERVAL_PROPERTY_NAME;
+import static java.net.HttpURLConnection.HTTP_NOT_MODIFIED;
+import static java.net.HttpURLConnection.HTTP_OK;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.nio.file.StandardCopyOption.ATOMIC_MOVE;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.agrona.LangUtil.rethrowUnchecked;
@@ -23,15 +27,25 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
 import java.io.IOException;
+import java.io.OutputStream;
+import java.net.InetSocketAddress;
+import java.net.URI;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Map;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+
+import com.sun.net.httpserver.HttpExchange;
+import com.sun.net.httpserver.HttpServer;
 
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.internal.event.EngineEventContext;
@@ -66,12 +80,125 @@ public class EngineConfigWatchTaskTest
         }
     }
 
+    @Test
+    public void shouldApplyHttpChangesAfterReload() throws Exception
+    {
+        try (ConfigServer server = new ConfigServer("name: first"))
+        {
+            URI configURI = URI.create(String.format("http://localhost:%d/zilla.yaml", server.port()));
+
+            try (FileSystem fs = FileSystems.newFileSystem(configURI, Map.of(POLL_INTERVAL_PROPERTY_NAME, "PT0S"));
+                 TextWatchTask task = new TextWatchTask(fs.getPath(configURI.toString())))
+            {
+                task.submit();
+                assertEquals("name: first", task.applied.poll(30, SECONDS));
+
+                server.update("name: second");
+                assertEquals("name: second", task.applied.poll(30, SECONDS));
+
+                server.update("name: third");
+                assertEquals("name: third", task.applied.poll(30, SECONDS));
+            }
+        }
+    }
+
     private static void write(
         Path path,
         String text) throws IOException
     {
         Path staged = Files.writeString(path.resolveSibling(path.getFileName() + ".staged"), text);
         Files.move(staged, path, ATOMIC_MOVE);
+    }
+
+    private static final class ConfigServer implements AutoCloseable
+    {
+        private final HttpServer server;
+
+        private String text;
+        private int version;
+        private boolean closed;
+
+        ConfigServer(
+            String text) throws IOException
+        {
+            this.text = text;
+            this.server = HttpServer.create(new InetSocketAddress("localhost", 0), 0);
+            this.server.createContext("/zilla.yaml", this::handle);
+            this.server.setExecutor(Executors.newCachedThreadPool());
+            this.server.start();
+        }
+
+        int port()
+        {
+            return server.getAddress().getPort();
+        }
+
+        synchronized void update(
+            String text)
+        {
+            this.text = text;
+            this.version++;
+            notifyAll();
+        }
+
+        @Override
+        public void close()
+        {
+            synchronized (this)
+            {
+                closed = true;
+                notifyAll();
+            }
+            server.stop(0);
+        }
+
+        private void handle(
+            HttpExchange exchange) throws IOException
+        {
+            String ifNoneMatch = exchange.getRequestHeaders().getFirst("If-None-Match");
+            boolean longPoll = exchange.getRequestHeaders().containsKey("Prefer");
+
+            String etag;
+            byte[] body;
+
+            synchronized (this)
+            {
+                long deadline = System.currentTimeMillis() + SECONDS.toMillis(30);
+                while (longPoll && !closed && Integer.toString(version).equals(ifNoneMatch) &&
+                    System.currentTimeMillis() < deadline)
+                {
+                    try
+                    {
+                        wait(100);
+                    }
+                    catch (InterruptedException ex)
+                    {
+                        Thread.currentThread().interrupt();
+                        break;
+                    }
+                }
+
+                etag = Integer.toString(version);
+                body = text.getBytes(UTF_8);
+            }
+
+            exchange.getResponseHeaders().add("Etag", etag);
+
+            if (etag.equals(ifNoneMatch))
+            {
+                exchange.sendResponseHeaders(HTTP_NOT_MODIFIED, -1);
+            }
+            else
+            {
+                exchange.sendResponseHeaders(HTTP_OK, body.length);
+                try (OutputStream out = exchange.getResponseBody())
+                {
+                    out.write(body);
+                }
+            }
+
+            exchange.close();
+        }
     }
 
     private static final class TextWatchTask extends EngineConfigWatchTask

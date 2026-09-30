@@ -33,7 +33,6 @@ import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
 import java.time.Duration;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
@@ -189,9 +188,10 @@ public final class HttpWatchService implements WatchService
         private final HttpWatchService watcher;
         private final HttpPath path;
 
-        private List<WatchEvent<?>> watchEvents = Collections.synchronizedList(new LinkedList<>());
+        private List<WatchEvent<?>> watchEvents = new LinkedList<>();
 
         private volatile boolean valid;
+        private boolean signalled;
         private volatile CompletableFuture<Void> future;
         private long lastWatchAt;
 
@@ -218,25 +218,43 @@ public final class HttpWatchService implements WatchService
         }
 
         @Override
-        public List<WatchEvent<?>> pollEvents()
+        public synchronized List<WatchEvent<?>> pollEvents()
         {
             List<WatchEvent<?>> result = watchEvents;
-            watchEvents = Collections.synchronizedList(new LinkedList<>());
+            watchEvents = new LinkedList<>();
             return result;
         }
 
         @Override
-        public boolean reset()
+        public synchronized boolean reset()
         {
-            throw new UnsupportedOperationException("not implemented");
+            if (valid && signalled)
+            {
+                if (watchEvents.isEmpty())
+                {
+                    signalled = false;
+                }
+                else
+                {
+                    watcher.signalKey(this);
+                }
+            }
+
+            return valid;
         }
 
         @Override
         public void cancel()
         {
-            future.cancel(true);
-            watcher.cancelKey(this);
             valid = false;
+
+            CompletableFuture<Void> future = this.future;
+            if (future != null)
+            {
+                future.cancel(true);
+            }
+
+            watcher.cancelKey(this);
         }
 
         @Override
@@ -285,14 +303,17 @@ public final class HttpWatchService implements WatchService
 
         private void watchBody()
         {
-            HttpClient client = path.getFileSystem().client();
-            HttpRequest request = path.newWatchRequest();
+            if (valid)
+            {
+                HttpClient client = path.getFileSystem().client();
+                HttpRequest request = path.newWatchRequest();
 
-            this.lastWatchAt = currentTimeMillis();
+                this.lastWatchAt = currentTimeMillis();
 
-            this.future = client.sendAsync(request, BodyHandlers.ofByteArray())
-                .thenAccept(this::success)
-                .exceptionally(this::failure);
+                this.future = client.sendAsync(request, BodyHandlers.ofByteArray())
+                    .thenAccept(this::success)
+                    .exceptionally(this::failure);
+            }
         }
 
         private void success(
@@ -321,7 +342,7 @@ public final class HttpWatchService implements WatchService
                 this.lastWatchAt = 0L;
             }
 
-            watcher.watchBody(this);
+            watch();
         }
 
         private Void failure(
@@ -349,16 +370,24 @@ public final class HttpWatchService implements WatchService
             }
 
             // (back off)?
-            watcher.watchBody(this);
+            watch();
 
             return null;
         }
 
-        private void signalEvent(
+        private synchronized void signalEvent(
             WatchEvent.Kind<Path> kind)
         {
-            watchEvents.add(new HttpWatchEvent(kind, path));
-            watcher.signalKey(this);
+            if (valid)
+            {
+                watchEvents.add(new HttpWatchEvent(kind, path));
+
+                if (!signalled)
+                {
+                    signalled = true;
+                    watcher.signalKey(this);
+                }
+            }
         }
 
         private static class HttpWatchEvent implements WatchEvent<Path>
