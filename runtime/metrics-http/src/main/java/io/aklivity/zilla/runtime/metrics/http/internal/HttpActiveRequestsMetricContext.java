@@ -25,7 +25,6 @@ import java.util.function.ToIntFunction;
 
 import org.agrona.collections.Long2LongCounterMap;
 import org.agrona.collections.Long2LongHashMap;
-import org.agrona.collections.Long2ObjectHashMap;
 
 import io.aklivity.zilla.config.engine.AttributeConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
@@ -97,7 +96,6 @@ public final class HttpActiveRequestsMetricContext implements MetricContext
         private final IntFunction<LongConsumer> recorder;
         private final HttpAttributeHelper attributeHelper;
         private final Long2LongHashMap exchanges;
-        private final Long2ObjectHashMap<Map<String, String>> pendingAttributes;
         private final Long2LongCounterMap attributeIds;
         private final BeginFW beginRO = new BeginFW();
 
@@ -108,7 +106,6 @@ public final class HttpActiveRequestsMetricContext implements MetricContext
             this.recorder = recorder;
             this.attributeHelper = attributeHelper;
             this.exchanges = new Long2LongHashMap(INITIAL_VALUE);
-            this.pendingAttributes = new Long2ObjectHashMap<>();
             this.attributeIds = new Long2LongCounterMap(-1);
         }
 
@@ -126,23 +123,13 @@ public final class HttpActiveRequestsMetricContext implements MetricContext
             switch (msgTypeId)
             {
             case BeginFW.TYPE_ID:
-                final BeginFW begin = beginRO.wrap(buffer, index, index + length);
                 if (direction == 1L) // received (request)
                 {
+                    final BeginFW begin = beginRO.wrap(buffer, index, index + length);
                     Map<String, String> reqAttrs = attributeHelper.extractRequestAttributes(begin);
-                    pendingAttributes.put(exchangeId, reqAttrs);
                     int attrId = attributeHelper.computeAttributesId(reqAttrs);
                     attributeIds.put(exchangeId, attrId);
                     recorder.apply(attrId).accept(1L);
-                }
-                else // sent (response)
-                {
-                    Map<String, String> attrs = pendingAttributes.getOrDefault(exchangeId,
-                        new org.agrona.collections.Object2ObjectHashMap<>());
-                    Map<String, String> respAttrs = attributeHelper.extractResponseAttributes(begin);
-                    attrs.putAll(respAttrs);
-                    int attrId = attributeHelper.computeAttributesId(attrs);
-                    attributeIds.put(exchangeId, attrId);
                 }
                 break;
             case ResetFW.TYPE_ID:
@@ -153,7 +140,6 @@ public final class HttpActiveRequestsMetricContext implements MetricContext
                 if (status == EXCHANGE_CLOSED)
                 {
                     exchanges.remove(exchangeId);
-                    pendingAttributes.remove(exchangeId);
                     int attrId = (int) attributeIds.remove(exchangeId);
                     recorder.apply(attrId).accept(-1L);
                 }

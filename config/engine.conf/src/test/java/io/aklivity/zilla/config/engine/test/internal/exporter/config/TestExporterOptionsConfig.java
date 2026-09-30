@@ -15,6 +15,7 @@
 package io.aklivity.zilla.config.engine.test.internal.exporter.config;
 
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 
 import io.aklivity.zilla.config.engine.OptionsConfig;
@@ -23,6 +24,7 @@ public final class TestExporterOptionsConfig extends OptionsConfig
 {
     public final String mode;
     public final List<Event> events;
+    public final List<Metric> metrics;
 
     public static TestExporterOptionsConfigBuilder<TestExporterOptionsConfig> builder()
     {
@@ -37,11 +39,13 @@ public final class TestExporterOptionsConfig extends OptionsConfig
 
     TestExporterOptionsConfig(
         String mode,
-        List<Event> events)
+        List<Event> events,
+        List<Metric> metrics)
     {
         super(null, null);
         this.mode = mode;
         this.events = events;
+        this.metrics = metrics;
     }
 
     public static final class Event
@@ -61,6 +65,49 @@ public final class TestExporterOptionsConfig extends OptionsConfig
             this.id = id;
             this.name = name;
             this.message = message;
+        }
+    }
+
+    public static final class Metric
+    {
+        public final String name;
+        public final String binding;
+        public final String kind;
+        public final Map<String, String> attributes;
+        public final Long value;
+        public final Long count;
+        public final List<Bucket> buckets;
+
+        public Metric(
+            String name,
+            String binding,
+            String kind,
+            Map<String, String> attributes,
+            Long value,
+            Long count,
+            List<Bucket> buckets)
+        {
+            this.name = name;
+            this.binding = binding;
+            this.kind = kind;
+            this.attributes = attributes;
+            this.value = value;
+            this.count = count;
+            this.buckets = buckets;
+        }
+    }
+
+    public static final class Bucket
+    {
+        public final long limit;
+        public final long count;
+
+        public Bucket(
+            long limit,
+            long count)
+        {
+            this.limit = limit;
+            this.count = count;
         }
     }
 }

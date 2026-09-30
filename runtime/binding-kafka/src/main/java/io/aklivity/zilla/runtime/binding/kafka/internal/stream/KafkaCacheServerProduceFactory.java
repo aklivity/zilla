@@ -84,6 +84,7 @@ import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 public final class KafkaCacheServerProduceFactory implements BindingHandler
 {
     private static final int ERROR_NOT_LEADER_FOR_PARTITION = 6;
+    private static final int ERROR_NETWORK_EXCEPTION = 13;
     private static final int NO_ERROR = -1;
     private static final int UNKNOWN_ERROR = -2;
 
@@ -791,9 +792,11 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
                 System.out.format("%d %s PRODUCE disconnect, error %d\n", partitionId, partionTopic, error);
             }
 
-            if (error == ERROR_NOT_LEADER_FOR_PARTITION || error == UNKNOWN_ERROR)
+            if (error == ERROR_NOT_LEADER_FOR_PARTITION ||
+                error == ERROR_NETWORK_EXCEPTION ||
+                error == UNKNOWN_ERROR)
             {
-                if (error == ERROR_NOT_LEADER_FOR_PARTITION)
+                if (error != UNKNOWN_ERROR)
                 {
                     leaderId = LEADER_UNKNOWN;
                 }
@@ -1541,7 +1544,8 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
             int error,
             long traceId)
         {
-            final boolean unacknowledged = error == NO_ERROR && fan.ackPartitionOffset < 0;
+            final boolean unacknowledged = error == NO_ERROR &&
+                (fan.ackPartitionOffset < 0 || fan.initialAck != fan.initialSeq);
             final boolean alreadyFlushed = error == NO_ERROR &&
                 fan.ackPartitionOffset >= 0 &&
                 fan.ackPartitionOffset == fan.flushedAckPartitionOffset;
@@ -1549,6 +1553,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
             if (!unacknowledged && !alreadyFlushed)
             {
                 isProgressing = error == NO_ERROR;
+                final long flushOffset = error == NO_ERROR ? Math.min(partitionOffset, cursor.offset - 1) : partitionOffset;
                 final long ackOffset = fan.ackPartitionOffset;
                 final long ackTimestamp = fan.ackTimestamp;
                 doFlush(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
@@ -1556,7 +1561,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
                     ex -> ex.set((b, o, l) -> kafkaFlushExRW.wrap(b, o, l)
                                                             .typeId(kafkaTypeId)
                                                             .produce(f -> f.partition(p -> p.partitionId(partition.id())
-                                                                                            .partitionOffset(partitionOffset))
+                                                                                            .partitionOffset(flushOffset))
                                                                            .error(error)
                                                                            .timestamp(ackTimestamp)
                                                                            .ackOffset(ackOffset))

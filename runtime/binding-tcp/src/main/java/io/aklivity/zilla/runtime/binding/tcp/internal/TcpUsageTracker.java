@@ -46,7 +46,7 @@ public final class TcpUsageTracker
         int newUsage = ++usage;
         assert newUsage <= capacity : "newUsage = %d, capacity = %d".formatted(newUsage, capacity);
 
-        record(newUsage);
+        recordUsage.accept(1L);
     }
 
     public void released()
@@ -54,12 +54,6 @@ public final class TcpUsageTracker
         int newUsage = --usage;
         assert newUsage >= 0 : "newUsage = %d".formatted(newUsage);
 
-        record(newUsage);
-    }
-
-    private void record(
-        int newUsage)
-    {
-        recordUsage.accept(newUsage);
+        recordUsage.accept(-1L);
     }
 }

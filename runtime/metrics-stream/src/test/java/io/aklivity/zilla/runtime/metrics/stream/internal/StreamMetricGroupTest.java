@@ -19,27 +19,16 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 
 import java.util.Collection;
-import java.util.function.LongConsumer;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.AtomicBufferEx;
-import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
-import io.aklivity.zilla.runtime.metrics.stream.internal.types.stream.AbortFW;
-import io.aklivity.zilla.runtime.metrics.stream.internal.types.stream.BeginFW;
-import io.aklivity.zilla.runtime.metrics.stream.internal.types.stream.DataFW;
-import io.aklivity.zilla.runtime.metrics.stream.internal.types.stream.EndFW;
-import io.aklivity.zilla.runtime.metrics.stream.internal.types.stream.ResetFW;
 
 public class StreamMetricGroupTest
 {
@@ -100,30 +89,6 @@ public class StreamMetricGroupTest
     }
 
     @Test
-    public void shouldRecordStreamOpensReceived()
-    {
-        // GIVEN
-        Configuration config = new Configuration();
-        MetricGroup metricGroup = new StreamMetricGroup(config);
-        EngineContext engineContext = mock(EngineContext.class);
-        LongConsumer recorder = mock(LongConsumer.class);
-
-        // WHEN
-        Metric metric = metricGroup.supply("stream.opens.received");
-        MetricContext context = metric.supply(engineContext);
-        MessageConsumer handler = context.supply(recorder);
-        AtomicBufferEx buffer = new UnsafeBufferEx(new byte[128], 0, 128);
-        new BeginFW.Builder().wrap(buffer, 0, buffer.capacity())
-                .originId(0L).routedId(0L).streamId(1L) // received
-                .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
-                .traceId(0L).authorization(0L).affinity(0L).build();
-        handler.accept(BeginFW.TYPE_ID, buffer, 0, buffer.capacity());
-
-        // THEN
-        verify(recorder, times(1)).accept(1L);
-    }
-
-    @Test
     public void shouldResolveStreamOpensSent()
     {
         // GIVEN
@@ -157,30 +122,6 @@ public class StreamMetricGroupTest
         assertThat(context.group(), equalTo("stream"));
         assertThat(context.kind(), equalTo(Metric.Kind.COUNTER));
         assertThat(context.direction(), equalTo(MetricContext.Direction.SENT));
-    }
-
-    @Test
-    public void shouldRecordStreamOpensSent()
-    {
-        // GIVEN
-        Configuration config = new Configuration();
-        MetricGroup metricGroup = new StreamMetricGroup(config);
-        EngineContext engineContext = mock(EngineContext.class);
-        LongConsumer recorder = mock(LongConsumer.class);
-
-        // WHEN
-        Metric metric = metricGroup.supply("stream.opens.sent");
-        MetricContext context = metric.supply(engineContext);
-        MessageConsumer handler = context.supply(recorder);
-        AtomicBufferEx buffer = new UnsafeBufferEx(new byte[128], 0, 128);
-        new BeginFW.Builder().wrap(buffer, 0, buffer.capacity())
-                .originId(0L).routedId(0L).streamId(2L) // sent
-                .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
-                .traceId(0L).authorization(0L).affinity(0L).build();
-        handler.accept(BeginFW.TYPE_ID, buffer, 0, buffer.capacity());
-
-        // THEN
-        verify(recorder, times(1)).accept(1L);
     }
 
     @Test
@@ -220,32 +161,6 @@ public class StreamMetricGroupTest
     }
 
     @Test
-    public void shouldRecordStreamDataReceived()
-    {
-        // GIVEN
-        Configuration config = new Configuration();
-        MetricGroup metricGroup = new StreamMetricGroup(config);
-        EngineContext engineContext = mock(EngineContext.class);
-        LongConsumer recorder = mock(LongConsumer.class);
-
-        // WHEN
-        Metric metric = metricGroup.supply("stream.data.received");
-        MetricContext context = metric.supply(engineContext);
-        MessageConsumer handler = context.supply(recorder);
-        AtomicBufferEx buffer = new UnsafeBufferEx(new byte[128], 0, 128);
-        AtomicBufferEx payload = new UnsafeBufferEx(new byte[8], 0, 8);
-        new DataFW.Builder().wrap(buffer, 0, buffer.capacity())
-                .originId(0L).routedId(0L).streamId(1L) // received
-                .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
-                .traceId(0L).authorization(0L).budgetId(0L).reserved(0)
-                .payload(payload, 0, 8).build();
-        handler.accept(DataFW.TYPE_ID, buffer, 0, buffer.capacity());
-
-        // THEN
-        verify(recorder, times(1)).accept(8L);
-    }
-
-    @Test
     public void shouldResolveStreamDataSent()
     {
         // GIVEN
@@ -279,32 +194,6 @@ public class StreamMetricGroupTest
         assertThat(context.group(), equalTo("stream"));
         assertThat(context.kind(), equalTo(Metric.Kind.COUNTER));
         assertThat(context.direction(), equalTo(MetricContext.Direction.SENT));
-    }
-
-    @Test
-    public void shouldRecordStreamDataSent()
-    {
-        // GIVEN
-        Configuration config = new Configuration();
-        MetricGroup metricGroup = new StreamMetricGroup(config);
-        EngineContext engineContext = mock(EngineContext.class);
-        LongConsumer recorder = mock(LongConsumer.class);
-
-        // WHEN
-        Metric metric = metricGroup.supply("stream.data.sent");
-        MetricContext context = metric.supply(engineContext);
-        MessageConsumer handler = context.supply(recorder);
-        AtomicBufferEx buffer = new UnsafeBufferEx(new byte[128], 0, 128);
-        AtomicBufferEx payload = new UnsafeBufferEx(new byte[8], 0, 8);
-        new DataFW.Builder().wrap(buffer, 0, buffer.capacity())
-                .originId(0L).routedId(0L).streamId(2L) // sent
-                .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
-                .traceId(0L).authorization(0L).budgetId(0L).reserved(0)
-                .payload(payload, 0, 8).build();
-        handler.accept(DataFW.TYPE_ID, buffer, 0, buffer.capacity());
-
-        // THEN
-        verify(recorder, times(1)).accept(8L);
     }
 
     @Test
@@ -344,35 +233,6 @@ public class StreamMetricGroupTest
     }
 
     @Test
-    public void shouldRecordStreamErrorsReceived()
-    {
-        // GIVEN
-        Configuration config = new Configuration();
-        MetricGroup metricGroup = new StreamMetricGroup(config);
-        EngineContext engineContext = mock(EngineContext.class);
-        LongConsumer recorder = mock(LongConsumer.class);
-
-        // WHEN
-        Metric metric = metricGroup.supply("stream.errors.received");
-        MetricContext context = metric.supply(engineContext);
-        MessageConsumer handler = context.supply(recorder);
-        AtomicBufferEx buffer = new UnsafeBufferEx(new byte[128], 0, 128);
-        new AbortFW.Builder().wrap(buffer, 0, buffer.capacity())
-                .originId(0L).routedId(0L).streamId(1L) // received
-                .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
-                .traceId(0L).authorization(0L).build();
-        handler.accept(AbortFW.TYPE_ID, buffer, 0, buffer.capacity());
-        new ResetFW.Builder().wrap(buffer, 0, buffer.capacity())
-                .originId(0L).routedId(0L).streamId(1L) // received
-                .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
-                .traceId(0L).authorization(0L).build();
-        handler.accept(ResetFW.TYPE_ID, buffer, 0, buffer.capacity());
-
-        // THEN
-        verify(recorder, times(2)).accept(1L);
-    }
-
-    @Test
     public void shouldResolveStreamErrorsSent()
     {
         // GIVEN
@@ -406,35 +266,6 @@ public class StreamMetricGroupTest
         assertThat(context.group(), equalTo("stream"));
         assertThat(context.kind(), equalTo(Metric.Kind.COUNTER));
         assertThat(context.direction(), equalTo(MetricContext.Direction.SENT));
-    }
-
-    @Test
-    public void shouldRecordStreamErrorsSent()
-    {
-        // GIVEN
-        Configuration config = new Configuration();
-        MetricGroup metricGroup = new StreamMetricGroup(config);
-        EngineContext engineContext = mock(EngineContext.class);
-        LongConsumer recorder = mock(LongConsumer.class);
-
-        // WHEN
-        Metric metric = metricGroup.supply("stream.errors.sent");
-        MetricContext context = metric.supply(engineContext);
-        MessageConsumer handler = context.supply(recorder);
-        AtomicBufferEx buffer = new UnsafeBufferEx(new byte[128], 0, 128);
-        new AbortFW.Builder().wrap(buffer, 0, buffer.capacity())
-                .originId(0L).routedId(0L).streamId(2L) // sent
-                .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
-                .traceId(0L).authorization(0L).build();
-        handler.accept(AbortFW.TYPE_ID, buffer, 0, buffer.capacity());
-        new ResetFW.Builder().wrap(buffer, 0, buffer.capacity())
-                .originId(0L).routedId(0L).streamId(2L) // sent
-                .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
-                .traceId(0L).authorization(0L).build();
-        handler.accept(ResetFW.TYPE_ID, buffer, 0, buffer.capacity());
-
-        // THEN
-        verify(recorder, times(2)).accept(1L);
     }
 
     @Test
@@ -474,30 +305,6 @@ public class StreamMetricGroupTest
     }
 
     @Test
-    public void shouldRecordStreamClosesReceived()
-    {
-        // GIVEN
-        Configuration config = new Configuration();
-        MetricGroup metricGroup = new StreamMetricGroup(config);
-        EngineContext engineContext = mock(EngineContext.class);
-        LongConsumer recorder = mock(LongConsumer.class);
-
-        // WHEN
-        Metric metric = metricGroup.supply("stream.closes.received");
-        MetricContext context = metric.supply(engineContext);
-        MessageConsumer handler = context.supply(recorder);
-        AtomicBufferEx buffer = new UnsafeBufferEx(new byte[128], 0, 128);
-        new EndFW.Builder().wrap(buffer, 0, buffer.capacity())
-                .originId(0L).routedId(0L).streamId(1L) // received
-                .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
-                .traceId(0L).authorization(0L).build();
-        handler.accept(EndFW.TYPE_ID, buffer, 0, buffer.capacity());
-
-        // THEN
-        verify(recorder, times(1)).accept(1L);
-    }
-
-    @Test
     public void shouldResolveStreamClosesSent()
     {
         // GIVEN
@@ -531,30 +338,6 @@ public class StreamMetricGroupTest
         assertThat(context.group(), equalTo("stream"));
         assertThat(context.kind(), equalTo(Metric.Kind.COUNTER));
         assertThat(context.direction(), equalTo(MetricContext.Direction.SENT));
-    }
-
-    @Test
-    public void shouldRecordStreamClosesSent()
-    {
-        // GIVEN
-        Configuration config = new Configuration();
-        MetricGroup metricGroup = new StreamMetricGroup(config);
-        EngineContext engineContext = mock(EngineContext.class);
-        LongConsumer recorder = mock(LongConsumer.class);
-
-        // WHEN
-        Metric metric = metricGroup.supply("stream.closes.sent");
-        MetricContext context = metric.supply(engineContext);
-        MessageConsumer handler = context.supply(recorder);
-        AtomicBufferEx buffer = new UnsafeBufferEx(new byte[128], 0, 128);
-        new EndFW.Builder().wrap(buffer, 0, buffer.capacity())
-                .originId(0L).routedId(0L).streamId(2L) // sent
-                .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
-                .traceId(0L).authorization(0L).build();
-        handler.accept(EndFW.TYPE_ID, buffer, 0, buffer.capacity());
-
-        // THEN
-        verify(recorder, times(1)).accept(1L);
     }
 
     @Test
@@ -594,37 +377,6 @@ public class StreamMetricGroupTest
     }
 
     @Test
-    public void shouldRecordStreamActiveReceived()
-    {
-        // GIVEN
-        Configuration config = new Configuration();
-        MetricGroup metricGroup = new StreamMetricGroup(config);
-        EngineContext engineContext = mock(EngineContext.class);
-        LongConsumer recorder = mock(LongConsumer.class);
-
-        // WHEN
-        Metric metric = metricGroup.supply("stream.active.received");
-        MetricContext context = metric.supply(engineContext);
-        MessageConsumer handler = context.supply(recorder);
-        AtomicBufferEx beginBuffer = new UnsafeBufferEx(new byte[128], 0, 128);
-        new BeginFW.Builder().wrap(beginBuffer, 0, beginBuffer.capacity())
-                .originId(0L).routedId(0L).streamId(1L) // received
-                .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
-                .traceId(0L).authorization(0L).affinity(0L).build();
-        handler.accept(BeginFW.TYPE_ID, beginBuffer, 0, beginBuffer.capacity());
-        AtomicBufferEx endBuffer = new UnsafeBufferEx(new byte[128], 0, 128);
-        new EndFW.Builder().wrap(endBuffer, 0, endBuffer.capacity())
-                .originId(0L).routedId(0L).streamId(1L) // received
-                .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
-                .traceId(0L).authorization(0L).build();
-        handler.accept(EndFW.TYPE_ID, endBuffer, 0, endBuffer.capacity());
-
-        // THEN
-        verify(recorder, times(1)).accept(1L);
-        verify(recorder, times(1)).accept(-1L);
-    }
-
-    @Test
     public void shouldResolveStreamActiveSent()
     {
         // GIVEN
@@ -658,36 +410,5 @@ public class StreamMetricGroupTest
         assertThat(context.group(), equalTo("stream"));
         assertThat(context.kind(), equalTo(Metric.Kind.GAUGE));
         assertThat(context.direction(), equalTo(MetricContext.Direction.SENT));
-    }
-
-    @Test
-    public void shouldRecordStreamActiveSent()
-    {
-        // GIVEN
-        Configuration config = new Configuration();
-        MetricGroup metricGroup = new StreamMetricGroup(config);
-        EngineContext mocked = mock(EngineContext.class);
-        LongConsumer recorder = mock(LongConsumer.class);
-
-        // WHEN
-        Metric metric = metricGroup.supply("stream.active.sent");
-        MetricContext context = metric.supply(mocked);
-        MessageConsumer handler = context.supply(recorder);
-        AtomicBufferEx beginBuffer = new UnsafeBufferEx(new byte[128], 0, 128);
-        new BeginFW.Builder().wrap(beginBuffer, 0, beginBuffer.capacity())
-                .originId(0L).routedId(0L).streamId(2L) // sent
-                .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
-                .traceId(0L).authorization(0L).affinity(0L).build();
-        handler.accept(BeginFW.TYPE_ID, beginBuffer, 0, beginBuffer.capacity());
-        AtomicBufferEx endBuffer = new UnsafeBufferEx(new byte[128], 0, 128);
-        new EndFW.Builder().wrap(endBuffer, 0, endBuffer.capacity())
-                .originId(0L).routedId(0L).streamId(2L) // sent
-                .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
-                .traceId(0L).authorization(0L).build();
-        handler.accept(EndFW.TYPE_ID, endBuffer, 0, endBuffer.capacity());
-
-        // THEN
-        verify(recorder, times(1)).accept(1L);
-        verify(recorder, times(1)).accept(-1L);
     }
 }
