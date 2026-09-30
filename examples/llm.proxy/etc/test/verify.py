@@ -49,12 +49,19 @@
 #      anthropic-facing frontend to mock-anthropic-secondary, the same
 #      model-based intra-dialect routing mirrored, non-streaming and
 #      streaming
+#   9. every llm binding an exchange passes through -- server, proxy and
+#      client -- records that exchange's llm.* metrics, scraped from the
+#      prometheus exporter: the upstream's reported token usage, a token
+#      count the upstream dialect never reports left unrecorded, one
+#      duration sample, and no request left active
 
 import os
+import re
 import socket
 import subprocess
 import sys
 import time
+import urllib.request
 
 from anthropic import Anthropic
 from openai import OpenAI
@@ -64,6 +71,7 @@ GITHUB_ACTIONS = os.environ.get("GITHUB_ACTIONS")
 
 OPENAI_BASE_URL = "http://zilla:7161/v1"
 ANTHROPIC_BASE_URL = "http://zilla:7162"
+METRICS_URL = "http://zilla:7190/metrics"
 
 failures = []
 timings = []
@@ -258,6 +266,67 @@ def check_anthropic_text_secondary_streaming():
     assert stop_reason == "end_turn", stop_reason
 
 
+# Scrapes the prometheus exporter into {(sample, binding, le): value}, where
+# le is the cumulative bucket limit for a histogram _bucket sample and None
+# for every other sample.
+def scrape_metrics():
+    with urllib.request.urlopen(METRICS_URL, timeout=10) as resp:
+        text = resp.read().decode()
+    samples = {}
+    for line in text.splitlines():
+        match = re.match(r'^(llm_[a-z_]+)\{([^}]*)\} (\S+)$', line)
+        if match:
+            binding = re.search(r'binding="([^"]+)"', match.group(2)).group(1)
+            le = re.search(r'le="([^"]+)"', match.group(2))
+            samples[(match.group(1), binding, le.group(1) if le else None)] = float(match.group(3))
+    return samples
+
+
+# Histogram sums are reported from bucket limits, not exact values, so a
+# recorded value is asserted by the power-of-two bucket it lands in: the
+# cumulative bucket at limit grows by one, the one below it does not.
+def assert_llm_metrics(exchange, bindings):
+    before = scrape_metrics()
+    exchange()
+    after = scrape_metrics()
+
+    def delta(sample, binding, le=None):
+        return after.get((sample, binding, le), 0) - before.get((sample, binding, le), 0)
+
+    for binding in bindings:
+        assert delta("llm_tokens_input_count", binding) == 1, (binding, "input count")
+        assert delta("llm_tokens_input_bucket", binding, "32") == 1, (binding, "input 25 < 32")
+        assert delta("llm_tokens_input_bucket", binding, "16") == 0, (binding, "input 25 >= 16")
+        assert delta("llm_tokens_output_count", binding) == 1, (binding, "output count")
+        assert delta("llm_tokens_output_bucket", binding, "16") == 1, (binding, "output 15 < 16")
+        assert delta("llm_tokens_output_bucket", binding, "8") == 0, (binding, "output 15 >= 8")
+        assert delta("llm_tokens_total_count", binding) == 0, (binding, "total not reported")
+        assert delta("llm_duration_milliseconds_count", binding) == 1, (binding, "duration count")
+        assert after.get(("llm_active_requests", binding, None), 0) == 0, (binding, "active requests")
+
+
+# WHEN: an OpenAI SDK client sends a chat request, routed across dialects to
+#       mock-anthropic, which reports input and output tokens but no total
+# THEN: north_llm_server_openai, north_llm_proxy and south_llm_client_anthropic
+#       each record the reported tokens and one duration sample, leave the
+#       unreported total unrecorded, and have no request left active
+def check_openai_llm_metrics():
+    assert_llm_metrics(
+        lambda: openai_chat("gpt-4", streaming=False),
+        ["north_llm_server_openai", "north_llm_proxy", "south_llm_client_anthropic"])
+
+
+# WHEN: an Anthropic SDK client sends a messages request, routed across
+#       dialects to mock-openai, which reports prompt and completion tokens
+#       but no total
+# THEN: the same llm.* metrics are recorded at north_llm_server_anthropic,
+#       north_llm_proxy and south_llm_client_openai
+def check_anthropic_llm_metrics():
+    assert_llm_metrics(
+        lambda: anthropic_message("claude-3-opus-20240229", streaming=False),
+        ["north_llm_server_anthropic", "north_llm_proxy", "south_llm_client_openai"])
+
+
 # Reads a compose service's own docker logs, by compose project + service
 # label, so the credential pass-through checks below can confirm what a mock
 # backend actually received on the wire.
@@ -317,6 +386,8 @@ run_check("anthropic_text_secondary", check_anthropic_text_secondary)
 run_check("anthropic_text_secondary_streaming", check_anthropic_text_secondary_streaming)
 run_check("credential_pass_through_to_anthropic", check_credential_pass_through_to_anthropic)
 run_check("credential_pass_through_to_openai", check_credential_pass_through_to_openai)
+run_check("openai_llm_metrics", check_openai_llm_metrics)
+run_check("anthropic_llm_metrics", check_anthropic_llm_metrics)
 
 report_timings()
 report_failures()
