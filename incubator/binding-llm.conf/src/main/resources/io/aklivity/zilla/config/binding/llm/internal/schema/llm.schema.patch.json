@@ -30,7 +30,9 @@
                     "kind":
                     {
                         "enum": [ "client", "server", "proxy" ]
-                    }
+                    },
+                    "catalog": false,
+                    "vault": false
                 },
                 "allOf":
                 [
@@ -87,6 +89,20 @@
                                         }
                                     },
                                     "additionalProperties": false
+                                },
+                                "routes":
+                                {
+                                    "title": "Routes",
+                                    "type": "array",
+                                    "items":
+                                    {
+                                        "type": "object",
+                                        "properties":
+                                        {
+                                            "when": false,
+                                            "with": false
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -153,8 +169,23 @@
                                     },
                                     "required": [ "dialect", "server" ],
                                     "additionalProperties": false
+                                },
+                                "routes":
+                                {
+                                    "title": "Routes",
+                                    "type": "array",
+                                    "items":
+                                    {
+                                        "type": "object",
+                                        "properties":
+                                        {
+                                            "when": false,
+                                            "with": false
+                                        }
+                                    }
                                 }
-                            }
+                            },
+                            "required": [ "options" ]
                         }
                     },
                     {
@@ -209,7 +240,8 @@
                                                     },
                                                     "additionalProperties": false
                                                 }
-                                            }
+                                            },
+                                            "with": false
                                         }
                                     }
                                 }
