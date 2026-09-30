@@ -22,6 +22,8 @@ import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.util.Set;
+
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialect;
@@ -120,6 +122,27 @@ public class LlmDialectSignerLazinessTest
         public String unauthorizedBody()
         {
             return "{}";
+        }
+
+        @Override
+        public String errorBody(
+            int status,
+            String type,
+            String message)
+        {
+            return "{}";
+        }
+
+        @Override
+        public String requestContentType()
+        {
+            return "application/json";
+        }
+
+        @Override
+        public Set<String> responseContentTypes()
+        {
+            return Set.of("application/json");
         }
 
         @Override

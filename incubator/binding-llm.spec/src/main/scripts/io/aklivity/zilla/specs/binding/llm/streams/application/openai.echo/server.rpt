@@ -30,9 +30,9 @@ connected
 
 read "{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}]}"
 
-read closed
-
 write "{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}]}"
 write flush
 
 write close
+
+read closed

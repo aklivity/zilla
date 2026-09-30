@@ -26,8 +26,6 @@ connected
 
 write "{\"model\":\"claude-3-opus-20240229\",\"max_tokens\":1024,\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}],\"stream\":true}"
 
-write close
-
 read zilla:begin.ext ${llm:matchBeginEx()
                            .typeId(zilla:id("llm"))
                            .dialect("anthropic")
@@ -49,3 +47,5 @@ read zilla:abort.ext ${llm:matchAbortEx()
                             .build()}
 
 read aborted
+
+write close

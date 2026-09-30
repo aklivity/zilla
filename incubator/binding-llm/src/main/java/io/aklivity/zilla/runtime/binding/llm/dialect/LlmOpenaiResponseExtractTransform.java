@@ -24,10 +24,14 @@ import io.aklivity.zilla.runtime.common.json.JsonSource;
  * {@code completion_tokens_details.reasoning_tokens} -- reported once, in a dedicated trailing chunk whose
  * {@code choices} array is empty. OpenAI reports no cache-write cost of its own, so
  * {@link #cacheWriteTokens(int)} is never called by this dialect.
+ * <p>
+ * Also extracts OpenAI's {@code error.type}/{@code error.message}, carried the same way in a non-2xx
+ * response body and in an error chunk reported in the middle of a streaming response.
+ * </p>
  */
-final class LlmOpenaiUsageExtractTransform extends LlmUsageExtractTransform
+final class LlmOpenaiResponseExtractTransform extends LlmResponseExtractTransform
 {
-    LlmOpenaiUsageExtractTransform(
+    LlmOpenaiResponseExtractTransform(
         JsonEnvelope envelope)
     {
         super(envelope);
@@ -39,11 +43,40 @@ final class LlmOpenaiUsageExtractTransform extends LlmUsageExtractTransform
         JsonSource source,
         JsonEvent event)
     {
-        if (event != JsonEvent.VALUE_NUMBER)
+        switch (event)
         {
-            return;
+        case VALUE_NUMBER:
+            onNumber(fieldPath, source);
+            break;
+        case VALUE_STRING:
+            onString(fieldPath, source);
+            break;
+        default:
+            break;
         }
+    }
 
+    private void onString(
+        String fieldPath,
+        JsonSource source)
+    {
+        switch (fieldPath)
+        {
+        case "error.type":
+            errorType(source.getString());
+            break;
+        case "error.message":
+            errorMessage(source.getString());
+            break;
+        default:
+            break;
+        }
+    }
+
+    private void onNumber(
+        String fieldPath,
+        JsonSource source)
+    {
         switch (fieldPath)
         {
         case "usage.prompt_tokens":

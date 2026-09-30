@@ -14,7 +14,9 @@
  */
 package io.aklivity.zilla.specs.binding.llm.internal;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 
 import java.nio.ByteBuffer;
@@ -27,6 +29,7 @@ import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmAbortExFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmBeginExFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmDataExFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmEndExFW;
+import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmResetExFW;
 
 public class LlmFunctionsTest
 {
@@ -808,6 +811,257 @@ public class LlmFunctionsTest
             .usage(u -> u.inputTokens(-1).cacheWriteTokens(-1).cacheReadTokens(-1).outputTokens(-1)
                 .reasoningTokens(-1).totalTokens(-1).nativeUsage("{\"input_tokens\":5}"))
             .build();
+
+        assertThrows(Exception.class, () -> matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldGenerateAbortExWithError()
+    {
+        byte[] bytes = LlmFunctions.abortEx()
+            .typeId(0)
+            .status(500)
+            .type("api_error")
+            .message("Internal error")
+            .build();
+
+        LlmAbortExFW abortEx = new LlmAbortExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
+        assertEquals(500, abortEx.error().status());
+        assertEquals("api_error", abortEx.error().type().asString());
+        assertEquals("Internal error", abortEx.error().message().asString());
+        assertEquals(-1, abortEx.usage().inputTokens());
+    }
+
+    @Test
+    public void shouldMatchAbortExError() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchAbortEx()
+            .typeId(0)
+            .status(500)
+            .type("api_error")
+            .message("Internal error")
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.wrap(LlmFunctions.abortEx()
+            .typeId(0)
+            .status(500)
+            .type("api_error")
+            .message("Internal error")
+            .build());
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldMatchAbortExErrorNone() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchAbortEx()
+            .typeId(0)
+            .errorNone()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.wrap(LlmFunctions.abortEx()
+            .typeId(0)
+            .inputTokens(3)
+            .build());
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldFailMatchAbortExErrorNone() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchAbortEx()
+            .typeId(0)
+            .errorNone()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.wrap(LlmFunctions.abortEx()
+            .typeId(0)
+            .message("failed")
+            .build());
+
+        assertThrows(Exception.class, () -> matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldFailMatchAbortExErrorStatusMismatch() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchAbortEx()
+            .typeId(0)
+            .status(429)
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.wrap(LlmFunctions.abortEx()
+            .typeId(0)
+            .status(500)
+            .build());
+
+        assertThrows(Exception.class, () -> matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldGenerateResetEx()
+    {
+        byte[] bytes = LlmFunctions.resetEx()
+            .typeId(0)
+            .status(429)
+            .type("rate_limit_error")
+            .message("Too many requests")
+            .build();
+
+        LlmResetExFW resetEx = new LlmResetExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
+        assertEquals(0, resetEx.typeId());
+        assertEquals(429, resetEx.error().status());
+        assertEquals("rate_limit_error", resetEx.error().type().asString());
+        assertEquals("Too many requests", resetEx.error().message().asString());
+    }
+
+    @Test
+    public void shouldGenerateResetExWithoutOptionalFields()
+    {
+        byte[] bytes = LlmFunctions.resetEx()
+            .typeId(0)
+            .build();
+
+        LlmResetExFW resetEx = new LlmResetExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
+        assertEquals(-1, resetEx.error().status());
+        assertNull(resetEx.error().type().asString());
+        assertNull(resetEx.error().message().asString());
+    }
+
+    @Test
+    public void shouldMatchResetEx() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchResetEx()
+            .typeId(0)
+            .status(429)
+            .type("rate_limit_error")
+            .message("Too many requests")
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.wrap(LlmFunctions.resetEx()
+            .typeId(0)
+            .status(429)
+            .type("rate_limit_error")
+            .message("Too many requests")
+            .build());
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldMatchResetExNulls() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchResetEx()
+            .typeId(0)
+            .status(502)
+            .typeNull()
+            .messageNull()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.wrap(LlmFunctions.resetEx()
+            .typeId(0)
+            .status(502)
+            .build());
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldNotMatchEmptyResetEx() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchResetEx()
+            .build();
+
+        assertNull(matcher.match(ByteBuffer.allocate(0)));
+    }
+
+    @Test
+    public void shouldFailMatchResetExTypeIdMismatch() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchResetEx()
+            .typeId(1)
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.wrap(LlmFunctions.resetEx()
+            .typeId(0)
+            .build());
+
+        assertThrows(Exception.class, () -> matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldFailMatchResetExStatusMismatch() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchResetEx()
+            .status(400)
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.wrap(LlmFunctions.resetEx()
+            .typeId(0)
+            .status(429)
+            .build());
+
+        assertThrows(Exception.class, () -> matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldFailMatchResetExTypeMismatch() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchResetEx()
+            .type("a")
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.wrap(LlmFunctions.resetEx()
+            .typeId(0)
+            .type("b")
+            .build());
+
+        assertThrows(Exception.class, () -> matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldFailMatchResetExTypeNullMismatch() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchResetEx()
+            .typeNull()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.wrap(LlmFunctions.resetEx()
+            .typeId(0)
+            .type("b")
+            .build());
+
+        assertThrows(Exception.class, () -> matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldFailMatchResetExMessageMismatch() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchResetEx()
+            .message("a")
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.wrap(LlmFunctions.resetEx()
+            .typeId(0)
+            .message("b")
+            .build());
+
+        assertThrows(Exception.class, () -> matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldFailMatchResetExMessageNullMismatch() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchResetEx()
+            .messageNull()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.wrap(LlmFunctions.resetEx()
+            .typeId(0)
+            .message("b")
+            .build());
 
         assertThrows(Exception.class, () -> matcher.match(byteBuf));
     }

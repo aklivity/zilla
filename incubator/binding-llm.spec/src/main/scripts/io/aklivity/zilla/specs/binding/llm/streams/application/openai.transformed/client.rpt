@@ -31,8 +31,6 @@ write '{"model":"'
       ${model}
       '","messages":[{"role":"user","content":"Hello"}],"stream":false}'
 
-write close
-
 read zilla:begin.ext ${llm:matchBeginEx()
                            .typeId(zilla:id("llm"))
                            .dialect("openai")
@@ -52,3 +50,5 @@ read '{"object":"chat.completion","id":"'
      '"}}]},"finish_reason":"tool_calls"}],"usage":{"prompt_tokens":25,"completion_tokens":15}}'
 
 read closed
+
+write close

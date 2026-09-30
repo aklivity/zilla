@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.dialect;
 
+import java.util.Set;
+
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonController;
 import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
@@ -74,6 +76,27 @@ final class LlmTestDialect implements LlmDialect
     public String unauthorizedBody()
     {
         return "{}";
+    }
+
+    @Override
+    public String errorBody(
+        int status,
+        String type,
+        String message)
+    {
+        return "{}";
+    }
+
+    @Override
+    public String requestContentType()
+    {
+        return "application/json";
+    }
+
+    @Override
+    public Set<String> responseContentTypes()
+    {
+        return Set.of("application/json");
     }
 
     @Override

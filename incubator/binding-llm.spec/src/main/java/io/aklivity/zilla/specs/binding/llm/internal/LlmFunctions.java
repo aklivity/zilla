@@ -26,6 +26,8 @@ import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmAbortExFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmBeginExFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmDataExFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmEndExFW;
+import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmErrorFW;
+import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmResetExFW;
 
 public final class LlmFunctions
 {
@@ -75,6 +77,18 @@ public final class LlmFunctions
     public static LlmAbortExMatcherBuilder matchAbortEx()
     {
         return new LlmAbortExMatcherBuilder();
+    }
+
+    @Function
+    public static LlmResetExBuilder resetEx()
+    {
+        return new LlmResetExBuilder();
+    }
+
+    @Function
+    public static LlmResetExMatcherBuilder matchResetEx()
+    {
+        return new LlmResetExMatcherBuilder();
     }
 
     public static final class LlmBeginExBuilder
@@ -619,6 +633,9 @@ public final class LlmFunctions
         private Integer reasoningTokens;
         private Integer totalTokens;
         private String nativeUsage;
+        private int status = -1;
+        private String type;
+        private String message;
 
         private LlmAbortExBuilder()
         {
@@ -682,6 +699,27 @@ public final class LlmFunctions
             return this;
         }
 
+        public LlmAbortExBuilder status(
+            int status)
+        {
+            this.status = status;
+            return this;
+        }
+
+        public LlmAbortExBuilder type(
+            String type)
+        {
+            this.type = type;
+            return this;
+        }
+
+        public LlmAbortExBuilder message(
+            String message)
+        {
+            this.message = message;
+            return this;
+        }
+
         public byte[] build()
         {
             abortExRW.usage(u ->
@@ -694,6 +732,7 @@ public final class LlmFunctions
                 u.totalTokens(totalTokens != null ? totalTokens : -1);
                 u.nativeUsage(nativeUsage);
             });
+            abortExRW.error(e -> e.status(status).type(type).message(message));
             final LlmAbortExFW abortEx = abortExRW.build();
             final byte[] array = new byte[abortEx.sizeof()];
             abortEx.buffer().getBytes(abortEx.offset(), array);
@@ -716,6 +755,7 @@ public final class LlmFunctions
         private Integer totalTokens;
         private String nativeUsage;
         private boolean nativeUsageNull;
+        private final LlmErrorMatcher error = new LlmErrorMatcher();
 
         public LlmAbortExMatcherBuilder typeId(
             int typeId)
@@ -779,6 +819,33 @@ public final class LlmFunctions
             return this;
         }
 
+        public LlmAbortExMatcherBuilder status(
+            int status)
+        {
+            error.status = status;
+            return this;
+        }
+
+        public LlmAbortExMatcherBuilder type(
+            String type)
+        {
+            error.type = type;
+            return this;
+        }
+
+        public LlmAbortExMatcherBuilder message(
+            String message)
+        {
+            error.message = message;
+            return this;
+        }
+
+        public LlmAbortExMatcherBuilder errorNone()
+        {
+            error.none = true;
+            return this;
+        }
+
         public BytesMatcher build()
         {
             return this::match;
@@ -803,7 +870,8 @@ public final class LlmFunctions
                 matchOutputTokens(abortEx) &&
                 matchReasoningTokens(abortEx) &&
                 matchTotalTokens(abortEx) &&
-                matchNativeUsage(abortEx))
+                matchNativeUsage(abortEx) &&
+                error.matches(abortEx.error()))
             {
                 byteBuf.position(byteBuf.position() + abortEx.sizeof());
                 return abortEx;
@@ -859,6 +927,161 @@ public final class LlmFunctions
         {
             return nativeUsageNull ? abortEx.usage().nativeUsage().asString() == null
                 : nativeUsage == null || nativeUsage.equals(abortEx.usage().nativeUsage().asString());
+        }
+    }
+
+    public static final class LlmResetExBuilder
+    {
+        private final MutableDirectBufferEx writeBuffer;
+        private final LlmResetExFW.Builder resetExRW;
+
+        private int status = -1;
+        private String type;
+        private String message;
+
+        private LlmResetExBuilder()
+        {
+            this.writeBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
+            this.resetExRW = new LlmResetExFW.Builder().wrap(writeBuffer, 0, writeBuffer.capacity());
+        }
+
+        public LlmResetExBuilder typeId(
+            int typeId)
+        {
+            resetExRW.typeId(typeId);
+            return this;
+        }
+
+        public LlmResetExBuilder status(
+            int status)
+        {
+            this.status = status;
+            return this;
+        }
+
+        public LlmResetExBuilder type(
+            String type)
+        {
+            this.type = type;
+            return this;
+        }
+
+        public LlmResetExBuilder message(
+            String message)
+        {
+            this.message = message;
+            return this;
+        }
+
+        public byte[] build()
+        {
+            final LlmResetExFW resetEx = resetExRW
+                .error(e -> e.status(status).type(type).message(message))
+                .build();
+            final byte[] array = new byte[resetEx.sizeof()];
+            resetEx.buffer().getBytes(resetEx.offset(), array);
+            return array;
+        }
+    }
+
+    public static final class LlmResetExMatcherBuilder
+    {
+        private final DirectBufferEx bufferRO = new UnsafeBufferEx();
+
+        private final LlmResetExFW resetExRO = new LlmResetExFW();
+
+        private final LlmErrorMatcher error = new LlmErrorMatcher();
+
+        private Integer typeId;
+
+        public LlmResetExMatcherBuilder typeId(
+            int typeId)
+        {
+            this.typeId = typeId;
+            return this;
+        }
+
+        public LlmResetExMatcherBuilder status(
+            int status)
+        {
+            error.status = status;
+            return this;
+        }
+
+        public LlmResetExMatcherBuilder type(
+            String type)
+        {
+            error.type = type;
+            return this;
+        }
+
+        public LlmResetExMatcherBuilder typeNull()
+        {
+            error.typeNull = true;
+            return this;
+        }
+
+        public LlmResetExMatcherBuilder message(
+            String message)
+        {
+            error.message = message;
+            return this;
+        }
+
+        public LlmResetExMatcherBuilder messageNull()
+        {
+            error.messageNull = true;
+            return this;
+        }
+
+        public BytesMatcher build()
+        {
+            return this::match;
+        }
+
+        private LlmResetExFW match(
+            ByteBuffer byteBuf) throws Exception
+        {
+            if (!byteBuf.hasRemaining())
+            {
+                return null;
+            }
+
+            bufferRO.wrap(byteBuf);
+            final LlmResetExFW resetEx = resetExRO.tryWrap(bufferRO, byteBuf.position(), byteBuf.capacity());
+
+            if (resetEx != null &&
+                (typeId == null || typeId == resetEx.typeId()) &&
+                error.matches(resetEx.error()))
+            {
+                byteBuf.position(byteBuf.position() + resetEx.sizeof());
+                return resetEx;
+            }
+
+            throw new Exception(String.valueOf(resetEx));
+        }
+    }
+
+    private static final class LlmErrorMatcher
+    {
+        private Integer status;
+        private String type;
+        private boolean typeNull;
+        private String message;
+        private boolean messageNull;
+        private boolean none;
+
+        private boolean matches(
+            LlmErrorFW error)
+        {
+            final String errorType = error.type().asString();
+            final String errorMessage = error.message().asString();
+
+            return none
+                ? error.status() == -1 && errorType == null && errorMessage == null
+                : (status == null || status == error.status()) &&
+                    (typeNull ? errorType == null : type == null || type.equals(errorType)) &&
+                    (messageNull ? errorMessage == null : message == null || message.equals(errorMessage));
         }
     }
 

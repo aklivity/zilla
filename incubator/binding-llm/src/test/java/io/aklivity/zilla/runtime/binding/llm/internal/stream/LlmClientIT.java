@@ -415,4 +415,115 @@ public class LlmClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.rejected.rate.limit/client",
+        "${net}/openai.rejected.rate.limit/server"})
+    public void shouldResetOpenaiRequestRateLimited() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.rejected.rate.limit/client",
+        "${net}/anthropic.rejected.rate.limit/server"})
+    public void shouldResetAnthropicRequestRateLimited() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/openai.transformed.rejected.rate.limit/client",
+        "${net}/anthropic.transformed.rejected.rate.limit/server"})
+    @ScriptProperty({ "model \"gpt-4\"" })
+    public void shouldResetOpenaiToAnthropicRequestRateLimited() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.rejected.bad.gateway/client",
+        "${net}/openai.rejected.bad.gateway/server"})
+    public void shouldResetOpenaiRequestBadGatewayWithoutParsingBody() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.rejected.reset/client",
+        "${net}/openai.rejected.reset/server"})
+    public void shouldResetOpenaiRequestWhenUpstreamResets() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.request.invalid/client",
+        "${net}/openai.request.invalid/server"})
+    public void shouldResetInvalidOpenaiRequest() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.request.trailing/client",
+        "${net}/openai.request.invalid/server"})
+    public void shouldResetOpenaiRequestWithTrailingContent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.request.unsupported.content.type/client"})
+    public void shouldResetOpenaiRequestWithUnsupportedContentType() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.streaming.error/client",
+        "${net}/openai.streaming.error/server"})
+    public void shouldAbortOpenaiStreamingError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.streaming.error/client",
+        "${net}/anthropic.streaming.error/server"})
+    public void shouldAbortAnthropicStreamingError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/openai.streaming.transformed.error/client",
+        "${net}/anthropic.streaming.transformed.error/server"})
+    @ScriptProperty({ "model \"gpt-4\"", "id \"chatcmpl_1\"" })
+    public void shouldAbortOpenaiToAnthropicStreamingError() throws Exception
+    {
+        k3po.finish();
+    }
 }
