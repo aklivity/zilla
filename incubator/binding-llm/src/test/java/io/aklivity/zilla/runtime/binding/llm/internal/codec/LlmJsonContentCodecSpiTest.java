@@ -51,10 +51,23 @@ public class LlmJsonContentCodecSpiTest
         LlmContentDecoderOutput output = new LlmContentDecoderOutput()
         {
             @Override
+            public boolean available()
+            {
+                return true;
+            }
+
+            @Override
+            public void event(
+                String event)
+            {
+            }
+
+            @Override
             public void data(
                 DirectBuffer data,
                 int offset,
-                int length)
+                int length,
+                boolean last)
             {
                 decodedLength[0] = length;
             }
@@ -85,7 +98,7 @@ public class LlmJsonContentCodecSpiTest
         DirectBuffer buffer = new UnsafeBuffer(bytes);
         MutableDirectBuffer encoded = new UnsafeBuffer(new byte[32]);
 
-        int written = encoder.encodeData(buffer, 0, bytes.length, encoded, 0, encoded.capacity());
+        int written = encoder.encodeData(buffer, 0, bytes.length, true, true, encoded, 0, encoded.capacity());
 
         assertThat(written, equalTo(bytes.length));
         assertThat(encoded.getStringWithoutLengthUtf8(0, written), equalTo("{\"ok\":true}"));

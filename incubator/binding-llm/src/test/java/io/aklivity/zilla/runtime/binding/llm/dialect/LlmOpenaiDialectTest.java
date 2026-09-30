@@ -23,7 +23,6 @@ import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
-import static org.hamcrest.Matchers.sameInstance;
 
 import java.util.Map;
 import java.util.ServiceLoader;
@@ -33,8 +32,7 @@ import org.junit.Test;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
-import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
-import io.aklivity.zilla.runtime.engine.model.ModelTransform;
+import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
 
 public class LlmOpenaiDialectTest
 {
@@ -57,6 +55,15 @@ public class LlmOpenaiDialectTest
 
         assertThat(dialect, not(nullValue()));
         assertThat(dialect.name(), equalTo("openai"));
+    }
+
+    @Test
+    public void shouldResolveRequestPathUnderConfiguredBasePath()
+    {
+        LlmDialect dialect = new LlmOpenaiDialect();
+
+        assertThat(dialect.requestPath("/v1"), equalTo("/v1/chat/completions"));
+        assertThat(dialect.requestPath("/aicomp/v1"), equalTo("/aicomp/v1/chat/completions"));
     }
 
     @Test
@@ -104,7 +111,7 @@ public class LlmOpenaiDialectTest
     {
         LlmDialect dialect = new LlmOpenaiDialect();
 
-        TestModelEnvelope envelope = new TestModelEnvelope();
+        TestJsonEnvelope envelope = new TestJsonEnvelope();
         envelope.set(":method", value("POST"));
         envelope.set(":path", value("/v1/chat/completions"));
         envelope.set("content-type", value("application/vnd.zilla.test-unknown+json"));
@@ -117,7 +124,7 @@ public class LlmOpenaiDialectTest
     {
         LlmDialect dialect = new LlmOpenaiDialect();
 
-        TestModelEnvelope envelope = new TestModelEnvelope();
+        TestJsonEnvelope envelope = new TestJsonEnvelope();
         envelope.set(":method", value("POST"));
         envelope.set(":path", value("/v1/chat/completions"));
 
@@ -129,7 +136,7 @@ public class LlmOpenaiDialectTest
     {
         LlmDialect dialect = new LlmOpenaiDialect();
 
-        assertThat(dialect.detect(ModelEnvelope.NONE), is(false));
+        assertThat(dialect.detect(JsonEnvelope.NONE), is(false));
     }
 
     @Test
@@ -139,28 +146,40 @@ public class LlmOpenaiDialectTest
 
         for (LlmDialect.Kind kind : LlmDialect.Kind.values())
         {
-            assertThat(dialect.supplyDecoder(kind, ModelEnvelope.NONE), not(nullValue()));
-            assertThat(dialect.supplyEncoder(kind, ModelEnvelope.NONE), not(nullValue()));
-            assertThat(dialect.supplyDecoder(kind, ModelEnvelope.NONE).identity(), is(false));
-            assertThat(dialect.supplyEncoder(kind, ModelEnvelope.NONE).identity(), is(false));
+            assertThat(dialect.supplyDecoder(kind, JsonEnvelope.NONE), not(nullValue()));
+            assertThat(dialect.supplyEncoder(kind, JsonEnvelope.NONE), not(nullValue()));
         }
+
+        assertThat(dialect.supplyDecoder(LlmDialect.Kind.REQUEST, JsonEnvelope.NONE).identity(), is(false));
+        assertThat(dialect.supplyEncoder(LlmDialect.Kind.REQUEST, JsonEnvelope.NONE).identity(), is(false));
+        assertThat(dialect.supplyDecoder(LlmDialect.Kind.RESPONSE, JsonEnvelope.NONE).identity(), is(true));
+        assertThat(dialect.supplyEncoder(LlmDialect.Kind.RESPONSE, JsonEnvelope.NONE).identity(), is(true));
     }
 
     @Test
-    public void shouldSupplyValidatorOnlyForRequestKind()
+    public void shouldSupplyExtractorOnlyForRequestKind()
     {
         LlmDialect dialect = new LlmOpenaiDialect();
 
-        assertThat(dialect.supplyValidator(LlmDialect.Kind.REQUEST, ModelEnvelope.NONE), not(nullValue()));
-        assertThat(dialect.supplyValidator(LlmDialect.Kind.REQUEST, ModelEnvelope.NONE).identity(), is(true));
-        assertThat(dialect.supplyValidator(LlmDialect.Kind.RESPONSE, ModelEnvelope.NONE), sameInstance(ModelTransform.NONE));
+        assertThat(dialect.supplyExtractor(LlmDialect.Kind.REQUEST, JsonEnvelope.NONE), not(nullValue()));
+        assertThat(dialect.supplyExtractor(LlmDialect.Kind.REQUEST, JsonEnvelope.NONE).identity(), is(true));
+        assertThat(dialect.supplyExtractor(LlmDialect.Kind.RESPONSE, JsonEnvelope.NONE).identity(), is(true));
     }
 
-    private static ModelEnvelope headers(
+    @Test
+    public void shouldSupplySchemaValidatorForBothKinds()
+    {
+        LlmDialect dialect = new LlmOpenaiDialect();
+
+        assertThat(dialect.supplySchemaValidator(LlmDialect.Kind.REQUEST), not(nullValue()));
+        assertThat(dialect.supplySchemaValidator(LlmDialect.Kind.RESPONSE), not(nullValue()));
+    }
+
+    private static JsonEnvelope headers(
         String method,
         String path)
     {
-        TestModelEnvelope envelope = new TestModelEnvelope();
+        TestJsonEnvelope envelope = new TestJsonEnvelope();
         envelope.set(":method", value(method));
         envelope.set(":path", value(path));
         envelope.set("content-type", value("application/json"));

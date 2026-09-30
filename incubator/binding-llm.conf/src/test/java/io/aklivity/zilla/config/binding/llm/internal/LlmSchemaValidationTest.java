@@ -103,7 +103,7 @@ public class LlmSchemaValidationTest
                 type: llm
                 kind: server
                 options:
-                  server: example.com:8080
+                  server: http://example.com:8080
                 exit: app0
             """;
 
@@ -122,7 +122,7 @@ public class LlmSchemaValidationTest
                 kind: client
                 options:
                   dialect: openai
-                  server: example.com:8080
+                  server: http://example.com:8080
                 exit: net0
             """;
 
@@ -143,7 +143,7 @@ public class LlmSchemaValidationTest
                 kind: client
                 options:
                   dialect: anthropic
-                  server: example.com:8080
+                  server: http://example.com:8080
                 exit: net0
             """;
 
@@ -170,7 +170,7 @@ public class LlmSchemaValidationTest
                 kind: client
                 options:
                   dialect: anthropic
-                  server: example.com:8080
+                  server: http://example.com:8080
                 exit: net1
             """;
 
@@ -208,7 +208,7 @@ public class LlmSchemaValidationTest
                 type: llm
                 kind: client
                 options:
-                  server: example.com:8080
+                  server: http://example.com:8080
                 exit: net0
             """;
 
@@ -352,7 +352,7 @@ public class LlmSchemaValidationTest
                 kind: client
                 options:
                   dialect: openai
-                  server: example.com:8080
+                  server: http://example.com:8080
                   unknown: value
                 exit: net0
             """;
@@ -372,7 +372,7 @@ public class LlmSchemaValidationTest
                 kind: client
                 options:
                   dialect: gemini
-                  server: example.com:8080
+                  server: http://example.com:8080
                 exit: net0
             """;
 
@@ -391,7 +391,7 @@ public class LlmSchemaValidationTest
                 kind: client
                 options:
                   dialect: 42
-                  server: example.com:8080
+                  server: http://example.com:8080
                 exit: net0
             """;
 

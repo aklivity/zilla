@@ -14,9 +14,17 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.dialect;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UncheckedIOException;
+import java.net.URL;
+
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
-import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
-import io.aklivity.zilla.runtime.engine.model.ModelTransform;
+import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
+import io.aklivity.zilla.runtime.common.json.JsonSchema;
+import io.aklivity.zilla.runtime.common.json.JsonTransform;
 
 /**
  * Anthropic Messages API dialect: detects a {@code POST /v1/messages} request, an {@code anthropic-version}
@@ -25,16 +33,17 @@ import io.aklivity.zilla.runtime.engine.model.ModelTransform;
  * them (e.g. a proxy that always stamps {@code anthropic-version} regardless of path) is still unambiguously
  * Anthropic's own traffic. {@code x-api-key} accompanied by {@code Authorization} is not itself a signal --
  * that combination is at least as consistent with some other dialect stacking its own bearer credential on
- * top of a forwarded Anthropic API key, so {@link #detect(ModelEnvelope)} does not treat it as a hint.
+ * top of a forwarded Anthropic API key, so {@link #detect(JsonEnvelope)} does not treat it as a hint.
  * <p>
- * {@link #supplyDecoder(Kind, ModelEnvelope)}/{@link #supplyEncoder(Kind, ModelEnvelope)} rename the
- * Anthropic-native request/response members that this dialect's transforms give a canonical synonym for --
- * see {@link LlmAnthropicRequestTransform} and {@link LlmAnthropicResponseTransform} for exactly which
- * members and the rationale; {@link #supplyValidator(Kind, ModelEnvelope)} performs no such renaming, only
- * {@code model} extraction and native schema validation. Anthropic's own streaming block lifecycle
- * ({@code message_start}/{@code content_block_start}/{@code content_block_delta}/{@code content_block_stop}/
- * {@code message_delta}/{@code message_stop}) is already the skeleton this binding's canonical representation
- * is modeled on, so far fewer members need renaming here than {@link LlmOpenaiDialect} requires.
+ * {@link #supplyDecoder(Kind, JsonEnvelope)}/{@link #supplyEncoder(Kind, JsonEnvelope)} rename the
+ * Anthropic-native request members that {@link LlmAnthropicRequestTransform} gives a canonical synonym for;
+ * the response direction is always identity here, since genuine cross-dialect response streaming translation
+ * lives entirely in {@code internal.mapper.LlmAnthropicDecodeTransform}/{@code LlmAnthropicEncodeSink}, and a
+ * same-dialect response needs no rename at all. {@link #supplyExtractor(Kind, JsonEnvelope)} performs no such renaming,
+ * only {@code model} extraction. Anthropic's own streaming block lifecycle ({@code message_start}/
+ * {@code content_block_start}/{@code content_block_delta}/{@code content_block_stop}/{@code message_delta}/
+ * {@code message_stop}) is already the skeleton this binding's canonical representation is modeled on, so
+ * far fewer request members need renaming here than {@link LlmOpenaiDialect} requires.
  * </p>
  * <p>
  * Response content-type resolution (a streaming response's {@code text/event-stream} chunks versus a single
@@ -43,9 +52,8 @@ import io.aklivity.zilla.runtime.engine.model.ModelTransform;
  * </p>
  * <p>
  * Unlike OpenAI's {@code [DONE]} sentinel, Anthropic's stream termination ({@code message_stop}) is itself a
- * JSON document that reaches {@link LlmAnthropicResponseTransform} like any other event, so
- * {@link #terminator(Kind)} returns {@code null} for both directions -- there is no out-of-band value to
- * recognize.
+ * JSON document, so {@link #terminator(Kind)} returns {@code null} for both directions -- there is no
+ * out-of-band value to recognize.
  * </p>
  */
 public final class LlmAnthropicDialect implements LlmDialect
@@ -60,6 +68,19 @@ public final class LlmAnthropicDialect implements LlmDialect
     private static final String METHOD_POST = "POST";
 
     private static final String MESSAGES_PATH = "/v1/messages";
+    private static final String MESSAGES_SUFFIX = "/messages";
+
+    private static final String REQUEST_SCHEMA_RESOURCE = "anthropic.request.schema.json";
+    private static final String RESPONSE_SCHEMA_RESOURCE = "anthropic.response.schema.json";
+
+    private final JsonTransform requestValidator;
+    private final JsonTransform responseValidator;
+
+    public LlmAnthropicDialect()
+    {
+        this.requestValidator = JsonSchema.of(readResource(REQUEST_SCHEMA_RESOURCE)).validator();
+        this.responseValidator = JsonSchema.of(readResource(RESPONSE_SCHEMA_RESOURCE)).validator();
+    }
 
     @Override
     public String name()
@@ -69,7 +90,7 @@ public final class LlmAnthropicDialect implements LlmDialect
 
     @Override
     public boolean detect(
-        ModelEnvelope headers)
+        JsonEnvelope headers)
     {
         final boolean pathMatched = METHOD_POST.equalsIgnoreCase(header(headers, METHOD_HEADER)) &&
             MESSAGES_PATH.equals(header(headers, PATH_HEADER));
@@ -77,6 +98,13 @@ public final class LlmAnthropicDialect implements LlmDialect
         final boolean apiKeyWithoutAuthorization = header(headers, API_KEY_HEADER) != null &&
             header(headers, AUTHORIZATION_HEADER) == null;
         return pathMatched || versionHeaderPresent || apiKeyWithoutAuthorization;
+    }
+
+    @Override
+    public String requestPath(
+        String basePath)
+    {
+        return basePath + MESSAGES_SUFFIX;
     }
 
     @Override
@@ -93,53 +121,34 @@ public final class LlmAnthropicDialect implements LlmDialect
     }
 
     @Override
-    public ModelTransform supplyDecoder(
+    public JsonTransform supplyDecoder(
         Kind kind,
-        ModelEnvelope envelope)
+        JsonEnvelope envelope)
     {
-        final ModelTransform transform;
-        switch (kind)
-        {
-        case REQUEST:
-            transform = new LlmAnthropicRequestTransform(true, envelope);
-            break;
-        case RESPONSE:
-            transform = new LlmAnthropicResponseTransform(true, envelope);
-            break;
-        default:
-            transform = ModelTransform.NONE;
-            break;
-        }
-        return transform;
+        return kind == Kind.REQUEST ? new LlmAnthropicRequestTransform(true, envelope) : LlmDialectTransforms.identity();
     }
 
     @Override
-    public ModelTransform supplyValidator(
+    public JsonTransform supplyExtractor(
         Kind kind,
-        ModelEnvelope envelope)
+        JsonEnvelope envelope)
     {
-        return kind == Kind.REQUEST ? new LlmModelExtractTransform(envelope) : ModelTransform.NONE;
+        return kind == Kind.REQUEST ? new LlmModelExtractTransform(envelope) : LlmDialectTransforms.identity();
     }
 
     @Override
-    public ModelTransform supplyEncoder(
+    public JsonTransform supplyEncoder(
         Kind kind,
-        ModelEnvelope envelope)
+        JsonEnvelope envelope)
     {
-        final ModelTransform transform;
-        switch (kind)
-        {
-        case REQUEST:
-            transform = new LlmAnthropicRequestTransform(false, envelope);
-            break;
-        case RESPONSE:
-            transform = new LlmAnthropicResponseTransform(false, envelope);
-            break;
-        default:
-            transform = ModelTransform.NONE;
-            break;
-        }
-        return transform;
+        return kind == Kind.REQUEST ? new LlmAnthropicRequestTransform(false, envelope) : LlmDialectTransforms.identity();
+    }
+
+    @Override
+    public JsonTransform supplySchemaValidator(
+        Kind kind)
+    {
+        return kind == Kind.REQUEST ? requestValidator : responseValidator;
     }
 
     @Override
@@ -150,10 +159,26 @@ public final class LlmAnthropicDialect implements LlmDialect
     }
 
     private static String header(
-        ModelEnvelope headers,
+        JsonEnvelope headers,
         String name)
     {
         final DirectBufferEx value = headers.get(name, 0);
         return value != null ? value.getStringWithoutLengthUtf8(0, value.capacity()) : null;
+    }
+
+    private static String readResource(
+        String name)
+    {
+        URL resource = LlmAnthropicDialect.class.getResource(name);
+        String text;
+        try (InputStream input = resource.openStream())
+        {
+            text = new String(input.readAllBytes(), UTF_8);
+        }
+        catch (IOException ex)
+        {
+            throw new UncheckedIOException(ex);
+        }
+        return text;
     }
 }

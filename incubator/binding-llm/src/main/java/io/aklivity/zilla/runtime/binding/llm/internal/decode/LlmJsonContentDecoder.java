@@ -38,7 +38,7 @@ public final class LlmJsonContentDecoder implements LlmContentDecoder
         int limit,
         LlmContentDecoderOutput output)
     {
-        output.data(buffer, offset, limit - offset);
+        output.data(buffer, offset, limit - offset, true);
         output.flush(null, EMPTY_ID, 0, 0);
 
         return limit;

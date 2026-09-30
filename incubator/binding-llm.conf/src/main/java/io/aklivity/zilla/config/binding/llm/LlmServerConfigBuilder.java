@@ -21,8 +21,10 @@ import io.aklivity.zilla.config.engine.ConfigBuilder;
 public final class LlmServerConfigBuilder<T> extends ConfigBuilder<T, LlmServerConfigBuilder<T>>
 {
     private final Function<LlmServerConfig, T> mapper;
+    private String scheme;
     private String host;
     private int port;
+    private String path;
 
     LlmServerConfigBuilder(
         Function<LlmServerConfig, T> mapper)
@@ -35,6 +37,13 @@ public final class LlmServerConfigBuilder<T> extends ConfigBuilder<T, LlmServerC
     protected Class<LlmServerConfigBuilder<T>> thisType()
     {
         return (Class<LlmServerConfigBuilder<T>>) getClass();
+    }
+
+    public LlmServerConfigBuilder<T> scheme(
+        String scheme)
+    {
+        this.scheme = scheme;
+        return this;
     }
 
     public LlmServerConfigBuilder<T> host(
@@ -51,9 +60,16 @@ public final class LlmServerConfigBuilder<T> extends ConfigBuilder<T, LlmServerC
         return this;
     }
 
+    public LlmServerConfigBuilder<T> path(
+        String path)
+    {
+        this.path = path;
+        return this;
+    }
+
     @Override
     public T build()
     {
-        return mapper.apply(new LlmServerConfig(host, port));
+        return mapper.apply(new LlmServerConfig(scheme, host, port, path));
     }
 }

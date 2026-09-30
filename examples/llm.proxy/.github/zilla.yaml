@@ -1,0 +1,165 @@
+---
+# CI-only: identical topology to ../etc/zilla.yaml, but every south_llm_client_*
+# targets a local mock instead of the real OpenAI/Anthropic API, so this example
+# is verifiable without real API keys or network access to either provider.
+# Loaded in place of ../etc/zilla.yaml by compose.mock.yaml (see .env.test).
+name: example
+guards:
+  api_key:
+    type: inline
+bindings:
+  north_tcp_server_openai:
+    type: tcp
+    kind: server
+    options:
+      host: 0.0.0.0
+      port: 7161
+    exit: north_http_server_openai
+  north_http_server_openai:
+    type: http
+    kind: server
+    exit: north_llm_server_openai
+  north_llm_server_openai:
+    type: llm
+    kind: server
+    options:
+      dialect: openai
+      authorization:
+        api_key:
+          credentials: "Bearer {credentials}"
+    exit: north_llm_proxy
+
+  north_tcp_server_anthropic:
+    type: tcp
+    kind: server
+    options:
+      host: 0.0.0.0
+      port: 7162
+    exit: north_http_server_anthropic
+  north_http_server_anthropic:
+    type: http
+    kind: server
+    exit: north_llm_server_anthropic
+  north_llm_server_anthropic:
+    type: llm
+    kind: server
+    options:
+      dialect: anthropic
+      authorization:
+        api_key:
+          credentials: "{credentials}"
+    exit: north_llm_proxy
+
+  # Shared by both frontends: routes purely on LlmBeginEx.dialect/model, never on
+  # request content. The dialect-only routes (last, catch-all for their dialect)
+  # preserve the cross-dialect translation demo unconditionally; the
+  # dialect+model routes ahead of them pick off two specific models and send
+  # them, same-dialect, to a second same-dialect deployment instead -- the
+  # intra-dialect failover/multi-backend routing this binding kind exists for.
+  north_llm_proxy:
+    type: llm
+    kind: proxy
+    routes:
+      - when:
+          - dialect: openai
+            model: [ gpt-4o ]
+        exit: south_llm_client_openai_secondary
+      - when:
+          - dialect: anthropic
+            model: [ claude-3-5-haiku-20241022 ]
+        exit: south_llm_client_anthropic_secondary
+      - when:
+          - dialect: openai
+        exit: south_llm_client_anthropic
+      - when:
+          - dialect: anthropic
+        exit: south_llm_client_openai
+
+  south_llm_client_anthropic:
+    type: llm
+    kind: client
+    options:
+      dialect: anthropic
+      server: http://mock-anthropic:4102
+      authorization:
+        api_key:
+          credentials: "{credentials}"
+    exit: south_http_client_anthropic
+  south_http_client_anthropic:
+    type: http
+    kind: client
+    exit: south_tcp_client_anthropic
+  south_tcp_client_anthropic:
+    type: tcp
+    kind: client
+    options:
+      host: mock-anthropic
+      port: 4102
+
+  south_llm_client_openai:
+    type: llm
+    kind: client
+    options:
+      dialect: openai
+      server: http://mock-openai:4101
+      authorization:
+        api_key:
+          credentials: "Bearer {credentials}"
+    exit: south_http_client_openai
+  south_http_client_openai:
+    type: http
+    kind: client
+    exit: south_tcp_client_openai
+  south_tcp_client_openai:
+    type: tcp
+    kind: client
+    options:
+      host: mock-openai
+      port: 4101
+
+  # Second same-dialect (openai) deployment: north_llm_proxy routes gpt-4o here
+  # instead of translating to mock-anthropic -- no dialect translation happens
+  # on this leg at all, same dialect in as out.
+  south_llm_client_openai_secondary:
+    type: llm
+    kind: client
+    options:
+      dialect: openai
+      server: http://mock-openai-secondary:4103
+      authorization:
+        api_key:
+          credentials: "Bearer {credentials}"
+    exit: south_http_client_openai_secondary
+  south_http_client_openai_secondary:
+    type: http
+    kind: client
+    exit: south_tcp_client_openai_secondary
+  south_tcp_client_openai_secondary:
+    type: tcp
+    kind: client
+    options:
+      host: mock-openai-secondary
+      port: 4103
+
+  # Second same-dialect (anthropic) deployment: north_llm_proxy routes
+  # claude-3-5-haiku-20241022 here instead of translating to mock-openai.
+  south_llm_client_anthropic_secondary:
+    type: llm
+    kind: client
+    options:
+      dialect: anthropic
+      server: http://mock-anthropic-secondary:4104
+      authorization:
+        api_key:
+          credentials: "{credentials}"
+    exit: south_http_client_anthropic_secondary
+  south_http_client_anthropic_secondary:
+    type: http
+    kind: client
+    exit: south_tcp_client_anthropic_secondary
+  south_tcp_client_anthropic_secondary:
+    type: tcp
+    kind: client
+    options:
+      host: mock-anthropic-secondary
+      port: 4104

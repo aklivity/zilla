@@ -14,15 +14,19 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.internal.mapper;
 
+import org.agrona.DirectBuffer;
+
 /**
- * Receives the dialect-native events a mapper's {@code encode} produces from
- * canonical events, as an SSE event name (nullable, e.g. OpenAI names none) paired
- * with its payload text (a JSON document, except the dialect's own non-JSON
- * terminal marker such as {@code [DONE]}).
+ * Receives the dialect-native events a mapper's {@code encode} produces from canonical events, as an
+ * SSE event name (nullable, e.g. OpenAI names none) paired with its payload bytes (a JSON document,
+ * except the dialect's own non-JSON terminal marker such as {@code [DONE]}). {@code buffer} is only
+ * valid for the duration of the call.
  */
 public interface LlmNativeEventOutput
 {
     void event(
         String name,
-        String data);
+        DirectBuffer buffer,
+        int offset,
+        int length);
 }

@@ -36,10 +36,23 @@ public class LlmJsonContentDecoderTest
     private final LlmContentDecoderOutput output = new LlmContentDecoderOutput()
     {
         @Override
+        public boolean available()
+        {
+            return true;
+        }
+
+        @Override
+        public void event(
+            String event)
+        {
+        }
+
+        @Override
         public void data(
             DirectBuffer buffer,
             int offset,
-            int length)
+            int length,
+            boolean last)
         {
             data.append(buffer.getStringWithoutLengthUtf8(offset, length));
         }

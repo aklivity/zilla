@@ -23,16 +23,27 @@ import org.agrona.DirectBuffer;
 public interface LlmContentDecoderOutput
 {
     /**
+     * Reports whether the decoder may start emitting a new event boundary. A decoder that scans
+     * multiple event boundaries within a single {@link LlmContentDecoder#decode} call checks this
+     * between boundaries and stops early once it returns {@code false}, leaving the unscanned bytes
+     * for a later {@code decode} call once the caller can accept more. An implementer with no concept
+     * of named events (e.g. plain JSON) returns {@code true} unconditionally, since it has nothing to
+     * stop for.
+     *
+     * @return {@code true} if decoding may continue past the boundary just reached
+     */
+    boolean available();
+
+    /**
      * Signals that decoding has entered a new content-type-specific named event -- e.g. the SSE
-     * {@code event:} field's value -- before any {@link #data} belonging to it is emitted. The default
-     * does nothing, since a content-type with no concept of named events (e.g. plain JSON) never calls it.
+     * {@code event:} field's value -- before any {@link #data} belonging to it is emitted. An
+     * implementer with no concept of named events (e.g. plain JSON) never has this called, but still
+     * implements it (e.g. as a no-op) rather than relying on a default.
      *
      * @param event  the event name
      */
-    default void event(
-        String event)
-    {
-    }
+    void event(
+        String event);
 
     /**
      * Emits content bytes belonging to the event currently being decoded.
@@ -40,11 +51,15 @@ public interface LlmContentDecoderOutput
      * @param buffer  the buffer holding the content bytes
      * @param offset  the offset of the content bytes within {@code buffer}
      * @param length  the number of content bytes
+     * @param last    {@code true} when these bytes conclude the current field's value (its own line
+     *                terminator was found, or the whole content is buffered in one call); {@code false}
+     *                when more of the same value follows in a later call
      */
     void data(
         DirectBuffer buffer,
         int offset,
-        int length);
+        int length,
+        boolean last);
 
     /**
      * Emits an event boundary reached by the decoder.

@@ -14,13 +14,8 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.dialect;
 
-import java.net.URL;
-
 public final class LlmOpenaiDialectFactorySpi implements LlmDialectFactorySpi
 {
-    private static final String REQUEST_SCHEMA = "openai.request.schema.json";
-    private static final String RESPONSE_SCHEMA = "openai.response.schema.json";
-
     @Override
     public String name()
     {
@@ -31,12 +26,5 @@ public final class LlmOpenaiDialectFactorySpi implements LlmDialectFactorySpi
     public LlmDialect create()
     {
         return new LlmOpenaiDialect();
-    }
-
-    @Override
-    public URL schema(
-        LlmDialect.Kind kind)
-    {
-        return getClass().getResource(kind == LlmDialect.Kind.REQUEST ? REQUEST_SCHEMA : RESPONSE_SCHEMA);
     }
 }

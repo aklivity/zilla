@@ -40,10 +40,7 @@ function streamChatCompletion(res, model, content)
     res.end();
 }
 
-// south_llm_client_openai_secondary always issues its outbound request to
-// "/", regardless of dialect -- it does not carry the dialect's own
-// canonical path (e.g. /v1/chat/completions) upstream.
-app.post("/", (req, res) =>
+app.post("/v1/chat/completions", (req, res) =>
 {
     // Zilla's south_llm_client_openai_secondary forwards the caller's own
     // credential here via options.authorization pass-through; logged so

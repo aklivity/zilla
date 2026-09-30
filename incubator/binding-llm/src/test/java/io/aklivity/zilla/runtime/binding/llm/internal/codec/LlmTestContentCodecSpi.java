@@ -33,7 +33,7 @@ public final class LlmTestContentCodecSpi implements LlmContentCodecSpi
     {
         return (buffer, offset, limit, output) ->
         {
-            output.data(buffer, offset, limit - offset);
+            output.data(buffer, offset, limit - offset, true);
             return limit;
         };
     }
@@ -44,7 +44,7 @@ public final class LlmTestContentCodecSpi implements LlmContentCodecSpi
         return new LlmContentEncoder()
         {
             @Override
-            public int encodeEventName(
+            public int encodeEvent(
                 String event,
                 MutableDirectBuffer encoded,
                 int encodedOffset,
@@ -58,6 +58,8 @@ public final class LlmTestContentCodecSpi implements LlmContentCodecSpi
                 DirectBuffer buffer,
                 int offset,
                 int length,
+                boolean first,
+                boolean last,
                 MutableDirectBuffer encoded,
                 int encodedOffset,
                 int encodedLimit)

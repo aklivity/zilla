@@ -19,8 +19,7 @@ connect "zilla://streams/net0"
 
 write zilla:begin.ext ${llm:beginEx()
                             .typeId(zilla:id("llm"))
-                            .dialect("test-permissive")
-                            .contentType("application/vnd.zilla.test-permissive+json")
+                            .dialect("openai")
                             .model("gpt-c")
                             .build()}
 

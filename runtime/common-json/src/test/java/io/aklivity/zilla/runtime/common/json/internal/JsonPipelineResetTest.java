@@ -16,15 +16,21 @@ package io.aklivity.zilla.runtime.common.json.internal;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.junit.jupiter.api.Test;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.common.json.JsonController;
+import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
+import io.aklivity.zilla.runtime.common.json.JsonSink;
+import io.aklivity.zilla.runtime.common.json.JsonSource;
+import io.aklivity.zilla.runtime.common.json.JsonTransform;
 
 class JsonPipelineResetTest
 {
@@ -53,5 +59,79 @@ class JsonPipelineResetTest
         byte[] out = new byte[generator.length()];
         buffer.getBytes(0, out);
         assertEquals("{\"b\":2} ", new String(out, UTF_8));
+    }
+
+    // Line-delimited JSON (and a multi-document YAML stream mapped through this pipeline) needs a document
+    // boundary that isn't a hand-off to a wholly unrelated value: a stage's own cross-document accumulation
+    // (e.g. a running count, a held key) must survive from one record to the next in the same session.
+    // nextDocument() is that boundary; reset() remains reserved for pooled-instance reuse by an unrelated
+    // caller, still cascading JsonTransform.reset() down the chain as before.
+    @Test
+    void shouldCarryTransformStateAcrossNextDocumentButNotAcrossReset()
+    {
+        JsonGeneratorEx generator = JsonEx.createGenerator();
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[1024]);
+        CountingTransform counting = new CountingTransform();
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser())
+            .transform(counting)
+            .into(JsonEx.createSink(generator));
+
+        pipeline.reset();
+        generator.wrap(buffer, 0, buffer.capacity());
+        byte[] first = "{\"a\":1}".getBytes(UTF_8);
+        assertEquals(Status.COMPLETED, pipeline.transform(new UnsafeBufferEx(first), 0, first.length, true));
+        byte[] firstOut = new byte[generator.length()];
+        buffer.getBytes(0, firstOut);
+        assertEquals("{\"a\":1}", new String(firstOut, UTF_8));
+        assertEquals(1, counting.documentsStarted);
+
+        pipeline.nextDocument();
+        generator.wrap(buffer, 0, buffer.capacity());
+        byte[] second = "{\"b\":2}".getBytes(UTF_8);
+        assertEquals(Status.COMPLETED, pipeline.transform(new UnsafeBufferEx(second), 0, second.length, true));
+        byte[] secondOut = new byte[generator.length()];
+        buffer.getBytes(0, secondOut);
+        assertEquals("{\"b\":2}", new String(secondOut, UTF_8));
+        assertEquals(2, counting.documentsStarted);
+
+        pipeline.reset();
+        assertEquals(0, counting.documentsStarted);
+    }
+
+    @Test
+    void shouldRejectNextDocumentBeforeCompletion()
+    {
+        JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser()).into(JsonEx.createSink(JsonEx.createGenerator()));
+        pipeline.reset();
+
+        assertThrows(AssertionError.class, pipeline::nextDocument);
+    }
+
+    // A non-mediating pass-through stage: it forwards every event and the caller's own control unchanged,
+    // so it never affects byte-preserving delivery, and only counts document starts to prove whether its
+    // own state survived a document boundary.
+    private static final class CountingTransform implements JsonTransform
+    {
+        private int documentsStarted;
+
+        @Override
+        public Status transform(
+            JsonController control,
+            JsonSource source,
+            JsonEvent event,
+            JsonSink sink)
+        {
+            if (event == JsonEvent.START_DOCUMENT)
+            {
+                documentsStarted++;
+            }
+            return sink.transform(control, source, event);
+        }
+
+        @Override
+        public void reset()
+        {
+            documentsStarted = 0;
+        }
     }
 }

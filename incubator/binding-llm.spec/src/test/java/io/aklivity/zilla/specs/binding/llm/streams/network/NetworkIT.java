@@ -38,62 +38,17 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/request.valid/client",
-        "${net}/request.valid/server"})
-    public void shouldForwardValidRequest() throws Exception
+        "${net}/anthropic.invalid/client",
+        "${net}/anthropic.invalid/server"})
+    public void shouldRejectInvalidAnthropicRequest() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/request.valid.10k/client",
-        "${net}/request.valid.10k/server"})
-    public void shouldForwardValidRequest10k() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/request.valid.100k/client",
-        "${net}/request.valid.100k/server"})
-    public void shouldForwardValidRequest100k() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/response.valid.10k/client",
-        "${net}/response.valid.10k/server"})
-    public void shouldForwardValidResponse10k() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/response.valid.100k/client",
-        "${net}/response.valid.100k/server"})
-    public void shouldForwardValidResponse100k() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/request.rejected.schema/client",
-        "${net}/request.rejected.schema/server"})
-    public void shouldRejectRequestFailingSchema() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/request.rejected.dialect/client",
-        "${net}/request.rejected.dialect/server"})
+        "${net}/reject.unknown.dialect/client",
+        "${net}/reject.unknown.dialect/server"})
     public void shouldRejectRequestWithUnresolvedDialect() throws Exception
     {
         k3po.finish();
@@ -101,44 +56,17 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/request.aborted/client",
-        "${net}/request.aborted/server"})
-    public void shouldRequestAborted() throws Exception
+        "${net}/openai.response.invalid.content.type/client",
+        "${net}/openai.response.invalid.content.type/server"})
+    public void shouldEncodeResponseWithInvalidContentType() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/same.dialect/client",
-        "${net}/same.dialect/server"})
-    public void shouldEncodeSameDialect() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/cross.dialect/client",
-        "${net}/cross.dialect/server"})
-    public void shouldEncodeCrossDialect() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/client.opaque.fallback/client",
-        "${net}/client.opaque.fallback/server"})
-    public void shouldForwardClientOpaqueFallback() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/client.abort/client",
-        "${net}/client.abort/server"})
+        "${net}/abort/client",
+        "${net}/abort/server"})
     public void shouldAbortClientRequest() throws Exception
     {
         k3po.finish();
@@ -146,8 +74,8 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/openai.request/client",
-        "${net}/openai.request/server"})
+        "${net}/openai.echo/client",
+        "${net}/openai.echo/server"})
     public void shouldEncodeOpenaiRequest() throws Exception
     {
         k3po.finish();
@@ -155,8 +83,8 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/anthropic.request/client",
-        "${net}/anthropic.request/server"})
+        "${net}/anthropic.echo/client",
+        "${net}/anthropic.echo/server"})
     public void shouldEncodeAnthropicRequest() throws Exception
     {
         k3po.finish();
@@ -173,8 +101,8 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/openai.nonstreaming/client",
-        "${net}/openai.nonstreaming/server"})
+        "${net}/openai/client",
+        "${net}/openai/server"})
     public void shouldEncodeOpenaiNonstreaming() throws Exception
     {
         k3po.finish();
@@ -182,8 +110,35 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/openai.request.invalid/client",
-        "${net}/openai.request.invalid/server"})
+        "${net}/openai.reply.padded/client",
+        "${net}/openai.reply.padded/server"})
+    public void shouldEncodeOpenaiNonstreamingWithReplyPadding() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.request.padded/client",
+        "${net}/openai.request.padded/server"})
+    public void shouldEncodeOpenaiRequestWithReplyPadding() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.custom.base.path/client",
+        "${net}/openai.custom.base.path/server"})
+    public void shouldEncodeOpenaiUnderCustomBasePath() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.invalid/client",
+        "${net}/openai.invalid/server"})
     public void shouldRejectInvalidOpenaiRequest() throws Exception
     {
         k3po.finish();
@@ -200,24 +155,6 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/anthropic.response.invalid/client",
-        "${net}/anthropic.response.invalid/server"})
-    public void shouldEncodeAnthropicResponseWithMismatchedEventType() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/anthropic.response.valid/client",
-        "${net}/anthropic.response.valid/server"})
-    public void shouldEncodeAnthropicResponseWithMatchingEventType() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${net}/anthropic.streaming/client",
         "${net}/anthropic.streaming/server"})
     public void shouldEncodeAnthropicStreaming() throws Exception
@@ -227,35 +164,22 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/anthropic.nonstreaming/client",
-        "${net}/anthropic.nonstreaming/server"})
+        "${net}/anthropic/client",
+        "${net}/anthropic/server"})
     public void shouldEncodeAnthropicNonstreaming() throws Exception
     {
         k3po.finish();
     }
 
-    @Test
-    @Specification({
-        "${net}/openai.request.guarded/client",
-        "${net}/openai.request.guarded/server"})
-    public void shouldEncodeOpenaiRequestGuarded() throws Exception
-    {
-        k3po.finish();
-    }
+    // network/openai.authorized and network/anthropic.authorized are exercised as two
+    // independent, cross-directory pairs -- client.rpt (an already-authenticated caller) by LlmServerIT,
+    // server.rpt (asserts the guard-resolved zilla:authorization arrived) by LlmClientIT -- not self-paired
+    // here, since a plain k3po connect never carries an authorization value the accept side would resolve.
 
     @Test
     @Specification({
-        "${net}/anthropic.request.guarded/client",
-        "${net}/anthropic.request.guarded/server"})
-    public void shouldEncodeAnthropicRequestGuarded() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/openai.request.rejected.authorization/client",
-        "${net}/openai.request.rejected.authorization/server"})
+        "${net}/openai.rejected.authorization/client",
+        "${net}/openai.rejected.authorization/server"})
     public void shouldRejectOpenaiRequestFailingAuthorization() throws Exception
     {
         k3po.finish();
@@ -263,16 +187,172 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/anthropic.request.rejected.authorization/client",
-        "${net}/anthropic.request.rejected.authorization/server"})
+        "${net}/anthropic.rejected.authorization/client",
+        "${net}/anthropic.rejected.authorization/server"})
     public void shouldRejectAnthropicRequestFailingAuthorization() throws Exception
     {
         k3po.finish();
     }
 
-    // openai.10k/anthropic.10k/openai.100k/anthropic.100k's client.rpt and server.rpt are not a
-    // self-consistent pair here (unlike openai.request/anthropic.request): client.rpt plays the external
-    // caller's realistic path (e.g. /v1/chat/completions) for LlmServerIT's own use, while server.rpt plays
-    // llm(client)'s own backend at "/" for LlmClientIT's use -- two different hops, deliberately asymmetric,
-    // never meant to be matched directly against each other.
+    @Test
+    @Specification({
+        "${net}/openai.10k/client",
+        "${net}/openai.10k/server"})
+    public void shouldEncodeOpenai10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.10k/client",
+        "${net}/anthropic.10k/server"})
+    public void shouldEncodeAnthropic10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.100k/client",
+        "${net}/openai.100k/server"})
+    public void shouldEncodeOpenai100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.100k/client",
+        "${net}/anthropic.100k/server"})
+    public void shouldEncodeAnthropic100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.streaming.10k/client",
+        "${net}/openai.streaming.10k/server"})
+    public void shouldEncodeOpenaiStreaming10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.streaming.10k/client",
+        "${net}/anthropic.streaming.10k/server"})
+    public void shouldEncodeAnthropicStreaming10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.streaming.100k/client",
+        "${net}/openai.streaming.100k/server"})
+    public void shouldEncodeOpenaiStreaming100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.streaming.100k/client",
+        "${net}/anthropic.streaming.100k/server"})
+    public void shouldEncodeAnthropicStreaming100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.streaming.transformed/client",
+        "${net}/openai.streaming.transformed/server"})
+    public void shouldEncodeOpenaiStreamingTransformed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.streaming.transformed/client",
+        "${net}/anthropic.streaming.transformed/server"})
+    public void shouldEncodeAnthropicStreamingTransformed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.streaming.transformed.100k/client",
+        "${net}/anthropic.streaming.transformed.100k/server"})
+    public void shouldEncodeAnthropicStreamingTransformed100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transformed/client",
+        "${net}/openai.transformed/server"})
+    public void shouldEncodeOpenaiNonstreamingTransformed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transformed/client",
+        "${net}/anthropic.transformed/server"})
+    public void shouldEncodeAnthropicNonstreamingTransformed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transformed.100k/client",
+        "${net}/anthropic.transformed.100k/server"})
+    public void shouldEncodeAnthropicNonstreamingTransformed100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transformed.100k/client",
+        "${net}/openai.transformed.100k/server"})
+    public void shouldEncodeOpenaiNonstreamingTransformed100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transformed.tool.only/client",
+        "${net}/openai.transformed.tool.only/server"})
+    public void shouldEncodeOpenaiNonstreamingTransformedToolOnly() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transformed.tool.only/client",
+        "${net}/anthropic.transformed.tool.only/server"})
+    public void shouldEncodeAnthropicNonstreamingTransformedToolOnly() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transformed.multi.tool/client",
+        "${net}/anthropic.transformed.multi.tool/server"})
+    public void shouldEncodeAnthropicNonstreamingTransformedMultiTool() throws Exception
+    {
+        k3po.finish();
+    }
 }

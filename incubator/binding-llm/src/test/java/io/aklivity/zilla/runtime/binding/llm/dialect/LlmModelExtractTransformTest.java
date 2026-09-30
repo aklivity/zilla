@@ -20,47 +20,36 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.io.StringReader;
+
+import jakarta.json.Json;
+import jakarta.json.JsonObject;
+import jakarta.json.JsonReader;
 
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
-import io.aklivity.zilla.runtime.engine.model.ModelController;
-import io.aklivity.zilla.runtime.engine.model.ModelEvent;
-import io.aklivity.zilla.runtime.engine.model.ModelSink;
-import io.aklivity.zilla.runtime.engine.model.ModelSource;
-import io.aklivity.zilla.runtime.engine.model.ModelStatus;
-import io.aklivity.zilla.runtime.engine.model.ModelTransform;
+import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
+import io.aklivity.zilla.runtime.common.json.JsonEx;
+import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
+import io.aklivity.zilla.runtime.common.json.JsonParserEx;
+import io.aklivity.zilla.runtime.common.json.JsonPipeline;
+import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
+import io.aklivity.zilla.runtime.common.json.JsonPipelineResult;
+import io.aklivity.zilla.runtime.common.json.JsonTransform;
 
 public class LlmModelExtractTransformTest
 {
-    private static final ModelController NO_CONTROL = new ModelController()
-    {
-        @Override
-        public long authorization()
-        {
-            return 0L;
-        }
-
-        @Override
-        public void reject(
-            String diagnostic)
-        {
-        }
-    };
-
     @Test
     public void shouldExtractModelIntoEnvelope()
     {
-        Recorder recorder = new Recorder();
-        TestModelEnvelope envelope = new TestModelEnvelope();
-        ModelTransform transform = new LlmModelExtractTransform(envelope);
+        TestJsonEnvelope envelope = new TestJsonEnvelope();
+        JsonTransform transform = new LlmModelExtractTransform(envelope);
 
-        feed(transform, recorder, "$.model", "claude-3-opus-20240229");
+        transform(transform, envelope, "{\"model\":\"claude-3-opus-20240229\"}");
 
-        assertThat(recorder.events, equalTo(List.of("$.model=claude-3-opus-20240229")));
         DirectBufferEx extracted = envelope.get("model", 0);
         assertThat(extracted.getStringWithoutLengthUtf8(0, extracted.capacity()), equalTo("claude-3-opus-20240229"));
     }
@@ -68,11 +57,10 @@ public class LlmModelExtractTransformTest
     @Test
     public void shouldNotExtractNestedFieldNamedModel()
     {
-        Recorder recorder = new Recorder();
-        TestModelEnvelope envelope = new TestModelEnvelope();
-        ModelTransform transform = new LlmModelExtractTransform(envelope);
+        TestJsonEnvelope envelope = new TestJsonEnvelope();
+        JsonTransform transform = new LlmModelExtractTransform(envelope);
 
-        feed(transform, recorder, "$.tools[0].function.model", "should-not-be-extracted");
+        transform(transform, envelope, "{\"tools\":[{\"function\":{\"model\":\"should-not-be-extracted\"}}]}");
 
         assertThat(envelope.get("model", 0), nullValue());
     }
@@ -80,88 +68,45 @@ public class LlmModelExtractTransformTest
     @Test
     public void shouldForwardEveryOtherFieldUnchanged()
     {
-        Recorder recorder = new Recorder();
-        TestModelEnvelope envelope = new TestModelEnvelope();
-        ModelTransform transform = new LlmModelExtractTransform(envelope);
+        TestJsonEnvelope envelope = new TestJsonEnvelope();
+        JsonTransform transform = new LlmModelExtractTransform(envelope);
 
-        feed(transform, recorder, "$.max_tokens", "1024");
-        feed(transform, recorder, "$.top_p", "0.9");
-        feed(transform, recorder, "$.stop_sequences[0]", "\\n");
+        JsonObject result = transform(transform, envelope,
+            "{\"max_tokens\":1024,\"top_p\":0.9,\"stop_sequences\":[\"\\n\"]}");
 
-        assertThat(recorder.events, equalTo(List.of(
-            "$.max_tokens=1024",
-            "$.top_p=0.9",
-            "$.stop_sequences[0]=\\n")));
+        assertThat(result.getInt("max_tokens"), equalTo(1024));
+        assertThat(result.getJsonNumber("top_p").doubleValue(), equalTo(0.9));
+        assertThat(result.getJsonArray("stop_sequences").getString(0), equalTo("\n"));
     }
 
     @Test
     public void shouldBeIdentity()
     {
-        ModelTransform transform = new LlmModelExtractTransform(new TestModelEnvelope());
+        JsonTransform transform = new LlmModelExtractTransform(new TestJsonEnvelope());
 
         assertThat(transform.identity(), is(true));
     }
 
-    private static void feed(
-        ModelTransform transform,
-        ModelSink sink,
-        String path,
-        String value)
+    private static JsonObject transform(
+        JsonTransform transform,
+        JsonEnvelope envelope,
+        String json)
     {
-        transform.transform(NO_CONTROL, new Field(path, value), ModelEvent.FIELD, sink);
-    }
+        JsonParserEx parser = JsonEx.createParser();
+        JsonGeneratorEx generator = JsonEx.createGenerator();
+        JsonPipeline pipeline = JsonEx.stream(parser).envelope(envelope).transform(transform).into(generator);
 
-    private static String text(
-        ModelSource source)
-    {
-        DirectBufferEx value = source.getValue();
-        return value.getStringWithoutLengthUtf8(0, value.capacity());
-    }
+        byte[] bytes = json.getBytes(UTF_8);
+        MutableDirectBufferEx output = new UnsafeBufferEx(new byte[8192]);
+        JsonPipelineResult result = pipeline.transform(new UnsafeBufferEx(bytes), 0, bytes.length, true, output, 0,
+            output.capacity());
 
-    private static final class Field implements ModelSource
-    {
-        private final String path;
-        private final DirectBufferEx value;
+        assertThat(result.status(), equalTo(Status.COMPLETED));
 
-        private Field(
-            String path,
-            String value)
+        String text = output.getStringWithoutLengthUtf8(0, result.produced());
+        try (JsonReader reader = Json.createReader(new StringReader(text)))
         {
-            this.path = path;
-            this.value = new UnsafeBufferEx(value.getBytes(UTF_8));
-        }
-
-        @Override
-        public String getPath()
-        {
-            return path;
-        }
-
-        @Override
-        public DirectBufferEx getValue()
-        {
-            return value;
-        }
-    }
-
-    private static final class Recorder implements ModelSink
-    {
-        private final List<String> events = new ArrayList<>();
-
-        @Override
-        public ModelStatus transform(
-            ModelController control,
-            ModelSource source,
-            ModelEvent event)
-        {
-            events.add(source.getPath() + "=" + text(source));
-            return ModelStatus.OK;
-        }
-
-        @Override
-        public boolean identity()
-        {
-            return false;
+            return reader.readObject();
         }
     }
 }

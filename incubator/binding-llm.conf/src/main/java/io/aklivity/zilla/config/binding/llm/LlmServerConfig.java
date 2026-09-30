@@ -20,8 +20,10 @@ import io.aklivity.zilla.config.engine.Config;
 
 public class LlmServerConfig extends Config
 {
+    public final String scheme;
     public final String host;
     public final int port;
+    public final String path;
 
     public static LlmServerConfigBuilder<LlmServerConfig> builder()
     {
@@ -35,16 +37,20 @@ public class LlmServerConfig extends Config
     }
 
     LlmServerConfig(
+        String scheme,
         String host,
-        int port)
+        int port,
+        String path)
     {
+        this.scheme = scheme;
         this.host = host;
         this.port = port;
+        this.path = path;
     }
 
     @Override
     public String toString()
     {
-        return String.format("%s:%d", host, port);
+        return String.format("%s://%s:%d%s", scheme, host, port, path);
     }
 }

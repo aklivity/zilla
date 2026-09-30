@@ -47,10 +47,7 @@ function streamMessage(res, model, text)
     res.end();
 }
 
-// south_llm_client_anthropic always issues its outbound request to "/",
-// regardless of dialect -- it does not carry the dialect's own canonical
-// path (e.g. /v1/messages) upstream.
-app.post("/", (req, res) =>
+app.post("/v1/messages", (req, res) =>
 {
     // Zilla's south_llm_client_anthropic forwards the caller's own credential
     // here via options.authorization pass-through; logged so verify.py can

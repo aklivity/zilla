@@ -22,7 +22,6 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.function.LongUnaryOperator;
 
-import org.agrona.DirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
 
 import io.aklivity.zilla.config.engine.BindingConfig;
@@ -40,25 +39,24 @@ import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.ChallengeFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.EndFW;
-import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmBeginExFW;
-import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmFlushExFW;
-import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmNativeFlushExFW;
+import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmDataExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.common.json.JsonEx;
+import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
+import io.aklivity.zilla.runtime.common.json.JsonParserEx;
+import io.aklivity.zilla.runtime.common.json.JsonPipeline;
+import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
+import io.aklivity.zilla.runtime.common.json.JsonPipelineResult;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
-import io.aklivity.zilla.runtime.engine.model.ModelCache;
-import io.aklivity.zilla.runtime.engine.model.ModelHandler;
-import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
-import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
-import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 
 public final class LlmServerFactory implements LlmStreamFactory
 {
@@ -73,13 +71,17 @@ public final class LlmServerFactory implements LlmStreamFactory
     private static final int FLAG_FIN = 0x01;
     private static final int FLAG_INIT = 0x02;
 
+    // encoding a response chunk adds SSE framing (event:/data:/id: field prefixes and line
+    // terminators) on top of the raw application payload bytes, so the reply window reserves this
+    // much per-frame padding, keeping each frame's own reserved credit sized for its encoded form
+    private static final int RESPONSE_ENCODE_PADDING = 128;
+
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBufferEx(new byte[0]), 0, 0);
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
     private final EndFW endRO = new EndFW();
     private final AbortFW abortRO = new AbortFW();
-    private final FlushFW flushRO = new FlushFW();
     private final ResetFW resetRO = new ResetFW();
     private final WindowFW windowRO = new WindowFW();
     private final ChallengeFW challengeRO = new ChallengeFW();
@@ -96,7 +98,7 @@ public final class LlmServerFactory implements LlmStreamFactory
     private final HttpBeginExFW.Builder httpBeginExRW = new HttpBeginExFW.Builder();
     private final LlmBeginExFW llmBeginExRO = new LlmBeginExFW();
     private final LlmBeginExFW.Builder llmBeginExRW = new LlmBeginExFW.Builder();
-    private final LlmFlushExFW llmFlushExRO = new LlmFlushExFW();
+    private final LlmDataExFW llmDataExRO = new LlmDataExFW();
 
     private final MutableDirectBufferEx writeBuffer;
     private final MutableDirectBufferEx extBuffer;
@@ -120,16 +122,6 @@ public final class LlmServerFactory implements LlmStreamFactory
         this.writeBuffer = requireNonNull(context.writeBuffer());
         this.extBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.decodePool = context.bufferPool();
-        // Wraps a distinct MutableDirectBufferEx instance internally, even though it shares the same
-        // underlying pooled memory and slot accounting as decodePool -- bufferPool.buffer(slot) rewraps a
-        // single mutable field per pool, so holding a decodePool-fetched buffer across decodeNetwork()'s
-        // direct call into LlmStream.doAppData() (which fetches from encodeSlot) never repoints it at the
-        // wrong slot's memory, the way a single shared pool handle would. See McpServerFactory's
-        // decodePool/encodePool for precedent. encodePool itself is shared by both LlmServer's reply-
-        // direction relay and LlmStream's request-direction relay: the two never appear in the same call
-        // stack -- LlmStream forwards to app0 only via the deferred, ring-buffer-mediated accept() path,
-        // never a direct Java call into LlmServer's own encodeSlot handling -- so a single encodePool
-        // instance can't alias between them.
         this.encodePool = context.bufferPool().duplicate();
         this.transformBuffer = new UnsafeBufferEx(new byte[decodePool.slotCapacity()]);
         this.copyBuffer = new UnsafeBufferEx(new byte[encodePool.slotCapacity()]);
@@ -199,9 +191,7 @@ public final class LlmServerFactory implements LlmStreamFactory
                         else
                         {
                             final String contentType = header(envelope, HEADER_CONTENT_TYPE);
-                            final ModelHandler model = binding.supplyModel(dialect, LlmDialect.Kind.REQUEST);
-                            final ModelPipeline pipeline = model.supplyDecoder(
-                                envelope, dialect.supplyValidator(LlmDialect.Kind.REQUEST, envelope), ModelCache.NONE);
+                            final JsonPipeline pipeline = buildRequestPipeline(dialect, envelope);
 
                             newStream = new LlmServer(
                                     network,
@@ -222,6 +212,20 @@ public final class LlmServerFactory implements LlmStreamFactory
         }
 
         return newStream;
+    }
+
+    private JsonPipeline buildRequestPipeline(
+        LlmDialect dialect,
+        LlmModelEnvelope envelope)
+    {
+        final JsonParserEx parser = JsonEx.createParser();
+        final JsonGeneratorEx generator = JsonEx.createGenerator();
+
+        return JsonEx.stream(parser)
+            .envelope(envelope)
+            .transform(dialect.supplySchemaValidator(LlmDialect.Kind.REQUEST))
+            .transform(dialect.supplyExtractor(LlmDialect.Kind.REQUEST, envelope))
+            .into(generator);
     }
 
     private HttpBeginExFW extractHeaders(
@@ -253,9 +257,6 @@ public final class LlmServerFactory implements LlmStreamFactory
         return value != null ? value.getStringWithoutLengthUtf8(0, value.capacity()) : null;
     }
 
-    // Reports the INIT/FIN flags for one slice of a larger fragment being sent across multiple frames as
-    // budget allows: INIT only carries on the first slice, FIN only on the last, matching how the original
-    // fragment's own flags would have applied had the whole thing fit in one frame.
     private static int sliceFlags(
         int flags,
         boolean first,
@@ -273,14 +274,10 @@ public final class LlmServerFactory implements LlmStreamFactory
         return sliceFlags;
     }
 
-    // Marks one physical reply frame's extent within the shared, capacity-bounded encodeSlot buffer, so
-    // several independently-flagged frames from app0 can accumulate and drain in order -- each one may
-    // itself need several slices to get past the client's own smaller window -- without losing frame
-    // boundaries or copying bytes out into a separate per-frame allocation. Mutable only in `sent`, which
-    // tracks progress made slicing *this* chunk out to the client across possibly-multiple doNetData calls.
     private static final class SlotChunk
     {
         private final int length;
+        private final int rawLength;
         private final int flags;
         private final long budgetId;
         private final long traceId;
@@ -289,12 +286,14 @@ public final class LlmServerFactory implements LlmStreamFactory
 
         private SlotChunk(
             int length,
+            int rawLength,
             int flags,
             long budgetId,
             long traceId,
             long authorization)
         {
             this.length = length;
+            this.rawLength = rawLength;
             this.flags = flags;
             this.budgetId = budgetId;
             this.traceId = traceId;
@@ -302,12 +301,6 @@ public final class LlmServerFactory implements LlmStreamFactory
         }
     }
 
-    // Represents the network (accept) side of one exchange: client <-> us. Owns the request-direction
-    // decode slot (raw client bytes not yet fed to the model pipeline) and the reply-direction relay slot
-    // (bytes received from the app-facing LlmStream not yet forwarded to the client). Credit granted to
-    // the client in either direction is always computed from this class's own slot occupancy -- never
-    // copied from LlmStream's sequence numbers, which live in an entirely different, independently-sized
-    // byte domain once a model transform is involved.
     private final class LlmServer
     {
         private final MessageConsumer network;
@@ -319,7 +312,7 @@ public final class LlmServerFactory implements LlmStreamFactory
         private final LlmDialect dialect;
         private final String contentType;
         private final LlmModelEnvelope envelope;
-        private final ModelPipeline pipeline;
+        private final JsonPipeline pipeline;
         private final Runnable deauthorize;
 
         private LlmStream stream;
@@ -331,6 +324,7 @@ public final class LlmServerFactory implements LlmStreamFactory
         private long replySeq;
         private long replyAck;
         private int replyMax;
+        private int replyPad;
 
         private int state;
         private boolean requestStarted;
@@ -344,6 +338,7 @@ public final class LlmServerFactory implements LlmStreamFactory
 
         private int encodeSlot = NO_SLOT;
         private int encodeSlotOffset;
+        private int encodeSlotRawOffset;
         private final Deque<SlotChunk> encodeChunks = new ArrayDeque<>();
         private boolean flushingReply;
 
@@ -362,7 +357,7 @@ public final class LlmServerFactory implements LlmStreamFactory
             LlmDialect dialect,
             String contentType,
             LlmModelEnvelope envelope,
-            ModelPipeline pipeline,
+            JsonPipeline pipeline,
             Runnable deauthorize)
         {
             this.network = network;
@@ -460,14 +455,6 @@ public final class LlmServerFactory implements LlmStreamFactory
             }
         }
 
-        // Drives pipeline.transform() against whatever raw input currently sits in decodeSlot, stopping
-        // either when the slot fully drains, when the pipeline genuinely needs more input than we have
-        // (consumed == 0 -- ordinary fragmentation, unrelated to app0 backpressure, so the network window
-        // stays open), or when the app-facing LlmStream's own request slot is occupied (app0 backpressure --
-        // the network window is deliberately NOT reopened until that clears, which is what makes a second
-        // frame arriving while one is still pending structurally impossible). Called both right after
-        // appending fresh bytes in onNetData, and again once app0 backpressure clears (see onAppWindow),
-        // to resume any input left over from an earlier call.
         private void decodeNetwork(
             long traceId)
         {
@@ -480,14 +467,13 @@ public final class LlmServerFactory implements LlmStreamFactory
 
                 while (progress < decodeSlotOffset && (stream == null || stream.requestAvailable()))
                 {
-                    final boolean first = !requestStarted;
-                    final int callFlags = (first ? decodeSlotFlags & FLAG_INIT : 0) | (decodeSlotFlags & FLAG_FIN);
+                    final boolean last = (decodeSlotFlags & FLAG_FIN) != 0;
 
-                    final ModelPipelineResult result = pipeline.transform(traceId, routedId, authorization, callFlags,
-                        decodeBuffer, progress, decodeSlotOffset, transformBuffer, 0, transformBuffer.capacity());
-                    final ModelStatus status = result.status();
+                    JsonPipelineResult result = pipeline.transform(decodeBuffer, progress, decodeSlotOffset, last,
+                        transformBuffer, 0, transformBuffer.capacity());
+                    Status status = result.status();
 
-                    if (status == ModelStatus.REJECTED)
+                    if (status == Status.REJECTED)
                     {
                         pipeline.reset();
                         doNetReset(traceId);
@@ -499,25 +485,46 @@ public final class LlmServerFactory implements LlmStreamFactory
                         return;
                     }
 
-                    requestStarted = true;
-
                     if (stream == null)
                     {
                         stream = new LlmStream(this);
                         stream.doAppBegin(traceId, authorization);
                     }
 
-                    final int producedLength = result.produced();
-                    if (producedLength > 0)
+                    boolean forwarded = true;
+                    while (status == Status.SUSPENDED && forwarded)
                     {
-                        final int outputFlags = (first ? callFlags & FLAG_INIT : 0)
-                            | (status == ModelStatus.COMPLETE ? callFlags & FLAG_FIN : 0);
-                        stream.doAppData(transformBuffer, producedLength, outputFlags, traceId, authorization);
+                        forwardDecodedRequest(result.produced(), false, traceId, authorization);
+
+                        forwarded = stream.requestAvailable();
+                        if (forwarded)
+                        {
+                            result = pipeline.transform(decodeBuffer, progress, decodeSlotOffset, last,
+                                transformBuffer, 0, transformBuffer.capacity());
+                            status = result.status();
+
+                            if (status == Status.REJECTED)
+                            {
+                                pipeline.reset();
+                                doNetReset(traceId);
+                                stream.doAppAbort(traceId);
+                                cleanup(traceId);
+                                return;
+                            }
+                        }
                     }
 
-                    if (status == ModelStatus.COMPLETE)
+                    if (!forwarded)
+                    {
+                        break;
+                    }
+
+                    forwardDecodedRequest(result.produced(), status == Status.COMPLETED, traceId, authorization);
+
+                    if (status == Status.COMPLETED)
                     {
                         pipeline.reset();
+                        requestStarted = false;
                     }
 
                     final int consumed = result.consumed();
@@ -562,6 +569,20 @@ public final class LlmServerFactory implements LlmStreamFactory
                         cleanup(traceId);
                     }
                 }
+            }
+        }
+
+        private void forwardDecodedRequest(
+            int producedLength,
+            boolean complete,
+            long traceId,
+            long authorization)
+        {
+            if (producedLength > 0 || complete)
+            {
+                final int outputFlags = (requestStarted ? 0 : FLAG_INIT) | (complete ? FLAG_FIN : 0);
+                stream.doAppData(transformBuffer, producedLength, outputFlags, traceId, authorization);
+                requestStarted = true;
             }
         }
 
@@ -615,6 +636,7 @@ public final class LlmServerFactory implements LlmStreamFactory
 
             replyAck = acknowledge;
             replyMax = maximum;
+            replyPad = window.padding();
             state = LlmState.openReply(state);
 
             flushEncodeSlot(traceId);
@@ -645,12 +667,6 @@ public final class LlmServerFactory implements LlmStreamFactory
             }
         }
 
-        // Called by LlmStream.onAppData with app0's reply payload. app0 is credited (see doAppWindow)
-        // exactly as much room as remains free in encodeSlot, so a compliant app0 can legitimately send
-        // several independently-flagged frames before the first has fully drained toward the client --
-        // each is appended (as a SlotChunk marker over the one shared, capacity-bounded buffer) rather
-        // than assumed to be the sole occupant. Overflowing the slot's actual capacity despite that
-        // credit accounting is a genuine protocol violation, not a case to buffer around.
         private void doNetData(
             OctetsFW payload,
             int flags,
@@ -658,13 +674,15 @@ public final class LlmServerFactory implements LlmStreamFactory
             long traceId,
             long authorization)
         {
-            doNetData(payload.buffer(), payload.offset(), payload.sizeof(), flags, budgetId, traceId, authorization);
+            doNetData(payload.buffer(), payload.offset(), payload.sizeof(), payload.sizeof(), flags, budgetId,
+                traceId, authorization);
         }
 
         private void doNetData(
             DirectBufferEx buffer,
             int offset,
             int length,
+            int rawLength,
             int flags,
             long budgetId,
             long traceId,
@@ -686,7 +704,8 @@ public final class LlmServerFactory implements LlmStreamFactory
                 final MutableDirectBufferEx slotBuffer = encodePool.buffer(encodeSlot);
                 slotBuffer.putBytes(encodeSlotOffset, buffer, offset, length);
                 encodeSlotOffset += length;
-                encodeChunks.add(new SlotChunk(length, flags, budgetId, traceId, authorization));
+                encodeSlotRawOffset += rawLength;
+                encodeChunks.add(new SlotChunk(length, rawLength, flags, budgetId, traceId, authorization));
 
                 flushEncodeSlot(traceId);
             }
@@ -706,7 +725,7 @@ public final class LlmServerFactory implements LlmStreamFactory
                 final MutableDirectBufferEx buffer = encodePool.buffer(encodeSlot);
                 while (!encodeChunks.isEmpty())
                 {
-                    final long available = replyMax - (replySeq - replyAck);
+                    final long available = replyMax - (replySeq - replyAck) - replyPad;
                     if (available <= 0)
                     {
                         break;
@@ -727,7 +746,7 @@ public final class LlmServerFactory implements LlmStreamFactory
                     final int sliceOffset = chunk.sent;
                     chunk.sent += sliceLength;
                     doNetData(chunk.traceId, chunk.authorization, outputFlags, chunk.budgetId,
-                        sliceLength, buffer, sliceOffset, sliceLength);
+                        sliceLength + replyPad, buffer, sliceOffset, sliceLength);
 
                     if (chunk.sent >= chunk.length)
                     {
@@ -737,6 +756,7 @@ public final class LlmServerFactory implements LlmStreamFactory
                             buffer.putBytes(0, buffer, chunk.length, encodeSlotOffset - chunk.length);
                         }
                         encodeSlotOffset -= chunk.length;
+                        encodeSlotRawOffset -= chunk.rawLength;
                     }
                 }
 
@@ -745,6 +765,7 @@ public final class LlmServerFactory implements LlmStreamFactory
                     encodePool.release(encodeSlot);
                     encodeSlot = NO_SLOT;
                     encodeSlotOffset = 0;
+                    encodeSlotRawOffset = 0;
                 }
             }
             finally
@@ -752,13 +773,9 @@ public final class LlmServerFactory implements LlmStreamFactory
                 flushingReply = false;
             }
 
-            // Credits app0 with exactly the free space remaining in encodeSlot, in the same byte units
-            // as stream's own replySeq since the reply direction is a pure byte-for-byte passthrough --
-            // never by copying the client's own acknowledge value, which lives in the client's own,
-            // entirely independent byte domain.
             if (stream != null)
             {
-                final long replyAckMax = stream.replySeq - encodeSlotOffset;
+                final long replyAckMax = stream.replySeq - encodeSlotRawOffset;
                 if (replyAckMax > stream.replyAck)
                 {
                     stream.replyAck = replyAckMax;
@@ -995,10 +1012,6 @@ public final class LlmServerFactory implements LlmStreamFactory
         }
     }
 
-    // Represents the application (exit) side of one exchange: us <-> app0. Owns the request-direction
-    // relay slot (transformed bytes not yet forwarded to app0) and tracks its own initial/reply flow
-    // control entirely in its own domain -- app0's sequence numbers never need to be reconciled against
-    // LlmServer's, since credit in each direction is always derived from local slot occupancy alone.
     private final class LlmStream
     {
         private final LlmServer server;
@@ -1028,14 +1041,12 @@ public final class LlmServerFactory implements LlmStreamFactory
         private boolean flushingRequest;
 
         private LlmContentEncoder encoder;
-        private final MutableDirectBufferEx pendingContent;
-        private int pendingContentLength;
+        private String pendingResponseEvent;
 
         private LlmStream(
             LlmServer server)
         {
             this.server = server;
-            this.pendingContent = new UnsafeBufferEx(new byte[copyBuffer.capacity()]);
         }
 
         private boolean requestAvailable()
@@ -1048,9 +1059,6 @@ public final class LlmServerFactory implements LlmStreamFactory
             return initialMax - (initialSeq - initialAck);
         }
 
-        // Called by LlmServer.decodeNetwork() with a freshly transformed chunk. Always lands it in
-        // encodeSlot first, then attempts to drain as much of it as app0's currently granted window
-        // allows -- the same uniform stash-then-flush shape used for the reply direction.
         private void doAppData(
             MutableDirectBufferEx source,
             int length,
@@ -1102,12 +1110,7 @@ public final class LlmServerFactory implements LlmStreamFactory
                     }
 
                     final int remaining = encodeSlotOffset - encodeSlotSent;
-                    int sliceLength = (int) Math.min(remaining, available);
-                    final int padding = server.pipeline.padding(buffer, encodeSlotSent, sliceLength);
-                    if (padding > 0)
-                    {
-                        sliceLength = Math.max(0, (int) Math.min(remaining, available - padding));
-                    }
+                    final int sliceLength = (int) Math.min(remaining, available);
                     if (sliceLength <= 0)
                     {
                         break;
@@ -1155,9 +1158,6 @@ public final class LlmServerFactory implements LlmStreamFactory
                 break;
             case AbortFW.TYPE_ID:
                 onAppAbort(abortRO.wrap(buffer, index, index + length));
-                break;
-            case FlushFW.TYPE_ID:
-                onAppFlush(flushRO.wrap(buffer, index, index + length));
                 break;
             case WindowFW.TYPE_ID:
                 onAppWindow(windowRO.wrap(buffer, index, index + length));
@@ -1215,63 +1215,42 @@ public final class LlmServerFactory implements LlmStreamFactory
             }
             else
             {
-                appendPendingContent(payload.buffer(), payload.offset(), payload.sizeof());
-            }
-        }
+                final boolean first = (flags & FLAG_INIT) != 0;
+                final boolean last = (flags & FLAG_FIN) != 0;
 
-        private void appendPendingContent(
-            DirectBuffer buffer,
-            int offset,
-            int length)
-        {
-            final int available = pendingContent.capacity() - pendingContentLength;
-            final int appended = Math.min(length, available);
-
-            if (appended > 0)
-            {
-                pendingContent.putBytes(pendingContentLength, buffer, offset, appended);
-                pendingContentLength += appended;
-            }
-        }
-
-        private void onAppFlush(
-            FlushFW flush)
-        {
-            final long traceId = flush.traceId();
-            final long authorization = flush.authorization();
-            final long budgetId = flush.budgetId();
-            final OctetsFW extension = flush.extension();
-
-            replySeq = flush.sequence();
-
-            if (encoder != null)
-            {
-                final LlmFlushExFW llmFlushEx = extension.get(llmFlushExRO::tryWrap);
-                if (llmFlushEx != null && llmFlushEx.kind() == LlmFlushExFW.KIND_RAW)
+                if (first)
                 {
-                    final LlmNativeFlushExFW raw = llmFlushEx.raw();
-                    final String event = raw.type() != null ? raw.type().asString() : null;
-                    final OctetsFW payload = raw.payload();
-                    final int idLength = payload != null ? payload.sizeof() : 0;
+                    final OctetsFW extension = data.extension();
+                    final LlmDataExFW llmDataEx = extension.get(llmDataExRO::tryWrap);
+                    pendingResponseEvent = llmDataEx != null && llmDataEx.type() != null
+                        ? llmDataEx.type().asString()
+                        : null;
+                }
 
-                    int position = 0;
-                    position += encoder.encodeEventName(event, copyBuffer, position, copyBuffer.capacity());
-                    if (pendingContentLength > 0)
-                    {
-                        position += encoder.encodeData(pendingContent, 0, pendingContentLength,
-                            copyBuffer, position, copyBuffer.capacity());
-                    }
-                    position += payload != null
-                        ? encoder.encodeFlush(payload.buffer(), payload.offset(), idLength,
-                            copyBuffer, position, copyBuffer.capacity())
-                        : encoder.encodeFlush(EMPTY_OCTETS.buffer(), 0, 0,
-                            copyBuffer, position, copyBuffer.capacity());
-                    pendingContentLength = 0;
+                int position = 0;
+                if (first)
+                {
+                    position += encoder.encodeEvent(pendingResponseEvent, copyBuffer, position, copyBuffer.capacity());
+                }
+                if (payload.sizeof() > 0 || first || last)
+                {
+                    position += encoder.encodeData(payload.buffer(), payload.offset(), payload.sizeof(), first, last,
+                        copyBuffer, position, copyBuffer.capacity());
+                }
+                if (last)
+                {
+                    position += encoder.encodeFlush(EMPTY_OCTETS.buffer(), 0, 0, copyBuffer, position, copyBuffer.capacity());
+                }
 
-                    if (position > 0)
-                    {
-                        server.doNetData(copyBuffer, 0, position, FLAG_INIT | FLAG_FIN, budgetId, traceId, authorization);
-                    }
+                if (position > 0)
+                {
+                    server.doNetData(copyBuffer, 0, position, reserved, sliceFlags(FLAG_INIT | FLAG_FIN, first, last),
+                        budgetId, traceId, authorization);
+                }
+
+                if (last)
+                {
+                    pendingResponseEvent = null;
                 }
             }
         }
@@ -1335,9 +1314,6 @@ public final class LlmServerFactory implements LlmStreamFactory
 
             flushEncodeSlot();
 
-            // encodeSlot may have just fully drained -- resume any network input left waiting in
-            // decodeSlot (see LlmServer.decodeNetwork) now that app0 backpressure has cleared, and let
-            // it recompute whether to re-credit the client and/or fire a deferred end.
             if (encodeSlot == NO_SLOT)
             {
                 server.decodeNetwork(traceId);
@@ -1410,7 +1386,7 @@ public final class LlmServerFactory implements LlmStreamFactory
             int offset,
             int length)
         {
-            final int reserved = length + server.pipeline.padding(buffer, offset, length);
+            final int reserved = length;
 
             final DataFW data = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(server.routedId)
@@ -1484,7 +1460,7 @@ public final class LlmServerFactory implements LlmStreamFactory
                 .maximum(replyMax)
                 .traceId(traceId)
                 .budgetId(0L)
-                .padding(0)
+                .padding(RESPONSE_ENCODE_PADDING)
                 .build();
 
             app.accept(window.typeId(), window.buffer(), window.offset(), window.sizeof());
@@ -1522,11 +1498,6 @@ public final class LlmServerFactory implements LlmStreamFactory
         }
     }
 
-    // Represents the network (accept) side of a request whose options.authorization guard rejected it
-    // before any dialect model pipeline was built -- never forwards to app0, only replies with the
-    // resolved dialect's own JSON error body once the peer grants enough reply-direction credit to carry
-    // it, then ends the reply. Bytes the client still sends on the initial direction are windowed open and
-    // discarded rather than left to stall the client purely because its credentials were rejected.
     private final class LlmUnauthorizedResponder
     {
         private final MessageConsumer network;

@@ -23,6 +23,7 @@ import org.junit.rules.DisableOnDebug;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
 
+import io.aklivity.k3po.runtime.junit.annotation.ScriptProperty;
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
@@ -47,40 +48,20 @@ public class LlmClientIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("client.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
-        "${app}/same.dialect/client",
-        "${net}/same.dialect/server"})
-    public void shouldForwardSameDialect() throws Exception
+        "${app}/openai.response.invalid.content.type/client",
+        "${net}/openai.response.invalid.content.type/server"})
+    public void shouldRejectResponseWithInvalidContentType() throws Exception
     {
         k3po.finish();
     }
 
     @Test
-    @Configuration("client.yaml")
+    @Configuration("client.openai.yaml")
     @Specification({
-        "${app}/cross.dialect/client",
-        "${net}/cross.dialect/server"})
-    public void shouldForwardCrossDialect() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.opaque.yaml")
-    @Specification({
-        "${app}/client.opaque.fallback/client",
-        "${net}/client.opaque.fallback/server"})
-    public void shouldForwardClientOpaqueFallback() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.yaml")
-    @Specification({
-        "${app}/client.abort/client",
-        "${net}/client.abort/server"})
+        "${app}/abort/client",
+        "${net}/abort/server"})
     public void shouldAbortClientRequest() throws Exception
     {
         k3po.finish();
@@ -90,7 +71,7 @@ public class LlmClientIT
     @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.streaming/client",
-        "${net}/client.openai.streaming/server"})
+        "${net}/openai.streaming/server"})
     public void shouldForwardOpenaiStreamingSameDialect() throws Exception
     {
         k3po.finish();
@@ -99,9 +80,29 @@ public class LlmClientIT
     @Test
     @Configuration("client.openai.yaml")
     @Specification({
-        "${app}/openai.nonstreaming/client",
-        "${net}/client.openai.nonstreaming/server"})
+        "${app}/openai/client",
+        "${net}/openai/server"})
     public void shouldForwardOpenaiNonstreamingSameDialect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.request.padded/client",
+        "${net}/openai.request.padded/server"})
+    public void shouldForwardOpenaiRequestWithReplyPadding() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.custom.base.path.yaml")
+    @Specification({
+        "${app}/openai/client",
+        "${net}/openai.custom.base.path/server"})
+    public void shouldForwardOpenaiRequestUnderCustomBasePath() throws Exception
     {
         k3po.finish();
     }
@@ -119,28 +120,8 @@ public class LlmClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @Specification({
-        "${app}/anthropic.response.invalid/client",
-        "${net}/anthropic.response.invalid/server"})
-    public void shouldRejectAnthropicResponseWithMismatchedEventType() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.anthropic.yaml")
-    @Specification({
-        "${app}/anthropic.response.valid/client",
-        "${net}/anthropic.response.valid/server"})
-    public void shouldForwardAnthropicResponseWithMatchingEventType() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.anthropic.yaml")
-    @Specification({
         "${app}/anthropic.streaming/client",
-        "${net}/client.anthropic.streaming/server"})
+        "${net}/anthropic.streaming/server"})
     public void shouldForwardAnthropicStreamingSameDialect() throws Exception
     {
         k3po.finish();
@@ -149,19 +130,20 @@ public class LlmClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @Specification({
-        "${app}/anthropic.nonstreaming/client",
-        "${net}/client.anthropic.nonstreaming/server"})
+        "${app}/anthropic/client",
+        "${net}/anthropic/server"})
     public void shouldForwardAnthropicNonstreamingSameDialect() throws Exception
     {
         k3po.finish();
     }
 
     @Test
-    @Configuration("client.openai.yaml")
+    @Configuration("client.anthropic.yaml")
     @Specification({
-        "${app}/openai.to.anthropic.streaming/client",
-        "${net}/client.openai.streaming/server"})
-    public void shouldTranslateOpenaiToAnthropicStreaming() throws Exception
+        "${app}/openai.streaming.transformed/client",
+        "${net}/anthropic.streaming.transformed/server"})
+    @ScriptProperty({ "model \"gpt-4\"", "id \"chatcmpl_1\"" })
+    public void shouldTransformOpenaiToAnthropicStreaming() throws Exception
     {
         k3po.finish();
     }
@@ -169,9 +151,10 @@ public class LlmClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @Specification({
-        "${app}/anthropic.to.openai.streaming/client",
-        "${net}/client.anthropic.streaming/server"})
-    public void shouldTranslateAnthropicToOpenaiStreaming() throws Exception
+        "${app}/openai.streaming.transformed.100k/client",
+        "${net}/anthropic.streaming.transformed.100k/server"})
+    @ScriptProperty({ "model \"claude-3-opus-20240229\"", "id \"msg_01\"" })
+    public void shouldTransformOpenaiToAnthropicStreaming100k() throws Exception
     {
         k3po.finish();
     }
@@ -179,9 +162,10 @@ public class LlmClientIT
     @Test
     @Configuration("client.openai.yaml")
     @Specification({
-        "${app}/openai.to.anthropic.nonstreaming/client",
-        "${net}/client.openai.nonstreaming/server"})
-    public void shouldTranslateOpenaiToAnthropicNonstreaming() throws Exception
+        "${app}/anthropic.streaming.transformed/client",
+        "${net}/openai.streaming.transformed/server"})
+    @ScriptProperty({ "model \"claude-3-opus-20240229\"", "id \"msg_01\"" })
+    public void shouldTransformAnthropicToOpenaiStreaming() throws Exception
     {
         k3po.finish();
     }
@@ -189,9 +173,76 @@ public class LlmClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @Specification({
-        "${app}/anthropic.to.openai.nonstreaming/client",
-        "${net}/client.anthropic.nonstreaming/server"})
-    public void shouldTranslateAnthropicToOpenaiNonstreaming() throws Exception
+        "${app}/openai.transformed/client",
+        "${net}/anthropic.transformed/server"})
+    @ScriptProperty({ "model \"gpt-4\"", "id \"chatcmpl_2\"" })
+    public void shouldTransformOpenaiToAnthropicNonstreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/openai.transformed.100k/client",
+        "${net}/anthropic.transformed.100k/server"})
+    @ScriptProperty({ "model \"gpt-4\"", "id \"chatcmpl_2\"" })
+    public void shouldTransformOpenaiToAnthropic100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/anthropic.transformed/client",
+        "${net}/openai.transformed/server"})
+    @ScriptProperty({ "model \"claude-3-opus-20240229\"", "id \"msg_01\"" })
+    public void shouldTransformAnthropicToOpenaiNonstreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/anthropic.transformed.100k/client",
+        "${net}/openai.transformed.100k/server"})
+    @ScriptProperty({ "model \"claude-3-opus-20240229\"", "id \"msg_01\"" })
+    public void shouldTransformAnthropicToOpenai100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/openai.transformed.tool.only/client",
+        "${net}/anthropic.transformed.tool.only/server"})
+    @ScriptProperty({ "model \"gpt-4\"", "id \"chatcmpl_2\"" })
+    public void shouldTransformOpenaiToAnthropicToolOnly() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/anthropic.transformed.tool.only/client",
+        "${net}/openai.transformed.tool.only/server"})
+    @ScriptProperty({ "model \"claude-3-opus-20240229\"", "id \"msg_01\"" })
+    public void shouldTransformAnthropicToOpenaiToolOnly() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/openai.transformed.multi.tool/client",
+        "${net}/anthropic.transformed.multi.tool/server"})
+    @ScriptProperty({ "model \"gpt-4\"", "id \"chatcmpl_2\"" })
+    public void shouldTransformOpenaiToAnthropicMultiTool() throws Exception
     {
         k3po.finish();
     }
@@ -199,9 +250,9 @@ public class LlmClientIT
     @Test
     @Configuration("client.openai.guarded.yaml")
     @Specification({
-        "${app}/openai.request.guarded/client",
-        "${net}/client.openai.request.guarded/server"})
-    public void shouldForwardOpenaiRequestWithForwardedCredentials() throws Exception
+        "${app}/openai.authorized/client",
+        "${net}/openai.authorized/server"})
+    public void shouldForwardOpenaiRequestWithAuthorizedCredentials() throws Exception
     {
         k3po.finish();
     }
@@ -209,9 +260,9 @@ public class LlmClientIT
     @Test
     @Configuration("client.anthropic.guarded.yaml")
     @Specification({
-        "${app}/anthropic.request.guarded/client",
-        "${net}/client.anthropic.request.guarded/server"})
-    public void shouldForwardAnthropicRequestWithForwardedCredentials() throws Exception
+        "${app}/anthropic.authorized/client",
+        "${net}/anthropic.authorized/server"})
+    public void shouldForwardAnthropicRequestWithAuthorizedCredentials() throws Exception
     {
         k3po.finish();
     }
@@ -236,12 +287,63 @@ public class LlmClientIT
         k3po.finish();
     }
 
-    // openai.100k/anthropic.100k hang on the response-decode path at this size (pre-existing, not caused
-    // by this change) -- response.valid.100k above already covers 100k flow control generically; deferred
-    // pending its own root-cause investigation.
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.100k/client",
+        "${net}/openai.100k/server"})
+    public void shouldForwardOpenai100k() throws Exception
+    {
+        k3po.finish();
+    }
 
-    // Cross-dialect request translation for content this large hits a separate, tracked bug
-    // (aklivity/zilla#2597): the request forwards verbatim, untranslated, once content spans multiple
-    // incremental transform() calls. Add shouldTranslateAnthropicToOpenai10k/shouldTranslateOpenaiToAnthropic10k
-    // back once that is fixed.
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.100k/client",
+        "${net}/anthropic.100k/server"})
+    public void shouldForwardAnthropic100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.streaming.10k/client",
+        "${net}/openai.streaming.10k/server"})
+    public void shouldForwardOpenaiStreaming10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.streaming.10k/client",
+        "${net}/anthropic.streaming.10k/server"})
+    public void shouldForwardAnthropicStreaming10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.streaming.100k/client",
+        "${net}/openai.streaming.100k/server"})
+    public void shouldForwardOpenaiStreaming100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.streaming.100k/client",
+        "${net}/anthropic.streaming.100k/server"})
+    public void shouldForwardAnthropicStreaming100k() throws Exception
+    {
+        k3po.finish();
+    }
 }

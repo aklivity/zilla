@@ -22,10 +22,8 @@ import io.aklivity.k3po.runtime.lang.el.spi.FunctionMapperSpi;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
-import io.aklivity.zilla.specs.binding.llm.internal.types.OctetsFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmBeginExFW;
-import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmFlushExFW;
-import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmNativeFlushExFW;
+import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmDataExFW;
 
 public final class LlmFunctions
 {
@@ -42,15 +40,15 @@ public final class LlmFunctions
     }
 
     @Function
-    public static LlmFlushExBuilder flushEx()
+    public static LlmDataExBuilder dataEx()
     {
-        return new LlmFlushExBuilder();
+        return new LlmDataExBuilder();
     }
 
     @Function
-    public static LlmFlushExMatcherBuilder matchFlushEx()
+    public static LlmDataExMatcherBuilder matchDataEx()
     {
-        return new LlmFlushExMatcherBuilder();
+        return new LlmDataExMatcherBuilder();
     }
 
     public static final class LlmBeginExBuilder
@@ -193,103 +191,120 @@ public final class LlmFunctions
         }
     }
 
-    public static final class LlmFlushExBuilder
+    public static final class LlmDataExBuilder
     {
         private final MutableDirectBufferEx writeBuffer;
-        private final LlmFlushExFW.Builder flushExRW;
+        private final LlmDataExFW.Builder dataExRW;
 
-        private LlmFlushExBuilder()
+        private LlmDataExBuilder()
         {
             this.writeBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
-            this.flushExRW = new LlmFlushExFW.Builder().wrap(writeBuffer, 0, writeBuffer.capacity());
+            this.dataExRW = new LlmDataExFW.Builder().wrap(writeBuffer, 0, writeBuffer.capacity());
         }
 
-        public LlmFlushExBuilder typeId(
+        public LlmDataExBuilder typeId(
             int typeId)
         {
-            flushExRW.typeId(typeId);
+            dataExRW.typeId(typeId);
             return this;
         }
 
-        public LlmNativeFlushExBuilder raw()
+        public LlmDataExBuilder type(
+            String type)
         {
-            return new LlmNativeFlushExBuilder();
+            dataExRW.type(type);
+            return this;
+        }
+
+        public LlmDataExBuilder logProbability(
+            String logProbability)
+        {
+            dataExRW.logProbability(logProbability);
+            return this;
+        }
+
+        public LlmDataExBuilder inputTokens(
+            int inputTokens)
+        {
+            dataExRW.inputTokens(inputTokens);
+            return this;
+        }
+
+        public LlmDataExBuilder outputTokens(
+            int outputTokens)
+        {
+            dataExRW.outputTokens(outputTokens);
+            return this;
         }
 
         public byte[] build()
         {
-            final int limit = flushExRW.limit();
-            final byte[] array = new byte[limit];
-            writeBuffer.getBytes(0, array);
+            final LlmDataExFW dataEx = dataExRW.build();
+            final byte[] array = new byte[dataEx.sizeof()];
+            dataEx.buffer().getBytes(dataEx.offset(), array);
             return array;
-        }
-
-        public final class LlmNativeFlushExBuilder
-        {
-            private int choiceIndex;
-            private String type;
-            private byte[] payload;
-
-            public LlmNativeFlushExBuilder choiceIndex(
-                int choiceIndex)
-            {
-                this.choiceIndex = choiceIndex;
-                return this;
-            }
-
-            public LlmNativeFlushExBuilder type(
-                String type)
-            {
-                this.type = type;
-                return this;
-            }
-
-            public LlmNativeFlushExBuilder payload(
-                byte[] payload)
-            {
-                this.payload = payload;
-                return this;
-            }
-
-            public LlmFlushExBuilder build()
-            {
-                flushExRW.raw(r ->
-                {
-                    r.choiceIndex(choiceIndex);
-                    if (type != null)
-                    {
-                        r.type(type);
-                    }
-                    if (payload != null)
-                    {
-                        r.payload(new UnsafeBufferEx(payload), 0, payload.length);
-                    }
-                });
-                return LlmFlushExBuilder.this;
-            }
         }
     }
 
-    public static final class LlmFlushExMatcherBuilder
+    public static final class LlmDataExMatcherBuilder
     {
         private final DirectBufferEx bufferRO = new UnsafeBufferEx();
 
-        private final LlmFlushExFW flushExRO = new LlmFlushExFW();
+        private final LlmDataExFW dataExRO = new LlmDataExFW();
 
         private Integer typeId;
-        private LlmNativeFlushExMatcherBuilder raw;
+        private String type;
+        private boolean typeNull;
+        private String logProbability;
+        private boolean logProbabilityNull;
+        private Integer inputTokens;
+        private Integer outputTokens;
 
-        public LlmFlushExMatcherBuilder typeId(
+        public LlmDataExMatcherBuilder typeId(
             int typeId)
         {
             this.typeId = typeId;
             return this;
         }
 
-        public LlmNativeFlushExMatcherBuilder raw()
+        public LlmDataExMatcherBuilder type(
+            String type)
         {
-            this.raw = new LlmNativeFlushExMatcherBuilder();
-            return raw;
+            this.type = type;
+            return this;
+        }
+
+        public LlmDataExMatcherBuilder typeNull()
+        {
+            this.typeNull = true;
+            return this;
+        }
+
+        public LlmDataExMatcherBuilder logProbability(
+            String logProbability)
+        {
+            this.logProbability = logProbability;
+            return this;
+        }
+
+        public LlmDataExMatcherBuilder logProbabilityNull()
+        {
+            this.logProbabilityNull = true;
+            return this;
+        }
+
+        public LlmDataExMatcherBuilder inputTokens(
+            int inputTokens)
+        {
+            this.inputTokens = inputTokens;
+            return this;
+        }
+
+        public LlmDataExMatcherBuilder outputTokens(
+            int outputTokens)
+        {
+            this.outputTokens = outputTokens;
+            return this;
         }
 
         public BytesMatcher build()
@@ -297,7 +312,7 @@ public final class LlmFunctions
             return this::match;
         }
 
-        private LlmFlushExFW match(
+        private LlmDataExFW match(
             ByteBuffer byteBuf) throws Exception
         {
             if (!byteBuf.hasRemaining())
@@ -306,122 +321,52 @@ public final class LlmFunctions
             }
 
             bufferRO.wrap(byteBuf);
-            final LlmFlushExFW flushEx = flushExRO.tryWrap(bufferRO, byteBuf.position(), byteBuf.capacity());
+            final LlmDataExFW dataEx = dataExRO.tryWrap(bufferRO, byteBuf.position(), byteBuf.capacity());
 
-            if (flushEx != null &&
-                matchTypeId(flushEx) &&
-                matchRaw(flushEx))
+            if (dataEx != null &&
+                matchTypeId(dataEx) &&
+                matchType(dataEx) &&
+                matchLogProbability(dataEx) &&
+                matchInputTokens(dataEx) &&
+                matchOutputTokens(dataEx))
             {
-                byteBuf.position(byteBuf.position() + flushEx.sizeof());
-                return flushEx;
+                byteBuf.position(byteBuf.position() + dataEx.sizeof());
+                return dataEx;
             }
 
-            throw new Exception(flushEx.toString());
+            throw new Exception(dataEx.toString());
         }
 
         private boolean matchTypeId(
-            LlmFlushExFW flushEx)
+            LlmDataExFW dataEx)
         {
-            return typeId == null || typeId == flushEx.typeId();
+            return typeId == null || typeId == dataEx.typeId();
         }
 
-        private boolean matchRaw(
-            LlmFlushExFW flushEx)
+        private boolean matchType(
+            LlmDataExFW dataEx)
         {
-            return raw == null || raw.match(flushEx.raw());
+            return typeNull ? dataEx.type().asString() == null
+                : type == null || type.equals(dataEx.type().asString());
         }
 
-        public final class LlmNativeFlushExMatcherBuilder
+        private boolean matchLogProbability(
+            LlmDataExFW dataEx)
         {
-            private Integer choiceIndex;
-            private String type;
-            private boolean typeNull;
-            private byte[] payload;
-            private boolean payloadNull;
+            return logProbabilityNull ? dataEx.logProbability().asString() == null
+                : logProbability == null || logProbability.equals(dataEx.logProbability().asString());
+        }
 
-            public LlmNativeFlushExMatcherBuilder choiceIndex(
-                int choiceIndex)
-            {
-                this.choiceIndex = choiceIndex;
-                return this;
-            }
+        private boolean matchInputTokens(
+            LlmDataExFW dataEx)
+        {
+            return inputTokens == null || inputTokens == dataEx.inputTokens();
+        }
 
-            public LlmNativeFlushExMatcherBuilder type(
-                String type)
-            {
-                this.type = type;
-                return this;
-            }
-
-            public LlmNativeFlushExMatcherBuilder typeNull()
-            {
-                this.typeNull = true;
-                return this;
-            }
-
-            public LlmNativeFlushExMatcherBuilder payload(
-                byte[] payload)
-            {
-                this.payload = payload;
-                return this;
-            }
-
-            public LlmNativeFlushExMatcherBuilder payloadNull()
-            {
-                this.payloadNull = true;
-                return this;
-            }
-
-            public LlmFlushExMatcherBuilder build()
-            {
-                return LlmFlushExMatcherBuilder.this;
-            }
-
-            private boolean match(
-                LlmNativeFlushExFW raw)
-            {
-                return matchChoiceIndex(raw) &&
-                    matchType(raw) &&
-                    matchPayload(raw);
-            }
-
-            private boolean matchChoiceIndex(
-                LlmNativeFlushExFW raw)
-            {
-                return choiceIndex == null || choiceIndex == raw.choiceIndex();
-            }
-
-            private boolean matchType(
-                LlmNativeFlushExFW raw)
-            {
-                return typeNull ? raw.type().asString() == null
-                    : type == null || type.equals(raw.type().asString());
-            }
-
-            private boolean matchPayload(
-                LlmNativeFlushExFW raw)
-            {
-                return payloadNull ? raw.payload() == null
-                    : payload == null || matchesPayload(raw.payload());
-            }
-
-            private boolean matchesPayload(
-                OctetsFW actual)
-            {
-                boolean matches = actual != null && actual.sizeof() == payload.length;
-                if (matches)
-                {
-                    for (int i = 0; i < payload.length; i++)
-                    {
-                        if (actual.buffer().getByte(actual.offset() + i) != payload[i])
-                        {
-                            matches = false;
-                            break;
-                        }
-                    }
-                }
-                return matches;
-            }
+        private boolean matchOutputTokens(
+            LlmDataExFW dataEx)
+        {
+            return outputTokens == null || outputTokens == dataEx.outputTokens();
         }
     }
 
