@@ -23,6 +23,7 @@ import static org.agrona.CloseHelper.quietClose;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.ClosedWatchServiceException;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -43,7 +44,10 @@ import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 
 public class FileSystemWatcher implements Callable<Void>
 {
+    private static final int DIGEST_BUFFER_CAPACITY = 8192;
+
     private final Map<WatchKey, Set<WatchedFile>> watchedFiles;
+    private final FileSystemDigest digest;
     private final WatchService watchService;
     private final Signaler signaler;
 
@@ -52,6 +56,7 @@ public class FileSystemWatcher implements Callable<Void>
         Signaler signaler)
     {
         this.watchedFiles = new HashMap<>();
+        this.digest = new FileSystemDigest(new byte[DIGEST_BUFFER_CAPACITY]);
         this.signaler = signaler;
         this.watchService = createWatchService();
     }
@@ -70,7 +75,7 @@ public class FileSystemWatcher implements Callable<Void>
                     for (WatchedFile changedFile : changedFiles)
                     {
                         String oldTag = changedFile.getOriginalHash();
-                        String newTag = changedFile.calculateHash();
+                        String newTag = calculateHash(changedFile);
                         if (!oldTag.equals(newTag))
                         {
                             changedFile.cancelTimeoutSignal(signaler);
@@ -106,6 +111,24 @@ public class FileSystemWatcher implements Callable<Void>
         return null;
     }
 
+    String calculateHash(
+        WatchedFile watchedFile)
+    {
+        String hash = null;
+        try (InputStream input = watchedFile.input.get())
+        {
+            if (input != null)
+            {
+                hash = digest.digest(input);
+            }
+        }
+        catch (IOException ex)
+        {
+            // reject
+        }
+        return hash;
+    }
+
     public void watch(
         WatchedFile watchedFile)
     {
@@ -127,7 +150,7 @@ public class FileSystemWatcher implements Callable<Void>
         private final Set<WatchKey> keys;
         private final Path resolvedPath;
         private final LinkOption[] symlinks;
-        private final Supplier<String> hashSupplier;
+        private final Supplier<InputStream> input;
         private final String originalHash;
         private final long timeoutId;
         private final long originId;
@@ -137,7 +160,7 @@ public class FileSystemWatcher implements Callable<Void>
         public WatchedFile(
             Path resolvedPath,
             LinkOption[] symlinks,
-            Supplier<String> hashSupplier,
+            Supplier<InputStream> input,
             String hash,
             long timeoutId,
             long originId,
@@ -147,18 +170,13 @@ public class FileSystemWatcher implements Callable<Void>
             this.keys = new HashSet<>();
             this.resolvedPath = resolvedPath;
             this.symlinks = symlinks;
-            this.hashSupplier = hashSupplier;
+            this.input = input;
             this.originalHash = hash;
             this.timeoutId = timeoutId;
             this.originId = originId;
             this.routedId = routedId;
             this.replyId = replyId;
         }
-        public String calculateHash()
-        {
-            return hashSupplier.get();
-        }
-
         public String getOriginalHash()
         {
             return originalHash;
