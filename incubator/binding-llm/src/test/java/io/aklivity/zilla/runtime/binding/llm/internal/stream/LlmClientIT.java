@@ -155,4 +155,44 @@ public class LlmClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.to.anthropic.streaming/client",
+        "${net}/client.openai.streaming/server"})
+    public void shouldTranslateOpenaiToAnthropicStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.to.openai.streaming/client",
+        "${net}/client.anthropic.streaming/server"})
+    public void shouldTranslateAnthropicToOpenaiStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.to.anthropic.nonstreaming/client",
+        "${net}/client.openai.nonstreaming/server"})
+    public void shouldTranslateOpenaiToAnthropicNonstreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.to.openai.nonstreaming/client",
+        "${net}/client.anthropic.nonstreaming/server"})
+    public void shouldTranslateAnthropicToOpenaiNonstreaming() throws Exception
+    {
+        k3po.finish();
+    }
 }
