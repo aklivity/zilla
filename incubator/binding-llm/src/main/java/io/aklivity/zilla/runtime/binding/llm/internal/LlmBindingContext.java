@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.binding.llm.internal;
 
 import static io.aklivity.zilla.config.engine.KindConfig.CLIENT;
+import static io.aklivity.zilla.config.engine.KindConfig.PROXY;
 import static io.aklivity.zilla.config.engine.KindConfig.SERVER;
 
 import java.util.Map;
@@ -22,6 +23,7 @@ import java.util.Map;
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmClientFactory;
+import io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmProxyFactory;
 import io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmServerFactory;
 import io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmStreamFactory;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -38,7 +40,8 @@ final class LlmBindingContext implements BindingContext
     {
         this.factories = Map.of(
             SERVER, new LlmServerFactory(config, context),
-            CLIENT, new LlmClientFactory(config, context));
+            CLIENT, new LlmClientFactory(config, context),
+            PROXY, new LlmProxyFactory(config, context));
     }
 
     @Override

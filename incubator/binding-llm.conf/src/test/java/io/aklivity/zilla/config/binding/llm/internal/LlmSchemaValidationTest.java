@@ -243,7 +243,7 @@ public class LlmSchemaValidationTest
             bindings:
               net0:
                 type: llm
-                kind: proxy
+                kind: bogus
                 exit: app0
             """;
 
@@ -412,6 +412,84 @@ public class LlmSchemaValidationTest
                   dialect: openai
                   server: 8080
                 exit: net0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test
+    public void shouldAcceptProxyWithRoutesWhenDialectAndModel()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              net0:
+                type: llm
+                kind: proxy
+                routes:
+                - when:
+                  - dialect: openai
+                    model: [ gpt-4o, gpt-4o-mini ]
+                  exit: app0
+            """;
+
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
+    }
+
+    @Test
+    public void shouldAcceptProxyWithBareExitAndNoRoutes()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              net0:
+                type: llm
+                kind: proxy
+                exit: app0
+            """;
+
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectProxyRouteWhenWithUnknownProperty()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              net0:
+                type: llm
+                kind: proxy
+                routes:
+                - when:
+                  - unknown: value
+                  exit: app0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectProxyRouteWhenWithUnregisteredDialect()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              net0:
+                type: llm
+                kind: proxy
+                routes:
+                - when:
+                  - dialect: gemini
+                  exit: app0
             """;
 
         reader.read(text);

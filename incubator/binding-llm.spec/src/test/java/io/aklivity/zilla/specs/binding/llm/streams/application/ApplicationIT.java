@@ -242,4 +242,40 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/openai.10k/client",
+        "${app}/openai.10k/server"})
+    public void shouldForwardOpenai10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.10k/client",
+        "${app}/anthropic.10k/server"})
+    public void shouldForwardAnthropic10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.100k/client",
+        "${app}/openai.100k/server"})
+    public void shouldForwardOpenai100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.100k/client",
+        "${app}/anthropic.100k/server"})
+    public void shouldForwardAnthropic100k() throws Exception
+    {
+        k3po.finish();
+    }
 }

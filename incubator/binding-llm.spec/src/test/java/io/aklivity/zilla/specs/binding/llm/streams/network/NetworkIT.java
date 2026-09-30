@@ -269,4 +269,10 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    // openai.10k/anthropic.10k/openai.100k/anthropic.100k's client.rpt and server.rpt are not a
+    // self-consistent pair here (unlike openai.request/anthropic.request): client.rpt plays the external
+    // caller's realistic path (e.g. /v1/chat/completions) for LlmServerIT's own use, while server.rpt plays
+    // llm(client)'s own backend at "/" for LlmClientIT's use -- two different hops, deliberately asymmetric,
+    // never meant to be matched directly against each other.
 }
