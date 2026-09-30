@@ -125,4 +125,40 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/openai.request/client",
+        "${app}/openai.request/server"})
+    public void shouldForwardOpenaiRequest() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.streaming/client",
+        "${app}/openai.streaming/server"})
+    public void shouldForwardOpenaiStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.nonstreaming/client",
+        "${app}/openai.nonstreaming/server"})
+    public void shouldForwardOpenaiNonstreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.response.invalid/client",
+        "${app}/openai.response.invalid/server"})
+    public void shouldAbortInvalidOpenaiResponse() throws Exception
+    {
+        k3po.finish();
+    }
 }

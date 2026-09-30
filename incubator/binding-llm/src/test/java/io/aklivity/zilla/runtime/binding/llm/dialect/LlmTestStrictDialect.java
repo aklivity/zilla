@@ -57,6 +57,13 @@ public final class LlmTestStrictDialect implements LlmDialect
         return ModelTransform.NONE;
     }
 
+    @Override
+    public DirectBufferEx terminator(
+        Kind kind)
+    {
+        return null;
+    }
+
     static URL schemaResource()
     {
         return LlmTestStrictDialect.class.getResource("test.strict.request.schema.json");

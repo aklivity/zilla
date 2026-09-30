@@ -119,6 +119,7 @@ public final class LlmClientFactory implements LlmStreamFactory
     private final MutableDirectBufferEx extBuffer;
     private final MutableDirectBufferEx transformBuffer;
     private final MutableDirectBufferEx copyBuffer;
+    private final DirectBufferEx comparisonRO;
 
     private final BufferPool decodePool;
     private final int decodeMax;
@@ -143,6 +144,7 @@ public final class LlmClientFactory implements LlmStreamFactory
         this.decodeMax = decodePool.slotCapacity();
         this.transformBuffer = new UnsafeBufferEx(new byte[decodeMax]);
         this.copyBuffer = new UnsafeBufferEx(new byte[decodeMax]);
+        this.comparisonRO = new UnsafeBufferEx(new byte[0]);
         this.codecs = new LlmContentCodecFactory();
         this.bindings = new Long2ObjectHashMap<>();
     }
@@ -189,9 +191,8 @@ public final class LlmClientFactory implements LlmStreamFactory
             final OctetsFW extension = begin.extension();
             final LlmBeginExFW llmBeginEx = extension.get(llmBeginExRO::tryWrap);
             final String sourceName = llmBeginEx != null ? llmBeginEx.dialect().asString() : null;
-            final String requestContentType = llmBeginEx != null && llmBeginEx.contentType() != null
-                ? llmBeginEx.contentType().asString()
-                : CONTENT_TYPE_JSON;
+            final String contentType = llmBeginEx != null ? llmBeginEx.contentType().asString() : null;
+            final String requestContentType = contentType != null ? contentType : CONTENT_TYPE_JSON;
 
             final LlmDialect target = binding.resolveDialect(ModelEnvelope.NONE);
             final LlmDialect source = target != null
@@ -239,6 +240,7 @@ public final class LlmClientFactory implements LlmStreamFactory
         private final LlmContentEncoder requestEncoder;
         private final ModelPipeline requestPipeline;
         private final ModelPipeline responsePipeline;
+        private final DirectBufferEx responseTerminator;
         private final LlmHttpClient delegate;
 
         private long initialSeq;
@@ -295,6 +297,7 @@ public final class LlmClientFactory implements LlmStreamFactory
                 : target.supplyDecoder(Kind.RESPONSE, envelope).andThen(source.supplyEncoder(Kind.RESPONSE, envelope));
             this.responsePipeline = binding.supplyModel(target, Kind.RESPONSE)
                 .supplyDecoder(envelope, responseTransform, ModelCache.NONE);
+            this.responseTerminator = target.terminator(Kind.RESPONSE);
 
             this.delegate = new LlmHttpClient(this, routedId, resolvedId, server, requestContentType);
         }
@@ -1054,6 +1057,21 @@ public final class LlmClientFactory implements LlmStreamFactory
             client.doAppFlush(decodeTraceId, decodeAuthorization, event, buffer, offset, length);
         }
 
+        private boolean matchesTerminator(
+            DirectBuffer buffer,
+            int offset,
+            int length)
+        {
+            final DirectBufferEx terminator = client.responseTerminator;
+            boolean matches = terminator != null;
+            if (matches)
+            {
+                comparisonRO.wrap((DirectBufferEx) buffer, offset, length);
+                matches = comparisonRO.equals(terminator);
+            }
+            return matches;
+        }
+
         private void forwardResponseContent(
             DirectBuffer buffer,
             int offset,
@@ -1061,28 +1079,36 @@ public final class LlmClientFactory implements LlmStreamFactory
         {
             if (length > 0)
             {
-                final ModelPipeline pipeline = client.responsePipeline;
-                final int flags = FLAG_INIT | FLAG_FIN;
-
-                final ModelPipelineResult result = pipeline.transform(decodeTraceId, routedId, decodeAuthorization,
-                    flags, (DirectBufferEx) buffer, offset, offset + length, transformBuffer, 0, transformBuffer.capacity());
-
-                if (result.status() == ModelStatus.REJECTED)
+                if (matchesTerminator(buffer, offset, length))
                 {
-                    pipeline.reset();
-                    cleanupNet(decodeTraceId, decodeAuthorization);
+                    client.doAppData(decodeTraceId, decodeAuthorization, (DirectBufferEx) buffer, offset, length);
                 }
                 else
                 {
-                    final int producedLength = result.produced();
-                    if (producedLength > 0)
-                    {
-                        client.doAppData(decodeTraceId, decodeAuthorization, transformBuffer, 0, producedLength);
-                    }
+                    final ModelPipeline pipeline = client.responsePipeline;
+                    final int flags = FLAG_INIT | FLAG_FIN;
 
-                    if (result.status() == ModelStatus.COMPLETE)
+                    final ModelPipelineResult result = pipeline.transform(decodeTraceId, routedId, decodeAuthorization,
+                        flags, (DirectBufferEx) buffer, offset, offset + length, transformBuffer, 0,
+                        transformBuffer.capacity());
+
+                    if (result.status() == ModelStatus.REJECTED)
                     {
                         pipeline.reset();
+                        cleanupNet(decodeTraceId, decodeAuthorization);
+                    }
+                    else
+                    {
+                        final int producedLength = result.produced();
+                        if (producedLength > 0)
+                        {
+                            client.doAppData(decodeTraceId, decodeAuthorization, transformBuffer, 0, producedLength);
+                        }
+
+                        if (result.status() == ModelStatus.COMPLETE)
+                        {
+                            pipeline.reset();
+                        }
                     }
                 }
             }

@@ -62,6 +62,13 @@ public final class LlmTestConditionalDialect implements LlmDialect
         return ModelTransform.NONE;
     }
 
+    @Override
+    public DirectBufferEx terminator(
+        Kind kind)
+    {
+        return null;
+    }
+
     private static String header(
         ModelEnvelope headers,
         String name)
