@@ -1,0 +1,76 @@
+#
+# Copyright 2021-2026 Aklivity Inc
+#
+# Licensed under the Aklivity Community License (the "License"); you may not use
+# this file except in compliance with the License.  You may obtain a copy of the
+# License at
+#
+#   https://www.aklivity.io/aklivity-community-license/
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations under the License.
+#
+
+connect "zilla://streams/app0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+
+write zilla:begin.ext ${llm:beginEx()
+                           .typeId(zilla:id("llm"))
+                           .dialect("openai")
+                           .build()}
+
+connected
+
+write "{\"model\":\"gpt-4o-mini\",\"messages\":[{\"role\":\"user\",\"content\":\"Say hello in one sentence.\"}],\"stream\":true,\"stream_options\":{\"include_usage\":true}}"
+
+write close
+
+read zilla:begin.ext ${llm:matchBeginEx()
+                           .typeId(zilla:id("llm"))
+                           .dialect("openai")
+                           .contentType("text/event-stream")
+                           .build()}
+
+read zilla:data.ext ${llm:matchDataEx()
+                          .typeId(zilla:id("llm"))
+                          .typeNull()
+                          .build()}
+read "{\"id\":\"chatcmpl-EQNL5kPFWGuGSBO2lca3rDUj9mrfi\",\"object\":\"chat.completion.chunk\",\"created\":1789954951,\"model\":\"gpt-4o-mini-2024-07-18\",\"service_tier\":\"default\",\"system_fingerprint\":\"fp_c28ee603a6\",\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\",\"content\":\"\",\"refusal\":null},\"logprobs\":null,\"finish_reason\":null}],\"usage\":null,\"obfuscation\":\"HHHL8bgoj\"}"
+
+read zilla:data.ext ${llm:matchDataEx()
+                          .typeId(zilla:id("llm"))
+                          .typeNull()
+                          .build()}
+read "{\"id\":\"chatcmpl-EQNL5kPFWGuGSBO2lca3rDUj9mrfi\",\"object\":\"chat.completion.chunk\",\"created\":1789954951,\"model\":\"gpt-4o-mini-2024-07-18\",\"service_tier\":\"default\",\"system_fingerprint\":\"fp_c28ee603a6\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\"Hello\"},\"logprobs\":null,\"finish_reason\":null}],\"usage\":null,\"obfuscation\":\"wruix7\"}"
+
+read zilla:data.ext ${llm:matchDataEx()
+                          .typeId(zilla:id("llm"))
+                          .typeNull()
+                          .build()}
+read "{\"id\":\"chatcmpl-EQNL5kPFWGuGSBO2lca3rDUj9mrfi\",\"object\":\"chat.completion.chunk\",\"created\":1789954951,\"model\":\"gpt-4o-mini-2024-07-18\",\"service_tier\":\"default\",\"system_fingerprint\":\"fp_c28ee603a6\",\"choices\":[{\"index\":0,\"delta\":{},\"logprobs\":null,\"finish_reason\":\"stop\"}],\"usage\":null,\"obfuscation\":\"0N4dN\"}"
+
+read zilla:data.ext ${llm:matchDataEx()
+                          .typeId(zilla:id("llm"))
+                          .typeNull()
+                          .build()}
+read "{\"id\":\"chatcmpl-EQNL5kPFWGuGSBO2lca3rDUj9mrfi\",\"object\":\"chat.completion.chunk\",\"created\":1789954951,\"model\":\"gpt-4o-mini-2024-07-18\",\"service_tier\":\"default\",\"system_fingerprint\":\"fp_c28ee603a6\",\"choices\":[],\"usage\":{\"prompt_tokens\":13,\"completion_tokens\":9,\"total_tokens\":22,\"prompt_tokens_details\":{\"cached_tokens\":0,\"audio_tokens\":0},\"completion_tokens_details\":{\"reasoning_tokens\":0,\"audio_tokens\":0,\"accepted_prediction_tokens\":0,\"rejected_prediction_tokens\":0}},\"obfuscation\":\"TM5m3oG3ttJ\"}"
+
+read zilla:data.ext ${llm:matchDataEx()
+                          .typeId(zilla:id("llm"))
+                          .typeNull()
+                          .build()}
+read "[DONE]"
+
+read zilla:end.ext ${llm:matchEndEx()
+                           .typeId(zilla:id("llm"))
+                           .inputTokens(13)
+                           .cacheReadTokens(0)
+                           .outputTokens(9)
+                           .reasoningTokens(0)
+                           .totalTokens(22)
+                           .build()}
+
+read closed

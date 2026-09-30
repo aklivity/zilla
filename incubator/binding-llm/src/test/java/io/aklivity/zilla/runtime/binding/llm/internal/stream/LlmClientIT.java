@@ -80,9 +80,29 @@ public class LlmClientIT
     @Test
     @Configuration("client.openai.yaml")
     @Specification({
+        "${app}/openai.streaming.usage/client",
+        "${net}/openai.streaming.usage/server"})
+    public void shouldForwardOpenaiStreamingUsage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
         "${app}/openai/client",
         "${net}/openai/server"})
     public void shouldForwardOpenaiNonstreamingSameDialect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.usage/client",
+        "${net}/openai.usage/server"})
+    public void shouldForwardOpenaiNonstreamingUsage() throws Exception
     {
         k3po.finish();
     }
@@ -123,6 +143,36 @@ public class LlmClientIT
         "${app}/anthropic.streaming/client",
         "${net}/anthropic.streaming/server"})
     public void shouldForwardAnthropicStreamingSameDialect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.streaming.usage/client",
+        "${net}/anthropic.streaming.usage/server"})
+    public void shouldForwardAnthropicStreamingUsage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.streaming.abort/client",
+        "${net}/anthropic.streaming.abort/server"})
+    public void shouldAbortAnthropicStreamingWithPartialUsage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.usage/client",
+        "${net}/anthropic.usage/server"})
+    public void shouldForwardAnthropicNonstreamingUsage() throws Exception
     {
         k3po.finish();
     }
