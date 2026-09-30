@@ -312,4 +312,14 @@ public class HttpFileSystemProxyIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.with.path.dynamic.yaml")
+    @Specification({
+        "${http}/client.read.file.dot.segment.then.read.file/client",
+        "${filesystem}/client.read.file/server"})
+    public void shouldRejectClientReadFileDotSegmentThenReadFile() throws Exception
+    {
+        k3po.finish();
+    }
 }

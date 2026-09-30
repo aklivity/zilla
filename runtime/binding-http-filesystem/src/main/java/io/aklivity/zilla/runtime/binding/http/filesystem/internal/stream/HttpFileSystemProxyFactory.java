@@ -337,7 +337,6 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
             }
             else
             {
-                delegate.doFileSystemReject();
                 doHttpWindow(authorization, traceId, 0L, 0, 0);
                 doHttpReset(traceId, null);
             }
@@ -638,11 +637,6 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
                     traceId, authorization, affinity, resolved);
         }
 
-        private void doFileSystemReject()
-        {
-            state = HttpFileSystemState.closeReply(HttpFileSystemState.closeInitial(state));
-        }
-
         private void doFileSystemData(
             long traceId,
             long authorization,
@@ -651,8 +645,11 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
             int flags,
             Flyweight payload)
         {
-            doData(filesystem, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                traceId, authorization, budgetId, flags, reserved, payload);
+            if (HttpFileSystemState.initialOpening(state))
+            {
+                doData(filesystem, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                    traceId, authorization, budgetId, flags, reserved, payload);
+            }
         }
 
         private void doFileSystemEnd(
@@ -660,7 +657,7 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
             long sequence,
             long authorization)
         {
-            if (!HttpFileSystemState.initialClosed(state))
+            if (HttpFileSystemState.initialOpening(state) && !HttpFileSystemState.initialClosed(state))
             {
                 initialSeq = delegate.initialSeq;
                 initialAck = delegate.initialAck;
@@ -676,7 +673,7 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
             long traceId,
             long authorization)
         {
-            if (!HttpFileSystemState.initialClosed(state))
+            if (HttpFileSystemState.initialOpening(state) && !HttpFileSystemState.initialClosed(state))
             {
                 initialSeq = delegate.initialSeq;
                 initialAck = delegate.initialAck;
@@ -961,7 +958,7 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
         private void doFileSystemReset(
             long traceId)
         {
-            if (!HttpFileSystemState.replyClosed(state))
+            if (HttpFileSystemState.initialOpening(state) && !HttpFileSystemState.replyClosed(state))
             {
                 state = HttpFileSystemState.closeReply(state);
 
@@ -977,11 +974,14 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
             int padding,
             int capabilities)
         {
-            replyAck = delegate.replyAck;
-            replyMax = delegate.replyMax;
+            if (HttpFileSystemState.initialOpening(state))
+            {
+                replyAck = delegate.replyAck;
+                replyMax = delegate.replyMax;
 
-            doWindow(filesystem, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, authorization, budgetId, padding, capabilities);
+                doWindow(filesystem, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                        traceId, authorization, budgetId, padding, capabilities);
+            }
         }
     }
 
