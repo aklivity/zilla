@@ -1,0 +1,12 @@
+[
+    {
+        "op": "add",
+        "path": "/$defs/binding-ext/llm/dialect/enum/-",
+        "value": "test-signed"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/binding-ext/llm/dialect/enum/-",
+        "value": "test-signing-unavailable"
+    }
+]

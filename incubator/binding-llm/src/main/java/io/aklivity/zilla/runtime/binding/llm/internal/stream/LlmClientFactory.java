@@ -17,6 +17,9 @@ package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.function.LongUnaryOperator;
 
 import jakarta.json.Json;
@@ -24,6 +27,7 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 
 import org.agrona.DirectBuffer;
+import org.agrona.ExpandableArrayBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
 
 import io.aklivity.zilla.config.binding.llm.LlmServerConfig;
@@ -33,15 +37,13 @@ import io.aklivity.zilla.runtime.binding.llm.codec.LlmContentDecoderOutput;
 import io.aklivity.zilla.runtime.binding.llm.codec.LlmContentEncoder;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialect;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialect.Kind;
+import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectEvent;
+import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectTerminator;
+import io.aklivity.zilla.runtime.binding.llm.dialect.LlmNativeEventOutput;
 import io.aklivity.zilla.runtime.binding.llm.internal.LlmConfiguration;
 import io.aklivity.zilla.runtime.binding.llm.internal.codec.LlmContentCodecFactory;
 import io.aklivity.zilla.runtime.binding.llm.internal.config.LlmBindingConfig;
 import io.aklivity.zilla.runtime.binding.llm.internal.config.LlmRouteConfig;
-import io.aklivity.zilla.runtime.binding.llm.internal.decode.LlmSseContentDecoder;
-import io.aklivity.zilla.runtime.binding.llm.internal.mapper.LlmDialectEvent;
-import io.aklivity.zilla.runtime.binding.llm.internal.mapper.LlmDialectTerminator;
-import io.aklivity.zilla.runtime.binding.llm.internal.mapper.LlmNativeEventOutput;
-import io.aklivity.zilla.runtime.binding.llm.internal.mapper.LlmResponseTransformFactory;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.AbortFW;
@@ -79,6 +81,8 @@ import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 public final class LlmClientFactory implements LlmStreamFactory
 {
     private static final String HTTP_TYPE_NAME = "http";
+    private static final List<Map.Entry<String, String>> SIGNING_FAILED = new ArrayList<>();
+
     private static final String LLM_TYPE_NAME = "llm";
     private static final String HEADER_METHOD = ":method";
     private static final String HEADER_SCHEME = ":scheme";
@@ -87,7 +91,10 @@ public final class LlmClientFactory implements LlmStreamFactory
     private static final String HEADER_CONTENT_TYPE = "content-type";
     private static final String METHOD_POST = "POST";
     private static final String CONTENT_TYPE_JSON = "application/json";
+    private static final String CONTENT_TYPE_EVENT_STREAM = "text/event-stream";
     private static final String ENVELOPE_EVENT = "event";
+    private static final String ENVELOPE_MODEL = "model";
+    private static final String ENVELOPE_STREAM_REQUEST = "stream";
     private static final String ENVELOPE_STREAMING = "streaming";
     private static final String ENVELOPE_USAGE_INPUT_TOKENS = "usage.inputTokens";
     private static final String ENVELOPE_USAGE_CACHE_WRITE_TOKENS = "usage.cacheWriteTokens";
@@ -126,6 +133,7 @@ public final class LlmClientFactory implements LlmStreamFactory
 
     private final OctetsFW emptyRO = new OctetsFW().wrap(new UnsafeBufferEx(new byte[0]), 0, 0);
     private final DirectBufferEx emptyBufferRO = new UnsafeBufferEx(new byte[0]);
+    private final UnsafeBufferEx signedRequestRO = new UnsafeBufferEx(new byte[0]);
 
     private final EngineContext context;
     private final BindingHandler streamFactory;
@@ -150,6 +158,8 @@ public final class LlmClientFactory implements LlmStreamFactory
 
     private final Long2ObjectHashMap<LlmBindingConfig> bindings;
 
+    private final int signedRequestMaxBytes;
+
     public LlmClientFactory(
         LlmConfiguration config,
         EngineContext context)
@@ -170,6 +180,7 @@ public final class LlmClientFactory implements LlmStreamFactory
         this.comparisonRO = new UnsafeBufferEx(new byte[0]);
         this.codecs = new LlmContentCodecFactory();
         this.bindings = new Long2ObjectHashMap<>();
+        this.signedRequestMaxBytes = config.signedRequestMaxBytes();
     }
 
     @Override
@@ -520,7 +531,14 @@ public final class LlmClientFactory implements LlmStreamFactory
             state = LlmState.openingInitial(state);
             state = LlmState.openInitial(state);
 
-            delegate.doNetBegin(traceId, authorization);
+            if (binding.signer == null && !delegate.needsModel)
+            {
+                delegate.doNetBegin(traceId, authorization);
+            }
+            else
+            {
+                doAppWindow(traceId, authorization);
+            }
         }
 
         private void onAppData(
@@ -719,7 +737,14 @@ public final class LlmClientFactory implements LlmStreamFactory
             state = LlmState.closingInitial(state);
             state = LlmState.closeInitial(state);
 
-            delegate.doNetEnd(traceId, authorization);
+            if (binding.signer != null || delegate.needsModel)
+            {
+                delegate.doNetBeginSigned(traceId, authorization);
+            }
+            else
+            {
+                delegate.doNetEnd(traceId, authorization);
+            }
         }
 
         private void onAppAbort(
@@ -1015,7 +1040,9 @@ public final class LlmClientFactory implements LlmStreamFactory
         private final long replyId;
         private final String scheme;
         private final String authority;
+        private final String basePath;
         private final String requestPath;
+        private final boolean needsModel;
         private final String requestContentType;
 
         private LlmContentDecoder decoder;
@@ -1046,6 +1073,10 @@ public final class LlmClientFactory implements LlmStreamFactory
 
         private int encodeSlot = NO_SLOT;
         private int encodeSlotOffset;
+
+        private final boolean buffered;
+        private ExpandableArrayBuffer signBuffer;
+        private int signLength;
 
         private final DirectBufferEx eventTerminator;
         private final MutableDirectBufferEx terminatorPeek;
@@ -1079,20 +1110,23 @@ public final class LlmClientFactory implements LlmStreamFactory
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.scheme = server.scheme;
             this.authority = server.host + ":" + server.port;
-            this.requestPath = client.target.requestPath(server.path);
+            this.basePath = server.path;
+            this.requestPath = client.target.requestPath(basePath);
+            this.needsModel = requestPath.contains(LlmDialect.MODEL_PLACEHOLDER);
             this.requestContentType = requestContentType;
+            this.buffered = client.binding.signer != null || needsModel;
+            this.signBuffer = buffered ? new ExpandableArrayBuffer() : null;
             this.eventTerminator = client.transformEvents ? client.target.terminator(Kind.RESPONSE) : null;
             this.terminatorPeek = new UnsafeBufferEx(new byte[eventTerminator != null ? eventTerminator.capacity() : 0]);
             this.nativeOutput = this::onNativeEvent;
 
             if (client.transformEvents)
             {
-                final JsonTransform decodeTransform = LlmResponseTransformFactory.supplyDecodeTransform(client.target.name());
-                final JsonSink encodeSink =
-                    LlmResponseTransformFactory.supplyEncodeSink(client.source.name(), client.envelope, nativeOutput);
+                final JsonTransform decodeTransform = client.target.supplyResponseDecodeTransform();
+                final JsonSink encodeSink = client.source.supplyResponseEncodeSink(client.envelope, nativeOutput);
                 this.eventPipeline = JsonEx.stream(JsonEx.createParser())
                     .envelope(client.envelope)
-                    .transform(client.source.supplyExtractor(Kind.RESPONSE, client.envelope))
+                    .transform(client.target.supplyExtractor(Kind.RESPONSE, client.envelope))
                     .transform(decodeTransform)
                     .into(encodeSink);
                 this.decodeEvent = (LlmDialectEvent) decodeTransform;
@@ -1152,22 +1186,163 @@ public final class LlmClientFactory implements LlmStreamFactory
             int offset,
             int length)
         {
-            DirectBufferEx encodeBuffer = buffer;
-            int encodeOffset = offset;
-            int encodeLimit = offset + length;
-
-            if (encodeSlot != NO_SLOT)
+            if (buffered && net == null)
             {
-                final MutableDirectBufferEx slotBuffer = encodePool.buffer(encodeSlot);
-                slotBuffer.putBytes(encodeSlotOffset, buffer, offset, length);
-                encodeSlotOffset += length;
-
-                encodeBuffer = slotBuffer;
-                encodeOffset = 0;
-                encodeLimit = encodeSlotOffset;
+                appendSignRequest(traceId, authorization, buffer, offset, length);
             }
+            else
+            {
+                DirectBufferEx encodeBuffer = buffer;
+                int encodeOffset = offset;
+                int encodeLimit = offset + length;
 
-            encodeNet(traceId, authorization, encodeBuffer, encodeOffset, encodeLimit);
+                if (encodeSlot != NO_SLOT)
+                {
+                    final MutableDirectBufferEx slotBuffer = encodePool.buffer(encodeSlot);
+                    slotBuffer.putBytes(encodeSlotOffset, buffer, offset, length);
+                    encodeSlotOffset += length;
+
+                    encodeBuffer = slotBuffer;
+                    encodeOffset = 0;
+                    encodeLimit = encodeSlotOffset;
+                }
+
+                encodeNet(traceId, authorization, encodeBuffer, encodeOffset, encodeLimit);
+            }
+        }
+
+        private void appendSignRequest(
+            long traceId,
+            long authorization,
+            DirectBufferEx buffer,
+            int offset,
+            int length)
+        {
+            if (signBuffer != null)
+            {
+                if (signLength + length > signedRequestMaxBytes)
+                {
+                    cleanupSigning(traceId, authorization);
+                }
+                else
+                {
+                    signBuffer.putBytes(signLength, buffer, offset, length);
+                    signLength += length;
+                }
+            }
+        }
+
+        private void cleanupSigning(
+            long traceId,
+            long authorization)
+        {
+            signBuffer = null;
+            signLength = 0;
+            client.doAppReset(traceId, authorization);
+            client.doAppBegin(traceId, authorization, client.source.name(), null);
+            client.doAppAbort(traceId, authorization);
+        }
+
+        private void doNetBeginSigned(
+            long traceId,
+            long authorization)
+        {
+            if (signBuffer != null)
+            {
+                final String streamingPath = client.target.requestPath(basePath, isStreamingRequest());
+                final String resolvedPath = needsModel
+                    ? LlmRequestPathResolver.resolve(streamingPath, client.envelope.get(ENVELOPE_MODEL, 0))
+                    : streamingPath;
+
+                if (resolvedPath == null)
+                {
+                    cleanupSigning(traceId, authorization);
+                }
+                else
+                {
+                    final String credentials = authorizationCredentials(client.binding, authorization);
+
+                    final List<Map.Entry<String, String>> headers = new ArrayList<>(6);
+                    headers.add(Map.entry(HEADER_METHOD, METHOD_POST));
+                    headers.add(Map.entry(HEADER_SCHEME, scheme));
+                    headers.add(Map.entry(HEADER_AUTHORITY, authority));
+                    headers.add(Map.entry(HEADER_PATH, resolvedPath));
+                    headers.add(Map.entry(HEADER_CONTENT_TYPE, requestContentType));
+                    if (credentials != null)
+                    {
+                        headers.add(Map.entry(client.target.credentialsHeader(), credentials));
+                    }
+
+                    final List<Map.Entry<String, String>> signedHeaders = signHeaders(headers, resolvedPath);
+                    if (signedHeaders == SIGNING_FAILED)
+                    {
+                        cleanupSigning(traceId, authorization);
+                    }
+                    else
+                    {
+                        state = LlmState.openingInitial(state);
+
+                        final HttpBeginExFW.Builder httpBeginExBuilder =
+                            httpBeginExRW.wrap(extBuffer, 0, extBuffer.capacity()).typeId(httpTypeId);
+
+                        headers.forEach(h -> httpBeginExBuilder.headersItem(i -> i.name(h.getKey()).value(h.getValue())));
+                        if (signedHeaders != null)
+                        {
+                            signedHeaders.forEach(
+                                h -> httpBeginExBuilder.headersItem(i -> i.name(h.getKey()).value(h.getValue())));
+                        }
+
+                        final HttpBeginExFW httpBeginEx = httpBeginExBuilder.build();
+
+                        net = LlmClientFactory.this.newStream(this::onNetMessage, originId, routedId, initialId,
+                            initialSeq, initialAck, initialMax, traceId, authorization, client.affinity, httpBeginEx);
+
+                        state = LlmState.openInitial(state);
+
+                        final int bufferedLength = signLength;
+                        signedRequestRO.wrap(signBuffer, 0, bufferedLength);
+                        signBuffer = null;
+                        signLength = 0;
+
+                        if (bufferedLength > 0)
+                        {
+                            encodeNet(traceId, authorization, signedRequestRO, 0, bufferedLength);
+                        }
+
+                        doNetEnd(traceId, authorization);
+                    }
+                }
+            }
+        }
+
+        private List<Map.Entry<String, String>> signHeaders(
+            List<Map.Entry<String, String>> headers,
+            String resolvedPath)
+        {
+            List<Map.Entry<String, String>> signedHeaders;
+            if (client.binding.signer == null)
+            {
+                signedHeaders = null;
+            }
+            else
+            {
+                try
+                {
+                    signedHeaders = client.binding.signer.sign(METHOD_POST, scheme, authority, resolvedPath, headers,
+                        signBuffer, 0, signLength);
+                }
+                catch (RuntimeException ex)
+                {
+                    signedHeaders = SIGNING_FAILED;
+                }
+            }
+            return signedHeaders;
+        }
+
+        private boolean isStreamingRequest()
+        {
+            final DirectBufferEx value = client.envelope.get(ENVELOPE_STREAM_REQUEST, 0);
+            return value != null && "true".equals(value.getStringWithoutLengthUtf8(0, value.capacity()));
         }
 
         private void encodeNet(
@@ -1251,8 +1426,13 @@ public final class LlmClientFactory implements LlmStreamFactory
             {
                 state = LlmState.closeInitial(state);
                 cleanupEncodeSlot();
-                LlmClientFactory.this.doAbort(net, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                    traceId, authorization, emptyRO);
+                signBuffer = null;
+                signLength = 0;
+                if (net != null)
+                {
+                    LlmClientFactory.this.doAbort(net, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                        traceId, authorization, emptyRO);
+                }
             }
         }
 
@@ -1262,8 +1442,11 @@ public final class LlmClientFactory implements LlmStreamFactory
             if (!LlmState.replyClosed(state))
             {
                 state = LlmState.closeReply(state);
-                LlmClientFactory.this.doReset(net, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, 0L, emptyRO);
+                if (net != null)
+                {
+                    LlmClientFactory.this.doReset(net, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                        traceId, 0L, emptyRO);
+                }
             }
         }
 
@@ -1347,10 +1530,13 @@ public final class LlmClientFactory implements LlmStreamFactory
             }
 
             this.decoder = codecs.createDecoder(responseContentType);
-            this.streaming = decoder instanceof LlmSseContentDecoder;
+            this.streaming = decoder != null && decoder.streaming();
             client.envelope.set(ENVELOPE_STREAMING, asBuffer(Boolean.toString(streaming)));
 
-            client.doAppBegin(traceId, authorization, client.source.name(), responseContentType);
+            final String appContentType = client.transformEvents
+                ? (streaming ? CONTENT_TYPE_EVENT_STREAM : CONTENT_TYPE_JSON)
+                : responseContentType;
+            client.doAppBegin(traceId, authorization, client.source.name(), appContentType);
 
             doNetWindow(traceId, authorization);
 

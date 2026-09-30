@@ -396,4 +396,23 @@ public class LlmClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.signed.yaml")
+    @Specification({
+        "${app}/buffer.and.sign/client",
+        "${net}/buffer.and.sign/server"})
+    public void shouldBufferAndSignRequestBeforeSending() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.signing.unavailable.yaml")
+    @Specification({
+        "${app}/signing.unavailable/client"})
+    public void shouldResetRequestWhenSigningUnavailable() throws Exception
+    {
+        k3po.finish();
+    }
 }

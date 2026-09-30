@@ -21,6 +21,7 @@ module io.aklivity.zilla.runtime.binding.llm
 
     exports io.aklivity.zilla.runtime.binding.llm.codec;
     exports io.aklivity.zilla.runtime.binding.llm.dialect;
+    exports io.aklivity.zilla.runtime.binding.llm.sign;
 
     uses io.aklivity.zilla.runtime.binding.llm.codec.LlmContentCodecSpi;
     uses io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectFactorySpi;

@@ -14,8 +14,10 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.dialect;
 
+import io.aklivity.zilla.runtime.binding.llm.sign.LlmRequestSigner;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
+import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.common.json.JsonTransform;
 
 /**
@@ -28,6 +30,14 @@ import io.aklivity.zilla.runtime.common.json.JsonTransform;
  */
 public interface LlmDialect
 {
+    /**
+     * Literal token a {@link #requestPath(String)} result may contain, resolved per request -- not by the
+     * dialect itself -- from the request's own selected model, percent-encoded as a URL path segment. A
+     * dialect that never needs this simply never includes the token, at no cost beyond a single substring
+     * check for the caller resolving it.
+     */
+    String MODEL_PLACEHOLDER = "{model}";
+
     /**
      * Distinguishes the request direction from the response direction of an exchange, since each has its
      * own schema and its own mapping to the canonical representation.
@@ -66,12 +76,35 @@ public interface LlmDialect
      * binding dialing out to this dialect's upstream: {@code basePath} followed by this dialect's own
      * fixed operation suffix (e.g. {@code /chat/completions} for OpenAI's Chat Completions API, appended
      * after {@code basePath} to form {@code /v1/chat/completions} when {@code basePath} is {@code /v1}).
+     * <p>
+     * The returned path may carry the literal token {@link #MODEL_PLACEHOLDER}, for an upstream whose own
+     * path names the model rather than carrying it only in the request body -- resolved once the request's
+     * model is known, since this method is called once per stream before any request body byte arrives.
+     * </p>
      *
      * @param basePath  the configured base path preceding this dialect's operation suffix
-     * @return the request path
+     * @return the request path, possibly carrying {@link #MODEL_PLACEHOLDER}
      */
     String requestPath(
         String basePath);
+
+    /**
+     * Returns the request path this dialect's API expects a request at, same as {@link #requestPath(String)},
+     * but additionally distinguishing a streaming request from a non-streaming one -- e.g. for an upstream
+     * whose streaming operation lives at an entirely different path than its non-streaming one, rather than
+     * differing only in the request body. A dialect whose streaming and non-streaming requests share one path
+     * never needs to override this default, which simply delegates to {@link #requestPath(String)}.
+     *
+     * @param basePath   the configured base path preceding this dialect's operation suffix
+     * @param streaming  {@code true} for a streaming request, {@code false} otherwise
+     * @return the request path, possibly carrying {@link #MODEL_PLACEHOLDER}
+     */
+    default String requestPath(
+        String basePath,
+        boolean streaming)
+    {
+        return requestPath(basePath);
+    }
 
     /**
      * Returns the name of the request header this dialect's API carries client credentials in, read from
@@ -154,6 +187,35 @@ public interface LlmDialect
         JsonEnvelope envelope);
 
     /**
+     * Creates a new {@link JsonTransform} decoding this dialect's native RESPONSE events into the canonical
+     * representation, for a kind: client binding proxying a response to a differently-dialected caller. A
+     * fresh instance backs each cross-dialect response stream. The returned instance must also implement
+     * {@link LlmDialectEvent} -- as a no-op when this dialect's decode behavior does not depend on the native
+     * out-of-band event name -- since a caller drives every dialect's transform through that interface
+     * uniformly, with no {@code instanceof} check.
+     *
+     * @return a new decoding transform
+     */
+    JsonTransform supplyResponseDecodeTransform();
+
+    /**
+     * Creates a new {@link JsonSink} encoding canonical events into this dialect's native RESPONSE events,
+     * for a kind: client binding proxying a response to a differently-dialected caller. {@code envelope} is
+     * the same per-stream metadata channel {@link #detect(JsonEnvelope)} reads from; {@code output} receives
+     * the encoded native event name/bytes as they're produced. A fresh instance backs each cross-dialect
+     * response stream. The returned instance must also implement {@link LlmDialectTerminator} -- as a no-op
+     * when this dialect has no literal, non-JSON completion terminator -- for the same reason
+     * {@link #supplyResponseDecodeTransform()}'s result must implement {@link LlmDialectEvent}.
+     *
+     * @param envelope  the per-stream metadata channel
+     * @param output    receives each encoded native event
+     * @return a new encoding sink
+     */
+    JsonSink supplyResponseEncodeSink(
+        JsonEnvelope envelope,
+        LlmNativeEventOutput output);
+
+    /**
      * Returns a {@link JsonTransform} validating one stream's native {@code kind} payload against this
      * dialect's own JSON schema, compiled once from this dialect's bundled schema resource, forwarding
      * every event unchanged.
@@ -176,4 +238,18 @@ public interface LlmDialect
      */
     DirectBufferEx terminator(
         Kind kind);
+
+    /**
+     * Returns the {@link LlmRequestSigner} this dialect's upstream requires for a {@code kind: client}
+     * binding dialing out to it -- e.g. a dialect whose upstream requires a signature computed over the
+     * complete request rather than a single static credential value carried in one header -- or
+     * {@code null} when this dialect needs no such signer, the same {@code null}-when-unneeded convention
+     * {@link #terminator(Kind)} follows.
+     *
+     * @return the request signer, or {@code null}
+     */
+    default LlmRequestSigner signer()
+    {
+        return null;
+    }
 }

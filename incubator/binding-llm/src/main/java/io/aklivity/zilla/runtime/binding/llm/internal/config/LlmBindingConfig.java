@@ -26,6 +26,7 @@ import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialect;
 import io.aklivity.zilla.runtime.binding.llm.internal.dialect.LlmDialectResolver;
+import io.aklivity.zilla.runtime.binding.llm.sign.LlmRequestSigner;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -48,6 +49,7 @@ public final class LlmBindingConfig
     public final List<LlmRouteConfig> routes;
     public final GuardHandler guard;
     public final String credentials;
+    public final LlmRequestSigner signer;
 
     private final LlmDialectResolver dialects;
     private final Pattern credentialsPattern;
@@ -61,7 +63,7 @@ public final class LlmBindingConfig
         this.kind = binding.kind;
         this.options = binding.options instanceof LlmOptionsConfig o ? o : DEFAULT_OPTIONS;
         this.routes = binding.routes.stream().map(LlmRouteConfig::new).collect(toList());
-        this.dialects = new LlmDialectResolver(this.options.dialect);
+        this.dialects = new LlmDialectResolver(this.options.dialect, context::signaler);
         this.guard = Optional.ofNullable(this.options.authorization)
             .map(a -> a.name)
             .map(binding.resolveId::applyAsLong)
@@ -73,6 +75,9 @@ public final class LlmBindingConfig
             .orElse(null);
         this.credentialsPattern = credentials != null
             ? Pattern.compile(credentials.replace(CREDENTIALS_PLACEHOLDER, "(?<credentials>[^\\s]+)"))
+            : null;
+        this.signer = this.options.dialect != null
+            ? Optional.ofNullable(dialects.dialectNamed(this.options.dialect)).map(LlmDialect::signer).orElse(null)
             : null;
     }
 

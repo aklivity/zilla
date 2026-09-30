@@ -23,6 +23,8 @@ import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonReader;
 
+import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectTerminator;
+import io.aklivity.zilla.runtime.binding.llm.dialect.LlmNativeEventOutput;
 import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
 
 /**
@@ -32,7 +34,7 @@ import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
  * or accumulating into {@code doc*} fields and writing the whole document once at {@code TYPE_END}
  * (non-streaming).
  */
-final class LlmAnthropicEncodeSink extends LlmCanonicalEncodeSink implements LlmDialectTerminator
+public final class LlmAnthropicEncodeSink extends LlmCanonicalEncodeSink implements LlmDialectTerminator
 {
     private static final JsonObject EMPTY_INPUT = Json.createObjectBuilder().build();
     private static final int MAX_DATA_FRAGMENT_CHARS = 1024;
@@ -55,7 +57,7 @@ final class LlmAnthropicEncodeSink extends LlmCanonicalEncodeSink implements Llm
     private int docInputTokens = -1;
     private int docOutputTokens = -1;
 
-    LlmAnthropicEncodeSink(
+    public LlmAnthropicEncodeSink(
         JsonEnvelope envelope,
         LlmNativeEventOutput output)
     {
@@ -220,7 +222,10 @@ final class LlmAnthropicEncodeSink extends LlmCanonicalEncodeSink implements Llm
         steps.add(this::tryWriteStartObject);
         steps.add(() -> tryWrite("type", "message_start"));
         steps.add(() -> tryWriteStartObject("message"));
-        steps.add(() -> tryWrite("id", id));
+        if (id != null)
+        {
+            steps.add(() -> tryWrite("id", id));
+        }
         steps.add(() -> tryWrite("type", "message"));
         steps.add(() -> tryWrite("role", role));
         if (model != null)

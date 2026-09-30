@@ -20,6 +20,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BooleanSupplier;
 
+import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectTerminator;
+import io.aklivity.zilla.runtime.binding.llm.dialect.LlmNativeEventOutput;
 import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
 
 /**
@@ -29,7 +31,7 @@ import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
  * or accumulating into {@code held*} fields and writing the whole document once at {@code TYPE_END}
  * (non-streaming).
  */
-final class LlmOpenaiEncodeSink extends LlmCanonicalEncodeSink implements LlmDialectTerminator
+public final class LlmOpenaiEncodeSink extends LlmCanonicalEncodeSink implements LlmDialectTerminator
 {
     private static final int NO_BLOCK = -1;
     private static final byte[] DONE_BYTES = "[DONE]".getBytes(UTF_8);
@@ -51,7 +53,7 @@ final class LlmOpenaiEncodeSink extends LlmCanonicalEncodeSink implements LlmDia
     private int heldInputTokens = -1;
     private int heldOutputTokens = -1;
 
-    LlmOpenaiEncodeSink(
+    public LlmOpenaiEncodeSink(
         JsonEnvelope envelope,
         LlmNativeEventOutput output)
     {
@@ -242,7 +244,10 @@ final class LlmOpenaiEncodeSink extends LlmCanonicalEncodeSink implements LlmDia
         steps.add(() -> tryWriteNull("finish_reason"));
         steps.add(this::tryWriteEnd);
         steps.add(this::tryWriteEnd);
-        steps.add(() -> tryWrite("id", id));
+        if (id != null)
+        {
+            steps.add(() -> tryWrite("id", id));
+        }
         if (model != null)
         {
             steps.add(() -> tryWrite("model", model));
