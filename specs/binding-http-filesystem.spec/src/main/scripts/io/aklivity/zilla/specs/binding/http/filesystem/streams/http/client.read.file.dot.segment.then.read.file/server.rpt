@@ -29,14 +29,15 @@ read zilla:begin.ext ${http:beginEx()
 
 connected
 
-write zilla:reset.ext ${http:resetEx()
-                           .typeId(zilla:id("http"))
-                           .header(":status", "404")
-                           .header("content-length", "0")
-                           .build()}
+read closed
 
-read abort
-write aborted
+write zilla:begin.ext ${http:beginEx()
+                            .typeId(zilla:id("http"))
+                            .header(":status", "404")
+                            .header("content-length", "0")
+                            .build()}
+
+write close
 
 accepted
 

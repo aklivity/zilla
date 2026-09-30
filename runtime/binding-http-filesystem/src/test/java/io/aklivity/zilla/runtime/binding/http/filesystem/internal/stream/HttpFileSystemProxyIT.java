@@ -32,6 +32,7 @@ import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 public class HttpFileSystemProxyIT
 {
     private final K3poRule k3po = new K3poRule()
+        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/http/filesystem/streams/network")
         .addScriptRoot("http", "io/aklivity/zilla/specs/binding/http/filesystem/streams/http")
         .addScriptRoot("filesystem", "io/aklivity/zilla/specs/binding/http/filesystem/streams/filesystem");
 
@@ -319,6 +320,15 @@ public class HttpFileSystemProxyIT
         "${http}/client.read.file.dot.segment.then.read.file/client",
         "${filesystem}/client.read.file/server"})
     public void shouldRejectClientReadFileDotSegmentThenReadFile() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("http.server.proxy.with.path.dynamic.yaml")
+    @Specification({
+        "${net}/client.read.file.dot.segment/client"})
+    public void shouldRespondNotFoundForClientReadFileDotSegment() throws Exception
     {
         k3po.finish();
     }

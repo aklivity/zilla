@@ -337,8 +337,15 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
             }
             else
             {
+                final HttpBeginExFW httpBeginEx = httpBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                    .typeId(httpTypeId)
+                    .headersItem(h -> h.name(HEADER_STATUS_NAME).value(HEADER_STATUS_VALUE_404))
+                    .headersItem(h -> h.name(HEADER_CONTENT_LENGTH_NAME).value("0"))
+                    .build();
+
                 doHttpWindow(authorization, traceId, 0L, 0, 0);
-                doHttpReset(traceId, null);
+                doHttpBegin(traceId, authorization, affinity, httpBeginEx);
+                doHttpEnd(traceId, authorization);
             }
         }
 

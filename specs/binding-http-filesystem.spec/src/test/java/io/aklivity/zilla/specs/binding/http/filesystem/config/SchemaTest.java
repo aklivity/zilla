@@ -30,6 +30,7 @@ public class SchemaTest
     @Rule
     public final ConfigSchemaRule schema = new ConfigSchemaRule()
         .schemaPatch("io/aklivity/zilla/specs/binding/http/filesystem/schema/http.filesystem.schema.patch.json")
+        .schemaPatch("io/aklivity/zilla/specs/binding/http/schema/http.schema.patch.json")
         .schemaPatch("io/aklivity/zilla/specs/engine/schema/guard/test.schema.patch.json")
         .configurationRoot("io/aklivity/zilla/specs/binding/http/filesystem/config");
 
@@ -77,6 +78,14 @@ public class SchemaTest
     public void shouldValidateProxyWithGuardedDirectory()
     {
         JsonObject config = schema.validate("proxy.with.directory.guarded.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateHttpServerProxyWithDynamicPath()
+    {
+        JsonObject config = schema.validate("http.server.proxy.with.path.dynamic.yaml");
 
         assertThat(config, not(nullValue()));
     }

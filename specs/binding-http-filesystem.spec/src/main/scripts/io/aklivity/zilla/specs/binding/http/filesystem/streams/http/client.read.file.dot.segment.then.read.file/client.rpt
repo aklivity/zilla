@@ -28,14 +28,15 @@ write zilla:begin.ext ${http:beginEx()
 
 connected
 
-read zilla:reset.ext ${http:resetEx()
+write close
+
+read zilla:begin.ext ${http:beginEx()
                            .typeId(zilla:id("http"))
                            .header(":status", "404")
                            .header("content-length", "0")
                            .build()}
 
-write aborted
-read abort
+read closed
 write notify REJECTED
 
 connect await REJECTED
