@@ -17,15 +17,23 @@ package io.aklivity.zilla.runtime.binding.http.filesystem.internal.config;
 import static java.util.function.UnaryOperator.identity;
 import static java.util.stream.Collectors.toList;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.LongFunction;
 import java.util.function.UnaryOperator;
+import java.util.regex.MatchResult;
 
 import io.aklivity.zilla.config.binding.http.filesystem.HttpFileSystemConditionConfig;
 import io.aklivity.zilla.config.binding.http.filesystem.HttpFileSystemWithConfig;
 import io.aklivity.zilla.config.engine.RouteConfig;
+import io.aklivity.zilla.runtime.common.lang.util.function.LongObjectBiFunction;
 import io.aklivity.zilla.runtime.common.lang.util.function.LongObjectPredicate;
+import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 
 public final class HttpFileSystemRouteConfig
 {
@@ -36,12 +44,54 @@ public final class HttpFileSystemRouteConfig
     private final LongObjectPredicate<UnaryOperator<String>> authorized;
 
     public HttpFileSystemRouteConfig(
-        RouteConfig route)
+        RouteConfig route,
+        EngineContext context)
     {
         this.id = route.id;
+
+        final Map<String, LongFunction<String>> identifiers = new HashMap<>();
+        final Map<String, LongObjectBiFunction<String, String>> attributors = new HashMap<>();
+
+        Set<String> guardNames = Set.of();
+        if (route.with != null)
+        {
+            HttpFileSystemWithConfig withConfig = (HttpFileSystemWithConfig) route.with;
+            guardNames = HttpFileSystemWithResolver.extractGuardNames(withConfig);
+        }
+
+        for (String guardName : guardNames)
+        {
+            long guardId = route.resolveId.applyAsLong(guardName);
+            GuardHandler guard = context.supplyGuard(guardId);
+
+            if (guard != null)
+            {
+                identifiers.put(guardName, guard::identity);
+                attributors.put(guardName, guard::attribute);
+            }
+        }
+
+        final LongFunction<String> defaultIdentifier = a -> null;
+        final LongObjectBiFunction<MatchResult, String> identityReplacer = (a, r) ->
+        {
+            final LongFunction<String> identifier = identifiers.getOrDefault(r.group(1), defaultIdentifier);
+            final String identity = identifier.apply(a);
+            return identity != null ? identity : "";
+        };
+
+        final LongObjectBiFunction<String, String> defaultAttributor = (sessionId, name) -> null;
+        final LongObjectBiFunction<MatchResult, String> attributeReplacer = (sessionId, match) ->
+        {
+            final LongObjectBiFunction<String, String> attributor =
+                attributors.getOrDefault(match.group(1), defaultAttributor);
+
+            final String value = attributor.apply(sessionId, match.group(2));
+            return value != null ? value : "";
+        };
+
         this.with = Optional.ofNullable(route.with)
             .map(HttpFileSystemWithConfig.class::cast)
-            .map(HttpFileSystemWithResolver::new);
+            .map(c -> new HttpFileSystemWithResolver(identityReplacer, attributeReplacer, c));
         Consumer<HttpFileSystemConditionMatcher> observer = with.isPresent() ? with.get()::onConditionMatched : null;
         this.when = route.when.stream()
                 .map(HttpFileSystemConditionConfig.class::cast)

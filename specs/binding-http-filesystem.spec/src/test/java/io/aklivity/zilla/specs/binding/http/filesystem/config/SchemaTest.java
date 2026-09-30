@@ -30,6 +30,7 @@ public class SchemaTest
     @Rule
     public final ConfigSchemaRule schema = new ConfigSchemaRule()
         .schemaPatch("io/aklivity/zilla/specs/binding/http/filesystem/schema/http.filesystem.schema.patch.json")
+        .schemaPatch("io/aklivity/zilla/specs/engine/schema/guard/test.schema.patch.json")
         .configurationRoot("io/aklivity/zilla/specs/binding/http/filesystem/config");
 
     @Test
@@ -44,6 +45,38 @@ public class SchemaTest
     public void shouldValidateProxyWithDynamicDirectory()
     {
         JsonObject config = schema.validate("proxy.with.directory.dynamic.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateProxyWithDynamicPath()
+    {
+        JsonObject config = schema.validate("proxy.with.path.dynamic.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateProxyWithGuardedPath()
+    {
+        JsonObject config = schema.validate("proxy.with.path.guarded.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateProxyWithPrefixedPath()
+    {
+        JsonObject config = schema.validate("proxy.with.path.prefixed.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateProxyWithGuardedDirectory()
+    {
+        JsonObject config = schema.validate("proxy.with.directory.guarded.yaml");
 
         assertThat(config, not(nullValue()));
     }

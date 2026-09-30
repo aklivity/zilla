@@ -264,4 +264,52 @@ public class HttpFileSystemProxyIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("proxy.with.path.guarded.yaml")
+    @Specification({
+        "${http}/client.read.file/client",
+        "${filesystem}/client.read.file.guarded/server"})
+    public void shouldReceiveClientReadFileGuarded() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.with.path.prefixed.yaml")
+    @Specification({
+        "${http}/client.read.file/client",
+        "${filesystem}/client.read.file.prefixed/server"})
+    public void shouldReceiveClientReadFilePrefixed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.with.directory.guarded.yaml")
+    @Specification({
+        "${http}/client.read.directory/client",
+        "${filesystem}/client.read.directory.guarded/server"})
+    public void shouldReceiveClientReadDirectoryGuarded() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.with.path.dynamic.yaml")
+    @Specification({
+        "${http}/client.read.file.dot.segment/client"})
+    public void shouldRejectClientReadFileDotSegment() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.with.path.prefixed.yaml")
+    @Specification({
+        "${http}/client.read.file.nested.segment/client"})
+    public void shouldRejectClientReadFileNestedSegment() throws Exception
+    {
+        k3po.finish();
+    }
 }
