@@ -28,16 +28,21 @@ import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialect;
 import io.aklivity.zilla.runtime.binding.llm.internal.LlmBinding;
 import io.aklivity.zilla.runtime.binding.llm.internal.LlmConfiguration;
+import io.aklivity.zilla.runtime.binding.llm.internal.codec.LlmContentCodecFactory;
 import io.aklivity.zilla.runtime.binding.llm.internal.config.LlmBindingConfig;
 import io.aklivity.zilla.runtime.binding.llm.internal.config.LlmRouteConfig;
+import io.aklivity.zilla.runtime.binding.llm.internal.encode.LlmContentEncoder;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.ChallengeFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.EndFW;
+import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmBeginExFW;
+import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmFlushExFW;
+import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmNativeFlushExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
@@ -70,6 +75,7 @@ public final class LlmServerFactory implements LlmStreamFactory
     private final DataFW dataRO = new DataFW();
     private final EndFW endRO = new EndFW();
     private final AbortFW abortRO = new AbortFW();
+    private final FlushFW flushRO = new FlushFW();
     private final ResetFW resetRO = new ResetFW();
     private final WindowFW windowRO = new WindowFW();
     private final ChallengeFW challengeRO = new ChallengeFW();
@@ -84,16 +90,20 @@ public final class LlmServerFactory implements LlmStreamFactory
 
     private final HttpBeginExFW httpBeginExRO = new HttpBeginExFW();
     private final HttpBeginExFW.Builder httpBeginExRW = new HttpBeginExFW.Builder();
+    private final LlmBeginExFW llmBeginExRO = new LlmBeginExFW();
     private final LlmBeginExFW.Builder llmBeginExRW = new LlmBeginExFW.Builder();
+    private final LlmFlushExFW llmFlushExRO = new LlmFlushExFW();
 
     private final MutableDirectBufferEx writeBuffer;
     private final MutableDirectBufferEx extBuffer;
     private final MutableDirectBufferEx transformBuffer;
+    private final MutableDirectBufferEx copyBuffer;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final BindingHandler streamFactory;
     private final BufferPool decodePool;
     private final BufferPool encodePool;
+    private final LlmContentCodecFactory codecs;
     private final int llmTypeId;
     private final int httpTypeId;
     private final EngineContext context;
@@ -118,9 +128,11 @@ public final class LlmServerFactory implements LlmStreamFactory
         // instance can't alias between them.
         this.encodePool = context.bufferPool().duplicate();
         this.transformBuffer = new UnsafeBufferEx(new byte[decodePool.slotCapacity()]);
+        this.copyBuffer = new UnsafeBufferEx(new byte[encodePool.slotCapacity()]);
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.streamFactory = context.streamFactory();
+        this.codecs = new LlmContentCodecFactory();
         this.llmTypeId = context.supplyTypeId(LlmBinding.NAME);
         this.httpTypeId = context.supplyTypeId(HTTP_TYPE_NAME);
         this.context = context;
@@ -624,8 +636,18 @@ public final class LlmServerFactory implements LlmStreamFactory
             long traceId,
             long authorization)
         {
-            final int length = payload.sizeof();
+            doNetData(payload.buffer(), payload.offset(), payload.sizeof(), flags, budgetId, traceId, authorization);
+        }
 
+        private void doNetData(
+            DirectBufferEx buffer,
+            int offset,
+            int length,
+            int flags,
+            long budgetId,
+            long traceId,
+            long authorization)
+        {
             if (encodeSlot == NO_SLOT)
             {
                 encodeSlot = encodePool.acquire(replyId);
@@ -639,8 +661,8 @@ public final class LlmServerFactory implements LlmStreamFactory
             }
             else
             {
-                final MutableDirectBufferEx buffer = encodePool.buffer(encodeSlot);
-                buffer.putBytes(encodeSlotOffset, payload.buffer(), payload.offset(), length);
+                final MutableDirectBufferEx slotBuffer = encodePool.buffer(encodeSlot);
+                slotBuffer.putBytes(encodeSlotOffset, buffer, offset, length);
                 encodeSlotOffset += length;
                 encodeChunks.add(new SlotChunk(length, flags, budgetId, traceId, authorization));
 
@@ -732,15 +754,16 @@ public final class LlmServerFactory implements LlmStreamFactory
         private void doNetBegin(
             long traceId,
             long authorization,
-            long affinity)
+            long affinity,
+            String responseContentType)
         {
             final HttpBeginExFW.Builder httpBeginExBuilder = httpBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(httpTypeId)
                 .headersItem(h -> h.name(HEADER_STATUS).value(STATUS_OK));
 
-            if (contentType != null)
+            if (responseContentType != null)
             {
-                httpBeginExBuilder.headersItem(h -> h.name(HEADER_CONTENT_TYPE).value(contentType));
+                httpBeginExBuilder.headersItem(h -> h.name(HEADER_CONTENT_TYPE).value(responseContentType));
             }
 
             final HttpBeginExFW httpBeginEx = httpBeginExBuilder.build();
@@ -965,6 +988,8 @@ public final class LlmServerFactory implements LlmStreamFactory
         private long encodeSlotAuthorization;
         private boolean flushingRequest;
 
+        private LlmContentEncoder encoder;
+
         private LlmStream(
             LlmServer server)
         {
@@ -1089,6 +1114,9 @@ public final class LlmServerFactory implements LlmStreamFactory
             case AbortFW.TYPE_ID:
                 onAppAbort(abortRO.wrap(buffer, index, index + length));
                 break;
+            case FlushFW.TYPE_ID:
+                onAppFlush(flushRO.wrap(buffer, index, index + length));
+                break;
             case WindowFW.TYPE_ID:
                 onAppWindow(windowRO.wrap(buffer, index, index + length));
                 break;
@@ -1112,12 +1140,18 @@ public final class LlmServerFactory implements LlmStreamFactory
             final long authorization = begin.authorization();
             final long affinity = begin.affinity();
 
+            final OctetsFW extension = begin.extension();
+            final LlmBeginExFW llmBeginEx = extension.get(llmBeginExRO::tryWrap);
+            final String responseContentType = llmBeginEx != null ? llmBeginEx.contentType().asString() : null;
+
             replySeq = sequence;
             replyAck = acknowledge;
             replyMax = encodePool.slotCapacity();
             state = LlmState.openingReply(state);
 
-            server.doNetBegin(traceId, authorization, affinity);
+            encoder = codecs.createEncoder(responseContentType);
+
+            server.doNetBegin(traceId, authorization, affinity, responseContentType);
             doAppWindow(traceId);
         }
 
@@ -1133,7 +1167,51 @@ public final class LlmServerFactory implements LlmStreamFactory
 
             replySeq = data.sequence() + reserved;
 
-            server.doNetData(payload, flags, budgetId, traceId, authorization);
+            if (encoder == null)
+            {
+                server.doNetData(payload, flags, budgetId, traceId, authorization);
+            }
+            else
+            {
+                final int encoded = encoder.encodeData(payload.buffer(), payload.offset(), payload.sizeof(),
+                    copyBuffer, 0, copyBuffer.capacity());
+                if (encoded > 0)
+                {
+                    server.doNetData(copyBuffer, 0, encoded, flags, budgetId, traceId, authorization);
+                }
+            }
+        }
+
+        private void onAppFlush(
+            FlushFW flush)
+        {
+            final long traceId = flush.traceId();
+            final long authorization = flush.authorization();
+            final long budgetId = flush.budgetId();
+            final OctetsFW extension = flush.extension();
+
+            replySeq = flush.sequence();
+
+            if (encoder != null)
+            {
+                final LlmFlushExFW llmFlushEx = extension.get(llmFlushExRO::tryWrap);
+                if (llmFlushEx != null && llmFlushEx.kind() == LlmFlushExFW.KIND_RAW)
+                {
+                    final LlmNativeFlushExFW raw = llmFlushEx.raw();
+                    final String event = raw.type() != null ? raw.type().asString() : null;
+                    final OctetsFW payload = raw.payload();
+                    final int idLength = payload != null ? payload.sizeof() : 0;
+                    final int encoded = payload != null
+                        ? encoder.encodeFlush(event, payload.buffer(), payload.offset(), idLength,
+                            copyBuffer, 0, copyBuffer.capacity())
+                        : encoder.encodeFlush(event, EMPTY_OCTETS.buffer(), 0, 0,
+                            copyBuffer, 0, copyBuffer.capacity());
+                    if (encoded > 0)
+                    {
+                        server.doNetData(copyBuffer, 0, encoded, FLAG_INIT | FLAG_FIN, budgetId, traceId, authorization);
+                    }
+                }
+            }
         }
 
         private void onAppEnd(
