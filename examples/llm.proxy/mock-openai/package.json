@@ -1,0 +1,10 @@
+{
+  "name": "mock-openai",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Minimal mock OpenAI chat completions API backing the openai-facing and anthropic-facing llm(client) routes",
+  "dependencies": {
+    "express": "^5.2.1"
+  }
+}

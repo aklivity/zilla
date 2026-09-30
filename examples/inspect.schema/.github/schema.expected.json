@@ -1708,6 +1708,7 @@
                         "http-kafka",
                         "kafka",
                         "kafka-grpc",
+                        "llm",
                         "mcp",
                         "mcp-http",
                         "mcp-kafka",
@@ -3704,6 +3705,128 @@
                         },
                         "required": [
                             "routes"
+                        ]
+                    }
+                },
+                {
+                    "if": {
+                        "properties": {
+                            "type": {
+                                "const": "llm"
+                            }
+                        }
+                    },
+                    "then": {
+                        "properties": {
+                            "type": {
+                                "const": "llm"
+                            },
+                            "kind": {
+                                "enum": [
+                                    "client",
+                                    "server"
+                                ]
+                            }
+                        },
+                        "allOf": [
+                            {
+                                "if": {
+                                    "properties": {
+                                        "kind": {
+                                            "const": "server"
+                                        }
+                                    }
+                                },
+                                "then": {
+                                    "properties": {
+                                        "options": {
+                                            "properties": {
+                                                "dialect": {
+                                                    "title": "Dialect",
+                                                    "description": "Fixes the dialect assumed for inbound requests instead of detecting it automatically. Accepts the name of any dialect registered with the binding, for example openai or anthropic.",
+                                                    "$ref": "#/$defs/binding-ext/llm/dialect"
+                                                },
+                                                "authorization": {
+                                                    "title": "Authorization",
+                                                    "description": "Guard used to validate inbound request credentials, keyed by guard name. Credentials is a template matched against the request header the resolved dialect expects credentials in (for example Authorization for openai, x-api-key for anthropic), with {credentials} standing in for the extracted token.",
+                                                    "type": "object",
+                                                    "patternProperties": {
+                                                        "^[A-Za-z0-9_-]+$": {
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "credentials": {
+                                                                    "title": "Credentials",
+                                                                    "type": "string",
+                                                                    "pattern": ".*\\{credentials\\}.*",
+                                                                    "default": "Bearer {credentials}"
+                                                                }
+                                                            },
+                                                            "additionalProperties": false
+                                                        }
+                                                    },
+                                                    "additionalProperties": false,
+                                                    "maxProperties": 1
+                                                }
+                                            },
+                                            "additionalProperties": false
+                                        }
+                                    }
+                                }
+                            },
+                            {
+                                "if": {
+                                    "properties": {
+                                        "kind": {
+                                            "const": "client"
+                                        }
+                                    }
+                                },
+                                "then": {
+                                    "properties": {
+                                        "options": {
+                                            "properties": {
+                                                "dialect": {
+                                                    "title": "Dialect",
+                                                    "description": "The dialect this client speaks to the large language model server named by server. Accepts the name of any dialect registered with the binding, for example openai or anthropic. When it differs from the dialect resolved on the paired server side, requests and responses are translated between the two dialects automatically, subject to each dialect's own capabilities.",
+                                                    "$ref": "#/$defs/binding-ext/llm/dialect"
+                                                },
+                                                "server": {
+                                                    "title": "Server",
+                                                    "description": "Host and port of the large language model server this client connects to, formatted as host:port.",
+                                                    "type": "string",
+                                                    "pattern": "([^\\:]+):(\\d+)"
+                                                },
+                                                "authorization": {
+                                                    "title": "Authorization",
+                                                    "description": "Guard used to resolve outbound request credentials, keyed by guard name. Credentials is a template used to build the request header the resolved dialect sends credentials in (for example Authorization for openai, x-api-key for anthropic), with {credentials} standing in for the resolved token. When {credentials} resolves to the authorization already granted to the inbound request, the caller's own credentials are forwarded upstream unchanged.",
+                                                    "type": "object",
+                                                    "patternProperties": {
+                                                        "^[A-Za-z0-9_-]+$": {
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "credentials": {
+                                                                    "title": "Credentials",
+                                                                    "type": "string",
+                                                                    "pattern": ".*\\{credentials\\}.*",
+                                                                    "default": "Bearer {credentials}"
+                                                                }
+                                                            },
+                                                            "additionalProperties": false
+                                                        }
+                                                    },
+                                                    "additionalProperties": false,
+                                                    "maxProperties": 1
+                                                }
+                                            },
+                                            "required": [
+                                                "dialect",
+                                                "server"
+                                            ],
+                                            "additionalProperties": false
+                                        }
+                                    }
+                                }
+                            }
                         ]
                     }
                 },
@@ -7360,6 +7483,16 @@
             ]
         },
         "binding-ext": {
+            "llm": {
+                "dialect": {
+                    "title": "Dialect",
+                    "type": "string",
+                    "enum": [
+                        "openai",
+                        "anthropic"
+                    ]
+                }
+            },
             "mcp": {
                 "indexes": {
                     "type": "object",
