@@ -17,6 +17,9 @@ package io.aklivity.zilla.runtime.binding.llm.internal.decode;
 import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
+import io.aklivity.zilla.runtime.binding.llm.codec.LlmContentDecoder;
+import io.aklivity.zilla.runtime.binding.llm.codec.LlmContentDecoderOutput;
+
 /**
  * Decodes {@code application/json} framing: a non-streaming response has no event boundaries
  * of its own, so the entire document is dispatched as a single event, the same abstraction

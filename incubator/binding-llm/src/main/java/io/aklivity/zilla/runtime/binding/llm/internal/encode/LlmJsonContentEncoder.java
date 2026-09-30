@@ -17,6 +17,8 @@ package io.aklivity.zilla.runtime.binding.llm.internal.encode;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 
+import io.aklivity.zilla.runtime.binding.llm.codec.LlmContentEncoder;
+
 /**
  * Encodes {@code application/json} framing, the inverse of {@code LlmJsonContentDecoder}: a
  * non-streaming document has no event boundaries of its own, so content bytes are copied through

@@ -14,9 +14,10 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.internal.codec;
 
-import io.aklivity.zilla.runtime.binding.llm.internal.decode.LlmContentDecoder;
+import io.aklivity.zilla.runtime.binding.llm.codec.LlmContentCodecSpi;
+import io.aklivity.zilla.runtime.binding.llm.codec.LlmContentDecoder;
+import io.aklivity.zilla.runtime.binding.llm.codec.LlmContentEncoder;
 import io.aklivity.zilla.runtime.binding.llm.internal.decode.LlmSseContentDecoder;
-import io.aklivity.zilla.runtime.binding.llm.internal.encode.LlmContentEncoder;
 import io.aklivity.zilla.runtime.binding.llm.internal.encode.LlmSseContentEncoder;
 
 public final class LlmSseContentCodecSpi implements LlmContentCodecSpi

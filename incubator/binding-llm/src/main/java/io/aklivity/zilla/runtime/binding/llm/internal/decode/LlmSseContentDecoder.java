@@ -18,6 +18,9 @@ import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
+import io.aklivity.zilla.runtime.binding.llm.codec.LlmContentDecoder;
+import io.aklivity.zilla.runtime.binding.llm.codec.LlmContentDecoderOutput;
+
 /**
  * Decodes {@code text/event-stream} (SSE) framing: blank-line-delimited events carrying
  * {@code data:}, {@code event:} and {@code id:} fields, per the WHATWG SSE parsing algorithm.
