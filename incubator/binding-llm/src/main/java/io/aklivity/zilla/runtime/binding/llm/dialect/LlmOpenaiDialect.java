@@ -93,6 +93,14 @@ public final class LlmOpenaiDialect implements LlmDialect
     }
 
     @Override
+    public ModelTransform supplyValidator(
+        Kind kind,
+        ModelEnvelope envelope)
+    {
+        return kind == Kind.REQUEST ? new LlmModelExtractTransform(envelope) : ModelTransform.NONE;
+    }
+
+    @Override
     public ModelTransform supplyEncoder(
         Kind kind,
         ModelEnvelope envelope)

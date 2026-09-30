@@ -115,4 +115,44 @@ public class LlmClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.response.invalid/client",
+        "${net}/anthropic.response.invalid/server"})
+    public void shouldRejectAnthropicResponseWithMismatchedEventType() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.response.valid/client",
+        "${net}/anthropic.response.valid/server"})
+    public void shouldForwardAnthropicResponseWithMatchingEventType() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.streaming/client",
+        "${net}/client.anthropic.streaming/server"})
+    public void shouldForwardAnthropicStreamingSameDialect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.nonstreaming/client",
+        "${net}/client.anthropic.nonstreaming/server"})
+    public void shouldForwardAnthropicNonstreamingSameDialect() throws Exception
+    {
+        k3po.finish();
+    }
 }

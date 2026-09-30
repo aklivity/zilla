@@ -137,6 +137,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/anthropic.request/client",
+        "${app}/anthropic.request/server"})
+    public void shouldForwardAnthropicRequest() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/openai.streaming/client",
         "${app}/openai.streaming/server"})
     public void shouldForwardOpenaiStreaming() throws Exception
@@ -158,6 +167,42 @@ public class ApplicationIT
         "${app}/openai.response.invalid/client",
         "${app}/openai.response.invalid/server"})
     public void shouldAbortInvalidOpenaiResponse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.response.invalid/client",
+        "${app}/anthropic.response.invalid/server"})
+    public void shouldAbortAnthropicResponseWithMismatchedEventType() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.response.valid/client",
+        "${app}/anthropic.response.valid/server"})
+    public void shouldForwardAnthropicResponseWithMatchingEventType() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.streaming/client",
+        "${app}/anthropic.streaming/server"})
+    public void shouldForwardAnthropicStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.nonstreaming/client",
+        "${app}/anthropic.nonstreaming/server"})
+    public void shouldForwardAnthropicNonstreaming() throws Exception
     {
         k3po.finish();
     }

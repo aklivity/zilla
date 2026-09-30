@@ -137,6 +137,16 @@ public class LlmServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/anthropic.request/client",
+        "${app}/anthropic.request/server"})
+    public void shouldDetectAnthropicDialectFromPath() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/openai.request.invalid/client"})
     public void shouldRejectInvalidOpenaiRequest() throws Exception
     {
@@ -159,6 +169,26 @@ public class LlmServerIT
         "${net}/openai.nonstreaming/client",
         "${app}/openai.nonstreaming/server"})
     public void shouldForwardOpenaiNonstreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.streaming/client",
+        "${app}/anthropic.streaming/server"})
+    public void shouldForwardAnthropicStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.nonstreaming/client",
+        "${app}/anthropic.nonstreaming/server"})
+    public void shouldForwardAnthropicNonstreaming() throws Exception
     {
         k3po.finish();
     }
