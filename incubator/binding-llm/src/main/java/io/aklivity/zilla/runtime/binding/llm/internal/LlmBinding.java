@@ -14,6 +14,10 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.internal;
 
+import java.net.URL;
+import java.util.ServiceLoader;
+
+import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectFactorySpi;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
 
@@ -22,11 +26,13 @@ public final class LlmBinding implements Binding
     public static final String NAME = "llm";
 
     private final LlmConfiguration config;
+    private final LlmSystemNamespaceGenerator generator;
 
     LlmBinding(
         LlmConfiguration config)
     {
         this.config = config;
+        this.generator = new LlmSystemNamespaceGenerator();
     }
 
     @Override
@@ -40,5 +46,11 @@ public final class LlmBinding implements Binding
         EngineContext context)
     {
         return new LlmBindingContext(config, context);
+    }
+
+    @Override
+    public URL system()
+    {
+        return generator.generate(ServiceLoader.load(LlmDialectFactorySpi.class));
     }
 }

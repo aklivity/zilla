@@ -1,0 +1,145 @@
+/*
+ * Copyright 2021-2026 Aklivity Inc
+ *
+ * Licensed under the Aklivity Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ *   https://www.aklivity.io/aklivity-community-license/
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+package io.aklivity.zilla.runtime.binding.llm.internal.stream;
+
+final class LlmState
+{
+    private static final int INITIAL_OPENING = 0x10;
+    private static final int INITIAL_OPENED = 0x20;
+    private static final int INITIAL_CLOSING = 0x40;
+    private static final int INITIAL_CLOSED = 0x80;
+    private static final int REPLY_OPENING = 0x01;
+    private static final int REPLY_OPENED = 0x02;
+    private static final int REPLY_CLOSING = 0x04;
+    private static final int REPLY_CLOSED = 0x08;
+    private static final int INITIAL_END_DEFERRED = 0x100;
+    private static final int REPLY_END_DEFERRED = 0x200;
+
+    static int openingInitial(
+        int state)
+    {
+        return state | INITIAL_OPENING;
+    }
+
+    static int openInitial(
+        int state)
+    {
+        return openingInitial(state) | INITIAL_OPENED;
+    }
+
+    static int closingInitial(
+        int state)
+    {
+        return state | INITIAL_CLOSING;
+    }
+
+    static int closeInitial(
+        int state)
+    {
+        return closingInitial(state) | INITIAL_CLOSED;
+    }
+
+    static boolean initialOpened(
+        int state)
+    {
+        return (state & INITIAL_OPENED) != 0;
+    }
+
+    static boolean initialClosed(
+        int state)
+    {
+        return (state & INITIAL_CLOSED) != 0;
+    }
+
+    static int openingReply(
+        int state)
+    {
+        return state | REPLY_OPENING;
+    }
+
+    static int openReply(
+        int state)
+    {
+        return openingReply(state) | REPLY_OPENED;
+    }
+
+    static int closingReply(
+        int state)
+    {
+        return state | REPLY_CLOSING;
+    }
+
+    static int closeReply(
+        int state)
+    {
+        return closingReply(state) | REPLY_CLOSED;
+    }
+
+    static boolean replyOpened(
+        int state)
+    {
+        return (state & REPLY_OPENED) != 0;
+    }
+
+    static boolean replyClosed(
+        int state)
+    {
+        return (state & REPLY_CLOSED) != 0;
+    }
+
+    // Marks that an END arrived for this direction while a buffer was still draining, so forwarding it
+    // downstream had to wait; cleared once that forwarding actually happens. Unlike the opening/open/
+    // closing/closed bits above, this one is transient rather than terminal.
+    static int deferInitialEnd(
+        int state)
+    {
+        return state | INITIAL_END_DEFERRED;
+    }
+
+    static int clearInitialEndDeferred(
+        int state)
+    {
+        return state & ~INITIAL_END_DEFERRED;
+    }
+
+    static boolean initialEndDeferred(
+        int state)
+    {
+        return (state & INITIAL_END_DEFERRED) != 0;
+    }
+
+    static int deferReplyEnd(
+        int state)
+    {
+        return state | REPLY_END_DEFERRED;
+    }
+
+    static int clearReplyEndDeferred(
+        int state)
+    {
+        return state & ~REPLY_END_DEFERRED;
+    }
+
+    static boolean replyEndDeferred(
+        int state)
+    {
+        return (state & REPLY_END_DEFERRED) != 0;
+    }
+
+    private LlmState()
+    {
+        // utility
+    }
+}
