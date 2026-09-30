@@ -1,9 +1,9 @@
 {
   "repositories":
-  [
-    "https://maven.packages.aklivity.io/",
-    "https://repo.maven.apache.org/maven2/"
-  ],
+  {
+    "github": "https://maven.packages.aklivity.io/",
+    "central": "https://repo.maven.apache.org/maven2/"
+  },
 
   "imports":
   [

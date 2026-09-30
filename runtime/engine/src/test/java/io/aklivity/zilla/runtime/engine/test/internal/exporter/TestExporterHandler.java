@@ -23,6 +23,7 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageReader;
 import io.aklivity.zilla.runtime.engine.event.EventFormatter;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterHandler;
 import io.aklivity.zilla.runtime.engine.internal.types.event.EventFW;
+import io.aklivity.zilla.runtime.engine.metrics.Collector;
 
 class TestExporterHandler implements ExporterHandler
 {
@@ -31,17 +32,22 @@ class TestExporterHandler implements ExporterHandler
     private final MessageReader readEvent;
     private final EventFormatter formatter;
     private final EventFW eventRO = new EventFW();
+    private final TestExporterMetrics metrics;
 
     private int eventIndex;
 
     TestExporterHandler(
         EngineContext context,
-        ExporterConfig exporter)
+        ExporterConfig exporter,
+        Collector collector)
     {
         this.context = context;
         this.readEvent = context.supplyEventReader();
         this.formatter = context.supplyEventFormatter();
         this.options = (TestExporterOptionsConfig) exporter.options;
+        this.metrics = options.metrics != null
+            ? new TestExporterMetrics(collector, context::supplyLocalName, exporter.namespace, options.metrics)
+            : null;
     }
 
     @Override
@@ -52,6 +58,11 @@ class TestExporterHandler implements ExporterHandler
     @Override
     public int export()
     {
+        if (metrics != null)
+        {
+            metrics.update();
+        }
+
         return readEvent.read(this::handleEvent, 1);
     }
 
@@ -77,6 +88,29 @@ class TestExporterHandler implements ExporterHandler
         {
             assert options.events == null || eventIndex == options.events.size();
         }
+
+        verifyMetrics();
+    }
+
+    private void verifyMetrics()
+    {
+        if (metrics != null)
+        {
+            try
+            {
+                metrics.update();
+            }
+            catch (RuntimeException ex)
+            {
+                // metrics may no longer be readable once the engine is closing, keep the latest observed values
+            }
+
+            String mismatches = metrics.mismatches();
+            if (mismatches != null)
+            {
+                throw new IllegalStateException(String.format("metrics mismatch:%s", mismatches));
+            }
+        }
     }
 
     private void handleEvent(
@@ -85,6 +119,11 @@ class TestExporterHandler implements ExporterHandler
         int index,
         int length)
     {
+        if (options.events == null && metrics != null)
+        {
+            return;
+        }
+
         final EventFW event = eventRO.wrap(buffer, index, index + length);
 
         String qname = context.supplyQName(event.namespacedId());

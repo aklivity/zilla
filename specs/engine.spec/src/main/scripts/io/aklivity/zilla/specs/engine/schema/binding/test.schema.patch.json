@@ -303,6 +303,10 @@
                             {
                                 "type": "string"
                             },
+                            "originType":
+                            {
+                                "type": "string"
+                            },
                             "envelope":
                             {
                                 "type": "array",

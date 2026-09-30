@@ -27,6 +27,7 @@ public final class TestExporterOptionsConfigBuilder<T> extends ConfigBuilder<T, 
 
     private String mode;
     private List<TestExporterOptionsConfig.Event> events;
+    private List<TestExporterOptionsConfig.Metric> metrics;
 
     TestExporterOptionsConfigBuilder(
         Function<OptionsConfig, T> mapper)
@@ -62,9 +63,20 @@ public final class TestExporterOptionsConfigBuilder<T> extends ConfigBuilder<T, 
         return this;
     }
 
+    public TestExporterOptionsConfigBuilder<T> metric(
+        TestExporterOptionsConfig.Metric metric)
+    {
+        if (this.metrics == null)
+        {
+            this.metrics = new LinkedList<>();
+        }
+        this.metrics.add(metric);
+        return this;
+    }
+
     @Override
     public T build()
     {
-        return mapper.apply(new TestExporterOptionsConfig(mode, events));
+        return mapper.apply(new TestExporterOptionsConfig(mode, events, metrics));
     }
 }

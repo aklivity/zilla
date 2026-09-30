@@ -48,6 +48,20 @@ public class SchemaTest
         assertThat(config, not(nullValue()));
     }
 
+    @Test
+    public void shouldValidateServerMetrics()
+    {
+        JsonObject config = schema.validate("server.metrics.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectServerMetricsCounterWithCount()
+    {
+        schema.validate("server.metrics.counter.with.count.yaml");
+    }
+
     @Test(expected = JsonException.class)
     public void shouldValidateServerBindingWithEntry()
     {

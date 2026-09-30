@@ -17,13 +17,9 @@ package io.aklivity.zilla.manager.internal.commands.install;
 
 import java.util.Objects;
 
-import jakarta.json.bind.annotation.JsonbTypeAdapter;
-
-import io.aklivity.zilla.manager.internal.commands.install.adapters.ZpmRepositoryAdapter;
-
-@JsonbTypeAdapter(ZpmRepositoryAdapter.class)
 public final class ZpmRepository
 {
+    public String id;
     public String location;
 
     public ZpmRepository()
@@ -33,7 +29,7 @@ public final class ZpmRepository
     @Override
     public int hashCode()
     {
-        return Objects.hash(location);
+        return Objects.hash(id, location);
     }
 
     @Override
@@ -51,7 +47,8 @@ public final class ZpmRepository
         }
 
         ZpmRepository that = (ZpmRepository) obj;
-        return Objects.equals(this.location, that.location);
+        return Objects.equals(this.id, that.id) &&
+            Objects.equals(this.location, that.location);
     }
 
     @Override
@@ -63,6 +60,14 @@ public final class ZpmRepository
     ZpmRepository(
         String location)
     {
+        this(null, location);
+    }
+
+    ZpmRepository(
+        String id,
+        String location)
+    {
+        this.id = id;
         this.location = location;
     }
 }

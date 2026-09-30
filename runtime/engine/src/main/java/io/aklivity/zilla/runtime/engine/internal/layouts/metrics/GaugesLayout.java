@@ -36,7 +36,7 @@ public final class GaugesLayout extends ScalarsLayout
         int kind)
     {
         int index = findOrSetPosition(bindingId, metricId, attributesId, kind);
-        return value -> buffer.getAndSetLong(index + VALUE_OFFSET, value);
+        return delta -> buffer.getAndAddLong(index + VALUE_OFFSET, delta);
     }
 
     public static final class Builder extends ScalarsLayout.Builder

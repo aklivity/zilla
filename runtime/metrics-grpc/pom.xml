@@ -180,6 +180,11 @@
             <artifactId>engine</artifactId>
             <version>${project.version}</version>
           </dependency>
+          <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>binding-grpc.spec</artifactId>
+            <version>${project.version}</version>
+          </dependency>
         </dependencies>
       </plugin>
       <plugin>
