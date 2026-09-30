@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.filesystem.http.internal;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
@@ -29,6 +30,7 @@ import java.nio.file.FileSystem;
 import java.nio.file.FileSystemAlreadyExistsException;
 import java.nio.file.FileSystemNotFoundException;
 import java.nio.file.LinkOption;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
@@ -254,9 +256,20 @@ public class HttpFileSystemProvider extends FileSystemProvider
     public <A extends BasicFileAttributes> A readAttributes(
         Path path,
         Class<A> type,
-        LinkOption... options)
+        LinkOption... options) throws IOException
     {
-        throw new UnsupportedOperationException("not implemented");
+        if (type != BasicFileAttributes.class)
+        {
+            throw new UnsupportedOperationException("not implemented");
+        }
+
+        HttpFileAttributes attributes = checkPath(path).attributes();
+        if (attributes == null)
+        {
+            throw new NoSuchFileException(path.toString());
+        }
+
+        return type.cast(attributes);
     }
 
     @Override

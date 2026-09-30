@@ -340,6 +340,12 @@ public final class HttpPath implements Path
         return body != null;
     }
 
+    HttpFileAttributes attributes()
+    {
+        byte[] current = body;
+        return current != null ? new HttpFileAttributes(current.length, etag) : null;
+    }
+
     private HttpRequest newReadRequest()
     {
         HttpRequest.Builder request = HttpRequest.newBuilder()
