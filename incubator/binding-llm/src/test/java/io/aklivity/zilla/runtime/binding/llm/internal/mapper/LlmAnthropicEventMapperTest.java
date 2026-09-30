@@ -181,6 +181,19 @@ public class LlmAnthropicEventMapperTest
                 "{\"id\":\"msg_1\",\"type\":\"message\",\"role\":\"assistant\"}}"));
     }
 
+    // llm.idl LlmMessageStartFlushEx: choiceIndex never survives a cross-dialect route to
+    // Anthropic when n > 1 upstream -- a parallel completion's own message_start is
+    // indistinguishable from choiceIndex 0's, since Anthropic has no concept of parallel choices
+    @Test
+    public void shouldCollapseChoiceIndexOnMessageStart()
+    {
+        mapper.encode(support.messageStart(1, "msg_1", "claude-3", "assistant"), support);
+
+        assertThat(support.trace, contains(
+            "event:message_start:{\"type\":\"message_start\",\"message\":" +
+                "{\"id\":\"msg_1\",\"type\":\"message\",\"role\":\"assistant\",\"model\":\"claude-3\"}}"));
+    }
+
     @Test
     public void shouldEncodeBlockStartText()
     {
@@ -219,6 +232,23 @@ public class LlmAnthropicEventMapperTest
 
         DirectBuffer buffer = support.utf8("Hello");
         mapper.encode(buffer, 0, buffer.capacity(), null, support);
+
+        assertThat(support.trace, contains(
+            "event:content_block_delta:{\"type\":\"content_block_delta\",\"index\":0," +
+                "\"delta\":{\"type\":\"text_delta\",\"text\":\"Hello\"}}"));
+    }
+
+    // llm.idl LlmDataEx: logProbability never survives a cross-dialect route to Anthropic --
+    // a dialect that exposes it (e.g. OpenAI) sets it on the canonical DATA frame, but
+    // Anthropic's encode is structurally unable to carry it, so it is dropped cleanly
+    @Test
+    public void shouldNotSurfaceLogProbabilityOnContentBlockDelta()
+    {
+        mapper.encode(support.blockStart(0, 0, LlmBlockType.TEXT, null, null), support);
+        support.trace.clear();
+
+        DirectBuffer buffer = support.utf8("Hello");
+        mapper.encode(buffer, 0, buffer.capacity(), support.dataEx("-0.5"), support);
 
         assertThat(support.trace, contains(
             "event:content_block_delta:{\"type\":\"content_block_delta\",\"index\":0," +
