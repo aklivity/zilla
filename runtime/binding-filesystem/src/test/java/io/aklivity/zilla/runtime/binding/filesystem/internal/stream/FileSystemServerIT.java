@@ -14,8 +14,10 @@
  */
 package io.aklivity.zilla.runtime.binding.filesystem.internal.stream;
 
+import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_SLOT_CAPACITY_NAME;
 import static java.nio.file.StandardCopyOption.ATOMIC_MOVE;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.junit.Assert.assertTrue;
 import static org.junit.rules.RuleChain.outerRule;
 
 import java.io.File;
@@ -34,6 +36,7 @@ import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
+import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
 public class FileSystemServerIT
 {
@@ -141,6 +144,19 @@ public class FileSystemServerIT
     })
     public void shouldReadFilePayloadTagNotMatched() throws Exception
     {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @Specification({
+        "${app}/read.file.payload.large.tag.not.matched/client"
+    })
+    public void shouldReadFilePayloadLargeTagNotMatched() throws Exception
+    {
+        Files.writeString(Paths.get("target/files/large.txt"), "a".repeat(16383) + "b");
+
         k3po.finish();
     }
 
@@ -352,6 +368,22 @@ public class FileSystemServerIT
     public void shouldRejectDeleteFilePayload() throws Exception
     {
         k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @Specification({
+        "${app}/delete.file.payload.large.tag.not.matched/client",
+    })
+    public void shouldRejectDeleteFilePayloadLargeTagNotMatched() throws Exception
+    {
+        Path large = Paths.get("target/files/large.txt");
+        Files.writeString(large, "a".repeat(16383) + "b");
+
+        k3po.finish();
+
+        assertTrue(Files.exists(large));
     }
 
     @Test

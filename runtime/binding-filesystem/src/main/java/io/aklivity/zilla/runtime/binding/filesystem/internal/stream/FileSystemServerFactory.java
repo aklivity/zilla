@@ -284,6 +284,18 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
         return messageDigest;
     }
 
+    private String calculateHash(
+        InputStream input) throws IOException
+    {
+        final byte[] readArray = readBuffer.byteArray();
+        md5.reset();
+        for (int bytesRead = input.read(readArray); bytesRead != -1; bytesRead = input.read(readArray))
+        {
+            md5.update(readArray, 0, bytesRead);
+        }
+        return BitUtil.toHex(md5.digest());
+    }
+
     private String probeContentTypeOrDefault(
         Path path) throws IOException
     {
@@ -444,14 +456,11 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
         private String calculateTag()
         {
             String newTag = null;
-            try
+            try (InputStream input = getInputStream())
             {
-                InputStream input = getInputStream();
                 if (input != null)
                 {
-                    final byte[] readArray = readBuffer.byteArray();
-                    int bytesRead = input.read(readArray, 0, readArray.length);
-                    newTag = calculateHash(readArray, 0, Math.max(bytesRead, 0));
+                    newTag = calculateHash(input);
                 }
             }
             catch (IOException ex)
@@ -473,17 +482,6 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
                 // reject
             }
             return input;
-        }
-
-        private String calculateHash(
-            byte[] input,
-            int offset,
-            int length)
-        {
-            md5.reset();
-            md5.update(input, offset, length);
-            byte[] hash = md5.digest();
-            return BitUtil.toHex(hash);
         }
 
         private void onAppEnd(
@@ -1252,20 +1250,11 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
         private String calculateTag()
         {
             String newTag = null;
-            try
+            try (InputStream input = getInputStream())
             {
-                InputStream input = getInputStream();
                 if (input != null)
                 {
-                    md5.reset();
-                    while (input.available() > 0)
-                    {
-                        final byte[] readArray = readBuffer.byteArray();
-                        int bytesRead = input.read(readArray, 0, readArray.length);
-                        md5.update(readArray, 0, Math.max(bytesRead, 0));
-                    }
-                    byte[] hash = md5.digest();
-                    newTag = BitUtil.toHex(hash);
+                    newTag = calculateHash(input);
                 }
             }
             catch (IOException ex)
