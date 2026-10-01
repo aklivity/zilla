@@ -973,27 +973,6 @@ public class LlmSchemaValidationTest
         assertThat(engine, not(nullValue()));
     }
 
-    @Test
-    public void shouldAcceptClientWithServerIpv6Literal()
-    {
-        String text =
-            """
-            name: test
-            bindings:
-              app0:
-                type: llm
-                kind: client
-                options:
-                  dialect: openai
-                  server: "https://[::1]:8443/v1"
-                exit: net0
-            """;
-
-        EngineConfig engine = reader.read(text);
-
-        assertThat(engine, not(nullValue()));
-    }
-
     @Test(expected = RuntimeException.class)
     public void shouldRejectClientWithHostlessServer()
     {
@@ -1045,6 +1024,181 @@ public class LlmSchemaValidationTest
                 options:
                   dialect: openai
                 exit: app0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test
+    public void shouldAcceptClientWithServerHyphenatedHostAndPath()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: openai
+                  server: "http://mock-openai:4101/aicomp/v1"
+                exit: net0
+            """;
+
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
+    }
+
+    @Test
+    public void shouldAcceptClientWithServerIpv4Address()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: openai
+                  server: "http://10.0.0.1:8080"
+                exit: net0
+            """;
+
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectClientWithServerHostContainingUnderscore()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: openai
+                  server: "http://mock_openai:4101"
+                exit: net0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectClientWithServerHostThatIsNotHostname()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: openai
+                  server: "http://999.1.1.1"
+                exit: net0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectClientWithServerNonNumericPort()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: openai
+                  server: "https://example.com:abc"
+                exit: net0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectClientWithServerUserInfo()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: openai
+                  server: "https://user@example.com"
+                exit: net0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectClientWithServerQuery()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: openai
+                  server: "https://example.com/v1?key=value"
+                exit: net0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectClientWithServerFragment()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: openai
+                  server: "https://example.com/v1#section"
+                exit: net0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectClientWithServerIllegalPathCharacter()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: openai
+                  server: "https://example.com/v1/{model}"
+                exit: net0
             """;
 
         reader.read(text);
