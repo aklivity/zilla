@@ -15,8 +15,6 @@
 package io.aklivity.zilla.runtime.metrics.llm.internal;
 
 import static io.aklivity.zilla.runtime.engine.metrics.MetricContext.Direction.BOTH;
-import static io.aklivity.zilla.runtime.metrics.llm.internal.LlmAttributes.STATUS_ABSENT;
-import static io.aklivity.zilla.runtime.metrics.llm.internal.LlmAttributes.STATUS_OK;
 import static io.aklivity.zilla.runtime.metrics.llm.internal.LlmUtils.RECEIVED;
 import static io.aklivity.zilla.runtime.metrics.llm.internal.LlmUtils.SENT;
 import static io.aklivity.zilla.runtime.metrics.llm.internal.LlmUtils.initialId;
@@ -39,7 +37,6 @@ import io.aklivity.zilla.runtime.metrics.llm.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.metrics.llm.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.metrics.llm.internal.types.stream.ExtensionFW;
 import io.aklivity.zilla.runtime.metrics.llm.internal.types.stream.FrameFW;
-import io.aklivity.zilla.runtime.metrics.llm.internal.types.stream.LlmAbortExFW;
 import io.aklivity.zilla.runtime.metrics.llm.internal.types.stream.LlmEndExFW;
 import io.aklivity.zilla.runtime.metrics.llm.internal.types.stream.ResetFW;
 
@@ -106,10 +103,8 @@ public final class LlmUsageIncompleteMetricContext implements MetricContext
         private final FrameFW frameRO = new FrameFW();
         private final BeginFW beginRO = new BeginFW();
         private final EndFW endRO = new EndFW();
-        private final AbortFW abortRO = new AbortFW();
         private final ExtensionFW extensionRO = new ExtensionFW();
         private final LlmEndExFW llmEndExRO = new LlmEndExFW();
-        private final LlmAbortExFW llmAbortExRO = new LlmAbortExFW();
 
         private LlmUsageIncompleteHandler(
             IntFunction<LongConsumer> recorder,
@@ -154,7 +149,7 @@ public final class LlmUsageIncompleteMetricContext implements MetricContext
                     final LlmEndExFW llmEndEx = end.extension().get(llmEndExRO::tryWrap);
                     if (llmEndEx == null || llmEndEx.typeId() != llmTypeId || !LlmTokens.reported(llmEndEx.usage()))
                     {
-                        onIncomplete(exchangeId, STATUS_OK);
+                        onIncomplete(exchangeId);
                     }
                     onClose(exchangeId);
                 }
@@ -162,12 +157,7 @@ public final class LlmUsageIncompleteMetricContext implements MetricContext
             case AbortFW.TYPE_ID:
                 if (direction == SENT && exchanges.get(exchangeId) == REPLY_OPENED)
                 {
-                    final AbortFW abort = abortRO.wrap(buffer, index, index + length);
-                    final LlmAbortExFW llmAbortEx = abort.extension().get(llmAbortExRO::tryWrap);
-                    final int status = llmAbortEx != null && llmAbortEx.typeId() == llmTypeId
-                        ? llmAbortEx.error().status()
-                        : STATUS_ABSENT;
-                    onIncomplete(exchangeId, status);
+                    onIncomplete(exchangeId);
                 }
                 onClose(exchangeId);
                 break;
@@ -185,10 +175,9 @@ public final class LlmUsageIncompleteMetricContext implements MetricContext
         }
 
         private void onIncomplete(
-            long exchangeId,
-            int status)
+            long exchangeId)
         {
-            recorder.apply(attributes.attributesId(exchangeId, status)).accept(1L);
+            recorder.apply(attributes.attributesId(exchangeId)).accept(1L);
         }
     }
 }

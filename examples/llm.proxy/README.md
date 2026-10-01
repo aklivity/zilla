@@ -295,9 +295,6 @@ upstream is Anthropic, which never reports a total.
 ### Metric attributes
 
 A binding's `telemetry.attributes` label every `llm.*` series it records.
-`${llm.status}` is the error status of an aborted or rejected exchange, and
-`200` for one that completed; it is left out of `llm.time.to.first.token` and
-`llm.active.requests`, which are recorded before an exchange ends.
 `${guarded['<guard>'].identity}` and `${guarded['<guard>'].attributes.<name>}`
 resolve against the named guard using the caller's authorization, so a claim a
 JWT guard exposes as an attribute can label usage per tenant:
@@ -318,7 +315,6 @@ bindings:
     telemetry:
       attributes:
         tenant: ${guarded['jwt0'].attributes.tenant}
-        status: ${llm.status}
       metrics:
         - llm.*
 ```

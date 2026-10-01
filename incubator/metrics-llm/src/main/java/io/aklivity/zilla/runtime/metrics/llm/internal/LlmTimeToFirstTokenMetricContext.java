@@ -15,7 +15,6 @@
 package io.aklivity.zilla.runtime.metrics.llm.internal;
 
 import static io.aklivity.zilla.runtime.engine.metrics.MetricContext.Direction.BOTH;
-import static io.aklivity.zilla.runtime.metrics.llm.internal.LlmAttributes.STATUS_ABSENT;
 import static io.aklivity.zilla.runtime.metrics.llm.internal.LlmUtils.RECEIVED;
 import static io.aklivity.zilla.runtime.metrics.llm.internal.LlmUtils.SENT;
 import static io.aklivity.zilla.runtime.metrics.llm.internal.LlmUtils.initialId;
@@ -145,7 +144,7 @@ public final class LlmTimeToFirstTokenMetricContext implements MetricContext
                     final long start = timestamps.remove(exchangeId);
                     if (start != NOT_STARTED)
                     {
-                        recorder.apply(attributes.attributesId(exchangeId, STATUS_ABSENT)).accept(timestamp - start);
+                        recorder.apply(attributes.attributesId(exchangeId)).accept(timestamp - start);
                         attributes.release(exchangeId);
                     }
                 }

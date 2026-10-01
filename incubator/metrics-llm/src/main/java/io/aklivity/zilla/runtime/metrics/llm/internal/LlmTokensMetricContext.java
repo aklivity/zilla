@@ -15,7 +15,6 @@
 package io.aklivity.zilla.runtime.metrics.llm.internal;
 
 import static io.aklivity.zilla.runtime.engine.metrics.MetricContext.Direction.BOTH;
-import static io.aklivity.zilla.runtime.metrics.llm.internal.LlmAttributes.STATUS_OK;
 import static io.aklivity.zilla.runtime.metrics.llm.internal.LlmTokens.ABSENT;
 import static io.aklivity.zilla.runtime.metrics.llm.internal.LlmUtils.RECEIVED;
 import static io.aklivity.zilla.runtime.metrics.llm.internal.LlmUtils.SENT;
@@ -144,7 +143,7 @@ public final class LlmTokensMetricContext implements MetricContext
                 final LlmEndExFW llmEndEx = end.extension().get(llmEndExRO::tryWrap);
                 if (llmEndEx != null && llmEndEx.typeId() == llmTypeId)
                 {
-                    onUsage(exchangeId, llmEndEx.usage(), STATUS_OK);
+                    onUsage(exchangeId, llmEndEx.usage());
                 }
                 if (direction == SENT)
                 {
@@ -156,7 +155,7 @@ public final class LlmTokensMetricContext implements MetricContext
                 final LlmAbortExFW llmAbortEx = abort.extension().get(llmAbortExRO::tryWrap);
                 if (llmAbortEx != null && llmAbortEx.typeId() == llmTypeId)
                 {
-                    onUsage(exchangeId, llmAbortEx.usage(), llmAbortEx.error().status());
+                    onUsage(exchangeId, llmAbortEx.usage());
                 }
                 attributes.release(exchangeId);
                 break;
@@ -168,13 +167,12 @@ public final class LlmTokensMetricContext implements MetricContext
 
         private void onUsage(
             long exchangeId,
-            LlmUsageFW usage,
-            int status)
+            LlmUsageFW usage)
         {
             final int count = tokens.count(usage);
             if (count > ABSENT)
             {
-                recorder.apply(attributes.attributesId(exchangeId, status)).accept(count);
+                recorder.apply(attributes.attributesId(exchangeId)).accept(count);
             }
         }
     }

@@ -39,7 +39,6 @@ telemetry:
                       binding: app0
                       kind: histogram
                       attributes:
-                          status: "200"
                           tenant: "acme"
                           user: "alice"
                       count: 1
@@ -47,7 +46,6 @@ telemetry:
                       binding: app0
                       kind: histogram
                       attributes:
-                          status: "200"
                           tenant: "acme"
                           user: "alice"
                       count: 1
@@ -55,7 +53,6 @@ telemetry:
                       binding: app0
                       kind: histogram
                       attributes:
-                          status: "200"
                           tenant: "acme"
                           user: "alice"
                       count: 1
@@ -70,7 +67,6 @@ telemetry:
                       binding: app0
                       kind: counter
                       attributes:
-                          status: "200"
                           tenant: "acme"
                           user: "alice"
                       value: 1
@@ -93,6 +89,5 @@ bindings:
             attributes:
                 user: ${guarded['test0'].identity}
                 tenant: ${guarded['test0'].attributes.tenant}
-                status: ${llm.status}
             metrics:
                 - llm.*
