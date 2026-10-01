@@ -90,11 +90,10 @@ final class LlmSigningUnavailableTestDialect implements LlmDialect
     }
 
     @Override
-    public JsonTransform supplyDecoder(
-        Kind kind,
+    public JsonTransform supplyRequestDecoder(
         JsonEnvelope envelope)
     {
-        return delegate.supplyDecoder(kind, envelope);
+        return delegate.supplyRequestDecoder(envelope);
     }
 
     @Override
@@ -106,11 +105,10 @@ final class LlmSigningUnavailableTestDialect implements LlmDialect
     }
 
     @Override
-    public JsonTransform supplyEncoder(
-        Kind kind,
+    public JsonTransform supplyRequestEncoder(
         JsonEnvelope envelope)
     {
-        return delegate.supplyEncoder(kind, envelope);
+        return delegate.supplyRequestEncoder(envelope);
     }
 
     @Override

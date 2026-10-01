@@ -166,20 +166,14 @@ public class LlmAnthropicDialectTest
     }
 
     @Test
-    public void shouldSupplyDecodersAndEncodersForEachKind()
+    public void shouldSupplyRequestDecoderAndEncoder()
     {
         LlmDialect dialect = new LlmAnthropicDialect();
 
-        for (LlmDialect.Kind kind : LlmDialect.Kind.values())
-        {
-            assertThat(dialect.supplyDecoder(kind, JsonEnvelope.NONE), not(nullValue()));
-            assertThat(dialect.supplyEncoder(kind, JsonEnvelope.NONE), not(nullValue()));
-        }
-
-        assertThat(dialect.supplyDecoder(LlmDialect.Kind.REQUEST, JsonEnvelope.NONE).identity(), is(false));
-        assertThat(dialect.supplyEncoder(LlmDialect.Kind.REQUEST, JsonEnvelope.NONE).identity(), is(false));
-        assertThat(dialect.supplyDecoder(LlmDialect.Kind.RESPONSE, JsonEnvelope.NONE).identity(), is(true));
-        assertThat(dialect.supplyEncoder(LlmDialect.Kind.RESPONSE, JsonEnvelope.NONE).identity(), is(true));
+        assertThat(dialect.supplyRequestDecoder(JsonEnvelope.NONE), not(nullValue()));
+        assertThat(dialect.supplyRequestEncoder(JsonEnvelope.NONE), not(nullValue()));
+        assertThat(dialect.supplyRequestDecoder(JsonEnvelope.NONE).identity(), is(false));
+        assertThat(dialect.supplyRequestEncoder(JsonEnvelope.NONE).identity(), is(false));
     }
 
     @Test

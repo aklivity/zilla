@@ -146,8 +146,7 @@ public class LlmDialectSignerLazinessTest
         }
 
         @Override
-        public JsonTransform supplyDecoder(
-            Kind kind,
+        public JsonTransform supplyRequestDecoder(
             JsonEnvelope envelope)
         {
             return null;
@@ -162,8 +161,7 @@ public class LlmDialectSignerLazinessTest
         }
 
         @Override
-        public JsonTransform supplyEncoder(
-            Kind kind,
+        public JsonTransform supplyRequestEncoder(
             JsonEnvelope envelope)
         {
             return null;

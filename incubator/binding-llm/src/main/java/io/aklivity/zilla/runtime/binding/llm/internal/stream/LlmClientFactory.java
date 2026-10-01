@@ -525,8 +525,8 @@ public final class LlmClientFactory implements LlmStreamFactory
             if (!sameDialect)
             {
                 stream = stream
-                    .transform(source.supplyDecoder(Kind.REQUEST, envelope))
-                    .transform(target.supplyEncoder(Kind.REQUEST, envelope));
+                    .transform(source.supplyRequestDecoder(envelope))
+                    .transform(target.supplyRequestEncoder(envelope));
             }
 
             return stream.into(generator);

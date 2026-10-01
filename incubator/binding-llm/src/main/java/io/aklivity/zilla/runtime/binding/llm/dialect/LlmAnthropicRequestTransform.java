@@ -49,8 +49,8 @@ import io.aklivity.zilla.runtime.common.json.JsonSource;
  * <p>
  * One instance decodes (native to canonical) or encodes (canonical to native) depending on the direction
  * supplied at construction; a fresh instance backs each
- * {@link LlmDialect#supplyDecoder(LlmDialect.Kind, JsonEnvelope)}/
- * {@link LlmDialect#supplyEncoder(LlmDialect.Kind, JsonEnvelope)} call.
+ * {@link LlmDialect#supplyRequestDecoder(JsonEnvelope)}/
+ * {@link LlmDialect#supplyRequestEncoder(JsonEnvelope)} call.
  * </p>
  */
 final class LlmAnthropicRequestTransform extends LlmRequestFieldTransform
