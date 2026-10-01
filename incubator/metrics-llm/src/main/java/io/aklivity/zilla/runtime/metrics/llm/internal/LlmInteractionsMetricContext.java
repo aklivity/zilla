@@ -15,8 +15,6 @@
 package io.aklivity.zilla.runtime.metrics.llm.internal;
 
 import static io.aklivity.zilla.runtime.engine.metrics.MetricContext.Direction.BOTH;
-import static io.aklivity.zilla.runtime.metrics.llm.internal.LlmAttributes.STATUS_ABSENT;
-import static io.aklivity.zilla.runtime.metrics.llm.internal.LlmAttributes.STATUS_OK;
 import static io.aklivity.zilla.runtime.metrics.llm.internal.LlmUtils.RECEIVED;
 import static io.aklivity.zilla.runtime.metrics.llm.internal.LlmUtils.SENT;
 import static io.aklivity.zilla.runtime.metrics.llm.internal.LlmUtils.initialId;
@@ -39,8 +37,6 @@ import io.aklivity.zilla.runtime.metrics.llm.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.metrics.llm.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.metrics.llm.internal.types.stream.ExtensionFW;
 import io.aklivity.zilla.runtime.metrics.llm.internal.types.stream.FrameFW;
-import io.aklivity.zilla.runtime.metrics.llm.internal.types.stream.LlmAbortExFW;
-import io.aklivity.zilla.runtime.metrics.llm.internal.types.stream.LlmResetExFW;
 import io.aklivity.zilla.runtime.metrics.llm.internal.types.stream.ResetFW;
 
 public final class LlmInteractionsMetricContext implements MetricContext
@@ -105,11 +101,7 @@ public final class LlmInteractionsMetricContext implements MetricContext
         private final Long2LongHashMap exchanges;
         private final FrameFW frameRO = new FrameFW();
         private final BeginFW beginRO = new BeginFW();
-        private final AbortFW abortRO = new AbortFW();
-        private final ResetFW resetRO = new ResetFW();
         private final ExtensionFW extensionRO = new ExtensionFW();
-        private final LlmAbortExFW llmAbortExRO = new LlmAbortExFW();
-        private final LlmResetExFW llmResetExRO = new LlmResetExFW();
 
         private LlmInteractionsHandler(
             IntFunction<LongConsumer> recorder,
@@ -141,24 +133,12 @@ public final class LlmInteractionsMetricContext implements MetricContext
             case EndFW.TYPE_ID:
                 if (direction == SENT)
                 {
-                    onComplete(exchangeId, STATUS_OK);
+                    onComplete(exchangeId);
                 }
                 break;
             case AbortFW.TYPE_ID:
-                final AbortFW abort = abortRO.wrap(buffer, index, index + length);
-                final LlmAbortExFW llmAbortEx = abort.extension().get(llmAbortExRO::tryWrap);
-                final int abortStatus = llmAbortEx != null && llmAbortEx.typeId() == llmTypeId
-                    ? llmAbortEx.error().status()
-                    : STATUS_ABSENT;
-                onFailed(exchangeId, direction, abortStatus);
-                break;
             case ResetFW.TYPE_ID:
-                final ResetFW reset = resetRO.wrap(buffer, index, index + length);
-                final LlmResetExFW llmResetEx = reset.extension().get(llmResetExRO::tryWrap);
-                final int resetStatus = llmResetEx != null && llmResetEx.typeId() == llmTypeId
-                    ? llmResetEx.error().status()
-                    : STATUS_ABSENT;
-                onFailed(exchangeId, direction, resetStatus);
+                onFailed(exchangeId, direction);
                 break;
             }
         }
@@ -190,23 +170,21 @@ public final class LlmInteractionsMetricContext implements MetricContext
 
         private void onFailed(
             long exchangeId,
-            long direction,
-            int status)
+            long direction)
         {
             final long state = exchanges.get(exchangeId);
             if (state != NOT_TRACKED && (direction == SENT || (state & REPLY_OPENED) == 0L))
             {
-                onComplete(exchangeId, status);
+                onComplete(exchangeId);
             }
         }
 
         private void onComplete(
-            long exchangeId,
-            int status)
+            long exchangeId)
         {
             if (exchanges.remove(exchangeId) != NOT_TRACKED)
             {
-                recorder.apply(attributes.attributesId(exchangeId, status)).accept(1L);
+                recorder.apply(attributes.attributesId(exchangeId)).accept(1L);
                 attributes.release(exchangeId);
             }
         }

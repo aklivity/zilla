@@ -122,15 +122,4 @@ public class LlmMetricsIT
     {
         k3po.finish();
     }
-
-    @Test
-    @Configuration("openai.rejected.rate.limit.attributes.yaml")
-    @Specification({
-        "${app}/openai.rejected.rate.limit/client",
-        "${app}/openai.rejected.rate.limit/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
-    public void shouldRecordOpenaiRejectedRateLimitWithStatus() throws Exception
-    {
-        k3po.finish();
-    }
 }

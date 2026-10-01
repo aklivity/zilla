@@ -90,12 +90,4 @@ public class SchemaTest
 
         assertThat(config, not(nullValue()));
     }
-
-    @Test
-    public void shouldValidateOpenaiRejectedRateLimitAttributes()
-    {
-        JsonObject config = schema.validate("openai.rejected.rate.limit.attributes.yaml");
-
-        assertThat(config, not(nullValue()));
-    }
 }

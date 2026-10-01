@@ -15,7 +15,6 @@
 package io.aklivity.zilla.runtime.metrics.llm.internal;
 
 import static io.aklivity.zilla.runtime.engine.metrics.MetricContext.Direction.BOTH;
-import static io.aklivity.zilla.runtime.metrics.llm.internal.LlmAttributes.STATUS_ABSENT;
 import static io.aklivity.zilla.runtime.metrics.llm.internal.LlmUtils.RECEIVED;
 import static io.aklivity.zilla.runtime.metrics.llm.internal.LlmUtils.SENT;
 import static io.aklivity.zilla.runtime.metrics.llm.internal.LlmUtils.initialId;
@@ -157,7 +156,7 @@ public final class LlmActiveRequestsMetricContext implements MetricContext
                 {
                     exchanges.put(exchangeId, 0L);
                     attributes.request(exchangeId, authorization);
-                    recorder.apply(attributes.attributesId(exchangeId, STATUS_ABSENT)).accept(1L);
+                    recorder.apply(attributes.attributesId(exchangeId)).accept(1L);
                 }
             }
             else
@@ -187,7 +186,7 @@ public final class LlmActiveRequestsMetricContext implements MetricContext
                 if ((closed & EXCHANGE_CLOSED) == EXCHANGE_CLOSED)
                 {
                     exchanges.remove(exchangeId);
-                    recorder.apply(attributes.attributesId(exchangeId, STATUS_ABSENT)).accept(-1L);
+                    recorder.apply(attributes.attributesId(exchangeId)).accept(-1L);
                     attributes.release(exchangeId);
                 }
                 else

@@ -32,18 +32,13 @@ import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 
 final class LlmAttributes
 {
-    static final int STATUS_ABSENT = -1;
-    static final int STATUS_OK = 200;
-
     static final LlmAttributes NONE = new LlmAttributes(Collections.emptyList(), null, null);
 
-    private static final Pattern STATUS = Pattern.compile("\\$\\{llm\\.status\\}");
     private static final Pattern IDENTITY = Pattern.compile(
         "\\$\\{guarded\\['([a-zA-Z]+[a-zA-Z0-9._:\\-]*)'\\]\\.identity\\}");
     private static final Pattern ATTRIBUTE = Pattern.compile(
         "\\$\\{guarded\\['([a-zA-Z]+[a-zA-Z0-9._:\\-]*)'\\]\\.attributes\\.([a-zA-Z]+[a-zA-Z0-9._:\\-]*)\\}");
 
-    private final List<String> statusNames;
     private final List<GuardedBinding> guardedBindings;
     private final EngineContext context;
     private final ToLongFunction<String> resolveId;
@@ -55,7 +50,6 @@ final class LlmAttributes
         EngineContext context,
         ToLongFunction<String> resolveId)
     {
-        this.statusNames = new ArrayList<>();
         this.guardedBindings = new ArrayList<>();
         this.context = context;
         this.resolveId = resolveId;
@@ -64,14 +58,9 @@ final class LlmAttributes
 
         for (AttributeConfig attribute : attributes)
         {
-            final Matcher status = STATUS.matcher(attribute.value);
             final Matcher identity = IDENTITY.matcher(attribute.value);
             final Matcher guarded = ATTRIBUTE.matcher(attribute.value);
-            if (status.matches())
-            {
-                statusNames.add(attribute.name);
-            }
-            else if (identity.matches())
+            if (identity.matches())
             {
                 guardedBindings.add(new GuardedBinding(attribute.name, identity.group(1), null));
             }
@@ -109,33 +98,10 @@ final class LlmAttributes
     }
 
     int attributesId(
-        long exchangeId,
-        int status)
+        long exchangeId)
     {
-        int attributesId = 0;
-
-        if (!statusNames.isEmpty() || !guardedBindings.isEmpty())
-        {
-            final Map<String, String> values = new Object2ObjectHashMap<>();
-            final Map<String, String> request = requests.get(exchangeId);
-            if (request != null)
-            {
-                values.putAll(request);
-            }
-
-            if (status != STATUS_ABSENT)
-            {
-                final String value = Integer.toString(status);
-                for (String name : statusNames)
-                {
-                    values.put(name, value);
-                }
-            }
-
-            attributesId = labelId(values);
-        }
-
-        return attributesId;
+        final Map<String, String> values = requests.get(exchangeId);
+        return values != null ? labelId(values) : 0;
     }
 
     void release(
