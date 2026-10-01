@@ -1412,6 +1412,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
                 long authorization,
                 long affinity)
             {
+                saslAuthorization = authorization;
                 state = KafkaState.openingInitial(state);
 
                 Consumer<OctetsFW.Builder> extension = EMPTY_EXTENSION;
