@@ -15,15 +15,21 @@
 package io.aklivity.zilla.runtime.metrics.llm.internal;
 
 import static io.aklivity.zilla.runtime.engine.metrics.MetricContext.Direction.BOTH;
+import static io.aklivity.zilla.runtime.metrics.llm.internal.LlmAttributes.STATUS_OK;
 import static io.aklivity.zilla.runtime.metrics.llm.internal.LlmUtils.RECEIVED;
 import static io.aklivity.zilla.runtime.metrics.llm.internal.LlmUtils.SENT;
 import static io.aklivity.zilla.runtime.metrics.llm.internal.LlmUtils.initialId;
 
+import java.util.List;
+import java.util.function.IntFunction;
 import java.util.function.LongConsumer;
+import java.util.function.ToLongFunction;
 
 import org.agrona.collections.Long2LongHashMap;
 
+import io.aklivity.zilla.config.engine.AttributeConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
@@ -38,16 +44,18 @@ public final class LlmDurationMetricContext implements MetricContext
 {
     private final String group;
     private final Metric.Kind kind;
+    private final EngineContext context;
     private final int llmTypeId;
 
     LlmDurationMetricContext(
         String group,
         Metric.Kind kind,
-        int llmTypeId)
+        EngineContext context)
     {
         this.group = group;
         this.kind = kind;
-        this.llmTypeId = llmTypeId;
+        this.context = context;
+        this.llmTypeId = context.supplyTypeId(group);
     }
 
     @Override
@@ -72,23 +80,35 @@ public final class LlmDurationMetricContext implements MetricContext
     public MessageConsumer supply(
         LongConsumer recorder)
     {
-        return new LlmDurationHandler(recorder);
+        return new LlmDurationHandler(attributesId -> recorder, LlmAttributes.NONE);
+    }
+
+    @Override
+    public MessageConsumer supply(
+        IntFunction<LongConsumer> recorder,
+        List<AttributeConfig> attributes,
+        ToLongFunction<String> resolveId)
+    {
+        return new LlmDurationHandler(recorder, new LlmAttributes(attributes, context, resolveId));
     }
 
     private final class LlmDurationHandler implements MessageConsumer
     {
         private static final long NOT_STARTED = 0L;
 
-        private final LongConsumer recorder;
+        private final IntFunction<LongConsumer> recorder;
+        private final LlmAttributes attributes;
         private final Long2LongHashMap timestamps;
         private final FrameFW frameRO = new FrameFW();
         private final BeginFW beginRO = new BeginFW();
         private final ExtensionFW extensionRO = new ExtensionFW();
 
         private LlmDurationHandler(
-            LongConsumer recorder)
+            IntFunction<LongConsumer> recorder,
+            LlmAttributes attributes)
         {
             this.recorder = recorder;
+            this.attributes = attributes;
             this.timestamps = new Long2LongHashMap(NOT_STARTED);
         }
 
@@ -114,6 +134,7 @@ public final class LlmDurationMetricContext implements MetricContext
                     timestamp != NOT_STARTED)
                 {
                     timestamps.put(exchangeId, timestamp);
+                    attributes.request(exchangeId, frame.authorization());
                 }
                 break;
             case EndFW.TYPE_ID:
@@ -122,13 +143,15 @@ public final class LlmDurationMetricContext implements MetricContext
                     final long start = timestamps.remove(exchangeId);
                     if (start != NOT_STARTED)
                     {
-                        recorder.accept(timestamp - start);
+                        recorder.apply(attributes.attributesId(exchangeId, STATUS_OK)).accept(timestamp - start);
                     }
+                    attributes.release(exchangeId);
                 }
                 break;
             case AbortFW.TYPE_ID:
             case ResetFW.TYPE_ID:
                 timestamps.remove(exchangeId);
+                attributes.release(exchangeId);
                 break;
             }
         }

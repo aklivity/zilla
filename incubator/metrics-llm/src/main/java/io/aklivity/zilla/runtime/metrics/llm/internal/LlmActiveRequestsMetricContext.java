@@ -15,15 +15,21 @@
 package io.aklivity.zilla.runtime.metrics.llm.internal;
 
 import static io.aklivity.zilla.runtime.engine.metrics.MetricContext.Direction.BOTH;
+import static io.aklivity.zilla.runtime.metrics.llm.internal.LlmAttributes.STATUS_ABSENT;
 import static io.aklivity.zilla.runtime.metrics.llm.internal.LlmUtils.RECEIVED;
 import static io.aklivity.zilla.runtime.metrics.llm.internal.LlmUtils.SENT;
 import static io.aklivity.zilla.runtime.metrics.llm.internal.LlmUtils.initialId;
 
+import java.util.List;
+import java.util.function.IntFunction;
 import java.util.function.LongConsumer;
+import java.util.function.ToLongFunction;
 
 import org.agrona.collections.Long2LongHashMap;
 
+import io.aklivity.zilla.config.engine.AttributeConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
@@ -38,16 +44,18 @@ public final class LlmActiveRequestsMetricContext implements MetricContext
 {
     private final String group;
     private final Metric.Kind kind;
+    private final EngineContext context;
     private final int llmTypeId;
 
     LlmActiveRequestsMetricContext(
         String group,
         Metric.Kind kind,
-        int llmTypeId)
+        EngineContext context)
     {
         this.group = group;
         this.kind = kind;
-        this.llmTypeId = llmTypeId;
+        this.context = context;
+        this.llmTypeId = context.supplyTypeId(group);
     }
 
     @Override
@@ -72,7 +80,16 @@ public final class LlmActiveRequestsMetricContext implements MetricContext
     public MessageConsumer supply(
         LongConsumer recorder)
     {
-        return new LlmActiveRequestsHandler(recorder);
+        return new LlmActiveRequestsHandler(attributesId -> recorder, LlmAttributes.NONE);
+    }
+
+    @Override
+    public MessageConsumer supply(
+        IntFunction<LongConsumer> recorder,
+        List<AttributeConfig> attributes,
+        ToLongFunction<String> resolveId)
+    {
+        return new LlmActiveRequestsHandler(recorder, new LlmAttributes(attributes, context, resolveId));
     }
 
     private final class LlmActiveRequestsHandler implements MessageConsumer
@@ -83,16 +100,19 @@ public final class LlmActiveRequestsMetricContext implements MetricContext
         private static final long EXCHANGE_CLOSED = INITIAL_CLOSED | REPLY_CLOSED;
         private static final long REPLY_OPENED = 1L << 2;
 
-        private final LongConsumer recorder;
+        private final IntFunction<LongConsumer> recorder;
+        private final LlmAttributes attributes;
         private final Long2LongHashMap exchanges;
         private final FrameFW frameRO = new FrameFW();
         private final BeginFW beginRO = new BeginFW();
         private final ExtensionFW extensionRO = new ExtensionFW();
 
         private LlmActiveRequestsHandler(
-            LongConsumer recorder)
+            IntFunction<LongConsumer> recorder,
+            LlmAttributes attributes)
         {
             this.recorder = recorder;
+            this.attributes = attributes;
             this.exchanges = new Long2LongHashMap(NOT_TRACKED);
         }
 
@@ -112,7 +132,7 @@ public final class LlmActiveRequestsMetricContext implements MetricContext
             {
             case BeginFW.TYPE_ID:
                 final BeginFW begin = beginRO.wrap(buffer, index, index + length);
-                onBegin(exchangeId, direction, begin);
+                onBegin(exchangeId, direction, frame.authorization(), begin);
                 break;
             case EndFW.TYPE_ID:
                 onClose(exchangeId, direction, false);
@@ -127,6 +147,7 @@ public final class LlmActiveRequestsMetricContext implements MetricContext
         private void onBegin(
             long exchangeId,
             long direction,
+            long authorization,
             BeginFW begin)
         {
             if (direction == RECEIVED)
@@ -135,7 +156,8 @@ public final class LlmActiveRequestsMetricContext implements MetricContext
                 if (beginEx != null && beginEx.typeId() == llmTypeId)
                 {
                     exchanges.put(exchangeId, 0L);
-                    recorder.accept(1L);
+                    attributes.request(exchangeId, authorization);
+                    recorder.apply(attributes.attributesId(exchangeId, STATUS_ABSENT)).accept(1L);
                 }
             }
             else
@@ -165,7 +187,8 @@ public final class LlmActiveRequestsMetricContext implements MetricContext
                 if ((closed & EXCHANGE_CLOSED) == EXCHANGE_CLOSED)
                 {
                     exchanges.remove(exchangeId);
-                    recorder.accept(-1L);
+                    recorder.apply(attributes.attributesId(exchangeId, STATUS_ABSENT)).accept(-1L);
+                    attributes.release(exchangeId);
                 }
                 else
                 {

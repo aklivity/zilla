@@ -64,6 +64,6 @@ public final class LlmTokensMetric implements Metric
     public MetricContext supply(
         EngineContext context)
     {
-        return new LlmTokensMetricContext(GROUP, kind(), tokens, context.supplyTypeId(GROUP));
+        return new LlmTokensMetricContext(GROUP, kind(), tokens, context);
     }
 }

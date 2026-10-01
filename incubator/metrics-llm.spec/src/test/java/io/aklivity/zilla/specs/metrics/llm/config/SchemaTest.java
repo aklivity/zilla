@@ -31,6 +31,7 @@ public class SchemaTest
     public final ConfigSchemaRule schema = new ConfigSchemaRule()
         .schemaPatch("io/aklivity/zilla/specs/engine/schema/binding/test.schema.patch.json")
         .schemaPatch("io/aklivity/zilla/specs/engine/schema/exporter/test.schema.patch.json")
+        .schemaPatch("io/aklivity/zilla/specs/engine/schema/guard/test.schema.patch.json")
         .schemaPatch("io/aklivity/zilla/specs/metrics/llm/schema/llm.schema.patch.json")
         .configurationRoot("io/aklivity/zilla/specs/metrics/llm/config");
 
@@ -78,6 +79,22 @@ public class SchemaTest
     public void shouldValidateOpenaiRejectedRateLimit()
     {
         JsonObject config = schema.validate("openai.rejected.rate.limit.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateOpenaiUsageAttributes()
+    {
+        JsonObject config = schema.validate("openai.usage.attributes.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateOpenaiRejectedRateLimitAttributes()
+    {
+        JsonObject config = schema.validate("openai.rejected.rate.limit.attributes.yaml");
 
         assertThat(config, not(nullValue()));
     }
