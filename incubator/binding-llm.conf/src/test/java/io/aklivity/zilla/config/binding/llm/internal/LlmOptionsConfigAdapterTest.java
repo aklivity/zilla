@@ -248,34 +248,6 @@ public class LlmOptionsConfigAdapterTest
     }
 
     @Test
-    public void shouldReadMalformedServerOptionAsAbsent()
-    {
-        String text =
-                "{" +
-                    "\"server\": \"not-a-host-and-port\"" +
-                "}";
-
-        LlmOptionsConfig options = jsonb.fromJson(text, LlmOptionsConfig.class);
-
-        assertThat(options, not(nullValue()));
-        assertThat(options.server, nullValue());
-    }
-
-    @Test
-    public void shouldReadInvalidServerUriAsAbsent()
-    {
-        String text =
-                "{" +
-                    "\"server\": \"http://[invalid\"" +
-                "}";
-
-        LlmOptionsConfig options = jsonb.fromJson(text, LlmOptionsConfig.class);
-
-        assertThat(options, not(nullValue()));
-        assertThat(options.server, nullValue());
-    }
-
-    @Test
     public void shouldReadOptionsWithAuthorizationDefaultCredentials()
     {
         String text =

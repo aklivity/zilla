@@ -15,7 +15,6 @@
 package io.aklivity.zilla.config.binding.llm.internal;
 
 import java.net.URI;
-import java.net.URISyntaxException;
 
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
@@ -35,7 +34,6 @@ public final class LlmOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, 
     private static final String AUTHORIZATION_CREDENTIALS_DEFAULT = "Bearer {credentials}";
     private static final String SERVER_NAME = "server";
 
-    private static final String SCHEME_HTTP = "http";
     private static final String SCHEME_HTTPS = "https";
     private static final int PORT_HTTP = 80;
     private static final int PORT_HTTPS = 443;
@@ -109,34 +107,21 @@ public final class LlmOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, 
         return llmOptions.build();
     }
 
-    // a server value that fails to parse as an http(s) URI is left absent, the same as an
-    // unparseable host:port was before the option became a full URL
     private static void adaptServer(
         LlmOptionsConfigBuilder<LlmOptionsConfig> llmOptions,
         String server)
     {
-        try
-        {
-            URI uri = new URI(server);
-            String scheme = uri.getScheme();
-            String host = uri.getHost();
+        URI uri = URI.create(server);
+        String scheme = uri.getScheme();
+        int port = uri.getPort() != -1 ? uri.getPort() : defaultPort(scheme);
+        String path = uri.getPath().isEmpty() ? DEFAULT_PATH : uri.getPath();
 
-            if (host != null && (SCHEME_HTTP.equals(scheme) || SCHEME_HTTPS.equals(scheme)))
-            {
-                int port = uri.getPort() != -1 ? uri.getPort() : defaultPort(scheme);
-                String path = uri.getPath() == null || uri.getPath().isEmpty() ? DEFAULT_PATH : uri.getPath();
-
-                llmOptions.server()
-                    .scheme(scheme)
-                    .host(host)
-                    .port(port)
-                    .path(path)
-                    .build();
-            }
-        }
-        catch (URISyntaxException ex)
-        {
-        }
+        llmOptions.server()
+            .scheme(scheme)
+            .host(uri.getHost())
+            .port(port)
+            .path(path)
+            .build();
     }
 
     private static int defaultPort(
