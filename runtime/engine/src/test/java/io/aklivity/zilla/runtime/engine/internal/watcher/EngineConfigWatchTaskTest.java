@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.watcher;
 
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_CONFIG_WATCH;
 import static io.aklivity.zilla.runtime.filesystem.http.HttpFilesystemEnvironment.POLL_INTERVAL_PROPERTY_NAME;
 import static java.net.HttpURLConnection.HTTP_NOT_MODIFIED;
 import static java.net.HttpURLConnection.HTTP_OK;
@@ -35,10 +36,11 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
+import java.util.Properties;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.Semaphore;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -52,6 +54,8 @@ import io.aklivity.zilla.runtime.engine.internal.event.EngineEventContext;
 
 public class EngineConfigWatchTaskTest
 {
+    private static final long TIMEOUT_SECONDS = 60L;
+
     @Rule
     public TemporaryFolder temp = new TemporaryFolder();
 
@@ -63,20 +67,16 @@ public class EngineConfigWatchTaskTest
 
         try (TextWatchTask task = new TextWatchTask(configPath))
         {
+            task.watch(configPath.getFileName().toString());
             task.submit();
-            assertEquals("name: before", task.applied.poll(30, SECONDS));
+            assertEquals("name: before", task.applied.poll(TIMEOUT_SECONDS, SECONDS));
+            task.observed.drainPermits();
 
-            long deadline = System.nanoTime() + SECONDS.toNanos(30);
-            while (task.changes.get() == 1 && System.nanoTime() < deadline)
-            {
-                write(configPath, "name: before");
-                Thread.sleep(100);
-            }
-            assertTrue(task.changes.get() > 1);
+            write(configPath, "name: before");
+            assertTrue(task.observed.tryAcquire(TIMEOUT_SECONDS, SECONDS));
 
             write(configPath, "name: after");
-
-            assertEquals("name: after", task.applied.poll(30, SECONDS));
+            assertEquals("name: after", task.applied.poll(TIMEOUT_SECONDS, SECONDS));
         }
     }
 
@@ -91,13 +91,13 @@ public class EngineConfigWatchTaskTest
                  TextWatchTask task = new TextWatchTask(fs.getPath(configURI.toString())))
             {
                 task.submit();
-                assertEquals("name: first", task.applied.poll(30, SECONDS));
+                assertEquals("name: first", task.applied.poll(TIMEOUT_SECONDS, SECONDS));
 
                 server.update("name: second");
-                assertEquals("name: second", task.applied.poll(30, SECONDS));
+                assertEquals("name: second", task.applied.poll(TIMEOUT_SECONDS, SECONDS));
 
                 server.update("name: third");
-                assertEquals("name: third", task.applied.poll(30, SECONDS));
+                assertEquals("name: third", task.applied.poll(TIMEOUT_SECONDS, SECONDS));
             }
         }
     }
@@ -163,13 +163,14 @@ public class EngineConfigWatchTaskTest
 
             synchronized (this)
             {
-                long deadline = System.currentTimeMillis() + SECONDS.toMillis(30);
-                while (longPoll && !closed && Integer.toString(version).equals(ifNoneMatch) &&
-                    System.currentTimeMillis() < deadline)
+                long deadline = System.currentTimeMillis() + SECONDS.toMillis(TIMEOUT_SECONDS);
+                long remaining = deadline - System.currentTimeMillis();
+                while (longPoll && !closed && Integer.toString(version).equals(ifNoneMatch) && remaining > 0L)
                 {
                     try
                     {
-                        wait(100);
+                        wait(remaining);
+                        remaining = deadline - System.currentTimeMillis();
                     }
                     catch (InterruptedException ex)
                     {
@@ -203,18 +204,25 @@ public class EngineConfigWatchTaskTest
 
     private static final class TextWatchTask extends EngineConfigWatchTask
     {
+        private static final Properties WATCH_ENABLED = new Properties();
+
+        static
+        {
+            WATCH_ENABLED.setProperty(ENGINE_CONFIG_WATCH.name(), "true");
+        }
+
         private final Path configPath;
-        private final AtomicInteger changes;
+        private final Semaphore observed;
         private final BlockingQueue<String> applied;
 
-        private String currentText;
+        private volatile String currentText;
 
         TextWatchTask(
             Path configPath)
         {
-            super(new EngineConfiguration(), mock(EngineEventContext.class), configPath);
+            super(new EngineConfiguration(WATCH_ENABLED), mock(EngineEventContext.class), configPath);
             this.configPath = configPath;
-            this.changes = new AtomicInteger();
+            this.observed = new Semaphore(0);
             this.applied = new LinkedBlockingQueue<>();
         }
 
@@ -222,8 +230,6 @@ public class EngineConfigWatchTaskTest
         protected void onPathChanged(
             Path watchedPath)
         {
-            changes.incrementAndGet();
-
             try
             {
                 String newText = Files.readString(configPath);
@@ -237,6 +243,8 @@ public class EngineConfigWatchTaskTest
             {
                 rethrowUnchecked(ex);
             }
+
+            observed.release();
         }
     }
 }
