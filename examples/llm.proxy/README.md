@@ -237,8 +237,10 @@ translated across dialects too.
 Every `llm` binding records `llm.*` metrics -- per-exchange token usage
 (`llm.tokens.input`, `llm.tokens.output`, `llm.tokens.total`,
 `llm.tokens.cache.read`, `llm.tokens.cache.write`, `llm.tokens.reasoning`),
-`llm.duration` and `llm.active.requests` -- exported for Prometheus on port
-7190:
+`llm.duration`, `llm.time.to.first.token` (request to first reply data),
+`llm.interactions` and `llm.usage.incomplete` (exchanges that ended without a
+complete usage report) and `llm.active.requests` -- exported for Prometheus on
+port 7190:
 
 ```bash
 curl -s http://localhost:7190/metrics | grep '^llm_tokens_input_count'
@@ -247,6 +249,40 @@ curl -s http://localhost:7190/metrics | grep '^llm_tokens_input_count'
 A token count the upstream dialect does not report is left unrecorded rather
 than recorded as zero, so `llm_tokens_total_count` stays at `0` when the
 upstream is Anthropic, which never reports a total.
+
+### Metric attributes
+
+A binding's `telemetry.attributes` label every `llm.*` series it records.
+`${llm.status}` is the error status of an aborted or rejected exchange, and
+`200` for one that completed; it is left out of `llm.time.to.first.token` and
+`llm.active.requests`, which are recorded before an exchange ends.
+`${guarded['<guard>'].identity}` and `${guarded['<guard>'].attributes.<name>}`
+resolve against the named guard using the caller's authorization, so a claim a
+JWT guard exposes as an attribute can label usage per tenant:
+
+```yaml
+guards:
+  jwt0:
+    type: jwt
+    options:
+      issuer: https://auth.example.com
+      audience: llm-proxy
+      attributes:
+        tenant: tenant
+bindings:
+  north_llm_server_openai:
+    type: llm
+    kind: server
+    telemetry:
+      attributes:
+        tenant: ${guarded['jwt0'].attributes.tenant}
+        status: ${llm.status}
+      metrics:
+        - llm.*
+```
+
+Each distinct attribute value creates its own series, so avoid claims with
+unbounded values.
 
 ## Verify
 

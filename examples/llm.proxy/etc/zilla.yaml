@@ -10,6 +10,9 @@ telemetry:
     - llm.tokens.reasoning
     - llm.duration
     - llm.active.requests
+    - llm.interactions
+    - llm.time.to.first.token
+    - llm.usage.incomplete
   exporters:
     prometheus_exporter:
       type: prometheus
