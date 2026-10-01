@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>cloud</artifactId>
-    <version>2.4.7</version>
+    <version>2.4.8-rc1</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -130,6 +130,12 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>binding-kafka-grpc</artifactId>
+      <version>${project.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>binding-llm</artifactId>
       <version>${project.version}</version>
       <scope>runtime</scope>
     </dependency>
@@ -412,6 +418,12 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>metrics-mcp</artifactId>
+      <version>${project.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>metrics-llm</artifactId>
       <version>${project.version}</version>
       <scope>runtime</scope>
     </dependency>

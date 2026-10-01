@@ -1,0 +1,129 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "OpenAI Chat Completions response",
+    "type": "object",
+    "properties": {
+        "id": {
+            "type": "string"
+        },
+        "object": {
+            "type": "string"
+        },
+        "created": {
+            "type": "integer"
+        },
+        "model": {
+            "type": "string"
+        },
+        "choices": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "index": {
+                        "type": "integer"
+                    },
+                    "delta": {
+                        "type": "object",
+                        "properties": {
+                            "role": {
+                                "type": "string"
+                            },
+                            "content": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "tool_calls": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "index": {
+                                            "type": "integer"
+                                        },
+                                        "id": {
+                                            "type": "string"
+                                        },
+                                        "type": {
+                                            "type": "string"
+                                        },
+                                        "function": {
+                                            "type": "object",
+                                            "properties": {
+                                                "name": {
+                                                    "type": "string"
+                                                },
+                                                "arguments": {
+                                                    "type": "string"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "message": {
+                        "type": "object",
+                        "properties": {
+                            "role": {
+                                "type": "string"
+                            },
+                            "content": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "tool_calls": {
+                                "type": "array"
+                            }
+                        }
+                    },
+                    "finish_reason": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "logprobs": {}
+                }
+            }
+        },
+        "usage": {
+            "type": [
+                "object",
+                "null"
+            ],
+            "properties": {
+                "prompt_tokens": {
+                    "type": "integer"
+                },
+                "completion_tokens": {
+                    "type": "integer"
+                },
+                "total_tokens": {
+                    "type": "integer"
+                },
+                "prompt_tokens_details": {
+                    "type": "object",
+                    "properties": {
+                        "cached_tokens": {
+                            "type": "integer"
+                        }
+                    }
+                },
+                "completion_tokens_details": {
+                    "type": "object",
+                    "properties": {
+                        "reasoning_tokens": {
+                            "type": "integer"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

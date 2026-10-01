@@ -211,6 +211,16 @@ public final class JsonParserImpl implements JsonParserEx
     }
 
     @Override
+    public void nextDocument()
+    {
+        assert docState == DocState.ENDED;
+        tokenizer.nextDocument();
+        docState = DocState.NOT_STARTED;
+        lastEvent = null;
+        currentEvent = null;
+    }
+
+    @Override
     public boolean identity()
     {
         return true;

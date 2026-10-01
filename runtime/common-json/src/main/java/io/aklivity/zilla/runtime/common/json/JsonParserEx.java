@@ -78,6 +78,14 @@ public interface JsonParserEx extends JsonParser
     void reset();
 
     /**
+     * Ends the current document — {@link #hasNextEvent()} must already be {@code false} from a delivered
+     * {@link JsonEvent#END_DOCUMENT} — and begins the next top-level value at the parser's current stream
+     * position, leaving the tokenizer's position and scratch state otherwise untouched. Distinct from
+     * {@link #reset()}, which rewinds the stream position to the start for a wholly unrelated next value.
+     */
+    void nextDocument();
+
+    /**
      * Whether this parser reads its input verbatim, leaving the bytes intact for an identity generator. A
      * cursor over the native JSON form is identity; one that parses a foreign representation is not.
      */
