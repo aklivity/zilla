@@ -20,6 +20,7 @@ import static java.util.Objects.requireNonNull;
 import java.util.List;
 import java.util.function.IntFunction;
 import java.util.function.LongConsumer;
+import java.util.function.ToLongFunction;
 
 import io.aklivity.zilla.config.engine.AttributeConfig;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -47,6 +48,14 @@ public class MetricRegistry
         List<AttributeConfig> attributes)
     {
         return context.supply(recorder, attributes);
+    }
+
+    public MessageConsumer supplyHandler(
+        IntFunction<LongConsumer> recorder,
+        List<AttributeConfig> attributes,
+        ToLongFunction<String> resolveId)
+    {
+        return context.supply(recorder, attributes, resolveId);
     }
 
     public String group()
