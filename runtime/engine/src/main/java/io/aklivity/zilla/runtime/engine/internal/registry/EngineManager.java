@@ -283,7 +283,6 @@ public class EngineManager
             JsonObject systemBase = schemaProvider.createObjectBuilder()
                 .add("name", "sys")
                 .add("bindings", schemaProvider.createObjectBuilder())
-                .add("catalogs", schemaProvider.createObjectBuilder())
                 .build();
 
             JsonObject systemPatched = systemBase;
