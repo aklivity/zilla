@@ -15,19 +15,21 @@
 
 ---
 name: test
+guards:
+    test0:
+        type: test
+        options:
+            identity: alice
+            attributes:
+                tenant: acme
 telemetry:
     metrics:
         - llm.tokens.input
         - llm.tokens.output
-        - llm.tokens.total
-        - llm.tokens.cache.read
-        - llm.tokens.cache.write
-        - llm.tokens.reasoning
         - llm.duration
         - llm.active.requests
         - llm.interactions
         - llm.time.to.first.token
-        - llm.usage.incomplete
     exporters:
         exporter0:
             type: test
@@ -36,62 +38,49 @@ telemetry:
                     - name: llm.tokens.input
                       binding: app0
                       kind: histogram
+                      attributes:
+                          status: "200"
+                          tenant: "acme"
+                          user: "alice"
                       count: 1
-                      buckets:
-                          - limit: 16
-                            count: 1
                     - name: llm.tokens.output
                       binding: app0
                       kind: histogram
+                      attributes:
+                          status: "200"
+                          tenant: "acme"
+                          user: "alice"
                       count: 1
-                      buckets:
-                          - limit: 16
-                            count: 1
-                    - name: llm.tokens.total
-                      binding: app0
-                      kind: histogram
-                      count: 1
-                      buckets:
-                          - limit: 32
-                            count: 1
-                    - name: llm.tokens.cache.read
-                      binding: app0
-                      kind: histogram
-                      count: 1
-                      buckets:
-                          - limit: 2
-                            count: 1
-                    - name: llm.tokens.cache.write
-                      binding: app0
-                      kind: histogram
-                      count: 0
-                    - name: llm.tokens.reasoning
-                      binding: app0
-                      kind: histogram
-                      count: 1
-                      buckets:
-                          - limit: 2
-                            count: 1
                     - name: llm.duration
                       binding: app0
                       kind: histogram
+                      attributes:
+                          status: "200"
+                          tenant: "acme"
+                          user: "alice"
                       count: 1
                     - name: llm.active.requests
                       binding: app0
                       kind: gauge
+                      attributes:
+                          tenant: "acme"
+                          user: "alice"
                       value: 0
                     - name: llm.interactions
                       binding: app0
                       kind: counter
+                      attributes:
+                          status: "200"
+                          tenant: "acme"
+                          user: "alice"
                       value: 1
                     - name: llm.time.to.first.token
                       binding: app0
                       kind: histogram
+                      attributes:
+                          tenant: "acme"
+                          user: "alice"
                       count: 1
-                    - name: llm.usage.incomplete
-                      binding: app0
-                      kind: counter
-                      value: 0
 bindings:
     app0:
         type: test
@@ -101,5 +90,9 @@ bindings:
         routes:
             - exit: app1
         telemetry:
+            attributes:
+                user: ${guarded['test0'].identity}
+                tenant: ${guarded['test0'].attributes.tenant}
+                status: ${llm.status}
             metrics:
                 - llm.*

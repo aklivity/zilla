@@ -18,28 +18,17 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
 
-public final class LlmTokensMetric implements Metric
+public final class LlmTimeToFirstTokenMetric implements Metric
 {
+    static final String NAME = String.format("%s.%s", LlmMetricGroup.NAME, "time.to.first.token");
+
     private static final String GROUP = LlmMetricGroup.NAME;
-
-    private final LlmTokens tokens;
-
-    LlmTokensMetric(
-        LlmTokens tokens)
-    {
-        this.tokens = tokens;
-    }
-
-    static String name(
-        LlmTokens tokens)
-    {
-        return String.format("%s.tokens.%s", GROUP, tokens.segment());
-    }
+    private static final String DESCRIPTION = "Time from LLM request to first reply data";
 
     @Override
     public String name()
     {
-        return name(tokens);
+        return NAME;
     }
 
     @Override
@@ -51,19 +40,19 @@ public final class LlmTokensMetric implements Metric
     @Override
     public Unit unit()
     {
-        return Unit.COUNT;
+        return Unit.NANOSECONDS;
     }
 
     @Override
     public String description()
     {
-        return String.format("Number of LLM %s tokens per exchange", tokens.summary());
+        return DESCRIPTION;
     }
 
     @Override
     public MetricContext supply(
         EngineContext context)
     {
-        return new LlmTokensMetricContext(GROUP, kind(), tokens, context);
+        return new LlmTimeToFirstTokenMetricContext(GROUP, kind(), context);
     }
 }

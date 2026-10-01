@@ -41,7 +41,10 @@ public class LlmMetricGroupTest
             "llm.tokens.cache.write",
             "llm.tokens.reasoning",
             "llm.duration",
-            "llm.active.requests"));
+            "llm.active.requests",
+            "llm.interactions",
+            "llm.time.to.first.token",
+            "llm.usage.incomplete"));
     }
 
     @Test
@@ -79,6 +82,27 @@ public class LlmMetricGroupTest
     {
         assertMetric("llm.active.requests", Metric.Kind.GAUGE, Metric.Unit.COUNT,
             "Number of active LLM requests");
+    }
+
+    @Test
+    public void shouldResolveInteractionsMetric()
+    {
+        assertMetric("llm.interactions", Metric.Kind.COUNTER, Metric.Unit.COUNT,
+            "Number of LLM interactions");
+    }
+
+    @Test
+    public void shouldResolveTimeToFirstTokenMetric()
+    {
+        assertMetric("llm.time.to.first.token", Metric.Kind.HISTOGRAM, Metric.Unit.NANOSECONDS,
+            "Time from LLM request to first reply data");
+    }
+
+    @Test
+    public void shouldResolveUsageIncompleteMetric()
+    {
+        assertMetric("llm.usage.incomplete", Metric.Kind.COUNTER, Metric.Unit.COUNT,
+            "Number of LLM interactions whose usage is missing or partial");
     }
 
     private void assertMetric(

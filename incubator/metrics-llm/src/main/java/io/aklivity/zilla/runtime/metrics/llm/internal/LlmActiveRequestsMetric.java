@@ -53,6 +53,6 @@ public final class LlmActiveRequestsMetric implements Metric
     public MetricContext supply(
         EngineContext context)
     {
-        return new LlmActiveRequestsMetricContext(GROUP, kind(), context.supplyTypeId(GROUP));
+        return new LlmActiveRequestsMetricContext(GROUP, kind(), context);
     }
 }

@@ -18,34 +18,23 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
 
-public final class LlmTokensMetric implements Metric
+public final class LlmInteractionsMetric implements Metric
 {
+    static final String NAME = String.format("%s.%s", LlmMetricGroup.NAME, "interactions");
+
     private static final String GROUP = LlmMetricGroup.NAME;
-
-    private final LlmTokens tokens;
-
-    LlmTokensMetric(
-        LlmTokens tokens)
-    {
-        this.tokens = tokens;
-    }
-
-    static String name(
-        LlmTokens tokens)
-    {
-        return String.format("%s.tokens.%s", GROUP, tokens.segment());
-    }
+    private static final String DESCRIPTION = "Number of LLM interactions";
 
     @Override
     public String name()
     {
-        return name(tokens);
+        return NAME;
     }
 
     @Override
     public Kind kind()
     {
-        return Kind.HISTOGRAM;
+        return Kind.COUNTER;
     }
 
     @Override
@@ -57,13 +46,13 @@ public final class LlmTokensMetric implements Metric
     @Override
     public String description()
     {
-        return String.format("Number of LLM %s tokens per exchange", tokens.summary());
+        return DESCRIPTION;
     }
 
     @Override
     public MetricContext supply(
         EngineContext context)
     {
-        return new LlmTokensMetricContext(GROUP, kind(), tokens, context);
+        return new LlmInteractionsMetricContext(GROUP, kind(), context);
     }
 }

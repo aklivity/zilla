@@ -25,6 +25,9 @@ telemetry:
         - llm.tokens.reasoning
         - llm.duration
         - llm.active.requests
+        - llm.interactions
+        - llm.time.to.first.token
+        - llm.usage.incomplete
     exporters:
         exporter0:
             type: test
@@ -61,6 +64,18 @@ telemetry:
                     - name: llm.active.requests
                       binding: app0
                       kind: gauge
+                      value: 0
+                    - name: llm.interactions
+                      binding: app0
+                      kind: counter
+                      value: 1
+                    - name: llm.time.to.first.token
+                      binding: app0
+                      kind: histogram
+                      count: 0
+                    - name: llm.usage.incomplete
+                      binding: app0
+                      kind: counter
                       value: 0
 bindings:
     app0:

@@ -35,19 +35,20 @@ import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
 import io.aklivity.zilla.runtime.metrics.llm.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.metrics.llm.internal.types.stream.BeginFW;
+import io.aklivity.zilla.runtime.metrics.llm.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.metrics.llm.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.metrics.llm.internal.types.stream.ExtensionFW;
 import io.aklivity.zilla.runtime.metrics.llm.internal.types.stream.FrameFW;
 import io.aklivity.zilla.runtime.metrics.llm.internal.types.stream.ResetFW;
 
-public final class LlmActiveRequestsMetricContext implements MetricContext
+public final class LlmTimeToFirstTokenMetricContext implements MetricContext
 {
     private final String group;
     private final Metric.Kind kind;
     private final EngineContext context;
     private final int llmTypeId;
 
-    LlmActiveRequestsMetricContext(
+    LlmTimeToFirstTokenMetricContext(
         String group,
         Metric.Kind kind,
         EngineContext context)
@@ -80,7 +81,7 @@ public final class LlmActiveRequestsMetricContext implements MetricContext
     public MessageConsumer supply(
         LongConsumer recorder)
     {
-        return new LlmActiveRequestsHandler(attributesId -> recorder, LlmAttributes.NONE);
+        return new LlmTimeToFirstTokenHandler(attributesId -> recorder, LlmAttributes.NONE);
     }
 
     @Override
@@ -89,31 +90,27 @@ public final class LlmActiveRequestsMetricContext implements MetricContext
         List<AttributeConfig> attributes,
         ToLongFunction<String> resolveId)
     {
-        return new LlmActiveRequestsHandler(recorder, new LlmAttributes(attributes, context, resolveId));
+        return new LlmTimeToFirstTokenHandler(recorder, new LlmAttributes(attributes, context, resolveId));
     }
 
-    private final class LlmActiveRequestsHandler implements MessageConsumer
+    private final class LlmTimeToFirstTokenHandler implements MessageConsumer
     {
-        private static final long NOT_TRACKED = -1L;
-        private static final long REPLY_CLOSED = 1L << SENT;
-        private static final long INITIAL_CLOSED = 1L << RECEIVED;
-        private static final long EXCHANGE_CLOSED = INITIAL_CLOSED | REPLY_CLOSED;
-        private static final long REPLY_OPENED = 1L << 2;
+        private static final long NOT_STARTED = 0L;
 
         private final IntFunction<LongConsumer> recorder;
         private final LlmAttributes attributes;
-        private final Long2LongHashMap exchanges;
+        private final Long2LongHashMap timestamps;
         private final FrameFW frameRO = new FrameFW();
         private final BeginFW beginRO = new BeginFW();
         private final ExtensionFW extensionRO = new ExtensionFW();
 
-        private LlmActiveRequestsHandler(
+        private LlmTimeToFirstTokenHandler(
             IntFunction<LongConsumer> recorder,
             LlmAttributes attributes)
         {
             this.recorder = recorder;
             this.attributes = attributes;
-            this.exchanges = new Long2LongHashMap(NOT_TRACKED);
+            this.timestamps = new Long2LongHashMap(NOT_STARTED);
         }
 
         @Override
@@ -127,74 +124,50 @@ public final class LlmActiveRequestsMetricContext implements MetricContext
             final long streamId = frame.streamId();
             final long exchangeId = initialId(streamId);
             final long direction = LlmUtils.direction(streamId);
+            final long timestamp = frame.timestamp();
 
             switch (msgTypeId)
             {
             case BeginFW.TYPE_ID:
                 final BeginFW begin = beginRO.wrap(buffer, index, index + length);
-                onBegin(exchangeId, direction, frame.authorization(), begin);
+                final ExtensionFW beginEx = begin.extension().get(extensionRO::tryWrap);
+                if (direction == RECEIVED &&
+                    beginEx != null && beginEx.typeId() == llmTypeId &&
+                    timestamp != NOT_STARTED)
+                {
+                    timestamps.put(exchangeId, timestamp);
+                    attributes.request(exchangeId, frame.authorization());
+                }
+                break;
+            case DataFW.TYPE_ID:
+                if (direction == SENT)
+                {
+                    final long start = timestamps.remove(exchangeId);
+                    if (start != NOT_STARTED)
+                    {
+                        recorder.apply(attributes.attributesId(exchangeId, STATUS_ABSENT)).accept(timestamp - start);
+                        attributes.release(exchangeId);
+                    }
+                }
                 break;
             case EndFW.TYPE_ID:
-                onClose(exchangeId, direction, false);
+                if (direction == SENT)
+                {
+                    onClose(exchangeId);
+                }
                 break;
             case AbortFW.TYPE_ID:
             case ResetFW.TYPE_ID:
-                onClose(exchangeId, direction, true);
+                onClose(exchangeId);
                 break;
-            }
-        }
-
-        private void onBegin(
-            long exchangeId,
-            long direction,
-            long authorization,
-            BeginFW begin)
-        {
-            if (direction == RECEIVED)
-            {
-                final ExtensionFW beginEx = begin.extension().get(extensionRO::tryWrap);
-                if (beginEx != null && beginEx.typeId() == llmTypeId)
-                {
-                    exchanges.put(exchangeId, 0L);
-                    attributes.request(exchangeId, authorization);
-                    recorder.apply(attributes.attributesId(exchangeId, STATUS_ABSENT)).accept(1L);
-                }
-            }
-            else
-            {
-                final long state = exchanges.get(exchangeId);
-                if (state != NOT_TRACKED)
-                {
-                    exchanges.put(exchangeId, state | REPLY_OPENED);
-                }
             }
         }
 
         private void onClose(
-            long exchangeId,
-            long direction,
-            boolean failed)
+            long exchangeId)
         {
-            final long state = exchanges.get(exchangeId);
-            if (state != NOT_TRACKED)
-            {
-                long closed = state | 1L << direction;
-                if (failed && direction == RECEIVED && (closed & REPLY_OPENED) == 0L)
-                {
-                    closed |= REPLY_CLOSED;
-                }
-
-                if ((closed & EXCHANGE_CLOSED) == EXCHANGE_CLOSED)
-                {
-                    exchanges.remove(exchangeId);
-                    recorder.apply(attributes.attributesId(exchangeId, STATUS_ABSENT)).accept(-1L);
-                    attributes.release(exchangeId);
-                }
-                else
-                {
-                    exchanges.put(exchangeId, closed);
-                }
-            }
+            timestamps.remove(exchangeId);
+            attributes.release(exchangeId);
         }
     }
 }
