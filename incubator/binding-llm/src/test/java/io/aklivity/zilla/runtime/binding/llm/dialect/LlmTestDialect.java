@@ -100,8 +100,7 @@ final class LlmTestDialect implements LlmDialect
     }
 
     @Override
-    public JsonTransform supplyDecoder(
-        Kind kind,
+    public JsonTransform supplyRequestDecoder(
         JsonEnvelope envelope)
     {
         return passthrough();
@@ -116,8 +115,7 @@ final class LlmTestDialect implements LlmDialect
     }
 
     @Override
-    public JsonTransform supplyEncoder(
-        Kind kind,
+    public JsonTransform supplyRequestEncoder(
         JsonEnvelope envelope)
     {
         return passthrough();

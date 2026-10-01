@@ -41,11 +41,11 @@ import io.aklivity.zilla.runtime.common.json.JsonTransform;
  * that combination is at least as consistent with some other dialect stacking its own bearer credential on
  * top of a forwarded Anthropic API key, so {@link #detect(JsonEnvelope)} does not treat it as a hint.
  * <p>
- * {@link #supplyDecoder(Kind, JsonEnvelope)}/{@link #supplyEncoder(Kind, JsonEnvelope)} rename the
+ * {@link #supplyRequestDecoder(JsonEnvelope)}/{@link #supplyRequestEncoder(JsonEnvelope)} rename the
  * Anthropic-native request members that {@link LlmAnthropicRequestTransform} gives a canonical synonym for;
- * the response direction is always identity here, since genuine cross-dialect response streaming translation
- * lives entirely in {@code internal.mapper.LlmAnthropicDecodeTransform}/{@code LlmAnthropicEncodeSink}, and a
- * same-dialect response needs no rename at all. {@link #supplyExtractor(Kind, JsonEnvelope)} performs no such
+ * cross-dialect response streaming translation lives entirely in
+ * {@code internal.mapper.LlmAnthropicDecodeTransform}/{@code LlmAnthropicEncodeSink}, and a same-dialect
+ * response needs no rename at all. {@link #supplyExtractor(Kind, JsonEnvelope)} performs no such
  * renaming either direction -- {@code model} extraction on the request side, {@code usage} extraction on the
  * response side. Anthropic's own streaming block lifecycle ({@code message_start}/
  * {@code content_block_start}/{@code content_block_delta}/{@code content_block_stop}/{@code message_delta}/
@@ -158,11 +158,10 @@ public final class LlmAnthropicDialect implements LlmDialect
     }
 
     @Override
-    public JsonTransform supplyDecoder(
-        Kind kind,
+    public JsonTransform supplyRequestDecoder(
         JsonEnvelope envelope)
     {
-        return kind == Kind.REQUEST ? new LlmAnthropicRequestTransform(true, envelope) : LlmDialectTransforms.identity();
+        return new LlmAnthropicRequestTransform(true, envelope);
     }
 
     @Override
@@ -176,11 +175,10 @@ public final class LlmAnthropicDialect implements LlmDialect
     }
 
     @Override
-    public JsonTransform supplyEncoder(
-        Kind kind,
+    public JsonTransform supplyRequestEncoder(
         JsonEnvelope envelope)
     {
-        return kind == Kind.REQUEST ? new LlmAnthropicRequestTransform(false, envelope) : LlmDialectTransforms.identity();
+        return new LlmAnthropicRequestTransform(false, envelope);
     }
 
     @Override

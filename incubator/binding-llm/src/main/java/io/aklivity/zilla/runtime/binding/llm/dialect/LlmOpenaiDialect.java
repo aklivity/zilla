@@ -160,11 +160,10 @@ public final class LlmOpenaiDialect implements LlmDialect
     }
 
     @Override
-    public JsonTransform supplyDecoder(
-        Kind kind,
+    public JsonTransform supplyRequestDecoder(
         JsonEnvelope envelope)
     {
-        return kind == Kind.REQUEST ? new LlmOpenaiRequestTransform(true, envelope) : LlmDialectTransforms.identity();
+        return new LlmOpenaiRequestTransform(true, envelope);
     }
 
     @Override
@@ -178,11 +177,10 @@ public final class LlmOpenaiDialect implements LlmDialect
     }
 
     @Override
-    public JsonTransform supplyEncoder(
-        Kind kind,
+    public JsonTransform supplyRequestEncoder(
         JsonEnvelope envelope)
     {
-        return kind == Kind.REQUEST ? new LlmOpenaiRequestTransform(false, envelope) : LlmDialectTransforms.identity();
+        return new LlmOpenaiRequestTransform(false, envelope);
     }
 
     @Override

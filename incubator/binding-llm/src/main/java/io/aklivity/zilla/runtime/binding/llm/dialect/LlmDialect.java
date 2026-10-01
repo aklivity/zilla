@@ -168,7 +168,7 @@ public interface LlmDialect
     Set<String> responseContentTypes();
 
     /**
-     * Creates a new {@link JsonTransform} decoding one stream's native {@code kind} payload into this
+     * Creates a new {@link JsonTransform} decoding one stream's native request payload into this
      * binding's canonical representation, field by field.
      * <p>
      * {@code envelope} is the same per-stream metadata channel {@link #detect(JsonEnvelope)} reads request
@@ -179,12 +179,10 @@ public interface LlmDialect
      * than buffering the whole body first just to peek at one field.
      * </p>
      *
-     * @param kind      the request or response direction
      * @param envelope  the per-stream metadata channel
      * @return a new decoding transform
      */
-    JsonTransform supplyDecoder(
-        Kind kind,
+    JsonTransform supplyRequestDecoder(
         JsonEnvelope envelope);
 
     /**
@@ -197,7 +195,7 @@ public interface LlmDialect
      * <p>
      * A binding with no target dialect to bridge toward (e.g. a {@code kind: server} accepting a native
      * request it only needs to detect, extract routing signals from, and forward byte-for-byte to its own
-     * application-facing side) uses this instead of {@link #supplyDecoder(Kind, JsonEnvelope)}: canonical
+     * application-facing side) uses this instead of {@link #supplyRequestDecoder(JsonEnvelope)}: canonical
      * rewriting is meaningful only when bridging between two different dialects, which is a
      * {@code kind: client} binding's job alone.
      * </p>
@@ -221,15 +219,13 @@ public interface LlmDialect
         JsonEnvelope envelope);
 
     /**
-     * Creates a new {@link JsonTransform} encoding one stream's canonical {@code kind} payload into this
+     * Creates a new {@link JsonTransform} encoding one stream's canonical request payload into this
      * dialect's native representation, field by field.
      *
-     * @param kind      the request or response direction
      * @param envelope  the per-stream metadata channel
      * @return a new encoding transform
      */
-    JsonTransform supplyEncoder(
-        Kind kind,
+    JsonTransform supplyRequestEncoder(
         JsonEnvelope envelope);
 
     /**
@@ -275,7 +271,7 @@ public interface LlmDialect
     /**
      * Returns the literal byte sequence this dialect's {@code kind} stream uses to signal completion out
      * of band from any document -- e.g. OpenAI's response stream ends with the SSE data value
-     * {@code [DONE]}, which is not JSON and never reaches a {@link #supplyDecoder(Kind, JsonEnvelope)}
+     * {@code [DONE]}, which is not JSON and never reaches a {@link #supplyRequestDecoder(JsonEnvelope)}
      * transform -- or {@code null} when this dialect's {@code kind} stream has no such terminator and every
      * value is a document.
      *
