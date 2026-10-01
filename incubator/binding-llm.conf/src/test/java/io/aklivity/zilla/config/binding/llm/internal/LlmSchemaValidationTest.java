@@ -773,4 +773,280 @@ public class LlmSchemaValidationTest
 
         assertThat(engine, not(nullValue()));
     }
+
+    @Test
+    public void shouldAcceptServerWithAuthorization()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              net0:
+                type: llm
+                kind: server
+                options:
+                  authorization:
+                    guard0:
+                      credentials: "Bearer {credentials}"
+                exit: app0
+            """;
+
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectServerAuthorizationWithoutCredentialsPlaceholder()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              net0:
+                type: llm
+                kind: server
+                options:
+                  authorization:
+                    guard0:
+                      credentials: static-token
+                exit: app0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectServerAuthorizationWithMultipleGuards()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              net0:
+                type: llm
+                kind: server
+                options:
+                  authorization:
+                    guard0:
+                      credentials: "Bearer {credentials}"
+                    guard1:
+                      credentials: "Bearer {credentials}"
+                exit: app0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectServerAuthorizationWithUnknownProperty()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              net0:
+                type: llm
+                kind: server
+                options:
+                  authorization:
+                    guard0:
+                      credentials: "Bearer {credentials}"
+                      unknown: value
+                exit: app0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test
+    public void shouldAcceptClientWithAuthorization()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: openai
+                  server: https://api.example.com
+                  authorization:
+                    guard0:
+                      credentials: "x-api-key {credentials}"
+                exit: net0
+            """;
+
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectClientAuthorizationWithoutCredentialsPlaceholder()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: openai
+                  server: https://api.example.com
+                  authorization:
+                    guard0:
+                      credentials: static-token
+                exit: net0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectClientAuthorizationWithMultipleGuards()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: openai
+                  server: https://api.example.com
+                  authorization:
+                    guard0:
+                      credentials: "x-api-key {credentials}"
+                    guard1:
+                      credentials: "x-api-key {credentials}"
+                exit: net0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectClientAuthorizationWithUnknownProperty()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: openai
+                  server: https://api.example.com
+                  authorization:
+                    guard0:
+                      credentials: "x-api-key {credentials}"
+                      unknown: value
+                exit: net0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test
+    public void shouldAcceptClientWithServerHostAndPort()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: openai
+                  server: http://localhost:8080
+                exit: net0
+            """;
+
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
+    }
+
+    @Test
+    public void shouldAcceptClientWithServerIpv6Literal()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: openai
+                  server: "https://[::1]:8443/v1"
+                exit: net0
+            """;
+
+        EngineConfig engine = reader.read(text);
+
+        assertThat(engine, not(nullValue()));
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectClientWithHostlessServer()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: openai
+                  server: "https://:8080"
+                exit: net0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectClientWithServerWithoutHost()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              app0:
+                type: llm
+                kind: client
+                options:
+                  dialect: openai
+                  server: "https://"
+                exit: net0
+            """;
+
+        reader.read(text);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectProxyWithOptions()
+    {
+        String text =
+            """
+            name: test
+            bindings:
+              net0:
+                type: llm
+                kind: proxy
+                options:
+                  dialect: openai
+                exit: app0
+            """;
+
+        reader.read(text);
+    }
 }

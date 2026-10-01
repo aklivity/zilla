@@ -65,27 +65,7 @@
                                         {
                                             "title": "Authorization",
                                             "description": "Guard used to validate inbound request credentials, keyed by guard name. Credentials is a template matched against the request header the resolved dialect expects credentials in (for example Authorization for openai, x-api-key for anthropic), with {credentials} standing in for the extracted token.",
-                                            "type": "object",
-                                            "patternProperties":
-                                            {
-                                                "^[A-Za-z0-9_-]+$":
-                                                {
-                                                    "type": "object",
-                                                    "properties":
-                                                    {
-                                                        "credentials":
-                                                        {
-                                                            "title": "Credentials",
-                                                            "type": "string",
-                                                            "pattern": ".*\\{credentials\\}.*",
-                                                            "default": "Bearer {credentials}"
-                                                        }
-                                                    },
-                                                    "additionalProperties": false
-                                                }
-                                            },
-                                            "additionalProperties": false,
-                                            "maxProperties": 1
+                                            "$ref": "#/$defs/binding-ext/llm/authorization"
                                         }
                                     },
                                     "additionalProperties": false
@@ -138,33 +118,13 @@
                                             "description": "Base URL of the large language model server this client connects to, mirroring the base_url convention of the official SDKs: the whole origin plus a shared path prefix (for example https://aicomp.ai/v1), with the resolved dialect appending only its own fixed operation suffix on top (/chat/completions for openai, /messages for anthropic). The path defaults to /v1 when omitted (for example https://aicomp.ai resolves the same as https://aicomp.ai/v1).",
                                             "type": "string",
                                             "format": "uri",
-                                            "pattern": "^https?://"
+                                            "pattern": "^https?://[^/:?#\\s][^/?#\\s]*"
                                         },
                                         "authorization":
                                         {
                                             "title": "Authorization",
                                             "description": "Guard used to resolve outbound request credentials, keyed by guard name. Credentials is a template used to build the request header the resolved dialect sends credentials in (for example Authorization for openai, x-api-key for anthropic), with {credentials} standing in for the resolved token. When {credentials} resolves to the authorization already granted to the inbound request, the caller's own credentials are forwarded upstream unchanged.",
-                                            "type": "object",
-                                            "patternProperties":
-                                            {
-                                                "^[A-Za-z0-9_-]+$":
-                                                {
-                                                    "type": "object",
-                                                    "properties":
-                                                    {
-                                                        "credentials":
-                                                        {
-                                                            "title": "Credentials",
-                                                            "type": "string",
-                                                            "pattern": ".*\\{credentials\\}.*",
-                                                            "default": "Bearer {credentials}"
-                                                        }
-                                                    },
-                                                    "additionalProperties": false
-                                                }
-                                            },
-                                            "additionalProperties": false,
-                                            "maxProperties": 1
+                                            "$ref": "#/$defs/binding-ext/llm/authorization"
                                         }
                                     },
                                     "required": [ "dialect", "server" ],
@@ -203,6 +163,7 @@
                         {
                             "properties":
                             {
+                                "options": false,
                                 "routes":
                                 {
                                     "title": "Routes",
@@ -262,6 +223,30 @@
                 "title": "Dialect",
                 "type": "string",
                 "enum": [ "openai", "anthropic" ]
+            },
+            "authorization":
+            {
+                "type": "object",
+                "patternProperties":
+                {
+                    "^[A-Za-z0-9_-]+$":
+                    {
+                        "type": "object",
+                        "properties":
+                        {
+                            "credentials":
+                            {
+                                "title": "Credentials",
+                                "type": "string",
+                                "pattern": ".*\\{credentials\\}.*",
+                                "default": "Bearer {credentials}"
+                            }
+                        },
+                        "additionalProperties": false
+                    }
+                },
+                "additionalProperties": false,
+                "maxProperties": 1
             }
         }
     }
