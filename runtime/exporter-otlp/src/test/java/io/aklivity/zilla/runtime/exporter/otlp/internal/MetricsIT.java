@@ -66,4 +66,14 @@ public class MetricsIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("metrics.interval.long.yaml")
+    @Specification({
+        "metrics.after.attach/server"
+    })
+    public void shouldPostMetricsSoonAfterAttachWithLongInterval() throws Exception
+    {
+        k3po.finish();
+    }
 }
