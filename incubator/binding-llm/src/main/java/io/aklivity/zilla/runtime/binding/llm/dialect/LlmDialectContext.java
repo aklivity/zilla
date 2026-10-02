@@ -14,7 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.dialect;
 
-import io.aklivity.zilla.runtime.binding.llm.internal.config.LlmBindingConfig;
+import io.aklivity.zilla.config.engine.BindingConfig;
 
 /**
  * Per-worker state of a {@link LlmDialect}, attaching to each binding it supports.
@@ -28,7 +28,7 @@ public interface LlmDialectContext
      * @return the handler for streams of that binding, or {@code null} if this dialect does not support it
      */
     LlmDialectHandler attach(
-        LlmBindingConfig binding);
+        BindingConfig binding);
 
     /**
      * Detaches from a binding.

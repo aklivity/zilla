@@ -17,10 +17,13 @@ package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 import static io.aklivity.zilla.config.engine.KindConfig.CLIENT;
 import static io.aklivity.zilla.config.engine.KindConfig.SERVER;
 
+import io.aklivity.zilla.config.binding.llm.LlmOptionsConfig;
+import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialect;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectContext;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectHandler;
 import io.aklivity.zilla.runtime.binding.llm.internal.LlmConfiguration;
+import io.aklivity.zilla.runtime.binding.llm.internal.codec.LlmContentCodecFactory;
 import io.aklivity.zilla.runtime.binding.llm.internal.config.LlmBindingConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 
@@ -55,6 +58,7 @@ public final class LlmLegacyDialectAdapter implements LlmDialect
         private final String name;
         private final LlmConfiguration config;
         private final EngineContext context;
+        private final LlmContentCodecFactory codecs;
 
         private LlmLegacyServerFactory server;
         private LlmLegacyClientFactory client;
@@ -67,13 +71,14 @@ public final class LlmLegacyDialectAdapter implements LlmDialect
             this.name = name;
             this.config = config;
             this.context = context;
+            this.codecs = new LlmContentCodecFactory();
         }
 
         @Override
         public LlmDialectHandler attach(
-            LlmBindingConfig binding)
+            BindingConfig binding)
         {
-            final String fixed = binding.options.dialect;
+            final String fixed = binding.options instanceof LlmOptionsConfig options ? options.dialect : null;
 
             LlmDialectHandler handler = null;
 
@@ -82,13 +87,13 @@ public final class LlmLegacyDialectAdapter implements LlmDialect
             case SERVER:
                 if (fixed == null || fixed.equals(name))
                 {
-                    handler = new LlmLegacyServerHandler(name, supplyServer(), binding);
+                    handler = new LlmLegacyServerHandler(name, supplyServer(), supplyBinding(binding));
                 }
                 break;
             case CLIENT:
                 if (name.equals(fixed))
                 {
-                    handler = new LlmLegacyClientHandler(name, supplyClient(), binding);
+                    handler = new LlmLegacyClientHandler(name, supplyClient(), supplyBinding(binding));
                 }
                 break;
             default:
@@ -96,6 +101,12 @@ public final class LlmLegacyDialectAdapter implements LlmDialect
             }
 
             return handler;
+        }
+
+        private LlmBindingConfig supplyBinding(
+            BindingConfig binding)
+        {
+            return new LlmBindingConfig(binding, context, codecs);
         }
 
         private LlmLegacyServerFactory supplyServer()

@@ -18,12 +18,11 @@ import java.util.Map;
 
 import org.agrona.collections.Long2ObjectHashMap;
 
+import io.aklivity.zilla.config.binding.llm.LlmOptionsConfig;
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectContext;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectHandler;
 import io.aklivity.zilla.runtime.binding.llm.internal.LlmBinding;
-import io.aklivity.zilla.runtime.binding.llm.internal.codec.LlmContentCodecFactory;
-import io.aklivity.zilla.runtime.binding.llm.internal.config.LlmBindingConfig;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
@@ -36,8 +35,6 @@ public final class LlmClientFactory implements LlmStreamFactory
 
     private final BeginFW beginRO = new BeginFW();
 
-    private final EngineContext context;
-    private final LlmContentCodecFactory codecs;
     private final Map<String, LlmDialectContext> dialects;
     private final Long2ObjectHashMap<LlmDialectHandler> bindings;
     private final int httpTypeId;
@@ -47,8 +44,6 @@ public final class LlmClientFactory implements LlmStreamFactory
         EngineContext context,
         Map<String, LlmDialectContext> dialects)
     {
-        this.context = context;
-        this.codecs = new LlmContentCodecFactory();
         this.dialects = dialects;
         this.bindings = new Long2ObjectHashMap<>();
         this.httpTypeId = context.supplyTypeId(HTTP_TYPE_NAME);
@@ -71,9 +66,9 @@ public final class LlmClientFactory implements LlmStreamFactory
     public void attach(
         BindingConfig binding)
     {
-        final LlmBindingConfig config = new LlmBindingConfig(binding, context, codecs);
-        final LlmDialectContext dialect = config.options.dialect != null ? dialects.get(config.options.dialect) : null;
-        final LlmDialectHandler handler = dialect != null ? dialect.attach(config) : null;
+        final String fixed = binding.options instanceof LlmOptionsConfig options ? options.dialect : null;
+        final LlmDialectContext dialect = fixed != null ? dialects.get(fixed) : null;
+        final LlmDialectHandler handler = dialect != null ? dialect.attach(binding) : null;
 
         if (handler != null)
         {
