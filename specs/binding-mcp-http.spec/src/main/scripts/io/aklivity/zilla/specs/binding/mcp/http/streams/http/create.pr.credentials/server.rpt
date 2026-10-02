@@ -13,9 +13,11 @@
 # specific language governing permissions and limitations under the License.
 #
 
+property authorization 0L
 property serverAddress "zilla://streams/http0"
 
 accept ${serverAddress}
+       option zilla:authorization ${authorization}
        option zilla:window 8192
        option zilla:transmission "half-duplex"
 
