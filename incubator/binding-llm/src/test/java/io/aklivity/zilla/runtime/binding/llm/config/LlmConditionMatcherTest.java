@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.llm.internal.config;
+package io.aklivity.zilla.runtime.binding.llm.config;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;

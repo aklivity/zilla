@@ -17,14 +17,13 @@ package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 import static io.aklivity.zilla.config.engine.KindConfig.CLIENT;
 import static io.aklivity.zilla.config.engine.KindConfig.SERVER;
 
-import io.aklivity.zilla.config.binding.llm.LlmOptionsConfig;
-import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.runtime.binding.llm.config.LlmBindingConfig;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialect;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectContext;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectHandler;
 import io.aklivity.zilla.runtime.binding.llm.internal.LlmConfiguration;
 import io.aklivity.zilla.runtime.binding.llm.internal.codec.LlmContentCodecFactory;
-import io.aklivity.zilla.runtime.binding.llm.internal.config.LlmBindingConfig;
+import io.aklivity.zilla.runtime.binding.llm.internal.config.LlmLegacyBindingConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 
 public final class LlmLegacyDialectAdapter implements LlmDialect
@@ -76,9 +75,9 @@ public final class LlmLegacyDialectAdapter implements LlmDialect
 
         @Override
         public LlmDialectHandler attach(
-            BindingConfig binding)
+            LlmBindingConfig binding)
         {
-            final String fixed = binding.options instanceof LlmOptionsConfig options ? options.dialect : null;
+            final String fixed = binding.options.dialect;
 
             LlmDialectHandler handler = null;
 
@@ -103,10 +102,10 @@ public final class LlmLegacyDialectAdapter implements LlmDialect
             return handler;
         }
 
-        private LlmBindingConfig supplyBinding(
-            BindingConfig binding)
+        private LlmLegacyBindingConfig supplyBinding(
+            LlmBindingConfig binding)
         {
-            return new LlmBindingConfig(binding, context, codecs);
+            return new LlmLegacyBindingConfig(binding, context, codecs);
         }
 
         private LlmLegacyServerFactory supplyServer()

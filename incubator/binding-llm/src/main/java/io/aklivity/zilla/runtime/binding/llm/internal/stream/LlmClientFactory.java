@@ -18,8 +18,8 @@ import java.util.Map;
 
 import org.agrona.collections.Long2ObjectHashMap;
 
-import io.aklivity.zilla.config.binding.llm.LlmOptionsConfig;
 import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.runtime.binding.llm.config.LlmBindingConfig;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectContext;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectHandler;
 import io.aklivity.zilla.runtime.binding.llm.internal.LlmBinding;
@@ -35,6 +35,7 @@ public final class LlmClientFactory implements LlmStreamFactory
 
     private final BeginFW beginRO = new BeginFW();
 
+    private final EngineContext context;
     private final Map<String, LlmDialectContext> dialects;
     private final Long2ObjectHashMap<LlmDialectHandler> bindings;
     private final int httpTypeId;
@@ -44,6 +45,7 @@ public final class LlmClientFactory implements LlmStreamFactory
         EngineContext context,
         Map<String, LlmDialectContext> dialects)
     {
+        this.context = context;
         this.dialects = dialects;
         this.bindings = new Long2ObjectHashMap<>();
         this.httpTypeId = context.supplyTypeId(HTTP_TYPE_NAME);
@@ -66,9 +68,10 @@ public final class LlmClientFactory implements LlmStreamFactory
     public void attach(
         BindingConfig binding)
     {
-        final String fixed = binding.options instanceof LlmOptionsConfig options ? options.dialect : null;
+        final LlmBindingConfig config = new LlmBindingConfig(binding, context);
+        final String fixed = config.options.dialect;
         final LlmDialectContext dialect = fixed != null ? dialects.get(fixed) : null;
-        final LlmDialectHandler handler = dialect != null ? dialect.attach(binding) : null;
+        final LlmDialectHandler handler = dialect != null ? dialect.attach(config) : null;
 
         if (handler != null)
         {
