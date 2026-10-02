@@ -14,6 +14,10 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.internal;
 
+import java.util.Map;
+
+import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialect;
+import io.aklivity.zilla.runtime.binding.llm.internal.dialect.LlmDialectFactory;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
 
@@ -22,11 +26,13 @@ public final class LlmBinding implements Binding
     public static final String NAME = "llm";
 
     private final LlmConfiguration config;
+    private final Map<String, LlmDialect> dialects;
 
     LlmBinding(
         LlmConfiguration config)
     {
         this.config = config;
+        this.dialects = new LlmDialectFactory(config).dialects();
     }
 
     @Override
@@ -39,6 +45,6 @@ public final class LlmBinding implements Binding
     public LlmBindingContext supply(
         EngineContext context)
     {
-        return new LlmBindingContext(config, context);
+        return new LlmBindingContext(config, context, dialects);
     }
 }

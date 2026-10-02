@@ -28,7 +28,7 @@ import io.aklivity.zilla.runtime.common.json.JsonTransform;
 
 // Wire-format-identical to LlmLegacyOpenaiDialect, like LlmLegacySignedTestDialect, but whose signer always throws --
 // standing in for a real signer's documented "credentials not yet available" failure mode (see
-// LlmRequestSigner#sign's javadoc) -- so an IT can exercise LlmClientFactory's own recovery from a signer
+// LlmRequestSigner#sign's javadoc) -- so an IT can exercise LlmLegacyClientFactory's own recovery from a signer
 // that cannot currently produce a signature, without needing a real signing upstream or a background
 // credential fetch race.
 final class LlmLegacySigningUnavailableTestDialect implements LlmLegacyDialect

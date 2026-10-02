@@ -32,15 +32,15 @@ import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.common.json.JsonTransform;
 
 /**
- * Regression coverage for the bug this dispatch replaces: {@code LlmClientFactory} used to resolve a
+ * Regression coverage for the bug this dispatch replaces: {@code LlmLegacyClientFactory} used to resolve a
  * cross-dialect response decode/encode pair via a hardcoded {@code "openai".equals(dialectName) ? ... :
  * anthropic} switch, so any registered dialect whose name was not literally {@code "openai"} -- including
  * a third dialect contributed from outside this module, exactly as {@link LlmLegacyDialect}'s own javadoc
  * advertises -- silently fell through to Anthropic's response transform instead of its own. Now that
- * {@code LlmClientFactory} calls {@code client.target.supplyResponseDecodeTransform()}/
+ * {@code LlmLegacyClientFactory} calls {@code client.target.supplyResponseDecodeTransform()}/
  * {@code client.source.supplyResponseEncodeSink(...)} directly on the resolved {@link LlmLegacyDialect}, dispatch
  * is inherent to the interface call, not a name lookup -- these tests exercise the same call shape
- * {@code LlmClientFactory} uses and confirm a third dialect never receives Anthropic's (or OpenAI's) own
+ * {@code LlmLegacyClientFactory} uses and confirm a third dialect never receives Anthropic's (or OpenAI's) own
  * response mapping.
  */
 public class LlmLegacyDialectResponseDispatchTest
@@ -57,9 +57,9 @@ public class LlmLegacyDialectResponseDispatchTest
         assertThat(decode, not(instanceOf(LlmAnthropicDecodeTransform.class)));
         assertThat(encode, instanceOf(LlmOpenaiEncodeSink.class));
         assertThat(encode, not(instanceOf(LlmAnthropicEncodeSink.class)));
-        assertThat("LlmClientFactory casts every dialect's result to these, unconditionally",
+        assertThat("LlmLegacyClientFactory casts every dialect's result to these, unconditionally",
             decode, instanceOf(LlmLegacyDialectEvent.class));
-        assertThat("LlmClientFactory casts every dialect's result to these, unconditionally",
+        assertThat("LlmLegacyClientFactory casts every dialect's result to these, unconditionally",
             encode, instanceOf(LlmLegacyDialectTerminator.class));
     }
 
@@ -98,7 +98,7 @@ public class LlmLegacyDialectResponseDispatchTest
     @Test
     public void shouldSatisfyTheCastEveryDialectsResponseTransformsMustSupport()
     {
-        // LlmClientFactory unconditionally casts every dialect's supplyResponseDecodeTransform()/
+        // LlmLegacyClientFactory unconditionally casts every dialect's supplyResponseDecodeTransform()/
         // supplyResponseEncodeSink(...) result to these two interfaces -- a third-party dialect that
         // forgets to implement them (as a no-op, if it has no real use for either) would compile fine
         // here but throw ClassCastException the moment a live engine actually builds a cross-dialect
