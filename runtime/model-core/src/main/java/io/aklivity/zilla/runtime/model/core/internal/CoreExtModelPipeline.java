@@ -20,6 +20,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
 import io.aklivity.zilla.runtime.engine.model.ModelPipelineResult;
+import io.aklivity.zilla.runtime.engine.model.ModelRejection;
 import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 
 // Per-stream pipeline for a bytes/string model with at least one installed stage. The value streams
@@ -123,13 +124,19 @@ abstract class CoreExtModelPipeline implements ModelPipeline
         ModelStatus status;
         int consumed;
         int produced;
+        ModelRejection rejection = null;
         if (pumped == ModelStatus.REJECTED)
         {
             // withholding is a stage's own decision about a value it found nothing wrong with, so it
             // raises no event; rejecting is a failure, reported with whatever diagnostic the stage gave
-            if (!withheld)
+            if (withheld)
+            {
+                rejection = ModelRejection.WITHHELD;
+            }
+            else
             {
                 report(traceId, bindingId);
+                rejection = ModelRejection.INVALID;
             }
 
             status = ModelStatus.REJECTED;
@@ -152,6 +159,7 @@ abstract class CoreExtModelPipeline implements ModelPipeline
                 status = ModelStatus.REJECTED;
                 consumed = 0;
                 produced = 0;
+                rejection = ModelRejection.INVALID;
             }
             else
             {
@@ -161,7 +169,7 @@ abstract class CoreExtModelPipeline implements ModelPipeline
                 produced = targetAt - dstIndex;
             }
         }
-        return result.set(status, consumed, produced);
+        return result.set(status, consumed, produced, rejection);
     }
 
     @Override
