@@ -18,6 +18,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.not;
 
 import org.junit.Test;
 
@@ -32,10 +33,15 @@ public class LlmDialectFactoryTest
     @Test
     public void shouldAdaptLegacyDialects()
     {
-        assertThat(factory.dialects(), hasKey("openai"));
         assertThat(factory.dialects(), hasKey("anthropic"));
-        assertThat(factory.dialects().get("openai"), instanceOf(LlmLegacyDialectAdapter.class));
         assertThat(factory.dialects().get("anthropic"), instanceOf(LlmLegacyDialectAdapter.class));
+    }
+
+    @Test
+    public void shouldRegisterDialectWithoutAdapting()
+    {
+        assertThat(factory.dialects(), hasKey("openai"));
+        assertThat(factory.dialects().get("openai"), not(instanceOf(LlmLegacyDialectAdapter.class)));
     }
 
     @Test
