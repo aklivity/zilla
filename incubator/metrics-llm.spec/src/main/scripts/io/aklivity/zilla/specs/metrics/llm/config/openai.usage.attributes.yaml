@@ -19,6 +19,7 @@ guards:
     test0:
         type: test
         options:
+            credentials: token
             identity: alice
             attributes:
                 tenant: acme

@@ -117,7 +117,9 @@ public class LlmMetricsIT
     @Specification({
         "${app}/openai.usage/client",
         "${app}/openai.usage/server" })
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @ScriptProperty({
+        "serverAddress \"zilla://streams/app1\"",
+        "authorization 1L" })
     public void shouldRecordOpenaiUsageWithAttributes() throws Exception
     {
         k3po.finish();
