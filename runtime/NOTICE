@@ -18,7 +18,6 @@ This project includes:
   Apache Commons Collections under GPL 3
   Jakarta Dependency Injection under The Apache Software License, Version 2.0
   Jakarta JSON Processing API under Eclipse Public License 2.0 or GNU General Public License, version 2 with the GNU Classpath Exception
-  jose4j under The Apache Software License, Version 2.0
   JSON-B API under Eclipse Public License 2.0 or GNU General Public License, version 2 with the GNU Classpath Exception
   zilla::config::binding-asyncapi.conf under Aklivity Community License Agreement
   zilla::config::binding-echo.conf under Aklivity Community License Agreement
