@@ -74,6 +74,8 @@
 - ci\(codeql\): skip zpm resolve in the autobuild [\#2627](https://github.com/aklivity/zilla/pull/2627) ([jfallows](https://github.com/jfallows))
 - refactor\(binding-llm\): remove dead data-URL handler and response-direction dialect transforms [\#2628](https://github.com/aklivity/zilla/pull/2628) ([jfallows](https://github.com/jfallows))
 - fix\(binding-llm.conf\): tighten llm config schema \(proxy options, client server URL, shared authorization\) [\#2629](https://github.com/aklivity/zilla/pull/2629) ([jfallows](https://github.com/jfallows))
+- fix\(binding-llm.conf\): use the common http\(s\) URL pattern for the llm client server [\#2630](https://github.com/aklivity/zilla/pull/2630) ([jfallows](https://github.com/jfallows))
+- fix\(engine\): test guard resolves no identity or attributes for unauthorized sessions [\#2631](https://github.com/aklivity/zilla/pull/2631) ([jfallows](https://github.com/jfallows))
 
 ## [2.4.7](https://github.com/aklivity/zilla/tree/2.4.7) (2026-09-30)
 
