@@ -526,4 +526,164 @@ public class LlmClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.section.system.instruction/client",
+        "${net}/openai.section.system.instruction/server"})
+    public void shouldEncodeOpenaiSectionSystemInstruction() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.section.user.text/client",
+        "${net}/openai.section.user.text/server"})
+    public void shouldEncodeOpenaiSectionUserText() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.section.user.image/client",
+        "${net}/openai.section.user.image/server"})
+    public void shouldEncodeOpenaiSectionUserImage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.section.user.document/client",
+        "${net}/openai.section.user.document/server"})
+    public void shouldEncodeOpenaiSectionUserDocument() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.section.user.audio/client",
+        "${net}/openai.section.user.audio/server"})
+    public void shouldEncodeOpenaiSectionUserAudio() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.section.assistant.text/client",
+        "${net}/openai.section.assistant.text/server"})
+    public void shouldEncodeOpenaiSectionAssistantText() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.section.assistant.refusal/client",
+        "${net}/openai.section.assistant.refusal/server"})
+    public void shouldEncodeOpenaiSectionAssistantRefusal() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.section.tool.definition/client",
+        "${net}/openai.section.tool.definition/server"})
+    public void shouldEncodeOpenaiSectionToolDefinition() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.section.tool.call/client",
+        "${net}/openai.section.tool.call/server"})
+    public void shouldEncodeOpenaiSectionToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.section.tool.result/client",
+        "${net}/openai.section.tool.result/server"})
+    public void shouldEncodeOpenaiSectionToolResult() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.section.mixed.content/client",
+        "${net}/openai.section.mixed.content/server"})
+    public void shouldEncodeOpenaiSectionMixedContent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.section.assistant.text.and.tool.call/client",
+        "${net}/openai.section.assistant.text.and.tool.call/server"})
+    public void shouldEncodeOpenaiSectionAssistantTextAndToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.section.conversation/client",
+        "${net}/openai.section.conversation/server"})
+    public void shouldEncodeOpenaiSectionConversation() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.section.user.text.10k/client",
+        "${net}/openai.section.user.text.10k/server"})
+    public void shouldEncodeOpenaiSectionUserText10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.section.user.text.100k/client",
+        "${net}/openai.section.user.text.100k/server"})
+    public void shouldEncodeOpenaiSectionUserText100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.section.tool.result.100k/client",
+        "${net}/openai.section.tool.result.100k/server"})
+    public void shouldEncodeOpenaiSectionToolResult100k() throws Exception
+    {
+        k3po.finish();
+    }
 }

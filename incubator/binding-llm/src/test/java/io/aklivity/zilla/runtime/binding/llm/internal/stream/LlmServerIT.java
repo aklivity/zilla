@@ -309,4 +309,204 @@ public class LlmServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.section.system.instruction/client",
+        "${app}/openai.section.system.instruction/server"})
+    public void shouldDecodeOpenaiSectionSystemInstruction() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.section.user.text/client",
+        "${app}/openai.section.user.text/server"})
+    public void shouldDecodeOpenaiSectionUserText() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.section.user.image/client",
+        "${app}/openai.section.user.image/server"})
+    public void shouldDecodeOpenaiSectionUserImage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.section.user.document/client",
+        "${app}/openai.section.user.document/server"})
+    public void shouldDecodeOpenaiSectionUserDocument() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.section.user.audio/client",
+        "${app}/openai.section.user.audio/server"})
+    public void shouldDecodeOpenaiSectionUserAudio() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.section.assistant.text/client",
+        "${app}/openai.section.assistant.text/server"})
+    public void shouldDecodeOpenaiSectionAssistantText() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.section.assistant.refusal/client",
+        "${app}/openai.section.assistant.refusal/server"})
+    public void shouldDecodeOpenaiSectionAssistantRefusal() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.section.tool.definition/client",
+        "${app}/openai.section.tool.definition/server"})
+    public void shouldDecodeOpenaiSectionToolDefinition() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.section.tool.call/client",
+        "${app}/openai.section.tool.call/server"})
+    public void shouldDecodeOpenaiSectionToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.section.tool.result/client",
+        "${app}/openai.section.tool.result/server"})
+    public void shouldDecodeOpenaiSectionToolResult() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.section.mixed.content/client",
+        "${app}/openai.section.mixed.content/server"})
+    public void shouldDecodeOpenaiSectionMixedContent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.section.assistant.text.and.tool.call/client",
+        "${app}/openai.section.assistant.text.and.tool.call/server"})
+    public void shouldDecodeOpenaiSectionAssistantTextAndToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.section.conversation/client",
+        "${app}/openai.section.conversation/server"})
+    public void shouldDecodeOpenaiSectionConversation() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.section.role.last/client",
+        "${app}/openai.section.role.last/server"})
+    public void shouldDecodeOpenaiSectionRoleLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.section.model.last/client",
+        "${app}/openai.section.model.last/server"})
+    public void shouldDecodeOpenaiSectionModelLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.section.tool.result.id.last/client",
+        "${app}/openai.section.tool.result.id.last/server"})
+    public void shouldDecodeOpenaiSectionToolResultIdLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.section.user.text.10k/client",
+        "${app}/openai.section.user.text.10k/server"})
+    public void shouldDecodeOpenaiSectionUserText10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.section.user.text.100k/client",
+        "${app}/openai.section.user.text.100k/server"})
+    public void shouldDecodeOpenaiSectionUserText100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.section.tool.result.100k/client",
+        "${app}/openai.section.tool.result.100k/server"})
+    public void shouldDecodeOpenaiSectionToolResult100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.section.rejected.role.overflow/client",
+        "${app}/openai.section.rejected.role.overflow/server"})
+    public void shouldDecodeOpenaiSectionRejectedRoleOverflow() throws Exception
+    {
+        k3po.finish();
+    }
 }
