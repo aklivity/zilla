@@ -207,4 +207,31 @@ public class HttpIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${http}/client.read.file.dot.segment/client",
+        "${http}/client.read.file.dot.segment/server"})
+    public void shouldRejectClientReadFileDotSegment() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/client.read.file.nested.segment/client",
+        "${http}/client.read.file.nested.segment/server"})
+    public void shouldRejectClientReadFileNestedSegment() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/client.read.file.dot.segment.then.read.file/client",
+        "${http}/client.read.file.dot.segment.then.read.file/server"})
+    public void shouldRejectClientReadFileDotSegmentThenReadFile() throws Exception
+    {
+        k3po.finish();
+    }
 }

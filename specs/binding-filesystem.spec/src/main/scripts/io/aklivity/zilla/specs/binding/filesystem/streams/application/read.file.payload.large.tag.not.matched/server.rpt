@@ -1,0 +1,45 @@
+#
+# Copyright 2021-2026 Aklivity Inc
+#
+# Licensed under the Aklivity Community License (the "License"); you may not use
+# this file except in compliance with the License.  You may obtain a copy of the
+# License at
+#
+#   https://www.aklivity.io/aklivity-community-license/
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations under the License.
+#
+
+accept "zilla://streams/app0"
+       option zilla:window 8192
+       option zilla:transmission "half-duplex"
+accepted
+
+read zilla:begin.ext ${filesystem:matchBeginEx()
+                                 .typeId(zilla:id("filesystem"))
+                                 .capabilities("READ_FILE")
+                                 .path("large.txt")
+                                 .tag("09b47cf07c9d0ea589e0e2aa7d0d3550")
+                                 .timeout(60000)
+                                 .build()}
+connected
+
+read closed
+
+write zilla:begin.ext ${filesystem:beginEx()
+                                  .typeId(zilla:id("filesystem"))
+                                  .capabilities("READ_FILE")
+                                  .path("large.txt")
+                                  .type("text/plain")
+                                  .payloadSize(16384)
+                                  .tag("830cc3416ed05824855e80b49e242446")
+                                  .build()}
+write flush
+
+write ${core:randomString(16384)}
+write flush
+
+write close

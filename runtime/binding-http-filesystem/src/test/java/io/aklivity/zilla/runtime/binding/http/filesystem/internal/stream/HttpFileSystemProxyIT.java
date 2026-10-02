@@ -32,6 +32,7 @@ import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 public class HttpFileSystemProxyIT
 {
     private final K3poRule k3po = new K3poRule()
+        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/http/filesystem/streams/network")
         .addScriptRoot("http", "io/aklivity/zilla/specs/binding/http/filesystem/streams/http")
         .addScriptRoot("filesystem", "io/aklivity/zilla/specs/binding/http/filesystem/streams/filesystem");
 
@@ -261,6 +262,73 @@ public class HttpFileSystemProxyIT
         "${http}/client.read.directory/client",
         "${filesystem}/client.read.directory/server"})
     public void shouldReceiveClientReadDirectory() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.with.path.guarded.yaml")
+    @Specification({
+        "${http}/client.read.file/client",
+        "${filesystem}/client.read.file.guarded/server"})
+    public void shouldReceiveClientReadFileGuarded() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.with.path.prefixed.yaml")
+    @Specification({
+        "${http}/client.read.file/client",
+        "${filesystem}/client.read.file.prefixed/server"})
+    public void shouldReceiveClientReadFilePrefixed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.with.directory.guarded.yaml")
+    @Specification({
+        "${http}/client.read.directory/client",
+        "${filesystem}/client.read.directory.guarded/server"})
+    public void shouldReceiveClientReadDirectoryGuarded() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.with.path.dynamic.yaml")
+    @Specification({
+        "${http}/client.read.file.dot.segment/client"})
+    public void shouldRejectClientReadFileDotSegment() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.with.path.prefixed.yaml")
+    @Specification({
+        "${http}/client.read.file.nested.segment/client"})
+    public void shouldRejectClientReadFileNestedSegment() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.with.path.dynamic.yaml")
+    @Specification({
+        "${http}/client.read.file.dot.segment.then.read.file/client",
+        "${filesystem}/client.read.file/server"})
+    public void shouldRejectClientReadFileDotSegmentThenReadFile() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("http.server.proxy.with.path.dynamic.yaml")
+    @Specification({
+        "${net}/client.read.file.dot.segment/client"})
+    public void shouldRespondNotFoundForClientReadFileDotSegment() throws Exception
     {
         k3po.finish();
     }

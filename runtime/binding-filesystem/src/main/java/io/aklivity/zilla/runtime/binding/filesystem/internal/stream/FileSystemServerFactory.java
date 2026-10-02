@@ -42,8 +42,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributeView;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.function.LongUnaryOperator;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
@@ -51,13 +49,13 @@ import java.util.stream.Stream;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 
-import org.agrona.BitUtil;
 import org.agrona.collections.Long2ObjectHashMap;
 
 import io.aklivity.zilla.config.binding.filesystem.FileSystemOptionsConfig;
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.runtime.binding.filesystem.internal.FileSystemBinding;
 import io.aklivity.zilla.runtime.binding.filesystem.internal.FileSystemConfiguration;
+import io.aklivity.zilla.runtime.binding.filesystem.internal.FileSystemDigest;
 import io.aklivity.zilla.runtime.binding.filesystem.internal.FileSystemWatcher;
 import io.aklivity.zilla.runtime.binding.filesystem.internal.config.FileSystemBindingConfig;
 import io.aklivity.zilla.runtime.binding.filesystem.internal.types.FileSystemCapabilities;
@@ -139,7 +137,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
     private final LongUnaryOperator supplyReplyId;
     private final int fileSystemTypeId;
     private final URI serverRoot;
-    private final MessageDigest md5;
+    private final FileSystemDigest digest;
     private final Signaler signaler;
     private final Supplier<FileSystemWatcher> supplyWatcher;
 
@@ -164,7 +162,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
         this.fileSystemTypeId = context.supplyTypeId(FileSystemBinding.NAME);
         this.bindings = new Long2ObjectHashMap<>();
         this.signaler = context.signaler();
-        this.md5 = initMessageDigest("MD5");
+        this.digest = new FileSystemDigest(readBuffer.byteArray());
         this.supplyWatcher = supplyWatcher;
         this.decodeMax = bufferPool.slotCapacity();
     }
@@ -267,21 +265,6 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
         }
 
         return newStream;
-    }
-
-    private static MessageDigest initMessageDigest(
-        String algorithm)
-    {
-        MessageDigest messageDigest = null;
-        try
-        {
-            messageDigest = MessageDigest.getInstance(algorithm);
-        }
-        catch (NoSuchAlgorithmException ex)
-        {
-            rethrowUnchecked(ex);
-        }
-        return messageDigest;
     }
 
     private String probeContentTypeOrDefault(
@@ -421,7 +404,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
                 long timeoutId = signaler.signalAt(timeoutAt, originId, routedId, replyId, traceId,
                     TIMEOUT_EXPIRED_SIGNAL_ID, 0);
                 watchedFile = new FileSystemWatcher.WatchedFile(
-                    resolvedPath, symlinks, this::calculateTag, tag, timeoutId, originId, routedId, replyId);
+                    resolvedPath, symlinks, this::getInputStream, tag, timeoutId, originId, routedId, replyId);
                 fileSystemWatcher.watch(watchedFile);
             }
         }
@@ -444,14 +427,11 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
         private String calculateTag()
         {
             String newTag = null;
-            try
+            try (InputStream input = getInputStream())
             {
-                InputStream input = getInputStream();
                 if (input != null)
                 {
-                    final byte[] readArray = readBuffer.byteArray();
-                    int bytesRead = input.read(readArray, 0, readArray.length);
-                    newTag = calculateHash(readArray, 0, Math.max(bytesRead, 0));
+                    newTag = digest.digest(input);
                 }
             }
             catch (IOException ex)
@@ -473,17 +453,6 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
                 // reject
             }
             return input;
-        }
-
-        private String calculateHash(
-            byte[] input,
-            int offset,
-            int length)
-        {
-            md5.reset();
-            md5.update(input, offset, length);
-            byte[] hash = md5.digest();
-            return BitUtil.toHex(hash);
         }
 
         private void onAppEnd(
@@ -1252,20 +1221,11 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
         private String calculateTag()
         {
             String newTag = null;
-            try
+            try (InputStream input = getInputStream())
             {
-                InputStream input = getInputStream();
                 if (input != null)
                 {
-                    md5.reset();
-                    while (input.available() > 0)
-                    {
-                        final byte[] readArray = readBuffer.byteArray();
-                        int bytesRead = input.read(readArray, 0, readArray.length);
-                        md5.update(readArray, 0, Math.max(bytesRead, 0));
-                    }
-                    byte[] hash = md5.digest();
-                    newTag = BitUtil.toHex(hash);
+                    newTag = digest.digest(input);
                 }
             }
             catch (IOException ex)
