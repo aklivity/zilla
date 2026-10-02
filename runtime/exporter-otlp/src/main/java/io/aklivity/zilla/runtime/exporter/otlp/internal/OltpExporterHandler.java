@@ -43,6 +43,7 @@ public class OltpExporterHandler implements ExporterHandler
 {
     private static final String HTTP = "http";
 
+    private final long initialInterval;
     private final long retryInterval;
     private final Duration timeoutInterval;
     private final long warningInterval;
@@ -74,6 +75,7 @@ public class OltpExporterHandler implements ExporterHandler
         Collector collector,
         List<AttributeConfig> attributes)
     {
+        this.initialInterval = config.initialInterval().toMillis();
         this.retryInterval = config.retryInterval().toMillis();
         this.timeoutInterval = config.timeoutInterval();
         this.warningInterval = config.warningInterval().toMillis();
@@ -100,7 +102,7 @@ public class OltpExporterHandler implements ExporterHandler
         EventReader eventReader = new EventReader(context);
         logsSerializer = new OtlpLogsSerializer(attributes, eventReader);
         lastSuccess = clock.millis();
-        nextAttempt = lastSuccess + interval;
+        nextAttempt = lastSuccess + Math.min(interval, initialInterval);
     }
 
     @Override

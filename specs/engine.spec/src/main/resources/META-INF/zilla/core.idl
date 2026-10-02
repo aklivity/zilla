@@ -126,7 +126,9 @@ scope core
         {
             CONFIG_WATCHER_FAILED (1),
             STARTED (2),
-            STOPPED (3)
+            STOPPED (3),
+            CONFIG_APPLIED (4),
+            CONFIG_REJECTED (5)
         }
 
         struct EngineConfigWatcherFailedEx extends core::stream::Extension
@@ -144,11 +146,24 @@ scope core
             string16 message;
         }
 
+        struct EngineConfigAppliedEx extends core::stream::Extension
+        {
+            string16 etag = null;
+        }
+
+        struct EngineConfigRejectedEx extends core::stream::Extension
+        {
+            string16 etag = null;
+            string16 reason;
+        }
+
         union EngineEventEx switch (EngineEventType)
         {
             case CONFIG_WATCHER_FAILED: EngineConfigWatcherFailedEx configWatcherFailed;
             case STARTED: EngineStartedEx started;
             case STOPPED: EngineStoppedEx stopped;
+            case CONFIG_APPLIED: EngineConfigAppliedEx configApplied;
+            case CONFIG_REJECTED: EngineConfigRejectedEx configRejected;
         }
     }
 }

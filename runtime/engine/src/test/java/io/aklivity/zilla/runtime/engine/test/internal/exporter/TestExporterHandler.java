@@ -15,6 +15,11 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.exporter;
 
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+
+import io.aklivity.zilla.config.engine.AttributeConfig;
 import io.aklivity.zilla.config.engine.ExporterConfig;
 import io.aklivity.zilla.config.engine.test.internal.exporter.config.TestExporterOptionsConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
@@ -33,15 +38,18 @@ class TestExporterHandler implements ExporterHandler
     private final EventFormatter formatter;
     private final EventFW eventRO = new EventFW();
     private final TestExporterMetrics metrics;
+    private final List<AttributeConfig> attributes;
 
     private int eventIndex;
 
     TestExporterHandler(
         EngineContext context,
         ExporterConfig exporter,
+        List<AttributeConfig> attributes,
         Collector collector)
     {
         this.context = context;
+        this.attributes = attributes;
         this.readEvent = context.supplyEventReader();
         this.formatter = context.supplyEventFormatter();
         this.options = (TestExporterOptionsConfig) exporter.options;
@@ -90,6 +98,28 @@ class TestExporterHandler implements ExporterHandler
         }
 
         verifyMetrics();
+        verifyAttributes();
+    }
+
+    private void verifyAttributes()
+    {
+        if (options.attributes != null)
+        {
+            for (Map.Entry<String, String> expected : options.attributes.entrySet())
+            {
+                String actual = attributes.stream()
+                    .filter(a -> expected.getKey().equals(a.name))
+                    .map(a -> a.value)
+                    .findFirst()
+                    .orElse(null);
+
+                if (!Objects.equals(expected.getValue(), actual))
+                {
+                    throw new IllegalStateException(String.format("attribute mismatch, %s expected: %s, actual: %s",
+                        expected.getKey(), expected.getValue(), actual));
+                }
+            }
+        }
     }
 
     private void verifyMetrics()
@@ -145,6 +175,11 @@ class TestExporterHandler implements ExporterHandler
                     e.qName, e.id, e.name, e.message, qname, id, name, message));
             }
             eventIndex++;
+
+            if (eventIndex == options.events.size())
+            {
+                TestExporter.eventsLatch.countDown();
+            }
         }
     }
 }

@@ -21,6 +21,7 @@ import static io.aklivity.zilla.runtime.engine.metrics.MetricContext.Direction.B
 import static io.aklivity.zilla.runtime.engine.metrics.MetricContext.Direction.RECEIVED;
 import static io.aklivity.zilla.runtime.engine.metrics.MetricContext.Direction.SENT;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -61,6 +62,8 @@ import io.aklivity.zilla.runtime.engine.vault.VaultContext;
 
 public class NamespaceRegistry
 {
+    private static final String CONFIG_ETAG_ATTRIBUTE = "zilla.config.etag";
+
     private final NamespaceConfig namespace;
     private final Function<String, BindingContext> bindingsByType;
     private final Function<String, GuardContext> guardsByType;
@@ -434,10 +437,26 @@ public class NamespaceRegistry
         int exporterId = supplyLabelId.applyAsInt(config.name);
         ExporterContext context = exportersByType.apply(config.type);
         assert context != null : "Missing exporter type: " + config.type;
-        ExporterHandler handler = context.attach(config, namespace.telemetry.attributes, collector);
+        ExporterHandler handler = context.attach(config, exporterAttributes(), collector);
         ExporterRegistry registry = new ExporterRegistry(exporterId, handler, this::onExporterAttached, this::onExporterDetached);
         exportersById.put(exporterId, registry);
         registry.attach();
+    }
+
+    private List<AttributeConfig> exporterAttributes()
+    {
+        List<AttributeConfig> attributes = namespace.telemetry.attributes;
+
+        if (namespace.etag != null)
+        {
+            attributes = new ArrayList<>(attributes);
+            attributes.add(AttributeConfig.builder()
+                .name(CONFIG_ETAG_ATTRIBUTE)
+                .value(namespace.etag)
+                .build());
+        }
+
+        return attributes;
     }
 
     private void detachExporter(

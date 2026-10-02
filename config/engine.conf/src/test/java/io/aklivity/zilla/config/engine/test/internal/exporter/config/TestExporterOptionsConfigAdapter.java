@@ -84,6 +84,13 @@ public final class TestExporterOptionsConfigAdapter extends ConfigAdapter<Option
             object.add(METRICS_NAME, metrics);
         }
 
+        if (testOptions.attributes != null)
+        {
+            JsonObjectBuilder attributes = Json.createObjectBuilder();
+            testOptions.attributes.forEach(attributes::add);
+            object.add(ATTRIBUTES_NAME, attributes);
+        }
+
         return object.build();
     }
 
@@ -119,6 +126,11 @@ public final class TestExporterOptionsConfigAdapter extends ConfigAdapter<Option
                     .map(JsonValue::asJsonObject)
                     .map(this::adaptMetricFromJson)
                     .forEach(testOptions::metric);
+            }
+            if (object.containsKey(ATTRIBUTES_NAME))
+            {
+                object.getJsonObject(ATTRIBUTES_NAME)
+                    .forEach((name, value) -> testOptions.attribute(name, ((JsonString) value).getString()));
             }
         }
 
