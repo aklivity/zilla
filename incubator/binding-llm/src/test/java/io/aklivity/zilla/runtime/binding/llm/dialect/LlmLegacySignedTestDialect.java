@@ -27,7 +27,7 @@ import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.common.json.JsonTransform;
 
 // Wire-format-identical to LlmLegacyOpenaiDialect -- delegating every method but name() and signer() -- so an
-// IT can exercise LlmClientFactory's buffer-and-sign path (a kind: client binding whose resolved dialect
+// IT can exercise LlmLegacyClientFactory's buffer-and-sign path (a kind: client binding whose resolved dialect
 // returns a non-null LlmRequestSigner) without either the deleted sign: binding option or a real signing
 // upstream, per LlmLegacyDialect#signer() javadoc's "obtained from the binding's own configured dialect" contract.
 final class LlmLegacySignedTestDialect implements LlmLegacyDialect
