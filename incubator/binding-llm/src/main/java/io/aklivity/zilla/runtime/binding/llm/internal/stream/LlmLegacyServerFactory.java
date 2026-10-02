@@ -23,13 +23,13 @@ import java.util.Deque;
 import java.util.function.LongUnaryOperator;
 
 import io.aklivity.zilla.runtime.binding.llm.codec.LlmContentEncoder;
+import io.aklivity.zilla.runtime.binding.llm.config.LlmAuthorizationResult;
+import io.aklivity.zilla.runtime.binding.llm.config.LlmRouteConfig;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmLegacyDialect;
 import io.aklivity.zilla.runtime.binding.llm.internal.LlmBinding;
 import io.aklivity.zilla.runtime.binding.llm.internal.LlmConfiguration;
 import io.aklivity.zilla.runtime.binding.llm.internal.codec.LlmContentCodecFactory;
-import io.aklivity.zilla.runtime.binding.llm.internal.config.LlmAuthorizationResult;
-import io.aklivity.zilla.runtime.binding.llm.internal.config.LlmBindingConfig;
-import io.aklivity.zilla.runtime.binding.llm.internal.config.LlmRouteConfig;
+import io.aklivity.zilla.runtime.binding.llm.internal.config.LlmLegacyBindingConfig;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.BeginFW;
@@ -133,7 +133,7 @@ public final class LlmLegacyServerFactory
     }
 
     public MessageConsumer newStream(
-        LlmBindingConfig binding,
+        LlmLegacyBindingConfig binding,
         LlmLegacyDialect dialect,
         LlmModelEnvelope envelope,
         DirectBufferEx buffer,
@@ -162,7 +162,7 @@ public final class LlmLegacyServerFactory
             else
             {
                 final LlmAuthorizationResult authResult = binding.authorize(
-                    begin.traceId(), routedId, begin.streamId(), authorization, envelope, dialect);
+                    begin.traceId(), routedId, begin.streamId(), authorization, envelope, dialect.credentialsHeader());
 
                 if (!authResult.authorized())
                 {

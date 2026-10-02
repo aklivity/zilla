@@ -33,6 +33,7 @@ import io.aklivity.zilla.config.binding.llm.LlmServerConfig;
 import io.aklivity.zilla.runtime.binding.llm.codec.LlmContentDecoder;
 import io.aklivity.zilla.runtime.binding.llm.codec.LlmContentDecoderOutput;
 import io.aklivity.zilla.runtime.binding.llm.codec.LlmContentEncoder;
+import io.aklivity.zilla.runtime.binding.llm.config.LlmRouteConfig;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmLegacyDialect;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmLegacyDialect.Kind;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmLegacyDialectEvent;
@@ -40,8 +41,7 @@ import io.aklivity.zilla.runtime.binding.llm.dialect.LlmLegacyDialectTerminator;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmNativeEventOutput;
 import io.aklivity.zilla.runtime.binding.llm.internal.LlmConfiguration;
 import io.aklivity.zilla.runtime.binding.llm.internal.codec.LlmContentCodecFactory;
-import io.aklivity.zilla.runtime.binding.llm.internal.config.LlmBindingConfig;
-import io.aklivity.zilla.runtime.binding.llm.internal.config.LlmRouteConfig;
+import io.aklivity.zilla.runtime.binding.llm.internal.config.LlmLegacyBindingConfig;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.AbortFW;
@@ -190,7 +190,7 @@ public final class LlmLegacyClientFactory
     }
 
     public MessageConsumer newStream(
-        LlmBindingConfig binding,
+        LlmLegacyBindingConfig binding,
         LlmLegacyDialect target,
         DirectBufferEx buffer,
         int index,
@@ -247,7 +247,7 @@ public final class LlmLegacyClientFactory
     }
 
     private static String authorizationCredentials(
-        LlmBindingConfig binding,
+        LlmLegacyBindingConfig binding,
         long authorization)
     {
         String header = null;
@@ -256,7 +256,7 @@ public final class LlmLegacyClientFactory
         {
             final String credentials = binding.guard.credentials(authorization);
             header = credentials != null
-                ? binding.credentials.replace(LlmBindingConfig.CREDENTIALS_PLACEHOLDER, credentials)
+                ? binding.credentials.replace(LlmLegacyBindingConfig.CREDENTIALS_PLACEHOLDER, credentials)
                 : null;
         }
 
@@ -394,7 +394,7 @@ public final class LlmLegacyClientFactory
         private final long replyId;
         private final long authorization;
         private final long affinity;
-        private final LlmBindingConfig binding;
+        private final LlmLegacyBindingConfig binding;
         private final LlmLegacyDialect source;
         private final LlmLegacyDialect target;
         private final boolean sameDialect;
@@ -442,7 +442,7 @@ public final class LlmLegacyClientFactory
             long affinity,
             long resolvedId,
             LlmServerConfig server,
-            LlmBindingConfig binding,
+            LlmLegacyBindingConfig binding,
             LlmLegacyDialect source,
             LlmLegacyDialect target,
             String requestContentType)

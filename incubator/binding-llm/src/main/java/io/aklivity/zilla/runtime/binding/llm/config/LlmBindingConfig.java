@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.llm.internal.config;
+package io.aklivity.zilla.runtime.binding.llm.config;
 
 import static java.util.stream.Collectors.toList;
 
@@ -24,16 +24,12 @@ import java.util.regex.Pattern;
 import io.aklivity.zilla.config.binding.llm.LlmOptionsConfig;
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.config.engine.KindConfig;
-import io.aklivity.zilla.runtime.binding.llm.dialect.LlmLegacyDialect;
-import io.aklivity.zilla.runtime.binding.llm.internal.codec.LlmContentCodecFactory;
-import io.aklivity.zilla.runtime.binding.llm.internal.dialect.LlmLegacyDialectResolver;
-import io.aklivity.zilla.runtime.binding.llm.sign.LlmRequestSigner;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 
-public final class LlmBindingConfig
+public class LlmBindingConfig
 {
     public static final String CREDENTIALS_PLACEHOLDER = "{credentials}";
 
@@ -50,23 +46,18 @@ public final class LlmBindingConfig
     public final List<LlmRouteConfig> routes;
     public final GuardHandler guard;
     public final String credentials;
-    public final LlmRequestSigner signer;
 
-    private final LlmLegacyDialectResolver dialects;
     private final Pattern credentialsPattern;
 
     public LlmBindingConfig(
         BindingConfig binding,
-        EngineContext context,
-        LlmContentCodecFactory codecs)
+        EngineContext context)
     {
         this.id = binding.id;
         this.name = binding.name;
         this.kind = binding.kind;
         this.options = binding.options instanceof LlmOptionsConfig o ? o : DEFAULT_OPTIONS;
         this.routes = binding.routes.stream().map(LlmRouteConfig::new).collect(toList());
-        this.dialects = new LlmLegacyDialectResolver(this.options.dialect, context::signaler);
-        this.dialects.dialects().forEach(codecs::validate);
         this.guard = Optional.ofNullable(this.options.authorization)
             .map(a -> a.name)
             .map(binding.resolveId::applyAsLong)
@@ -79,9 +70,19 @@ public final class LlmBindingConfig
         this.credentialsPattern = credentials != null
             ? Pattern.compile(credentials.replace(CREDENTIALS_PLACEHOLDER, "(?<credentials>[^\\s]+)"))
             : null;
-        this.signer = this.options.dialect != null
-            ? Optional.ofNullable(dialects.dialectNamed(this.options.dialect)).map(LlmLegacyDialect::signer).orElse(null)
-            : null;
+    }
+
+    protected LlmBindingConfig(
+        LlmBindingConfig binding)
+    {
+        this.id = binding.id;
+        this.name = binding.name;
+        this.kind = binding.kind;
+        this.options = binding.options;
+        this.routes = binding.routes;
+        this.guard = binding.guard;
+        this.credentials = binding.credentials;
+        this.credentialsPattern = binding.credentialsPattern;
     }
 
     public LlmAuthorizationResult authorize(
@@ -89,14 +90,14 @@ public final class LlmBindingConfig
         long routedId,
         long initialId,
         long authorization,
-        JsonEnvelope envelope,
-        LlmLegacyDialect dialect)
+        JsonEnvelope headers,
+        String credentialsHeader)
     {
         LlmAuthorizationResult result = new LlmAuthorizationResult(authorization, true, NOOP);
 
         if (guard != null)
         {
-            final DirectBufferEx value = envelope.get(dialect.credentialsHeader(), 0);
+            final DirectBufferEx value = headers.get(credentialsHeader, 0);
             final String header = value != null ? value.getStringWithoutLengthUtf8(0, value.capacity()) : null;
             final Matcher credentialsMatcher = header != null ? credentialsPattern.matcher(header) : null;
             final String credentials = credentialsMatcher != null && credentialsMatcher.matches()
@@ -145,17 +146,5 @@ public final class LlmBindingConfig
             }
         }
         return resolved;
-    }
-
-    public LlmLegacyDialect resolveDialect(
-        JsonEnvelope headers)
-    {
-        return dialects.resolve(headers);
-    }
-
-    public LlmLegacyDialect dialectNamed(
-        String name)
-    {
-        return dialects.dialectNamed(name);
     }
 }
