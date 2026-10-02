@@ -14,9 +14,11 @@
 # under the License.
 #
 
+property authorization 0L
 property deltaMillis 0L
 
 connect "zilla://streams/app0"
+    option zilla:authorization ${authorization}
     option zilla:window 8192
     option zilla:transmission "half-duplex"
 
@@ -47,6 +49,7 @@ read notify ROUTED_BROKER_CLIENT
 
 connect await ROUTED_BROKER_CLIENT
         "zilla://streams/app0"
+    option zilla:authorization ${authorization}
     option zilla:window 8192
     option zilla:transmission "half-duplex"
     option zilla:affinity 0xb1

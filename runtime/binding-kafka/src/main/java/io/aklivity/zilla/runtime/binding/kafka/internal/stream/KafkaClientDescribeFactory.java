@@ -1247,6 +1247,7 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
                 long authorization,
                 long affinity)
             {
+                saslAuthorization = authorization;
                 state = KafkaState.openingInitial(state);
 
                 Consumer<OctetsFW.Builder> extension = EMPTY_EXTENSION;

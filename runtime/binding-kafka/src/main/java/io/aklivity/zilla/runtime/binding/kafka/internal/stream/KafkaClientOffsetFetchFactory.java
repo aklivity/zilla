@@ -1328,6 +1328,7 @@ public final class KafkaClientOffsetFetchFactory extends KafkaClientSaslHandshak
             long authorization,
             long affinity)
         {
+            saslAuthorization = authorization;
             state = KafkaState.openingInitial(state);
 
             Consumer<OctetsFW.Builder> extension =  e -> e.set((b, o, l) -> proxyBeginExRW.wrap(b, o, l)

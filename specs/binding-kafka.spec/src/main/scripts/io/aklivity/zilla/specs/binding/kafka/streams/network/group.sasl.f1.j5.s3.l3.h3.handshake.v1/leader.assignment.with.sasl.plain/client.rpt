@@ -14,6 +14,7 @@
 # under the License.
 #
 
+property authorization 0L
 property networkConnectWindow 8192
 property instanceId ${kafka:randomBytes(42)}
 
@@ -23,6 +24,7 @@ property fetchBytesMax 65535
 property partitionBytesMax 8192
 
 connect "zilla://streams/net0"
+  option zilla:authorization ${authorization}
   option zilla:window ${networkConnectWindow}
   option zilla:transmission "duplex"
   option zilla:byteorder "network"
@@ -79,6 +81,7 @@ read notify ROUTED_DESCRIBE_SERVER
 
 connect await ROUTED_DESCRIBE_SERVER
         "zilla://streams/net0"
+  option zilla:authorization ${authorization}
   option zilla:window ${networkConnectWindow}
   option zilla:transmission "duplex"
   option zilla:byteorder "network"

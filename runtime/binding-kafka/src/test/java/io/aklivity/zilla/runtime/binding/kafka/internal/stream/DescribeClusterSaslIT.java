@@ -25,6 +25,7 @@ import org.junit.rules.DisableOnDebug;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
 
+import io.aklivity.k3po.runtime.junit.annotation.ScriptProperty;
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
@@ -51,6 +52,7 @@ public class DescribeClusterSaslIT
 
     @Test
     @Configuration("client.options.sasl.plain.yaml")
+    @ScriptProperty("authorization 1L")
     @Specification({
         "${app}/cluster.brokers.info/client",
         "${net}/cluster.brokers.info.sasl.plain/server"})
@@ -61,6 +63,7 @@ public class DescribeClusterSaslIT
 
     @Test
     @Configuration("client.options.sasl.scram.yaml")
+    @ScriptProperty("authorization 1L")
     @Specification({
         "${app}/cluster.brokers.info/client",
         "${net}/cluster.brokers.info.sasl.scram/server"})
@@ -73,6 +76,7 @@ public class DescribeClusterSaslIT
 
     @Test
     @Configuration("client.options.sasl.plain.max.sessions.yaml")
+    @ScriptProperty("authorization 1L")
     @Specification({
         "${app}/cluster.brokers.info.twice/client",
         "${net}/cluster.brokers.info.sasl.plain.twice/server"})

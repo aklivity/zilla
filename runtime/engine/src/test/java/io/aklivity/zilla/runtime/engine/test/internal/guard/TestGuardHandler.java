@@ -37,6 +37,7 @@ import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 
 public final class TestGuardHandler implements GuardHandler
 {
+    private static final long NO_AUTHORIZATION = 0L;
     private static final String REDIRECT_URI_PLACEHOLDER = "replace.me";
     private static final Pattern REDIRECT_URI_PARAM_PATTERN = Pattern.compile("redirect_uri=[^&]*");
 
@@ -202,7 +203,7 @@ public final class TestGuardHandler implements GuardHandler
     public String identity(
         long sessionId)
     {
-        return identity;
+        return authorized(sessionId) ? identity : null;
     }
 
     @Override
@@ -210,7 +211,7 @@ public final class TestGuardHandler implements GuardHandler
         long sessionId,
         String name)
     {
-        return attributes != null ? attributes.get(name) : null;
+        return authorized(sessionId) && attributes != null ? attributes.get(name) : null;
     }
 
     @Override
@@ -245,6 +246,12 @@ public final class TestGuardHandler implements GuardHandler
         final long expiresAt = expiresAt(sessionId);
         final long challengeAt = expiresAt - challenge.toMillis();
         return expiresAt != 0L && challengeAt <= now && now < expiresAt;
+    }
+
+    private boolean authorized(
+        long sessionId)
+    {
+        return sessionId != NO_AUTHORIZATION || credentials == null;
     }
 
     @Override
