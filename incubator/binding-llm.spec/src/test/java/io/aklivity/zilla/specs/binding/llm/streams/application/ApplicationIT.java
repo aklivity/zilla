@@ -548,4 +548,184 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/openai.section.system.instruction/client",
+        "${app}/openai.section.system.instruction/server"})
+    public void shouldOpenaiSectionSystemInstruction() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.section.user.text/client",
+        "${app}/openai.section.user.text/server"})
+    public void shouldOpenaiSectionUserText() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.section.user.image/client",
+        "${app}/openai.section.user.image/server"})
+    public void shouldOpenaiSectionUserImage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.section.user.document/client",
+        "${app}/openai.section.user.document/server"})
+    public void shouldOpenaiSectionUserDocument() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.section.user.audio/client",
+        "${app}/openai.section.user.audio/server"})
+    public void shouldOpenaiSectionUserAudio() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.section.assistant.text/client",
+        "${app}/openai.section.assistant.text/server"})
+    public void shouldOpenaiSectionAssistantText() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.section.assistant.refusal/client",
+        "${app}/openai.section.assistant.refusal/server"})
+    public void shouldOpenaiSectionAssistantRefusal() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.section.tool.definition/client",
+        "${app}/openai.section.tool.definition/server"})
+    public void shouldOpenaiSectionToolDefinition() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.section.tool.call/client",
+        "${app}/openai.section.tool.call/server"})
+    public void shouldOpenaiSectionToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.section.tool.result/client",
+        "${app}/openai.section.tool.result/server"})
+    public void shouldOpenaiSectionToolResult() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.section.mixed.content/client",
+        "${app}/openai.section.mixed.content/server"})
+    public void shouldOpenaiSectionMixedContent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.section.assistant.text.and.tool.call/client",
+        "${app}/openai.section.assistant.text.and.tool.call/server"})
+    public void shouldOpenaiSectionAssistantTextAndToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.section.conversation/client",
+        "${app}/openai.section.conversation/server"})
+    public void shouldOpenaiSectionConversation() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.section.role.last/client",
+        "${app}/openai.section.role.last/server"})
+    public void shouldOpenaiSectionRoleLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.section.model.last/client",
+        "${app}/openai.section.model.last/server"})
+    public void shouldOpenaiSectionModelLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.section.tool.result.id.last/client",
+        "${app}/openai.section.tool.result.id.last/server"})
+    public void shouldOpenaiSectionToolResultIdLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.section.user.text.10k/client",
+        "${app}/openai.section.user.text.10k/server"})
+    public void shouldOpenaiSectionUserText10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.section.user.text.100k/client",
+        "${app}/openai.section.user.text.100k/server"})
+    public void shouldOpenaiSectionUserText100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.section.tool.result.100k/client",
+        "${app}/openai.section.tool.result.100k/server"})
+    public void shouldOpenaiSectionToolResult100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.section.rejected.role.overflow/client",
+        "${app}/openai.section.rejected.role.overflow/server"})
+    public void shouldOpenaiSectionRejectedRoleOverflow() throws Exception
+    {
+        k3po.finish();
+    }
 }
