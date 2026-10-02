@@ -25,6 +25,7 @@ import org.junit.rules.DisableOnDebug;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
 
+import io.aklivity.k3po.runtime.junit.annotation.ScriptProperty;
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
@@ -52,6 +53,7 @@ public class ClientOffsetCommitSaslIT
 
     @Test
     @Configuration("client.options.sasl.plain.yaml")
+    @ScriptProperty("authorization 1L")
     @Specification({
         "${app}/update.topic.partition.offset/client",
         "${net}/update.topic.partition.offset.sasl.plain/server"})
@@ -62,6 +64,7 @@ public class ClientOffsetCommitSaslIT
 
     @Test
     @Configuration("client.options.sasl.scram.yaml")
+    @ScriptProperty("authorization 1L")
     @Specification({
         "${app}/update.topic.partition.offset/client",
         "${net}/update.topic.partition.offset.sasl.scram/server"})

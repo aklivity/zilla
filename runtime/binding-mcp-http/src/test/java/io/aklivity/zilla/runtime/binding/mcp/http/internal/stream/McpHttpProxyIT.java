@@ -25,6 +25,7 @@ import org.junit.rules.DisableOnDebug;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
 
+import io.aklivity.k3po.runtime.junit.annotation.ScriptProperty;
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
@@ -557,6 +558,7 @@ public class McpHttpProxyIT
 
     @Test
     @Configuration("proxy.credentials.yaml")
+    @ScriptProperty("authorization 1L")
     @Specification({
         "${mcp}/create.pr/client",
         "${http}/create.pr.credentials/server"})

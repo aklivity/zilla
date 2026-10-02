@@ -1071,6 +1071,7 @@ public final class KafkaClientInitProducerIdFactory extends KafkaClientSaslHands
             long authorization,
             long affinity)
         {
+            saslAuthorization = authorization;
             state = KafkaState.openingInitial(state);
 
             Consumer<OctetsFW.Builder> extension = EMPTY_EXTENSION;

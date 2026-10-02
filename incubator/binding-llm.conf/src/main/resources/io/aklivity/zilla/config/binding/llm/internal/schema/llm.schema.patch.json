@@ -115,10 +115,10 @@
                                         "server":
                                         {
                                             "title": "Server",
-                                            "description": "Base URL of the large language model server this client connects to, mirroring the base_url convention of the official SDKs: the whole origin plus a shared path prefix (for example https://aicomp.ai/v1), with the resolved dialect appending only its own fixed operation suffix on top (/chat/completions for openai, /messages for anthropic). The path defaults to /v1 when omitted (for example https://aicomp.ai resolves the same as https://aicomp.ai/v1). The URL carries no credentials, query or fragment.",
+                                            "description": "Base URL of the large language model server this client connects to, mirroring the base_url convention of the official SDKs: the whole origin plus a shared path prefix (for example https://aicomp.ai/v1), with the resolved dialect appending only its own fixed operation suffix on top (/chat/completions for openai, /messages for anthropic). The path defaults to /v1 when omitted (for example https://aicomp.ai resolves the same as https://aicomp.ai/v1).",
                                             "type": "string",
                                             "format": "uri",
-                                            "pattern": "^https?://(?:(?:[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?\\.)*[A-Za-z](?:[A-Za-z0-9-]*[A-Za-z0-9])?|(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])(?:\\.(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])){3})(?::[0-9]{1,5})?(?:/[A-Za-z0-9._~/-]*)?$"
+                                            "pattern": "^https?://"
                                         },
                                         "authorization":
                                         {

@@ -28,6 +28,7 @@ import org.junit.Test;
 
 import io.aklivity.zilla.config.engine.GenericGuardConfig;
 import io.aklivity.zilla.config.engine.GuardConfig;
+import io.aklivity.zilla.config.engine.test.internal.guard.config.TestGuardOptionsConfig;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler.LongCompletionCallback;
 import io.aklivity.zilla.runtime.engine.test.internal.guard.TestGuard;
@@ -124,5 +125,48 @@ public final class GuardFactoryTest
         completion.completed(7L, Long.valueOf(123L));
 
         assertThat(primitive.value, equalTo(123L));
+    }
+
+    @Test
+    public void shouldResolveIdentityAndAttributesForAuthorizedSession()
+    {
+        GuardHandler handler = guardWithIdentityAndAttribute(true);
+
+        assertThat(handler.identity(1L), equalTo("alice"));
+        assertThat(handler.attribute(1L, "tenant"), equalTo("acme"));
+    }
+
+    @Test
+    public void shouldNotResolveIdentityOrAttributesWithoutAuthorizationWhenCredentialsConfigured()
+    {
+        GuardHandler handler = guardWithIdentityAndAttribute(true);
+
+        assertThat(handler.identity(0L), nullValue());
+        assertThat(handler.attribute(0L, "tenant"), nullValue());
+    }
+
+    @Test
+    public void shouldResolveIdentityAndAttributesWithoutAuthorizationWhenCredentialsNotConfigured()
+    {
+        GuardHandler handler = guardWithIdentityAndAttribute(false);
+
+        assertThat(handler.identity(0L), equalTo("alice"));
+        assertThat(handler.attribute(0L, "tenant"), equalTo("acme"));
+    }
+
+    private static GuardHandler guardWithIdentityAndAttribute(
+        boolean credentials)
+    {
+        GuardConfig config = GenericGuardConfig.builder()
+            .namespace("test")
+            .name("test")
+            .type("test")
+            .options(TestGuardOptionsConfig::builder)
+                .credentials(credentials ? "token" : null)
+                .identity("alice")
+                .attribute("tenant", "acme")
+                .build()
+            .build();
+        return new TestGuardHandler(new TestGuardConfig(config), Runnable::run);
     }
 }
