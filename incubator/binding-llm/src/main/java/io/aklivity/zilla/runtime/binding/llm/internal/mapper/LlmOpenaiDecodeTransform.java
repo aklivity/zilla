@@ -16,7 +16,7 @@ package io.aklivity.zilla.runtime.binding.llm.internal.mapper;
 
 import org.agrona.collections.Int2IntHashMap;
 
-import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectEvent;
+import io.aklivity.zilla.runtime.binding.llm.dialect.LlmLegacyDialectEvent;
 import io.aklivity.zilla.runtime.common.json.JsonController;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
@@ -30,7 +30,7 @@ import io.aklivity.zilla.runtime.common.json.JsonSource;
  * {@code message} instead of {@code delta}; {@link #onKeyName(JsonController, JsonSource)} treats
  * the two as aliases.
  */
-public final class LlmOpenaiDecodeTransform extends LlmCanonicalEmitter implements LlmDialectEvent
+public final class LlmOpenaiDecodeTransform extends LlmCanonicalEmitter implements LlmLegacyDialectEvent
 {
     private static final int NO_BLOCK = -1;
 

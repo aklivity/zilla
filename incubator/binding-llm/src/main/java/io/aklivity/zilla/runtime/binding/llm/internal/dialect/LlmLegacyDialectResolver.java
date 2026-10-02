@@ -22,67 +22,67 @@ import java.util.Map;
 import java.util.ServiceLoader;
 import java.util.function.Supplier;
 
-import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialect;
-import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectContext;
-import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectFactorySpi;
+import io.aklivity.zilla.runtime.binding.llm.dialect.LlmLegacyDialect;
+import io.aklivity.zilla.runtime.binding.llm.dialect.LlmLegacyDialectContext;
+import io.aklivity.zilla.runtime.binding.llm.dialect.LlmLegacyDialectFactorySpi;
 import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
 
 /**
- * Resolves the {@link LlmDialect} for an inbound request, either from a fixed configured dialect name or by
- * dispatching {@link LlmDialect#detect(JsonEnvelope)} across every dialect registered via
- * {@link LlmDialectFactorySpi}.
+ * Resolves the {@link LlmLegacyDialect} for an inbound request, either from a fixed configured dialect name or by
+ * dispatching {@link LlmLegacyDialect#detect(JsonEnvelope)} across every dialect registered via
+ * {@link LlmLegacyDialectFactorySpi}.
  * <p>
  * A configured fixed dialect name bypasses detection entirely, including when the name matches no registered
  * dialect. Otherwise, when detection matches more than one registered dialect, or none, resolution is
  * ambiguous and this returns {@code null} so the caller can reject the request rather than guess.
  * </p>
  */
-public final class LlmDialectResolver
+public final class LlmLegacyDialectResolver
 {
-    private final Map<String, LlmDialect> dialectsByName;
-    private final LlmDialect fixedDialect;
+    private final Map<String, LlmLegacyDialect> dialectsByName;
+    private final LlmLegacyDialect fixedDialect;
     private final boolean dialectFixed;
 
-    public LlmDialectResolver(
+    public LlmLegacyDialectResolver(
         String dialect,
-        LlmDialectContext context)
+        LlmLegacyDialectContext context)
     {
         this(dialect, loadDialects(context));
     }
 
-    LlmDialectResolver(
+    LlmLegacyDialectResolver(
         String dialect,
-        Collection<LlmDialect> dialects)
+        Collection<LlmLegacyDialect> dialects)
     {
-        this.dialectsByName = dialects.stream().collect(toMap(LlmDialect::name, identity()));
+        this.dialectsByName = dialects.stream().collect(toMap(LlmLegacyDialect::name, identity()));
         this.dialectFixed = dialect != null;
         this.fixedDialect = dialectFixed ? dialectsByName.get(dialect) : null;
     }
 
-    public LlmDialect resolve(
+    public LlmLegacyDialect resolve(
         JsonEnvelope headers)
     {
         return dialectFixed ? fixedDialect : detect(headers);
     }
 
-    public Collection<LlmDialect> dialects()
+    public Collection<LlmLegacyDialect> dialects()
     {
         return dialectsByName.values();
     }
 
-    public LlmDialect dialectNamed(
+    public LlmLegacyDialect dialectNamed(
         String name)
     {
         return dialectsByName.get(name);
     }
 
-    private LlmDialect detect(
+    private LlmLegacyDialect detect(
         JsonEnvelope headers)
     {
-        LlmDialect matched = null;
+        LlmLegacyDialect matched = null;
         boolean ambiguous = false;
 
-        for (LlmDialect dialect : dialectsByName.values())
+        for (LlmLegacyDialect dialect : dialectsByName.values())
         {
             if (dialect.detect(headers))
             {
@@ -94,11 +94,11 @@ public final class LlmDialectResolver
         return ambiguous ? null : matched;
     }
 
-    private static Collection<LlmDialect> loadDialects(
-        LlmDialectContext context)
+    private static Collection<LlmLegacyDialect> loadDialects(
+        LlmLegacyDialectContext context)
     {
         return ServiceLoader
-            .load(LlmDialectFactorySpi.class)
+            .load(LlmLegacyDialectFactorySpi.class)
             .stream()
             .map(Supplier::get)
             .map(f -> f.create(context))

@@ -24,7 +24,7 @@ import java.util.function.Supplier;
 import io.aklivity.zilla.runtime.binding.llm.codec.LlmContentCodecSpi;
 import io.aklivity.zilla.runtime.binding.llm.codec.LlmContentDecoder;
 import io.aklivity.zilla.runtime.binding.llm.codec.LlmContentEncoder;
-import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialect;
+import io.aklivity.zilla.runtime.binding.llm.dialect.LlmLegacyDialect;
 
 /**
  * Dispatches to the {@link LlmContentCodecSpi} registered for a stream's content-type.
@@ -48,7 +48,7 @@ public final class LlmContentCodecFactory
     }
 
     public void validate(
-        LlmDialect dialect)
+        LlmLegacyDialect dialect)
     {
         requireCodec(dialect, dialect.requestContentType());
         dialect.responseContentTypes().forEach(t -> requireCodec(dialect, t));
@@ -71,7 +71,7 @@ public final class LlmContentCodecFactory
     }
 
     private void requireCodec(
-        LlmDialect dialect,
+        LlmLegacyDialect dialect,
         String contentType)
     {
         if (!codecsByContentType.containsKey(mediaType(contentType)))

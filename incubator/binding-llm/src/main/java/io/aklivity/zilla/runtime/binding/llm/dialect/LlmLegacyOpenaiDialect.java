@@ -52,7 +52,7 @@ import io.aklivity.zilla.runtime.common.json.JsonTransform;
  * {@code Content-Type} response header rather than predicted here.
  * </p>
  */
-public final class LlmOpenaiDialect implements LlmDialect
+public final class LlmLegacyOpenaiDialect implements LlmLegacyDialect
 {
     private static final String NAME = "openai";
 
@@ -77,7 +77,7 @@ public final class LlmOpenaiDialect implements LlmDialect
     private final JsonTransform requestValidator;
     private final JsonTransform responseValidator;
 
-    public LlmOpenaiDialect()
+    public LlmLegacyOpenaiDialect()
     {
         this.requestValidator = JsonSchema.of(readResource(REQUEST_SCHEMA_RESOURCE)).validator();
         this.responseValidator = JsonSchema.of(readResource(RESPONSE_SCHEMA_RESOURCE)).validator();
@@ -222,7 +222,7 @@ public final class LlmOpenaiDialect implements LlmDialect
     private static String readResource(
         String name)
     {
-        URL resource = LlmOpenaiDialect.class.getResource(name);
+        URL resource = LlmLegacyOpenaiDialect.class.getResource(name);
         String text;
         try (InputStream input = resource.openStream())
         {

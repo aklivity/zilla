@@ -26,22 +26,25 @@ import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
 import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.common.json.JsonTransform;
 
-// Wire-format-identical to LlmOpenaiDialect, like LlmSignedTestDialect, but whose signer always throws --
-// standing in for a real signer's documented "credentials not yet available" failure mode (see
-// LlmRequestSigner#sign's javadoc) -- so an IT can exercise LlmClientFactory's own recovery from a signer
-// that cannot currently produce a signature, without needing a real signing upstream or a background
-// credential fetch race.
-final class LlmSigningUnavailableTestDialect implements LlmDialect
+// Wire-format-identical to LlmLegacyOpenaiDialect -- delegating every method but name() and signer() -- so an
+// IT can exercise LlmClientFactory's buffer-and-sign path (a kind: client binding whose resolved dialect
+// returns a non-null LlmRequestSigner) without either the deleted sign: binding option or a real signing
+// upstream, per LlmLegacyDialect#signer() javadoc's "obtained from the binding's own configured dialect" contract.
+final class LlmLegacySignedTestDialect implements LlmLegacyDialect
 {
-    private final LlmDialect delegate = new LlmOpenaiDialect();
+    private static final String HEADER_NAME = "x-test-signature";
+
+    private final LlmLegacyDialect delegate = new LlmLegacyOpenaiDialect();
 
     @Override
     public String name()
     {
-        return "test-signing-unavailable";
+        return "test-signed";
     }
 
-    // never participates in automatic detection -- see LlmSignedTestDialect#detect for why
+    // never participates in automatic detection -- this dialect is only ever selected via a fixed
+    // options.dialect: test-signed, so returning true here would make it ambiguous with the real
+    // LlmLegacyOpenaiDialect it delegates its wire format to, for any binding relying on auto-detection
     @Override
     public boolean detect(
         JsonEnvelope headers)
@@ -142,7 +145,7 @@ final class LlmSigningUnavailableTestDialect implements LlmDialect
     @Override
     public LlmRequestSigner signer()
     {
-        return LlmSigningUnavailableTestDialect::sign;
+        return LlmLegacySignedTestDialect::sign;
     }
 
     private static List<Map.Entry<String, String>> sign(
@@ -155,6 +158,6 @@ final class LlmSigningUnavailableTestDialect implements LlmDialect
         int bodyOffset,
         int bodyLength)
     {
-        throw new IllegalStateException("test signer not yet available");
+        return List.of(Map.entry(HEADER_NAME, String.format("%s:%s:%d", method, path, bodyLength)));
     }
 }

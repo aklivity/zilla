@@ -25,22 +25,22 @@ import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.common.json.JsonSource;
 import io.aklivity.zilla.runtime.common.json.JsonTransform;
 
-// A minimal third LlmDialect implementation standing in for a dialect contributed from outside this
-// module -- exactly the scenario LlmDialect's own javadoc advertises. Its supplyResponseDecodeTransform/
+// A minimal third LlmLegacyDialect implementation standing in for a dialect contributed from outside this
+// module -- exactly the scenario LlmLegacyDialect's own javadoc advertises. Its supplyResponseDecodeTransform/
 // supplyResponseEncodeSink return distinctive marker types, never LlmOpenaiDecodeTransform/
-// LlmAnthropicEncodeSink or their counterparts, so a caller that dispatches through LlmDialect itself
+// LlmAnthropicEncodeSink or their counterparts, so a caller that dispatches through LlmLegacyDialect itself
 // (rather than a hardcoded name-based lookup that only recognizes "openai"/"anthropic") is provably using
 // this dialect's own response mapping.
-final class LlmTestDialect implements LlmDialect
+final class LlmLegacyTestDialect implements LlmLegacyDialect
 {
     private final boolean modelPlaceholder;
 
-    LlmTestDialect()
+    LlmLegacyTestDialect()
     {
         this(false);
     }
 
-    LlmTestDialect(
+    LlmLegacyTestDialect(
         boolean modelPlaceholder)
     {
         this.modelPlaceholder = modelPlaceholder;
@@ -171,7 +171,7 @@ final class LlmTestDialect implements LlmDialect
         };
     }
 
-    static final class LlmTestResponseDecodeTransform implements JsonTransform, LlmDialectEvent
+    static final class LlmTestResponseDecodeTransform implements JsonTransform, LlmLegacyDialectEvent
     {
         @Override
         public Status transform(
@@ -190,7 +190,7 @@ final class LlmTestDialect implements LlmDialect
         }
     }
 
-    static final class LlmTestResponseEncodeSink implements JsonSink, LlmDialectTerminator
+    static final class LlmTestResponseEncodeSink implements JsonSink, LlmLegacyDialectTerminator
     {
         @Override
         public Status transform(

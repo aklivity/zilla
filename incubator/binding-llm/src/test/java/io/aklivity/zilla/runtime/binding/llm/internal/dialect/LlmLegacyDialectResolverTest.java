@@ -28,23 +28,23 @@ import static org.mockito.Mockito.when;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialect;
-import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectContext;
+import io.aklivity.zilla.runtime.binding.llm.dialect.LlmLegacyDialect;
+import io.aklivity.zilla.runtime.binding.llm.dialect.LlmLegacyDialectContext;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
 
-public class LlmDialectResolverTest
+public class LlmLegacyDialectResolverTest
 {
-    private final LlmDialectContext context = mock(LlmDialectContext.class);
+    private final LlmLegacyDialectContext context = mock(LlmLegacyDialectContext.class);
 
     @Test
     public void shouldDetectRegisteredDialectByHeaders()
     {
-        LlmDialectResolver resolver = new LlmDialectResolver(null, context);
+        LlmLegacyDialectResolver resolver = new LlmLegacyDialectResolver(null, context);
         JsonEnvelope headers = headers(":method", "POST", ":path", "/v1/messages");
 
-        LlmDialect resolved = resolver.resolve(headers);
+        LlmLegacyDialect resolved = resolver.resolve(headers);
 
         assertThat(resolved, not(nullValue()));
         assertThat(resolved.name(), equalTo("anthropic"));
@@ -53,9 +53,9 @@ public class LlmDialectResolverTest
     @Test
     public void shouldReturnNullWhenNoDialectDetected()
     {
-        LlmDialectResolver resolver = new LlmDialectResolver(null, context);
+        LlmLegacyDialectResolver resolver = new LlmLegacyDialectResolver(null, context);
 
-        LlmDialect resolved = resolver.resolve(JsonEnvelope.NONE);
+        LlmLegacyDialect resolved = resolver.resolve(JsonEnvelope.NONE);
 
         assertThat(resolved, nullValue());
     }
@@ -63,11 +63,11 @@ public class LlmDialectResolverTest
     @Test
     public void shouldResolveFixedDialectWithoutDetection()
     {
-        LlmDialect dialect = dialect("mock");
-        LlmDialectResolver resolver = new LlmDialectResolver("mock", of(dialect));
+        LlmLegacyDialect dialect = dialect("mock");
+        LlmLegacyDialectResolver resolver = new LlmLegacyDialectResolver("mock", of(dialect));
         JsonEnvelope headers = mock(JsonEnvelope.class);
 
-        LlmDialect resolved = resolver.resolve(headers);
+        LlmLegacyDialect resolved = resolver.resolve(headers);
 
         assertThat(resolved, equalTo(dialect));
         verify(dialect, never()).detect(any());
@@ -76,12 +76,12 @@ public class LlmDialectResolverTest
     @Test
     public void shouldReturnNullForUnregisteredFixedDialect()
     {
-        LlmDialect dialect = dialect("mock");
+        LlmLegacyDialect dialect = dialect("mock");
         when(dialect.detect(any())).thenReturn(true);
-        LlmDialectResolver resolver = new LlmDialectResolver("unregistered", of(dialect));
+        LlmLegacyDialectResolver resolver = new LlmLegacyDialectResolver("unregistered", of(dialect));
         JsonEnvelope headers = mock(JsonEnvelope.class);
 
-        LlmDialect resolved = resolver.resolve(headers);
+        LlmLegacyDialect resolved = resolver.resolve(headers);
 
         assertThat(resolved, nullValue());
         verify(dialect, never()).detect(any());
@@ -90,14 +90,14 @@ public class LlmDialectResolverTest
     @Test
     public void shouldReturnSoleMatchingDialect()
     {
-        LlmDialect matching = dialect("matching");
-        LlmDialect other = dialect("other");
+        LlmLegacyDialect matching = dialect("matching");
+        LlmLegacyDialect other = dialect("other");
         when(matching.detect(any())).thenReturn(true);
         when(other.detect(any())).thenReturn(false);
-        LlmDialectResolver resolver = new LlmDialectResolver(null, of(matching, other));
+        LlmLegacyDialectResolver resolver = new LlmLegacyDialectResolver(null, of(matching, other));
         JsonEnvelope headers = mock(JsonEnvelope.class);
 
-        LlmDialect resolved = resolver.resolve(headers);
+        LlmLegacyDialect resolved = resolver.resolve(headers);
 
         assertThat(resolved, equalTo(matching));
     }
@@ -105,14 +105,14 @@ public class LlmDialectResolverTest
     @Test
     public void shouldReturnNullWhenMultipleDialectsMatch()
     {
-        LlmDialect first = dialect("first");
-        LlmDialect second = dialect("second");
+        LlmLegacyDialect first = dialect("first");
+        LlmLegacyDialect second = dialect("second");
         when(first.detect(any())).thenReturn(true);
         when(second.detect(any())).thenReturn(true);
-        LlmDialectResolver resolver = new LlmDialectResolver(null, of(first, second));
+        LlmLegacyDialectResolver resolver = new LlmLegacyDialectResolver(null, of(first, second));
         JsonEnvelope headers = mock(JsonEnvelope.class);
 
-        LlmDialect resolved = resolver.resolve(headers);
+        LlmLegacyDialect resolved = resolver.resolve(headers);
 
         assertThat(resolved, nullValue());
     }
@@ -120,10 +120,10 @@ public class LlmDialectResolverTest
     @Test
     public void shouldReturnDialectNamed()
     {
-        LlmDialect dialect = dialect("mock");
-        LlmDialectResolver resolver = new LlmDialectResolver(null, of(dialect));
+        LlmLegacyDialect dialect = dialect("mock");
+        LlmLegacyDialectResolver resolver = new LlmLegacyDialectResolver(null, of(dialect));
 
-        LlmDialect resolved = resolver.dialectNamed("mock");
+        LlmLegacyDialect resolved = resolver.dialectNamed("mock");
 
         assertThat(resolved, equalTo(dialect));
     }
@@ -131,17 +131,17 @@ public class LlmDialectResolverTest
     @Test
     public void shouldReturnNullForUnregisteredDialectName()
     {
-        LlmDialectResolver resolver = new LlmDialectResolver(null, of(dialect("mock")));
+        LlmLegacyDialectResolver resolver = new LlmLegacyDialectResolver(null, of(dialect("mock")));
 
-        LlmDialect resolved = resolver.dialectNamed("unregistered");
+        LlmLegacyDialect resolved = resolver.dialectNamed("unregistered");
 
         assertThat(resolved, nullValue());
     }
 
-    private static LlmDialect dialect(
+    private static LlmLegacyDialect dialect(
         String name)
     {
-        LlmDialect dialect = mock(LlmDialect.class);
+        LlmLegacyDialect dialect = mock(LlmLegacyDialect.class);
         when(dialect.name()).thenReturn(name);
         return dialect;
     }

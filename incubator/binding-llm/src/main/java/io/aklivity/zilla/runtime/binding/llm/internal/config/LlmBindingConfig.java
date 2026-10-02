@@ -24,9 +24,9 @@ import java.util.regex.Pattern;
 import io.aklivity.zilla.config.binding.llm.LlmOptionsConfig;
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.config.engine.KindConfig;
-import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialect;
+import io.aklivity.zilla.runtime.binding.llm.dialect.LlmLegacyDialect;
 import io.aklivity.zilla.runtime.binding.llm.internal.codec.LlmContentCodecFactory;
-import io.aklivity.zilla.runtime.binding.llm.internal.dialect.LlmDialectResolver;
+import io.aklivity.zilla.runtime.binding.llm.internal.dialect.LlmLegacyDialectResolver;
 import io.aklivity.zilla.runtime.binding.llm.sign.LlmRequestSigner;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
@@ -52,7 +52,7 @@ public final class LlmBindingConfig
     public final String credentials;
     public final LlmRequestSigner signer;
 
-    private final LlmDialectResolver dialects;
+    private final LlmLegacyDialectResolver dialects;
     private final Pattern credentialsPattern;
 
     public LlmBindingConfig(
@@ -65,7 +65,7 @@ public final class LlmBindingConfig
         this.kind = binding.kind;
         this.options = binding.options instanceof LlmOptionsConfig o ? o : DEFAULT_OPTIONS;
         this.routes = binding.routes.stream().map(LlmRouteConfig::new).collect(toList());
-        this.dialects = new LlmDialectResolver(this.options.dialect, context::signaler);
+        this.dialects = new LlmLegacyDialectResolver(this.options.dialect, context::signaler);
         this.dialects.dialects().forEach(codecs::validate);
         this.guard = Optional.ofNullable(this.options.authorization)
             .map(a -> a.name)
@@ -80,7 +80,7 @@ public final class LlmBindingConfig
             ? Pattern.compile(credentials.replace(CREDENTIALS_PLACEHOLDER, "(?<credentials>[^\\s]+)"))
             : null;
         this.signer = this.options.dialect != null
-            ? Optional.ofNullable(dialects.dialectNamed(this.options.dialect)).map(LlmDialect::signer).orElse(null)
+            ? Optional.ofNullable(dialects.dialectNamed(this.options.dialect)).map(LlmLegacyDialect::signer).orElse(null)
             : null;
     }
 
@@ -90,7 +90,7 @@ public final class LlmBindingConfig
         long initialId,
         long authorization,
         JsonEnvelope envelope,
-        LlmDialect dialect)
+        LlmLegacyDialect dialect)
     {
         LlmAuthorizationResult result = new LlmAuthorizationResult(authorization, true, NOOP);
 
@@ -147,13 +147,13 @@ public final class LlmBindingConfig
         return resolved;
     }
 
-    public LlmDialect resolveDialect(
+    public LlmLegacyDialect resolveDialect(
         JsonEnvelope headers)
     {
         return dialects.resolve(headers);
     }
 
-    public LlmDialect dialectNamed(
+    public LlmLegacyDialect dialectNamed(
         String name)
     {
         return dialects.dialectNamed(name);

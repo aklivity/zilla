@@ -19,7 +19,7 @@ import java.util.Map;
 
 import org.agrona.DirectBuffer;
 
-import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialect;
+import io.aklivity.zilla.runtime.binding.llm.dialect.LlmLegacyDialect;
 
 /**
  * Computes the additional headers required to authenticate a fully-buffered outbound request to its upstream,
@@ -30,7 +30,7 @@ import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialect;
  * before opening the network connection, rather than streaming the request as it arrives.
  * </p>
  * <p>
- * Obtained from the binding's own configured {@link LlmDialect#signer()}, since requiring this kind of
+ * Obtained from the binding's own configured {@link LlmLegacyDialect#signer()}, since requiring this kind of
  * signature is a fixed fact of a dialect's upstream, not a separately-selectable concern.
  * </p>
  */

@@ -24,7 +24,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
 
 // Per-stream metadata channel: seeded from the inbound request's :method / :path pseudo-headers and its
-// ordinary headers (LlmDialect.detect(JsonEnvelope) reads these), then read from and written to as the
+// ordinary headers (LlmLegacyDialect.detect(JsonEnvelope) reads these), then read from and written to as the
 // dialect's own decode transform observes fields (e.g. extracting a "model" entry) while the request body
 // streams through the json pipeline.
 final class LlmModelEnvelope implements JsonEnvelope

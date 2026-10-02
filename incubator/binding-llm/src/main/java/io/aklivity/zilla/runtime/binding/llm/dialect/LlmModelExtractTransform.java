@@ -29,7 +29,7 @@ import io.aklivity.zilla.runtime.common.json.JsonSource;
  * its value into an envelope while it flows through unchanged.
  * <p>
  * {@code model} sits at the identical top-level key in every dialect this binding supports so far, so this
- * one instance currently backs every {@link LlmDialect#supplyExtractor(LlmDialect.Kind, JsonEnvelope)}
+ * one instance currently backs every {@link LlmLegacyDialect#supplyExtractor(LlmLegacyDialect.Kind, JsonEnvelope)}
  * implementation rather than duplicating identical extraction logic per dialect -- each dialect still
  * supplies its own extractor, since a future dialect whose {@code model} field differs in name or depth
  * would need its own.

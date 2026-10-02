@@ -33,7 +33,7 @@ import org.agrona.DirectBuffer;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectTerminator;
+import io.aklivity.zilla.runtime.binding.llm.dialect.LlmLegacyDialectTerminator;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
@@ -166,7 +166,7 @@ public class LlmOpenaiToAnthropicResponseTransformTest
     public void shouldTerminateOnDoneBypassingPipeline()
     {
         LlmAnthropicEncodeSink encode = new LlmAnthropicEncodeSink(JsonEnvelope.NONE, this::onEvent);
-        ((LlmDialectTerminator) encode).terminate();
+        ((LlmLegacyDialectTerminator) encode).terminate();
 
         assertThat(events.size(), equalTo(1));
         assertThat(events.get(0).name, equalTo("message_stop"));

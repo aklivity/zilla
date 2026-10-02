@@ -33,7 +33,7 @@ import org.junit.Test;
 import io.aklivity.zilla.runtime.binding.llm.codec.LlmContentDecoder;
 import io.aklivity.zilla.runtime.binding.llm.codec.LlmContentDecoderOutput;
 import io.aklivity.zilla.runtime.binding.llm.codec.LlmContentEncoder;
-import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialect;
+import io.aklivity.zilla.runtime.binding.llm.dialect.LlmLegacyDialect;
 
 public class LlmContentCodecFactoryTest
 {
@@ -42,7 +42,7 @@ public class LlmContentCodecFactoryTest
     @Test
     public void shouldAcceptDialectDeclaringRegisteredContentTypes()
     {
-        LlmDialect dialect = mock(LlmDialect.class);
+        LlmLegacyDialect dialect = mock(LlmLegacyDialect.class);
         when(dialect.requestContentType()).thenReturn("test/echo");
         when(dialect.responseContentTypes()).thenReturn(Set.of("test/echo", "application/json", "text/event-stream"));
 
@@ -52,7 +52,7 @@ public class LlmContentCodecFactoryTest
     @Test
     public void shouldRejectDialectDeclaringUnregisteredRequestContentType()
     {
-        LlmDialect dialect = mock(LlmDialect.class);
+        LlmLegacyDialect dialect = mock(LlmLegacyDialect.class);
         when(dialect.name()).thenReturn("broken");
         when(dialect.requestContentType()).thenReturn("application/x-unknown");
         when(dialect.responseContentTypes()).thenReturn(Set.of("application/json"));
@@ -63,7 +63,7 @@ public class LlmContentCodecFactoryTest
     @Test
     public void shouldRejectDialectDeclaringUnregisteredResponseContentType()
     {
-        LlmDialect dialect = mock(LlmDialect.class);
+        LlmLegacyDialect dialect = mock(LlmLegacyDialect.class);
         when(dialect.name()).thenReturn("broken");
         when(dialect.requestContentType()).thenReturn("application/json");
         when(dialect.responseContentTypes()).thenReturn(Set.of("application/json", "application/x-unknown"));

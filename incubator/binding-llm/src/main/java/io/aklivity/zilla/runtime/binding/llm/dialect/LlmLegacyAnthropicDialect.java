@@ -50,7 +50,7 @@ import io.aklivity.zilla.runtime.common.json.JsonTransform;
  * response side. Anthropic's own streaming block lifecycle ({@code message_start}/
  * {@code content_block_start}/{@code content_block_delta}/{@code content_block_stop}/{@code message_delta}/
  * {@code message_stop}) is already the skeleton this binding's canonical representation is modeled on, so
- * far fewer request members need renaming here than {@link LlmOpenaiDialect} requires.
+ * far fewer request members need renaming here than {@link LlmLegacyOpenaiDialect} requires.
  * </p>
  * <p>
  * Response content-type resolution (a streaming response's {@code text/event-stream} chunks versus a single
@@ -63,7 +63,7 @@ import io.aklivity.zilla.runtime.common.json.JsonTransform;
  * out-of-band value to recognize.
  * </p>
  */
-public final class LlmAnthropicDialect implements LlmDialect
+public final class LlmLegacyAnthropicDialect implements LlmLegacyDialect
 {
     private static final String NAME = "anthropic";
 
@@ -86,7 +86,7 @@ public final class LlmAnthropicDialect implements LlmDialect
     private final JsonTransform requestValidator;
     private final JsonTransform responseValidator;
 
-    public LlmAnthropicDialect()
+    public LlmLegacyAnthropicDialect()
     {
         this.requestValidator = JsonSchema.of(readResource(REQUEST_SCHEMA_RESOURCE)).validator();
         this.responseValidator = JsonSchema.of(readResource(RESPONSE_SCHEMA_RESOURCE)).validator();
@@ -235,7 +235,7 @@ public final class LlmAnthropicDialect implements LlmDialect
     private static String readResource(
         String name)
     {
-        URL resource = LlmAnthropicDialect.class.getResource(name);
+        URL resource = LlmLegacyAnthropicDialect.class.getResource(name);
         String text;
         try (InputStream input = resource.openStream())
         {

@@ -20,7 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BooleanSupplier;
 
-import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectTerminator;
+import io.aklivity.zilla.runtime.binding.llm.dialect.LlmLegacyDialectTerminator;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmNativeEventOutput;
 import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
 
@@ -31,7 +31,7 @@ import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
  * or accumulating into {@code held*} fields and writing the whole document once at {@code TYPE_END}
  * (non-streaming).
  */
-public final class LlmOpenaiEncodeSink extends LlmCanonicalEncodeSink implements LlmDialectTerminator
+public final class LlmOpenaiEncodeSink extends LlmCanonicalEncodeSink implements LlmLegacyDialectTerminator
 {
     private static final int NO_BLOCK = -1;
     private static final byte[] DONE_BYTES = "[DONE]".getBytes(UTF_8);

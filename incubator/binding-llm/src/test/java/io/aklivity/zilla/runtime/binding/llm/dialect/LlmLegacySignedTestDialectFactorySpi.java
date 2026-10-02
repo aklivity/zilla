@@ -14,18 +14,18 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.dialect;
 
-import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
-
-/**
- * Engine services a {@link LlmDialect} may need beyond the request it is asked to encode/decode, e.g. a
- * signaler for scheduling background credential refresh behind a {@link LlmDialect#signer()}.
- */
-public interface LlmDialectContext
+public final class LlmLegacySignedTestDialectFactorySpi implements LlmLegacyDialectFactorySpi
 {
-    /**
-     * The signaler for scheduling work strictly later on this binding's worker thread.
-     *
-     * @return the signaler
-     */
-    Signaler signaler();
+    @Override
+    public String name()
+    {
+        return "test-signed";
+    }
+
+    @Override
+    public LlmLegacyDialect create(
+        LlmLegacyDialectContext context)
+    {
+        return new LlmLegacySignedTestDialect();
+    }
 }
