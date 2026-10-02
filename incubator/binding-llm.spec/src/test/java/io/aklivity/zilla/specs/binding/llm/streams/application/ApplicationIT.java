@@ -524,9 +524,9 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/canonical.begin.translated/client",
-        "${app}/canonical.begin.translated/server"})
-    public void shouldCanonicalBeginTranslated() throws Exception
+        "${app}/canonical.transformed/client",
+        "${app}/canonical.transformed/server"})
+    public void shouldCanonicalTransformed() throws Exception
     {
         k3po.finish();
     }
