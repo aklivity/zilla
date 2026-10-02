@@ -27,13 +27,13 @@ import java.util.function.Supplier;
 
 import org.junit.Test;
 
-public class LlmDialectFactorySpiTest
+public class LlmLegacyDialectFactorySpiTest
 {
-    private final Map<String, LlmDialectFactorySpi> factoriesByName = ServiceLoader
-        .load(LlmDialectFactorySpi.class)
+    private final Map<String, LlmLegacyDialectFactorySpi> factoriesByName = ServiceLoader
+        .load(LlmLegacyDialectFactorySpi.class)
         .stream()
         .map(Supplier::get)
-        .collect(toMap(LlmDialectFactorySpi::name, identity()));
+        .collect(toMap(LlmLegacyDialectFactorySpi::name, identity()));
 
     @Test
     public void shouldResolveRegisteredDialects()
@@ -45,13 +45,14 @@ public class LlmDialectFactorySpiTest
     @Test
     public void shouldConvertKindValueOf()
     {
-        assertThat(LlmDialect.Kind.valueOf("REQUEST"), equalTo(LlmDialect.Kind.REQUEST));
-        assertThat(LlmDialect.Kind.valueOf("RESPONSE"), equalTo(LlmDialect.Kind.RESPONSE));
+        assertThat(LlmLegacyDialect.Kind.valueOf("REQUEST"), equalTo(LlmLegacyDialect.Kind.REQUEST));
+        assertThat(LlmLegacyDialect.Kind.valueOf("RESPONSE"), equalTo(LlmLegacyDialect.Kind.RESPONSE));
     }
 
     @Test
     public void shouldReturnKindValues()
     {
-        assertThat(LlmDialect.Kind.values(), arrayContaining(LlmDialect.Kind.REQUEST, LlmDialect.Kind.RESPONSE));
+        assertThat(LlmLegacyDialect.Kind.values(),
+            arrayContaining(LlmLegacyDialect.Kind.REQUEST, LlmLegacyDialect.Kind.RESPONSE));
     }
 }

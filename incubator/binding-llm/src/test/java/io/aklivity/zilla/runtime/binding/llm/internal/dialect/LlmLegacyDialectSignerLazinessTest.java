@@ -26,8 +26,8 @@ import java.util.Set;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialect;
-import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectContext;
+import io.aklivity.zilla.runtime.binding.llm.dialect.LlmLegacyDialect;
+import io.aklivity.zilla.runtime.binding.llm.dialect.LlmLegacyDialectContext;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmNativeEventOutput;
 import io.aklivity.zilla.runtime.binding.llm.sign.LlmRequestSigner;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
@@ -36,20 +36,20 @@ import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.common.json.JsonTransform;
 
 /**
- * Confirms {@link LlmDialect#signer()}'s null-when-unneeded contract stays lazy: {@link LlmDialectResolver}
+ * Confirms {@link LlmLegacyDialect#signer()}'s null-when-unneeded contract stays lazy: {@link LlmLegacyDialectResolver}
  * constructs every registered dialect on every binding attach, needed for detection and cross-dialect
  * lookup, not only the binding's own configured one -- so a dialect whose {@code signer()} would trigger a
  * real side effect (e.g. starting background credential resolution) must never trigger it merely from being
  * created or held by a resolver, only from {@code signer()} itself being called.
  */
-public class LlmDialectSignerLazinessTest
+public class LlmLegacyDialectSignerLazinessTest
 {
     @Test
     public void shouldNotInvokeContextWhenDialectIsCreated()
     {
-        LlmDialectContext context = eagerlyFailingContext();
+        LlmLegacyDialectContext context = eagerlyFailingContext();
 
-        LlmEagerFailingDialect dialect = new LlmEagerFailingDialect(context);
+        LlmLegacyEagerFailingDialect dialect = new LlmLegacyEagerFailingDialect(context);
 
         assertThat(dialect, not(nullValue()));
     }
@@ -57,11 +57,11 @@ public class LlmDialectSignerLazinessTest
     @Test
     public void shouldNotInvokeContextWhenDialectIsHeldByResolver()
     {
-        LlmDialectContext context = eagerlyFailingContext();
-        LlmEagerFailingDialect dialect = new LlmEagerFailingDialect(context);
+        LlmLegacyDialectContext context = eagerlyFailingContext();
+        LlmLegacyEagerFailingDialect dialect = new LlmLegacyEagerFailingDialect(context);
 
-        LlmDialectResolver resolver = new LlmDialectResolver("other", of(dialect));
-        LlmDialect resolved = resolver.resolve(JsonEnvelope.NONE);
+        LlmLegacyDialectResolver resolver = new LlmLegacyDialectResolver("other", of(dialect));
+        LlmLegacyDialect resolved = resolver.resolve(JsonEnvelope.NONE);
 
         assertThat(resolved, nullValue());
     }
@@ -69,25 +69,25 @@ public class LlmDialectSignerLazinessTest
     @Test
     public void shouldInvokeContextOnlyWhenSignerIsRequested()
     {
-        LlmDialectContext context = eagerlyFailingContext();
-        LlmEagerFailingDialect dialect = new LlmEagerFailingDialect(context);
+        LlmLegacyDialectContext context = eagerlyFailingContext();
+        LlmLegacyEagerFailingDialect dialect = new LlmLegacyEagerFailingDialect(context);
 
         assertThrows(IllegalStateException.class, dialect::signer);
     }
 
-    private static LlmDialectContext eagerlyFailingContext()
+    private static LlmLegacyDialectContext eagerlyFailingContext()
     {
-        LlmDialectContext context = mock(LlmDialectContext.class);
+        LlmLegacyDialectContext context = mock(LlmLegacyDialectContext.class);
         when(context.signaler()).thenThrow(new IllegalStateException("dialect construction must not call signaler()"));
         return context;
     }
 
-    private static final class LlmEagerFailingDialect implements LlmDialect
+    private static final class LlmLegacyEagerFailingDialect implements LlmLegacyDialect
     {
-        private final LlmDialectContext context;
+        private final LlmLegacyDialectContext context;
 
-        private LlmEagerFailingDialect(
-            LlmDialectContext context)
+        private LlmLegacyEagerFailingDialect(
+            LlmLegacyDialectContext context)
         {
             this.context = context;
         }

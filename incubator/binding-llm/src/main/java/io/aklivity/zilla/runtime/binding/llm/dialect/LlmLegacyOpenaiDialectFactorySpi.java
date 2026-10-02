@@ -14,18 +14,18 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.dialect;
 
-public final class LlmSignedTestDialectFactorySpi implements LlmDialectFactorySpi
+public final class LlmLegacyOpenaiDialectFactorySpi implements LlmLegacyDialectFactorySpi
 {
     @Override
     public String name()
     {
-        return "test-signed";
+        return "openai";
     }
 
     @Override
-    public LlmDialect create(
-        LlmDialectContext context)
+    public LlmLegacyDialect create(
+        LlmLegacyDialectContext context)
     {
-        return new LlmSignedTestDialect();
+        return new LlmLegacyOpenaiDialect();
     }
 }

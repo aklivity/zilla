@@ -18,11 +18,11 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.net.URLEncoder;
 
-import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialect;
+import io.aklivity.zilla.runtime.binding.llm.dialect.LlmLegacyDialect;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 
 /**
- * Resolves a {@link LlmDialect#requestPath(String)} template's {@link LlmDialect#MODEL_PLACEHOLDER} token,
+ * Resolves a {@link LlmLegacyDialect#requestPath(String)} template's {@link LlmLegacyDialect#MODEL_PLACEHOLDER} token,
  * when present, against a request's own selected model -- the one substitution a cached request path
  * template defers until that model is known.
  */
@@ -33,12 +33,12 @@ final class LlmRequestPathResolver
     }
 
     /**
-     * Returns {@code template} unchanged when it carries no {@link LlmDialect#MODEL_PLACEHOLDER}, the
+     * Returns {@code template} unchanged when it carries no {@link LlmLegacyDialect#MODEL_PLACEHOLDER}, the
      * template with that token replaced by {@code model} percent-encoded as a single URL path segment when
      * {@code model} is not {@code null}, or {@code null} when the template needs a model but {@code model}
      * is {@code null}.
      *
-     * @param template  the cached request path, possibly carrying {@link LlmDialect#MODEL_PLACEHOLDER}
+     * @param template  the cached request path, possibly carrying {@link LlmLegacyDialect#MODEL_PLACEHOLDER}
      * @param model     the request's own selected model, or {@code null} when none was extracted
      * @return the resolved path, or {@code null} when a required model was not given
      */
@@ -47,10 +47,10 @@ final class LlmRequestPathResolver
         DirectBufferEx model)
     {
         String resolved = template;
-        if (template.contains(LlmDialect.MODEL_PLACEHOLDER))
+        if (template.contains(LlmLegacyDialect.MODEL_PLACEHOLDER))
         {
             resolved = model != null
-                ? template.replace(LlmDialect.MODEL_PLACEHOLDER, encodeSegment(model))
+                ? template.replace(LlmLegacyDialect.MODEL_PLACEHOLDER, encodeSegment(model))
                 : null;
         }
         return resolved;

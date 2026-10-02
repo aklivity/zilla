@@ -53,13 +53,13 @@ import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.common.json.JsonTransform;
 
-public class LlmAnthropicDialectTest
+public class LlmLegacyAnthropicDialectTest
 {
-    private final Map<String, LlmDialectFactorySpi> factoriesByName = ServiceLoader
-        .load(LlmDialectFactorySpi.class)
+    private final Map<String, LlmLegacyDialectFactorySpi> factoriesByName = ServiceLoader
+        .load(LlmLegacyDialectFactorySpi.class)
         .stream()
         .map(Supplier::get)
-        .collect(toMap(LlmDialectFactorySpi::name, identity()));
+        .collect(toMap(LlmLegacyDialectFactorySpi::name, identity()));
 
     @Test
     public void shouldResolveRegisteredDialect()
@@ -70,7 +70,7 @@ public class LlmAnthropicDialectTest
     @Test
     public void shouldCreateMatchingDialect()
     {
-        LlmDialect dialect = factoriesByName.get("anthropic").create(mock(LlmDialectContext.class));
+        LlmLegacyDialect dialect = factoriesByName.get("anthropic").create(mock(LlmLegacyDialectContext.class));
 
         assertThat(dialect, not(nullValue()));
         assertThat(dialect.name(), equalTo("anthropic"));
@@ -79,7 +79,7 @@ public class LlmAnthropicDialectTest
     @Test
     public void shouldResolveRequestPathUnderConfiguredBasePath()
     {
-        LlmDialect dialect = new LlmAnthropicDialect();
+        LlmLegacyDialect dialect = new LlmLegacyAnthropicDialect();
 
         assertThat(dialect.requestPath("/v1"), equalTo("/v1/messages"));
         assertThat(dialect.requestPath("/aicomp/v1"), equalTo("/aicomp/v1/messages"));
@@ -88,7 +88,7 @@ public class LlmAnthropicDialectTest
     @Test
     public void shouldDetectMessagesPostByPathAlone()
     {
-        LlmDialect dialect = new LlmAnthropicDialect();
+        LlmLegacyDialect dialect = new LlmLegacyAnthropicDialect();
 
         assertThat(dialect.detect(headers("POST", "/v1/messages")), is(true));
     }
@@ -96,7 +96,7 @@ public class LlmAnthropicDialectTest
     @Test
     public void shouldDetectRegardlessOfMethodCase()
     {
-        LlmDialect dialect = new LlmAnthropicDialect();
+        LlmLegacyDialect dialect = new LlmLegacyAnthropicDialect();
 
         assertThat(dialect.detect(headers("post", "/v1/messages")), is(true));
     }
@@ -104,7 +104,7 @@ public class LlmAnthropicDialectTest
     @Test
     public void shouldNotDetectUnrecognizedPathWithNoOtherSignal()
     {
-        LlmDialect dialect = new LlmAnthropicDialect();
+        LlmLegacyDialect dialect = new LlmLegacyAnthropicDialect();
 
         assertThat(dialect.detect(headers("POST", "/v1/embeddings")), is(false));
     }
@@ -112,7 +112,7 @@ public class LlmAnthropicDialectTest
     @Test
     public void shouldNotDetectNonPostMethodWithNoOtherSignal()
     {
-        LlmDialect dialect = new LlmAnthropicDialect();
+        LlmLegacyDialect dialect = new LlmLegacyAnthropicDialect();
 
         assertThat(dialect.detect(headers("GET", "/v1/messages")), is(false));
     }
@@ -120,7 +120,7 @@ public class LlmAnthropicDialectTest
     @Test
     public void shouldDetectAnthropicVersionHeaderAlone()
     {
-        LlmDialect dialect = new LlmAnthropicDialect();
+        LlmLegacyDialect dialect = new LlmLegacyAnthropicDialect();
 
         TestJsonEnvelope envelope = new TestJsonEnvelope();
         envelope.set(":method", value("POST"));
@@ -133,7 +133,7 @@ public class LlmAnthropicDialectTest
     @Test
     public void shouldDetectApiKeyHeaderWithoutAuthorizationAlone()
     {
-        LlmDialect dialect = new LlmAnthropicDialect();
+        LlmLegacyDialect dialect = new LlmLegacyAnthropicDialect();
 
         TestJsonEnvelope envelope = new TestJsonEnvelope();
         envelope.set(":method", value("POST"));
@@ -146,7 +146,7 @@ public class LlmAnthropicDialectTest
     @Test
     public void shouldNotDetectApiKeyHeaderAlongsideAuthorization()
     {
-        LlmDialect dialect = new LlmAnthropicDialect();
+        LlmLegacyDialect dialect = new LlmLegacyAnthropicDialect();
 
         TestJsonEnvelope envelope = new TestJsonEnvelope();
         envelope.set(":method", value("POST"));
@@ -160,7 +160,7 @@ public class LlmAnthropicDialectTest
     @Test
     public void shouldNotDetectWithEmptyHeaders()
     {
-        LlmDialect dialect = new LlmAnthropicDialect();
+        LlmLegacyDialect dialect = new LlmLegacyAnthropicDialect();
 
         assertThat(dialect.detect(JsonEnvelope.NONE), is(false));
     }
@@ -168,7 +168,7 @@ public class LlmAnthropicDialectTest
     @Test
     public void shouldSupplyRequestDecoderAndEncoder()
     {
-        LlmDialect dialect = new LlmAnthropicDialect();
+        LlmLegacyDialect dialect = new LlmLegacyAnthropicDialect();
 
         assertThat(dialect.supplyRequestDecoder(JsonEnvelope.NONE), not(nullValue()));
         assertThat(dialect.supplyRequestEncoder(JsonEnvelope.NONE), not(nullValue()));
@@ -179,17 +179,17 @@ public class LlmAnthropicDialectTest
     @Test
     public void shouldSupplyExtractorOnlyForRequestKind()
     {
-        LlmDialect dialect = new LlmAnthropicDialect();
+        LlmLegacyDialect dialect = new LlmLegacyAnthropicDialect();
 
-        assertThat(dialect.supplyExtractor(LlmDialect.Kind.REQUEST, JsonEnvelope.NONE), not(nullValue()));
-        assertThat(dialect.supplyExtractor(LlmDialect.Kind.REQUEST, JsonEnvelope.NONE).identity(), is(true));
-        assertThat(dialect.supplyExtractor(LlmDialect.Kind.RESPONSE, JsonEnvelope.NONE).identity(), is(true));
+        assertThat(dialect.supplyExtractor(LlmLegacyDialect.Kind.REQUEST, JsonEnvelope.NONE), not(nullValue()));
+        assertThat(dialect.supplyExtractor(LlmLegacyDialect.Kind.REQUEST, JsonEnvelope.NONE).identity(), is(true));
+        assertThat(dialect.supplyExtractor(LlmLegacyDialect.Kind.RESPONSE, JsonEnvelope.NONE).identity(), is(true));
     }
 
     @Test
     public void shouldDeclareContentTypes()
     {
-        LlmDialect dialect = new LlmAnthropicDialect();
+        LlmLegacyDialect dialect = new LlmLegacyAnthropicDialect();
 
         assertThat(dialect.requestContentType(), equalTo("application/json"));
         assertThat(dialect.responseContentTypes(), containsInAnyOrder("application/json", "text/event-stream"));
@@ -198,15 +198,16 @@ public class LlmAnthropicDialectTest
     @Test
     public void shouldSupplyResponseExtractorReceivingEvents()
     {
-        LlmDialect dialect = new LlmAnthropicDialect();
+        LlmLegacyDialect dialect = new LlmLegacyAnthropicDialect();
 
-        assertThat(dialect.supplyExtractor(LlmDialect.Kind.RESPONSE, JsonEnvelope.NONE), instanceOf(LlmDialectEvent.class));
+        assertThat(dialect.supplyExtractor(LlmLegacyDialect.Kind.RESPONSE, JsonEnvelope.NONE),
+            instanceOf(LlmLegacyDialectEvent.class));
     }
 
     @Test
     public void shouldEncodeErrorBodyTypeFromStatus()
     {
-        LlmDialect dialect = new LlmAnthropicDialect();
+        LlmLegacyDialect dialect = new LlmLegacyAnthropicDialect();
 
         assertThat(dialect.errorBody(400, null, "m"), equalTo(anthropicError("invalid_request_error", "m")));
         assertThat(dialect.errorBody(401, null, "m"), equalTo(anthropicError("authentication_error", "m")));
@@ -223,7 +224,7 @@ public class LlmAnthropicDialectTest
     @Test
     public void shouldEncodeErrorBodyWithDefaultMessage()
     {
-        LlmDialect dialect = new LlmAnthropicDialect();
+        LlmLegacyDialect dialect = new LlmLegacyAnthropicDialect();
 
         assertThat(dialect.errorBody(415, null, null),
             equalTo(anthropicError("invalid_request_error", "Unsupported Media Type")));
@@ -233,16 +234,16 @@ public class LlmAnthropicDialectTest
     @Test
     public void shouldSupplySchemaValidatorForBothKinds()
     {
-        LlmDialect dialect = new LlmAnthropicDialect();
+        LlmLegacyDialect dialect = new LlmLegacyAnthropicDialect();
 
-        assertThat(dialect.supplySchemaValidator(LlmDialect.Kind.REQUEST), not(nullValue()));
-        assertThat(dialect.supplySchemaValidator(LlmDialect.Kind.RESPONSE), not(nullValue()));
+        assertThat(dialect.supplySchemaValidator(LlmLegacyDialect.Kind.REQUEST), not(nullValue()));
+        assertThat(dialect.supplySchemaValidator(LlmLegacyDialect.Kind.RESPONSE), not(nullValue()));
     }
 
     @Test
     public void shouldSupplyResponseDecodeTransform()
     {
-        LlmDialect dialect = new LlmAnthropicDialect();
+        LlmLegacyDialect dialect = new LlmLegacyAnthropicDialect();
 
         JsonTransform transform = dialect.supplyResponseDecodeTransform();
 
@@ -252,7 +253,7 @@ public class LlmAnthropicDialectTest
     @Test
     public void shouldSupplyResponseEncodeSink()
     {
-        LlmDialect dialect = new LlmAnthropicDialect();
+        LlmLegacyDialect dialect = new LlmLegacyAnthropicDialect();
         List<String> discarded = new ArrayList<>();
 
         JsonSink sink = dialect.supplyResponseEncodeSink(JsonEnvelope.NONE,
@@ -264,8 +265,8 @@ public class LlmAnthropicDialectTest
     @Test
     public void shouldRoundTripResponseDecodeIntoAnotherDialectsResponseEncode()
     {
-        LlmDialect anthropic = new LlmAnthropicDialect();
-        LlmDialect openai = new LlmOpenaiDialect();
+        LlmLegacyDialect anthropic = new LlmLegacyAnthropicDialect();
+        LlmLegacyDialect openai = new LlmLegacyOpenaiDialect();
         List<Event> events = new ArrayList<>();
 
         JsonTransform decode = anthropic.supplyResponseDecodeTransform();
@@ -277,7 +278,7 @@ public class LlmAnthropicDialectTest
 
         JsonPipeline pipeline = JsonEx.stream(JsonEx.createParser()).transform(decode).into(encode);
 
-        ((LlmDialectEvent) decode).event("message_start");
+        ((LlmLegacyDialectEvent) decode).event("message_start");
         String json = "{\"type\":\"message_start\",\"message\":{\"id\":\"msg_1\",\"model\":\"claude-3\"," +
             "\"role\":\"assistant\",\"usage\":{\"input_tokens\":10}}}";
         byte[] bytes = json.getBytes(UTF_8);

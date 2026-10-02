@@ -14,18 +14,18 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.dialect;
 
-public final class LlmOpenaiDialectFactorySpi implements LlmDialectFactorySpi
-{
-    @Override
-    public String name()
-    {
-        return "openai";
-    }
+import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 
-    @Override
-    public LlmDialect create(
-        LlmDialectContext context)
-    {
-        return new LlmOpenaiDialect();
-    }
+/**
+ * Engine services a {@link LlmLegacyDialect} may need beyond the request it is asked to encode/decode, e.g. a
+ * signaler for scheduling background credential refresh behind a {@link LlmLegacyDialect#signer()}.
+ */
+public interface LlmLegacyDialectContext
+{
+    /**
+     * The signaler for scheduling work strictly later on this binding's worker thread.
+     *
+     * @return the signaler
+     */
+    Signaler signaler();
 }

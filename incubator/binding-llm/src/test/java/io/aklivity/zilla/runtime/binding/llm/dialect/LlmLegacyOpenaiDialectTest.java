@@ -53,13 +53,13 @@ import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.common.json.JsonTransform;
 
-public class LlmOpenaiDialectTest
+public class LlmLegacyOpenaiDialectTest
 {
-    private final Map<String, LlmDialectFactorySpi> factoriesByName = ServiceLoader
-        .load(LlmDialectFactorySpi.class)
+    private final Map<String, LlmLegacyDialectFactorySpi> factoriesByName = ServiceLoader
+        .load(LlmLegacyDialectFactorySpi.class)
         .stream()
         .map(Supplier::get)
-        .collect(toMap(LlmDialectFactorySpi::name, identity()));
+        .collect(toMap(LlmLegacyDialectFactorySpi::name, identity()));
 
     @Test
     public void shouldResolveRegisteredDialect()
@@ -70,7 +70,7 @@ public class LlmOpenaiDialectTest
     @Test
     public void shouldCreateMatchingDialect()
     {
-        LlmDialect dialect = factoriesByName.get("openai").create(mock(LlmDialectContext.class));
+        LlmLegacyDialect dialect = factoriesByName.get("openai").create(mock(LlmLegacyDialectContext.class));
 
         assertThat(dialect, not(nullValue()));
         assertThat(dialect.name(), equalTo("openai"));
@@ -79,7 +79,7 @@ public class LlmOpenaiDialectTest
     @Test
     public void shouldResolveRequestPathUnderConfiguredBasePath()
     {
-        LlmDialect dialect = new LlmOpenaiDialect();
+        LlmLegacyDialect dialect = new LlmLegacyOpenaiDialect();
 
         assertThat(dialect.requestPath("/v1"), equalTo("/v1/chat/completions"));
         assertThat(dialect.requestPath("/aicomp/v1"), equalTo("/aicomp/v1/chat/completions"));
@@ -88,7 +88,7 @@ public class LlmOpenaiDialectTest
     @Test
     public void shouldDetectChatCompletionsPost()
     {
-        LlmDialect dialect = new LlmOpenaiDialect();
+        LlmLegacyDialect dialect = new LlmLegacyOpenaiDialect();
 
         assertThat(dialect.detect(headers("POST", "/v1/chat/completions")), is(true));
     }
@@ -96,7 +96,7 @@ public class LlmOpenaiDialectTest
     @Test
     public void shouldDetectCompletionsPost()
     {
-        LlmDialect dialect = new LlmOpenaiDialect();
+        LlmLegacyDialect dialect = new LlmLegacyOpenaiDialect();
 
         assertThat(dialect.detect(headers("POST", "/v1/completions")), is(true));
     }
@@ -104,7 +104,7 @@ public class LlmOpenaiDialectTest
     @Test
     public void shouldDetectRegardlessOfMethodCase()
     {
-        LlmDialect dialect = new LlmOpenaiDialect();
+        LlmLegacyDialect dialect = new LlmLegacyOpenaiDialect();
 
         assertThat(dialect.detect(headers("post", "/v1/chat/completions")), is(true));
     }
@@ -112,7 +112,7 @@ public class LlmOpenaiDialectTest
     @Test
     public void shouldNotDetectUnrecognizedPath()
     {
-        LlmDialect dialect = new LlmOpenaiDialect();
+        LlmLegacyDialect dialect = new LlmLegacyOpenaiDialect();
 
         assertThat(dialect.detect(headers("POST", "/v1/embeddings")), is(false));
     }
@@ -120,7 +120,7 @@ public class LlmOpenaiDialectTest
     @Test
     public void shouldNotDetectNonPostMethod()
     {
-        LlmDialect dialect = new LlmOpenaiDialect();
+        LlmLegacyDialect dialect = new LlmLegacyOpenaiDialect();
 
         assertThat(dialect.detect(headers("GET", "/v1/chat/completions")), is(false));
     }
@@ -128,7 +128,7 @@ public class LlmOpenaiDialectTest
     @Test
     public void shouldNotDetectMismatchedContentType()
     {
-        LlmDialect dialect = new LlmOpenaiDialect();
+        LlmLegacyDialect dialect = new LlmLegacyOpenaiDialect();
 
         TestJsonEnvelope envelope = new TestJsonEnvelope();
         envelope.set(":method", value("POST"));
@@ -141,7 +141,7 @@ public class LlmOpenaiDialectTest
     @Test
     public void shouldNotDetectMissingContentType()
     {
-        LlmDialect dialect = new LlmOpenaiDialect();
+        LlmLegacyDialect dialect = new LlmLegacyOpenaiDialect();
 
         TestJsonEnvelope envelope = new TestJsonEnvelope();
         envelope.set(":method", value("POST"));
@@ -153,7 +153,7 @@ public class LlmOpenaiDialectTest
     @Test
     public void shouldNotDetectWithEmptyHeaders()
     {
-        LlmDialect dialect = new LlmOpenaiDialect();
+        LlmLegacyDialect dialect = new LlmLegacyOpenaiDialect();
 
         assertThat(dialect.detect(JsonEnvelope.NONE), is(false));
     }
@@ -161,7 +161,7 @@ public class LlmOpenaiDialectTest
     @Test
     public void shouldSupplyRequestDecoderAndEncoder()
     {
-        LlmDialect dialect = new LlmOpenaiDialect();
+        LlmLegacyDialect dialect = new LlmLegacyOpenaiDialect();
 
         assertThat(dialect.supplyRequestDecoder(JsonEnvelope.NONE), not(nullValue()));
         assertThat(dialect.supplyRequestEncoder(JsonEnvelope.NONE), not(nullValue()));
@@ -172,17 +172,17 @@ public class LlmOpenaiDialectTest
     @Test
     public void shouldSupplyExtractorOnlyForRequestKind()
     {
-        LlmDialect dialect = new LlmOpenaiDialect();
+        LlmLegacyDialect dialect = new LlmLegacyOpenaiDialect();
 
-        assertThat(dialect.supplyExtractor(LlmDialect.Kind.REQUEST, JsonEnvelope.NONE), not(nullValue()));
-        assertThat(dialect.supplyExtractor(LlmDialect.Kind.REQUEST, JsonEnvelope.NONE).identity(), is(true));
-        assertThat(dialect.supplyExtractor(LlmDialect.Kind.RESPONSE, JsonEnvelope.NONE).identity(), is(true));
+        assertThat(dialect.supplyExtractor(LlmLegacyDialect.Kind.REQUEST, JsonEnvelope.NONE), not(nullValue()));
+        assertThat(dialect.supplyExtractor(LlmLegacyDialect.Kind.REQUEST, JsonEnvelope.NONE).identity(), is(true));
+        assertThat(dialect.supplyExtractor(LlmLegacyDialect.Kind.RESPONSE, JsonEnvelope.NONE).identity(), is(true));
     }
 
     @Test
     public void shouldDeclareContentTypes()
     {
-        LlmDialect dialect = new LlmOpenaiDialect();
+        LlmLegacyDialect dialect = new LlmLegacyOpenaiDialect();
 
         assertThat(dialect.requestContentType(), equalTo("application/json"));
         assertThat(dialect.responseContentTypes(), containsInAnyOrder("application/json", "text/event-stream"));
@@ -191,15 +191,16 @@ public class LlmOpenaiDialectTest
     @Test
     public void shouldSupplyResponseExtractorReceivingEvents()
     {
-        LlmDialect dialect = new LlmOpenaiDialect();
+        LlmLegacyDialect dialect = new LlmLegacyOpenaiDialect();
 
-        assertThat(dialect.supplyExtractor(LlmDialect.Kind.RESPONSE, JsonEnvelope.NONE), instanceOf(LlmDialectEvent.class));
+        assertThat(dialect.supplyExtractor(LlmLegacyDialect.Kind.RESPONSE, JsonEnvelope.NONE),
+            instanceOf(LlmLegacyDialectEvent.class));
     }
 
     @Test
     public void shouldEncodeRateLimitErrorBody()
     {
-        LlmDialect dialect = new LlmOpenaiDialect();
+        LlmLegacyDialect dialect = new LlmLegacyOpenaiDialect();
 
         assertThat(dialect.errorBody(429, "rate_limit_error", "Too many requests"), equalTo(
             "{\"error\":{\"message\":\"Too many requests\",\"type\":\"requests\",\"param\":null," +
@@ -209,7 +210,7 @@ public class LlmOpenaiDialectTest
     @Test
     public void shouldEncodeServerErrorBodyWithDefaultMessage()
     {
-        LlmDialect dialect = new LlmOpenaiDialect();
+        LlmLegacyDialect dialect = new LlmLegacyOpenaiDialect();
 
         assertThat(dialect.errorBody(502, null, null), equalTo(
             "{\"error\":{\"message\":\"Bad Gateway\",\"type\":\"server_error\",\"param\":null,\"code\":null}}"));
@@ -218,7 +219,7 @@ public class LlmOpenaiDialectTest
     @Test
     public void shouldEncodeClientErrorBodyEscapingMessage()
     {
-        LlmDialect dialect = new LlmOpenaiDialect();
+        LlmLegacyDialect dialect = new LlmLegacyOpenaiDialect();
 
         assertThat(dialect.errorBody(400, null, "bad \"field\""), equalTo(
             "{\"error\":{\"message\":\"bad \\\"field\\\"\",\"type\":\"invalid_request_error\",\"param\":null," +
@@ -228,16 +229,16 @@ public class LlmOpenaiDialectTest
     @Test
     public void shouldSupplySchemaValidatorForBothKinds()
     {
-        LlmDialect dialect = new LlmOpenaiDialect();
+        LlmLegacyDialect dialect = new LlmLegacyOpenaiDialect();
 
-        assertThat(dialect.supplySchemaValidator(LlmDialect.Kind.REQUEST), not(nullValue()));
-        assertThat(dialect.supplySchemaValidator(LlmDialect.Kind.RESPONSE), not(nullValue()));
+        assertThat(dialect.supplySchemaValidator(LlmLegacyDialect.Kind.REQUEST), not(nullValue()));
+        assertThat(dialect.supplySchemaValidator(LlmLegacyDialect.Kind.RESPONSE), not(nullValue()));
     }
 
     @Test
     public void shouldSupplyResponseDecodeTransform()
     {
-        LlmDialect dialect = new LlmOpenaiDialect();
+        LlmLegacyDialect dialect = new LlmLegacyOpenaiDialect();
 
         JsonTransform transform = dialect.supplyResponseDecodeTransform();
 
@@ -247,7 +248,7 @@ public class LlmOpenaiDialectTest
     @Test
     public void shouldSupplyResponseEncodeSink()
     {
-        LlmDialect dialect = new LlmOpenaiDialect();
+        LlmLegacyDialect dialect = new LlmLegacyOpenaiDialect();
         List<String> discarded = new ArrayList<>();
 
         JsonSink sink = dialect.supplyResponseEncodeSink(JsonEnvelope.NONE,
@@ -259,8 +260,8 @@ public class LlmOpenaiDialectTest
     @Test
     public void shouldRoundTripResponseDecodeIntoAnotherDialectsResponseEncode()
     {
-        LlmDialect openai = new LlmOpenaiDialect();
-        LlmDialect anthropic = new LlmAnthropicDialect();
+        LlmLegacyDialect openai = new LlmLegacyOpenaiDialect();
+        LlmLegacyDialect anthropic = new LlmLegacyAnthropicDialect();
         List<Event> events = new ArrayList<>();
 
         JsonTransform decode = openai.supplyResponseDecodeTransform();

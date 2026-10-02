@@ -14,18 +14,18 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.dialect;
 
-public final class LlmAnthropicDialectFactorySpi implements LlmDialectFactorySpi
+public final class LlmLegacySigningUnavailableTestDialectFactorySpi implements LlmLegacyDialectFactorySpi
 {
     @Override
     public String name()
     {
-        return "anthropic";
+        return "test-signing-unavailable";
     }
 
     @Override
-    public LlmDialect create(
-        LlmDialectContext context)
+    public LlmLegacyDialect create(
+        LlmLegacyDialectContext context)
     {
-        return new LlmAnthropicDialect();
+        return new LlmLegacySigningUnavailableTestDialect();
     }
 }

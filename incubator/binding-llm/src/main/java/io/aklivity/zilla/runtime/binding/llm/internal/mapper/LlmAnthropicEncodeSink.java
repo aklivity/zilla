@@ -23,7 +23,7 @@ import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonReader;
 
-import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectTerminator;
+import io.aklivity.zilla.runtime.binding.llm.dialect.LlmLegacyDialectTerminator;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmNativeEventOutput;
 import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
 
@@ -34,7 +34,7 @@ import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
  * or accumulating into {@code doc*} fields and writing the whole document once at {@code TYPE_END}
  * (non-streaming).
  */
-public final class LlmAnthropicEncodeSink extends LlmCanonicalEncodeSink implements LlmDialectTerminator
+public final class LlmAnthropicEncodeSink extends LlmCanonicalEncodeSink implements LlmLegacyDialectTerminator
 {
     private static final JsonObject EMPTY_INPUT = Json.createObjectBuilder().build();
     private static final int MAX_DATA_FRAGMENT_CHARS = 1024;

@@ -21,8 +21,8 @@ import static org.hamcrest.Matchers.not;
 import org.agrona.DirectBuffer;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.binding.llm.dialect.LlmTestDialect.LlmTestResponseDecodeTransform;
-import io.aklivity.zilla.runtime.binding.llm.dialect.LlmTestDialect.LlmTestResponseEncodeSink;
+import io.aklivity.zilla.runtime.binding.llm.dialect.LlmLegacyTestDialect.LlmTestResponseDecodeTransform;
+import io.aklivity.zilla.runtime.binding.llm.dialect.LlmLegacyTestDialect.LlmTestResponseEncodeSink;
 import io.aklivity.zilla.runtime.binding.llm.internal.mapper.LlmAnthropicDecodeTransform;
 import io.aklivity.zilla.runtime.binding.llm.internal.mapper.LlmAnthropicEncodeSink;
 import io.aklivity.zilla.runtime.binding.llm.internal.mapper.LlmOpenaiDecodeTransform;
@@ -35,57 +35,57 @@ import io.aklivity.zilla.runtime.common.json.JsonTransform;
  * Regression coverage for the bug this dispatch replaces: {@code LlmClientFactory} used to resolve a
  * cross-dialect response decode/encode pair via a hardcoded {@code "openai".equals(dialectName) ? ... :
  * anthropic} switch, so any registered dialect whose name was not literally {@code "openai"} -- including
- * a third dialect contributed from outside this module, exactly as {@link LlmDialect}'s own javadoc
+ * a third dialect contributed from outside this module, exactly as {@link LlmLegacyDialect}'s own javadoc
  * advertises -- silently fell through to Anthropic's response transform instead of its own. Now that
  * {@code LlmClientFactory} calls {@code client.target.supplyResponseDecodeTransform()}/
- * {@code client.source.supplyResponseEncodeSink(...)} directly on the resolved {@link LlmDialect}, dispatch
+ * {@code client.source.supplyResponseEncodeSink(...)} directly on the resolved {@link LlmLegacyDialect}, dispatch
  * is inherent to the interface call, not a name lookup -- these tests exercise the same call shape
  * {@code LlmClientFactory} uses and confirm a third dialect never receives Anthropic's (or OpenAI's) own
  * response mapping.
  */
-public class LlmDialectResponseDispatchTest
+public class LlmLegacyDialectResponseDispatchTest
 {
     @Test
     public void shouldDispatchOpenaiDialectToItsOwnResponseTransforms()
     {
-        LlmDialect dialect = new LlmOpenaiDialect();
+        LlmLegacyDialect dialect = new LlmLegacyOpenaiDialect();
 
         JsonTransform decode = dialect.supplyResponseDecodeTransform();
-        JsonSink encode = dialect.supplyResponseEncodeSink(JsonEnvelope.NONE, LlmDialectResponseDispatchTest::discard);
+        JsonSink encode = dialect.supplyResponseEncodeSink(JsonEnvelope.NONE, LlmLegacyDialectResponseDispatchTest::discard);
 
         assertThat(decode, instanceOf(LlmOpenaiDecodeTransform.class));
         assertThat(decode, not(instanceOf(LlmAnthropicDecodeTransform.class)));
         assertThat(encode, instanceOf(LlmOpenaiEncodeSink.class));
         assertThat(encode, not(instanceOf(LlmAnthropicEncodeSink.class)));
         assertThat("LlmClientFactory casts every dialect's result to these, unconditionally",
-            decode, instanceOf(LlmDialectEvent.class));
+            decode, instanceOf(LlmLegacyDialectEvent.class));
         assertThat("LlmClientFactory casts every dialect's result to these, unconditionally",
-            encode, instanceOf(LlmDialectTerminator.class));
+            encode, instanceOf(LlmLegacyDialectTerminator.class));
     }
 
     @Test
     public void shouldDispatchAnthropicDialectToItsOwnResponseTransforms()
     {
-        LlmDialect dialect = new LlmAnthropicDialect();
+        LlmLegacyDialect dialect = new LlmLegacyAnthropicDialect();
 
         JsonTransform decode = dialect.supplyResponseDecodeTransform();
-        JsonSink encode = dialect.supplyResponseEncodeSink(JsonEnvelope.NONE, LlmDialectResponseDispatchTest::discard);
+        JsonSink encode = dialect.supplyResponseEncodeSink(JsonEnvelope.NONE, LlmLegacyDialectResponseDispatchTest::discard);
 
         assertThat(decode, instanceOf(LlmAnthropicDecodeTransform.class));
         assertThat(decode, not(instanceOf(LlmOpenaiDecodeTransform.class)));
         assertThat(encode, instanceOf(LlmAnthropicEncodeSink.class));
         assertThat(encode, not(instanceOf(LlmOpenaiEncodeSink.class)));
-        assertThat(decode, instanceOf(LlmDialectEvent.class));
-        assertThat(encode, instanceOf(LlmDialectTerminator.class));
+        assertThat(decode, instanceOf(LlmLegacyDialectEvent.class));
+        assertThat(encode, instanceOf(LlmLegacyDialectTerminator.class));
     }
 
     @Test
     public void shouldDispatchThirdRegisteredDialectToItsOwnResponseTransformsRatherThanFallingThroughToAnthropic()
     {
-        LlmDialect dialect = new LlmTestDialect();
+        LlmLegacyDialect dialect = new LlmLegacyTestDialect();
 
         JsonTransform decode = dialect.supplyResponseDecodeTransform();
-        JsonSink encode = dialect.supplyResponseEncodeSink(JsonEnvelope.NONE, LlmDialectResponseDispatchTest::discard);
+        JsonSink encode = dialect.supplyResponseEncodeSink(JsonEnvelope.NONE, LlmLegacyDialectResponseDispatchTest::discard);
 
         assertThat(decode, instanceOf(LlmTestResponseDecodeTransform.class));
         assertThat(decode, not(instanceOf(LlmAnthropicDecodeTransform.class)));
@@ -103,13 +103,13 @@ public class LlmDialectResponseDispatchTest
         // forgets to implement them (as a no-op, if it has no real use for either) would compile fine
         // here but throw ClassCastException the moment a live engine actually builds a cross-dialect
         // response pipeline for it.
-        LlmDialect dialect = new LlmTestDialect();
+        LlmLegacyDialect dialect = new LlmLegacyTestDialect();
 
         JsonTransform decode = dialect.supplyResponseDecodeTransform();
-        JsonSink encode = dialect.supplyResponseEncodeSink(JsonEnvelope.NONE, LlmDialectResponseDispatchTest::discard);
+        JsonSink encode = dialect.supplyResponseEncodeSink(JsonEnvelope.NONE, LlmLegacyDialectResponseDispatchTest::discard);
 
-        assertThat(decode, instanceOf(LlmDialectEvent.class));
-        assertThat(encode, instanceOf(LlmDialectTerminator.class));
+        assertThat(decode, instanceOf(LlmLegacyDialectEvent.class));
+        assertThat(encode, instanceOf(LlmLegacyDialectTerminator.class));
     }
 
     private static void discard(

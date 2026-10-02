@@ -26,7 +26,7 @@ import org.agrona.collections.Long2ObjectHashMap;
 
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.runtime.binding.llm.codec.LlmContentEncoder;
-import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialect;
+import io.aklivity.zilla.runtime.binding.llm.dialect.LlmLegacyDialect;
 import io.aklivity.zilla.runtime.binding.llm.internal.LlmBinding;
 import io.aklivity.zilla.runtime.binding.llm.internal.LlmConfiguration;
 import io.aklivity.zilla.runtime.binding.llm.internal.codec.LlmContentCodecFactory;
@@ -193,7 +193,7 @@ public final class LlmServerFactory implements LlmStreamFactory
 
                 if (httpBeginEx != null)
                 {
-                    final LlmDialect dialect = binding.resolveDialect(envelope);
+                    final LlmLegacyDialect dialect = binding.resolveDialect(envelope);
 
                     final String contentType = header(envelope, HEADER_CONTENT_TYPE);
 
@@ -240,7 +240,7 @@ public final class LlmServerFactory implements LlmStreamFactory
     }
 
     private JsonPipeline buildRequestPipeline(
-        LlmDialect dialect,
+        LlmLegacyDialect dialect,
         LlmModelEnvelope envelope)
     {
         final JsonParserEx parser = JsonEx.createParser();
@@ -248,8 +248,8 @@ public final class LlmServerFactory implements LlmStreamFactory
 
         return JsonEx.stream(parser)
             .envelope(envelope)
-            .transform(dialect.supplySchemaValidator(LlmDialect.Kind.REQUEST))
-            .transform(dialect.supplyExtractor(LlmDialect.Kind.REQUEST, envelope))
+            .transform(dialect.supplySchemaValidator(LlmLegacyDialect.Kind.REQUEST))
+            .transform(dialect.supplyExtractor(LlmLegacyDialect.Kind.REQUEST, envelope))
             .into(generator);
     }
 
@@ -334,7 +334,7 @@ public final class LlmServerFactory implements LlmStreamFactory
         private final long initialId;
         private final long replyId;
         private final long exitId;
-        private final LlmDialect dialect;
+        private final LlmLegacyDialect dialect;
         private final String contentType;
         private final LlmModelEnvelope envelope;
         private final JsonPipeline pipeline;
@@ -380,7 +380,7 @@ public final class LlmServerFactory implements LlmStreamFactory
             long initialId,
             long exitId,
             long authorization,
-            LlmDialect dialect,
+            LlmLegacyDialect dialect,
             String contentType,
             LlmModelEnvelope envelope,
             JsonPipeline pipeline,

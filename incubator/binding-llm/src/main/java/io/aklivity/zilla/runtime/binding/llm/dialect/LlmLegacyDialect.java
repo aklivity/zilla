@@ -26,11 +26,11 @@ import io.aklivity.zilla.runtime.common.json.JsonTransform;
  * A pluggable native wire format for an LLM API -- request/response framing and payload shape -- mapped to
  * and from this binding's canonical representation.
  * <p>
- * Implementations are created by a registered {@link LlmDialectFactorySpi}, discovered via
+ * Implementations are created by a registered {@link LlmLegacyDialectFactorySpi}, discovered via
  * {@link java.util.ServiceLoader}, so dialects can be contributed from outside this module.
  * </p>
  */
-public interface LlmDialect
+public interface LlmLegacyDialect
 {
     /**
      * Literal token a {@link #requestPath(String)} result may contain, resolved per request -- not by the
@@ -206,7 +206,7 @@ public interface LlmDialect
      * The {@code RESPONSE} extractor also reports whether the response failed, by recording the error the
      * response carries -- see {@link LlmResponseExtractTransform}, which a dialect typically extends. It runs
      * over a non-2xx response body as well as over every document of a successful one, and must implement
-     * {@link LlmDialectEvent} -- as a no-op when the native out-of-band event name carries no error signal --
+     * {@link LlmLegacyDialectEvent} -- as a no-op when the native out-of-band event name carries no error signal --
      * since a caller delivers each document's event name to it uniformly, with no {@code instanceof} check.
      * </p>
      *
@@ -232,7 +232,7 @@ public interface LlmDialect
      * Creates a new {@link JsonTransform} decoding this dialect's native RESPONSE events into the canonical
      * representation, for a kind: client binding proxying a response to a differently-dialected caller. A
      * fresh instance backs each cross-dialect response stream. The returned instance must also implement
-     * {@link LlmDialectEvent} -- as a no-op when this dialect's decode behavior does not depend on the native
+     * {@link LlmLegacyDialectEvent} -- as a no-op when this dialect's decode behavior does not depend on the native
      * out-of-band event name -- since a caller drives every dialect's transform through that interface
      * uniformly, with no {@code instanceof} check.
      *
@@ -245,9 +245,9 @@ public interface LlmDialect
      * for a kind: client binding proxying a response to a differently-dialected caller. {@code envelope} is
      * the same per-stream metadata channel {@link #detect(JsonEnvelope)} reads from; {@code output} receives
      * the encoded native event name/bytes as they're produced. A fresh instance backs each cross-dialect
-     * response stream. The returned instance must also implement {@link LlmDialectTerminator} -- as a no-op
+     * response stream. The returned instance must also implement {@link LlmLegacyDialectTerminator} -- as a no-op
      * when this dialect has no literal, non-JSON completion terminator -- for the same reason
-     * {@link #supplyResponseDecodeTransform()}'s result must implement {@link LlmDialectEvent}.
+     * {@link #supplyResponseDecodeTransform()}'s result must implement {@link LlmLegacyDialectEvent}.
      *
      * @param envelope  the per-stream metadata channel
      * @param output    receives each encoded native event

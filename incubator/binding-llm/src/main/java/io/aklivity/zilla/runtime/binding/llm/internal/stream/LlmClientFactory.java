@@ -35,10 +35,10 @@ import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.runtime.binding.llm.codec.LlmContentDecoder;
 import io.aklivity.zilla.runtime.binding.llm.codec.LlmContentDecoderOutput;
 import io.aklivity.zilla.runtime.binding.llm.codec.LlmContentEncoder;
-import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialect;
-import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialect.Kind;
-import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectEvent;
-import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectTerminator;
+import io.aklivity.zilla.runtime.binding.llm.dialect.LlmLegacyDialect;
+import io.aklivity.zilla.runtime.binding.llm.dialect.LlmLegacyDialect.Kind;
+import io.aklivity.zilla.runtime.binding.llm.dialect.LlmLegacyDialectEvent;
+import io.aklivity.zilla.runtime.binding.llm.dialect.LlmLegacyDialectTerminator;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmNativeEventOutput;
 import io.aklivity.zilla.runtime.binding.llm.internal.LlmConfiguration;
 import io.aklivity.zilla.runtime.binding.llm.internal.codec.LlmContentCodecFactory;
@@ -247,8 +247,8 @@ public final class LlmClientFactory implements LlmStreamFactory
             final String contentType = llmBeginEx != null ? llmBeginEx.contentType().asString() : null;
             final String requestContentType = contentType != null ? contentType : CONTENT_TYPE_JSON;
 
-            final LlmDialect target = binding.resolveDialect(JsonEnvelope.NONE);
-            final LlmDialect source = target != null
+            final LlmLegacyDialect target = binding.resolveDialect(JsonEnvelope.NONE);
+            final LlmLegacyDialect source = target != null
                 ? (target.name().equals(sourceName) ? target : binding.dialectNamed(sourceName))
                 : null;
 
@@ -432,8 +432,8 @@ public final class LlmClientFactory implements LlmStreamFactory
         private final long authorization;
         private final long affinity;
         private final LlmBindingConfig binding;
-        private final LlmDialect source;
-        private final LlmDialect target;
+        private final LlmLegacyDialect source;
+        private final LlmLegacyDialect target;
         private final boolean sameDialect;
         private final boolean transformEvents;
         private final LlmModelEnvelope envelope;
@@ -441,7 +441,7 @@ public final class LlmClientFactory implements LlmStreamFactory
         private final LlmContentEncoder requestEncoder;
         private final JsonPipeline requestPipeline;
         private final JsonPipeline responsePipeline;
-        private final LlmDialectEvent responseEvent;
+        private final LlmLegacyDialectEvent responseEvent;
         private final DirectBufferEx responseTerminator;
         private final LlmHttpClient delegate;
 
@@ -480,8 +480,8 @@ public final class LlmClientFactory implements LlmStreamFactory
             long resolvedId,
             LlmServerConfig server,
             LlmBindingConfig binding,
-            LlmDialect source,
-            LlmDialect target,
+            LlmLegacyDialect source,
+            LlmLegacyDialect target,
             String requestContentType)
         {
             this.app = app;
@@ -503,15 +503,15 @@ public final class LlmClientFactory implements LlmStreamFactory
 
             final JsonTransform responseExtractor = transformEvents ? null : target.supplyExtractor(Kind.RESPONSE, envelope);
             this.responsePipeline = transformEvents ? null : buildResponsePipeline(target, envelope, responseExtractor);
-            this.responseEvent = (LlmDialectEvent) responseExtractor;
+            this.responseEvent = (LlmLegacyDialectEvent) responseExtractor;
             this.responseTerminator = transformEvents ? null : target.terminator(Kind.RESPONSE);
 
             this.delegate = new LlmHttpClient(this, routedId, resolvedId, server, target.requestContentType());
         }
 
         private static JsonPipeline buildRequestPipeline(
-            LlmDialect source,
-            LlmDialect target,
+            LlmLegacyDialect source,
+            LlmLegacyDialect target,
             boolean sameDialect,
             JsonEnvelope envelope)
         {
@@ -533,7 +533,7 @@ public final class LlmClientFactory implements LlmStreamFactory
         }
 
         private static JsonPipeline buildResponsePipeline(
-            LlmDialect target,
+            LlmLegacyDialect target,
             JsonEnvelope envelope,
             JsonTransform extractor)
         {
@@ -1247,9 +1247,9 @@ public final class LlmClientFactory implements LlmStreamFactory
         private final LlmNativeEventOutput nativeOutput;
 
         private final JsonPipeline eventPipeline;
-        private final LlmDialectEvent decodeEvent;
-        private final LlmDialectEvent extractEvent;
-        private final LlmDialectTerminator encodeTerminator;
+        private final LlmLegacyDialectEvent decodeEvent;
+        private final LlmLegacyDialectEvent extractEvent;
+        private final LlmLegacyDialectTerminator encodeTerminator;
 
         private LlmHttpClient(
             LlmClient client,
@@ -1267,7 +1267,7 @@ public final class LlmClientFactory implements LlmStreamFactory
             this.authority = server.host + ":" + server.port;
             this.basePath = server.path;
             this.requestPath = client.target.requestPath(basePath);
-            this.needsModel = requestPath.contains(LlmDialect.MODEL_PLACEHOLDER);
+            this.needsModel = requestPath.contains(LlmLegacyDialect.MODEL_PLACEHOLDER);
             this.requestContentType = requestContentType;
             this.buffered = client.binding.signer != null || needsModel;
             this.signBuffer = buffered ? new ExpandableArrayBuffer() : null;
@@ -1285,9 +1285,9 @@ public final class LlmClientFactory implements LlmStreamFactory
                     .transform(extractTransform)
                     .transform(decodeTransform)
                     .into(encodeSink);
-                this.decodeEvent = (LlmDialectEvent) decodeTransform;
-                this.extractEvent = (LlmDialectEvent) extractTransform;
-                this.encodeTerminator = (LlmDialectTerminator) encodeSink;
+                this.decodeEvent = (LlmLegacyDialectEvent) decodeTransform;
+                this.extractEvent = (LlmLegacyDialectEvent) extractTransform;
+                this.encodeTerminator = (LlmLegacyDialectTerminator) encodeSink;
             }
             else
             {
@@ -2501,10 +2501,10 @@ public final class LlmClientFactory implements LlmStreamFactory
     private final class LlmErrorBodyDecoder implements LlmContentDecoderOutput
     {
         private final JsonPipeline pipeline;
-        private final LlmDialectEvent extractEvent;
+        private final LlmLegacyDialectEvent extractEvent;
 
         private LlmErrorBodyDecoder(
-            LlmDialect target,
+            LlmLegacyDialect target,
             JsonEnvelope envelope)
         {
             final JsonTransform extractTransform = target.supplyExtractor(Kind.RESPONSE, envelope);
@@ -2512,7 +2512,7 @@ public final class LlmClientFactory implements LlmStreamFactory
                 .envelope(envelope)
                 .transform(extractTransform)
                 .into(JsonEx.createGenerator());
-            this.extractEvent = (LlmDialectEvent) extractTransform;
+            this.extractEvent = (LlmLegacyDialectEvent) extractTransform;
         }
 
         @Override

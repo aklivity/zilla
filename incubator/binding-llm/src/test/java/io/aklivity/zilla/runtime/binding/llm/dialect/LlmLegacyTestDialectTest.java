@@ -21,23 +21,23 @@ import static org.hamcrest.Matchers.not;
 
 import org.junit.Test;
 
-public class LlmTestDialectTest
+public class LlmLegacyTestDialectTest
 {
     @Test
     public void shouldResolveFixedRequestPathWhenModelPlaceholderNotConfigured()
     {
-        LlmDialect dialect = new LlmTestDialect();
+        LlmLegacyDialect dialect = new LlmLegacyTestDialect();
 
         assertThat(dialect.requestPath("/v1"), equalTo("/v1"));
-        assertThat(dialect.requestPath("/v1"), not(containsString(LlmDialect.MODEL_PLACEHOLDER)));
+        assertThat(dialect.requestPath("/v1"), not(containsString(LlmLegacyDialect.MODEL_PLACEHOLDER)));
     }
 
     @Test
     public void shouldResolveRequestPathCarryingModelPlaceholderWhenConfigured()
     {
-        LlmDialect dialect = new LlmTestDialect(true);
+        LlmLegacyDialect dialect = new LlmLegacyTestDialect(true);
 
-        assertThat(dialect.requestPath("/v1"), equalTo("/v1/models/" + LlmDialect.MODEL_PLACEHOLDER));
-        assertThat(dialect.requestPath("/v1"), containsString(LlmDialect.MODEL_PLACEHOLDER));
+        assertThat(dialect.requestPath("/v1"), equalTo("/v1/models/" + LlmLegacyDialect.MODEL_PLACEHOLDER));
+        assertThat(dialect.requestPath("/v1"), containsString(LlmLegacyDialect.MODEL_PLACEHOLDER));
     }
 }
