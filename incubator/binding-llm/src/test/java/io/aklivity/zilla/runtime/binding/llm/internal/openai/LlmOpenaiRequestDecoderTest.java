@@ -26,6 +26,7 @@ import java.util.Random;
 
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.binding.llm.internal.openai.LlmOpenaiRequestDecoder.Request;
 import io.aklivity.zilla.runtime.binding.llm.internal.openai.LlmOpenaiRequestDecoder.Sink;
 import io.aklivity.zilla.runtime.binding.llm.internal.openai.LlmOpenaiRequestDecoder.Status;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
@@ -302,7 +303,7 @@ public class LlmOpenaiRequestDecoderTest
 
         final Run run = run(json, 4096, 256, HOLD);
 
-        assertThat(run.decoder.status(), equalTo(Status.COMPLETE));
+        assertThat(run.request.status(), equalTo(Status.COMPLETE));
         assertThat(run.sink.events, equalTo(List.of("model:gpt-4", "user-text|0||" + text)));
     }
 
@@ -313,7 +314,7 @@ public class LlmOpenaiRequestDecoderTest
 
         final Run run = run(json, Integer.MAX_VALUE, 0, HOLD);
 
-        assertThat(run.decoder.status(), equalTo(Status.BLOCKED));
+        assertThat(run.request.status(), equalTo(Status.BLOCKED));
         assertThat(run.sink.events, equalTo(List.of("model:gpt-4")));
     }
 
@@ -367,7 +368,7 @@ public class LlmOpenaiRequestDecoderTest
         final Run run = run("{\"model\":\"gpt-4\",\"messages\":[{\"content\":\"" + text + "\",\"role\":\"user\"}]}",
             16, Integer.MAX_VALUE, 64);
 
-        assertThat(run.decoder.status(), equalTo(Status.REJECTED));
+        assertThat(run.request.status(), equalTo(Status.REJECTED));
         assertThat(run.sink.events, equalTo(List.of("model:gpt-4")));
     }
 
@@ -379,7 +380,7 @@ public class LlmOpenaiRequestDecoderTest
         final Run run = run("{\"model\":\"gpt-4\",\"messages\":[{\"content\":\"" + text + "\",\"role\":\"user\"}]}",
             16, Integer.MAX_VALUE, 128);
 
-        assertThat(run.decoder.status(), equalTo(Status.COMPLETE));
+        assertThat(run.request.status(), equalTo(Status.COMPLETE));
         assertThat(run.sink.events, equalTo(List.of("model:gpt-4", "user-text|0||" + text)));
     }
 
@@ -391,7 +392,7 @@ public class LlmOpenaiRequestDecoderTest
         final Run run = run("{\"messages\":[{\"role\":\"user\",\"content\":\"" + text + "\"}],\"model\":\"gpt-4\"}",
             16, Integer.MAX_VALUE, 64);
 
-        assertThat(run.decoder.status(), equalTo(Status.REJECTED));
+        assertThat(run.request.status(), equalTo(Status.REJECTED));
         assertThat(run.sink.events, equalTo(List.of()));
     }
 
@@ -424,7 +425,7 @@ public class LlmOpenaiRequestDecoderTest
         {
             final Run run = run(json, chunk, Integer.MAX_VALUE, HOLD);
 
-            assertThat("status at chunk " + chunk, run.decoder.status(), equalTo(Status.COMPLETE));
+            assertThat("status at chunk " + chunk, run.request.status(), equalTo(Status.COMPLETE));
             assertThat("events at chunk " + chunk, run.sink.events, equalTo(List.of(expected)));
         }
     }
@@ -436,7 +437,7 @@ public class LlmOpenaiRequestDecoderTest
         {
             final Run run = run(json, chunk, Integer.MAX_VALUE, HOLD);
 
-            assertThat("status at chunk " + chunk, run.decoder.status(), equalTo(Status.REJECTED));
+            assertThat("status at chunk " + chunk, run.request.status(), equalTo(Status.REJECTED));
         }
     }
 
@@ -447,7 +448,8 @@ public class LlmOpenaiRequestDecoderTest
         int hold)
     {
         final Recorder sink = new Recorder(availability);
-        final LlmOpenaiRequestDecoder decoder = new LlmOpenaiRequestDecoder(sink, hold);
+        final LlmOpenaiRequestDecoder decoder = new LlmOpenaiRequestDecoder();
+        final Request request = decoder.newRequest(sink, hold);
 
         final byte[] input = json.getBytes(UTF_8);
         final UnsafeBufferEx buffer = new UnsafeBufferEx(new byte[input.length + 16]);
@@ -468,31 +470,31 @@ public class LlmOpenaiRequestDecoderTest
             do
             {
                 sink.replenish();
-                consumed = decoder.decode(buffer, 0, held, last);
+                consumed = decoder.decode(request, buffer, 0, held, last);
                 buffer.putBytes(0, buffer, consumed, held - consumed);
                 held -= consumed;
             }
             while (consumed > 0 && held > 0);
 
-            if (decoder.status() == Status.COMPLETE || decoder.status() == Status.REJECTED || last && consumed == 0)
+            if (request.status() == Status.REJECTED || last && (request.status() == Status.COMPLETE || consumed == 0))
             {
                 break;
             }
         }
 
-        return new Run(decoder, sink);
+        return new Run(request, sink);
     }
 
     private static final class Run
     {
-        private final LlmOpenaiRequestDecoder decoder;
+        private final Request request;
         private final Recorder sink;
 
         private Run(
-            LlmOpenaiRequestDecoder decoder,
+            Request request,
             Recorder sink)
         {
-            this.decoder = decoder;
+            this.request = request;
             this.sink = sink;
         }
     }
