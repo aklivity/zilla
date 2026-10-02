@@ -21,12 +21,11 @@ import java.util.Map;
 
 import org.agrona.collections.Long2ObjectHashMap;
 
+import io.aklivity.zilla.config.binding.llm.LlmOptionsConfig;
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectContext;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectHandler;
 import io.aklivity.zilla.runtime.binding.llm.internal.LlmBinding;
-import io.aklivity.zilla.runtime.binding.llm.internal.codec.LlmContentCodecFactory;
-import io.aklivity.zilla.runtime.binding.llm.internal.config.LlmBindingConfig;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.HttpBeginExFW;
@@ -43,8 +42,6 @@ public final class LlmServerFactory implements LlmStreamFactory
     private final BeginFW beginRO = new BeginFW();
     private final HttpBeginExFW httpBeginExRO = new HttpBeginExFW();
 
-    private final EngineContext context;
-    private final LlmContentCodecFactory codecs;
     private final Map<String, LlmDialectContext> dialects;
     private final Long2ObjectHashMap<LlmServerBinding> bindings;
     private final int httpTypeId;
@@ -54,8 +51,6 @@ public final class LlmServerFactory implements LlmStreamFactory
         EngineContext context,
         Map<String, LlmDialectContext> dialects)
     {
-        this.context = context;
-        this.codecs = new LlmContentCodecFactory();
         this.dialects = dialects;
         this.bindings = new Long2ObjectHashMap<>();
         this.httpTypeId = context.supplyTypeId(HTTP_TYPE_NAME);
@@ -78,19 +73,19 @@ public final class LlmServerFactory implements LlmStreamFactory
     public void attach(
         BindingConfig binding)
     {
-        final LlmBindingConfig config = new LlmBindingConfig(binding, context, codecs);
+        final String fixed = binding.options instanceof LlmOptionsConfig options ? options.dialect : null;
         final Map<String, LlmDialectHandler> handlers = new LinkedHashMap<>();
 
         for (Map.Entry<String, LlmDialectContext> entry : dialects.entrySet())
         {
-            final LlmDialectHandler handler = entry.getValue().attach(config);
+            final LlmDialectHandler handler = entry.getValue().attach(binding);
             if (handler != null)
             {
                 handlers.put(entry.getKey(), handler);
             }
         }
 
-        bindings.put(binding.id, new LlmServerBinding(config.options.dialect, handlers));
+        bindings.put(binding.id, new LlmServerBinding(fixed, handlers));
     }
 
     @Override
