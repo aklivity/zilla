@@ -31,7 +31,6 @@ read zilla:begin.ext ${http:matchBeginEx()
 connected
 
 read "{\"model\":\"gpt-4\",\"messages\":[{\"content\":\""
-     ${core:randomBase64(40000)}
-     "\",\"role\":\"user\"}]}"
+     ${core:randomBase64(32757)}
 
 read abort
