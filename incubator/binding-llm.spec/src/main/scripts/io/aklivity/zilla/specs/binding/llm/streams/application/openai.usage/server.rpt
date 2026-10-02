@@ -14,8 +14,10 @@
 #
 
 property serverAddress "zilla://streams/app0"
+property authorization 0L
 
 accept ${serverAddress}
+       option zilla:authorization ${authorization}
        option zilla:window 8192
        option zilla:transmission "half-duplex"
 
