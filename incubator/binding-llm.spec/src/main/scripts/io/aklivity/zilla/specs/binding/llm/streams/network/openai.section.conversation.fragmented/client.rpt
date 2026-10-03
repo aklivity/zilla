@@ -1,0 +1,187 @@
+#
+# Copyright 2021-2026 Aklivity Inc
+#
+# Licensed under the Aklivity Community License (the "License"); you may not use
+# this file except in compliance with the License.  You may obtain a copy of the
+# License at
+#
+#   https://www.aklivity.io/aklivity-community-license/
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations under the License.
+#
+
+connect "zilla://streams/net0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+
+write zilla:begin.ext ${http:beginEx()
+                            .typeId(zilla:id("http"))
+                            .header(":method", "POST")
+                            .header(":scheme", "http")
+                            .header(":authority", "example.com:8080")
+                            .header(":path", "/v1/chat/completions")
+                            .header("content-type", "application/json")
+                            .build()}
+
+connected
+
+write "{\"model"
+write flush
+write "\":\"gpt-"
+write flush
+write "4\",\"mes"
+write flush
+write "sages\":"
+write flush
+write "[{\"role"
+write flush
+write "\":\"syst"
+write flush
+write "em\",\"co"
+write flush
+write "ntent\":"
+write flush
+write "\"Be bri"
+write flush
+write "ef\"},{\""
+write flush
+write "role\":\""
+write flush
+write "user\",\""
+write flush
+write "content"
+write flush
+write "\":\"Weat"
+write flush
+write "her in "
+write flush
+write "Paris?\""
+write flush
+write "},{\"rol"
+write flush
+write "e\":\"ass"
+write flush
+write "istant\""
+write flush
+write ",\"conte"
+write flush
+write "nt\":nul"
+write flush
+write "l,\"tool"
+write flush
+write "_calls\""
+write flush
+write ":[{\"id\""
+write flush
+write ":\"call_"
+write flush
+write "1\",\"typ"
+write flush
+write "e\":\"fun"
+write flush
+write "ction\","
+write flush
+write "\"functi"
+write flush
+write "on\":{\"n"
+write flush
+write "ame\":\"g"
+write flush
+write "et_weat"
+write flush
+write "her\",\"a"
+write flush
+write "rgument"
+write flush
+write "s\":\"{\\\""
+write flush
+write "city\\\":"
+write flush
+write "\\\"Paris"
+write flush
+write "\\\"}\"}}]"
+write flush
+write "},{\"rol"
+write flush
+write "e\":\"too"
+write flush
+write "l\",\"too"
+write flush
+write "l_call_"
+write flush
+write "id\":\"ca"
+write flush
+write "ll_1\",\""
+write flush
+write "content"
+write flush
+write "\":\"sunn"
+write flush
+write "y\"},{\"r"
+write flush
+write "ole\":\"u"
+write flush
+write "ser\",\"c"
+write flush
+write "ontent\""
+write flush
+write ":\"And i"
+write flush
+write "n Londo"
+write flush
+write "n?\"}],\""
+write flush
+write "tools\":"
+write flush
+write "[{\"type"
+write flush
+write "\":\"func"
+write flush
+write "tion\",\""
+write flush
+write "functio"
+write flush
+write "n\":{\"na"
+write flush
+write "me\":\"ge"
+write flush
+write "t_weath"
+write flush
+write "er\",\"pa"
+write flush
+write "rameter"
+write flush
+write "s\":{\"ty"
+write flush
+write "pe\":\"ob"
+write flush
+write "ject\",\""
+write flush
+write "propert"
+write flush
+write "ies\":{\""
+write flush
+write "city\":{"
+write flush
+write "\"type\":"
+write flush
+write "\"string"
+write flush
+write "\"}}}}}]"
+write flush
+write "}"
+write flush
+write close
+
+read zilla:begin.ext ${http:matchBeginEx()
+                           .typeId(zilla:id("http"))
+                           .header(":status", "429")
+                           .header("content-type", "application/json")
+                           .build()}
+
+read "{\"error\":{\"message\":\"Rate limit reached for gpt-4\",\"type\":\"requests\",\"param\":null,\"code\":\"rate_limit_exceeded\"}}"
+
+read closed

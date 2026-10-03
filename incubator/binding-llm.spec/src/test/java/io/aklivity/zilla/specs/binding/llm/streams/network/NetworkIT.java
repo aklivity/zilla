@@ -706,4 +706,140 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/openai.section.unknown.part/client",
+        "${net}/openai.section.unknown.part/server"})
+    public void shouldOpenaiSectionUnknownPart() throws Exception
+    {
+        k3po.finish();
+    }
+
+
+    @Test
+    @Specification({
+        "${net}/openai.section.user.image.50k/client",
+        "${net}/openai.section.user.image.50k/server"})
+    public void shouldOpenaiSectionUserImage50k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.section.user.text.escaped/client",
+        "${net}/openai.section.user.text.escaped/server"})
+    public void shouldOpenaiSectionUserTextEscaped() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.section.user.text.multibyte/client",
+        "${net}/openai.section.user.text.multibyte/server"})
+    public void shouldOpenaiSectionUserTextMultibyte() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.section.whitespace.between.tokens/client",
+        "${net}/openai.section.whitespace.between.tokens/server"})
+    public void shouldOpenaiSectionWhitespaceBetweenTokens() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.section.other.members/client",
+        "${net}/openai.section.other.members/server"})
+    public void shouldOpenaiSectionOtherMembers() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.section.tools.first/client",
+        "${net}/openai.section.tools.first/server"})
+    public void shouldOpenaiSectionToolsFirst() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.section.conversation.fragmented/client",
+        "${net}/openai.section.conversation.fragmented/server"})
+    public void shouldOpenaiSectionConversationFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.section.member.order.fragmented/client",
+        "${net}/openai.section.member.order.fragmented/server"})
+    public void shouldOpenaiSectionMemberOrderFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.section.rejected.model.missing/client",
+        "${net}/openai.section.rejected.model.missing/server"})
+    public void shouldOpenaiSectionRejectedModelMissing() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.section.rejected.request.not.object/client",
+        "${net}/openai.section.rejected.request.not.object/server"})
+    public void shouldOpenaiSectionRejectedRequestNotObject() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.section.rejected.role.missing/client",
+        "${net}/openai.section.rejected.role.missing/server"})
+    public void shouldOpenaiSectionRejectedRoleMissing() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.section.rejected.messages.not.array/client",
+        "${net}/openai.section.rejected.messages.not.array/server"})
+    public void shouldOpenaiSectionRejectedMessagesNotArray() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.section.rejected.json.malformed/client",
+        "${net}/openai.section.rejected.json.malformed/server"})
+    public void shouldOpenaiSectionRejectedJsonMalformed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.section.rejected.trailing.content/client",
+        "${net}/openai.section.rejected.trailing.content/server"})
+    public void shouldOpenaiSectionRejectedTrailingContent() throws Exception
+    {
+        k3po.finish();
+    }
 }
