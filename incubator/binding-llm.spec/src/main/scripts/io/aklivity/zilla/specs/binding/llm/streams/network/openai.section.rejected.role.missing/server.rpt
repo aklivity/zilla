@@ -30,6 +30,15 @@ read zilla:begin.ext ${http:matchBeginEx()
 
 connected
 
-read "{\"model\":\"gpt-4\",\"messages\":[{\"content\":\"Hello\"}]}"
+read "{\"model\":\"gpt-4\",\"messages\":[{\"name\":\"alice\"}]}"
 
 read abort
+
+write zilla:begin.ext ${http:beginEx()
+                           .typeId(zilla:id("http"))
+                           .header(":status", "400")
+                           .header("content-type", "application/json")
+                           .build()}
+
+write "{\"error\":{\"message\":\"Missing required parameter: 'role'.\",\"type\":\"invalid_request_error\",\"param\":null,\"code\":null}}"
+write close

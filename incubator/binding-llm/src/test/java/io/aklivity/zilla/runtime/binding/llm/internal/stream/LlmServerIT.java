@@ -611,4 +611,13 @@ public class LlmServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.rejected.model.missing/client"})
+    public void shouldDecodeOpenaiRejectedModelMissing() throws Exception
+    {
+        k3po.finish();
+    }
 }

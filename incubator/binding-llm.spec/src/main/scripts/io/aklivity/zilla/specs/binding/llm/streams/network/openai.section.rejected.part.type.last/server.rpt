@@ -33,3 +33,12 @@ connected
 read "{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"user\",\"content\":[{\"image_url\":{\"url\":\"https://example.com/cat.png\"},\"type\":\"image_url\"}]}]}"
 
 read abort
+
+write zilla:begin.ext ${http:beginEx()
+                           .typeId(zilla:id("http"))
+                           .header(":status", "400")
+                           .header("content-type", "application/json")
+                           .build()}
+
+write "{\"error\":{\"message\":\"The 'type' parameter must be the first member of each content part.\",\"type\":\"invalid_request_error\",\"param\":null,\"code\":null}}"
+write close

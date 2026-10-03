@@ -31,3 +31,13 @@ connected
 write "{\"model\":\"gpt-4\",\"messages\":[{\"content\":\"Hello\",\"role\":\"user\"}]}"
 
 write aborted
+
+read zilla:begin.ext ${http:matchBeginEx()
+                           .typeId(zilla:id("http"))
+                           .header(":status", "400")
+                           .header("content-type", "application/json")
+                           .build()}
+
+read "{\"error\":{\"message\":\"The 'role' parameter must precede 'content' in each message.\",\"type\":\"invalid_request_error\",\"param\":null,\"code\":null}}"
+
+read closed
