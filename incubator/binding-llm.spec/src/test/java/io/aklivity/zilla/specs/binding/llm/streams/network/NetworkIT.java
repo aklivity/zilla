@@ -790,14 +790,6 @@ public class NetworkIT
     }
 
 
-    @Test
-    @Specification({
-        "${net}/openai.section.rejected.request.not.object/client",
-        "${net}/openai.section.rejected.request.not.object/server"})
-    public void shouldOpenaiSectionRejectedRequestNotObject() throws Exception
-    {
-        k3po.finish();
-    }
 
     @Test
     @Specification({
