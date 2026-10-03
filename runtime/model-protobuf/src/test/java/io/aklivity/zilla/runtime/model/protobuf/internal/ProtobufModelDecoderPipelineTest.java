@@ -14,6 +14,9 @@
  */
 package io.aklivity.zilla.runtime.model.protobuf.internal;
 
+import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
+import static io.aklivity.zilla.runtime.engine.util.Flags.FIN;
+import static io.aklivity.zilla.runtime.engine.util.Flags.INIT;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -69,10 +72,6 @@ import io.aklivity.zilla.runtime.model.protobuf.internal.types.event.ProtobufMod
 
 public class ProtobufModelDecoderPipelineTest
 {
-    private static final int FLAGS_INIT = 0x02;
-    private static final int FLAGS_FIN = 0x01;
-    private static final int FLAGS_COMPLETE = 0x03;
-
     private static final String SCHEMA = """
                                             syntax = "proto3";
                                             package io.aklivity.examples.clients.proto;
@@ -134,13 +133,13 @@ public class ProtobufModelDecoderPipelineTest
         ByteArrayOutputStream outA = new ByteArrayOutputStream();
 
         // stream A: first fragment, incomplete -> UNDERFLOW
-        ModelPipelineResult ra1 = a.transform(0L, 0L, 0L, FLAGS_INIT,
+        ModelPipelineResult ra1 = a.transform(0L, 0L, 0L, INIT,
             new UnsafeBufferEx(a1), 0, a1.length, dst, 0, dst.capacity());
         assertEquals(ModelStatus.UNDERFLOW, ra1.status());
         drain(dst, ra1.produced(), outA);
 
         // stream B: a whole value fed in the middle of A — would corrupt A if state were shared
-        ModelPipelineResult rb = b.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult rb = b.transform(0L, 0L, 0L, COMPLETE,
             new UnsafeBufferEx(WIRE), 0, WIRE.length, dst, 0, dst.capacity());
         assertEquals(ModelStatus.COMPLETE, rb.status());
         byte[] outB = new byte[rb.produced()];
@@ -149,7 +148,7 @@ public class ProtobufModelDecoderPipelineTest
 
         // stream A: finish, prepending A's unconsumed remainder (the caller's decode-slot residue)
         byte[] a2 = concat(a1, ra1.consumed(), a2tail);
-        ModelPipelineResult ra2 = a.transform(0L, 0L, 0L, FLAGS_FIN,
+        ModelPipelineResult ra2 = a.transform(0L, 0L, 0L, FIN,
             new UnsafeBufferEx(a2), 0, a2.length, dst, 0, dst.capacity());
         assertEquals(ModelStatus.COMPLETE, ra2.status());
         drain(dst, ra2.produced(), outA);
@@ -166,7 +165,7 @@ public class ProtobufModelDecoderPipelineTest
         ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, observer(extracted), ModelCache.NONE);
 
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, COMPLETE,
             new UnsafeBufferEx(WIRE), 0, WIRE.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.COMPLETE, result.status());
@@ -208,7 +207,7 @@ public class ProtobufModelDecoderPipelineTest
             117, 109, 109, 121, 32, 115, 116, 114, 105, 110, 103, 74, 5, 1, 2, 3, 4, 5, 80, -78, -110, 4, 101, 57,
             48, 0, 0, 105, 21, -51, 91, 7, 0, 0, 0, 0, 112, -28, -92, 8, 120, -30, -94, -13, -83, 7};
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, COMPLETE,
             new UnsafeBufferEx(wire), 0, wire.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.COMPLETE, result.status());
@@ -246,14 +245,14 @@ public class ProtobufModelDecoderPipelineTest
 
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[512]);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        int flags = FLAGS_COMPLETE;
+        int flags = COMPLETE;
         ModelPipelineResult result;
         int guard = 0;
         do
         {
             result = pipeline.transform(0L, 0L, 0L, flags, new UnsafeBufferEx(wire), 0, p, dst, 0, dst.capacity());
             drain(dst, result.produced(), out);
-            flags = FLAGS_FIN;
+            flags = FIN;
             guard++;
         }
         while (result.status() == ModelStatus.OVERFLOW && guard < 1000);
@@ -272,7 +271,7 @@ public class ProtobufModelDecoderPipelineTest
         assertFalse(pipeline.identity());
 
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
-        pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        pipeline.transform(0L, 0L, 0L, COMPLETE,
             new UnsafeBufferEx(WIRE), 0, WIRE.length, dst, 0, dst.capacity());
 
         assertTrue(pipeline.identity());
@@ -285,7 +284,7 @@ public class ProtobufModelDecoderPipelineTest
         ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
 
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
-        pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        pipeline.transform(0L, 0L, 0L, COMPLETE,
             new UnsafeBufferEx(WIRE), 0, WIRE.length, dst, 0, dst.capacity());
 
         assertFalse(pipeline.identity());
@@ -298,7 +297,7 @@ public class ProtobufModelDecoderPipelineTest
 
         ModelPipeline writer = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.WRITE);
         MutableDirectBufferEx cached = new UnsafeBufferEx(new byte[256]);
-        ModelPipelineResult written = writer.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult written = writer.transform(0L, 0L, 0L, COMPLETE,
             new UnsafeBufferEx(WIRE), 0, WIRE.length, cached, 0, cached.capacity());
 
         assertEquals(ModelStatus.COMPLETE, written.status());
@@ -309,7 +308,7 @@ public class ProtobufModelDecoderPipelineTest
         ModelPipeline reader = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.READ);
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
         byte[] cachedJson = JSON.getBytes(UTF_8);
-        ModelPipelineResult read = reader.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult read = reader.transform(0L, 0L, 0L, COMPLETE,
             new UnsafeBufferEx(cachedJson), 0, cachedJson.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.COMPLETE, read.status());
@@ -323,7 +322,7 @@ public class ProtobufModelDecoderPipelineTest
 
         ModelPipeline writer = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.WRITE);
         MutableDirectBufferEx cached = new UnsafeBufferEx(new byte[256]);
-        ModelPipelineResult written = writer.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult written = writer.transform(0L, 0L, 0L, COMPLETE,
             new UnsafeBufferEx(WIRE), 0, WIRE.length, cached, 0, cached.capacity());
 
         assertEquals(ModelStatus.COMPLETE, written.status());
@@ -335,7 +334,7 @@ public class ProtobufModelDecoderPipelineTest
 
         ModelPipeline reader = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.READ);
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
-        ModelPipelineResult read = reader.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult read = reader.transform(0L, 0L, 0L, COMPLETE,
             new UnsafeBufferEx(cachedBytes), 0, cachedBytes.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.COMPLETE, read.status());
@@ -378,7 +377,7 @@ public class ProtobufModelDecoderPipelineTest
         byte[] wire = concat(prefixBytes, 0, WIRE);
         ModelPipeline writer = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.WRITE);
         MutableDirectBufferEx cached = new UnsafeBufferEx(new byte[256]);
-        ModelPipelineResult written = writer.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult written = writer.transform(0L, 0L, 0L, COMPLETE,
             new UnsafeBufferEx(wire), 0, wire.length, cached, 0, cached.capacity());
 
         assertEquals(ModelStatus.COMPLETE, written.status());
@@ -390,7 +389,7 @@ public class ProtobufModelDecoderPipelineTest
 
         ModelPipeline reader = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.READ);
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
-        ModelPipelineResult read = reader.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult read = reader.transform(0L, 0L, 0L, COMPLETE,
             new UnsafeBufferEx(cachedBytes), 0, cachedBytes.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.COMPLETE, read.status());
@@ -426,7 +425,7 @@ public class ProtobufModelDecoderPipelineTest
         // terminating byte) -- malformed wire bytes the parser cannot decode at all, not a schema violation
         byte[] malformed = {0x00, (byte) 0xFF};
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, COMPLETE,
             new UnsafeBufferEx(malformed), 0, malformed.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.REJECTED, result.status());
@@ -444,7 +443,7 @@ public class ProtobufModelDecoderPipelineTest
         ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
 
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, COMPLETE,
             new UnsafeBufferEx(WIRE), 0, WIRE.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.REJECTED, result.status());
