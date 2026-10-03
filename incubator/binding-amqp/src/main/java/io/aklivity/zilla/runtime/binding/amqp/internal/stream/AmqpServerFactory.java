@@ -77,6 +77,14 @@ import static io.aklivity.zilla.runtime.binding.amqp.internal.util.AmqpTypeUtil.
 import static io.aklivity.zilla.runtime.binding.amqp.internal.util.AmqpTypeUtil.amqpSenderSettleMode;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
+import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
+import static io.aklivity.zilla.runtime.engine.util.Flags.INCOMPLETE;
+import static io.aklivity.zilla.runtime.engine.util.Flags.NONE;
+import static io.aklivity.zilla.runtime.engine.util.Flags.fin;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasFin;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasIncomplete;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasInit;
+import static io.aklivity.zilla.runtime.engine.util.Flags.init;
 import static java.lang.System.currentTimeMillis;
 import static java.nio.ByteOrder.BIG_ENDIAN;
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -184,11 +192,6 @@ public final class AmqpServerFactory implements AmqpStreamFactory
 
     private static final StringFW[] DEFAULT_INCOMING_LOCALES = asStringFWArray(AMQP_INCOMING_LOCALES_DEFAULT);
 
-    private static final int FLAG_FIN = 1;
-    private static final int FLAG_INIT = 2;
-    private static final int FLAG_INCOMPLETE = 4;
-    private static final int FLAG_INIT_INCOMPLETE = FLAG_INIT | FLAG_INCOMPLETE;
-    private static final int FLAG_INIT_AND_FIN = FLAG_INIT | FLAG_FIN;
     private static final int FRAME_HEADER_SIZE = 8;
     private static final int SASL_DESCRIPTOR_SIZE = 3;
     private static final int MIN_MAX_FRAME_SIZE = 512;
@@ -2083,7 +2086,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
 
                 OctetsFW payload = payloadRO.wrap(buffer, offset, limit);
                 doData(network, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                        traceId, authorization, FLAG_INIT_AND_FIN, budgetId, reserved, payload, EMPTY_OCTETS);
+                        traceId, authorization, COMPLETE, budgetId, reserved, payload, EMPTY_OCTETS);
 
                 replySeq += reserved;
 
@@ -3395,10 +3398,10 @@ public final class AmqpServerFactory implements AmqpStreamFactory
                     int offset,
                     int limit)
                 {
-                    int flags = 0;
+                    int flags = NONE;
                     if (!fragmented)
                     {
-                        flags |= FLAG_INIT;
+                        flags = init(flags);
                         if (more)
                         {
                             this.deliveryTag = deliveryTag;
@@ -3407,12 +3410,12 @@ public final class AmqpServerFactory implements AmqpStreamFactory
                     }
                     if (aborted)
                     {
-                        flags = FLAG_INCOMPLETE;
+                        flags = INCOMPLETE;
                     }
 
                     if (!more && !aborted)
                     {
-                        flags |= FLAG_FIN;
+                        flags = fin(flags);
                         deliveryCount = sequenceNext(deliveryCount);
                     }
 
@@ -3814,7 +3817,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
                         doNetworkAbort(traceId, authorization);
                     }
 
-                    if ((flags & FLAG_INIT_INCOMPLETE) == FLAG_INIT_INCOMPLETE)
+                    if (hasInit(flags) && hasIncomplete(flags))
                     {
                         flushReplySharedBudget(traceId);
                     }
@@ -3823,7 +3826,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
                         nextOutgoingId++;
                         outgoingWindow--;
 
-                        if ((flags & FLAG_INIT) == FLAG_INIT)
+                        if (hasInit(flags))
                         {
                             deliveryId++;
                             onApplicationDataInit(traceId, reserved, authorization, flags, extension, payload);
@@ -3847,7 +3850,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
                     assert dataEx != null;
 
                     final int deferred = dataEx.deferred();
-                    final boolean more = (flags & FLAG_FIN) == 0;
+                    final boolean more = !hasFin(flags);
 
                     final AmqpBodyKind bodyKind = dataEx.bodyKind().get();
                     final OctetsFW deliveryTagBytes = dataEx.deliveryTag().bytes();
@@ -3930,8 +3933,8 @@ public final class AmqpServerFactory implements AmqpStreamFactory
                     int flags,
                     OctetsFW payload)
                 {
-                    final boolean aborted = (flags & FLAG_INCOMPLETE) == FLAG_INCOMPLETE;
-                    final boolean more = (flags & FLAG_FIN) == 0 && !aborted;
+                    final boolean aborted = hasIncomplete(flags);
+                    final boolean more = !hasFin(flags) && !aborted;
 
                     OctetsFW messageFragment = aborted ? EMPTY_OCTETS : amqpMessageHelper.encodeFragment(encodeBodyKind, payload);
 
