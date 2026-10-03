@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.model.core.internal;
 
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasFin;
+
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 
 public enum Int64Format
@@ -38,7 +40,7 @@ public enum Int64Format
             {
                 int digit = data.getByte(progress);
 
-                if ((flags & FLAGS_FIN) != 0x00 && progress == limit - 1 && (digit == 'L' || digit == 'l') && state.processed > 0)
+                if (hasFin(flags) && progress == limit - 1 && (digit == 'L' || digit == 'l') && state.processed > 0)
                 {
                     state.processed++;
                     break;
@@ -142,8 +144,6 @@ public enum Int64Format
             return state.processed == INT64_SIZE;
         }
     };
-
-    private static final int FLAGS_FIN = 0x01;
 
     public static final int INVALID_INDEX = -1;
 

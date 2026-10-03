@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.model.core.internal;
 
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasFin;
+
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 
 public enum FloatFormat
@@ -38,7 +40,7 @@ public enum FloatFormat
             {
                 int digit = data.getByte(progress);
 
-                if ((flags & FLAGS_FIN) != 0x00 &&
+                if (hasFin(flags) &&
                     progress == limit - 1 &&
                     (digit == 'F' || digit == 'f') &&
                     state.processed > 0)
@@ -155,7 +157,7 @@ public enum FloatFormat
                 state.processed++;
             }
 
-            if ((flags & FLAGS_FIN) != 0x00)
+            if (hasFin(flags))
             {
                 state.value = Float.intBitsToFloat(state.decoded);
             }
@@ -170,8 +172,6 @@ public enum FloatFormat
             return state.processed == FLOAT_SIZE;
         }
     };
-
-    private static final int FLAGS_FIN = 0x01;
 
     public static final int INVALID_INDEX = -1;
 
