@@ -21,6 +21,9 @@ import static io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.stream.
 import static io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.stream.McpBeginExFW.KIND_TOOLS_LIST;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
+import static io.aklivity.zilla.runtime.engine.util.Flags.FIN;
+import static io.aklivity.zilla.runtime.engine.util.Flags.INIT;
+import static io.aklivity.zilla.runtime.engine.util.Flags.NONE;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.nio.ByteOrder;
@@ -258,8 +261,6 @@ public class McpKafkaProxyFactory implements BindingHandler
     private static final Set<String> RESETTABLE_GROUP_STATES = Set.of("Empty", "Dead");
 
     private static final int CAPABILITIES_TOOLS = 1;
-    private static final int FLAGS_INIT = 0x01;
-    private static final int FLAGS_FIN = 0x02;
 
     private static final int ERROR_CODE_INVALID_PARAMS = -32602;
     private static final String ERROR_MESSAGE_INVALID_PARAMS = "Invalid params";
@@ -3795,8 +3796,8 @@ public class McpKafkaProxyFactory implements BindingHandler
                 final MutableDirectBufferEx slot = encodePool.buffer(encodeSlot);
                 final boolean fin = consumeDone;
                 final int flags = !consumeStarted
-                    ? (fin ? COMPLETE : FLAGS_INIT)
-                    : (fin ? FLAGS_FIN : 0x00);
+                    ? (fin ? COMPLETE : INIT)
+                    : (fin ? FIN : NONE);
                 consumeStarted = true;
 
                 peer.doMcpData(traceId, 0L, flags, encodeSlotOffset, slot, 0, encodeSlotOffset);
