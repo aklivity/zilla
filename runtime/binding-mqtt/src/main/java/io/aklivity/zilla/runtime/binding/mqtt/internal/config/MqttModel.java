@@ -15,6 +15,11 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.internal.config;
 
+import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
+import static io.aklivity.zilla.runtime.engine.util.Flags.FIN;
+import static io.aklivity.zilla.runtime.engine.util.Flags.fin;
+import static io.aklivity.zilla.runtime.engine.util.Flags.init;
+
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.engine.model.ModelCache;
@@ -37,9 +42,6 @@ import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 public final class MqttModel
 {
     public static final MqttModel NONE = new MqttModel();
-
-    private static final int FLAGS_INIT = 0x02;
-    private static final int FLAGS_FIN = 0x01;
 
     private final ModelPipeline pipeline;
     private final MutableDirectBufferEx scratch;
@@ -87,7 +89,7 @@ public final class MqttModel
     {
         int total = 0;
         int srcAt = index;
-        int flags = FLAGS_INIT | FLAGS_FIN;
+        int flags = COMPLETE;
         boolean done = false;
         while (!done)
         {
@@ -111,7 +113,7 @@ public final class MqttModel
                 else
                 {
                     srcAt += result.consumed();
-                    flags = FLAGS_FIN;
+                    flags = FIN;
                 }
             }
         }
@@ -133,11 +135,11 @@ public final class MqttModel
         int flags = 0;
         if (first)
         {
-            flags |= FLAGS_INIT;
+            flags = init(flags);
         }
         if (last)
         {
-            flags |= FLAGS_FIN;
+            flags = fin(flags);
         }
 
         final ModelPipelineResult result = pipeline.transform(traceId, bindingId, authorization, flags,
