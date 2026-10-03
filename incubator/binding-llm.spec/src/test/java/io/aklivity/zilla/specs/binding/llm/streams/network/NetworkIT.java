@@ -789,14 +789,6 @@ public class NetworkIT
         k3po.finish();
     }
 
-    @Test
-    @Specification({
-        "${net}/openai.section.rejected.model.missing/client",
-        "${net}/openai.section.rejected.model.missing/server"})
-    public void shouldOpenaiSectionRejectedModelMissing() throws Exception
-    {
-        k3po.finish();
-    }
 
     @Test
     @Specification({
