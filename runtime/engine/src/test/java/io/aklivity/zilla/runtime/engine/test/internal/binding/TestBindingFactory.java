@@ -648,7 +648,7 @@ final class TestBindingFactory implements BindingHandler
                     {
                         if (sessionId == NEEDS_PREAUTHORIZE && callbackUri != null)
                         {
-                            doPreauthorizeAndCallback(traceId);
+                            doPreauthorizeAndCallback(traceId, authorization);
                         }
                         else
                         {
@@ -668,9 +668,10 @@ final class TestBindingFactory implements BindingHandler
         }
 
         private void doPreauthorizeAndCallback(
-            long traceId)
+            long traceId,
+            long authorization)
         {
-            String url = guard.preauthorize(traceId, routedId, 0, 0, callbackUri);
+            String url = guard.preauthorize(traceId, routedId, 0, authorization, callbackUri);
             if (url == null)
             {
                 onAuthorized(traceId, NOT_AUTHORIZED);

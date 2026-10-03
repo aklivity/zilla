@@ -39,6 +39,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/handshake.authorized/client",
+        "${net}/handshake.authorized/server" })
+    public void shouldHandshakeAuthorized() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/value.envelope/client",
         "${net}/value.envelope/server" })
     public void shouldExchangeValueEnvelope() throws Exception
