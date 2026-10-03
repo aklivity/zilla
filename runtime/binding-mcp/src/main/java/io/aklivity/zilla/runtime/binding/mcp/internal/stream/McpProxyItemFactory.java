@@ -16,6 +16,12 @@ package io.aklivity.zilla.runtime.binding.mcp.internal.stream;
 
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_ID;
+import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
+import static io.aklivity.zilla.runtime.engine.util.Flags.FIN;
+import static io.aklivity.zilla.runtime.engine.util.Flags.INIT;
+import static io.aklivity.zilla.runtime.engine.util.Flags.NONE;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasFin;
+import static io.aklivity.zilla.runtime.engine.util.Flags.init;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -76,9 +82,6 @@ abstract class McpProxyItemFactory implements BindingHandler
 {
     private static final String MCP_TYPE_NAME = "mcp";
 
-    private static final int DATA_FLAG_FIN = 0x01;
-    private static final int DATA_FLAG_INIT = 0x02;
-    private static final int DATA_FLAG_COMPLETE = 0x03;
     private static final int ERROR_CODE_INVALID_PARAMS = -32602;
     private static final String ERROR_MESSAGE_INVALID_PARAMS = "Invalid params";
 
@@ -771,7 +774,7 @@ abstract class McpProxyItemFactory implements BindingHandler
 
             if (forward)
             {
-                final int forwardFlags = !forwardedAny && length > 0 ? flags | DATA_FLAG_INIT : flags;
+                final int forwardFlags = !forwardedAny && length > 0 ? init(flags) : flags;
                 forwardedAny = forwardedAny || length > 0;
                 client.doClientData(traceId, budgetId, forwardFlags, reserved, buffer, offset, length);
             }
@@ -796,7 +799,7 @@ abstract class McpProxyItemFactory implements BindingHandler
             extBuffer.putBytes(carryLen, buf, offset, length);
 
             final int prefixAt = indexOfQuotedPrefix(extBuffer, 0, combinedLen);
-            final boolean lastFrame = (flags & DATA_FLAG_FIN) != 0x00;
+            final boolean lastFrame = hasFin(flags);
 
             final int strippedLength;
             if (prefixAt >= 0)
@@ -1352,7 +1355,7 @@ abstract class McpProxyItemFactory implements BindingHandler
 
             assert initialAck <= initialSeq;
 
-            final boolean last = (flags & DATA_FLAG_FIN) != 0x00;
+            final boolean last = hasFin(flags);
             scanner.feed(payload.buffer(), payload.offset(), payload.sizeof(), last);
 
             if (last)
@@ -1565,7 +1568,7 @@ abstract class McpProxyItemFactory implements BindingHandler
                     return;
                 }
                 final int chunkLen = Math.min(replyWin, cachedLen - emitOffset);
-                doServerData(traceId, 0L, DATA_FLAG_COMPLETE, chunkLen, cachedBuf, emitOffset, chunkLen);
+                doServerData(traceId, 0L, COMPLETE, chunkLen, cachedBuf, emitOffset, chunkLen);
                 emitOffset += chunkLen;
             }
 
@@ -1769,7 +1772,7 @@ abstract class McpProxyItemFactory implements BindingHandler
 
             assert initialAck <= initialSeq;
 
-            final boolean last = (flags & DATA_FLAG_FIN) != 0x00;
+            final boolean last = hasFin(flags);
             scanner.feed(payload.buffer(), payload.offset(), payload.sizeof(), last);
 
             if (last)
@@ -1914,7 +1917,7 @@ abstract class McpProxyItemFactory implements BindingHandler
                     return;
                 }
                 final int chunkLen = Math.min(replyWin, cachedLen - emitOffset);
-                doServerData(traceId, 0L, DATA_FLAG_COMPLETE, chunkLen, cachedBuf, emitOffset, chunkLen);
+                doServerData(traceId, 0L, COMPLETE, chunkLen, cachedBuf, emitOffset, chunkLen);
                 emitOffset += chunkLen;
             }
 
@@ -2803,7 +2806,7 @@ abstract class McpProxyItemFactory implements BindingHandler
                 final int chunk = Math.min(sendable - sent, maxServerWindow());
                 final boolean first = bodyBytesSent == 0;
                 final boolean last = bodyFinalized && bodyBytesSent + chunk >= bodyLength;
-                final int flags = (first ? DATA_FLAG_INIT : 0) | (last ? DATA_FLAG_FIN : 0);
+                final int flags = (first ? INIT : NONE) | (last ? FIN : NONE);
 
                 // each chunk's own reserved must match its own byte count -- the delegate's client
                 // advances its own sequence by reserved each time it forwards a chunk onward
@@ -2935,7 +2938,7 @@ abstract class McpProxyItemFactory implements BindingHandler
                     return;
                 }
                 final int chunkLen = Math.min(replyWin, cachedLen - emitOffset);
-                doServerData(traceId, 0L, DATA_FLAG_COMPLETE, chunkLen, cachedBuf, emitOffset, chunkLen);
+                doServerData(traceId, 0L, COMPLETE, chunkLen, cachedBuf, emitOffset, chunkLen);
                 emitOffset += chunkLen;
             }
 

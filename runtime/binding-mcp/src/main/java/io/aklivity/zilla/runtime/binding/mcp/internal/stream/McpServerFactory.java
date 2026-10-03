@@ -20,6 +20,9 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.types.McpCapabiliti
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.McpCapabilities.SERVER_RESOURCES_SUBSCRIBE;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_LIFECYCLE;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
+import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasFin;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasInit;
 
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
@@ -187,8 +190,6 @@ public final class McpServerFactory implements McpStreamFactory
     private static final byte[] NOTIFICATIONS_RESOURCES_LIST_CHANGED_BYTES =
         "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/resources/list_changed\"}".getBytes();
 
-    private static final int DATA_FLAG_FIN = 0x01;
-    private static final int DATA_FLAG_INIT = 0x02;
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -2884,7 +2885,7 @@ public final class McpServerFactory implements McpStreamFactory
                 assert replyBud == 0L;
 
                 doData(net, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization,
-                       0x03, replyBud, reserved, buffer, offset, length);
+                       COMPLETE, replyBud, reserved, buffer, offset, length);
 
                 replySeq += reserved;
 
@@ -3590,7 +3591,7 @@ public final class McpServerFactory implements McpStreamFactory
         {
             doData(net, originId, routedId, replyId,
                 replySeq, replyAck, replyMax, traceId, authorization,
-                0x03, budgetId, reserved, buffer, offset, length);
+                COMPLETE, budgetId, reserved, buffer, offset, length);
             replySeq += reserved;
         }
 
@@ -4888,7 +4889,7 @@ public final class McpServerFactory implements McpStreamFactory
                 final int reserved = length + replyPad;
 
                 doData(net, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization,
-                       0x03, replyBud, reserved, buffer, offset, length);
+                       COMPLETE, replyBud, reserved, buffer, offset, length);
 
                 replySeq += reserved;
                 assert replySeq <= replyAck + replyMax;
@@ -5033,7 +5034,7 @@ public final class McpServerFactory implements McpStreamFactory
                 session.touch();
 
                 doData(app, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                    traceId, authorization, 0x03, initialBud, reserved, buffer, offset, length);
+                    traceId, authorization, COMPLETE, initialBud, reserved, buffer, offset, length);
 
                 initialSeq += reserved;
                 assert initialSeq <= initialAck + initialMax;
@@ -6312,7 +6313,7 @@ public final class McpServerFactory implements McpStreamFactory
     {
         int progress = offset;
 
-        if ((flags & DATA_FLAG_INIT) != 0)
+        if (hasInit(flags))
         {
             out.putBytes(progress, SSE_DATA_PREFIX_BYTES);
             progress += SSE_DATA_PREFIX_BYTES.length;
@@ -6320,7 +6321,7 @@ public final class McpServerFactory implements McpStreamFactory
 
         progress += rewriteSseDataLines(out, progress, payload, payloadOffset, payloadLength);
 
-        if ((flags & DATA_FLAG_FIN) != 0)
+        if (hasFin(flags))
         {
             out.putBytes(progress, SSE_MESSAGE_TERMINATOR_BYTES);
             progress += SSE_MESSAGE_TERMINATOR_BYTES.length;
