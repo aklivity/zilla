@@ -22,6 +22,7 @@ import java.security.PrivateKey;
 import java.util.Map;
 
 import jakarta.json.Json;
+import jakarta.json.JsonConfig;
 import jakarta.json.JsonException;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
@@ -30,11 +31,10 @@ import jakarta.json.JsonReaderFactory;
 import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
 
-import io.aklivity.zilla.runtime.common.json.JsonConfig;
-
 public final class Jws
 {
-    private static final JsonReaderFactory HEADERS = Json.createReaderFactory(Map.of(JsonConfig.FEATURE_UNIQUE_KEYS, true));
+    private static final JsonReaderFactory HEADERS = Json.createReaderFactory(
+        Map.of(JsonConfig.KEY_STRATEGY, JsonConfig.KeyStrategy.NONE));
 
     private final String signingInput;
     private final String encodedSignature;

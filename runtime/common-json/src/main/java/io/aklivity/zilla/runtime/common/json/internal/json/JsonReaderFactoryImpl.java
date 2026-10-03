@@ -22,11 +22,11 @@ import java.io.Reader;
 import java.nio.charset.Charset;
 import java.util.Map;
 
+import jakarta.json.JsonConfig;
 import jakarta.json.JsonReader;
 import jakarta.json.JsonReaderFactory;
 import jakarta.json.stream.JsonParser;
 
-import io.aklivity.zilla.runtime.common.json.JsonConfig;
 import io.aklivity.zilla.runtime.common.json.internal.JsonParserImpl;
 
 public final class JsonReaderFactoryImpl implements JsonReaderFactory
@@ -38,7 +38,12 @@ public final class JsonReaderFactoryImpl implements JsonReaderFactory
         Map<String, ?> config)
     {
         this.config = config == null ? Map.of() : Map.copyOf(config);
-        this.uniqueKeys = Boolean.TRUE.equals(this.config.get(JsonConfig.FEATURE_UNIQUE_KEYS));
+        final Object strategy = this.config.get(JsonConfig.KEY_STRATEGY);
+        if (strategy == JsonConfig.KeyStrategy.FIRST)
+        {
+            throw new IllegalArgumentException("Unsupported key strategy: " + strategy);
+        }
+        this.uniqueKeys = strategy == JsonConfig.KeyStrategy.NONE;
     }
 
     @Override

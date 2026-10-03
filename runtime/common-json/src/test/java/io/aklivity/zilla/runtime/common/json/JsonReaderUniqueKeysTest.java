@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.runtime.common.json;
 
-import static io.aklivity.zilla.runtime.common.json.JsonConfig.FEATURE_UNIQUE_KEYS;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -23,6 +22,7 @@ import java.io.ByteArrayInputStream;
 import java.io.StringReader;
 import java.util.Map;
 
+import jakarta.json.JsonConfig;
 import jakarta.json.JsonException;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonReaderFactory;
@@ -32,8 +32,25 @@ import org.junit.jupiter.api.Test;
 
 public class JsonReaderUniqueKeysTest
 {
-    private final JsonReaderFactory strict = JsonProvider.provider().createReaderFactory(Map.of(FEATURE_UNIQUE_KEYS, true));
+    private final JsonReaderFactory strict = JsonProvider.provider().createReaderFactory(
+        Map.of(JsonConfig.KEY_STRATEGY, JsonConfig.KeyStrategy.NONE));
     private final JsonReaderFactory lenient = JsonProvider.provider().createReaderFactory(Map.of());
+
+    @Test
+    public void shouldKeepLastValueWithLastStrategy()
+    {
+        JsonReaderFactory last = JsonProvider.provider()
+            .createReaderFactory(Map.of(JsonConfig.KEY_STRATEGY, JsonConfig.KeyStrategy.LAST));
+
+        assertEquals(2, last.createReader(new StringReader("{\"k\":1,\"k\":2}")).readObject().getInt("k"));
+    }
+
+    @Test
+    public void shouldRejectFirstStrategyAsUnsupported()
+    {
+        assertThrows(IllegalArgumentException.class, () -> JsonProvider.provider()
+            .createReaderFactory(Map.of(JsonConfig.KEY_STRATEGY, JsonConfig.KeyStrategy.FIRST)));
+    }
 
     @Test
     public void shouldKeepLastValueByDefault()
