@@ -74,11 +74,21 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
     private static final String PATH_COMPLETIONS = "/v1/completions";
     private static final String STATUS_OK = "200";
     private static final String STATUS_UNAUTHORIZED = "401";
+    private static final int STATUS_BAD_REQUEST = 400;
     private static final int STATUS_UNSUPPORTED_MEDIA_TYPE = 415;
     private static final int STATUS_INTERNAL_SERVER_ERROR = 500;
     private static final String CONTENT_TYPE_JSON = "application/json";
     private static final String UNAUTHORIZED_BODY = "{\"error\":{\"message\":\"Incorrect API key provided.\"," +
         "\"type\":\"invalid_request_error\",\"param\":null,\"code\":\"invalid_api_key\"}}";
+
+    private static final String MESSAGE_PARSE_ERROR = "We could not parse the JSON body of your request.";
+    private static final String MESSAGE_MODEL_MISSING = "Missing required parameter: 'model'.";
+    private static final String MESSAGE_MODEL_ORDER = "The 'model' parameter must precede 'messages' and 'tools'.";
+    private static final String MESSAGE_ROLE_MISSING = "Missing required parameter: 'role'.";
+    private static final String MESSAGE_ROLE_ORDER = "The 'role' parameter must precede 'content' in each message.";
+    private static final String MESSAGE_TOOL_CALL_ID_ORDER =
+        "The 'tool_call_id' parameter must precede 'content' in a tool message.";
+    private static final String MESSAGE_PART_TYPE_ORDER = "The 'type' parameter must be the first member of each content part.";
 
     private static final int FLAG_FIN = 0x01;
     private static final int FLAG_INIT = 0x02;
@@ -380,7 +390,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 }
                 else if (matches(key, "messages") || matches(key, "tools"))
                 {
-                    server.onDecodeParseError(traceId);
+                    server.onDecodeInvalidRequest(traceId, MESSAGE_MODEL_ORDER);
                     break decode;
                 }
                 else
@@ -389,6 +399,9 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                     server.decoder = decodeSkip;
                 }
                 break;
+            case END_OBJECT:
+                server.onDecodeInvalidRequest(traceId, MESSAGE_MODEL_MISSING);
+                break decode;
             default:
                 server.onDecodeParseError(traceId);
                 break decode;
@@ -646,7 +659,8 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 {
                     if (!textTyped(server))
                     {
-                        server.onDecodeParseError(traceId);
+                        server.onDecodeInvalidRequest(traceId,
+                            server.role == null ? MESSAGE_ROLE_ORDER : MESSAGE_TOOL_CALL_ID_ORDER);
                         break decode;
                     }
                     server.decoder = decodeContent;
@@ -668,7 +682,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             case END_OBJECT:
                 if (server.role == null)
                 {
-                    server.onDecodeParseError(traceId);
+                    server.onDecodeInvalidRequest(traceId, MESSAGE_ROLE_MISSING);
                     break decode;
                 }
                 server.decoder = decodeMessages;
@@ -1021,7 +1035,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             final JsonEvent event = parser.nextEvent();
             if (event != JsonEvent.KEY_NAME)
             {
-                server.onDecodeParseError(traceId);
+                server.onDecodeInvalidRequest(traceId, MESSAGE_PART_TYPE_ORDER);
                 break decode;
             }
 
@@ -1033,7 +1047,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 }
                 else
                 {
-                    server.onDecodeParseError(traceId);
+                    server.onDecodeInvalidRequest(traceId, MESSAGE_PART_TYPE_ORDER);
                 }
             }
         }
@@ -2020,16 +2034,22 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private void onDecodeParseError(
             long traceId)
         {
+            onDecodeInvalidRequest(traceId, MESSAGE_PARSE_ERROR);
+        }
+
+        private void onDecodeInvalidRequest(
+            long traceId,
+            String message)
+        {
             decoder = decodeIgnore;
 
             initialAck = initialSeq;
             doNetWindow(traceId);
-            doNetReset(traceId);
+            doNetError(traceId, initialAuthorization, STATUS_BAD_REQUEST, message);
             if (stream != null)
             {
                 stream.doAppAbort(traceId);
             }
-            cleanup(traceId);
         }
 
         private void doNetError(
@@ -2038,7 +2058,17 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             LlmErrorFW error)
         {
             final int status = error.status() != -1 ? error.status() : STATUS_INTERNAL_SERVER_ERROR;
-            final DirectBufferEx body = asBuffer(errorBody(status, error.message().asString()));
+
+            doNetError(traceId, authorization, status, error.message().asString());
+        }
+
+        private void doNetError(
+            long traceId,
+            long authorization,
+            int status,
+            String message)
+        {
+            final DirectBufferEx body = asBuffer(errorBody(status, message));
 
             cleanupDecodeSlot();
 
