@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.guard.jwt.internal;
 
 import static io.aklivity.zilla.config.guard.jwt.internal.keys.JwtKeyConfigs.RFC7515_RS256_CONFIG;
+import static io.aklivity.zilla.runtime.guard.jwt.internal.JwtGuardHandlerTest.json;
 import static io.aklivity.zilla.runtime.guard.jwt.internal.JwtGuardHandlerTest.sign;
 import static io.aklivity.zilla.specs.guard.jwt.keys.JwtKeys.RFC7515_RS256;
 import static java.time.Duration.ofSeconds;
@@ -26,11 +27,11 @@ import static org.mockito.Mockito.when;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.function.LongFunction;
 import java.util.function.UnaryOperator;
 
-import org.jose4j.jwt.JwtClaims;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -162,14 +163,14 @@ public class JwtGuardTest
 
         Instant now = Instant.now();
 
-        JwtClaims claims = new JwtClaims();
-        claims.setClaim("iss", "test issuer");
-        claims.setClaim("aud", "testAudience");
-        claims.setClaim("sub", "testSubject");
-        claims.setClaim("exp", now.getEpochSecond() + 10L);
-        claims.setClaim("scope", "read:stream");
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("iss", "test issuer");
+        claims.put("aud", "testAudience");
+        claims.put("sub", "testSubject");
+        claims.put("exp", now.getEpochSecond() + 10L);
+        claims.put("scope", "read:stream");
 
-        String token = sign(claims.toJson(), "test", RFC7515_RS256, "RS256");
+        String token = sign(json(claims), "test", RFC7515_RS256, "RS256");
 
         long authorizedId = handler.reauthorize(0L, 0L, 101L, token);
 
@@ -215,14 +216,14 @@ public class JwtGuardTest
 
         Instant now = Instant.now();
 
-        JwtClaims claims = new JwtClaims();
-        claims.setClaim("iss", "test issuer");
-        claims.setClaim("aud", "testAudience");
-        claims.setClaim("sub", "testSubject");
-        claims.setClaim("exp", now.getEpochSecond() + 10L);
-        claims.setClaim("scope", "read:stream write:stream");
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("iss", "test issuer");
+        claims.put("aud", "testAudience");
+        claims.put("sub", "testSubject");
+        claims.put("exp", now.getEpochSecond() + 10L);
+        claims.put("scope", "read:stream write:stream");
 
-        String token = sign(claims.toJson(), "test", RFC7515_RS256, "RS256");
+        String token = sign(json(claims), "test", RFC7515_RS256, "RS256");
 
         long sessionId = handler.reauthorize(0L, 0L, 101L, token);
 
@@ -267,14 +268,14 @@ public class JwtGuardTest
 
         Instant now = Instant.now();
 
-        JwtClaims claims = new JwtClaims();
-        claims.setClaim("iss", "test issuer");
-        claims.setClaim("aud", "testAudience");
-        claims.setClaim("sub", "testSubject");
-        claims.setClaim("exp", now.getEpochSecond() + 10L);
-        claims.setClaim("scope", "read:stream write:stream");
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("iss", "test issuer");
+        claims.put("aud", "testAudience");
+        claims.put("sub", "testSubject");
+        claims.put("exp", now.getEpochSecond() + 10L);
+        claims.put("scope", "read:stream write:stream");
 
-        String token = sign(claims.toJson(), "test", RFC7515_RS256, "RS256");
+        String token = sign(json(claims), "test", RFC7515_RS256, "RS256");
 
         long sessionId = handler.reauthorize(0L, 0L, 101L, token);
 
@@ -318,14 +319,14 @@ public class JwtGuardTest
 
         Instant now = Instant.now();
 
-        JwtClaims claims = new JwtClaims();
-        claims.setClaim("iss", "test issuer");
-        claims.setClaim("aud", "testAudience");
-        claims.setClaim("sub", "testSubject");
-        claims.setClaim("exp", now.getEpochSecond() + 10L);
-        claims.setClaim("scope", "read:stream write:stream");
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("iss", "test issuer");
+        claims.put("aud", "testAudience");
+        claims.put("sub", "testSubject");
+        claims.put("exp", now.getEpochSecond() + 10L);
+        claims.put("scope", "read:stream write:stream");
 
-        String token = sign(claims.toJson(), "test", RFC7515_RS256, "RS256");
+        String token = sign(json(claims), "test", RFC7515_RS256, "RS256");
 
         long sessionId = handler.reauthorize(0L, 0L, 101L, token);
 
@@ -369,14 +370,14 @@ public class JwtGuardTest
 
         Instant now = Instant.now();
 
-        JwtClaims claims = new JwtClaims();
-        claims.setClaim("iss", "test issuer");
-        claims.setClaim("aud", "testAudience");
-        claims.setClaim("sub", "testSubject");
-        claims.setClaim("exp", now.getEpochSecond() + 10L);
-        claims.setClaim("scope", "read:stream write:stream");
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("iss", "test issuer");
+        claims.put("aud", "testAudience");
+        claims.put("sub", "testSubject");
+        claims.put("exp", now.getEpochSecond() + 10L);
+        claims.put("scope", "read:stream write:stream");
 
-        String token = sign(claims.toJson(), "test", RFC7515_RS256, "RS256");
+        String token = sign(json(claims), "test", RFC7515_RS256, "RS256");
 
         long sessionId = handler.reauthorize(0L, 0L, 101L, token);
 
@@ -420,14 +421,14 @@ public class JwtGuardTest
 
         Instant now = Instant.now();
 
-        JwtClaims claims = new JwtClaims();
-        claims.setClaim("iss", "test issuer");
-        claims.setClaim("aud", "testAudience");
-        claims.setClaim("sub", "testSubject");
-        claims.setClaim("exp", now.getEpochSecond() + 10L);
-        claims.setClaim("scope", "read:stream write:stream");
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("iss", "test issuer");
+        claims.put("aud", "testAudience");
+        claims.put("sub", "testSubject");
+        claims.put("exp", now.getEpochSecond() + 10L);
+        claims.put("scope", "read:stream write:stream");
 
-        String token = sign(claims.toJson(), "test", RFC7515_RS256, "RS256");
+        String token = sign(json(claims), "test", RFC7515_RS256, "RS256");
 
         long sessionId = handler.reauthorize(0L, 0L, 101L, token);
 
@@ -473,14 +474,14 @@ public class JwtGuardTest
 
         Instant now = Instant.now();
 
-        JwtClaims claims = new JwtClaims();
-        claims.setClaim("iss", "test issuer");
-        claims.setClaim("aud", "testAudience");
-        claims.setClaim("sub", "testSubject");
-        claims.setClaim("exp", now.getEpochSecond() + 10L);
-        claims.setClaim("scope", "read:stream write:stream");
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("iss", "test issuer");
+        claims.put("aud", "testAudience");
+        claims.put("sub", "testSubject");
+        claims.put("exp", now.getEpochSecond() + 10L);
+        claims.put("scope", "read:stream write:stream");
 
-        String token = sign(claims.toJson(), "test", RFC7515_RS256, "RS256");
+        String token = sign(json(claims), "test", RFC7515_RS256, "RS256");
 
         long sessionId = handler.reauthorize(0L, 0L, 101L, token);
 
@@ -521,15 +522,15 @@ public class JwtGuardTest
                 .build()
             .build());
 
-        JwtClaims claims = new JwtClaims();
-        claims.setClaim("iss", "test issuer");
-        claims.setClaim("aud", "testAudience");
-        claims.setClaim("sub", "testSubject");
-        claims.setClaim("exp", Instant.now().getEpochSecond() + 10L);
-        claims.setClaim("scope", "read:stream write:stream");
-        claims.setClaim("email", "recipient@email.address");
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("iss", "test issuer");
+        claims.put("aud", "testAudience");
+        claims.put("sub", "testSubject");
+        claims.put("exp", Instant.now().getEpochSecond() + 10L);
+        claims.put("scope", "read:stream write:stream");
+        claims.put("email", "recipient@email.address");
 
-        String token = sign(claims.toJson(), "test", RFC7515_RS256, "RS256");
+        String token = sign(json(claims), "test", RFC7515_RS256, "RS256");
 
         long sessionId = handler.reauthorize(0L, 0L, 101L, token);
 
@@ -573,14 +574,14 @@ public class JwtGuardTest
 
         Instant now = Instant.now();
 
-        JwtClaims claims = new JwtClaims();
-        claims.setClaim("iss", "test issuer");
-        claims.setClaim("aud", "testAudience");
-        claims.setClaim("sub", "testSubject");
-        claims.setClaim("exp", now.getEpochSecond() + 10L);
-        claims.setClaim("scope", "read:stream");
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("iss", "test issuer");
+        claims.put("aud", "testAudience");
+        claims.put("sub", "testSubject");
+        claims.put("exp", now.getEpochSecond() + 10L);
+        claims.put("scope", "read:stream");
 
-        String token = sign(claims.toJson(), "test", RFC7515_RS256, "RS256");
+        String token = sign(json(claims), "test", RFC7515_RS256, "RS256");
 
         long sessionId = handler0.reauthorize(0L, 0L, 101L, token);
 

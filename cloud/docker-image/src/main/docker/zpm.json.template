@@ -55,6 +55,7 @@
     "io.aklivity.zilla:common-avro",
     "io.aklivity.zilla:common-feature",
     "io.aklivity.zilla:common-json",
+    "io.aklivity.zilla:common-jwt",
     "io.aklivity.zilla:common-lang",
     "io.aklivity.zilla:common-openapi",
     "io.aklivity.zilla:common-protobuf",
@@ -91,7 +92,6 @@
     "io.aklivity.zilla:resolver-env",
     "io.aklivity.zilla:store-memory",
     "io.aklivity.zilla:vault-filesystem",
-    "org.slf4j:slf4j-simple",
     "org.antlr:antlr4-runtime"
   ]
 }

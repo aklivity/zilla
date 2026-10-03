@@ -12,15 +12,22 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-module io.aklivity.zilla.runtime.guard.jwt
+package io.aklivity.zilla.runtime.common.jwt;
+
+public final class JwtException extends Exception
 {
-    requires io.aklivity.zilla.runtime.engine;
-    requires io.aklivity.zilla.config.guard.jwt;
-    requires io.aklivity.zilla.runtime.common.jwt;
+    private static final long serialVersionUID = 1L;
 
-    provides io.aklivity.zilla.runtime.engine.guard.GuardFactorySpi
-        with io.aklivity.zilla.runtime.guard.jwt.internal.JwtGuardFactorySpi;
+    public JwtException(
+        String message)
+    {
+        super(message);
+    }
 
-    provides io.aklivity.zilla.runtime.engine.event.EventFormatterFactorySpi
-        with io.aklivity.zilla.runtime.guard.jwt.internal.JwtEventFormatterFactory;
+    public JwtException(
+        String message,
+        Throwable cause)
+    {
+        super(message, cause);
+    }
 }

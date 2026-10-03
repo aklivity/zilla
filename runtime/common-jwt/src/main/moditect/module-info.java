@@ -12,15 +12,9 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-module io.aklivity.zilla.runtime.guard.jwt
+module io.aklivity.zilla.runtime.common.jwt
 {
-    requires io.aklivity.zilla.runtime.engine;
-    requires io.aklivity.zilla.config.guard.jwt;
-    requires io.aklivity.zilla.runtime.common.jwt;
+    requires transitive io.aklivity.zilla.runtime.common.json;
 
-    provides io.aklivity.zilla.runtime.engine.guard.GuardFactorySpi
-        with io.aklivity.zilla.runtime.guard.jwt.internal.JwtGuardFactorySpi;
-
-    provides io.aklivity.zilla.runtime.engine.event.EventFormatterFactorySpi
-        with io.aklivity.zilla.runtime.guard.jwt.internal.JwtEventFormatterFactory;
+    exports io.aklivity.zilla.runtime.common.jwt;
 }
