@@ -15,6 +15,8 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.model;
 
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasFin;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasInit;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.util.List;
@@ -73,8 +75,6 @@ import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 // path always constructs its pipeline with `null` here too.
 final class TestModelPipeline implements ModelPipeline
 {
-    private static final int FLAGS_INIT = 0x02;
-    private static final int FLAGS_FIN = 0x01;
     private static final DirectBufferEx EMPTY_SRC = new UnsafeBufferEx(new byte[0]);
 
     private final DirectBufferEx extractedValue = new UnsafeBufferEx("1234".getBytes(UTF_8));
@@ -191,7 +191,7 @@ final class TestModelPipeline implements ModelPipeline
             contentLength += available;
             consumed = available;
 
-            if ((flags & FLAGS_FIN) != 0)
+            if (hasFin(flags))
             {
                 String text = buffer.getStringWithoutLengthUtf8(0, contentLength);
                 boolean matched = reject.contains(text);
@@ -242,7 +242,7 @@ final class TestModelPipeline implements ModelPipeline
         int dstIndex,
         int dstLimit)
     {
-        if ((flags & FLAGS_INIT) != 0)
+        if (hasInit(flags))
         {
             processed = 0;
         }
@@ -250,7 +250,7 @@ final class TestModelPipeline implements ModelPipeline
         int srcLength = srcLimit - srcIndex;
         int dstLength = dstLimit - dstIndex;
         int available = Math.min(srcLength, dstLength);
-        boolean tail = (flags & FLAGS_FIN) != 0 && available == srcLength;
+        boolean tail = hasFin(flags) && available == srcLength;
         int total = processed + available;
         boolean lengthValid = tail ? total == length : total <= length;
 
