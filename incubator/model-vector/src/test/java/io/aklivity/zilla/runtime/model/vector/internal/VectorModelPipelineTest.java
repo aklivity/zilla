@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.model.vector.internal;
 
+import static io.aklivity.zilla.runtime.engine.util.Flags.FIN;
+import static io.aklivity.zilla.runtime.engine.util.Flags.NONE;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -43,8 +45,6 @@ import io.aklivity.zilla.runtime.engine.test.internal.store.TestStoreHandler;
 @SuppressWarnings({ "rawtypes", "unchecked" })
 public class VectorModelPipelineTest
 {
-    private static final int FLAGS_FIN = 0x01;
-
     private final Queue<Runnable> tasks = new ArrayDeque<>();
 
     private VectorModelHandlerImpl handler;
@@ -86,7 +86,7 @@ public class VectorModelPipelineTest
 
         // WHEN
         ModelPipelineResult suspended = pipeline.transform(
-            0L, 0L, 0L, FLAGS_FIN, src, 0, src.capacity(), dst, 0, dst.capacity());
+            0L, 0L, 0L, FIN, src, 0, src.capacity(), dst, 0, dst.capacity());
 
         // THEN
         assertThat(suspended.status(), equalTo(ModelStatus.SUSPENDED));
@@ -100,7 +100,7 @@ public class VectorModelPipelineTest
 
         // WHEN
         ModelPipelineResult resolved = pipeline.transform(
-            0L, 0L, 0L, 0x00, src, 0, 0, dst, 0, dst.capacity());
+            0L, 0L, 0L, NONE, src, 0, 0, dst, 0, dst.capacity());
 
         // THEN
         assertThat(resolved.status(), equalTo(ModelStatus.COMPLETE));
@@ -118,7 +118,7 @@ public class VectorModelPipelineTest
 
         // WHEN
         ModelPipelineResult suspended = pipeline.transform(
-            0L, 0L, 0L, FLAGS_FIN, src, 0, src.capacity(), dst, 0, dst.capacity());
+            0L, 0L, 0L, FIN, src, 0, src.capacity(), dst, 0, dst.capacity());
         drain();
 
         // THEN
@@ -127,7 +127,7 @@ public class VectorModelPipelineTest
 
         // WHEN
         ModelPipelineResult resolved = pipeline.transform(
-            0L, 0L, 0L, 0x00, src, 0, 0, dst, 0, dst.capacity());
+            0L, 0L, 0L, NONE, src, 0, 0, dst, 0, dst.capacity());
 
         // THEN
         assertThat(resolved.status(), equalTo(ModelStatus.REJECTED));
@@ -143,9 +143,9 @@ public class VectorModelPipelineTest
         UnsafeBufferEx dst = new UnsafeBufferEx(new byte[128]);
 
         // WHEN
-        pipeline.transform(0L, 0L, 0L, FLAGS_FIN, src, 0, src.capacity(), dst, 0, dst.capacity());
+        pipeline.transform(0L, 0L, 0L, FIN, src, 0, src.capacity(), dst, 0, dst.capacity());
         drain();
-        pipeline.transform(0L, 0L, 0L, 0x00, src, 0, 0, dst, 0, dst.capacity());
+        pipeline.transform(0L, 0L, 0L, NONE, src, 0, 0, dst, 0, dst.capacity());
         pipeline.reset();
 
         // THEN

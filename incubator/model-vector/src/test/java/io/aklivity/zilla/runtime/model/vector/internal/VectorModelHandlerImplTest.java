@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.model.vector.internal;
 
+import static io.aklivity.zilla.runtime.engine.util.Flags.FIN;
+import static io.aklivity.zilla.runtime.engine.util.Flags.NONE;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -54,7 +56,6 @@ import io.aklivity.zilla.runtime.engine.test.internal.store.TestStoreHandler;
 @SuppressWarnings({ "rawtypes", "unchecked" })
 public class VectorModelHandlerImplTest
 {
-    private static final int FLAGS_FIN = 0x01;
     private static final Runnable NOOP = () ->
     {
     };
@@ -225,9 +226,9 @@ public class VectorModelHandlerImplTest
         UnsafeBufferEx src = new UnsafeBufferEx(bytes);
         UnsafeBufferEx dst = new UnsafeBufferEx(new byte[128]);
 
-        pipeline.transform(0L, 0L, 0L, FLAGS_FIN, src, 0, src.capacity(), dst, 0, dst.capacity());
+        pipeline.transform(0L, 0L, 0L, FIN, src, 0, src.capacity(), dst, 0, dst.capacity());
         drain(tasks);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, 0x00, src, 0, 0, dst, 0, dst.capacity());
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, NONE, src, 0, 0, dst, 0, dst.capacity());
 
         return result.status() == ModelStatus.REJECTED;
     }

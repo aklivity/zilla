@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.model.vector.internal;
 
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasFin;
+
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableArrayBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
@@ -28,8 +30,6 @@ import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 // for the accepted-and-draining phase once resolved.
 final class VectorModelPipeline implements ModelPipeline
 {
-    private static final int FLAGS_FIN = 0x01;
-
     private final VectorModelHandlerImpl handler;
     private final Runnable resumed;
     private final ExpandableArrayBufferEx buffer;
@@ -92,7 +92,7 @@ final class VectorModelPipeline implements ModelPipeline
             length += available;
             consumed = available;
 
-            if ((flags & FLAGS_FIN) != 0)
+            if (hasFin(flags))
             {
                 awaiting = true;
                 long thisGeneration = ++generation;
