@@ -563,7 +563,7 @@ public final class LlmLegacyServerFactory
             if (decodeSlot != NO_SLOT)
             {
                 final MutableDirectBufferEx decodeBuffer = decodePool.buffer(decodeSlot);
-                final boolean last = (decodeSlotFlags & FLAG_FIN) != 0;
+                final boolean last = LlmState.initialClosed(state);
 
                 int progress = 0;
                 int previous = -1;
@@ -701,14 +701,22 @@ public final class LlmLegacyServerFactory
             initialSeq = end.sequence();
             state = LlmState.closeInitial(state);
 
-            if (decodeSlotOffset == 0 && (stream == null || stream.requestAvailable()))
+            if (request != null && decodeSlotOffset > 0)
             {
-                doAppEnd(traceId);
+                decodeBlocks(traceId);
             }
-            else
+
+            if (request == null || request.status() != LlmOpenaiRequestDecoder.Status.REJECTED)
             {
-                state = LlmState.deferInitialEnd(state);
-                pendingEndTraceId = traceId;
+                if (decodeSlotOffset == 0 && (stream == null || stream.requestAvailable()))
+                {
+                    doAppEnd(traceId);
+                }
+                else
+                {
+                    state = LlmState.deferInitialEnd(state);
+                    pendingEndTraceId = traceId;
+                }
             }
         }
 
