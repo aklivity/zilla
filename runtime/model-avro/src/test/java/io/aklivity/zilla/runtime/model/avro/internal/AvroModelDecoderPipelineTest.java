@@ -14,6 +14,9 @@
  */
 package io.aklivity.zilla.runtime.model.avro.internal;
 
+import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
+import static io.aklivity.zilla.runtime.engine.util.Flags.FIN;
+import static io.aklivity.zilla.runtime.engine.util.Flags.INIT;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -70,10 +73,6 @@ import io.aklivity.zilla.runtime.model.avro.internal.types.event.EventFW;
 
 public class AvroModelDecoderPipelineTest
 {
-    private static final int FLAGS_INIT = 0x02;
-    private static final int FLAGS_FIN = 0x01;
-    private static final int FLAGS_COMPLETE = 0x03;
-
     private static final String SCHEMA = """
         {
             "fields":
@@ -131,20 +130,20 @@ public class AvroModelDecoderPipelineTest
         ByteArrayOutputStream outA = new ByteArrayOutputStream();
 
         // stream A: first fragment, incomplete -> UNDERFLOW
-        ModelPipelineResult ra1 = a.transform(0L, 0L, 0L, FLAGS_INIT,
+        ModelPipelineResult ra1 = a.transform(0L, 0L, 0L, INIT,
             new UnsafeBufferEx(a1), 0, a1.length, dst, 0, dst.capacity());
         assertEquals(ModelStatus.UNDERFLOW, ra1.status());
         drain(dst, ra1.produced(), outA);
 
         // stream B: a whole value fed in the middle of A — would corrupt A if state were shared
-        ModelPipelineResult rb = b.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult rb = b.transform(0L, 0L, 0L, COMPLETE,
             new UnsafeBufferEx(AVRO), 0, AVRO.length, dst, 0, dst.capacity());
         assertEquals(ModelStatus.COMPLETE, rb.status());
         assertEquals(JSON, text(dst, rb.produced()));
 
         // stream A: finish, prepending A's unconsumed remainder (the caller's decode-slot residue)
         byte[] a2 = concat(a1, ra1.consumed(), a2tail);
-        ModelPipelineResult ra2 = a.transform(0L, 0L, 0L, FLAGS_FIN,
+        ModelPipelineResult ra2 = a.transform(0L, 0L, 0L, FIN,
             new UnsafeBufferEx(a2), 0, a2.length, dst, 0, dst.capacity());
         assertEquals(ModelStatus.COMPLETE, ra2.status());
         drain(dst, ra2.produced(), outA);
@@ -165,12 +164,12 @@ public class AvroModelDecoderPipelineTest
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
         ByteArrayOutputStream drained = new ByteArrayOutputStream();
 
-        ModelPipelineResult first = pipeline.transform(0L, 0L, 0L, FLAGS_INIT,
+        ModelPipelineResult first = pipeline.transform(0L, 0L, 0L, INIT,
             new UnsafeBufferEx(AVRO), 0, AVRO.length, dst, 0, dst.capacity());
         drain(dst, first.produced(), drained);
 
         byte[] empty = { };
-        ModelPipelineResult second = pipeline.transform(0L, 0L, 0L, FLAGS_FIN,
+        ModelPipelineResult second = pipeline.transform(0L, 0L, 0L, FIN,
             new UnsafeBufferEx(empty), 0, empty.length, dst, 0, dst.capacity());
         assertEquals(ModelStatus.COMPLETE, second.status());
         drain(dst, second.produced(), drained);
@@ -187,7 +186,7 @@ public class AvroModelDecoderPipelineTest
         ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, observer(extracted), ModelCache.NONE);
 
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, COMPLETE,
             new UnsafeBufferEx(AVRO), 0, AVRO.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.COMPLETE, result.status());
@@ -214,7 +213,7 @@ public class AvroModelDecoderPipelineTest
             0x02
         };
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, COMPLETE,
             new UnsafeBufferEx(scalars), 0, scalars.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.COMPLETE, result.status());
@@ -258,7 +257,7 @@ public class AvroModelDecoderPipelineTest
         assertFalse(pipeline.identity());
 
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
-        pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        pipeline.transform(0L, 0L, 0L, COMPLETE,
             new UnsafeBufferEx(AVRO), 0, AVRO.length, dst, 0, dst.capacity());
 
         assertTrue(pipeline.identity());
@@ -271,7 +270,7 @@ public class AvroModelDecoderPipelineTest
         ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
 
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
-        pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        pipeline.transform(0L, 0L, 0L, COMPLETE,
             new UnsafeBufferEx(AVRO), 0, AVRO.length, dst, 0, dst.capacity());
 
         assertFalse(pipeline.identity());
@@ -284,7 +283,7 @@ public class AvroModelDecoderPipelineTest
 
         ModelPipeline writer = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.WRITE);
         MutableDirectBufferEx cached = new UnsafeBufferEx(new byte[256]);
-        ModelPipelineResult written = writer.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult written = writer.transform(0L, 0L, 0L, COMPLETE,
             new UnsafeBufferEx(AVRO), 0, AVRO.length, cached, 0, cached.capacity());
 
         assertEquals(ModelStatus.COMPLETE, written.status());
@@ -295,7 +294,7 @@ public class AvroModelDecoderPipelineTest
         ModelPipeline reader = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.READ);
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
         byte[] cachedJson = JSON.getBytes(UTF_8);
-        ModelPipelineResult read = reader.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult read = reader.transform(0L, 0L, 0L, COMPLETE,
             new UnsafeBufferEx(cachedJson), 0, cachedJson.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.COMPLETE, read.status());
@@ -309,7 +308,7 @@ public class AvroModelDecoderPipelineTest
 
         ModelPipeline writer = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.WRITE);
         MutableDirectBufferEx cached = new UnsafeBufferEx(new byte[256]);
-        ModelPipelineResult written = writer.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult written = writer.transform(0L, 0L, 0L, COMPLETE,
             new UnsafeBufferEx(AVRO), 0, AVRO.length, cached, 0, cached.capacity());
 
         assertEquals(ModelStatus.COMPLETE, written.status());
@@ -321,7 +320,7 @@ public class AvroModelDecoderPipelineTest
 
         ModelPipeline reader = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.READ);
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
-        ModelPipelineResult read = reader.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult read = reader.transform(0L, 0L, 0L, COMPLETE,
             new UnsafeBufferEx(cachedBytes), 0, cachedBytes.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.COMPLETE, read.status());
@@ -364,7 +363,7 @@ public class AvroModelDecoderPipelineTest
         byte[] wire = concat(prefixBytes, 0, AVRO);
         ModelPipeline writer = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.WRITE);
         MutableDirectBufferEx cached = new UnsafeBufferEx(new byte[256]);
-        ModelPipelineResult written = writer.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult written = writer.transform(0L, 0L, 0L, COMPLETE,
             new UnsafeBufferEx(wire), 0, wire.length, cached, 0, cached.capacity());
 
         assertEquals(ModelStatus.COMPLETE, written.status());
@@ -374,7 +373,7 @@ public class AvroModelDecoderPipelineTest
 
         ModelPipeline reader = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.READ);
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
-        ModelPipelineResult read = reader.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult read = reader.transform(0L, 0L, 0L, COMPLETE,
             new UnsafeBufferEx(cachedBytes), 0, cachedBytes.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.COMPLETE, read.status());
@@ -394,7 +393,7 @@ public class AvroModelDecoderPipelineTest
         // binary the parser cannot decode at all -- a parse failure, not a schema violation
         byte[] malformed = { (byte) 0xFF };
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, COMPLETE,
             new UnsafeBufferEx(malformed), 0, malformed.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.REJECTED, result.status());
@@ -412,7 +411,7 @@ public class AvroModelDecoderPipelineTest
         ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
 
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, COMPLETE,
             new UnsafeBufferEx(AVRO), 0, AVRO.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.REJECTED, result.status());

@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.model.avro.internal;
 
+import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
+import static io.aklivity.zilla.runtime.engine.util.Flags.FIN;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -59,9 +61,6 @@ import io.aklivity.zilla.runtime.model.avro.ext.AvroModelExtHandler;
 
 public class AvroModelTransformTest
 {
-    private static final int FLAGS_FIN = 0x01;
-    private static final int FLAGS_COMPLETE = 0x03;
-
     private static final String SCHEMA = """
         {
             "fields":
@@ -362,7 +361,7 @@ public class AvroModelTransformTest
         ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, new Rejecting("$.status"), ModelCache.NONE);
 
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, COMPLETE,
             new UnsafeBufferEx(AVRO), 0, AVRO.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.REJECTED, result.status());
@@ -375,7 +374,7 @@ public class AvroModelTransformTest
         ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, new Rewriting("$.id", "replaced"), ModelCache.NONE);
 
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
-        pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        pipeline.transform(0L, 0L, 0L, COMPLETE,
             new UnsafeBufferEx(AVRO), 0, AVRO.length, dst, 0, dst.capacity());
 
         assertFalse(pipeline.identity());
@@ -388,7 +387,7 @@ public class AvroModelTransformTest
         ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, new Observing(), ModelCache.NONE);
 
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
-        pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        pipeline.transform(0L, 0L, 0L, COMPLETE,
             new UnsafeBufferEx(AVRO), 0, AVRO.length, dst, 0, dst.capacity());
 
         assertTrue(pipeline.identity());
@@ -402,7 +401,7 @@ public class AvroModelTransformTest
 
         byte[] json = "{\"id\":\"id0\",\"status\":\"positive\"}".getBytes(UTF_8);
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, COMPLETE,
             new UnsafeBufferEx(json), 0, json.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.COMPLETE, result.status());
@@ -421,7 +420,7 @@ public class AvroModelTransformTest
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[window]);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         int srcAt = 0;
-        int flags = FLAGS_COMPLETE;
+        int flags = COMPLETE;
         ModelStatus status = ModelStatus.OK;
         for (int rounds = 0; rounds < 64 && status != ModelStatus.COMPLETE && status != ModelStatus.REJECTED; rounds++)
         {
@@ -435,7 +434,7 @@ public class AvroModelTransformTest
                 out.writeBytes(chunk);
             }
             srcAt += result.consumed();
-            flags = FLAGS_FIN;
+            flags = FIN;
         }
         assertEquals(ModelStatus.COMPLETE, status);
         return out.toByteArray();
@@ -446,7 +445,7 @@ public class AvroModelTransformTest
         byte[] avro)
     {
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[512]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, COMPLETE,
             new UnsafeBufferEx(avro), 0, avro.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.COMPLETE, result.status());
