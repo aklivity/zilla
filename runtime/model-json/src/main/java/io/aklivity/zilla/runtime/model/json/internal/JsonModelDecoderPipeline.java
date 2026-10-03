@@ -15,6 +15,8 @@
 package io.aklivity.zilla.runtime.model.json.internal;
 
 import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_ID;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasFin;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasInit;
 
 import org.agrona.collections.Int2ObjectCache;
 
@@ -42,9 +44,6 @@ import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 // the fact.
 final class JsonModelDecoderPipeline implements ModelPipeline
 {
-    private static final int FLAGS_INIT = 0x02;
-    private static final int FLAGS_FIN = 0x01;
-
     private final JsonModelHandlerImpl handler;
     private final JsonGeneratorEx generator;
     private final JsonTransform fieldTransform;
@@ -94,7 +93,7 @@ final class JsonModelDecoderPipeline implements ModelPipeline
         int srcLength = srcLimit - srcIndex;
         int dstLength = dstLimit - dstIndex;
         int prefix = 0;
-        if ((flags & FLAGS_INIT) != 0)
+        if (hasInit(flags))
         {
             // the catalog framing sits at the value start; strip it once on the first fragment and select
             // the schema-bound pipeline, then later fragments stream straight through
@@ -123,7 +122,7 @@ final class JsonModelDecoderPipeline implements ModelPipeline
         }
         else
         {
-            boolean last = (flags & FLAGS_FIN) != 0;
+            boolean last = hasFin(flags);
             JsonPipelineResult json =
                 active.transform(src, srcIndex + prefix, srcIndex + srcLength, last, dst, dstIndex, dstIndex + dstLength);
             status = map(json.status());

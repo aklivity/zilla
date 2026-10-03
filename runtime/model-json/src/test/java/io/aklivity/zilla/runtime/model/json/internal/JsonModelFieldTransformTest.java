@@ -14,6 +14,10 @@
  */
 package io.aklivity.zilla.runtime.model.json.internal;
 
+import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
+import static io.aklivity.zilla.runtime.engine.util.Flags.FIN;
+import static io.aklivity.zilla.runtime.engine.util.Flags.INIT;
+import static io.aklivity.zilla.runtime.engine.util.Flags.NONE;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -54,10 +58,6 @@ import io.aklivity.zilla.runtime.engine.test.internal.catalog.TestCatalogHandler
 // JsonModelDecoderPipelineTest's own observation-only field-extraction tests already cover.
 public class JsonModelFieldTransformTest
 {
-    private static final int FLAGS_INIT = 0x02;
-    private static final int FLAGS_NONE = 0x00;
-    private static final int FLAGS_COMPLETE = 0x03;
-
     private static final String ANY_SCHEMA = """
         {
             "type": "object"
@@ -155,7 +155,7 @@ public class JsonModelFieldTransformTest
         byte[] head = "{\"note\":".getBytes(UTF_8);
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[512]);
 
-        ModelPipelineResult r1 = pipeline.transform(0L, 0L, 0L, 0x02,
+        ModelPipelineResult r1 = pipeline.transform(0L, 0L, 0L, INIT,
             new UnsafeBufferEx(head), 0, head.length, dst, 0, dst.capacity());
         assertThat(r1.status(), equalTo(ModelStatus.UNDERFLOW));
         String produced1 = text(dst, r1.produced());
@@ -163,7 +163,7 @@ public class JsonModelFieldTransformTest
         byte[] remainder = concat(head, r1.consumed(), new byte[0]);
         byte[] tail = ("\"" + longValue + "\"}").getBytes(UTF_8);
         byte[] window2 = concat(remainder, 0, tail);
-        ModelPipelineResult r2 = pipeline.transform(0L, 0L, 0L, 0x01,
+        ModelPipelineResult r2 = pipeline.transform(0L, 0L, 0L, FIN,
             new UnsafeBufferEx(window2), 0, window2.length, dst, 0, dst.capacity());
 
         assertThat(r2.status(), equalTo(ModelStatus.COMPLETE));
@@ -196,7 +196,7 @@ public class JsonModelFieldTransformTest
 
         byte[] in = "{\"maxOutputTokens\":256}".getBytes(UTF_8);
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, COMPLETE,
             new UnsafeBufferEx(in), 0, in.length, dst, 0, dst.capacity());
 
         assertThat(result.status(), equalTo(ModelStatus.COMPLETE));
@@ -211,7 +211,7 @@ public class JsonModelFieldTransformTest
 
         byte[] in = json.getBytes(UTF_8);
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[1024]);
-        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, COMPLETE,
             new UnsafeBufferEx(in), 0, in.length, dst, 0, dst.capacity());
 
         assertThat(result.status(), equalTo(ModelStatus.COMPLETE));
@@ -235,7 +235,7 @@ public class JsonModelFieldTransformTest
         boolean overflowed = false;
         ModelStatus status;
         int iterations = 0;
-        int flags = FLAGS_COMPLETE;
+        int flags = COMPLETE;
         do
         {
             assertThat("exceeded iteration bound without completing", ++iterations, lessThan(1000));
@@ -245,7 +245,7 @@ public class JsonModelFieldTransformTest
             output.append(text(dst, result.produced()));
             status = result.status();
             overflowed |= status == ModelStatus.OVERFLOW;
-            flags = FLAGS_NONE;
+            flags = NONE;
         } while (status == ModelStatus.OVERFLOW);
 
         assertThat(status, equalTo(ModelStatus.COMPLETE));

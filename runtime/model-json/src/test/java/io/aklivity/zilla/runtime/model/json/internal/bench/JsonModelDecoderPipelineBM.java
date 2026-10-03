@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.model.json.internal.bench;
 
+import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.mockito.Mockito.mock;
@@ -72,8 +73,6 @@ import io.aklivity.zilla.runtime.model.json.internal.JsonModelHandlerImpl;
 @OutputTimeUnit(SECONDS)
 public class JsonModelDecoderPipelineBM
 {
-    private static final int FLAGS_COMPLETE = 0x03;
-
     private static final String OBJECT_SCHEMA = """
         {
             "type": "object",
@@ -122,7 +121,7 @@ public class JsonModelDecoderPipelineBM
     private int run(
         ModelPipeline pipeline)
     {
-        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, COMPLETE,
             validBuffer, 0, validLength, dst, 0, dst.capacity());
         return result.produced();
     }

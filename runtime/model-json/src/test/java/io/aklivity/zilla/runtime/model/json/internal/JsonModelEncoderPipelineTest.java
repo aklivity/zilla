@@ -39,8 +39,6 @@ import io.aklivity.zilla.runtime.engine.test.internal.catalog.TestCatalogHandler
 
 public class JsonModelEncoderPipelineTest
 {
-    private static final int FLAGS_COMPLETE = 0x03;
-
     private static final String OBJECT_SCHEMA = """
         {
             "type": "object",
