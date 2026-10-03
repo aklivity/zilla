@@ -34,3 +34,4 @@ write "Hello"
 write flush
 
 write abort
+read abort

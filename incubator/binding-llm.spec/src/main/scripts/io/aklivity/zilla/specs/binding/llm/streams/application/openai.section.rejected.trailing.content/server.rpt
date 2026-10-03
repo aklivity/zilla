@@ -35,3 +35,4 @@ read zilla:data.ext ${llm:matchDataEx()
 read "Hello"
 
 read aborted
+write aborted
