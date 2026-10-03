@@ -2049,6 +2049,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             if (stream != null)
             {
                 stream.doAppAbort(traceId);
+                stream.doAppReset(traceId);
             }
         }
 
@@ -2836,6 +2837,26 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
                 app.accept(abort.typeId(), abort.buffer(), abort.offset(), abort.sizeof());
                 state = LlmState.closeInitial(state);
+            }
+        }
+
+        private void doAppReset(
+            long traceId)
+        {
+            if (!LlmState.replyClosed(state))
+            {
+                final ResetFW reset = resetRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+                    .originId(server.routedId)
+                    .routedId(server.exitId)
+                    .streamId(replyId)
+                    .sequence(replySeq)
+                    .acknowledge(replyAck)
+                    .maximum(replyMax)
+                    .traceId(traceId)
+                    .build();
+
+                app.accept(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());
+                state = LlmState.closeReply(state);
             }
         }
 
