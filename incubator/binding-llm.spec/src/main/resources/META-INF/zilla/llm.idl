@@ -21,12 +21,18 @@ scope llm
             string16 dialect;
             string16 contentType = null;
             string16 model = null;
+            varint32 extensionLength;
+            octets[extensionLength] extension = null;
         }
 
         struct LlmDataEx extends core::stream::Extension
         {
             string16 type = null;
-            string16 logProbability = null;
+            int32 message = -1;
+            varint32 attributesLength;
+            octets[attributesLength] attributes = null;
+            varint32 extensionLength;
+            octets[extensionLength] extension = null;
         }
 
         struct LlmUsage
@@ -44,6 +50,7 @@ scope llm
         {
             int32 status = -1;
             string16 type = null;
+            string16 param = null;
             string16 message = null;
         }
 
