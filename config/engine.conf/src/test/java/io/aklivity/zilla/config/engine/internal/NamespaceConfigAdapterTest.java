@@ -334,6 +334,68 @@ public class NamespaceConfigAdapterTest
     }
 
     @Test
+    public void shouldReadNamespaceWithGuardInject()
+    {
+        String text =
+                "{" +
+                    "\"name\": \"test\"," +
+                    "\"guards\":" +
+                    "{" +
+                        "\"default\":" +
+                        "{" +
+                            "\"type\": \"test\"," +
+                            "\"options\":" +
+                            "{" +
+                                "\"credentials\": \"token\"," +
+                                "\"inject\":" +
+                                "{" +
+                                    "\"identity\": \"service\"," +
+                                    "\"credentials\": \"service-secret\"" +
+                                "}" +
+                            "}" +
+                        "}" +
+                    "}" +
+                "}";
+
+        NamespaceConfig config = jsonb.fromJson(text, NamespaceConfig.class);
+
+        assertThat(config, not(nullValue()));
+        assertThat(config.guards, hasSize(1));
+        TestGuardOptionsConfig options = (TestGuardOptionsConfig) config.guards.get(0).options;
+        assertThat(options.credentials, equalTo("token"));
+        assertThat(options.inject.identity, equalTo("service"));
+        assertThat(options.inject.credentials, equalTo("service-secret"));
+    }
+
+    @Test
+    public void shouldWriteNamespaceWithGuardInject()
+    {
+        NamespaceConfig config = NamespaceConfig.builder()
+                .inject(identity())
+                .name("test")
+                .guard()
+                    .name("default")
+                    .type("test")
+                    .options(TestGuardOptionsConfig::builder)
+                        .credentials("token")
+                        .identity("alice")
+                        .inject()
+                            .identity("service")
+                            .credentials("service-secret")
+                            .build()
+                        .build()
+                    .build()
+                .build();
+
+        String text = jsonb.toJson(config);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, equalTo("{\"name\":\"test\",\"guards\":{\"default\":{\"type\":\"test\"," +
+                "\"options\":{\"credentials\":\"token\",\"identity\":\"alice\"," +
+                "\"inject\":{\"identity\":\"service\",\"credentials\":\"service-secret\"}}}}}"));
+    }
+
+    @Test
     public void shouldReadNamespaceWithGuardAndStore()
     {
         String text =

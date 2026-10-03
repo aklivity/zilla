@@ -56,6 +56,20 @@ public class SchemaTest
         assertThat(config, not(nullValue()));
     }
 
+    @Test
+    public void shouldValidateGuardInject()
+    {
+        JsonObject config = schema.validate("server.guard.inject.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectGuardInjectWithUnknownProperty()
+    {
+        schema.validate("server.guard.inject.unknown.yaml");
+    }
+
     @Test(expected = JsonException.class)
     public void shouldRejectServerMetricsCounterWithCount()
     {

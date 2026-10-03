@@ -54,6 +54,8 @@ public final class TestGuardHandler implements GuardHandler
     private final String preauthorize;
     private final boolean deferAcquire;
     private final int maxSessions;
+    private final String injectIdentity;
+    private final String injectCredentials;
     private final Consumer<Runnable> dispatcher;
 
     private final Long2LongHashMap sessions;
@@ -75,6 +77,12 @@ public final class TestGuardHandler implements GuardHandler
         this.sessions = new Long2LongHashMap(-1L);
         this.nextSessionId = new MutableLong(1L);
         this.attributes = config.options != null ? config.options.attributes : null;
+        this.injectIdentity = config.options != null && config.options.inject != null
+            ? config.options.inject.identity
+            : null;
+        this.injectCredentials = config.options != null && config.options.inject != null
+            ? config.options.inject.credentials
+            : null;
     }
 
     @Override
@@ -203,7 +211,9 @@ public final class TestGuardHandler implements GuardHandler
     public String identity(
         long sessionId)
     {
-        return authorized(sessionId) ? identity : null;
+        return sessionId == NO_AUTHORIZATION && injectIdentity != null
+            ? injectIdentity
+            : authorized(sessionId) ? identity : null;
     }
 
     @Override
@@ -220,7 +230,9 @@ public final class TestGuardHandler implements GuardHandler
     {
         // a deferring guard is cache-only until it has actually acquired, so an
         // unknown session yields nothing; the default behaviour is unchanged
-        return !deferAcquire || sessions.containsKey(sessionId) ? credentials : null;
+        return sessionId == NO_AUTHORIZATION
+            ? injectCredentials
+            : !deferAcquire || sessions.containsKey(sessionId) ? credentials : null;
     }
 
     @Override

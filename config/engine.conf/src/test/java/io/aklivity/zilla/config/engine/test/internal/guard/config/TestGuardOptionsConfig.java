@@ -33,6 +33,7 @@ public final class TestGuardOptionsConfig extends OptionsConfig
     public final String preauthorize;
     public final boolean deferAcquire;
     public final int maxSessions;
+    public final TestGuardInjectConfig inject;
 
     public static TestGuardOptionsConfigBuilder<TestGuardOptionsConfig> builder()
     {
@@ -54,7 +55,8 @@ public final class TestGuardOptionsConfig extends OptionsConfig
         Map<String, String> attributes,
         String preauthorize,
         boolean deferAcquire,
-        int maxSessions)
+        int maxSessions,
+        TestGuardInjectConfig inject)
     {
         super(null, null);
         this.credentials = credentials;
@@ -66,5 +68,6 @@ public final class TestGuardOptionsConfig extends OptionsConfig
         this.preauthorize = preauthorize;
         this.deferAcquire = deferAcquire;
         this.maxSessions = maxSessions;
+        this.inject = inject;
     }
 }

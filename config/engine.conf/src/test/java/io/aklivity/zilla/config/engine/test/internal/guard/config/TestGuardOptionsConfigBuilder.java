@@ -44,6 +44,7 @@ public final class TestGuardOptionsConfigBuilder<T> extends ConfigBuilder<T, Tes
     private String preauthorize;
     private boolean deferAcquire;
     private Integer maxSessions;
+    private TestGuardInjectConfig inject;
 
     TestGuardOptionsConfigBuilder(
         Function<OptionsConfig, T> mapper)
@@ -130,6 +131,18 @@ public final class TestGuardOptionsConfigBuilder<T> extends ConfigBuilder<T, Tes
         return this;
     }
 
+    public TestGuardInjectConfigBuilder<TestGuardOptionsConfigBuilder<T>> inject()
+    {
+        return TestGuardInjectConfig.builder(this::inject);
+    }
+
+    public TestGuardOptionsConfigBuilder<T> inject(
+        TestGuardInjectConfig inject)
+    {
+        this.inject = inject;
+        return this;
+    }
+
     @Override
     public T build()
     {
@@ -142,6 +155,7 @@ public final class TestGuardOptionsConfigBuilder<T> extends ConfigBuilder<T, Tes
             attributes,
             preauthorize,
             deferAcquire,
-            Optional.ofNullable(maxSessions).orElse(DEFAULT_MAX_SESSIONS_UNLIMITED)));
+            Optional.ofNullable(maxSessions).orElse(DEFAULT_MAX_SESSIONS_UNLIMITED),
+            inject));
     }
 }
