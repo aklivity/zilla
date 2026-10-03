@@ -443,36 +443,6 @@ public class LlmServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/openai.section.role.last/client",
-        "${app}/openai.section.role.last/server"})
-    public void shouldDecodeOpenaiSectionRoleLast() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/openai.section.model.last/client",
-        "${app}/openai.section.model.last/server"})
-    public void shouldDecodeOpenaiSectionModelLast() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/openai.section.tool.result.id.last/client",
-        "${app}/openai.section.tool.result.id.last/server"})
-    public void shouldDecodeOpenaiSectionToolResultIdLast() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
         "${net}/openai.section.user.text.10k/client",
         "${app}/openai.section.user.text.10k/server"})
     public void shouldDecodeOpenaiSectionUserText10k() throws Exception
@@ -496,16 +466,6 @@ public class LlmServerIT
         "${net}/openai.section.tool.result.100k/client",
         "${app}/openai.section.tool.result.100k/server"})
     public void shouldDecodeOpenaiSectionToolResult100k() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/openai.section.rejected.role.overflow/client",
-        "${app}/openai.section.rejected.role.overflow/server"})
-    public void shouldDecodeOpenaiSectionRejectedRoleOverflow() throws Exception
     {
         k3po.finish();
     }
@@ -571,16 +531,6 @@ public class LlmServerIT
         k3po.finish();
     }
 
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/openai.section.tools.first/client",
-        "${app}/openai.section.tools.first/server"})
-    public void shouldDecodeOpenaiSectionToolsFirst() throws Exception
-    {
-        k3po.finish();
-    }
-
 
 
     @Test
@@ -619,6 +569,45 @@ public class LlmServerIT
         "${net}/openai.section.rejected.trailing.content/client",
         "${app}/openai.section.rejected.trailing.content/server"})
     public void shouldDecodeOpenaiSectionRejectedTrailingContent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.rejected.model.last/client"})
+    public void shouldDecodeOpenaiRejectedModelLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.section.rejected.role.last/client",
+        "${app}/openai.section.rejected.role.last/server"})
+    public void shouldDecodeOpenaiSectionRejectedRoleLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.section.rejected.tool.call.id.last/client",
+        "${app}/openai.section.rejected.tool.call.id.last/server"})
+    public void shouldDecodeOpenaiSectionRejectedToolCallIdLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.section.rejected.part.type.last/client",
+        "${app}/openai.section.rejected.part.type.last/server"})
+    public void shouldDecodeOpenaiSectionRejectedPartTypeLast() throws Exception
     {
         k3po.finish();
     }

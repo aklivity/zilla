@@ -27,19 +27,4 @@ read zilla:begin.ext ${llm:matchBeginEx()
 
 connected
 
-read zilla:data.ext ${llm:matchDataEx()
-                          .typeId(zilla:id("llm"))
-                          .type("tool-result")
-                          .message(0)
-                          .extension("call_1")
-                          .build()}
-read "sunny"
-
-write zilla:reset.ext ${llm:resetEx()
-                            .typeId(zilla:id("llm"))
-                            .status(429)
-                            .type("requests")
-                            .message("Rate limit reached for gpt-4")
-                            .build()}
-
-read abort
+read aborted
