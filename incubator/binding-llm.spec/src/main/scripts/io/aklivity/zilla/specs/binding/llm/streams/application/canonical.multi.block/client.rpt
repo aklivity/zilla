@@ -27,7 +27,7 @@ connected
 
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
-                          .type("system-text")
+                          .type("system-instruction")
                           .message(0)
                           .build()}
 write "Be brief"
@@ -43,7 +43,7 @@ write flush
 
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
-                          .type("assistant-tool-call")
+                          .type("tool-call")
                           .message(2)
                           .build()}
 write "get_weather"
@@ -72,7 +72,7 @@ read "It is sunny"
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
-                          .type("assistant-tool-call")
+                          .type("tool-call")
                           .message(0)
                           .build()}
 read "get_forecast"
