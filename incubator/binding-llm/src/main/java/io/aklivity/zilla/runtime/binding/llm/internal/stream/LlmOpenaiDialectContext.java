@@ -22,7 +22,6 @@ import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectHandler;
 import io.aklivity.zilla.runtime.binding.llm.internal.LlmConfiguration;
 import io.aklivity.zilla.runtime.binding.llm.internal.codec.LlmContentCodecFactory;
 import io.aklivity.zilla.runtime.binding.llm.internal.config.LlmLegacyBindingConfig;
-import io.aklivity.zilla.runtime.binding.llm.internal.openai.LlmOpenaiRequestDecoder;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 
 final class LlmOpenaiDialectContext implements LlmDialectContext
@@ -30,9 +29,8 @@ final class LlmOpenaiDialectContext implements LlmDialectContext
     private final LlmConfiguration config;
     private final EngineContext context;
     private final LlmContentCodecFactory codecs;
-    private final LlmOpenaiRequestDecoder decoder;
 
-    private LlmLegacyServerFactory server;
+    private LlmOpenaiServerFactory server;
     private LlmLegacyClientFactory client;
 
     LlmOpenaiDialectContext(
@@ -42,7 +40,6 @@ final class LlmOpenaiDialectContext implements LlmDialectContext
         this.config = config;
         this.context = context;
         this.codecs = new LlmContentCodecFactory();
-        this.decoder = new LlmOpenaiRequestDecoder();
     }
 
     @Override
@@ -58,7 +55,8 @@ final class LlmOpenaiDialectContext implements LlmDialectContext
         case SERVER:
             if (fixed == null || NAME.equals(fixed))
             {
-                handler = new LlmOpenaiServerHandler(supplyServer(), supplyBinding(binding), decoder);
+                handler = supplyServer();
+                server.attach(binding);
             }
             break;
         case CLIENT:
@@ -80,11 +78,21 @@ final class LlmOpenaiDialectContext implements LlmDialectContext
         return new LlmLegacyBindingConfig(binding, context, codecs);
     }
 
-    private LlmLegacyServerFactory supplyServer()
+    @Override
+    public void detach(
+        long bindingId)
+    {
+        if (server != null)
+        {
+            server.detach(bindingId);
+        }
+    }
+
+    private LlmOpenaiServerFactory supplyServer()
     {
         if (server == null)
         {
-            server = new LlmLegacyServerFactory(config, context);
+            server = new LlmOpenaiServerFactory(context);
         }
         return server;
     }

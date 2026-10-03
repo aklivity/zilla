@@ -25,7 +25,6 @@ import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectHandler;
 import io.aklivity.zilla.runtime.binding.llm.internal.LlmBinding;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
-import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 
@@ -99,7 +98,7 @@ public final class LlmClientFactory implements LlmStreamFactory
         final LlmDialectHandler handler = bindings.get(begin.routedId());
 
         return handler != null
-            ? handler.newStream(msgTypeId, buffer, index, length, sender, JsonEnvelope.NONE)
+            ? handler.newStream(msgTypeId, buffer, index, length, sender)
             : null;
     }
 }
