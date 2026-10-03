@@ -60,6 +60,7 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
+import io.aklivity.zilla.runtime.engine.util.Flags;
 
 public final class LlmOpenaiServerFactory implements LlmDialectHandler
 {
@@ -89,9 +90,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
     private static final String MESSAGE_TOOL_CALL_ID_ORDER =
         "The 'tool_call_id' parameter must precede 'content' in a tool message.";
     private static final String MESSAGE_PART_TYPE_ORDER = "The 'type' parameter must be the first member of each content part.";
-
-    private static final int FLAG_FIN = 0x01;
-    private static final int FLAG_INIT = 0x02;
 
     private static final int RESPONSE_ENCODE_PADDING = 128;
 
@@ -332,14 +330,14 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         boolean first,
         boolean last)
     {
-        int sliceFlags = 0;
-        if (first)
+        int sliceFlags = Flags.NONE;
+        if (first && Flags.hasInit(flags))
         {
-            sliceFlags |= flags & FLAG_INIT;
+            sliceFlags = Flags.init(sliceFlags);
         }
-        if (last)
+        if (last && Flags.hasFin(flags))
         {
-            sliceFlags |= flags & FLAG_FIN;
+            sliceFlags = Flags.fin(sliceFlags);
         }
         return sliceFlags;
     }
@@ -2001,7 +1999,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             int length,
             boolean last)
         {
-            final int flags = (blockFirst ? FLAG_INIT : 0) | (last ? FLAG_FIN : 0);
+            final int flags = (blockFirst ? Flags.INIT : Flags.NONE) | (last ? Flags.FIN : Flags.NONE);
 
             stream.doAppBlockData(traceId, authorization, flags, blockFirst ? blockType : null, blockMessage,
                 blockExtension, buffer, offset, length);
@@ -2074,7 +2072,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             cleanupDecodeSlot();
 
             doNetBegin(traceId, authorization, 0L, Integer.toString(status), CONTENT_TYPE_JSON);
-            doNetData(body, 0, body.capacity(), 0, FLAG_INIT | FLAG_FIN, 0L, traceId, authorization);
+            doNetData(body, 0, body.capacity(), 0, Flags.COMPLETE, 0L, traceId, authorization);
 
             if (encodeSlot != NO_SLOT)
             {
@@ -2705,8 +2703,8 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             }
             else
             {
-                final boolean first = (flags & FLAG_INIT) != 0;
-                final boolean last = (flags & FLAG_FIN) != 0;
+                final boolean first = Flags.hasInit(flags);
+                final boolean last = Flags.hasFin(flags);
 
                 if (first)
                 {
@@ -2734,7 +2732,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
                 if (position > 0)
                 {
-                    server.doNetData(copyBuffer, 0, position, reserved, sliceFlags(FLAG_INIT | FLAG_FIN, first, last),
+                    server.doNetData(copyBuffer, 0, position, reserved, sliceFlags(Flags.COMPLETE, first, last),
                         budgetId, traceId, authorization);
                 }
 
@@ -3155,7 +3153,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 final int length = (int) Math.min(remaining, available);
                 final boolean first = bodySent == 0;
                 final boolean last = bodySent + length == body.capacity();
-                final int flags = (first ? FLAG_INIT : 0) | (last ? FLAG_FIN : 0);
+                final int flags = (first ? Flags.INIT : Flags.NONE) | (last ? Flags.FIN : Flags.NONE);
 
                 final DataFW data = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                     .originId(originId)
