@@ -728,4 +728,122 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/openai.section.unknown.part/client",
+        "${app}/openai.section.unknown.part/server"})
+    public void shouldOpenaiSectionUnknownPart() throws Exception
+    {
+        k3po.finish();
+    }
+
+
+    @Test
+    @Specification({
+        "${app}/openai.section.user.image.50k/client",
+        "${app}/openai.section.user.image.50k/server"})
+    public void shouldOpenaiSectionUserImage50k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.section.user.text.escaped/client",
+        "${app}/openai.section.user.text.escaped/server"})
+    public void shouldOpenaiSectionUserTextEscaped() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.section.user.text.multibyte/client",
+        "${app}/openai.section.user.text.multibyte/server"})
+    public void shouldOpenaiSectionUserTextMultibyte() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.section.whitespace.between.tokens/client",
+        "${app}/openai.section.whitespace.between.tokens/server"})
+    public void shouldOpenaiSectionWhitespaceBetweenTokens() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.section.other.members/client",
+        "${app}/openai.section.other.members/server"})
+    public void shouldOpenaiSectionOtherMembers() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.section.tools.first/client",
+        "${app}/openai.section.tools.first/server"})
+    public void shouldOpenaiSectionToolsFirst() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.section.conversation.fragmented/client",
+        "${app}/openai.section.conversation.fragmented/server"})
+    public void shouldOpenaiSectionConversationFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.section.member.order.fragmented/client",
+        "${app}/openai.section.member.order.fragmented/server"})
+    public void shouldOpenaiSectionMemberOrderFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.section.rejected.role.missing/client",
+        "${app}/openai.section.rejected.role.missing/server"})
+    public void shouldOpenaiSectionRejectedRoleMissing() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.section.rejected.messages.not.array/client",
+        "${app}/openai.section.rejected.messages.not.array/server"})
+    public void shouldOpenaiSectionRejectedMessagesNotArray() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.section.rejected.json.malformed/client",
+        "${app}/openai.section.rejected.json.malformed/server"})
+    public void shouldOpenaiSectionRejectedJsonMalformed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.section.rejected.trailing.content/client",
+        "${app}/openai.section.rejected.trailing.content/server"})
+    public void shouldOpenaiSectionRejectedTrailingContent() throws Exception
+    {
+        k3po.finish();
+    }
 }

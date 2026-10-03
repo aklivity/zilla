@@ -686,4 +686,25 @@ public class LlmClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.section.unknown.part/client",
+        "${net}/openai.section.unknown.part/server"})
+    public void shouldEncodeOpenaiSectionUnknownPart() throws Exception
+    {
+        k3po.finish();
+    }
+
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.section.user.image.50k/client",
+        "${net}/openai.section.user.image.50k/server"})
+    public void shouldEncodeOpenaiSectionUserImage50k() throws Exception
+    {
+        k3po.finish();
+    }
 }
