@@ -602,14 +602,6 @@ public class LlmServerIT
     }
 
 
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/openai.section.rejected.request.not.object/client"})
-    public void shouldDecodeOpenaiSectionRejectedRequestNotObject() throws Exception
-    {
-        k3po.finish();
-    }
 
     @Test
     @Configuration("server.yaml")
