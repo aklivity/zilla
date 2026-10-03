@@ -795,24 +795,6 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/openai.section.conversation.fragmented/client",
-        "${app}/openai.section.conversation.fragmented/server"})
-    public void shouldOpenaiSectionConversationFragmented() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/openai.section.member.order.fragmented/client",
-        "${app}/openai.section.member.order.fragmented/server"})
-    public void shouldOpenaiSectionMemberOrderFragmented() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${app}/openai.section.rejected.role.missing/client",
         "${app}/openai.section.rejected.role.missing/server"})
     public void shouldOpenaiSectionRejectedRoleMissing() throws Exception

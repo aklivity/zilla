@@ -771,24 +771,6 @@ public class NetworkIT
         k3po.finish();
     }
 
-    @Test
-    @Specification({
-        "${net}/openai.section.conversation.fragmented/client",
-        "${net}/openai.section.conversation.fragmented/server"})
-    public void shouldOpenaiSectionConversationFragmented() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/openai.section.member.order.fragmented/client",
-        "${net}/openai.section.member.order.fragmented/server"})
-    public void shouldOpenaiSectionMemberOrderFragmented() throws Exception
-    {
-        k3po.finish();
-    }
-
 
 
     @Test

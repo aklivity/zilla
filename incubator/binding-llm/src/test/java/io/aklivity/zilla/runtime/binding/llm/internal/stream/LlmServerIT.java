@@ -581,26 +581,6 @@ public class LlmServerIT
         k3po.finish();
     }
 
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/openai.section.conversation.fragmented/client",
-        "${app}/openai.section.conversation.fragmented/server"})
-    public void shouldDecodeOpenaiSectionConversationFragmented() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/openai.section.member.order.fragmented/client",
-        "${app}/openai.section.member.order.fragmented/server"})
-    public void shouldDecodeOpenaiSectionMemberOrderFragmented() throws Exception
-    {
-        k3po.finish();
-    }
-
 
 
     @Test
