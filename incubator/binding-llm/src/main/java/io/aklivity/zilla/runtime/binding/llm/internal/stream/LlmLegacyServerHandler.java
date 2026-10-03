@@ -17,12 +17,17 @@ package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectHandler;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmLegacyDialect;
 import io.aklivity.zilla.runtime.binding.llm.internal.config.LlmLegacyBindingConfig;
+import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.BeginFW;
+import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 
 final class LlmLegacyServerHandler implements LlmDialectHandler
 {
+    private final BeginFW beginRO = new BeginFW();
+    private final HttpBeginExFW httpBeginExRO = new HttpBeginExFW();
+
     private final String dialect;
     private final LlmLegacyServerFactory factory;
     private final LlmLegacyBindingConfig binding;
@@ -52,11 +57,14 @@ final class LlmLegacyServerHandler implements LlmDialectHandler
         DirectBufferEx buffer,
         int index,
         int length,
-        MessageConsumer sender,
-        JsonEnvelope headers)
+        MessageConsumer sender)
     {
+        final BeginFW begin = beginRO.wrap(buffer, index, index + length);
+        final HttpBeginExFW httpBeginEx = begin.extension().get(httpBeginExRO::tryWrap);
         final LlmLegacyDialect legacy = binding.dialectNamed(dialect);
 
-        return factory.newStream(binding, legacy, (LlmModelEnvelope) headers, buffer, index, length, sender);
+        return httpBeginEx != null
+            ? factory.newStream(binding, legacy, LlmModelEnvelope.of(httpBeginEx), buffer, index, length, sender)
+            : null;
     }
 }

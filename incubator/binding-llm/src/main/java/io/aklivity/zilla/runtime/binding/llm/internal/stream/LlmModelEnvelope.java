@@ -14,11 +14,14 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
@@ -34,6 +37,17 @@ final class LlmModelEnvelope implements JsonEnvelope
     LlmModelEnvelope()
     {
         this.valuesByName = new LinkedHashMap<>();
+    }
+
+    static LlmModelEnvelope of(
+        HttpBeginExFW httpBeginEx)
+    {
+        final LlmModelEnvelope envelope = new LlmModelEnvelope();
+
+        httpBeginEx.headers().forEach(h ->
+            envelope.set(h.name().asString(), new UnsafeBufferEx(h.value().asString().getBytes(UTF_8))));
+
+        return envelope;
     }
 
     void clear()

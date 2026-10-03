@@ -30,7 +30,6 @@ import io.aklivity.zilla.runtime.binding.llm.internal.LlmBinding;
 import io.aklivity.zilla.runtime.binding.llm.internal.LlmConfiguration;
 import io.aklivity.zilla.runtime.binding.llm.internal.codec.LlmContentCodecFactory;
 import io.aklivity.zilla.runtime.binding.llm.internal.config.LlmLegacyBindingConfig;
-import io.aklivity.zilla.runtime.binding.llm.internal.openai.LlmOpenaiRequestDecoder;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.BeginFW;
@@ -100,7 +99,6 @@ public final class LlmLegacyServerFactory
     private final LlmBeginExFW llmBeginExRO = new LlmBeginExFW();
     private final LlmBeginExFW.Builder llmBeginExRW = new LlmBeginExFW.Builder();
     private final LlmDataExFW llmDataExRO = new LlmDataExFW();
-    private final LlmDataExFW.Builder llmDataExRW = new LlmDataExFW.Builder();
     private final LlmResetExFW llmResetExRO = new LlmResetExFW();
 
     private final MutableDirectBufferEx writeBuffer;
@@ -143,19 +141,6 @@ public final class LlmLegacyServerFactory
         int length,
         MessageConsumer network)
     {
-        return newStream(binding, dialect, envelope, buffer, index, length, network, null);
-    }
-
-    public MessageConsumer newStream(
-        LlmLegacyBindingConfig binding,
-        LlmLegacyDialect dialect,
-        LlmModelEnvelope envelope,
-        DirectBufferEx buffer,
-        int index,
-        int length,
-        MessageConsumer network,
-        LlmOpenaiRequestDecoder decoder)
-    {
         final BeginFW begin = beginRO.wrap(buffer, index, index + length);
         final long routedId = begin.routedId();
         final long authorization = begin.authorization();
@@ -186,7 +171,7 @@ public final class LlmLegacyServerFactory
                 }
                 else
                 {
-                    final JsonPipeline pipeline = decoder == null ? buildRequestPipeline(dialect, envelope) : null;
+                    final JsonPipeline pipeline = buildRequestPipeline(dialect, envelope);
 
                     newStream = new LlmServer(
                             network,
@@ -199,7 +184,6 @@ public final class LlmLegacyServerFactory
                             contentType,
                             envelope,
                             pipeline,
-                            decoder,
                             authResult.deauthorize())::onNetMessage;
                 }
             }
@@ -280,7 +264,7 @@ public final class LlmLegacyServerFactory
         }
     }
 
-    private final class LlmServer implements LlmOpenaiRequestDecoder.Sink
+    private final class LlmServer
     {
         private final MessageConsumer network;
         private final long originId;
@@ -292,17 +276,9 @@ public final class LlmLegacyServerFactory
         private final String contentType;
         private final LlmModelEnvelope envelope;
         private final JsonPipeline pipeline;
-        private final LlmOpenaiRequestDecoder decoder;
-        private final LlmOpenaiRequestDecoder.Request request;
         private final Runnable deauthorize;
 
         private LlmStream stream;
-
-        private long decodeTraceId;
-        private String blockType;
-        private int blockMessage;
-        private String blockExtension;
-        private boolean blockFirst;
 
         private long initialSeq;
         private long initialAck;
@@ -346,7 +322,6 @@ public final class LlmLegacyServerFactory
             String contentType,
             LlmModelEnvelope envelope,
             JsonPipeline pipeline,
-            LlmOpenaiRequestDecoder decoder,
             Runnable deauthorize)
         {
             this.network = network;
@@ -360,8 +335,6 @@ public final class LlmLegacyServerFactory
             this.contentType = contentType;
             this.envelope = envelope;
             this.pipeline = pipeline;
-            this.decoder = decoder;
-            this.request = decoder != null ? decoder.newRequest(this, decodePool.slotCapacity()) : null;
             this.deauthorize = deauthorize;
         }
 
@@ -447,19 +420,6 @@ public final class LlmLegacyServerFactory
         }
 
         private void decodeNetwork(
-            long traceId)
-        {
-            if (request != null)
-            {
-                decodeBlocks(traceId);
-            }
-            else
-            {
-                decodePipeline(traceId);
-            }
-        }
-
-        private void decodePipeline(
             long traceId)
         {
             final long authorization = initialAuthorization;
@@ -552,72 +512,6 @@ public final class LlmLegacyServerFactory
                 }
             }
 
-            flushDecode(traceId);
-        }
-
-        private void decodeBlocks(
-            long traceId)
-        {
-            decodeTraceId = traceId;
-
-            if (decodeSlot != NO_SLOT)
-            {
-                final MutableDirectBufferEx decodeBuffer = decodePool.buffer(decodeSlot);
-                final boolean last = LlmState.initialClosed(state);
-
-                int progress = 0;
-                int previous = -1;
-
-                while (progress < decodeSlotOffset && progress != previous &&
-                    request.status() != LlmOpenaiRequestDecoder.Status.REJECTED)
-                {
-                    previous = progress;
-                    progress = decoder.decode(request, decodeBuffer, progress, decodeSlotOffset, last);
-                }
-
-                if (request.status() == LlmOpenaiRequestDecoder.Status.REJECTED)
-                {
-                    rejectRequest(traceId);
-                }
-                else
-                {
-                    if (progress > 0)
-                    {
-                        decodeBuffer.putBytes(0, decodeBuffer, progress, decodeSlotOffset - progress);
-                        decodeSlotOffset -= progress;
-                    }
-
-                    if (decodeSlotOffset == 0)
-                    {
-                        decodePool.release(decodeSlot);
-                        decodeSlot = NO_SLOT;
-                    }
-
-                    flushDecode(traceId);
-                }
-            }
-            else
-            {
-                flushDecode(traceId);
-            }
-        }
-
-        private void rejectRequest(
-            long traceId)
-        {
-            initialAck = initialSeq;
-            doNetWindow(traceId);
-            doNetReset(traceId);
-            if (stream != null)
-            {
-                stream.doAppAbort(traceId);
-            }
-            cleanup(traceId);
-        }
-
-        private void flushDecode(
-            long traceId)
-        {
             if (stream == null || stream.requestAvailable())
             {
                 final long initialAckMax = initialSeq - decodeSlotOffset;
@@ -633,50 +527,6 @@ public final class LlmLegacyServerFactory
                     doAppEnd(traceId);
                 }
             }
-        }
-
-        @Override
-        public int available()
-        {
-            return stream != null ? (int) Math.max(stream.initialAvailable(), 0L) : 0;
-        }
-
-        @Override
-        public void model(
-            String model)
-        {
-            final byte[] bytes = model.getBytes(UTF_8);
-            envelope.set(ENVELOPE_MODEL, new UnsafeBufferEx(bytes));
-
-            stream = new LlmStream(this);
-            stream.doAppBegin(decodeTraceId, initialAuthorization);
-        }
-
-        @Override
-        public void block(
-            String type,
-            int message,
-            String extension)
-        {
-            this.blockType = type;
-            this.blockMessage = message;
-            this.blockExtension = extension;
-            this.blockFirst = true;
-        }
-
-        @Override
-        public void data(
-            DirectBufferEx source,
-            int offset,
-            int length,
-            boolean last)
-        {
-            final int flags = (blockFirst ? FLAG_INIT : 0) | (last ? FLAG_FIN : 0);
-
-            stream.doAppBlockData(decodeTraceId, initialAuthorization, flags, blockFirst ? blockType : null, blockMessage,
-                blockExtension, source, offset, length);
-
-            blockFirst = false;
         }
 
         private void forwardDecodedRequest(
@@ -701,33 +551,21 @@ public final class LlmLegacyServerFactory
             initialSeq = end.sequence();
             state = LlmState.closeInitial(state);
 
-            if (request != null && decodeSlotOffset > 0)
+            if (decodeSlotOffset == 0 && (stream == null || stream.requestAvailable()))
             {
-                decodeBlocks(traceId);
+                doAppEnd(traceId);
             }
-
-            if (request == null || request.status() != LlmOpenaiRequestDecoder.Status.REJECTED)
+            else
             {
-                if (decodeSlotOffset == 0 && (stream == null || stream.requestAvailable()))
-                {
-                    doAppEnd(traceId);
-                }
-                else
-                {
-                    state = LlmState.deferInitialEnd(state);
-                    pendingEndTraceId = traceId;
-                }
+                state = LlmState.deferInitialEnd(state);
+                pendingEndTraceId = traceId;
             }
         }
 
         private void doAppEnd(
             long traceId)
         {
-            if (request != null && request.status() != LlmOpenaiRequestDecoder.Status.COMPLETE)
-            {
-                rejectRequest(traceId);
-            }
-            else if (stream == null)
+            if (stream == null)
             {
                 cleanup(traceId);
             }
@@ -751,10 +589,7 @@ public final class LlmLegacyServerFactory
             final DirectBufferEx body = asBuffer(dialect.errorBody(status, error.type().asString(),
                 error.message().asString()));
 
-            if (pipeline != null)
-            {
-                pipeline.reset();
-            }
+            pipeline.reset();
             cleanupDecodeSlot();
 
             doNetBegin(traceId, authorization, 0L, Integer.toString(status), CONTENT_TYPE_JSON);
@@ -1138,10 +973,7 @@ public final class LlmLegacyServerFactory
         private void cleanup(
             long traceId)
         {
-            if (pipeline != null)
-            {
-                pipeline.reset();
-            }
+            pipeline.reset();
             envelope.clear();
             cleanupDecodeSlot();
             cleanupEncodeSlot();
@@ -1303,55 +1135,6 @@ public final class LlmLegacyServerFactory
             {
                 flushingRequest = false;
             }
-        }
-
-        private void doAppBlockData(
-            long traceId,
-            long authorization,
-            int flags,
-            String type,
-            int message,
-            String extension,
-            DirectBufferEx buffer,
-            int offset,
-            int length)
-        {
-            final DataFW.Builder builder = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .originId(server.routedId)
-                .routedId(server.exitId)
-                .streamId(initialId)
-                .sequence(initialSeq)
-                .acknowledge(initialAck)
-                .maximum(initialMax)
-                .traceId(traceId)
-                .authorization(authorization)
-                .flags(flags)
-                .budgetId(initialBud)
-                .reserved(length)
-                .payload(buffer, offset, length);
-
-            if (type != null)
-            {
-                final LlmDataExFW.Builder dataExBuilder = llmDataExRW.wrap(extBuffer, 0, extBuffer.capacity())
-                    .typeId(llmTypeId)
-                    .type(type)
-                    .message(message);
-
-                if (extension != null)
-                {
-                    final byte[] bytes = extension.getBytes(UTF_8);
-                    dataExBuilder.extensionLength(bytes.length).extension(e -> e.set(bytes));
-                }
-
-                final LlmDataExFW dataEx = dataExBuilder.build();
-                builder.extension(dataEx.buffer(), dataEx.offset(), dataEx.sizeof());
-            }
-
-            final DataFW data = builder.build();
-
-            app.accept(data.typeId(), data.buffer(), data.offset(), data.sizeof());
-
-            initialSeq += length;
         }
 
         private void onAppMessage(

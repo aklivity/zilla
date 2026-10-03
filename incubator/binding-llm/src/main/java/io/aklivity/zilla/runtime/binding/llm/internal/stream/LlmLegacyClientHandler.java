@@ -17,7 +17,6 @@ package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectHandler;
 import io.aklivity.zilla.runtime.binding.llm.internal.config.LlmLegacyBindingConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
-import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 
 final class LlmLegacyClientHandler implements LlmDialectHandler
@@ -42,8 +41,7 @@ final class LlmLegacyClientHandler implements LlmDialectHandler
         DirectBufferEx buffer,
         int index,
         int length,
-        MessageConsumer sender,
-        JsonEnvelope headers)
+        MessageConsumer sender)
     {
         return factory.newStream(binding, binding.dialectNamed(dialect), buffer, index, length, sender);
     }

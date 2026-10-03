@@ -14,8 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -30,7 +28,6 @@ import io.aklivity.zilla.runtime.binding.llm.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
-import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -113,41 +110,21 @@ public final class LlmServerFactory implements LlmStreamFactory
 
         if (binding != null)
         {
-            final LlmModelEnvelope envelope = new LlmModelEnvelope();
+            final OctetsFW extension = begin.extension();
+            final HttpBeginExFW httpBeginEx = extension.get(httpBeginExRO::tryWrap);
 
-            if (extractHeaders(begin, envelope))
+            if (httpBeginEx != null)
             {
-                final LlmDialectHandler handler = binding.resolve(envelope);
+                final LlmDialectHandler handler = binding.resolve(LlmModelEnvelope.of(httpBeginEx));
 
                 if (handler != null)
                 {
-                    newStream = handler.newStream(msgTypeId, buffer, index, length, network, envelope);
+                    newStream = handler.newStream(msgTypeId, buffer, index, length, network);
                 }
             }
         }
 
         return newStream;
-    }
-
-    private boolean extractHeaders(
-        BeginFW begin,
-        LlmModelEnvelope envelope)
-    {
-        final OctetsFW extension = begin.extension();
-        final HttpBeginExFW httpBeginEx = extension.get(httpBeginExRO::tryWrap);
-
-        if (httpBeginEx != null)
-        {
-            httpBeginEx.headers().forEach(h -> envelope.set(h.name().asString(), asBuffer(h.value().asString())));
-        }
-
-        return httpBeginEx != null;
-    }
-
-    private static DirectBufferEx asBuffer(
-        String value)
-    {
-        return new UnsafeBufferEx(value.getBytes(UTF_8));
     }
 
     private static final class LlmServerBinding

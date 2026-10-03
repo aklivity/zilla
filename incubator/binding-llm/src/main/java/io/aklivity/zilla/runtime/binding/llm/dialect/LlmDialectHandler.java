@@ -14,14 +14,13 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.dialect;
 
-import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
-import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 
 /**
  * Handles the streams of one binding for one {@link LlmDialect}.
  */
-public interface LlmDialectHandler
+public interface LlmDialectHandler extends BindingHandler
 {
     /**
      * Detects whether an inbound request is of this dialect, from the headers of the stream.
@@ -34,23 +33,4 @@ public interface LlmDialectHandler
     {
         return false;
     }
-
-    /**
-     * Opens a new stream for this binding.
-     *
-     * @param msgTypeId  the type of the initial message
-     * @param buffer     the buffer holding the initial message
-     * @param index      the offset of the initial message in the buffer
-     * @param length     the length of the initial message
-     * @param sender     the consumer of the reply messages
-     * @param headers    the headers of the inbound request
-     * @return the consumer of the initial messages, or {@code null} to reject the stream
-     */
-    MessageConsumer newStream(
-        int msgTypeId,
-        DirectBufferEx buffer,
-        int index,
-        int length,
-        MessageConsumer sender,
-        JsonEnvelope headers);
 }
