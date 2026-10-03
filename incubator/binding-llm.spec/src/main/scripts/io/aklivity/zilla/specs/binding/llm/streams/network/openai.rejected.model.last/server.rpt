@@ -30,15 +30,6 @@ read zilla:begin.ext ${http:matchBeginEx()
 
 connected
 
-read "{\"tools\":[{\"type\":\"function\",\"function\":{\"name\":\"get_weather\",\"parameters\":{\"type\":\"object\",\"properties\":{\"city\":{\"type\":\"string\"}}}}}],\"model\":\"gpt-4\",\"messages\":[{\"role\":\"user\",\"content\":\"Hi\"}]}"
+read "{\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}],\"model\":\"gpt-4\"}"
 
-read closed
-
-write zilla:begin.ext ${http:beginEx()
-                           .typeId(zilla:id("http"))
-                           .header(":status", "429")
-                           .header("content-type", "application/json")
-                           .build()}
-
-write "{\"error\":{\"message\":\"Rate limit reached for gpt-4\",\"type\":\"requests\",\"param\":null,\"code\":\"rate_limit_exceeded\"}}"
-write close
+read abort

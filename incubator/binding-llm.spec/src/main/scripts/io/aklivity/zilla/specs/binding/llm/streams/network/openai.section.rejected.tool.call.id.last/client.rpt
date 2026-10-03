@@ -28,15 +28,6 @@ write zilla:begin.ext ${http:beginEx()
 
 connected
 
-write "{\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}],\"model\":\"gpt-4\"}"
-write close
+write "{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"tool\",\"content\":\"sunny\",\"tool_call_id\":\"call_1\"}]}"
 
-read zilla:begin.ext ${http:matchBeginEx()
-                           .typeId(zilla:id("http"))
-                           .header(":status", "429")
-                           .header("content-type", "application/json")
-                           .build()}
-
-read "{\"error\":{\"message\":\"Rate limit reached for gpt-4\",\"type\":\"requests\",\"param\":null,\"code\":\"rate_limit_exceeded\"}}"
-
-read closed
+write aborted

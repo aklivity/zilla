@@ -25,27 +25,4 @@ write zilla:begin.ext ${llm:beginEx()
 
 connected
 
-write zilla:data.ext ${llm:dataEx()
-                          .typeId(zilla:id("llm"))
-                          .type("tool-definition")
-                          .message(-1)
-                          .build()}
-write "{\"type\":\"function\",\"function\":{\"name\":\"get_weather\",\"parameters\":{\"type\":\"object\",\"properties\":{\"city\":{\"type\":\"string\"}}}}}"
-write flush
-
-write zilla:data.ext ${llm:dataEx()
-                          .typeId(zilla:id("llm"))
-                          .type("user-text")
-                          .message(0)
-                          .build()}
-write "Hi"
-write flush
-
-read zilla:reset.ext ${llm:matchResetEx()
-                           .typeId(zilla:id("llm"))
-                           .status(429)
-                           .type("requests")
-                           .message("Rate limit reached for gpt-4")
-                           .build()}
-
-write aborted
+write abort

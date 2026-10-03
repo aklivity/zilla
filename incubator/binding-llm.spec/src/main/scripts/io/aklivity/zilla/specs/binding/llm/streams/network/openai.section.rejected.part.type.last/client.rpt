@@ -28,7 +28,6 @@ write zilla:begin.ext ${http:beginEx()
 
 connected
 
-write "{\"model\":\"gpt-4\",\"messages\":[{\"content\":\""
-      ${core:randomBase64(32757)}
+write "{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"user\",\"content\":[{\"image_url\":{\"url\":\"https://example.com/cat.png\"},\"type\":\"image_url\"}]}]}"
 
 write aborted

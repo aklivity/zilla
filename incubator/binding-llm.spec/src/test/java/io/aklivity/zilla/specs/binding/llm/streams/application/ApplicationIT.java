@@ -668,33 +668,6 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/openai.section.role.last/client",
-        "${app}/openai.section.role.last/server"})
-    public void shouldOpenaiSectionRoleLast() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/openai.section.model.last/client",
-        "${app}/openai.section.model.last/server"})
-    public void shouldOpenaiSectionModelLast() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/openai.section.tool.result.id.last/client",
-        "${app}/openai.section.tool.result.id.last/server"})
-    public void shouldOpenaiSectionToolResultIdLast() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${app}/openai.section.user.text.10k/client",
         "${app}/openai.section.user.text.10k/server"})
     public void shouldOpenaiSectionUserText10k() throws Exception
@@ -716,15 +689,6 @@ public class ApplicationIT
         "${app}/openai.section.tool.result.100k/client",
         "${app}/openai.section.tool.result.100k/server"})
     public void shouldOpenaiSectionToolResult100k() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/openai.section.rejected.role.overflow/client",
-        "${app}/openai.section.rejected.role.overflow/server"})
-    public void shouldOpenaiSectionRejectedRoleOverflow() throws Exception
     {
         k3po.finish();
     }
@@ -786,15 +750,6 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/openai.section.tools.first/client",
-        "${app}/openai.section.tools.first/server"})
-    public void shouldOpenaiSectionToolsFirst() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${app}/openai.section.rejected.role.missing/client",
         "${app}/openai.section.rejected.role.missing/server"})
     public void shouldOpenaiSectionRejectedRoleMissing() throws Exception
@@ -825,6 +780,33 @@ public class ApplicationIT
         "${app}/openai.section.rejected.trailing.content/client",
         "${app}/openai.section.rejected.trailing.content/server"})
     public void shouldOpenaiSectionRejectedTrailingContent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.section.rejected.role.last/client",
+        "${app}/openai.section.rejected.role.last/server"})
+    public void shouldOpenaiSectionRejectedRoleLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.section.rejected.tool.call.id.last/client",
+        "${app}/openai.section.rejected.tool.call.id.last/server"})
+    public void shouldOpenaiSectionRejectedToolCallIdLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.section.rejected.part.type.last/client",
+        "${app}/openai.section.rejected.part.type.last/server"})
+    public void shouldOpenaiSectionRejectedPartTypeLast() throws Exception
     {
         k3po.finish();
     }

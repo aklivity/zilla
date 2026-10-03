@@ -13,11 +13,13 @@
 # specific language governing permissions and limitations under the License.
 #
 
-connect "zilla://streams/app0"
-        option zilla:window 8192
-        option zilla:transmission "half-duplex"
+accept "zilla://streams/app0"
+       option zilla:window 8192
+       option zilla:transmission "half-duplex"
 
-write zilla:begin.ext ${llm:beginEx()
+accepted
+
+read zilla:begin.ext ${llm:matchBeginEx()
                            .typeId(zilla:id("llm"))
                            .dialect("openai")
                            .model("gpt-4")
@@ -25,20 +27,4 @@ write zilla:begin.ext ${llm:beginEx()
 
 connected
 
-write zilla:data.ext ${llm:dataEx()
-                          .typeId(zilla:id("llm"))
-                          .type("tool-result")
-                          .message(0)
-                          .extension("call_1")
-                          .build()}
-write "sunny"
-write flush
-
-read zilla:reset.ext ${llm:matchResetEx()
-                           .typeId(zilla:id("llm"))
-                           .status(429)
-                           .type("requests")
-                           .message("Rate limit reached for gpt-4")
-                           .build()}
-
-write aborted
+read aborted

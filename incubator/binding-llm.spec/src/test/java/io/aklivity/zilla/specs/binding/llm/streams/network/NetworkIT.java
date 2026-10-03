@@ -637,33 +637,6 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/openai.section.role.last/client",
-        "${net}/openai.section.role.last/server"})
-    public void shouldOpenaiSectionRoleLast() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/openai.section.model.last/client",
-        "${net}/openai.section.model.last/server"})
-    public void shouldOpenaiSectionModelLast() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/openai.section.tool.result.id.last/client",
-        "${net}/openai.section.tool.result.id.last/server"})
-    public void shouldOpenaiSectionToolResultIdLast() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${net}/openai.section.user.text.10k/client",
         "${net}/openai.section.user.text.10k/server"})
     public void shouldOpenaiSectionUserText10k() throws Exception
@@ -685,15 +658,6 @@ public class NetworkIT
         "${net}/openai.section.tool.result.100k/client",
         "${net}/openai.section.tool.result.100k/server"})
     public void shouldOpenaiSectionToolResult100k() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/openai.section.rejected.role.overflow/client",
-        "${net}/openai.section.rejected.role.overflow/server"})
-    public void shouldOpenaiSectionRejectedRoleOverflow() throws Exception
     {
         k3po.finish();
     }
@@ -762,15 +726,6 @@ public class NetworkIT
         k3po.finish();
     }
 
-    @Test
-    @Specification({
-        "${net}/openai.section.tools.first/client",
-        "${net}/openai.section.tools.first/server"})
-    public void shouldOpenaiSectionToolsFirst() throws Exception
-    {
-        k3po.finish();
-    }
-
 
 
     @Test
@@ -805,6 +760,42 @@ public class NetworkIT
         "${net}/openai.section.rejected.trailing.content/client",
         "${net}/openai.section.rejected.trailing.content/server"})
     public void shouldOpenaiSectionRejectedTrailingContent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.rejected.model.last/client",
+        "${net}/openai.rejected.model.last/server"})
+    public void shouldOpenaiRejectedModelLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.section.rejected.role.last/client",
+        "${net}/openai.section.rejected.role.last/server"})
+    public void shouldOpenaiSectionRejectedRoleLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.section.rejected.tool.call.id.last/client",
+        "${net}/openai.section.rejected.tool.call.id.last/server"})
+    public void shouldOpenaiSectionRejectedToolCallIdLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.section.rejected.part.type.last/client",
+        "${net}/openai.section.rejected.part.type.last/server"})
+    public void shouldOpenaiSectionRejectedPartTypeLast() throws Exception
     {
         k3po.finish();
     }
