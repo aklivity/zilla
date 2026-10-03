@@ -24,6 +24,58 @@ final class Base64Url
     static byte[] decode(
         String value) throws JwtException
     {
+        byte[] decoded;
+        if (isCanonical(value))
+        {
+            decoded = decodeCanonical(value);
+        }
+        else
+        {
+            decoded = decodeCanonical(normalize(value));
+        }
+
+        return decoded;
+    }
+
+    static String encode(
+        byte[] bytes)
+    {
+        return ENCODER.encodeToString(bytes);
+    }
+
+    private static boolean isCanonical(
+        String value)
+    {
+        boolean canonical = true;
+
+        for (int i = 0; canonical && i < value.length(); i++)
+        {
+            char c = value.charAt(i);
+            canonical = c != '=' && c != '+' && c != '/' && !isWhitespace(c);
+        }
+
+        return canonical;
+    }
+
+    private static byte[] decodeCanonical(
+        String value) throws JwtException
+    {
+        byte[] decoded;
+        try
+        {
+            decoded = DECODER.decode(value);
+        }
+        catch (IllegalArgumentException ex)
+        {
+            throw new JwtException("Invalid base64url value", ex);
+        }
+
+        return decoded;
+    }
+
+    private static String normalize(
+        String value)
+    {
         int end = value.length();
         while (end > 0 && value.charAt(end - 1) == '=')
         {
@@ -49,23 +101,7 @@ final class Base64Url
             }
         }
 
-        byte[] decoded;
-        try
-        {
-            decoded = DECODER.decode(normalized.toString());
-        }
-        catch (IllegalArgumentException ex)
-        {
-            throw new JwtException("Invalid base64url value", ex);
-        }
-
-        return decoded;
-    }
-
-    static String encode(
-        byte[] bytes)
-    {
-        return ENCODER.encodeToString(bytes);
+        return normalized.toString();
     }
 
     private static boolean isWhitespace(

@@ -26,8 +26,7 @@ import jakarta.json.JsonValue;
 
 public final class Jws
 {
-    private final String encodedHeader;
-    private final String encodedPayload;
+    private final String signingInput;
     private final String encodedSignature;
     private final JsonObject header;
     private final String algorithm;
@@ -42,16 +41,18 @@ public final class Jws
             throw new JwtException("Missing JWS compact serialization");
         }
 
-        String[] parts = compact.split("\\.", -1);
-        if (parts.length != 3)
+        int headerEnd = compact.indexOf('.');
+        int payloadEnd = headerEnd != -1 ? compact.indexOf('.', headerEnd + 1) : -1;
+        if (payloadEnd == -1 || compact.indexOf('.', payloadEnd + 1) != -1)
         {
             throw new JwtException("A JWS compact serialization must have exactly 3 parts");
         }
 
-        JsonObject header = StrictJson.readObject(new String(Base64Url.decode(parts[0]), UTF_8));
-        String payload = new String(Base64Url.decode(parts[1]), UTF_8);
+        JsonObject header = StrictJson.readObject(Base64Url.decode(compact.substring(0, headerEnd)));
+        String payload = new String(Base64Url.decode(compact.substring(headerEnd + 1, payloadEnd)), UTF_8);
 
-        return new Jws(parts[0], parts[1], parts[2], header, member(header, "alg"), member(header, "kid"), payload);
+        return new Jws(compact.substring(0, payloadEnd), compact.substring(payloadEnd + 1), header,
+            member(header, "alg"), member(header, "kid"), payload);
     }
 
     public static String sign(
@@ -111,23 +112,21 @@ public final class Jws
             throw new JwtException("Key algorithm does not match header algorithm");
         }
 
-        byte[] input = (encodedHeader + "." + encodedPayload).getBytes(US_ASCII);
+        byte[] input = signingInput.getBytes(US_ASCII);
         byte[] signature = decodeSignature();
 
         return signature != null && algorithm.verify(key.publicKey(), input, signature) ? payload : null;
     }
 
     private Jws(
-        String encodedHeader,
-        String encodedPayload,
+        String signingInput,
         String encodedSignature,
         JsonObject header,
         String algorithm,
         String keyId,
         String payload)
     {
-        this.encodedHeader = encodedHeader;
-        this.encodedPayload = encodedPayload;
+        this.signingInput = signingInput;
         this.encodedSignature = encodedSignature;
         this.header = header;
         this.algorithm = algorithm;

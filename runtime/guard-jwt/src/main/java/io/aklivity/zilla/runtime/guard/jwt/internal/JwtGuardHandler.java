@@ -31,6 +31,7 @@ import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
+import java.util.regex.Pattern;
 
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
@@ -51,8 +52,7 @@ import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 
 public class JwtGuardHandler implements GuardHandler
 {
-    private static final String SPLIT_VALUE_PATTERN = "\\s+";
-    private static final String SPLIT_PATH_PATTERN = "\\.";
+    private static final Pattern SPLIT_VALUE_PATTERN = Pattern.compile("\\s+");
 
     private final String issuer;
     private final String audience;
@@ -184,7 +184,7 @@ public class JwtGuardHandler implements GuardHandler
                     ? (List<String>) rolesValue
                     : Optional.ofNullable(rolesValue)
                         .map(Object::toString)
-                        .map(s -> s.split(SPLIT_VALUE_PATTERN))
+                        .map(SPLIT_VALUE_PATTERN::split)
                         .map(Arrays::asList)
                         .orElse(null);
 
@@ -510,12 +510,16 @@ public class JwtGuardHandler implements GuardHandler
         JwtClaims claims,
         String path)
     {
-        String[] parts = path.split(SPLIT_PATH_PATTERN);
+        int end = path.indexOf('.');
 
-        Object current = claims.getClaimValue(parts[0]);
-        for (int i = 1; i < parts.length && current != null; i++)
+        Object current = claims.getClaimValue(end == -1 ? path : path.substring(0, end));
+        while (end != -1 && current != null)
         {
-            current = current instanceof Map<?, ?> map ? map.get(parts[i]) : null;
+            int start = end + 1;
+            end = path.indexOf('.', start);
+
+            String name = end == -1 ? path.substring(start) : path.substring(start, end);
+            current = current instanceof Map<?, ?> map ? map.get(name) : null;
         }
 
         return current;

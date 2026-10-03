@@ -39,7 +39,7 @@ import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 
-final class JwtTestKeys
+public final class JwtTestKeys
 {
     static final String RFC7515_RS256_N =
         "ofgWCuLjybRlzo0tZWJjNiuSfb4p4fAkd_wWJcyQoTbji9k0l8W26mPddx" +
@@ -82,10 +82,10 @@ final class JwtTestKeys
 
     static final KeyPair RFC7515_RS256;
     static final KeyPair RFC7515_ES256;
-    static final KeyPair RSA_2048;
+    public static final KeyPair RSA_2048;
     static final KeyPair RSA_2048_OTHER;
     static final KeyPair RSA_1024;
-    static final KeyPair EC_P256;
+    public static final KeyPair EC_P256;
     static final KeyPair EC_P384;
     static final KeyPair EC_P521;
     static final KeyPair ED25519;
@@ -112,7 +112,7 @@ final class JwtTestKeys
         }
     }
 
-    static JsonObject jwk(
+    public static JsonObject jwk(
         PublicKey key,
         String kid,
         String alg)

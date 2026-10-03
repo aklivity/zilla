@@ -14,15 +14,16 @@
  */
 package io.aklivity.zilla.runtime.common.jwt;
 
-import java.io.StringReader;
-import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.HashSet;
-import java.util.Set;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.io.ByteArrayInputStream;
+
+import jakarta.json.JsonArray;
+import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonException;
 import jakarta.json.JsonObject;
-import jakarta.json.JsonReader;
+import jakarta.json.JsonObjectBuilder;
+import jakarta.json.JsonValue;
 import jakarta.json.spi.JsonProvider;
 import jakarta.json.stream.JsonParser;
 import jakarta.json.stream.JsonParser.Event;
@@ -39,14 +40,25 @@ final class StrictJson
             throw new JwtException("Missing JSON object");
         }
 
-        JsonObject object;
-        try
-        {
-            requireUniqueNames(json);
+        return readObject(json.getBytes(UTF_8));
+    }
 
-            try (JsonReader reader = PROVIDER.createReader(new StringReader(json)))
+    static JsonObject readObject(
+        byte[] json) throws JwtException
+    {
+        JsonObject object;
+        try (JsonParser parser = PROVIDER.createParser(new ByteArrayInputStream(json)))
+        {
+            if (!parser.hasNext() || parser.next() != Event.START_OBJECT)
             {
-                object = reader.readObject();
+                throw new JwtException("Invalid JSON object");
+            }
+
+            object = readObject(parser);
+
+            if (parser.hasNext())
+            {
+                throw new JwtException("Unexpected content after JSON object");
             }
         }
         catch (JsonException | IllegalStateException ex)
@@ -57,30 +69,84 @@ final class StrictJson
         return object;
     }
 
-    private static void requireUniqueNames(
-        String json) throws JwtException
+    private static JsonObject readObject(
+        JsonParser parser) throws JwtException
     {
-        Deque<Set<String>> scopes = new ArrayDeque<>();
+        JsonObjectBuilder builder = PROVIDER.createObjectBuilder();
 
-        try (JsonParser parser = PROVIDER.createParser(new StringReader(json)))
+        int names = 0;
+        String name = null;
+        Event event;
+        while ((event = parser.next()) != Event.END_OBJECT)
         {
-            while (parser.hasNext())
+            if (event == Event.KEY_NAME)
             {
-                Event event = parser.next();
-
-                if (event == Event.START_OBJECT)
-                {
-                    scopes.push(new HashSet<>());
-                }
-                else if (event == Event.END_OBJECT)
-                {
-                    scopes.pop();
-                }
-                else if (event == Event.KEY_NAME && !scopes.peek().add(parser.getString()))
-                {
-                    throw new JwtException("Duplicate name in JSON object: " + parser.getString());
-                }
+                name = parser.getString();
+                names++;
             }
+            else
+            {
+                addValue(parser, builder, name, event);
+            }
+        }
+
+        JsonObject object = builder.build();
+        if (object.size() != names)
+        {
+            throw new JwtException("Duplicate name in JSON object");
+        }
+
+        return object;
+    }
+
+    private static JsonArray readArray(
+        JsonParser parser) throws JwtException
+    {
+        JsonArrayBuilder builder = PROVIDER.createArrayBuilder();
+
+        Event event;
+        while ((event = parser.next()) != Event.END_ARRAY)
+        {
+            addValue(parser, builder, event);
+        }
+
+        return builder.build();
+    }
+
+    private static void addValue(
+        JsonParser parser,
+        JsonObjectBuilder builder,
+        String name,
+        Event event) throws JwtException
+    {
+        switch (event)
+        {
+        case START_OBJECT -> builder.add(name, readObject(parser));
+        case START_ARRAY -> builder.add(name, readArray(parser));
+        case VALUE_STRING -> builder.add(name, parser.getString());
+        case VALUE_NUMBER -> builder.add(name, parser.getBigDecimal());
+        case VALUE_TRUE -> builder.add(name, JsonValue.TRUE);
+        case VALUE_FALSE -> builder.add(name, JsonValue.FALSE);
+        case VALUE_NULL -> builder.add(name, JsonValue.NULL);
+        default -> throw new JwtException("Unexpected JSON event: " + event);
+        }
+    }
+
+    private static void addValue(
+        JsonParser parser,
+        JsonArrayBuilder builder,
+        Event event) throws JwtException
+    {
+        switch (event)
+        {
+        case START_OBJECT -> builder.add(readObject(parser));
+        case START_ARRAY -> builder.add(readArray(parser));
+        case VALUE_STRING -> builder.add(parser.getString());
+        case VALUE_NUMBER -> builder.add(parser.getBigDecimal());
+        case VALUE_TRUE -> builder.add(JsonValue.TRUE);
+        case VALUE_FALSE -> builder.add(JsonValue.FALSE);
+        case VALUE_NULL -> builder.add(JsonValue.NULL);
+        default -> throw new JwtException("Unexpected JSON event: " + event);
         }
     }
 
