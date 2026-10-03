@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.binding.pgsql.kafka.internal.stream;
 
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_VERSION_ID;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasFin;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 
@@ -81,11 +82,6 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
     private static final int NO_ERROR_SCHEMA_VERSION_ID = -1;
     private static final int COMMAND_PROCESSED_ERRORED = -1;
     private static final int COMMAND_PROCESSED_NONE = 0;
-
-    private static final int FLAGS_INIT = 0x02;
-    private static final int FLAGS_CONT = 0x00;
-    private static final int FLAGS_FIN = 0x01;
-    private static final int FLAGS_COMP = 0x03;
 
     private static final DirectBufferEx EMPTY_BUFFER = new UnsafeBufferEx(new byte[0]);
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
@@ -389,7 +385,7 @@ public final class PgsqlKafkaProxyFactory implements PgsqlKafkaStreamFactory
                 slotBuffer.putBytes(parserSlotOffset, buffer, offset, limit - offset);
                 parserSlotOffset += limit - offset;
 
-                if ((flags & FLAGS_FIN) != 0x00)
+                if (hasFin(flags))
                 {
                     doParseQuery(traceId, authorization);
                 }
