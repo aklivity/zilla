@@ -92,7 +92,6 @@
     "io.aklivity.zilla:resolver-env",
     "io.aklivity.zilla:store-memory",
     "io.aklivity.zilla:vault-filesystem",
-    "org.slf4j:slf4j-simple",
     "org.antlr:antlr4-runtime"
   ]
 }
