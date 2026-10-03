@@ -34,6 +34,11 @@ import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static io.aklivity.zilla.runtime.engine.guard.GuardHandler.EXPIRES_NEVER;
 import static io.aklivity.zilla.runtime.engine.guard.GuardHandler.MASK_AUTHORIZED;
+import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
+import static io.aklivity.zilla.runtime.engine.util.Flags.FIN;
+import static io.aklivity.zilla.runtime.engine.util.Flags.INIT;
+import static io.aklivity.zilla.runtime.engine.util.Flags.NONE;
+import static io.aklivity.zilla.runtime.engine.util.Flags.fin;
 import static java.lang.Character.toLowerCase;
 import static java.lang.Character.toUpperCase;
 import static java.lang.Integer.parseInt;
@@ -154,11 +159,6 @@ public final class HttpServerFactory implements HttpStreamFactory
     private static final int CLEANUP_SIGNAL = 0;
     private static final int DELEGATE_SIGNAL = 1;
     private static final int EXPIRING_SIGNAL = 2;
-
-    private static final int FLAG_FIN = 0x01;
-    private static final int FLAG_INIT = 0x02;
-    private static final int FLAG_COM = 0x03;
-    private static final int FLAG_CON = 0x00;
 
     private static final int PADDING_CHUNKED = 10;
     private static final long MAX_REMOTE_BUDGET = Integer.MAX_VALUE;
@@ -1452,7 +1452,7 @@ public final class HttpServerFactory implements HttpStreamFactory
         int progress = offset;
         if (decodableBytes > 0)
         {
-            progress = server.onDecodeBody(traceId, authorization, budgetId, FLAG_COM,
+            progress = server.onDecodeBody(traceId, authorization, budgetId, COMPLETE,
                                            buffer, offset, offset + decodableBytes, EMPTY_OCTETS);
             server.decodableChunkSize -= progress - offset;
 
@@ -1511,15 +1511,11 @@ public final class HttpServerFactory implements HttpStreamFactory
             int flags = 0;
             if (server.decodableContentLength == server.contentLength)
             {
-                flags = FLAG_INIT;
-            }
-            if (server.decodableContentLength != length)
-            {
-                flags |= FLAG_CON;
+                flags = INIT;
             }
             if (server.decodableContentLength == length)
             {
-                flags |= FLAG_FIN;
+                flags = fin(flags);
             }
 
             progress = server.onDecodeBody(traceId, authorization, budgetId, flags,
@@ -1609,7 +1605,7 @@ public final class HttpServerFactory implements HttpStreamFactory
         int offset,
         int limit)
     {
-        return server.onDecodeBody(traceId, authorization, budgetId, FLAG_COM, buffer, offset, limit, EMPTY_OCTETS);
+        return server.onDecodeBody(traceId, authorization, budgetId, COMPLETE, buffer, offset, limit, EMPTY_OCTETS);
     }
 
     private int decodeIgnore(
@@ -2964,7 +2960,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 else
                 {
                     final int dstMax = Math.min(window, modelBuffer.capacity());
-                    final int consumed = content.transform(traceId, routedId, sessionId, flags & FLAG_COM,
+                    final int consumed = content.transform(traceId, routedId, sessionId, flags & COMPLETE,
                         buffer, offset, limit, dstMax);
 
                     if (consumed < 0)
@@ -5571,8 +5567,8 @@ public final class HttpServerFactory implements HttpStreamFactory
                     boolean contentValid = true;
                     if (payloadLength > 0)
                     {
-                        final int initFlag = exchange.requestContentInited ? 0 : FLAG_INIT;
-                        final int finFlag = Http2Flags.endStream(flags) && deferred == 0 ? FLAG_FIN : 0;
+                        final int initFlag = exchange.requestContentInited ? NONE : INIT;
+                        final int finFlag = Http2Flags.endStream(flags) && deferred == 0 ? FIN : NONE;
                         exchange.requestContentInited = true;
 
                         payloadRemaining.set(payloadLength);

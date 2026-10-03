@@ -15,6 +15,9 @@
  */
 package io.aklivity.zilla.runtime.binding.http.internal.config;
 
+import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
+import static io.aklivity.zilla.runtime.engine.util.Flags.FIN;
+
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.engine.model.ModelCache;
@@ -39,9 +42,6 @@ import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 public final class HttpModel
 {
     public static final HttpModel NONE = new HttpModel();
-
-    private static final int FLAGS_INIT = 0x02;
-    private static final int FLAGS_FIN = 0x01;
 
     private final ModelPipeline pipeline;
     private final MutableDirectBufferEx scratch;
@@ -90,7 +90,7 @@ public final class HttpModel
         {
             total = 0;
             int srcAt = index;
-            int flags = FLAGS_INIT | FLAGS_FIN;
+            int flags = COMPLETE;
             boolean done = false;
             while (!done)
             {
@@ -114,7 +114,7 @@ public final class HttpModel
                     else
                     {
                         srcAt += result.consumed();
-                        flags = FLAGS_FIN;
+                        flags = FIN;
                     }
                 }
             }

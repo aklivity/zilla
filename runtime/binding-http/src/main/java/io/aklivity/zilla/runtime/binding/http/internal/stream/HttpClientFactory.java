@@ -25,6 +25,13 @@ import static io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackLiteral
 import static io.aklivity.zilla.runtime.binding.http.internal.types.ProxyAddressProtocol.STREAM;
 import static io.aklivity.zilla.runtime.binding.http.internal.util.BufferUtil.limitOfBytes;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
+import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
+import static io.aklivity.zilla.runtime.engine.util.Flags.FIN;
+import static io.aklivity.zilla.runtime.engine.util.Flags.INIT;
+import static io.aklivity.zilla.runtime.engine.util.Flags.NONE;
+import static io.aklivity.zilla.runtime.engine.util.Flags.fin;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasFin;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasInit;
 import static java.lang.Character.toLowerCase;
 import static java.lang.Character.toUpperCase;
 import static java.lang.Integer.parseInt;
@@ -145,10 +152,6 @@ public final class HttpClientFactory implements HttpStreamFactory
     private static final int NO_CONTENT_LENGTH = -1;
     private static final int CLIENT_INITIATED = 1;
     private static final long MAX_REMOTE_BUDGET = Integer.MAX_VALUE;
-
-    private static final int FLAG_FIN = 0x01;
-    private static final int FLAG_INIT = 0x02;
-    private static final int FLAG_COM = 0x03;
 
     private static final byte[] HTTP_1_1_BYTES = "HTTP/1.1".getBytes(US_ASCII);
 
@@ -938,7 +941,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         int progress = offset;
         if (decodableBytes > 0)
         {
-            progress = client.onDecodeHttp11Body(traceId, authorization, budgetId, FLAG_COM,
+            progress = client.onDecodeHttp11Body(traceId, authorization, budgetId, COMPLETE,
                                            buffer, offset, offset + decodableBytes, EMPTY_OCTETS);
             client.decodableChunkSize -= progress - offset;
 
@@ -997,11 +1000,11 @@ public final class HttpClientFactory implements HttpStreamFactory
             int flags = 0;
             if (client.decodableContentLength == client.contentLength)
             {
-                flags = FLAG_INIT;
+                flags = INIT;
             }
             if (client.decodableContentLength == length)
             {
-                flags |= FLAG_FIN;
+                flags = fin(flags);
             }
 
             progress = client.onDecodeHttp11Body(traceId, authorization, budgetId, flags,
@@ -1106,7 +1109,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         int offset,
         int limit)
     {
-        return client.onDecodeHttp11Body(traceId, authorization, budgetId, FLAG_COM, buffer, offset, limit, EMPTY_OCTETS);
+        return client.onDecodeHttp11Body(traceId, authorization, budgetId, COMPLETE, buffer, offset, limit, EMPTY_OCTETS);
     }
 
     private static int http2FramePadding(
@@ -3179,11 +3182,11 @@ public final class HttpClientFactory implements HttpStreamFactory
             int offset = payload.offset();
             int limit = payload.limit();
 
-            if (exchange.requestChunked && flags != 0)
+            if (exchange.requestChunked && flags != NONE)
             {
                 int chunkLimit = 0;
 
-                if ((flags & 0x01) != 0)
+                if (hasFin(flags))
                 {
                     final String chunkSizeHex = Integer.toHexString(payload.sizeof());
                     chunkLimit += codecBuffer.putStringWithoutLengthAscii(chunkLimit, chunkSizeHex);
@@ -3194,7 +3197,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                 codecBuffer.putBytes(chunkLimit, payload.buffer(), payload.offset(), payload.sizeof());
                 chunkLimit += payload.sizeof();
 
-                if ((flags & 0x02) != 0)
+                if (hasInit(flags))
                 {
                     codecBuffer.putBytes(chunkLimit, CRLF_BYTES);
                     chunkLimit += 2;
@@ -3421,8 +3424,8 @@ public final class HttpClientFactory implements HttpStreamFactory
                         }
                         else
                         {
-                            final int initFlag = exchange.responseContentInited ? 0 : FLAG_INIT;
-                            final int finFlag = Http2Flags.endStream(flags) && deferred == 0 ? FLAG_FIN : 0;
+                            final int initFlag = exchange.responseContentInited ? NONE : INIT;
+                            final int finFlag = Http2Flags.endStream(flags) && deferred == 0 ? FIN : NONE;
                             exchange.responseContentInited = true;
 
                             final int consumed = exchange.doResponseData(traceId, authorization, initFlag | finFlag,
