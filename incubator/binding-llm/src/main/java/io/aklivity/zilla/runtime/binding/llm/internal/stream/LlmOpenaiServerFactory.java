@@ -83,9 +83,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
     private static final int FLAG_FIN = 0x01;
     private static final int FLAG_INIT = 0x02;
 
-    // encoding a response chunk adds SSE framing (event:/data:/id: field prefixes and line
-    // terminators) on top of the raw application payload bytes, so the reply window reserves this
-    // much per-frame padding, keeping each frame's own reserved credit sized for its encoded form
     private static final int RESPONSE_ENCODE_PADDING = 128;
 
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBufferEx(new byte[0]), 0, 0);
