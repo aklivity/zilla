@@ -15,10 +15,9 @@
  */
 package io.aklivity.zilla.runtime.binding.sse.internal.stream;
 
-import static io.aklivity.zilla.runtime.binding.sse.internal.util.Flags.FIN;
-import static io.aklivity.zilla.runtime.binding.sse.internal.util.Flags.INIT;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
+import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.agrona.BitUtil.SIZE_OF_BYTE;
@@ -69,7 +68,6 @@ import io.aklivity.zilla.runtime.binding.sse.internal.types.stream.SseBeginExFW;
 import io.aklivity.zilla.runtime.binding.sse.internal.types.stream.SseDataExFW;
 import io.aklivity.zilla.runtime.binding.sse.internal.types.stream.SseEndExFW;
 import io.aklivity.zilla.runtime.binding.sse.internal.types.stream.WindowFW;
-import io.aklivity.zilla.runtime.binding.sse.internal.util.Flags;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
@@ -617,7 +615,7 @@ public final class SseServerFactory implements SseStreamFactory
                 final OctetsFW challengeEvent = challengeEventRO.wrap(challengeBuffer, 0, challengeBytes);
 
                 final SseEventFW sseEvent = sseEventRW.wrap(writeBuffer, DataFW.FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
-                        .flags(Flags.INIT | Flags.FIN)
+                        .flags(COMPLETE)
                         .type(challengeEventType.value())
                         .data(challengeEvent)
                         .build();
@@ -845,7 +843,7 @@ public final class SseServerFactory implements SseStreamFactory
             comment:
             if (commentPending)
             {
-                final int flags = FIN | INIT;
+                final int flags = COMPLETE;
                 final SseEventFW sseEvent =
                         sseEventRW.wrap(writeBuffer, DataFW.FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
                                   .flags(flags)
@@ -1171,7 +1169,7 @@ public final class SseServerFactory implements SseStreamFactory
                     final SseEndExFW sseEndEx = extension.get(sseEndExRO::wrap);
                     final DirectBufferEx id = sseEndEx.id().value();
 
-                    int flags = FIN | INIT;
+                    int flags = COMPLETE;
 
                     final SseEventFW sseEvent = sseEventRW.wrap(writeBuffer, DataFW.FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
                             .flags(flags)

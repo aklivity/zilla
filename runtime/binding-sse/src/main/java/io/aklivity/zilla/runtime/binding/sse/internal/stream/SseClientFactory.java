@@ -16,6 +16,11 @@
 package io.aklivity.zilla.runtime.binding.sse.internal.stream;
 
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
+import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
+import static io.aklivity.zilla.runtime.engine.util.Flags.INIT;
+import static io.aklivity.zilla.runtime.engine.util.Flags.NONE;
+import static io.aklivity.zilla.runtime.engine.util.Flags.fin;
+import static io.aklivity.zilla.runtime.engine.util.Flags.init;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.unmodifiableMap;
 
@@ -1010,14 +1015,14 @@ public class SseClientFactory implements SseStreamFactory
             {
                 if (data != null)
                 {
-                    final int flags = 0x02 & ~decodedDataFlags;
+                    final int flags = INIT & ~decodedDataFlags;
 
                     onDecodedEventFragment(traceId, authorization, budgetId, flags, id, type, data);
 
                     decodedType = FIELD_VALUE_NULL;
                     decodedId = FIELD_VALUE_NULL;
                     decodedData = null;
-                    decodedDataFlags |= 0x02; // INIT
+                    decodedDataFlags = init(decodedDataFlags);
                 }
                 else
                 {
@@ -1427,8 +1432,8 @@ public class SseClientFactory implements SseStreamFactory
             final String8FW type = client.decodedType;
             final OctetsFW data =
                 client.decodedData == null &&
-                client.decodedDataFlags != 0x03 &&
-                client.decodedDataFlags != 0x00
+                client.decodedDataFlags != COMPLETE &&
+                client.decodedDataFlags != NONE
                     ? FIELD_DATA_EMPTY
                     : client.decodedData;
 
@@ -1436,7 +1441,7 @@ public class SseClientFactory implements SseStreamFactory
                 type != FIELD_VALUE_NULL ||
                 data != null)
             {
-                final int flags = 0x03 & ~client.decodedDataFlags;
+                final int flags = COMPLETE & ~client.decodedDataFlags;
 
                 client.onDecodedEventFragment(traceId, authorization, budgetId, flags, id, type, data);
 
@@ -1444,7 +1449,7 @@ public class SseClientFactory implements SseStreamFactory
                 client.decodedId = FIELD_VALUE_NULL;
                 client.decodedData = null;
                 client.decodedDataLines = 0;
-                client.decodedDataFlags |= 0x01; // FIN
+                client.decodedDataFlags = fin(client.decodedDataFlags);
             }
 
             client.decoder = decodeLineEnding;

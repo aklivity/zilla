@@ -15,6 +15,11 @@
  */
 package io.aklivity.zilla.runtime.binding.sse.internal.types.codec;
 
+import static io.aklivity.zilla.runtime.engine.util.Flags.FIN;
+import static io.aklivity.zilla.runtime.engine.util.Flags.fin;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasFin;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasInit;
+import static io.aklivity.zilla.runtime.engine.util.Flags.init;
 import static java.lang.Long.numberOfLeadingZeros;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -174,18 +179,18 @@ public final class SseEventFW extends Flyweight
 
             if (data != null)
             {
-                if ((flags & 0x02) == 0x00) // no INIT
+                if (!hasInit(flags))
                 {
                     int newlineAt = indexOfByte(textAsBytes, progress, limit, v -> v == 0x0a);
                     if (newlineAt != -1)
                     {
-                        buildData(textAsBytes, progress, newlineAt - progress, flags | 0x01);
-                        flags |= 0x02; // INIT
+                        buildData(textAsBytes, progress, newlineAt - progress, fin(flags));
+                        flags = init(flags);
                         progress = newlineAt + 1;
                     }
                 }
 
-                if (flags == 0x01 && progress == limit) // FIN
+                if (flags == FIN && progress == limit)
                 {
                     buildData(textAsBytes, progress, limit - progress, flags);
                     progress = limit;
@@ -197,7 +202,7 @@ public final class SseEventFW extends Flyweight
             buildId(id);
             buildType(type);
 
-            if (data != null && (flags != 0x01 || progress < limit))
+            if (data != null && (flags != FIN || progress < limit))
             {
 
                 for (int newlineAt = indexOfByte(textAsBytes, progress, limit, v -> v == 0x0a);
@@ -205,14 +210,14 @@ public final class SseEventFW extends Flyweight
                     progress = newlineAt + 1,
                         newlineAt = indexOfByte(textAsBytes, progress, limit, v -> v == 0x0a))
                 {
-                    buildData(textAsBytes, progress, newlineAt - progress, flags | 0x01); // FIN
-                    flags |= 0x02; // INIT
+                    buildData(textAsBytes, progress, newlineAt - progress, fin(flags));
+                    flags = init(flags);
                 }
 
                 buildData(textAsBytes, progress, limit - progress, flags);
             }
 
-            if ((flags & 0x01) != 0x00) // FIN
+            if (hasFin(flags))
             {
                 checkLimit(limit() + EVENT_TRAILER_LENGTH, maxLimit());
 
@@ -231,7 +236,7 @@ public final class SseEventFW extends Flyweight
         {
             final MutableDirectBufferEx buffer = buffer();
 
-            if ((flags & 0x02) != 0x00) // INIT
+            if (hasInit(flags))
             {
                 checkLimit(limit() + DATA_FIELD_HEADER.length, maxLimit());
                 buffer.putBytes(limit(), DATA_FIELD_HEADER);
@@ -244,7 +249,7 @@ public final class SseEventFW extends Flyweight
                 limit(limit() + length);
             }
 
-            if ((flags & 0x01) != 0x00) // FIN
+            if (hasFin(flags))
             {
                 checkLimit(limit() + FIELD_TRAILER_LENGTH, maxLimit());
                 buffer.putByte(limit(), FIELD_TRAILER);
