@@ -100,7 +100,7 @@ jobs:
       env:
         GITHUB_ACTOR: ${{ github.actor }}
         GITHUB_TOKEN: ${{ github.token }}
-        MAVEN_ARGS: -Dzpm.skip=true
+        MAVEN_OPTS: -Dzpm.skip=true
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v4
