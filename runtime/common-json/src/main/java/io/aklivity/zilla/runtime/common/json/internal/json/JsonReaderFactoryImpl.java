@@ -26,23 +26,26 @@ import jakarta.json.JsonReader;
 import jakarta.json.JsonReaderFactory;
 import jakarta.json.stream.JsonParser;
 
+import io.aklivity.zilla.runtime.common.json.JsonConfig;
 import io.aklivity.zilla.runtime.common.json.internal.JsonParserImpl;
 
 public final class JsonReaderFactoryImpl implements JsonReaderFactory
 {
     private final Map<String, ?> config;
+    private final boolean uniqueKeys;
 
     public JsonReaderFactoryImpl(
         Map<String, ?> config)
     {
         this.config = config == null ? Map.of() : Map.copyOf(config);
+        this.uniqueKeys = Boolean.TRUE.equals(this.config.get(JsonConfig.FEATURE_UNIQUE_KEYS));
     }
 
     @Override
     public JsonReader createReader(
         Reader reader)
     {
-        return new JsonReaderImpl(parser(ReaderInputStream.from(reader)));
+        return new JsonReaderImpl(parser(ReaderInputStream.from(reader)), uniqueKeys);
     }
 
     @Override
@@ -57,7 +60,7 @@ public final class JsonReaderFactoryImpl implements JsonReaderFactory
         InputStream in,
         Charset charset)
     {
-        return new JsonReaderImpl(parser(marked(in)));
+        return new JsonReaderImpl(parser(marked(in)), uniqueKeys);
     }
 
     @Override

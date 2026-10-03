@@ -14,6 +14,9 @@
  */
 package io.aklivity.zilla.runtime.common.jwt;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
+import java.io.ByteArrayInputStream;
 import java.math.BigInteger;
 import java.time.DateTimeException;
 import java.time.Instant;
@@ -22,20 +25,43 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import jakarta.json.Json;
 import jakarta.json.JsonArray;
+import jakarta.json.JsonException;
 import jakarta.json.JsonNumber;
 import jakarta.json.JsonObject;
+import jakarta.json.JsonReader;
+import jakarta.json.JsonReaderFactory;
 import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
 
+import io.aklivity.zilla.runtime.common.json.JsonConfig;
+
 public final class JwtClaims
 {
+    private static final JsonReaderFactory READERS = Json.createReaderFactory(Map.of(JsonConfig.FEATURE_UNIQUE_KEYS, true));
+
     private final JsonObject claims;
 
     public static JwtClaims parse(
         String json) throws JwtException
     {
-        return new JwtClaims(StrictJson.readObject(json));
+        if (json == null)
+        {
+            throw new JwtException("Missing JSON object");
+        }
+
+        JsonObject claims;
+        try (JsonReader reader = READERS.createReader(new ByteArrayInputStream(json.getBytes(UTF_8))))
+        {
+            claims = reader.readObject();
+        }
+        catch (JsonException | IllegalStateException ex)
+        {
+            throw new JwtException("Invalid JSON object", ex);
+        }
+
+        return new JwtClaims(claims);
     }
 
     public String getIssuer() throws JwtException

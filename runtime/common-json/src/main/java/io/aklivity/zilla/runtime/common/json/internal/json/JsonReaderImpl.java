@@ -27,12 +27,21 @@ import jakarta.json.stream.JsonParser;
 public final class JsonReaderImpl implements JsonReader
 {
     private final JsonParser parser;
+    private final boolean uniqueKeys;
     private boolean read;
 
     public JsonReaderImpl(
         JsonParser parser)
     {
+        this(parser, false);
+    }
+
+    public JsonReaderImpl(
+        JsonParser parser,
+        boolean uniqueKeys)
+    {
         this.parser = parser;
+        this.uniqueKeys = uniqueKeys;
     }
 
     @Override
@@ -113,18 +122,25 @@ public final class JsonReaderImpl implements JsonReader
     private JsonObject readObjectValue()
     {
         JsonObjectBuilder object = JsonValues.objectBuilder();
+        int keys = 0;
         while (parser.hasNext())
         {
             JsonParser.Event event = parser.next();
             if (event == JsonParser.Event.END_OBJECT)
             {
-                return object.build();
+                final JsonObject built = object.build();
+                if (uniqueKeys && built.size() != keys)
+                {
+                    throw new JsonException("Duplicate JSON object key");
+                }
+                return built;
             }
             if (event != JsonParser.Event.KEY_NAME)
             {
                 throw new JsonException("Expected JSON object key");
             }
             String key = parser.getString();
+            keys++;
             if (!parser.hasNext())
             {
                 throw new JsonException("Expected JSON object value");

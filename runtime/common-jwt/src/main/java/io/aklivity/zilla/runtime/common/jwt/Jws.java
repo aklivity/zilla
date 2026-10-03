@@ -17,15 +17,25 @@ package io.aklivity.zilla.runtime.common.jwt;
 import static java.nio.charset.StandardCharsets.US_ASCII;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.io.ByteArrayInputStream;
 import java.security.PrivateKey;
+import java.util.Map;
 
+import jakarta.json.Json;
+import jakarta.json.JsonException;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
+import jakarta.json.JsonReader;
+import jakarta.json.JsonReaderFactory;
 import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
 
+import io.aklivity.zilla.runtime.common.json.JsonConfig;
+
 public final class Jws
 {
+    private static final JsonReaderFactory HEADERS = Json.createReaderFactory(Map.of(JsonConfig.FEATURE_UNIQUE_KEYS, true));
+
     private final String signingInput;
     private final String encodedSignature;
     private final JsonObject header;
@@ -48,7 +58,7 @@ public final class Jws
             throw new JwtException("A JWS compact serialization must have exactly 3 parts");
         }
 
-        JsonObject header = StrictJson.readObject(Base64Url.decode(compact.substring(0, headerEnd)));
+        JsonObject header = readHeader(Base64Url.decode(compact.substring(0, headerEnd)));
         String payload = new String(Base64Url.decode(compact.substring(headerEnd + 1, payloadEnd)), UTF_8);
 
         return new Jws(compact.substring(0, payloadEnd), compact.substring(payloadEnd + 1), header,
@@ -61,7 +71,7 @@ public final class Jws
         String keyId,
         String payload) throws JwtException
     {
-        JsonObjectBuilder header = StrictJson.PROVIDER.createObjectBuilder().add("alg", algorithm.joseName());
+        JsonObjectBuilder header = Json.createObjectBuilder().add("alg", algorithm.joseName());
         if (keyId != null)
         {
             header.add("kid", keyId);
@@ -147,6 +157,22 @@ public final class Jws
         }
 
         return signature;
+    }
+
+    private static JsonObject readHeader(
+        byte[] json) throws JwtException
+    {
+        JsonObject header;
+        try (JsonReader reader = HEADERS.createReader(new ByteArrayInputStream(json)))
+        {
+            header = reader.readObject();
+        }
+        catch (JsonException | IllegalStateException ex)
+        {
+            throw new JwtException("Invalid JSON object", ex);
+        }
+
+        return header;
     }
 
     private static String member(

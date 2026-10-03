@@ -27,6 +27,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonString;
 
@@ -144,7 +145,7 @@ class Jose4jCompatibilityTest
         members.put("e", JwtTestKeys.standardBase64(JwtTestKeys.RFC7515_RS256_E));
 
         JsonWebKey expected = JsonWebKey.Factory.newJwk(members);
-        JsonObject json = StrictJson.PROVIDER.createObjectBuilder()
+        JsonObject json = Json.createObjectBuilder()
             .add("kty", "RSA")
             .add("n", JwtTestKeys.standardBase64(JwtTestKeys.RFC7515_RS256_N))
             .add("e", JwtTestKeys.standardBase64(JwtTestKeys.RFC7515_RS256_E))
