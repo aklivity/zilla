@@ -19,6 +19,14 @@ import static io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheP
 import static io.aklivity.zilla.runtime.binding.kafka.internal.stream.KafkaCacheRoute.LEADER_UNKNOWN;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetFW.Builder.DEFAULT_LATEST_OFFSET;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
+import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
+import static io.aklivity.zilla.runtime.engine.util.Flags.FIN;
+import static io.aklivity.zilla.runtime.engine.util.Flags.INIT;
+import static io.aklivity.zilla.runtime.engine.util.Flags.NONE;
+import static io.aklivity.zilla.runtime.engine.util.Flags.fin;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasFin;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasInit;
+import static io.aklivity.zilla.runtime.engine.util.Flags.init;
 import static java.lang.System.currentTimeMillis;
 import static java.lang.Thread.currentThread;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -91,10 +99,6 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
     private static final String TRANSACTION_NONE = null;
 
     private static final int SIZE_OF_FLUSH_WITH_EXTENSION = 64;
-
-    private static final int FLAG_FIN = 0x01;
-    private static final int FLAG_INIT = 0x02;
-    private static final int FLAG_NONE = 0x00;
 
     private static final DirectBufferEx EMPTY_BUFFER = new UnsafeBufferEx();
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
@@ -730,13 +734,13 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
                         initialId, partitionId, partionTopic, initialBudget, reserved, initialBudget - reserved);
             }
 
-            assert (flags & FLAG_INIT) != (initialFlags & FLAG_INIT);
+            assert hasInit(flags) != hasInit(initialFlags);
 
             initialFlags |= flags;
 
-            if ((initialFlags & FLAG_FIN) != 0)
+            if (hasFin(initialFlags))
             {
-                initialFlags = 0;
+                initialFlags = NONE;
             }
 
             doData(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
@@ -893,7 +897,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
             assert !KafkaState.initialClosed(state);
             state = KafkaState.closedInitial(state);
 
-            initialFlags = 0;
+            initialFlags = NONE;
             initialSeq = 0;
             initialAck = 0;
             initialMax = 0;
@@ -1303,18 +1307,18 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
                             break produce;
                         }
 
-                        int flags = 0x00;
+                        int flags = NONE;
                         if (messageOffset == 0)
                         {
-                            flags |= FLAG_INIT;
+                            flags = init(flags);
                         }
                         if (length == remaining)
                         {
-                            flags |= FLAG_FIN;
+                            flags = fin(flags);
                         }
 
                         OctetsFW fragment = value;
-                        if (flags != (FLAG_INIT | FLAG_FIN))
+                        if (flags != COMPLETE)
                         {
                             final int fragmentOffset = value.offset() + messageOffset;
                             final int fragmentLimit = fragmentOffset + length;
@@ -1322,7 +1326,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
                         }
 
                         long checksum = 0;
-                        if ((flags & FLAG_INIT) == FLAG_INIT && value != null)
+                        if (hasInit(flags) && value != null)
                         {
                             final ByteBuffer buffer = value.value().byteBuffer();
                             buffer.limit(value.limit());
@@ -1334,23 +1338,23 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
 
                         switch (flags)
                         {
-                        case FLAG_INIT | FLAG_FIN:
+                        case COMPLETE:
                             doServerInitialDataFull(traceId, timestamp, producerId, producerEpoch, sequence, checksum,
                                 ackMode, key, headers, trailers, fragment, reserved, flags);
                             break;
-                        case FLAG_INIT:
+                        case INIT:
                             doServerInitialDataInit(traceId, deferred, timestamp, producerId, producerEpoch, sequence,
                                 checksum, ackMode, key, headers, trailers, fragment, reserved, flags);
                             break;
-                        case FLAG_NONE:
+                        case NONE:
                             doServerInitialDataNone(traceId, fragment, reserved, length, flags);
                             break;
-                        case FLAG_FIN:
+                        case FIN:
                             doServerInitialDataFin(traceId, headers, trailers, fragment, reserved, flags);
                             break;
                         }
 
-                        if ((flags & FLAG_FIN) == 0x00)
+                        if (!hasFin(flags))
                         {
                             this.messageOffset += length;
                         }

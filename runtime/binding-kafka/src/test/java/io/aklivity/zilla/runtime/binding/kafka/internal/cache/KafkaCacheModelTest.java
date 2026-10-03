@@ -15,6 +15,11 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.cache;
 
+import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
+import static io.aklivity.zilla.runtime.engine.util.Flags.FIN;
+import static io.aklivity.zilla.runtime.engine.util.Flags.INIT;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasFin;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasInit;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.emptyList;
 import static org.junit.Assert.assertArrayEquals;
@@ -43,9 +48,6 @@ import io.aklivity.zilla.runtime.engine.test.internal.model.TestModelHandler;
 
 public class KafkaCacheModelTest
 {
-    private static final int FLAGS_INIT = 0x02;
-    private static final int FLAGS_FIN = 0x01;
-
     private final MutableDirectBufferEx value = new UnsafeBufferEx(new byte[256]);
     private final MutableDirectBufferEx output = new UnsafeBufferEx(new byte[256]);
     private final MutableInteger outputLength = new MutableInteger();
@@ -220,19 +222,19 @@ public class KafkaCacheModelTest
         PassthroughFragmentPipeline pipeline = new PassthroughFragmentPipeline();
         KafkaCacheModel model = new KafkaCacheModel(pipeline, new UnsafeBufferEx(new byte[256]));
 
-        KafkaCacheModel.Result first = model.transform(0L, 0L, 0L, FLAGS_INIT, value("hel"), 0, 3, sink);
+        KafkaCacheModel.Result first = model.transform(0L, 0L, 0L, INIT, value("hel"), 0, 3, sink);
         assertEquals(ModelStatus.UNDERFLOW, first.status());
         assertEquals(3, first.consumed());
         assertEquals(3, first.produced());
 
-        KafkaCacheModel.Result second = model.transform(0L, 0L, 0L, FLAGS_FIN, value("lo"), 0, 2, sink);
+        KafkaCacheModel.Result second = model.transform(0L, 0L, 0L, FIN, value("lo"), 0, 2, sink);
         assertEquals(ModelStatus.COMPLETE, second.status());
         assertEquals(2, second.consumed());
         assertEquals(2, second.produced());
 
         assertOutput("hello");
         assertEquals(1, pipeline.resetCount);
-        assertEquals(1, (int) pipeline.flagsSeen.stream().filter(f -> (f & FLAGS_INIT) != 0).count());
+        assertEquals(1, (int) pipeline.flagsSeen.stream().filter(f -> hasInit(f)).count());
     }
 
     @Test
@@ -240,7 +242,7 @@ public class KafkaCacheModelTest
     {
         KafkaCacheModel model = KafkaCacheModel.decoder(handler(5), ModelTransform.NONE, new UnsafeBufferEx(new byte[2]));
 
-        KafkaCacheModel.Result result = model.transform(0L, 0L, 0L, FLAGS_INIT | FLAGS_FIN, value("hello"), 0, 5, sink);
+        KafkaCacheModel.Result result = model.transform(0L, 0L, 0L, COMPLETE, value("hello"), 0, 5, sink);
 
         assertEquals(ModelStatus.COMPLETE, result.status());
         assertEquals(5, result.produced());
@@ -252,11 +254,11 @@ public class KafkaCacheModelTest
     {
         KafkaCacheModel model = KafkaCacheModel.decoder(handler(5), ModelTransform.NONE, new UnsafeBufferEx(new byte[256]));
 
-        KafkaCacheModel.Result rejected = model.transform(0L, 0L, 0L, FLAGS_INIT | FLAGS_FIN, value("nope"), 0, 4, sink);
+        KafkaCacheModel.Result rejected = model.transform(0L, 0L, 0L, COMPLETE, value("nope"), 0, 4, sink);
         assertEquals(ModelStatus.REJECTED, rejected.status());
 
         outputLength.value = 0;
-        KafkaCacheModel.Result recovered = model.transform(0L, 0L, 0L, FLAGS_INIT | FLAGS_FIN, value("world"), 0, 5, sink);
+        KafkaCacheModel.Result recovered = model.transform(0L, 0L, 0L, COMPLETE, value("world"), 0, 5, sink);
 
         assertEquals(ModelStatus.COMPLETE, recovered.status());
         assertEquals(5, recovered.produced());
@@ -269,7 +271,7 @@ public class KafkaCacheModelTest
         AlwaysUnderflowPipeline pipeline = new AlwaysUnderflowPipeline();
         KafkaCacheModel model = new KafkaCacheModel(pipeline, new UnsafeBufferEx(new byte[256]));
 
-        KafkaCacheModel.Result result = model.transform(0L, 0L, 0L, FLAGS_INIT | FLAGS_FIN, value("hello"), 0, 5, sink);
+        KafkaCacheModel.Result result = model.transform(0L, 0L, 0L, COMPLETE, value("hello"), 0, 5, sink);
 
         assertEquals(ModelStatus.REJECTED, result.status());
         assertEquals(1, pipeline.resetCount);
@@ -281,13 +283,13 @@ public class KafkaCacheModelTest
         UnderConsumingPipeline pipeline = new UnderConsumingPipeline();
         KafkaCacheModel model = new KafkaCacheModel(pipeline, new UnsafeBufferEx(new byte[256]));
 
-        KafkaCacheModel.Result first = model.transform(0L, 0L, 0L, FLAGS_INIT, value("abc"), 0, 3, sink);
+        KafkaCacheModel.Result first = model.transform(0L, 0L, 0L, INIT, value("abc"), 0, 3, sink);
         assertEquals(ModelStatus.UNDERFLOW, first.status());
 
         KafkaCacheModel.Result second = model.transform(0L, 0L, 0L, 0x00, value("d"), 0, 1, sink);
         assertEquals(ModelStatus.UNDERFLOW, second.status());
 
-        KafkaCacheModel.Result third = model.transform(0L, 0L, 0L, FLAGS_FIN, value("e"), 0, 1, sink);
+        KafkaCacheModel.Result third = model.transform(0L, 0L, 0L, FIN, value("e"), 0, 1, sink);
         assertEquals(ModelStatus.COMPLETE, third.status());
 
         assertOutput("abcde");
@@ -305,14 +307,14 @@ public class KafkaCacheModelTest
         SelfDelimitingPipeline pipeline = new SelfDelimitingPipeline();
         KafkaCacheModel model = new KafkaCacheModel(pipeline, new UnsafeBufferEx(new byte[256]));
 
-        KafkaCacheModel.Result first = model.transform(0L, 0L, 0L, FLAGS_INIT, value(""), 0, 0, sink);
+        KafkaCacheModel.Result first = model.transform(0L, 0L, 0L, INIT, value(""), 0, 0, sink);
         assertEquals(ModelStatus.UNDERFLOW, first.status());
 
         KafkaCacheModel.Result second = model.transform(0L, 0L, 0L, 0x00, value("hello"), 0, 5, sink);
         assertEquals(ModelStatus.UNDERFLOW, second.status());
         assertOutput("hello");
 
-        KafkaCacheModel.Result third = model.transform(0L, 0L, 0L, FLAGS_FIN, value(""), 0, 0, sink);
+        KafkaCacheModel.Result third = model.transform(0L, 0L, 0L, FIN, value(""), 0, 0, sink);
         assertEquals(ModelStatus.COMPLETE, third.status());
         assertEquals(0, third.produced());
 
@@ -408,8 +410,6 @@ public class KafkaCacheModelTest
     // can isolate KafkaCacheModel's own INIT-once / reset-once-per-value mechanics
     private static final class PassthroughFragmentPipeline implements ModelPipeline
     {
-        private static final int FLAGS_FIN = 0x01;
-
         private final ModelPipelineResult result = new ModelPipelineResult();
         private final List<Integer> flagsSeen = new ArrayList<>();
         private int resetCount;
@@ -430,7 +430,7 @@ public class KafkaCacheModelTest
             flagsSeen.add(flags);
             final int length = srcLimit - srcIndex;
             dst.putBytes(dstIndex, src, srcIndex, length);
-            final ModelStatus status = (flags & FLAGS_FIN) != 0 ? ModelStatus.COMPLETE : ModelStatus.UNDERFLOW;
+            final ModelStatus status = hasFin(flags) ? ModelStatus.COMPLETE : ModelStatus.UNDERFLOW;
             return result.set(status, length, length);
         }
 
@@ -447,7 +447,7 @@ public class KafkaCacheModelTest
         }
     }
 
-    // a pipeline that never resolves, even when handed FLAGS_FIN, standing in for a non-compliant
+    // a pipeline that never resolves, even when handed FIN, standing in for a non-compliant
     // pipeline so a test can prove KafkaCacheModel's own defensive REJECTED fallback
     private static final class AlwaysUnderflowPipeline implements ModelPipeline
     {
@@ -487,11 +487,9 @@ public class KafkaCacheModelTest
 
     // a pipeline that only ever echoes a single byte per call, forcing KafkaCacheModel to carry the rest
     // of each fragment forward and prepend it to the next one; resolves only once every real byte of the
-    // value has finally arrived under FLAGS_FIN, since there is no more input left to wait for by then
+    // value has finally arrived under FIN, since there is no more input left to wait for by then
     private static final class UnderConsumingPipeline implements ModelPipeline
     {
-        private static final int FLAGS_FIN = 0x01;
-
         private final ModelPipelineResult result = new ModelPipelineResult();
         private int resetCount;
 
@@ -508,7 +506,7 @@ public class KafkaCacheModelTest
             int dstIndex,
             int dstLimit)
         {
-            final boolean fin = (flags & FLAGS_FIN) != 0;
+            final boolean fin = hasFin(flags);
             final int available = srcLimit - srcIndex;
             final int consumed = fin ? available : Math.min(1, available);
             dst.putBytes(dstIndex, src, srcIndex, consumed);

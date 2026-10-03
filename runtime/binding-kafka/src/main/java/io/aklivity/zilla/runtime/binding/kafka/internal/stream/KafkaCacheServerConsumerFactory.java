@@ -15,6 +15,8 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
+import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
+
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -614,7 +616,7 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
             final TopicConsumer topicConsumer = assignments.get(stream.topic);
             if (topicConsumer != null)
             {
-                stream.doConsumerReplyData(traceId, 3, replyPad, EMPTY_OCTETS,
+                stream.doConsumerReplyData(traceId, COMPLETE, replyPad, EMPTY_OCTETS,
                     ex -> ex.set((b, o, l) -> kafkaDataExRW.wrap(b, o, l)
                         .typeId(kafkaTypeId)
                         .consumer(c -> c.partitions(p -> topicConsumer
@@ -1123,12 +1125,12 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
                     });
                 }
 
-                doConsumerInitialData(traceId, authorization, initialBud, assignment.sizeof(), 3,
+                doConsumerInitialData(traceId, authorization, initialBud, assignment.sizeof(), COMPLETE,
                     assignment.buffer(), assignment.offset(), assignment.sizeof(), EMPTY_OCTETS);
             }
             else
             {
-                doConsumerInitialData(traceId, authorization, initialBud, memberAssignmentRW.sizeof(), 3,
+                doConsumerInitialData(traceId, authorization, initialBud, memberAssignmentRW.sizeof(), COMPLETE,
                     EMPTY_OCTETS.buffer(), EMPTY_OCTETS.offset(), EMPTY_OCTETS.sizeof(), EMPTY_OCTETS);
             }
         }
@@ -1820,7 +1822,7 @@ public final class KafkaCacheServerConsumerFactory implements BindingHandler
                         .build()
                         .sizeof());
 
-                    doOffsetCommitInitialData(traceId, authorization, initialBud, recordSize, 3,
+                    doOffsetCommitInitialData(traceId, authorization, initialBud, recordSize, COMPLETE,
                         EMPTY_OCTETS, offsetCommitDataEx);
 
                     commitResponses.add(commit);
