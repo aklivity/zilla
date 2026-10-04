@@ -27,18 +27,18 @@ connected
 
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
-                          .type("user-text")
-                          .message(0)
-                          .build()}
-write "Weather in Paris?"
-write flush
-
-write zilla:data.ext ${llm:dataEx()
-                          .typeId(zilla:id("llm"))
                           .type("tool-definition")
                           .message(-1)
                           .build()}
 write "{\"name\":\"get_weather\",\"description\":\"Get the weather\",\"input_schema\":{\"type\":\"object\",\"properties\":{\"city\":{\"type\":\"string\"}}}}"
+write flush
+
+write zilla:data.ext ${llm:dataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("user-text")
+                          .message(0)
+                          .build()}
+write "Weather in Paris?"
 write flush
 
 write advise zilla:flush

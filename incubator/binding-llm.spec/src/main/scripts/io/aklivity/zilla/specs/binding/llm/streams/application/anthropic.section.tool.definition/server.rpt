@@ -29,17 +29,17 @@ connected
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
-                          .type("user-text")
-                          .message(0)
-                          .build()}
-read "Weather in Paris?"
-
-read zilla:data.ext ${llm:matchDataEx()
-                          .typeId(zilla:id("llm"))
                           .type("tool-definition")
                           .message(-1)
                           .build()}
 read "{\"name\":\"get_weather\",\"description\":\"Get the weather\",\"input_schema\":{\"type\":\"object\",\"properties\":{\"city\":{\"type\":\"string\"}}}}"
+
+read zilla:data.ext ${llm:matchDataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("user-text")
+                          .message(0)
+                          .build()}
+read "Weather in Paris?"
 
 read advised zilla:flush
 

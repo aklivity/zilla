@@ -32,8 +32,7 @@ read zilla:data.ext ${llm:matchDataEx()
                           .type("user-text")
                           .message(0)
                           .build()}
-read "line
-break A \"quoted\" \\ /"
+read "line\nbreak A \"quoted\" \\ /"
 
 read advised zilla:flush
 

@@ -36,6 +36,13 @@ read "You are helpful."
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
+                          .type("tool-definition")
+                          .message(-1)
+                          .build()}
+read "{\"name\":\"get_weather\",\"description\":\"Get the weather\",\"input_schema\":{\"type\":\"object\",\"properties\":{\"city\":{\"type\":\"string\"}}}}"
+
+read zilla:data.ext ${llm:matchDataEx()
+                          .typeId(zilla:id("llm"))
                           .type("user-text")
                           .message(0)
                           .build()}
@@ -55,13 +62,6 @@ read zilla:data.ext ${llm:matchDataEx()
                           .extension("toolu_1")
                           .build()}
 read "sunny"
-
-read zilla:data.ext ${llm:matchDataEx()
-                          .typeId(zilla:id("llm"))
-                          .type("tool-definition")
-                          .message(-1)
-                          .build()}
-read "{\"name\":\"get_weather\",\"description\":\"Get the weather\",\"input_schema\":{\"type\":\"object\",\"properties\":{\"city\":{\"type\":\"string\"}}}}"
 
 read advised zilla:flush
 

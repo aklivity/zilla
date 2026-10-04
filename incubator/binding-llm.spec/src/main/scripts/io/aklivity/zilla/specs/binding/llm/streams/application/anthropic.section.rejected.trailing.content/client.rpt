@@ -25,5 +25,13 @@ write zilla:begin.ext ${llm:beginEx()
 
 connected
 
+write zilla:data.ext ${llm:dataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("user-text")
+                          .message(0)
+                          .build()}
+write "Hello"
+write flush
+
 write abort
 read abort

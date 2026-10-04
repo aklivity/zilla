@@ -30,8 +30,7 @@ write zilla:data.ext ${llm:dataEx()
                           .type("user-text")
                           .message(0)
                           .build()}
-write "line
-break A \"quoted\" \\ /"
+write "line\nbreak A \"quoted\" \\ /"
 write flush
 
 write advise zilla:flush
