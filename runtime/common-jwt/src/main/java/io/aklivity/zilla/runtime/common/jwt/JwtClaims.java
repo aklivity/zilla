@@ -131,6 +131,12 @@ public final class JwtClaims
         return getNumericDate("exp");
     }
 
+    public JsonValue getJsonClaim(
+        String name)
+    {
+        return claims.get(name);
+    }
+
     public Object getClaimValue(
         String name)
     {
