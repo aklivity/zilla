@@ -19,27 +19,19 @@ import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmOpenaiDia
 import io.aklivity.zilla.runtime.binding.llm.config.LlmBindingConfig;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectContext;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectHandler;
-import io.aklivity.zilla.runtime.binding.llm.internal.LlmConfiguration;
-import io.aklivity.zilla.runtime.binding.llm.internal.codec.LlmContentCodecFactory;
-import io.aklivity.zilla.runtime.binding.llm.internal.config.LlmLegacyBindingConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 
 final class LlmOpenaiDialectContext implements LlmDialectContext
 {
-    private final LlmConfiguration config;
     private final EngineContext context;
-    private final LlmContentCodecFactory codecs;
 
     private LlmOpenaiServerFactory server;
-    private LlmLegacyClientFactory client;
+    private LlmOpenaiClientFactory client;
 
     LlmOpenaiDialectContext(
-        LlmConfiguration config,
         EngineContext context)
     {
-        this.config = config;
         this.context = context;
-        this.codecs = new LlmContentCodecFactory();
     }
 
     @Override
@@ -62,7 +54,8 @@ final class LlmOpenaiDialectContext implements LlmDialectContext
         case CLIENT:
             if (NAME.equals(fixed))
             {
-                handler = new LlmLegacyClientHandler(NAME, supplyClient(), supplyBinding(binding));
+                handler = supplyClient();
+                client.attach(binding);
             }
             break;
         default:
@@ -72,12 +65,6 @@ final class LlmOpenaiDialectContext implements LlmDialectContext
         return handler;
     }
 
-    private LlmLegacyBindingConfig supplyBinding(
-        LlmBindingConfig binding)
-    {
-        return new LlmLegacyBindingConfig(binding, context, codecs);
-    }
-
     @Override
     public void detach(
         long bindingId)
@@ -85,6 +72,11 @@ final class LlmOpenaiDialectContext implements LlmDialectContext
         if (server != null)
         {
             server.detach(bindingId);
+        }
+
+        if (client != null)
+        {
+            client.detach(bindingId);
         }
     }
 
@@ -97,11 +89,11 @@ final class LlmOpenaiDialectContext implements LlmDialectContext
         return server;
     }
 
-    private LlmLegacyClientFactory supplyClient()
+    private LlmOpenaiClientFactory supplyClient()
     {
         if (client == null)
         {
-            client = new LlmLegacyClientFactory(config, context);
+            client = new LlmOpenaiClientFactory(context);
         }
         return client;
     }
