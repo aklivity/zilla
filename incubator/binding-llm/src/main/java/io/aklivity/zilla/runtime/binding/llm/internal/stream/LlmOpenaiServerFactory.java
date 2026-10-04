@@ -33,7 +33,6 @@ import io.aklivity.zilla.runtime.binding.llm.config.LlmAuthorizationResult;
 import io.aklivity.zilla.runtime.binding.llm.config.LlmBindingConfig;
 import io.aklivity.zilla.runtime.binding.llm.config.LlmRouteConfig;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectHandler;
-import io.aklivity.zilla.runtime.binding.llm.dialect.LlmStatusReason;
 import io.aklivity.zilla.runtime.binding.llm.internal.LlmBinding;
 import io.aklivity.zilla.runtime.binding.llm.internal.codec.LlmContentCodecFactory;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.OctetsFW;
@@ -252,7 +251,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
         if (route != null && httpBeginEx != null)
         {
-            final LlmModelEnvelope headers = LlmModelEnvelope.of(httpBeginEx);
+            final LlmRequestHeaders headers = LlmRequestHeaders.of(httpBeginEx);
             final String contentType = header(headers, HEADER_CONTENT_TYPE);
 
             if (!CONTENT_TYPE_JSON.equals(LlmContentCodecFactory.mediaType(contentType)))
@@ -289,6 +288,28 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         return newStream;
     }
 
+    private static String reason(
+        int status)
+    {
+        return switch (status)
+        {
+        case 400 -> "Bad Request";
+        case 401 -> "Unauthorized";
+        case 403 -> "Forbidden";
+        case 404 -> "Not Found";
+        case 408 -> "Request Timeout";
+        case 413 -> "Payload Too Large";
+        case 415 -> "Unsupported Media Type";
+        case 422 -> "Unprocessable Entity";
+        case 429 -> "Too Many Requests";
+        case 500 -> "Internal Server Error";
+        case 502 -> "Bad Gateway";
+        case 503 -> "Service Unavailable";
+        case 504 -> "Gateway Timeout";
+        default -> "Error";
+        };
+    }
+
     private static String header(
         JsonEnvelope headers,
         String name)
@@ -308,7 +329,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         String message)
     {
         final JsonObjectBuilder error = Json.createObjectBuilder()
-            .add("message", message != null ? message : LlmStatusReason.of(status))
+            .add("message", message != null ? message : reason(status))
             .add("type", status == 429 ? "requests" : status >= 500 ? "server_error" : "invalid_request_error")
             .addNull("param");
 

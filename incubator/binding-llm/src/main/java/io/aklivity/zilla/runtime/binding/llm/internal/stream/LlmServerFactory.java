@@ -115,7 +115,7 @@ public final class LlmServerFactory implements LlmStreamFactory
 
             if (httpBeginEx != null)
             {
-                final LlmDialectHandler handler = binding.resolve(LlmModelEnvelope.of(httpBeginEx));
+                final LlmDialectHandler handler = binding.resolve(LlmRequestHeaders.of(httpBeginEx));
 
                 if (handler != null)
                 {

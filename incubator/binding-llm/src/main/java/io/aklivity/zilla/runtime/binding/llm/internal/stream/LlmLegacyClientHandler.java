@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectHandler;
 import io.aklivity.zilla.runtime.binding.llm.internal.config.LlmLegacyBindingConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 
 final class LlmLegacyClientHandler implements LlmDialectHandler
@@ -33,6 +34,13 @@ final class LlmLegacyClientHandler implements LlmDialectHandler
         this.dialect = dialect;
         this.factory = factory;
         this.binding = binding;
+    }
+
+    @Override
+    public boolean detect(
+        JsonEnvelope headers)
+    {
+        return false;
     }
 
     @Override

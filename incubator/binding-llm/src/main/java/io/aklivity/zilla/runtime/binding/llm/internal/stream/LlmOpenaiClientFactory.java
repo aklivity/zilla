@@ -14,16 +14,14 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
-import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmClientEnvelope.ENVELOPE_ERROR_MESSAGE;
-import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmClientEnvelope.ENVELOPE_ERROR_TYPE;
-import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmClientEnvelope.envelopeString;
-import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmClientEnvelope.failed;
-import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmClientEnvelope.populateError;
-import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmClientEnvelope.populateUsage;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmOpenaiDialectFactorySpi.NAME;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UncheckedIOException;
+import java.util.Set;
 import java.util.function.LongUnaryOperator;
 
 
@@ -36,11 +34,9 @@ import io.aklivity.zilla.runtime.binding.llm.codec.LlmContentDecoderOutput;
 import io.aklivity.zilla.runtime.binding.llm.config.LlmBindingConfig;
 import io.aklivity.zilla.runtime.binding.llm.config.LlmRouteConfig;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectHandler;
-import io.aklivity.zilla.runtime.binding.llm.dialect.LlmLegacyDialect.Kind;
-import io.aklivity.zilla.runtime.binding.llm.dialect.LlmLegacyDialectEvent;
-import io.aklivity.zilla.runtime.binding.llm.dialect.LlmLegacyOpenaiDialect;
 import io.aklivity.zilla.runtime.binding.llm.internal.LlmBinding;
 import io.aklivity.zilla.runtime.binding.llm.internal.codec.LlmContentCodecFactory;
+import io.aklivity.zilla.runtime.binding.llm.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.BeginFW;
@@ -64,6 +60,7 @@ import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 import io.aklivity.zilla.runtime.common.json.JsonPipelineResult;
+import io.aklivity.zilla.runtime.common.json.JsonSchema;
 import io.aklivity.zilla.runtime.common.json.JsonTransform;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
@@ -89,8 +86,9 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
     private static final String ERROR_TYPE_INVALID_REQUEST = "invalid_request_error";
     private static final String MESSAGE_MODEL_MISSING = "Missing required parameter: 'model'.";
     private static final String MESSAGE_SECTION_INVALID = "Invalid request section.";
-    private static final String ENVELOPE_EVENT = "event";
-    private static final String ENVELOPE_STREAMING = "streaming";
+    private static final String RESPONSE_SCHEMA_RESOURCE = "openai.response.schema.json";
+    private static final Set<String> RESPONSE_CONTENT_TYPES = Set.of(CONTENT_TYPE_JSON, CONTENT_TYPE_EVENT_STREAM);
+    private static final DirectBufferEx RESPONSE_TERMINATOR = new UnsafeBufferEx("[DONE]".getBytes(UTF_8));
     private static final int STATUS_OK = 200;
     private static final int STATUS_MULTIPLE_CHOICES = 300;
     private static final int STATUS_BAD_REQUEST = 400;
@@ -171,7 +169,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
     private final MutableDirectBufferEx transformBuffer;
     private final UnsafeBufferEx comparisonRO;
     private final DirectBufferEx emptyBufferRO;
-    private final LlmLegacyOpenaiDialect dialect;
+    private final JsonTransform responseValidator;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final BindingHandler streamFactory;
@@ -198,7 +196,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         this.transformBuffer = new UnsafeBufferEx(new byte[decodeMax]);
         this.comparisonRO = new UnsafeBufferEx(new byte[0]);
         this.emptyBufferRO = new UnsafeBufferEx(new byte[0]);
-        this.dialect = new LlmLegacyOpenaiDialect();
+        this.responseValidator = JsonSchema.of(readResponseSchema()).validator();
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.streamFactory = context.streamFactory();
@@ -218,6 +216,13 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         long bindingId)
     {
         bindings.remove(bindingId);
+    }
+
+    @Override
+    public boolean detect(
+        JsonEnvelope headers)
+    {
+        return false;
     }
 
     @Override
@@ -259,17 +264,27 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
     }
 
     private static String header(
-        JsonEnvelope headers,
+        HttpBeginExFW httpBeginEx,
         String name)
     {
-        final DirectBufferEx value = headers.get(name, 0);
-        return value != null ? value.getStringWithoutLengthUtf8(0, value.capacity()) : null;
+        final HttpHeaderFW header = httpBeginEx != null
+            ? httpBeginEx.headers().matchFirst(h -> name.equals(h.name().asString()))
+            : null;
+        return header != null ? header.value().asString() : null;
     }
 
-    private static DirectBufferEx asBuffer(
-        String value)
+    private static String readResponseSchema()
     {
-        return new UnsafeBufferEx(value.getBytes(UTF_8));
+        String text;
+        try (InputStream input = LlmOpenaiClientFactory.class.getResourceAsStream(RESPONSE_SCHEMA_RESOURCE))
+        {
+            text = new String(input.readAllBytes(), UTF_8);
+        }
+        catch (IOException ex)
+        {
+            throw new UncheckedIOException(ex);
+        }
+        return text;
     }
 
     private static String credentials(
@@ -359,10 +374,8 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         private final LlmBindingConfig binding;
         private final String model;
         private final LlmOpenaiHttpStream http;
-        private final LlmModelEnvelope envelope;
+        private final LlmOpenaiResponseExtractor extractor;
         private final JsonPipeline responsePipeline;
-        private final LlmLegacyDialectEvent responseEvent;
-        private final DirectBufferEx responseTerminator;
 
         private long initialSeq;
         private long initialAck;
@@ -403,17 +416,11 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             this.affinity = affinity;
             this.binding = binding;
             this.model = model;
-            this.envelope = new LlmModelEnvelope();
-
-            final JsonTransform extractor = dialect.supplyExtractor(Kind.RESPONSE, envelope);
-
+            this.extractor = new LlmOpenaiResponseExtractor();
             this.responsePipeline = JsonEx.stream(JsonEx.createParser())
-                .envelope(envelope)
-                .transform(dialect.supplySchemaValidator(Kind.RESPONSE))
+                .transform(responseValidator)
                 .transform(extractor)
                 .into(JsonEx.createGenerator());
-            this.responseEvent = (LlmLegacyDialectEvent) extractor;
-            this.responseTerminator = dialect.terminator(Kind.RESPONSE);
             this.http = new LlmOpenaiHttpStream(this);
         }
 
@@ -801,7 +808,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
             if (replyEncodeSlot == NO_SLOT && !LlmState.replyClosed(state))
             {
-                if (failed(envelope))
+                if (extractor.failed())
                 {
                     doAppAbort(traceId);
                 }
@@ -811,7 +818,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
                     final LlmEndExFW llmEndEx = llmEndExRW.wrap(extBuffer, 0, extBuffer.capacity())
                         .typeId(llmTypeId)
-                        .usage(u -> populateUsage(u, envelope))
+                        .usage(u -> extractor.populateUsage(u))
                         .build();
 
                     final EndFW end = endRW.wrap(writeBuffer, 0, writeBuffer.capacity())
@@ -841,8 +848,8 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
                 final LlmAbortExFW llmAbortEx = llmAbortExRW.wrap(extBuffer, 0, extBuffer.capacity())
                     .typeId(llmTypeId)
-                    .usage(u -> populateUsage(u, envelope))
-                    .error(e -> populateError(e, envelope))
+                    .usage(u -> extractor.populateUsage(u))
+                    .error(e -> extractor.populateError(e))
                     .build();
 
                 final AbortFW abort = abortRW.wrap(writeBuffer, 0, writeBuffer.capacity())
@@ -1617,12 +1624,11 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             state = LlmState.openingReply(state);
             state = LlmState.openReply(state);
 
-            final JsonEnvelope headers = httpBeginEx != null ? LlmModelEnvelope.of(httpBeginEx) : null;
-            final String responseStatus = headers != null ? header(headers, HEADER_STATUS) : null;
-            final String responseContentType = headers != null ? header(headers, HEADER_CONTENT_TYPE) : null;
+            final String responseStatus = header(httpBeginEx, HEADER_STATUS);
+            final String responseContentType = header(httpBeginEx, HEADER_CONTENT_TYPE);
             final String mediaType = LlmContentCodecFactory.mediaType(responseContentType);
             final int status = responseStatus != null ? Integer.parseInt(responseStatus) : STATUS_OK;
-            final boolean declared = mediaType != null && dialect.responseContentTypes().contains(mediaType);
+            final boolean declared = mediaType != null && RESPONSE_CONTENT_TYPES.contains(mediaType);
 
             if (stream.rejected)
             {
@@ -1642,7 +1648,6 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             {
                 decoder = codecs.createDecoder(responseContentType);
                 streaming = decoder.streaming();
-                stream.envelope.set(ENVELOPE_STREAMING, asBuffer(Boolean.toString(streaming)));
                 stream.doAppBegin(traceId, responseContentType);
                 doNetWindow(traceId);
             }
@@ -1700,11 +1705,9 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             if (errorStatus != NO_ERROR)
             {
                 state = LlmState.closeReply(state);
-                decodeErrorBody();
+                final LlmErrorBodyDecoder errorDecoder = decodeErrorBody();
                 doNetAbort(traceId);
-                stream.doAppReset(traceId, errorStatus,
-                    envelopeString(stream.envelope, ENVELOPE_ERROR_TYPE),
-                    envelopeString(stream.envelope, ENVELOPE_ERROR_MESSAGE));
+                stream.doAppReset(traceId, errorStatus, errorDecoder.type(), errorDecoder.message());
             }
             else
             {
@@ -1918,8 +1921,6 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         {
             if (event != null)
             {
-                stream.responseEvent.event(event);
-                stream.envelope.set(ENVELOPE_EVENT, asBuffer(event));
                 pendingResponseEvent = event;
             }
         }
@@ -2020,7 +2021,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         {
             if (length > 0 || last)
             {
-                if (length > 0 && matchesTerminator(buffer, offset, length, stream.responseTerminator))
+                if (length > 0 && matchesTerminator(buffer, offset, length, RESPONSE_TERMINATOR))
                 {
                     stream.doAppData(decodeTraceId, event, true, buffer, offset, length);
                 }
@@ -2105,14 +2106,17 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             }
         }
 
-        private void decodeErrorBody()
+        private LlmErrorBodyDecoder decodeErrorBody()
         {
+            final LlmErrorBodyDecoder errorDecoder = new LlmErrorBodyDecoder();
+
             if (decodeSlot != NO_SLOT)
             {
-                final LlmErrorBodyDecoder errorDecoder = new LlmErrorBodyDecoder(stream.envelope);
                 decoder.decode(decodePool.buffer(decodeSlot), 0, decodeSlotOffset, errorDecoder);
                 cleanupDecodeSlot();
             }
+
+            return errorDecoder;
         }
 
         private void doAppEnd(
@@ -2303,19 +2307,25 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
     private final class LlmErrorBodyDecoder implements LlmContentDecoderOutput
     {
+        private final LlmOpenaiResponseExtractor extractor;
         private final JsonPipeline pipeline;
-        private final LlmLegacyDialectEvent extractEvent;
 
-        private LlmErrorBodyDecoder(
-            JsonEnvelope envelope)
+        private LlmErrorBodyDecoder()
         {
-            final JsonTransform extractTransform = dialect.supplyExtractor(Kind.RESPONSE, envelope);
-
+            this.extractor = new LlmOpenaiResponseExtractor();
             this.pipeline = JsonEx.stream(JsonEx.createParser())
-                .envelope(envelope)
-                .transform(extractTransform)
+                .transform(extractor)
                 .into(JsonEx.createGenerator());
-            this.extractEvent = (LlmLegacyDialectEvent) extractTransform;
+        }
+
+        private String type()
+        {
+            return extractor.errorType();
+        }
+
+        private String message()
+        {
+            return extractor.errorMessage();
         }
 
         @Override
@@ -2328,10 +2338,6 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         public void event(
             String event)
         {
-            if (event != null)
-            {
-                extractEvent.event(event);
-            }
         }
 
         @Override

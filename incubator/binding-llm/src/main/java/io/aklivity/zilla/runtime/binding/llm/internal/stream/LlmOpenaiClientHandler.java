@@ -20,6 +20,7 @@ import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectHandler;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmBeginExFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 
 final class LlmOpenaiClientHandler implements LlmDialectHandler
@@ -36,6 +37,13 @@ final class LlmOpenaiClientHandler implements LlmDialectHandler
     {
         this.canonical = canonical;
         this.legacy = legacy;
+    }
+
+    @Override
+    public boolean detect(
+        JsonEnvelope headers)
+    {
+        return false;
     }
 
     @Override

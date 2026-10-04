@@ -26,11 +26,8 @@ public interface LlmDialectHandler extends BindingHandler
      * Detects whether an inbound request is of this dialect, from the headers of the stream.
      *
      * @param headers  the headers of the inbound request
-     * @return {@code true} if the request is of this dialect, {@code false} by default
+     * @return {@code true} if the request is of this dialect
      */
-    default boolean detect(
-        JsonEnvelope headers)
-    {
-        return false;
-    }
+    boolean detect(
+        JsonEnvelope headers);
 }
