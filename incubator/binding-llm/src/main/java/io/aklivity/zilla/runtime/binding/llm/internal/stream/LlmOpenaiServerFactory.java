@@ -325,23 +325,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             .toString();
     }
 
-    private static int sliceFlags(
-        int flags,
-        boolean first,
-        boolean last)
-    {
-        int sliceFlags = Flags.NONE;
-        if (first && Flags.hasInit(flags))
-        {
-            sliceFlags = Flags.init(sliceFlags);
-        }
-        if (last && Flags.hasFin(flags))
-        {
-            sliceFlags = Flags.fin(sliceFlags);
-        }
-        return sliceFlags;
-    }
-
     @FunctionalInterface
     private interface LlmOpenaiServerDecoder
     {
@@ -1605,7 +1588,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private String blockType;
         private int blockMessage;
         private String blockExtension;
-        private boolean blockFirst;
+        private int blockFlags;
 
         private LlmOpenaiServer(
             MessageConsumer network,
@@ -1988,7 +1971,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             blockType = type;
             blockMessage = message;
             blockExtension = extension;
-            blockFirst = true;
+            blockFlags = Flags.INIT;
         }
 
         private void onDecodeData(
@@ -1999,10 +1982,12 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             int length,
             boolean last)
         {
-            stream.doAppBlockData(traceId, authorization, sliceFlags(Flags.COMPLETE, blockFirst, last),
-                blockFirst ? blockType : null, blockMessage, blockExtension, buffer, offset, length);
+            final int flags = last ? Flags.fin(blockFlags) : blockFlags;
 
-            blockFirst = false;
+            stream.doAppBlockData(traceId, authorization, flags, Flags.hasInit(flags) ? blockType : null, blockMessage,
+                blockExtension, buffer, offset, length);
+
+            blockFlags = Flags.NONE;
         }
 
         private void onDecodeEnd(
@@ -2313,9 +2298,11 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
                     final int sliceOffset = chunk.sent;
                     chunk.sent += sliceLength;
-                    doNetData(chunk.traceId, chunk.authorization,
-                        sliceFlags(chunk.flags, sliceOffset == 0, chunk.sent == chunk.length),
-                        chunk.budgetId, sliceLength + replyPad, buffer, sliceOffset, sliceLength);
+
+                    final int initFlags = sliceOffset == 0 && Flags.hasInit(chunk.flags) ? Flags.INIT : Flags.NONE;
+                    final int flags = chunk.sent == chunk.length && Flags.hasFin(chunk.flags) ? Flags.fin(initFlags) : initFlags;
+                    doNetData(chunk.traceId, chunk.authorization, flags, chunk.budgetId,
+                        sliceLength + replyPad, buffer, sliceOffset, sliceLength);
 
                     if (chunk.sent >= chunk.length)
                     {
@@ -3143,7 +3130,8 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
                 final int remaining = body.capacity() - bodySent;
                 final int length = (int) Math.min(remaining, available);
-                final int flags = sliceFlags(Flags.COMPLETE, bodySent == 0, bodySent + length == body.capacity());
+                final int initFlags = bodySent == 0 ? Flags.INIT : Flags.NONE;
+                final int flags = bodySent + length == body.capacity() ? Flags.fin(initFlags) : initFlags;
 
                 final DataFW data = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                     .originId(originId)
