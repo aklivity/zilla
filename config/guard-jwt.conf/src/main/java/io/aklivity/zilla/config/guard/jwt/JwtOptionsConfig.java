@@ -23,6 +23,7 @@ import java.util.Optional;
 import java.util.function.Function;
 
 import io.aklivity.zilla.config.engine.OptionsConfig;
+import io.aklivity.zilla.config.engine.VaultedConfig;
 
 public class JwtOptionsConfig extends OptionsConfig
 {
@@ -34,6 +35,8 @@ public class JwtOptionsConfig extends OptionsConfig
     public final String identity;
     public final Optional<String> keysURL;
     public final Map<String, String> attributes;
+    public final VaultedConfig vault;
+    public final List<String> secrets;
 
     public static JwtOptionsConfigBuilder<JwtOptionsConfig> builder()
     {
@@ -54,9 +57,11 @@ public class JwtOptionsConfig extends OptionsConfig
         Duration challenge,
         String identity,
         String keysURL,
-        Map<String, String> attributes)
+        Map<String, String> attributes,
+        VaultedConfig vault,
+        List<String> secrets)
     {
-        super(null, null);
+        super(null, vault != null ? List.of(vault) : null);
         this.issuer = issuer;
         this.audience = audience;
         this.roles = roles;
@@ -65,5 +70,7 @@ public class JwtOptionsConfig extends OptionsConfig
         this.identity = identity;
         this.keysURL = ofNullable(keysURL);
         this.attributes = attributes;
+        this.vault = vault;
+        this.secrets = secrets;
     }
 }

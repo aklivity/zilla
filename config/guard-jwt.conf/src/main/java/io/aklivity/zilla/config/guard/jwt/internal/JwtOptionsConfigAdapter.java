@@ -42,6 +42,8 @@ public final class JwtOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, 
     private static final String CHALLENGE_NAME = "challenge";
     private static final String IDENTITY_NAME = "identity";
     private static final String ATTRIBUTES_NAME = "attributes";
+    private static final String VAULT_NAME = "vault";
+    private static final String SECRETS_NAME = "secrets";
 
     private static final List<JwtKeyConfig> KEYS_DEFAULT = emptyList();
 
@@ -99,6 +101,19 @@ public final class JwtOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, 
             jwtOptions.attributes.forEach((k, v) -> entries.add(k, v));
 
             object.add(ATTRIBUTES_NAME, entries);
+        }
+
+        if (jwtOptions.vault != null)
+        {
+            object.add(VAULT_NAME, jwtOptions.vault.name);
+        }
+
+        if (jwtOptions.secrets != null)
+        {
+            JsonArrayBuilder secrets = Json.createArrayBuilder();
+            jwtOptions.secrets.forEach(secrets::add);
+
+            object.add(SECRETS_NAME, secrets);
         }
 
         return object.build();
@@ -172,6 +187,17 @@ public final class JwtOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, 
         {
             object.getJsonObject(ATTRIBUTES_NAME)
                 .forEach((key, value) -> jwtOptions.attribute(key, ((JsonString) value).getString()));
+        }
+
+        if (object.containsKey(VAULT_NAME))
+        {
+            jwtOptions.vault(object.getString(VAULT_NAME));
+        }
+
+        if (object.containsKey(SECRETS_NAME))
+        {
+            object.getJsonArray(SECRETS_NAME)
+                .forEach(value -> jwtOptions.secret(((JsonString) value).getString()));
         }
 
         return jwtOptions.build();

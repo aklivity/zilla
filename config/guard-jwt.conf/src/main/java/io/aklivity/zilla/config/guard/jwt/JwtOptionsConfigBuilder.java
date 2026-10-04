@@ -23,6 +23,7 @@ import java.util.function.Function;
 
 import io.aklivity.zilla.config.engine.ConfigBuilder;
 import io.aklivity.zilla.config.engine.OptionsConfig;
+import io.aklivity.zilla.config.engine.VaultedConfig;
 
 public class JwtOptionsConfigBuilder<T> extends ConfigBuilder<T, JwtOptionsConfigBuilder<T>>
 {
@@ -38,6 +39,8 @@ public class JwtOptionsConfigBuilder<T> extends ConfigBuilder<T, JwtOptionsConfi
     private String identity;
     private String keysURL;
     private Map<String, String> attributes;
+    private VaultedConfig vault;
+    private List<String> secrets;
 
     JwtOptionsConfigBuilder(
         Function<OptionsConfig, T> mapper)
@@ -136,11 +139,37 @@ public class JwtOptionsConfigBuilder<T> extends ConfigBuilder<T, JwtOptionsConfi
         return this;
     }
 
+    public JwtOptionsConfigBuilder<T> vault(
+        String vault)
+    {
+        this.vault = VaultedConfig.builder().name(vault).build();
+        return this;
+    }
+
+    public JwtOptionsConfigBuilder<T> secret(
+        String secret)
+    {
+        if (secrets == null)
+        {
+            secrets = new LinkedList<>();
+        }
+        secrets.add(secret);
+        return this;
+    }
+
+    public JwtOptionsConfigBuilder<T> secrets(
+        List<String> secrets)
+    {
+        this.secrets = secrets;
+        return this;
+    }
+
     @Override
     public T build()
     {
         String roles = this.roles != null ? this.roles : ROLES_DEFAULT;
 
-        return mapper.apply(new JwtOptionsConfig(issuer, audience, roles, keys, challenge, identity, keysURL, attributes));
+        return mapper.apply(new JwtOptionsConfig(
+            issuer, audience, roles, keys, challenge, identity, keysURL, attributes, vault, secrets));
     }
 }

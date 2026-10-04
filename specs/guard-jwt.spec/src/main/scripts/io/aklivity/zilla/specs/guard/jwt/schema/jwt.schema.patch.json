@@ -108,6 +108,20 @@
                                     }
                                 },
                                 "additionalProperties": false
+                            },
+                            "vault":
+                            {
+                                "title": "Vault",
+                                "type": "string"
+                            },
+                            "secrets":
+                            {
+                                "title": "Secrets",
+                                "type": "array",
+                                "items":
+                                {
+                                    "type": "string"
+                                }
                             }
                         },
                         "additionalProperties": false
