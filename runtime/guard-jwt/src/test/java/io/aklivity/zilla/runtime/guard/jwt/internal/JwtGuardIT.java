@@ -84,6 +84,26 @@ public class JwtGuardIT
     }
 
     @Test
+    @Configuration("guard-vault.token.secrets.yaml")
+    @Specification({
+        "${net}/handshake/client",
+        "${app}/handshake.authorized/server" })
+    public void shouldAuthorizeVaultWrappedTokenSealedWithAnyPermittedKey() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("guard-vault.token.signed.yaml")
+    @Specification({
+        "${net}/handshake/client",
+        "${app}/handshake.authorized/server" })
+    public void shouldAuthorizeSignedTokenWhenVaultConfigured() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("guard-vault.token.tampered.yaml")
     @Specification({
         "${net}/handshake.abort/client" })

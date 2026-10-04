@@ -14,46 +14,31 @@
  */
 package io.aklivity.zilla.runtime.guard.jwt.internal;
 
-import static io.aklivity.zilla.config.guard.jwt.internal.keys.JwtKeyConfigs.RFC7515_RS256_CONFIG;
-import static io.aklivity.zilla.runtime.guard.jwt.internal.JwtGuardHandlerTest.sign;
-import static io.aklivity.zilla.specs.guard.jwt.keys.JwtKeys.RFC7515_RS256;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.Arrays.asList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
-import java.time.Clock;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import jakarta.json.Json;
 
-import org.agrona.collections.MutableLong;
 import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.config.engine.GenericVaultConfig;
 import io.aklivity.zilla.config.engine.VaultConfig;
 import io.aklivity.zilla.config.engine.test.internal.vault.config.TestVaultOptionsConfig;
-import io.aklivity.zilla.config.guard.jwt.JwtOptionsConfig;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.jwt.Jwe;
 import io.aklivity.zilla.runtime.common.jwt.JweKeyManager;
 import io.aklivity.zilla.runtime.common.jwt.JwtException;
-import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.test.internal.vault.TestVaultHandler;
 import io.aklivity.zilla.runtime.engine.vault.SecretKeyManager;
 
@@ -68,7 +53,6 @@ public class JwtGuardEncryptedTest
     private static final String GHOST_KEY =
         "-----BEGIN SECRET KEY-----\nR2hvc3RHaG9zdEdob3N0R2hvc3RHaG9zdEdob3N0R2g=\n-----END SECRET KEY-----";
 
-    private EngineContext context;
     private SecretKeyManager permitted;
     private SecretKeyManager sealing;
     private SecretKeyManager ghosts;
@@ -76,10 +60,6 @@ public class JwtGuardEncryptedTest
     @Before
     public void init()
     {
-        context = mock(EngineContext.class);
-        when(context.clock()).thenReturn(mock(Clock.class));
-        when(context.supplyEventWriter()).thenReturn(mock(MessageConsumer.class));
-
         TestVaultHandler vault = new TestVaultHandler(vault(
             TestVaultOptionsConfig.builder()
                 .wrap("tenant-1", TENANT_1_KEY)
@@ -95,42 +75,6 @@ public class JwtGuardEncryptedTest
         permitted = vault.initSecretKeys(List.of("tenant-1", "tenant-2")).getSecretKeyManager();
         sealing = vault.initSecretKeys(List.of("tenant-1", "tenant-2", "other")).getSecretKeyManager();
         ghosts = outside.initSecretKeys(List.of("ghost")).getSecretKeyManager();
-    }
-
-    @Test
-    public void shouldAuthorizeEncryptedToken() throws Exception
-    {
-        JwtGuardHandler guard = newGuard(newEncryption(permitted));
-
-        long sessionId = guard.reauthorize(0L, 0L, 101L, seal(sealing, "tenant-1", claims()));
-
-        assertThat(sessionId, not(equalTo(0L)));
-        assertThat(guard.identity(sessionId), equalTo("alice"));
-        assertThat(guard.attribute(sessionId, "site"), equalTo(Json.createValue("http://example.com")));
-        assertTrue(guard.verify(sessionId, asList("read")));
-        assertFalse(guard.verify(sessionId, asList("admin")));
-    }
-
-    @Test
-    public void shouldAuthorizeTokensSealedWithEachPermittedKey() throws Exception
-    {
-        JwtGuardHandler guard = newGuard(newEncryption(permitted));
-
-        long first = guard.reauthorize(0L, 0L, 101L, seal(sealing, "tenant-1", claims()));
-        long second = guard.reauthorize(0L, 0L, 102L, seal(sealing, "tenant-2", claims()));
-
-        assertThat(first, not(equalTo(0L)));
-        assertThat(second, not(equalTo(0L)));
-    }
-
-    @Test
-    public void shouldAuthorizeSignedTokenWhenVaultConfigured() throws Exception
-    {
-        JwtGuardHandler guard = newGuard(newEncryption(permitted));
-
-        String token = sign(claims(), "test", RFC7515_RS256, "RS256");
-
-        assertThat(guard.reauthorize(0L, 0L, 101L, token), not(equalTo(0L)));
     }
 
     @Test
@@ -202,27 +146,6 @@ public class JwtGuardEncryptedTest
         assertThrows(JwtException.class, () -> encryption.unwrap(foreign));
         assertThrows(JwtException.class, () -> encryption.wrap(new byte[32]));
         assertThat(encryption.algorithm(), equalTo("io.aklivity.zilla.vault.v1"));
-    }
-
-    private JwtGuardHandler newGuard(
-        JweKeyManager encryption)
-    {
-        JwtOptionsConfig options = JwtOptionsConfig.builder()
-            .issuer("test issuer")
-            .audience("testAudience")
-            .key(RFC7515_RS256_CONFIG)
-            .attributes(Map.of("site", "website"))
-            .vault("vault0")
-            .secrets(List.of("tenant-1", "tenant-2"))
-            .build();
-
-        return new JwtGuardHandler(options, context, new MutableLong(1L)::getAndIncrement, sessionId -> null, encryption);
-    }
-
-    private static JweKeyManager newEncryption(
-        SecretKeyManager secrets)
-    {
-        return new VaultJweKeyManager(secrets, System::currentTimeMillis);
     }
 
     private static String claims()

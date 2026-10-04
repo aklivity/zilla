@@ -1,0 +1,60 @@
+#
+# Copyright 2021-2026 Aklivity Inc
+#
+# Licensed under the Aklivity Community License (the "License"); you may not use
+# this file except in compliance with the License.  You may obtain a copy of the
+# License at
+#
+#   https://www.aklivity.io/aklivity-community-license/
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations under the License.
+#
+
+---
+name: test
+vaults:
+  vault0:
+    type: test
+    options:
+      wrap:
+        alias: tenant-1
+        entry: |
+          -----BEGIN SECRET KEY-----
+          jOl3tg1ZDuqTrzB7WOVaUOEoezst8sz/ywPPbsGE8bA=
+          -----END SECRET KEY-----
+guards:
+  jwt0:
+    type: jwt
+    options:
+      issuer: http://localhost:8080
+      audience: https://api.aklivity.com
+      keys:
+        - kty: RSA
+          n: ofgWCuLjybRlzo0tZWJjNiuSfb4p4fAkd_wWJcyQoTbji9k0l8W26mPddxHmfHQp-Vaw-4qPCJrcS2mJPMEzP1Pt0Bm4d4QlL-yRT-SFd2lZS-pCgNMsD1W_YpRPEwOWvG6b32690r2jZ47soMZo9wGzjb_7OMg0LOL-bSf63kpaSHSXndS5z5rexMdbBYUsLA9e-KXBdQOS-UTo7WTBEMa2R2CapHg665xsmtdVMTBQY4uDZlxvb3qCo5ZwKh9kG4LT6_I5IhlJH7aGhyxXFvUK-DWNmoudF8NAco9_h9iaGNj8q2ethFkMLs91kzk2PAcDTW9gb54h4FRWyuXpoQ
+          e: AQAB
+          alg: RS256
+          kid: test
+      vault: vault0
+      secrets:
+        - tenant-1
+      attributes:
+        site: website
+bindings:
+  net0:
+    type: test
+    kind: server
+    options:
+      authorization:
+        jwt0:
+          expectIdentity: alice
+          attributes:
+            site: http://example.com
+          credentials: eyJhbGciOiJSUzI1NiIsImtpZCI6InRlc3QifQ.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwODAiLCJhdWQiOiJodHRwczovL2FwaS5ha2xpdml0eS5jb20iLCJzdWIiOiJhbGljZSIsImV4cCI6NDEwMjQ0NDgwMCwic2NvcGUiOiJyZWFkIHdyaXRlIiwid2Vic2l0ZSI6Imh0dHA6Ly9leGFtcGxlLmNvbSJ9.AG4vnuUwkE5YfVg4-dilEkzyGXtgmTx89CrjhVSJpATdeQ71mCC-8r_LlwKX4759qZBg1W7pmv7N_weB9SUYAtNR0atFCO5IkdTQQE_Ca9BiqIrEjnGYCVLKsWGZ6ziQUNgpU6EJdvoWLoqX5xs1xv_IizIbLAoBpNRZ_bs78h9T1D-OMkGmpHRlma8hNrmNSvHc7hjlrKjFOoqmX1vGpbUP3qKSomG0pk26lYC9Md9hT7cw7fuOA7U3FhC9sMjW_c5D-NeuXbfATYANGCi9AY4o2e3m3q8BWI5WWhLcNtSJSWyGgiCLVcoqDdX3mlC1OwER3kurrkC-LBEsO0TyCA
+    routes:
+      - guarded:
+          jwt0:
+            - read
+        exit: app0
