@@ -21,6 +21,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
+import java.util.Arrays;
 import java.util.Set;
 import java.util.function.LongUnaryOperator;
 
@@ -78,6 +79,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
     private static final String HEADER_PATH = ":path";
     private static final String HEADER_STATUS = ":status";
     private static final String HEADER_CONTENT_TYPE = "content-type";
+    private static final String DIALECT_OPENAI = "openai";
     private static final String HEADER_API_KEY = "x-api-key";
     private static final String HEADER_ANTHROPIC_VERSION = "anthropic-version";
     private static final String ANTHROPIC_VERSION = "2023-06-01";
@@ -247,7 +249,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         MessageConsumer newStream = null;
 
         if (route != null && binding.options.server != null && llmBeginEx != null &&
-            NAME.equals(llmBeginEx.dialect().asString()))
+            source(llmBeginEx.dialect().asString()))
         {
             newStream = new LlmAnthropicStream(
                 app,
@@ -258,7 +260,8 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                 authorization,
                 affinity,
                 binding,
-                llmBeginEx.model().asString())::onAppMessage;
+                llmBeginEx.model().asString(),
+                llmBeginEx.dialect().asString())::onAppMessage;
         }
 
         return newStream;
@@ -303,6 +306,21 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         }
 
         return credentials;
+    }
+
+    private static boolean source(
+        String dialect)
+    {
+        return NAME.equals(dialect) || DIALECT_OPENAI.equals(dialect);
+    }
+
+    private static boolean translated(
+        int kind)
+    {
+        return kind == KIND_USER_IMAGE ||
+            kind == KIND_USER_DOCUMENT ||
+            kind == KIND_TOOL_CALL ||
+            kind == KIND_TOOL_DEFINITION;
     }
 
     private static int sectionKind(
@@ -370,6 +388,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         private final long affinity;
         private final LlmBindingConfig binding;
         private final String model;
+        private final String dialect;
         private final LlmAnthropicHttpStream http;
         private final LlmAnthropicResponseExtractor extractor;
         private final JsonPipeline responsePipeline;
@@ -401,7 +420,8 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             long authorization,
             long affinity,
             LlmBindingConfig binding,
-            String model)
+            String model,
+            String dialect)
         {
             this.app = app;
             this.originId = originId;
@@ -413,6 +433,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             this.affinity = affinity;
             this.binding = binding;
             this.model = model;
+            this.dialect = dialect;
             this.extractor = new LlmAnthropicResponseExtractor();
             this.responsePipeline = JsonEx.stream(JsonEx.createParser())
                 .transform(responseValidator)
@@ -517,8 +538,11 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                         ? extension.buffer().getStringWithoutLengthUtf8(extension.offset(), extension.sizeof())
                         : null;
 
+                    final String type = llmDataEx != null ? llmDataEx.type().asString() : null;
+
                     http.doEncodeSectionBegin(
-                        sectionKind(llmDataEx != null ? llmDataEx.type().asString() : null),
+                        sectionKind(type),
+                        type,
                         llmDataEx != null ? llmDataEx.message() : NO_MESSAGE,
                         id);
                 }
@@ -1026,6 +1050,10 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         private String toolResultId;
         private int sectionKind;
         private boolean sectionOpen;
+        private String sectionType;
+        private boolean translating;
+        private byte[] translateBytes = new byte[0];
+        private int translateLength;
 
         private int decodeSlot = NO_SLOT;
         private int decodeSlotOffset;
@@ -1117,13 +1145,17 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
 
         private void doEncodeSectionBegin(
             int kind,
+            String type,
             int message,
             String extension)
         {
             sectionKind = kind;
+            sectionType = type;
             sectionOpen = false;
+            translating = !NAME.equals(stream.dialect) && translated(kind);
+            translateLength = 0;
 
-            if (kind == 0 || kind == KIND_USER_AUDIO)
+            if (kind == 0 || kind == KIND_USER_AUDIO || kind == KIND_UNKNOWN && !NAME.equals(stream.dialect))
             {
                 encodeFailed = true;
             }
@@ -1338,7 +1370,11 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             int offset,
             int length)
         {
-            if (sectionKind != 0)
+            if (translating)
+            {
+                accumulate(buffer, offset, length);
+            }
+            else if (sectionKind != 0)
             {
                 if (text(sectionKind))
                 {
@@ -1351,8 +1387,46 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             }
         }
 
+        private void accumulate(
+            DirectBufferEx buffer,
+            int offset,
+            int length)
+        {
+            if (translateLength + length > encodeMax)
+            {
+                encodeFailed = true;
+            }
+            else
+            {
+                if (translateLength + length > translateBytes.length)
+                {
+                    translateBytes = Arrays.copyOf(translateBytes, Math.max(translateLength + length, translateBytes.length * 2));
+                }
+
+                buffer.getBytes(offset, translateBytes, translateLength, length);
+                translateLength += length;
+            }
+        }
+
         private void doEncodeSectionEnd()
         {
+            if (translating)
+            {
+                final String translated = LlmSectionTranslator.toAnthropic(
+                    sectionType, new String(translateBytes, 0, translateLength, UTF_8));
+
+                if (translated != null)
+                {
+                    put(translated.getBytes(UTF_8));
+                }
+                else
+                {
+                    encodeFailed = true;
+                }
+
+                translating = false;
+            }
+
             if (sectionOpen)
             {
                 putByte('"');

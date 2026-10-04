@@ -25,6 +25,8 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 
 final class LlmAnthropicClientHandler implements LlmDialectHandler
 {
+    private static final String DIALECT_OPENAI = "openai";
+
     private final BeginFW beginRO = new BeginFW();
     private final LlmBeginExFW llmBeginExRO = new LlmBeginExFW();
 
@@ -56,8 +58,10 @@ final class LlmAnthropicClientHandler implements LlmDialectHandler
     {
         final BeginFW begin = beginRO.wrap(buffer, index, index + length);
         final LlmBeginExFW llmBeginEx = begin.extension().get(llmBeginExRO::tryWrap);
-        final boolean anthropic = llmBeginEx != null && NAME.equals(llmBeginEx.dialect().asString());
+        final String dialect = llmBeginEx != null ? llmBeginEx.dialect().asString() : null;
+        final boolean sections = NAME.equals(dialect) ||
+            DIALECT_OPENAI.equals(dialect) && llmBeginEx.model().asString() != null;
 
-        return (anthropic ? canonical : legacy).newStream(msgTypeId, buffer, index, length, sender);
+        return (sections ? canonical : legacy).newStream(msgTypeId, buffer, index, length, sender);
     }
 }
