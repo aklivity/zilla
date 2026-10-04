@@ -152,6 +152,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
     private final LlmBeginExFW llmBeginExRO = new LlmBeginExFW();
     private final LlmDataExFW llmDataExRO = new LlmDataExFW();
     private final OctetsFW extensionRO = new OctetsFW();
+    private final LlmSectionAttributes sectionAttributes = new LlmSectionAttributes();
 
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
     private final DataFW.Builder dataRW = new DataFW.Builder();
@@ -536,10 +537,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 if (Flags.hasInit(flags))
                 {
                     final LlmDataExFW llmDataEx = data.extension().get(llmDataExRO::tryWrap);
-                    final OctetsFW extension = llmDataEx != null ? llmDataEx.extension() : null;
-                    final String id = extension != null && extension.sizeof() > 0
-                        ? extension.buffer().getStringWithoutLengthUtf8(extension.offset(), extension.sizeof())
-                        : null;
+                    sectionAttributes.readFrom(llmDataEx);
 
                     final String type = llmDataEx != null ? llmDataEx.type().asString() : null;
 
@@ -547,7 +545,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                         sectionKind(type),
                         type,
                         llmDataEx != null ? llmDataEx.message() : NO_MESSAGE,
-                        id);
+                        sectionAttributes.toolCallId());
                 }
 
                 final OctetsFW payload = data.payload();

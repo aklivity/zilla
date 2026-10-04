@@ -1717,6 +1717,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/openai.encode.anthropic.tool.result.error/client",
+        "${net}/openai.encode.anthropic.tool.result.error/server"})
+    public void shouldOpenaiEncodeAnthropicToolResultError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/anthropic.response.decode.reasoning/client",
         "${net}/anthropic.response.decode.reasoning/server"})
     public void shouldDecodeAnthropicResponseReasoning() throws Exception

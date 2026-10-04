@@ -1269,6 +1269,16 @@ public class LlmClientIT
     }
 
     @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/anthropic.section.tool.result.error/client",
+        "${net}/openai.encode.anthropic.tool.result.error/server"})
+    public void shouldEncodeAnthropicSectionToolResultErrorAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("client.anthropic.yaml")
     @Specification({
         "${app}/anthropic.response.decode.reasoning/client",

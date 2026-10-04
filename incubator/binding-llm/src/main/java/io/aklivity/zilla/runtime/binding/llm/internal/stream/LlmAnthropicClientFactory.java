@@ -136,6 +136,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
     private static final byte[] TEXT_BLOCK_START = "{\"type\":\"text\",\"text\":\"".getBytes(UTF_8);
     private static final byte[] TOOL_RESULT_START = "{\"type\":\"tool_result\",\"tool_use_id\":\"".getBytes(UTF_8);
     private static final byte[] TOOL_RESULT_CONTENT = "\",\"content\":[".getBytes(UTF_8);
+    private static final byte[] TOOL_RESULT_ERROR_CONTENT = "\",\"is_error\":true,\"content\":[".getBytes(UTF_8);
     private static final byte[] CITATIONS_MEMBER = ",\"citations\":".getBytes(UTF_8);
     private static final byte[] ARRAY_OBJECT_END = "]}".getBytes(UTF_8);
 
@@ -153,6 +154,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
     private final LlmBeginExFW llmBeginExRO = new LlmBeginExFW();
     private final LlmDataExFW llmDataExRO = new LlmDataExFW();
     private final OctetsFW extensionRO = new OctetsFW();
+    private final LlmSectionAttributes sectionAttributes = new LlmSectionAttributes();
 
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
     private final DataFW.Builder dataRW = new DataFW.Builder();
@@ -528,10 +530,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                 if (Flags.hasInit(flags))
                 {
                     final LlmDataExFW llmDataEx = data.extension().get(llmDataExRO::tryWrap);
-                    final OctetsFW extension = llmDataEx != null ? llmDataEx.extension() : null;
-                    final String id = extension != null && extension.sizeof() > 0
-                        ? extension.buffer().getStringWithoutLengthUtf8(extension.offset(), extension.sizeof())
-                        : null;
+                    sectionAttributes.readFrom(llmDataEx);
 
                     final String type = llmDataEx != null ? llmDataEx.type().asString() : null;
 
@@ -539,7 +538,8 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                         sectionKind(type),
                         type,
                         llmDataEx != null ? llmDataEx.message() : NO_MESSAGE,
-                        id);
+                        sectionAttributes.toolCallId(),
+                        LlmSectionAttributes.TRUE.equals(sectionAttributes.isError()));
                 }
 
                 final OctetsFW payload = data.payload();
@@ -1220,7 +1220,8 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             int kind,
             String type,
             int message,
-            String extension)
+            String toolCallId,
+            boolean isError)
         {
             sectionKind = kind;
             sectionType = type;
@@ -1261,7 +1262,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                 }
                 else
                 {
-                    beginMessageBlock(kind, message, extension);
+                    beginMessageBlock(kind, message, toolCallId, isError);
                 }
             }
         }
@@ -1269,7 +1270,8 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         private void beginMessageBlock(
             int kind,
             int message,
-            String extension)
+            String toolCallId,
+            boolean isError)
         {
             openRegion(REGION_MESSAGES);
 
@@ -1283,20 +1285,20 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
 
             if (kind == KIND_TOOL_RESULT)
             {
-                if (extension == null)
+                if (toolCallId == null)
                 {
                     encodeFailed = true;
                 }
                 else
                 {
-                    if (!extension.equals(toolResultId))
+                    if (!toolCallId.equals(toolResultId))
                     {
                         closeToolResult();
                         beginMessageBlockSeparator();
                         put(TOOL_RESULT_START);
-                        putEscaped(extension);
-                        put(TOOL_RESULT_CONTENT);
-                        toolResultId = extension;
+                        putEscaped(toolCallId);
+                        put(isError ? TOOL_RESULT_ERROR_CONTENT : TOOL_RESULT_CONTENT);
+                        toolResultId = toolCallId;
                         blockCount = 0;
                     }
 

@@ -14,6 +14,9 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
+import java.util.function.Consumer;
+
+import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmAttributeFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmDataExFW;
 
 final class LlmSectionAttributes
@@ -34,6 +37,8 @@ final class LlmSectionAttributes
 
     static final String TRUE = "true";
     static final String FALSE = "false";
+
+    private final Consumer<LlmAttributeFW> reader = this::read;
 
     private String mediaType;
     private String source;
@@ -56,6 +61,17 @@ final class LlmSectionAttributes
         toolCallId = null;
         isError = null;
         providerExecuted = null;
+    }
+
+    void readFrom(
+        LlmDataExFW dataEx)
+    {
+        clear();
+
+        if (dataEx != null)
+        {
+            dataEx.attributes().forEach(reader);
+        }
     }
 
     void copyFrom(
@@ -210,6 +226,45 @@ final class LlmSectionAttributes
         write(builder, TOOL_CALL_ID, toolCallId);
         write(builder, IS_ERROR, isError);
         write(builder, PROVIDER_EXECUTED, providerExecuted);
+    }
+
+    private void read(
+        LlmAttributeFW attribute)
+    {
+        final String value = attribute.value().asString();
+
+        switch (attribute.name().asString())
+        {
+        case MEDIA_TYPE:
+            mediaType = value;
+            break;
+        case SOURCE:
+            source = value;
+            break;
+        case URI:
+            uri = value;
+            break;
+        case REF_ID:
+            refId = value;
+            break;
+        case FILENAME:
+            filename = value;
+            break;
+        case TOOL_NAME:
+            toolName = value;
+            break;
+        case TOOL_CALL_ID:
+            toolCallId = value;
+            break;
+        case IS_ERROR:
+            isError = value;
+            break;
+        case PROVIDER_EXECUTED:
+            providerExecuted = value;
+            break;
+        default:
+            break;
+        }
     }
 
     private static void write(
