@@ -34,6 +34,8 @@ read zilla:data.ext ${llm:matchDataEx()
                           .build()}
 read "{\"type\":\"image_url\",\"image_url\":{\"url\":\"https://example.com/cat.png\"}}"
 
+read advised zilla:flush
+
 write zilla:reset.ext ${llm:resetEx()
                             .typeId(zilla:id("llm"))
                             .status(429)

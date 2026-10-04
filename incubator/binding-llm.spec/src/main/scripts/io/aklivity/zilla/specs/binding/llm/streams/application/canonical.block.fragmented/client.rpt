@@ -43,6 +43,8 @@ write option zilla:flags "fin"
 write "spans several frames"
 write flush
 
+write advise zilla:flush
+
 read zilla:begin.ext ${llm:matchBeginEx()
                            .typeId(zilla:id("llm"))
                            .dialect("openai")

@@ -35,6 +35,8 @@ read zilla:data.ext ${llm:matchDataEx()
                           .build()}
 read "sunny"
 
+read advised zilla:flush
+
 write zilla:reset.ext ${llm:resetEx()
                             .typeId(zilla:id("llm"))
                             .status(429)

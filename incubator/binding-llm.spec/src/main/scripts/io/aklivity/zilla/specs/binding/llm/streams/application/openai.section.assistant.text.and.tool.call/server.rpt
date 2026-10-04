@@ -41,6 +41,8 @@ read zilla:data.ext ${llm:matchDataEx()
                           .build()}
 read "{\"id\":\"call_1\",\"type\":\"function\",\"function\":{\"name\":\"get_weather\",\"arguments\":\"{\\\"city\\\":\\\"Paris\\\"}\"}}"
 
+read advised zilla:flush
+
 write zilla:reset.ext ${llm:resetEx()
                             .typeId(zilla:id("llm"))
                             .status(429)

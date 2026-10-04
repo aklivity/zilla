@@ -33,6 +33,8 @@ write zilla:data.ext ${llm:dataEx()
 write "{\"type\":\"video_url\",\"video_url\":{\"url\":\"https://example.com/cat.mp4\"}}"
 write flush
 
+write advise zilla:flush
+
 read zilla:reset.ext ${llm:matchResetEx()
                            .typeId(zilla:id("llm"))
                            .status(429)

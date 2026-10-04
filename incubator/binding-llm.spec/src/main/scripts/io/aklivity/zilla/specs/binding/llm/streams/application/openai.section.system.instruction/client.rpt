@@ -41,6 +41,8 @@ write zilla:data.ext ${llm:dataEx()
 write "Answer in French"
 write flush
 
+write advise zilla:flush
+
 read zilla:reset.ext ${llm:matchResetEx()
                            .typeId(zilla:id("llm"))
                            .status(429)

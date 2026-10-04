@@ -34,6 +34,8 @@ read zilla:data.ext ${llm:matchDataEx()
                           .build()}
 read "{\"type\":\"input_audio\",\"input_audio\":{\"data\":\"UklGRg==\",\"format\":\"wav\"}}"
 
+read advised zilla:flush
+
 write zilla:reset.ext ${llm:resetEx()
                             .typeId(zilla:id("llm"))
                             .status(429)

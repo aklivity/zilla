@@ -42,6 +42,8 @@ read "this block "
 read option zilla:flags "fin"
 read "spans several frames"
 
+read advised zilla:flush
+
 write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
                            .dialect("openai")

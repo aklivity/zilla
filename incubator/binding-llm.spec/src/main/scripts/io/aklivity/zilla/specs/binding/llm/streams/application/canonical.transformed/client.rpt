@@ -33,6 +33,8 @@ write zilla:data.ext ${llm:dataEx()
 write "Hello"
 write flush
 
+write advise zilla:flush
+
 read zilla:begin.ext ${llm:matchBeginEx()
                            .typeId(zilla:id("llm"))
                            .dialect("anthropic")

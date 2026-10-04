@@ -55,6 +55,8 @@ read zilla:data.ext ${llm:matchDataEx()
                           .build()}
 read "sunny"
 
+read advised zilla:flush
+
 write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
                            .dialect("openai")
