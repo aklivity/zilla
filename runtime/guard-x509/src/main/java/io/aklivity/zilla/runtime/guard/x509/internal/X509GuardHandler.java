@@ -32,6 +32,9 @@ import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.LongSupplier;
 
+import jakarta.json.Json;
+import jakarta.json.JsonValue;
+
 import org.agrona.collections.Long2ObjectHashMap;
 
 import io.aklivity.zilla.config.guard.x509.X509OptionsConfig;
@@ -83,7 +86,7 @@ public class X509GuardHandler implements GuardHandler
         X509Session session = null;
         String identity = null;
         String reason = "";
-        Map<String, String> attributes = new LinkedHashMap<>();
+        Map<String, JsonValue> attributes = new LinkedHashMap<>();
 
         authorize:
         try
@@ -107,7 +110,7 @@ public class X509GuardHandler implements GuardHandler
 
             identity = value(fields, this.identity);
 
-            this.attributes.forEach((name, field) -> attributes.put(name, value(fields, field)));
+            this.attributes.forEach((name, field) -> attributes.put(name, attributeValue(fields, field)));
 
             List<String> roles = this.roles.resolve(fields);
 
@@ -191,7 +194,7 @@ public class X509GuardHandler implements GuardHandler
     }
 
     @Override
-    public String attribute(
+    public JsonValue attribute(
         long sessionId,
         String name)
     {
@@ -273,6 +276,14 @@ public class X509GuardHandler implements GuardHandler
         return sessionStoresByContextId.computeIfAbsent(contextId, X509SessionStore::new);
     }
 
+    private static JsonValue attributeValue(
+        Map<String, List<String>> fields,
+        String field)
+    {
+        String value = value(fields, field);
+        return value != null ? Json.createValue(value) : null;
+    }
+
     private static String value(
         Map<String, List<String>> fields,
         String field)
@@ -324,7 +335,7 @@ public class X509GuardHandler implements GuardHandler
         private X509Session supplySession(
             String identity,
             List<String> roles,
-            Map<String, String> attributes)
+            Map<String, JsonValue> attributes)
         {
             String identityKey = identity != null ? identity.intern() : null;
             X509Session session = sessionsByIdentity.get(identityKey);
@@ -343,14 +354,14 @@ public class X509GuardHandler implements GuardHandler
 
         private X509Session newSharedSession(
             String identity,
-            Map<String, String> attributes)
+            Map<String, JsonValue> attributes)
         {
             return new X509Session(supplyAuthorizedId.getAsLong(), identity, attributes, this::onUnshared);
         }
 
         private X509Session newSession(
             String identity,
-            Map<String, String> attributes)
+            Map<String, JsonValue> attributes)
         {
             return new X509Session(supplyAuthorizedId.getAsLong(), identity, attributes);
         }
@@ -370,7 +381,7 @@ public class X509GuardHandler implements GuardHandler
     {
         private final long authorized;
         private final String identity;
-        private final Map<String, String> attributes;
+        private final Map<String, JsonValue> attributes;
         private final Consumer<X509Session> unshare;
 
         private String credentials;
@@ -382,7 +393,7 @@ public class X509GuardHandler implements GuardHandler
         private X509Session(
             long authorized,
             String identity,
-            Map<String, String> attributes)
+            Map<String, JsonValue> attributes)
         {
             this(authorized, identity, attributes, null);
         }
@@ -390,7 +401,7 @@ public class X509GuardHandler implements GuardHandler
         private X509Session(
             long authorized,
             String identity,
-            Map<String, String> attributes,
+            Map<String, JsonValue> attributes,
             Consumer<X509Session> unshare)
         {
             this.authorized = authorized;

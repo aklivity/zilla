@@ -43,6 +43,7 @@ import jakarta.json.JsonArray;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonPatch;
 import jakarta.json.JsonReader;
+import jakarta.json.JsonValue;
 import jakarta.json.spi.JsonProvider;
 
 import io.aklivity.zilla.config.engine.BindingConfig;
@@ -481,7 +482,7 @@ public class EngineManager
 
                         guarded.identity = identifier;
 
-                        LongObjectBiFunction<String, String> attributor = guards.stream()
+                        LongObjectBiFunction<String, JsonValue> attributor = guards.stream()
                             .filter(g -> g.id == guarded.id)
                             .findFirst()
                             .map(g -> guardByType.apply(g.type))

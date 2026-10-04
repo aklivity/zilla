@@ -22,6 +22,7 @@ import static java.util.function.Function.identity;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -40,12 +41,14 @@ import java.util.List;
 import java.util.Map;
 
 import jakarta.json.Json;
+import jakarta.json.JsonValue;
 
 import org.agrona.collections.MutableLong;
 import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.config.guard.jwt.JwtOptionsConfig;
+import io.aklivity.zilla.runtime.common.json.JsonStrings;
 import io.aklivity.zilla.runtime.common.jwt.Jws;
 import io.aklivity.zilla.runtime.common.jwt.JwsAlgorithm;
 import io.aklivity.zilla.runtime.common.jwt.JwtException;
@@ -804,9 +807,57 @@ public class JwtGuardHandlerTest
         long sessionId = guard.reauthorize(0L, 0L, 101L, token);
 
         assertThat(sessionId, not(equalTo(0L)));
-        assertThat(guard.attribute(sessionId, "site"), equalTo("http://example.com"));
+        assertThat(guard.attribute(sessionId, "site"), equalTo(Json.createValue("http://example.com")));
         assertThat(guard.attribute(sessionId, "given_name"), equalTo(null));
-        assertThat(guard.attribute(sessionId, "user"), equalTo("12345"));
+        assertThat(guard.attribute(sessionId, "user"), equalTo(Json.createValue("12345")));
+    }
+
+    @Test
+    public void shouldResolveTypedAttributes() throws Exception
+    {
+        JwtOptionsConfig options = JwtOptionsConfig.builder()
+            .inject(identity())
+            .issuer("test issuer")
+            .audience("testAudience")
+            .attributes(Map.of(
+                "text", "s",
+                "count", "n",
+                "active", "flag",
+                "nothing", "none",
+                "groups", "groups",
+                "profile", "profile",
+                "tier", "profile.tier.name",
+                "absent", "profile.absent",
+                "unknown", "unknown"))
+            .key(RFC7515_RS256_CONFIG)
+            .build();
+        JwtGuardHandler guard = new JwtGuardHandler(options, context, new MutableLong(1L)::getAndIncrement, sessionId -> null);
+
+        long exp = Instant.now().getEpochSecond() + 10L;
+        String claims = "{\"iss\":\"test issuer\",\"aud\":\"testAudience\",\"sub\":\"testSubject\",\"exp\":" + exp + "," +
+            "\"s\":\"[1,2]\",\"n\":7,\"flag\":true,\"none\":null,\"groups\":[\"admins\",\"operators\"]," +
+            "\"profile\":{\"id\":\"12345\",\"tier\":{\"name\":\"gold\"}}}";
+        String token = sign(claims, "test", RFC7515_RS256, "RS256");
+
+        long sessionId = guard.reauthorize(0L, 0L, 101L, token);
+
+        assertThat(sessionId, not(equalTo(0L)));
+        assertThat(guard.attribute(sessionId, "text"), equalTo(Json.createValue("[1,2]")));
+        assertThat(guard.attribute(sessionId, "count"), equalTo(Json.createValue(7)));
+        assertThat(guard.attribute(sessionId, "active"), equalTo(JsonValue.TRUE));
+        assertThat(guard.attribute(sessionId, "nothing"), equalTo(JsonValue.NULL));
+        assertThat(guard.attribute(sessionId, "groups"),
+            equalTo(Json.createArrayBuilder().add("admins").add("operators").build()));
+        assertThat(guard.attribute(sessionId, "profile"), equalTo(Json.createObjectBuilder()
+            .add("id", "12345")
+            .add("tier", Json.createObjectBuilder().add("name", "gold"))
+            .build()));
+        assertThat(guard.attribute(sessionId, "tier"), equalTo(Json.createValue("gold")));
+        assertThat(guard.attribute(sessionId, "absent"), nullValue());
+        assertThat(guard.attribute(sessionId, "unknown"), nullValue());
+        assertThat(JsonStrings.asString(guard.attribute(sessionId, "text")), equalTo("[1,2]"));
+        assertThat(JsonStrings.asString(guard.attribute(sessionId, "groups")), equalTo("[\"admins\",\"operators\"]"));
+        assertThat(JsonStrings.asString(guard.attribute(sessionId, "nothing")), equalTo("null"));
     }
 
     static String sign(

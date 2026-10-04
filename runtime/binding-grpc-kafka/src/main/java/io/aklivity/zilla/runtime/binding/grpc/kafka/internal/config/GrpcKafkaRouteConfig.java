@@ -25,6 +25,8 @@ import java.util.function.UnaryOperator;
 import java.util.regex.MatchResult;
 import java.util.stream.Collectors;
 
+import jakarta.json.JsonValue;
+
 import io.aklivity.zilla.config.binding.grpc.kafka.GrpcKafkaConditionConfig;
 import io.aklivity.zilla.config.binding.grpc.kafka.GrpcKafkaOptionsConfig;
 import io.aklivity.zilla.config.binding.grpc.kafka.GrpcKafkaWithConfig;
@@ -32,6 +34,7 @@ import io.aklivity.zilla.config.engine.RouteConfig;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.GrpcMetadataFW;
+import io.aklivity.zilla.runtime.common.json.JsonStrings;
 import io.aklivity.zilla.runtime.common.lang.util.function.LongObjectBiFunction;
 import io.aklivity.zilla.runtime.common.lang.util.function.LongObjectPredicate;
 
@@ -64,17 +67,17 @@ public final class GrpcKafkaRouteConfig
             return identity != null ? identity : "";
         };
 
-        final Map<String, LongObjectBiFunction<String, String>> attributors = route.guarded.stream()
+        final Map<String, LongObjectBiFunction<String, JsonValue>> attributors = route.guarded.stream()
             .collect(Collectors.toMap(g -> g.name, g -> g.attributes));
 
-        final LongObjectBiFunction<String, String> defaultAttributor = (sessionId, name) -> null;
+        final LongObjectBiFunction<String, JsonValue> defaultAttributor = (sessionId, name) -> null;
         final LongObjectBiFunction<MatchResult, String> attributeReplacer = (sessionId, match) ->
         {
-            final LongObjectBiFunction<String, String> attributor =
+            final LongObjectBiFunction<String, JsonValue> attributor =
                 attributors.getOrDefault(match.group(1), defaultAttributor);
 
-            final String value = attributor.apply(sessionId, match.group(2));
-            return value != null ? value : "";
+            final JsonValue value = attributor.apply(sessionId, match.group(2));
+            return value != null ? JsonStrings.asString(value) : "";
         };
 
         this.with = Optional.of(route.with)

@@ -36,6 +36,7 @@ import java.util.regex.Pattern;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
+import jakarta.json.JsonValue;
 
 import org.agrona.collections.Long2ObjectHashMap;
 
@@ -126,7 +127,7 @@ public class JwtGuardHandler implements GuardHandler
         JwtSession session = null;
         String identity = null;
         String reason = "";
-        Map<String, String> attributes = new HashMap<>();
+        Map<String, JsonValue> attributes = new HashMap<>();
 
         authorize:
         try
@@ -193,8 +194,7 @@ public class JwtGuardHandler implements GuardHandler
                 this.attributes
                     .forEach((name, attribute) ->
                     {
-                        Object value = claimValue(claims, attribute);
-                        attributes.put(name, value != null ? value.toString() : null);
+                        attributes.put(name, claimJson(claims, attribute));
                     });
             }
 
@@ -279,7 +279,7 @@ public class JwtGuardHandler implements GuardHandler
     }
 
     @Override
-    public String attribute(
+    public JsonValue attribute(
         long sessionId,
         String name)
     {
@@ -376,7 +376,7 @@ public class JwtGuardHandler implements GuardHandler
         private JwtSession supplySession(
             String identity,
             List<String> roles,
-            Map<String, String> attributes)
+            Map<String, JsonValue> attributes)
         {
             String identityKey = identity != null ? identity.intern() : null;
             JwtSession session = sessionsByIdentity.get(identityKey);
@@ -395,14 +395,14 @@ public class JwtGuardHandler implements GuardHandler
 
         private JwtSession newSharedSession(
             String identity,
-            Map<String, String> attributes)
+            Map<String, JsonValue> attributes)
         {
             return new JwtSession(supplyAuthorizedId.getAsLong(), identity, attributes, this::onUnshared);
         }
 
         private JwtSession newSession(
             String identity,
-            Map<String, String> attributes)
+            Map<String, JsonValue> attributes)
         {
             return new JwtSession(supplyAuthorizedId.getAsLong(), identity, attributes);
         }
@@ -423,7 +423,7 @@ public class JwtGuardHandler implements GuardHandler
         private final long authorized;
         private final String identity;
         private final Consumer<JwtSession> unshare;
-        private final Map<String, String> attributes;
+        private final Map<String, JsonValue> attributes;
 
         private String credentials;
         private long expiresAt;
@@ -437,7 +437,7 @@ public class JwtGuardHandler implements GuardHandler
         private JwtSession(
             long authorized,
             String identity,
-            Map<String, String> attributes)
+            Map<String, JsonValue> attributes)
         {
             this(authorized, identity, attributes, null);
         }
@@ -445,7 +445,7 @@ public class JwtGuardHandler implements GuardHandler
         private JwtSession(
             long authorized,
             String identity,
-            Map<String, String> attributes,
+            Map<String, JsonValue> attributes,
             Consumer<JwtSession> unshare)
         {
             this.authorized = authorized;
@@ -520,6 +520,25 @@ public class JwtGuardHandler implements GuardHandler
 
             String name = end == -1 ? path.substring(start) : path.substring(start, end);
             current = current instanceof Map<?, ?> map ? map.get(name) : null;
+        }
+
+        return current;
+    }
+
+    private static JsonValue claimJson(
+        JwtClaims claims,
+        String path)
+    {
+        int end = path.indexOf('.');
+
+        JsonValue current = claims.getJsonClaim(end == -1 ? path : path.substring(0, end));
+        while (end != -1 && current != null)
+        {
+            int start = end + 1;
+            end = path.indexOf('.', start);
+
+            String name = end == -1 ? path.substring(start) : path.substring(start, end);
+            current = current instanceof JsonObject object ? object.get(name) : null;
         }
 
         return current;

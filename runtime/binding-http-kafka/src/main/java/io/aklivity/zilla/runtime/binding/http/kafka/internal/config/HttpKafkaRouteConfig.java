@@ -26,10 +26,13 @@ import java.util.function.LongFunction;
 import java.util.function.UnaryOperator;
 import java.util.regex.MatchResult;
 
+import jakarta.json.JsonValue;
+
 import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaConditionConfig;
 import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaOptionsConfig;
 import io.aklivity.zilla.config.binding.http.kafka.HttpKafkaWithConfig;
 import io.aklivity.zilla.config.engine.RouteConfig;
+import io.aklivity.zilla.runtime.common.json.JsonStrings;
 import io.aklivity.zilla.runtime.common.lang.util.function.LongObjectBiFunction;
 import io.aklivity.zilla.runtime.common.lang.util.function.LongObjectPredicate;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -51,7 +54,7 @@ public final class HttpKafkaRouteConfig
         this.id = route.id;
 
         final Map<String, LongFunction<String>> identifiers = new HashMap<>();
-        final Map<String, LongObjectBiFunction<String, String>> attributors = new HashMap<>();
+        final Map<String, LongObjectBiFunction<String, JsonValue>> attributors = new HashMap<>();
 
         Set<String> guardNames = new HashSet<>();
         if (route.with != null)
@@ -80,14 +83,14 @@ public final class HttpKafkaRouteConfig
             return identity != null ? identity : "";
         };
 
-        final LongObjectBiFunction<String, String> defaultAttributor = (sessionId, name) -> null;
+        final LongObjectBiFunction<String, JsonValue> defaultAttributor = (sessionId, name) -> null;
         final LongObjectBiFunction<MatchResult, String> attributeReplacer = (sessionId, match) ->
         {
-            final LongObjectBiFunction<String, String> attributor =
+            final LongObjectBiFunction<String, JsonValue> attributor =
                 attributors.getOrDefault(match.group(1), defaultAttributor);
 
-            final String value = attributor.apply(sessionId, match.group(2));
-            return value != null ? value : "";
+            final JsonValue value = attributor.apply(sessionId, match.group(2));
+            return value != null ? JsonStrings.asString(value) : "";
         };
 
         this.with = Optional.of(route.with)

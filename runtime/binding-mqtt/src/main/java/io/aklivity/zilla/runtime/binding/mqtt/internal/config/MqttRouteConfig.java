@@ -25,6 +25,8 @@ import java.util.function.LongFunction;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
+import jakarta.json.JsonValue;
+
 import io.aklivity.zilla.config.binding.mqtt.MqttConditionConfig;
 import io.aklivity.zilla.config.binding.mqtt.MqttWithConfig;
 import io.aklivity.zilla.config.engine.RouteConfig;
@@ -39,7 +41,7 @@ public final class MqttRouteConfig
     private final MqttWithConfig with;
     private final LongObjectPredicate<UnaryOperator<String>> authorized;
     private final Map<String, LongFunction<String>> identities;
-    private final Map<String, LongObjectBiFunction<String, String>> attributors;
+    private final Map<String, LongObjectBiFunction<String, JsonValue>> attributors;
 
     public MqttRouteConfig(
         RouteConfig route)
@@ -74,7 +76,7 @@ public final class MqttRouteConfig
         return identities.get(guard);
     }
 
-    LongObjectBiFunction<String, String> attributor(
+    LongObjectBiFunction<String, JsonValue> attributor(
         String guard)
     {
         return attributors.get(guard);

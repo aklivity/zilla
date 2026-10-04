@@ -23,6 +23,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import java.util.ArrayDeque;
 import java.util.Deque;
 
+import jakarta.json.Json;
+
 import org.agrona.collections.MutableLong;
 import org.junit.Test;
 
@@ -133,7 +135,7 @@ public final class GuardFactoryTest
         GuardHandler handler = guardWithIdentityAndAttribute(true);
 
         assertThat(handler.identity(1L), equalTo("alice"));
-        assertThat(handler.attribute(1L, "tenant"), equalTo("acme"));
+        assertThat(handler.attribute(1L, "tenant"), equalTo(Json.createValue("acme")));
     }
 
     @Test
@@ -151,7 +153,7 @@ public final class GuardFactoryTest
         GuardHandler handler = guardWithIdentityAndAttribute(false);
 
         assertThat(handler.identity(0L), equalTo("alice"));
-        assertThat(handler.attribute(0L, "tenant"), equalTo("acme"));
+        assertThat(handler.attribute(0L, "tenant"), equalTo(Json.createValue("acme")));
     }
 
     @Test

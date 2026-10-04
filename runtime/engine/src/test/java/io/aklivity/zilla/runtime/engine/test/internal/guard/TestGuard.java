@@ -22,6 +22,8 @@ import java.util.function.LongFunction;
 import java.util.function.LongToIntFunction;
 import java.util.function.UnaryOperator;
 
+import jakarta.json.JsonValue;
+
 import io.aklivity.zilla.config.engine.GuardedConfig;
 import io.aklivity.zilla.runtime.common.lang.util.function.LongObjectBiFunction;
 import io.aklivity.zilla.runtime.common.lang.util.function.LongObjectPredicate;
@@ -77,7 +79,7 @@ public final class TestGuard implements Guard
     }
 
     @Override
-    public LongObjectBiFunction<String, String> attributor(
+    public LongObjectBiFunction<String, JsonValue> attributor(
         LongToIntFunction indexOf,
         GuardedConfig config)
     {
@@ -106,7 +108,7 @@ public final class TestGuard implements Guard
         return handler.identity(sessionId);
     }
 
-    private String attribute(
+    private JsonValue attribute(
         long guardId,
         int index,
         long sessionId,
