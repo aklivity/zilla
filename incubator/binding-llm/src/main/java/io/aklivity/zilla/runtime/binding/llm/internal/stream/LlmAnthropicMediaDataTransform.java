@@ -21,6 +21,6 @@ final class LlmAnthropicMediaDataTransform extends LlmMediaDataTransform
 
     LlmAnthropicMediaDataTransform()
     {
-        super(CONTAINERS, MEMBERS, false, true);
+        super(CONTAINERS, MEMBERS, false, "base64");
     }
 }

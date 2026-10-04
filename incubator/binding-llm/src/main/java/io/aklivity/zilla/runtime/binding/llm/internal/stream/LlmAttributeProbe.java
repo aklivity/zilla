@@ -31,6 +31,7 @@ abstract class LlmAttributeProbe
 
     private static final int MAX_DEPTH = 6;
     private static final String DATA_URL_PREFIX = "data:";
+    private static final int MEDIA_TYPE_MAX = 256;
 
     protected final LlmSectionAttributes attributes;
 
@@ -39,6 +40,8 @@ abstract class LlmAttributeProbe
     private int depth;
     private boolean resolved;
     private boolean rejected;
+    private boolean declined;
+    private boolean continued;
 
     protected LlmAttributeProbe()
     {
@@ -54,6 +57,8 @@ abstract class LlmAttributeProbe
         depth = 1;
         resolved = false;
         rejected = false;
+        declined = false;
+        continued = false;
         keys[1] = NO_KEY;
 
         onBegin(type, blockType);
@@ -98,13 +103,15 @@ abstract class LlmAttributeProbe
             final boolean deferred = parser.deferredBytes();
             final CharSequence value = parser.getStringView();
             final int length = value.length();
-            if (depth < MAX_DEPTH)
+            declined = false;
+            if (depth < MAX_DEPTH && !continued)
             {
                 onString(depth, value, deferred);
             }
+            continued = deferred && !declined;
             if (deferred)
             {
-                parser.consumed(length);
+                parser.consumed(declined ? 0 : length);
             }
             break;
         default:
@@ -151,28 +158,49 @@ abstract class LlmAttributeProbe
         rejected = true;
     }
 
-    protected final void mediaUrl(
+    protected final void decline()
+    {
+        declined = true;
+    }
+
+    protected final boolean mediaUrl(
         CharSequence value,
         boolean deferred)
     {
-        if (startsWith(value, DATA_URL_PREFIX))
+        final boolean classified = !deferred || !undecided(value);
+
+        if (!classified)
+        {
+            decline();
+        }
+        else if (startsWith(value, DATA_URL_PREFIX))
         {
             attributes.inline(mediaTypeOf(value));
         }
-        else if (deferred)
+        else
         {
-            reject();
+            attributes.url();
+        }
+
+        return classified;
+    }
+
+    protected final boolean fileData(
+        CharSequence value,
+        boolean deferred)
+    {
+        final boolean classified = !deferred || !undecided(value);
+
+        if (!classified)
+        {
+            decline();
         }
         else
         {
-            attributes.url(value.toString());
+            attributes.inline(startsWith(value, DATA_URL_PREFIX) ? mediaTypeOf(value) : null);
         }
-    }
 
-    protected final void fileData(
-        CharSequence value)
-    {
-        attributes.inline(startsWith(value, DATA_URL_PREFIX) ? mediaTypeOf(value) : null);
+        return classified;
     }
 
     protected static boolean matches(
@@ -190,6 +218,26 @@ abstract class LlmAttributeProbe
         return matches;
     }
 
+    private static boolean undecided(
+        CharSequence value)
+    {
+        final int length = value.length();
+        final int prefixLength = DATA_URL_PREFIX.length();
+        boolean undecided = true;
+
+        for (int index = 0; undecided && index < Math.min(length, prefixLength); index++)
+        {
+            undecided = value.charAt(index) == DATA_URL_PREFIX.charAt(index);
+        }
+
+        if (undecided && length >= prefixLength)
+        {
+            undecided = mediaTypeEnd(value) == -1 && length < MEDIA_TYPE_MAX;
+        }
+
+        return undecided;
+    }
+
     private static boolean startsWith(
         CharSequence value,
         String prefix)
@@ -205,17 +253,25 @@ abstract class LlmAttributeProbe
         return starts;
     }
 
+    private static int mediaTypeEnd(
+        CharSequence dataUrl)
+    {
+        int end = DATA_URL_PREFIX.length();
+
+        while (end < dataUrl.length() && dataUrl.charAt(end) != ';' && dataUrl.charAt(end) != ',')
+        {
+            end++;
+        }
+
+        return end < dataUrl.length() ? end : -1;
+    }
+
     private static String mediaTypeOf(
         CharSequence dataUrl)
     {
         final int from = DATA_URL_PREFIX.length();
-        int to = from;
+        final int to = mediaTypeEnd(dataUrl);
 
-        while (to < dataUrl.length() && dataUrl.charAt(to) != ';' && dataUrl.charAt(to) != ',')
-        {
-            to++;
-        }
-
-        return to > from && to < dataUrl.length() ? dataUrl.subSequence(from, to).toString() : null;
+        return to > from ? dataUrl.subSequence(from, to).toString() : null;
     }
 }

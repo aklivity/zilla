@@ -1157,6 +1157,8 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         private boolean mediaStreaming;
         private boolean mediaDropQuote;
         private LlmMediaPipeline mediaPipeline;
+        private LlmMediaPipeline mediaDataPipeline;
+        private LlmMediaPipeline mediaUrlPipeline;
         private final LlmMediaPipeline.Output mediaOutput = this::putMedia;
         private String messageRole;
         private String messageToolId;
@@ -1308,14 +1310,13 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         {
             final String source = sectionAttributes.source();
             final String mediaType = sectionAttributes.mediaType();
-            final String uri = sectionAttributes.uri();
             final String refId = sectionAttributes.refId();
 
             if (LlmSectionAttributes.SOURCE_INLINE.equals(source) && mediaType != null)
             {
-                if (mediaPipeline == null)
+                if (mediaDataPipeline == null)
                 {
-                    mediaPipeline = new LlmMediaPipeline(new LlmAnthropicMediaDataTransform(), transformBuffer);
+                    mediaDataPipeline = new LlmMediaPipeline(new LlmAnthropicMediaDataTransform(), transformBuffer);
                 }
 
                 put(kind == KIND_USER_IMAGE ? IMAGE_URL_START : FILE_DATA_START);
@@ -1323,15 +1324,18 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 putEscaped(mediaType);
                 put(BASE64_MARKER);
 
-                mediaPipeline.begin(sectionAttributes);
-                mediaStreaming = true;
-                mediaDropQuote = true;
+                beginMediaStreaming(mediaDataPipeline);
             }
-            else if (kind == KIND_USER_IMAGE && LlmSectionAttributes.SOURCE_URL.equals(source) && uri != null)
+            else if (kind == KIND_USER_IMAGE && LlmSectionAttributes.SOURCE_URL.equals(source))
             {
+                if (mediaUrlPipeline == null)
+                {
+                    mediaUrlPipeline = new LlmMediaPipeline(new LlmAnthropicMediaUrlTransform(), transformBuffer);
+                }
+
                 put(IMAGE_URL_START);
-                putEscaped(uri);
-                put(STRING_SOURCE_END);
+
+                beginMediaStreaming(mediaUrlPipeline);
             }
             else if (kind == KIND_USER_DOCUMENT && LlmSectionAttributes.SOURCE_REFERENCE.equals(source) && refId != null)
             {
@@ -1343,6 +1347,15 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             {
                 encodeFailed = true;
             }
+        }
+
+        private void beginMediaStreaming(
+            LlmMediaPipeline pipeline)
+        {
+            mediaPipeline = pipeline;
+            mediaPipeline.begin(sectionAttributes);
+            mediaStreaming = true;
+            mediaDropQuote = true;
         }
 
         private void putMedia(

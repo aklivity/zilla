@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmAttributeProbe.Status.COMPLETE;
+import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmAttributeProbe.Status.PENDING;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmAttributeProbe.Status.REJECTED;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmAttributeProbe.Status.RESOLVED;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmAttributeProbeRunner.WHOLE;
@@ -51,7 +52,6 @@ public class LlmOpenaiAttributeProbeTest
 
         assertThat(LlmAttributeProbeRunner.run(probe, "user-image", null, json, WHOLE), equalTo(RESOLVED));
         assertThat(probe.attributes().source(), equalTo("url"));
-        assertThat(probe.attributes().uri(), equalTo("https://example.com/cat.png"));
         assertThat(probe.attributes().mediaType(), nullValue());
         assertThat(probe.attributes().refId(), nullValue());
     }
@@ -64,7 +64,6 @@ public class LlmOpenaiAttributeProbeTest
         assertThat(LlmAttributeProbeRunner.run(probe, "user-image", null, json, WHOLE), equalTo(RESOLVED));
         assertThat(probe.attributes().source(), equalTo("inline"));
         assertThat(probe.attributes().mediaType(), equalTo("image/png"));
-        assertThat(probe.attributes().uri(), nullValue());
     }
 
     @Test
@@ -79,12 +78,52 @@ public class LlmOpenaiAttributeProbeTest
     }
 
     @Test
-    public void shouldRejectFragmentedImageUrl()
+    public void shouldProbeFragmentedImageUrl()
     {
         final String json = "{\"type\":\"image_url\",\"image_url\":{\"url\":\"https://example.com/" +
             "a".repeat(4096) + "\"}}";
 
-        assertThat(LlmAttributeProbeRunner.run(probe, "user-image", null, json, 96), equalTo(REJECTED));
+        assertThat(LlmAttributeProbeRunner.run(probe, "user-image", null, json, 96), equalTo(RESOLVED));
+        assertThat(probe.attributes().source(), equalTo("url"));
+    }
+
+    @Test
+    public void shouldWaitForDataUrlPrefixBeforeClassifyingImage()
+    {
+        final String json = "{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:image/png;base64," +
+            "A".repeat(4096) + "\"}}";
+
+        assertThat(LlmAttributeProbeRunner.run(probe, "user-image", null, json, 42), equalTo(PENDING));
+        assertThat(probe.attributes().source(), nullValue());
+    }
+
+    @Test
+    public void shouldClassifyImageDataUrlOnceResumedPastPrefix()
+    {
+        final String json = "{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:image/png;base64," +
+            "A".repeat(4096) + "\"}}";
+
+        assertThat(LlmAttributeProbeRunner.runResumed(probe, "user-image", null, json, 42), equalTo(RESOLVED));
+        assertThat(probe.attributes().source(), equalTo("inline"));
+        assertThat(probe.attributes().mediaType(), equalTo("image/png"));
+    }
+
+    @Test
+    public void shouldClassifyImageUrlOnceFirstFragmentDiffersFromDataUrlPrefix()
+    {
+        final String json = "{\"type\":\"image_url\",\"image_url\":{\"url\":\"https://example.com/" +
+            "a".repeat(4096) + "\"}}";
+
+        assertThat(LlmAttributeProbeRunner.run(probe, "user-image", null, json, 42), equalTo(RESOLVED));
+        assertThat(probe.attributes().source(), equalTo("url"));
+    }
+
+    @Test
+    public void shouldRejectFragmentedDocumentReference()
+    {
+        final String json = "{\"type\":\"file\",\"file\":{\"file_id\":\"" + "a".repeat(4096) + "\"}}";
+
+        assertThat(LlmAttributeProbeRunner.run(probe, "user-document", null, json, 96), equalTo(REJECTED));
     }
 
     @Test
@@ -94,7 +133,6 @@ public class LlmOpenaiAttributeProbeTest
 
         assertThat(LlmAttributeProbeRunner.run(probe, "user-image", null, json, WHOLE), equalTo(COMPLETE));
         assertThat(probe.attributes().source(), nullValue());
-        assertThat(probe.attributes().uri(), nullValue());
     }
 
     @Test
@@ -247,7 +285,6 @@ public class LlmOpenaiAttributeProbeTest
 
         assertThat(LlmAttributeProbeRunner.run(probe, "user-text", null, json, WHOLE), equalTo(COMPLETE));
         assertThat(probe.attributes().source(), nullValue());
-        assertThat(probe.attributes().uri(), nullValue());
         assertThat(probe.attributes().toolCallId(), nullValue());
         assertThat(probe.attributes().toolName(), nullValue());
     }
@@ -262,6 +299,5 @@ public class LlmOpenaiAttributeProbeTest
         LlmAttributeProbeRunner.run(probe, "user-document", null, file, WHOLE);
 
         assertThat(probe.attributes().source(), equalTo("reference"));
-        assertThat(probe.attributes().uri(), nullValue());
     }
 }

@@ -53,7 +53,6 @@ public class LlmAnthropicAttributeProbeTest
 
         assertThat(LlmAttributeProbeRunner.run(probe, "user-image", null, json, WHOLE), equalTo(RESOLVED));
         assertThat(probe.attributes().source(), equalTo("url"));
-        assertThat(probe.attributes().uri(), equalTo("https://example.com/cat.png"));
         assertThat(probe.attributes().mediaType(), nullValue());
     }
 
@@ -66,7 +65,6 @@ public class LlmAnthropicAttributeProbeTest
         assertThat(LlmAttributeProbeRunner.run(probe, "user-image", null, json, WHOLE), equalTo(RESOLVED));
         assertThat(probe.attributes().source(), equalTo("inline"));
         assertThat(probe.attributes().mediaType(), equalTo("image/png"));
-        assertThat(probe.attributes().uri(), nullValue());
     }
 
     @Test
@@ -98,7 +96,6 @@ public class LlmAnthropicAttributeProbeTest
 
         assertThat(LlmAttributeProbeRunner.run(probe, "user-document", null, json, WHOLE), equalTo(RESOLVED));
         assertThat(probe.attributes().source(), equalTo("url"));
-        assertThat(probe.attributes().uri(), equalTo("https://example.com/contract.pdf"));
         assertThat(probe.attributes().filename(), nullValue());
     }
 
@@ -125,9 +122,19 @@ public class LlmAnthropicAttributeProbeTest
     }
 
     @Test
-    public void shouldRejectFragmentedUrl()
+    public void shouldProbeFragmentedUrl()
     {
         final String json = "{\"type\":\"image\",\"source\":{\"type\":\"url\",\"url\":\"https://example.com/" +
+            "a".repeat(4096) + "\"}}";
+
+        assertThat(LlmAttributeProbeRunner.run(probe, "user-image", null, json, 96), equalTo(RESOLVED));
+        assertThat(probe.attributes().source(), equalTo("url"));
+    }
+
+    @Test
+    public void shouldRejectFragmentedFileReference()
+    {
+        final String json = "{\"type\":\"image\",\"source\":{\"type\":\"file\",\"file_id\":\"" +
             "a".repeat(4096) + "\"}}";
 
         assertThat(LlmAttributeProbeRunner.run(probe, "user-image", null, json, 96), equalTo(REJECTED));

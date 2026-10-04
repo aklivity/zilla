@@ -23,7 +23,6 @@ final class LlmSectionAttributes
 {
     static final String MEDIA_TYPE = "media-type";
     static final String SOURCE = "source";
-    static final String URI = "uri";
     static final String REF_ID = "ref-id";
     static final String FILENAME = "filename";
     static final String TOOL_NAME = "tool-name";
@@ -42,7 +41,6 @@ final class LlmSectionAttributes
 
     private String mediaType;
     private String source;
-    private String uri;
     private String refId;
     private String filename;
     private String toolName;
@@ -54,7 +52,6 @@ final class LlmSectionAttributes
     {
         mediaType = null;
         source = null;
-        uri = null;
         refId = null;
         filename = null;
         toolName = null;
@@ -81,7 +78,7 @@ final class LlmSectionAttributes
 
     boolean present()
     {
-        return mediaType != null || source != null || uri != null || refId != null || filename != null ||
+        return mediaType != null || source != null || refId != null || filename != null ||
             toolName != null || toolCallId != null || isError != null || providerExecuted != null;
     }
 
@@ -91,7 +88,6 @@ final class LlmSectionAttributes
     {
         mediaType = changed(current.mediaType, previous.mediaType);
         source = changed(current.source, previous.source);
-        uri = changed(current.uri, previous.uri);
         refId = changed(current.refId, previous.refId);
         filename = changed(current.filename, previous.filename);
         toolName = changed(current.toolName, previous.toolName);
@@ -105,7 +101,6 @@ final class LlmSectionAttributes
     {
         mediaType = that.mediaType;
         source = that.source;
-        uri = that.uri;
         refId = that.refId;
         filename = that.filename;
         toolName = that.toolName;
@@ -121,7 +116,6 @@ final class LlmSectionAttributes
         {
         case MEDIA_TYPE -> mediaType;
         case SOURCE -> source;
-        case URI -> uri;
         case REF_ID -> refId;
         case FILENAME -> filename;
         case TOOL_NAME -> toolName;
@@ -140,11 +134,6 @@ final class LlmSectionAttributes
     String source()
     {
         return source;
-    }
-
-    String uri()
-    {
-        return uri;
     }
 
     String refId()
@@ -187,12 +176,6 @@ final class LlmSectionAttributes
         String source)
     {
         this.source = source;
-    }
-
-    void uri(
-        String uri)
-    {
-        this.uri = uri;
     }
 
     void refId(
@@ -244,11 +227,9 @@ final class LlmSectionAttributes
         this.mediaType = mediaType;
     }
 
-    void url(
-        String uri)
+    void url()
     {
         this.source = SOURCE_URL;
-        this.uri = uri;
     }
 
     void reference(
@@ -263,7 +244,6 @@ final class LlmSectionAttributes
     {
         write(builder, MEDIA_TYPE, mediaType);
         write(builder, SOURCE, source);
-        write(builder, URI, uri);
         write(builder, REF_ID, refId);
         write(builder, FILENAME, filename);
         write(builder, TOOL_NAME, toolName);
@@ -291,9 +271,6 @@ final class LlmSectionAttributes
             break;
         case SOURCE:
             source = value;
-            break;
-        case URI:
-            uri = value;
             break;
         case REF_ID:
             refId = value;

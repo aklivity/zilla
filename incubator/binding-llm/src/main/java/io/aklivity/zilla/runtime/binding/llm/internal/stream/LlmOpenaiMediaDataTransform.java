@@ -21,6 +21,6 @@ final class LlmOpenaiMediaDataTransform extends LlmMediaDataTransform
 
     LlmOpenaiMediaDataTransform()
     {
-        super(CONTAINERS, MEMBERS, true, false);
+        super(CONTAINERS, MEMBERS, true, null);
     }
 }

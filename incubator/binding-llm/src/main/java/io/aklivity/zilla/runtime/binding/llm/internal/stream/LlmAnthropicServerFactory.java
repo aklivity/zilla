@@ -93,7 +93,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
     private static final String MESSAGE_ROLE_ORDER = "role must precede content in each message";
     private static final String MESSAGE_TOOL_USE_ID_ORDER = "tool_use_id must precede content in a tool_result block";
     private static final String MESSAGE_PART_TYPE_ORDER = "type must be the first member of each content block";
-    private static final String MESSAGE_URL_TOO_LARGE = "the url of a content block is too large";
+    private static final String MESSAGE_ATTRIBUTE_TOO_LARGE = "a content block attribute value is too large";
 
     private static final int RESPONSE_ENCODE_PADDING = 128;
     private static final int RESPONSE_ESCAPE_EXPANSION = 6;
@@ -1383,7 +1383,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                 server.endCapture(traceId, authorization);
                 break;
             case REJECTED:
-                server.onDecodeInvalidRequest(traceId, MESSAGE_URL_TOO_LARGE);
+                server.onDecodeInvalidRequest(traceId, MESSAGE_ATTRIBUTE_TOO_LARGE);
                 break;
             default:
                 if (server.position() - server.holdFrom > HOLD_MAX)

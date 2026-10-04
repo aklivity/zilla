@@ -144,7 +144,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
     private static final byte[] DATA_MEMBER = "\",\"data\":".getBytes(UTF_8);
     private static final byte[] SOURCE_END = "}}".getBytes(UTF_8);
     private static final byte[] IMAGE_URL_START =
-        "{\"type\":\"image\",\"source\":{\"type\":\"url\",\"url\":\"".getBytes(UTF_8);
+        "{\"type\":\"image\",\"source\":{\"type\":\"url\",\"url\":".getBytes(UTF_8);
     private static final byte[] DOCUMENT_FILE_START =
         "{\"type\":\"document\",\"source\":{\"type\":\"file\",\"file_id\":\"".getBytes(UTF_8);
     private static final byte[] STRING_SOURCE_END = "\"}}".getBytes(UTF_8);
@@ -1159,8 +1159,9 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         private int translateLength;
         private boolean media;
         private boolean mediaStreaming;
-        private byte[] mediaSuffix;
         private LlmMediaPipeline mediaPipeline;
+        private LlmMediaPipeline mediaDataPipeline;
+        private LlmMediaPipeline mediaUrlPipeline;
         private final LlmMediaPipeline.Output mediaOutput = this::put;
 
         private int decodeSlot = NO_SLOT;
@@ -1309,29 +1310,31 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         {
             final String source = sectionAttributes.source();
             final String mediaType = sectionAttributes.mediaType();
-            final String uri = sectionAttributes.uri();
             final String refId = sectionAttributes.refId();
 
             if (LlmSectionAttributes.SOURCE_INLINE.equals(source) && mediaType != null)
             {
-                if (mediaPipeline == null)
+                if (mediaDataPipeline == null)
                 {
-                    mediaPipeline = new LlmMediaPipeline(new LlmOpenaiMediaDataTransform(), transformBuffer);
+                    mediaDataPipeline = new LlmMediaPipeline(new LlmOpenaiMediaDataTransform(), transformBuffer);
                 }
 
                 put(kind == KIND_USER_IMAGE ? IMAGE_BASE64_START : DOCUMENT_BASE64_START);
                 putEscaped(mediaType);
                 put(DATA_MEMBER);
 
-                mediaPipeline.begin(sectionAttributes);
-                mediaStreaming = true;
-                mediaSuffix = SOURCE_END;
+                beginMediaStreaming(mediaDataPipeline);
             }
-            else if (kind == KIND_USER_IMAGE && LlmSectionAttributes.SOURCE_URL.equals(source) && uri != null)
+            else if (kind == KIND_USER_IMAGE && LlmSectionAttributes.SOURCE_URL.equals(source))
             {
+                if (mediaUrlPipeline == null)
+                {
+                    mediaUrlPipeline = new LlmMediaPipeline(new LlmOpenaiMediaUrlTransform(), transformBuffer);
+                }
+
                 put(IMAGE_URL_START);
-                putEscaped(uri);
-                put(STRING_SOURCE_END);
+
+                beginMediaStreaming(mediaUrlPipeline);
             }
             else if (kind == KIND_USER_DOCUMENT && LlmSectionAttributes.SOURCE_REFERENCE.equals(source) && refId != null)
             {
@@ -1343,6 +1346,14 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             {
                 encodeFailed = true;
             }
+        }
+
+        private void beginMediaStreaming(
+            LlmMediaPipeline pipeline)
+        {
+            mediaPipeline = pipeline;
+            mediaPipeline.begin(sectionAttributes);
+            mediaStreaming = true;
         }
 
         private void beginMessageBlock(
@@ -1577,7 +1588,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
 
             if (mediaStreaming)
             {
-                put(mediaSuffix);
+                put(SOURCE_END);
                 mediaStreaming = false;
             }
 

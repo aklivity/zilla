@@ -156,8 +156,10 @@ final class LlmOpenaiAttributeProbe extends LlmAttributeProbe
     {
         if (depth == 2 && key(1) == KEY_IMAGE_URL && key(2) == KEY_URL)
         {
-            mediaUrl(value, deferred);
-            resolve();
+            if (mediaUrl(value, deferred))
+            {
+                resolve();
+            }
         }
     }
 
@@ -178,8 +180,10 @@ final class LlmOpenaiAttributeProbe extends LlmAttributeProbe
                 resolve();
                 break;
             case KEY_FILE_DATA:
-                fileData(value);
-                resolve();
+                if (fileData(value, deferred))
+                {
+                    resolve();
+                }
                 break;
             default:
                 break;

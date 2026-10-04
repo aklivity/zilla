@@ -47,6 +47,37 @@ final class LlmAttributeProbeRunner
         return run(probe, type, blockType, json, window, true);
     }
 
+    static LlmAttributeProbe.Status runResumed(
+        LlmAttributeProbe probe,
+        String type,
+        String blockType,
+        String json,
+        int window)
+    {
+        final byte[] bytes = json.getBytes(UTF_8);
+        final UnsafeBufferEx buffer = new UnsafeBufferEx(bytes);
+        final JsonParserEx parser = JsonEx.createParser();
+
+        parser.wrap(buffer, 0, window, false);
+
+        for (int event = 0; event < PART_PREFIX_EVENTS; event++)
+        {
+            parser.nextEvent();
+        }
+
+        probe.begin(type, blockType);
+
+        LlmAttributeProbe.Status status = drain(probe, parser, false);
+
+        if (status == LlmAttributeProbe.Status.PENDING)
+        {
+            parser.wrap(buffer, window - parser.remaining(), bytes.length, true);
+            status = drain(probe, parser, false);
+        }
+
+        return status;
+    }
+
     private static LlmAttributeProbe.Status run(
         LlmAttributeProbe probe,
         String type,
@@ -75,6 +106,14 @@ final class LlmAttributeProbeRunner
 
         probe.begin(type, blockType);
 
+        return drain(probe, parser, toEnd);
+    }
+
+    private static LlmAttributeProbe.Status drain(
+        LlmAttributeProbe probe,
+        JsonParserEx parser,
+        boolean toEnd)
+    {
         LlmAttributeProbe.Status status = LlmAttributeProbe.Status.PENDING;
         while ((toEnd ? status != LlmAttributeProbe.Status.COMPLETE : status == LlmAttributeProbe.Status.PENDING) &&
             parser.hasNextEvent())

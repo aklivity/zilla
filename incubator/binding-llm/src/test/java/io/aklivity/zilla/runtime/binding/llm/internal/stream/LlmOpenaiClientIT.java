@@ -661,4 +661,44 @@ public class LlmOpenaiClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.section.user.image.url.50k/client",
+        "${net}/openai.section.user.image.url.50k/server"})
+    public void shouldEncodeOpenaiSectionUserImageUrl50k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.section.user.image.url.100k/client",
+        "${net}/openai.section.user.image.url.100k/server"})
+    public void shouldEncodeOpenaiSectionUserImageUrl100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/anthropic.section.user.image.url.50k/client",
+        "${net}/openai.transform.anthropic.user.image.url.50k/server"})
+    public void shouldTransformAnthropicSectionUserImageUrl50kAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/anthropic.section.user.image.url.100k/client",
+        "${net}/openai.transform.anthropic.user.image.url.100k/server"})
+    public void shouldTransformAnthropicSectionUserImageUrl100kAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
 }

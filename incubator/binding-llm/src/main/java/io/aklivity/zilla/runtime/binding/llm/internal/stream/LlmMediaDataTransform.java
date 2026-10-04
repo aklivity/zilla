@@ -27,14 +27,13 @@ abstract class LlmMediaDataTransform implements JsonTransform
     private static final String DATA_URL_PREFIX = "data:";
     private static final String BASE64_MARKER = ";base64,";
     private static final String KEY_TYPE = "type";
-    private static final String TYPE_BASE64 = "base64";
 
     private static final int NO_CONTAINER = -1;
 
     private final String[] containers;
     private final String[] members;
     private final boolean dataUrl;
-    private final boolean typed;
+    private final String type;
 
     private int depth;
     private int container;
@@ -47,12 +46,12 @@ abstract class LlmMediaDataTransform implements JsonTransform
         String[] containers,
         String[] members,
         boolean dataUrl,
-        boolean typed)
+        String type)
     {
         this.containers = containers;
         this.members = members;
         this.dataUrl = dataUrl;
-        this.typed = typed;
+        this.type = type;
         this.container = NO_CONTAINER;
     }
 
@@ -138,7 +137,7 @@ abstract class LlmMediaDataTransform implements JsonTransform
             else if (depth == 2 && container != NO_CONTAINER)
             {
                 memberNext = matches(key, members[container]);
-                typeNext = typed && matches(key, KEY_TYPE);
+                typeNext = type != null && matches(key, KEY_TYPE);
             }
         }
     }
@@ -160,7 +159,7 @@ abstract class LlmMediaDataTransform implements JsonTransform
         else if (typeNext && depth == 2)
         {
             typeNext = false;
-            status = !deferred && matches(view, TYPE_BASE64) ? Status.ADVANCED : Status.REJECTED;
+            status = !deferred && matches(view, type) ? Status.ADVANCED : Status.REJECTED;
         }
         else if (deferred)
         {

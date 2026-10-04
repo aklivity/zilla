@@ -160,7 +160,7 @@ final class LlmAnthropicAttributeProbe extends LlmAttributeProbe
                 resolve();
                 break;
             case KEY_URL:
-                attributes.url(text(value, deferred));
+                attributes.url();
                 resolve();
                 break;
             case KEY_FILE_ID:

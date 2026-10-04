@@ -1676,6 +1676,78 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/openai.section.user.image.url.50k/client",
+        "${net}/openai.section.user.image.url.50k/server"})
+    public void shouldOpenaiSectionUserImageUrl50k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.section.user.image.url.100k/client",
+        "${net}/openai.section.user.image.url.100k/server"})
+    public void shouldOpenaiSectionUserImageUrl100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.section.user.image.url.50k/client",
+        "${net}/anthropic.section.user.image.url.50k/server"})
+    public void shouldAnthropicSectionUserImageUrl50k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.section.user.image.url.100k/client",
+        "${net}/anthropic.section.user.image.url.100k/server"})
+    public void shouldAnthropicSectionUserImageUrl100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.anthropic.user.image.url.50k/client",
+        "${net}/openai.transform.anthropic.user.image.url.50k/server"})
+    public void shouldOpenaiTransformAnthropicUserImageUrl50k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.anthropic.user.image.url.100k/client",
+        "${net}/openai.transform.anthropic.user.image.url.100k/server"})
+    public void shouldOpenaiTransformAnthropicUserImageUrl100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.openai.user.image.url.50k/client",
+        "${net}/anthropic.transform.openai.user.image.url.50k/server"})
+    public void shouldAnthropicTransformOpenaiUserImageUrl50k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.openai.user.image.url.100k/client",
+        "${net}/anthropic.transform.openai.user.image.url.100k/server"})
+    public void shouldAnthropicTransformOpenaiUserImageUrl100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/anthropic.response.decode.reasoning/client",
         "${net}/anthropic.response.decode.reasoning/server"})
     public void shouldDecodeAnthropicResponseReasoning() throws Exception

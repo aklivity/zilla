@@ -93,7 +93,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
     private static final String MESSAGE_TOOL_CALL_ID_ORDER =
         "The 'tool_call_id' parameter must precede 'content' in a tool message.";
     private static final String MESSAGE_PART_TYPE_ORDER = "The 'type' parameter must be the first member of each content part.";
-    private static final String MESSAGE_URL_TOO_LARGE = "The 'url' of a content part is too large.";
+    private static final String MESSAGE_ATTRIBUTE_TOO_LARGE = "A content part attribute value is too large.";
 
     private static final int RESPONSE_ENCODE_PADDING = 128;
     private static final int RESPONSE_ESCAPE_EXPANSION = 6;
@@ -1221,7 +1221,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 server.endCapture(traceId, authorization);
                 break;
             case REJECTED:
-                server.onDecodeInvalidRequest(traceId, MESSAGE_URL_TOO_LARGE);
+                server.onDecodeInvalidRequest(traceId, MESSAGE_ATTRIBUTE_TOO_LARGE);
                 break;
             default:
                 if (server.position() - server.holdFrom > HOLD_MAX)

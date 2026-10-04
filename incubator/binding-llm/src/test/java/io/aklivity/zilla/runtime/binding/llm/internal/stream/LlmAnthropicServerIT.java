@@ -593,4 +593,24 @@ public class LlmAnthropicServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.section.user.image.url.50k/client",
+        "${app}/anthropic.section.user.image.url.50k/server"})
+    public void shouldDecodeAnthropicSectionUserImageUrl50k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.section.user.image.url.100k/client",
+        "${app}/anthropic.section.user.image.url.100k/server"})
+    public void shouldDecodeAnthropicSectionUserImageUrl100k() throws Exception
+    {
+        k3po.finish();
+    }
 }
