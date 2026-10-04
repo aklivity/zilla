@@ -21,9 +21,12 @@ import org.agrona.collections.Long2ObjectHashMap;
 
 import io.aklivity.zilla.config.engine.GuardConfig;
 import io.aklivity.zilla.config.guard.jwt.JwtOptionsConfig;
+import io.aklivity.zilla.runtime.common.jwt.JweKeyManager;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.guard.GuardContext;
+import io.aklivity.zilla.runtime.engine.vault.SecretKeyManagerFactory;
+import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
 
 final class JwtGuardContext implements GuardContext
 {
@@ -50,9 +53,24 @@ final class JwtGuardContext implements GuardContext
         JwtOptionsConfig options = (JwtOptionsConfig) guard.options;
         long guardId = guard.id;
         LongFunction<String> credentialer = sessionId -> parent.credentials(context.indexOf(sessionId), guardId, sessionId);
-        JwtGuardHandler handler = new JwtGuardHandler(options, context, supplyAuthorizedId, credentialer);
+        JweKeyManager encryption = options.vault != null ? newEncryption(options) : null;
+        JwtGuardHandler handler = new JwtGuardHandler(options, context, supplyAuthorizedId, credentialer, encryption);
         handlersById.put(guard.id, handler);
         return handler;
+    }
+
+    private JweKeyManager newEncryption(
+        JwtOptionsConfig options)
+    {
+        VaultHandler vault = context.supplyVault(options.vault.id);
+        SecretKeyManagerFactory factory = vault != null ? vault.initSecretKeys(options.secrets) : null;
+
+        if (factory == null)
+        {
+            throw new IllegalStateException("Unable to resolve secrets from vault: " + options.vault.name);
+        }
+
+        return new VaultJweKeyManager(factory.getSecretKeyManager(), System::currentTimeMillis);
     }
 
     @Override
