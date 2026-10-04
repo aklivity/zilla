@@ -518,9 +518,9 @@ public class LlmOpenaiServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/openai.section.rejected.tool.definition.name.last/client",
-        "${app}/openai.section.rejected.tool.definition.name.last/server"})
-    public void shouldDecodeOpenaiSectionRejectedToolDefinitionNameLast() throws Exception
+        "${net}/openai/client",
+        "${app}/openai/server"})
+    public void shouldForwardOpenaiNonstreaming() throws Exception
     {
         k3po.finish();
     }
@@ -528,9 +528,29 @@ public class LlmOpenaiServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/openai/client",
-        "${app}/openai/server"})
-    public void shouldForwardOpenaiNonstreaming() throws Exception
+        "${net}/openai.section.user.document.filename.last/client",
+        "${app}/openai.section.user.document.filename.last/server"})
+    public void shouldDecodeOpenaiSectionUserDocumentFilenameLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.section.user.audio.format.last/client",
+        "${app}/openai.section.user.audio.format.last/server"})
+    public void shouldDecodeOpenaiSectionUserAudioFormatLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.section.tool.definition.name.last/client",
+        "${app}/openai.section.tool.definition.name.last/server"})
+    public void shouldDecodeOpenaiSectionToolDefinitionNameLast() throws Exception
     {
         k3po.finish();
     }

@@ -591,4 +591,34 @@ public class LlmOpenaiClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.section.user.document.filename.last/client",
+        "${net}/openai.section.user.document.filename.last/server"})
+    public void shouldEncodeOpenaiSectionUserDocumentFilenameLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.section.user.audio.format.last/client",
+        "${net}/openai.section.user.audio.format.last/server"})
+    public void shouldEncodeOpenaiSectionUserAudioFormatLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.section.tool.definition.name.last/client",
+        "${net}/openai.section.tool.definition.name.last/server"})
+    public void shouldEncodeOpenaiSectionToolDefinitionNameLast() throws Exception
+    {
+        k3po.finish();
+    }
 }

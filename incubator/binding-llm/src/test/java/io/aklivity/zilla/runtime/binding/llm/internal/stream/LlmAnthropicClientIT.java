@@ -644,4 +644,14 @@ public class LlmAnthropicClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.section.tool.definition.name.last/client",
+        "${net}/anthropic.section.tool.definition.name.last/server"})
+    public void shouldEncodeAnthropicSectionToolDefinitionNameLast() throws Exception
+    {
+        k3po.finish();
+    }
 }

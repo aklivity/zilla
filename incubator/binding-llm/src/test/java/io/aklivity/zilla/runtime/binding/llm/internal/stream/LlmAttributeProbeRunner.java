@@ -34,6 +34,27 @@ final class LlmAttributeProbeRunner
         String json,
         int window)
     {
+        return run(probe, type, blockType, json, window, false);
+    }
+
+    static LlmAttributeProbe.Status runToEnd(
+        LlmAttributeProbe probe,
+        String type,
+        String blockType,
+        String json,
+        int window)
+    {
+        return run(probe, type, blockType, json, window, true);
+    }
+
+    private static LlmAttributeProbe.Status run(
+        LlmAttributeProbe probe,
+        String type,
+        String blockType,
+        String json,
+        int window,
+        boolean toEnd)
+    {
         final byte[] bytes = json.getBytes(UTF_8);
         final UnsafeBufferEx buffer = new UnsafeBufferEx(bytes);
         final JsonParserEx parser = JsonEx.createParser();
@@ -55,7 +76,8 @@ final class LlmAttributeProbeRunner
         probe.begin(type, blockType);
 
         LlmAttributeProbe.Status status = LlmAttributeProbe.Status.PENDING;
-        while (status == LlmAttributeProbe.Status.PENDING && parser.hasNextEvent())
+        while ((toEnd ? status != LlmAttributeProbe.Status.COMPLETE : status == LlmAttributeProbe.Status.PENDING) &&
+            parser.hasNextEvent())
         {
             final JsonEvent event = parser.nextEvent();
             status = probe.onEvent(event, parser);

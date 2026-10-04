@@ -1271,24 +1271,6 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/openai.section.rejected.tool.definition.name.last/client",
-        "${app}/openai.section.rejected.tool.definition.name.last/server"})
-    public void shouldOpenaiSectionRejectedToolDefinitionNameLast() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/anthropic.section.rejected.tool.definition.name.last/client",
-        "${app}/anthropic.section.rejected.tool.definition.name.last/server"})
-    public void shouldAnthropicSectionRejectedToolDefinitionNameLast() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${app}/anthropic.section.user.text.shorthand/client",
         "${app}/anthropic.section.user.text.shorthand/server"})
     public void shouldAnthropicSectionUserTextShorthand() throws Exception
@@ -1310,6 +1292,42 @@ public class ApplicationIT
         "${app}/anthropic.section.tool.result.shorthand/client",
         "${app}/anthropic.section.tool.result.shorthand/server"})
     public void shouldAnthropicSectionToolResultShorthand() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.section.user.document.filename.last/client",
+        "${app}/openai.section.user.document.filename.last/server"})
+    public void shouldOpenaiSectionUserDocumentFilenameLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.section.user.audio.format.last/client",
+        "${app}/openai.section.user.audio.format.last/server"})
+    public void shouldOpenaiSectionUserAudioFormatLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.section.tool.definition.name.last/client",
+        "${app}/openai.section.tool.definition.name.last/server"})
+    public void shouldOpenaiSectionToolDefinitionNameLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.tool.definition.name.last/client",
+        "${app}/anthropic.section.tool.definition.name.last/server"})
+    public void shouldAnthropicSectionToolDefinitionNameLast() throws Exception
     {
         k3po.finish();
     }

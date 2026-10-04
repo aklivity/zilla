@@ -18,6 +18,7 @@ import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmAttribute
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmAttributeProbe.Status.REJECTED;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmAttributeProbe.Status.RESOLVED;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmAttributeProbeRunner.WHOLE;
+import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmAttributeProbeRunner.runToEnd;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.nullValue;
@@ -151,6 +152,27 @@ public class LlmAnthropicAttributeProbeTest
         assertThat(probe.attributes().toolCallId(), equalTo("toolu_01"));
         assertThat(probe.attributes().toolName(), equalTo("get_weather"));
         assertThat(probe.attributes().providerExecuted(), nullValue());
+    }
+
+    @Test
+    public void shouldProbeToolUseNameAfterInput()
+    {
+        final String json = "{\"type\":\"tool_use\",\"id\":\"toolu_01\",\"input\":{\"name\":\"nested\"}," +
+            "\"name\":\"get_weather\"}";
+
+        assertThat(runToEnd(probe, "tool-call", null, json, WHOLE), equalTo(COMPLETE));
+        assertThat(probe.attributes().toolCallId(), equalTo("toolu_01"));
+        assertThat(probe.attributes().toolName(), equalTo("get_weather"));
+    }
+
+    @Test
+    public void shouldProbeToolDefinitionNameAfterLargeDescription()
+    {
+        final String json = "{\"type\":\"custom\",\"description\":\"" + "x".repeat(4096) +
+            "\",\"name\":\"get_weather\",\"input_schema\":{\"type\":\"object\"}}";
+
+        assertThat(runToEnd(probe, "tool-definition", null, json, WHOLE), equalTo(COMPLETE));
+        assertThat(probe.attributes().toolName(), equalTo("get_weather"));
     }
 
     @Test

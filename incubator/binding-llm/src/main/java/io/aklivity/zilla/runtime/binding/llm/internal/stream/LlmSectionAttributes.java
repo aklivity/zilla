@@ -67,11 +67,37 @@ final class LlmSectionAttributes
         LlmDataExFW dataEx)
     {
         clear();
+        mergeFrom(dataEx);
+    }
 
+    void mergeFrom(
+        LlmDataExFW dataEx)
+    {
         if (dataEx != null)
         {
             dataEx.attributes().forEach(reader);
         }
+    }
+
+    boolean present()
+    {
+        return mediaType != null || source != null || uri != null || refId != null || filename != null ||
+            toolName != null || toolCallId != null || isError != null || providerExecuted != null;
+    }
+
+    void difference(
+        LlmSectionAttributes current,
+        LlmSectionAttributes previous)
+    {
+        mediaType = changed(current.mediaType, previous.mediaType);
+        source = changed(current.source, previous.source);
+        uri = changed(current.uri, previous.uri);
+        refId = changed(current.refId, previous.refId);
+        filename = changed(current.filename, previous.filename);
+        toolName = changed(current.toolName, previous.toolName);
+        toolCallId = changed(current.toolCallId, previous.toolCallId);
+        isError = changed(current.isError, previous.isError);
+        providerExecuted = changed(current.providerExecuted, previous.providerExecuted);
     }
 
     void copyFrom(
@@ -226,6 +252,13 @@ final class LlmSectionAttributes
         write(builder, TOOL_CALL_ID, toolCallId);
         write(builder, IS_ERROR, isError);
         write(builder, PROVIDER_EXECUTED, providerExecuted);
+    }
+
+    private static String changed(
+        String current,
+        String previous)
+    {
+        return current != null && !current.equals(previous) ? current : null;
     }
 
     private void read(

@@ -29,6 +29,7 @@ write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .type("user-audio")
                           .message(0)
+                          .attribute("media-type", "audio/wav")
                           .attribute("source", "inline")
                           .build()}
 write "{\"type\":\"input_audio\",\"input_audio\":{\"data\":\"UklGRg==\",\"format\":\"wav\"}}"

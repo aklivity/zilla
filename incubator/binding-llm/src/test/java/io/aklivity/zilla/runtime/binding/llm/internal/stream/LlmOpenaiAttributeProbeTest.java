@@ -18,6 +18,7 @@ import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmAttribute
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmAttributeProbe.Status.REJECTED;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmAttributeProbe.Status.RESOLVED;
 import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmAttributeProbeRunner.WHOLE;
+import static io.aklivity.zilla.runtime.binding.llm.internal.stream.LlmAttributeProbeRunner.runToEnd;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.nullValue;
@@ -120,13 +121,18 @@ public class LlmOpenaiAttributeProbeTest
     }
 
     @Test
-    public void shouldNotProbeFilenameAfterDocumentData()
+    public void shouldProbeFilenameAfterDocumentDataOnlyToEnd()
     {
         final String json = "{\"type\":\"file\",\"file\":{\"file_data\":\"data:application/pdf;base64,AAAA\"," +
             "\"filename\":\"contract.pdf\"}}";
 
         assertThat(LlmAttributeProbeRunner.run(probe, "user-document", null, json, WHOLE), equalTo(RESOLVED));
+        assertThat(probe.attributes().mediaType(), equalTo("application/pdf"));
         assertThat(probe.attributes().filename(), nullValue());
+
+        assertThat(runToEnd(probe, "user-document", null, json, WHOLE), equalTo(COMPLETE));
+        assertThat(probe.attributes().mediaType(), equalTo("application/pdf"));
+        assertThat(probe.attributes().filename(), equalTo("contract.pdf"));
     }
 
     @Test
@@ -159,13 +165,37 @@ public class LlmOpenaiAttributeProbeTest
     }
 
     @Test
-    public void shouldNotProbeAudioFormatAfterData()
+    public void shouldProbeAudioFormatAfterDataOnlyToEnd()
     {
         final String json = "{\"type\":\"input_audio\",\"input_audio\":{\"data\":\"AAAA\",\"format\":\"wav\"}}";
 
         assertThat(LlmAttributeProbeRunner.run(probe, "user-audio", null, json, WHOLE), equalTo(RESOLVED));
         assertThat(probe.attributes().source(), equalTo("inline"));
         assertThat(probe.attributes().mediaType(), nullValue());
+
+        assertThat(runToEnd(probe, "user-audio", null, json, WHOLE), equalTo(COMPLETE));
+        assertThat(probe.attributes().mediaType(), equalTo("audio/wav"));
+    }
+
+    @Test
+    public void shouldProbeToolCallNameAfterArguments()
+    {
+        final String json = "{\"type\":\"function\",\"id\":\"call_1\",\"function\":{\"arguments\":\"{}\"," +
+            "\"name\":\"get_weather\"}}";
+
+        assertThat(runToEnd(probe, "tool-call", null, json, WHOLE), equalTo(COMPLETE));
+        assertThat(probe.attributes().toolCallId(), equalTo("call_1"));
+        assertThat(probe.attributes().toolName(), equalTo("get_weather"));
+    }
+
+    @Test
+    public void shouldProbeToolDefinitionNameAfterLargeDescription()
+    {
+        final String json = "{\"type\":\"function\",\"function\":{\"description\":\"" + "x".repeat(4096) +
+            "\",\"name\":\"get_weather\"}}";
+
+        assertThat(runToEnd(probe, "tool-definition", null, json, WHOLE), equalTo(COMPLETE));
+        assertThat(probe.attributes().toolName(), equalTo("get_weather"));
     }
 
     @Test

@@ -507,16 +507,6 @@ public class LlmAnthropicServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/anthropic.section.rejected.tool.definition.name.last/client",
-        "${app}/anthropic.section.rejected.tool.definition.name.last/server"})
-    public void shouldDecodeAnthropicSectionRejectedToolDefinitionNameLast() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
         "${net}/anthropic.section.user.text.shorthand/client",
         "${app}/anthropic.section.user.text.shorthand/server"})
     public void shouldDecodeAnthropicSectionUserTextShorthand() throws Exception
@@ -550,6 +540,16 @@ public class LlmAnthropicServerIT
         "${net}/anthropic/client",
         "${app}/anthropic/server"})
     public void shouldForwardAnthropicNonstreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.section.tool.definition.name.last/client",
+        "${app}/anthropic.section.tool.definition.name.last/server"})
+    public void shouldDecodeAnthropicSectionToolDefinitionNameLast() throws Exception
     {
         k3po.finish();
     }

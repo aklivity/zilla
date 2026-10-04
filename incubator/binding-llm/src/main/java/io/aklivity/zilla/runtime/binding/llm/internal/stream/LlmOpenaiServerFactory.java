@@ -93,8 +93,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
     private static final String MESSAGE_TOOL_CALL_ID_ORDER =
         "The 'tool_call_id' parameter must precede 'content' in a tool message.";
     private static final String MESSAGE_PART_TYPE_ORDER = "The 'type' parameter must be the first member of each content part.";
-    private static final String MESSAGE_ATTRIBUTES_ORDER =
-        "The members identifying a content part, tool call or tool definition must precede its large values.";
+    private static final String MESSAGE_URL_TOO_LARGE = "The 'url' of a content part is too large.";
 
     private static final int RESPONSE_ENCODE_PADDING = 128;
     private static final int RESPONSE_ESCAPE_EXPANSION = 6;
@@ -1222,12 +1221,13 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 server.endCapture(traceId, authorization);
                 break;
             case REJECTED:
-                server.onDecodeInvalidRequest(traceId, MESSAGE_ATTRIBUTES_ORDER);
+                server.onDecodeInvalidRequest(traceId, MESSAGE_URL_TOO_LARGE);
                 break;
             default:
                 if (server.position() - server.holdFrom > HOLD_MAX)
                 {
-                    server.onDecodeInvalidRequest(traceId, MESSAGE_ATTRIBUTES_ORDER);
+                    server.captureProbed();
+                    server.decoder = decodeCapture;
                 }
                 break;
             }
@@ -1252,24 +1252,33 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         while (server.decoder == decodeCapture && parser.hasNextEvent())
         {
             final JsonEvent event = parser.nextEvent();
-            switch (event)
+
+            if (server.probing)
             {
-            case START_OBJECT:
-            case START_ARRAY:
-                server.captureDepth++;
-                break;
-            case END_OBJECT:
-            case END_ARRAY:
-                server.captureDepth--;
-                break;
-            case VALUE_STRING:
-                if (parser.deferredBytes())
+                server.probe.onEvent(event, parser);
+                server.captureDepth = server.probe.depth();
+            }
+            else
+            {
+                switch (event)
                 {
-                    parser.consumed(parser.getStringView().length());
+                case START_OBJECT:
+                case START_ARRAY:
+                    server.captureDepth++;
+                    break;
+                case END_OBJECT:
+                case END_ARRAY:
+                    server.captureDepth--;
+                    break;
+                case VALUE_STRING:
+                    if (parser.deferredBytes())
+                    {
+                        parser.consumed(parser.getStringView().length());
+                    }
+                    break;
+                default:
+                    break;
                 }
-                break;
-            default:
-                break;
             }
 
             if (server.captureDepth == 0)
@@ -1732,6 +1741,9 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
         private final LlmOpenaiAttributeProbe probe;
         private final LlmSectionAttributes blockAttributes;
+        private final LlmSectionAttributes sentAttributes;
+        private final LlmSectionAttributes finAttributes;
+        private boolean probing;
 
         private String blockType;
         private int blockMessage;
@@ -1759,6 +1771,8 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             this.parser = JsonEx.createParser();
             this.probe = new LlmOpenaiAttributeProbe();
             this.blockAttributes = new LlmSectionAttributes();
+            this.sentAttributes = new LlmSectionAttributes();
+            this.finAttributes = new LlmSectionAttributes();
             this.encodeChunks = new ArrayDeque<>();
             this.decoder = decodeStart;
         }
@@ -1980,14 +1994,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
                 if (retained > HOLD_MAX)
                 {
-                    if (decoder == decodeAttributes)
-                    {
-                        onDecodeInvalidRequest(traceId, MESSAGE_ATTRIBUTES_ORDER);
-                    }
-                    else
-                    {
-                        onDecodeParseError(traceId);
-                    }
+                    onDecodeParseError(traceId);
                     progress = limit;
                 }
             }
@@ -2093,7 +2100,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private void captureProbed()
         {
             captureHeld(probeType, probeMessage, probeThen, probe.depth());
-            blockAttributes.copyFrom(probe.attributes());
+            probing = true;
         }
 
         private void endCapture(
@@ -2102,6 +2109,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         {
             flushCapture(traceId, authorization, true);
             captureOpen = false;
+            probing = false;
             decoder = captureThen;
         }
 
@@ -2153,8 +2161,31 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         {
             final int flags = last ? Flags.fin(blockFlags) : blockFlags;
 
-            stream.doAppBlockData(traceId, authorization, flags, Flags.hasInit(flags) ? blockType : null, blockMessage,
-                blockAttributes, buffer, offset, length);
+            final boolean init = Flags.hasInit(flags);
+            final LlmSectionAttributes attributes;
+
+            if (init)
+            {
+                if (probing)
+                {
+                    blockAttributes.copyFrom(probe.attributes());
+                    sentAttributes.copyFrom(probe.attributes());
+                }
+
+                attributes = blockAttributes;
+            }
+            else if (probing && last)
+            {
+                finAttributes.difference(probe.attributes(), sentAttributes);
+                attributes = finAttributes;
+            }
+            else
+            {
+                attributes = null;
+            }
+
+            stream.doAppBlockData(traceId, authorization, flags, init ? blockType : null, blockMessage,
+                attributes, buffer, offset, length);
 
             blockFlags = Flags.NONE;
         }
@@ -3148,14 +3179,20 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 .reserved(length)
                 .payload(buffer, offset, length);
 
-            if (type != null)
+            if (type != null || attributes != null && attributes.present())
             {
                 final LlmDataExFW.Builder dataExBuilder = llmDataExRW.wrap(extBuffer, 0, extBuffer.capacity())
-                    .typeId(llmTypeId)
-                    .type(type)
-                    .message(message);
+                    .typeId(llmTypeId);
 
-                attributes.writeTo(dataExBuilder);
+                if (type != null)
+                {
+                    dataExBuilder.type(type).message(message);
+                }
+
+                if (attributes != null)
+                {
+                    attributes.writeTo(dataExBuilder);
+                }
 
                 final LlmDataExFW dataEx = dataExBuilder.build();
                 builder.extension(dataEx.buffer(), dataEx.offset(), dataEx.sizeof());
