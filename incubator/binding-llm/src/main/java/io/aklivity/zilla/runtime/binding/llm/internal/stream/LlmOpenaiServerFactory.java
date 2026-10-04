@@ -143,6 +143,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
     private final LlmBeginExFW llmBeginExRO = new LlmBeginExFW();
     private final LlmBeginExFW.Builder llmBeginExRW = new LlmBeginExFW.Builder();
     private final LlmDataExFW llmDataExRO = new LlmDataExFW();
+    private final LlmSectionAttributes replyAttributes = new LlmSectionAttributes();
     private final LlmDataExFW.Builder llmDataExRW = new LlmDataExFW.Builder();
     private final LlmResetExFW llmResetExRO = new LlmResetExFW();
     private final LlmEndExFW llmEndExRO = new LlmEndExFW();
@@ -293,14 +294,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         }
 
         return newStream;
-    }
-
-    private static String string(
-        OctetsFW octets)
-    {
-        return octets != null && octets.sizeof() > 0
-            ? octets.buffer().getStringWithoutLengthUtf8(octets.offset(), octets.sizeof())
-            : null;
     }
 
     private static String reason(
@@ -2898,11 +2891,13 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             {
                 final LlmDataExFW llmDataEx = data.extension().get(llmDataExRO::tryWrap);
 
+                replyAttributes.readFrom(llmDataEx);
+
                 length += responseEncoder.section(copyBuffer, length,
                     llmDataEx != null ? llmDataEx.type().asString() : null,
                     llmDataEx != null ? llmDataEx.message() : -1,
-                    llmDataEx != null ? string(llmDataEx.extension()) : null,
-                    llmDataEx != null ? string(llmDataEx.attributes()) : null);
+                    replyAttributes.toolCallId(),
+                    replyAttributes.toolName());
             }
 
             if (payload.sizeof() > 0)

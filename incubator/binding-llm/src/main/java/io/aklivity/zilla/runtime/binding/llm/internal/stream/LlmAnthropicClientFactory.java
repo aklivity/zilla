@@ -726,8 +726,8 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         private void queueReplyFrame(
             String type,
             int message,
-            String extension,
-            String attributes,
+            String toolCallId,
+            String toolName,
             int flags,
             DirectBuffer buffer,
             int offset,
@@ -754,7 +754,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                     replyEncodeSlotOffset += length;
                 }
 
-                replyFrames.add(new ReplyFrame(type, message, extension, attributes, flags, slotOffset, length));
+                replyFrames.add(new ReplyFrame(type, message, toolCallId, toolName, flags, slotOffset, length));
 
                 drainReplyFrames(traceId);
             }
@@ -817,16 +817,14 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                     .type(header.type)
                     .message(header.message);
 
-                if (header.attributes != null)
+                if (header.toolName != null)
                 {
-                    final byte[] bytes = header.attributes.getBytes(UTF_8);
-                    dataExBuilder.attributesLength(bytes.length).attributes(a -> a.set(bytes));
+                    dataExBuilder.attributesItem(a -> a.name(LlmSectionAttributes.TOOL_NAME).value(header.toolName));
                 }
 
-                if (header.extension != null)
+                if (header.toolCallId != null)
                 {
-                    final byte[] bytes = header.extension.getBytes(UTF_8);
-                    dataExBuilder.extensionLength(bytes.length).extension(e -> e.set(bytes));
+                    dataExBuilder.attributesItem(a -> a.name(LlmSectionAttributes.TOOL_CALL_ID).value(header.toolCallId));
                 }
 
                 final LlmDataExFW llmDataEx = dataExBuilder.build();
@@ -870,14 +868,14 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             public void frame(
                 String type,
                 int message,
-                String extension,
-                String attributes,
+                String toolCallId,
+                String toolName,
                 int flags,
                 DirectBuffer buffer,
                 int offset,
                 int length)
             {
-                queueReplyFrame(type, message, extension, attributes, flags, buffer, offset, length);
+                queueReplyFrame(type, message, toolCallId, toolName, flags, buffer, offset, length);
             }
         }
 
@@ -1085,8 +1083,8 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
     {
         private final String type;
         private final int message;
-        private final String extension;
-        private final String attributes;
+        private final String toolCallId;
+        private final String toolName;
         private final int flags;
         private final int offset;
         private final int length;
@@ -1095,16 +1093,16 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         private ReplyFrame(
             String type,
             int message,
-            String extension,
-            String attributes,
+            String toolCallId,
+            String toolName,
             int flags,
             int offset,
             int length)
         {
             this.type = type;
             this.message = message;
-            this.extension = extension;
-            this.attributes = attributes;
+            this.toolCallId = toolCallId;
+            this.toolName = toolName;
             this.flags = flags;
             this.offset = offset;
             this.length = length;

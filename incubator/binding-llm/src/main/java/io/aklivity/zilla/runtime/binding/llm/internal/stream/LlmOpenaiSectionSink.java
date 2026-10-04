@@ -52,8 +52,7 @@ final class LlmOpenaiSectionSink implements JsonSink
     private int sectionMessage;
     private int sectionTool;
     private String sectionToolId;
-    private String sectionExtension;
-    private String sectionAttributes;
+    private String sectionToolName;
 
     private char highSurrogate;
     private byte[] textBytes;
@@ -387,8 +386,8 @@ final class LlmOpenaiSectionSink implements JsonSink
     private void openSection(
         String type,
         int message,
-        String extension,
-        String attributes,
+        String toolCallId,
+        String toolName,
         int tool)
     {
         sectionOpen = true;
@@ -396,9 +395,8 @@ final class LlmOpenaiSectionSink implements JsonSink
         sectionType = type;
         sectionMessage = message;
         sectionTool = tool;
-        sectionToolId = extension;
-        sectionExtension = extension;
-        sectionAttributes = attributes;
+        sectionToolId = toolCallId;
+        sectionToolName = toolName;
     }
 
     private void closeSection()
@@ -426,8 +424,8 @@ final class LlmOpenaiSectionSink implements JsonSink
             output.frame(
                 sectionType,
                 sectionMessage,
-                sectionExtension,
-                sectionAttributes,
+                sectionToolId,
+                sectionToolName,
                 fin ? Flags.fin(flags) : flags,
                 textBuffer,
                 0,
@@ -570,8 +568,8 @@ final class LlmOpenaiSectionSink implements JsonSink
         void frame(
             String type,
             int message,
-            String extension,
-            String attributes,
+            String toolCallId,
+            String toolName,
             int flags,
             DirectBuffer buffer,
             int offset,
