@@ -14,6 +14,11 @@
  */
 package io.aklivity.zilla.runtime.model.core.internal;
 
+import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
+import static io.aklivity.zilla.runtime.engine.util.Flags.FIN;
+import static io.aklivity.zilla.runtime.engine.util.Flags.INIT;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasFin;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasInit;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
@@ -59,10 +64,6 @@ import io.aklivity.zilla.runtime.model.core.ext.StringTransform;
 
 public class CoreExtModelPipelineTest
 {
-    private static final int FLAGS_INIT = 0x02;
-    private static final int FLAGS_FIN = 0x01;
-    private static final int FLAGS_COMPLETE = 0x03;
-
     @Test
     public void shouldObserveValueDeliveredAcrossFragmentsRatherThanWhole()
     {
@@ -71,14 +72,14 @@ public class CoreExtModelPipelineTest
         UnsafeBufferEx dst = new UnsafeBufferEx(new byte[16]);
 
         // ModelPipelineResult is reused across calls, so read each outcome before driving the next
-        ModelPipelineResult first = pipeline.transform(0L, 0L, 0L, FLAGS_INIT,
+        ModelPipelineResult first = pipeline.transform(0L, 0L, 0L, INIT,
             buffer("abc"), 0, 3, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.UNDERFLOW, first.status());
         assertEquals(3, first.consumed());
         int produced = first.produced();
 
-        ModelPipelineResult second = pipeline.transform(0L, 0L, 0L, FLAGS_FIN,
+        ModelPipelineResult second = pipeline.transform(0L, 0L, 0L, FIN,
             buffer("de"), 0, 2, dst, produced, dst.capacity());
 
         assertEquals(ModelStatus.COMPLETE, second.status());
@@ -99,7 +100,7 @@ public class CoreExtModelPipelineTest
 
         StringBuilder drained = new StringBuilder();
         int srcAt = 0;
-        int flags = FLAGS_COMPLETE;
+        int flags = COMPLETE;
         int overflows = 0;
         ModelStatus status;
         do
@@ -109,7 +110,7 @@ public class CoreExtModelPipelineTest
             status = result.status();
             drained.append(dst.getStringWithoutLengthUtf8(0, result.produced()));
             srcAt += result.consumed();
-            flags &= ~FLAGS_INIT;
+            flags &= ~INIT;
             overflows += status == ModelStatus.OVERFLOW ? 1 : 0;
         } while (status == ModelStatus.OK || status == ModelStatus.OVERFLOW);
 
@@ -128,9 +129,9 @@ public class CoreExtModelPipelineTest
         ModelPipeline pipeline = decoder(stage(new Appender('1')), stage(downstream));
         UnsafeBufferEx dst = new UnsafeBufferEx(new byte[32]);
 
-        int produced = pipeline.transform(0L, 0L, 0L, FLAGS_INIT,
+        int produced = pipeline.transform(0L, 0L, 0L, INIT,
             buffer("ab"), 0, 2, dst, 0, dst.capacity()).produced();
-        ModelPipelineResult second = pipeline.transform(0L, 0L, 0L, FLAGS_FIN,
+        ModelPipelineResult second = pipeline.transform(0L, 0L, 0L, FIN,
             buffer("cd"), 0, 2, dst, produced, dst.capacity());
 
         assertEquals(ModelStatus.COMPLETE, second.status());
@@ -155,7 +156,7 @@ public class CoreExtModelPipelineTest
 
         StringBuilder drained = new StringBuilder();
         int srcAt = 0;
-        int flags = FLAGS_COMPLETE;
+        int flags = COMPLETE;
         ModelStatus status;
         do
         {
@@ -164,7 +165,7 @@ public class CoreExtModelPipelineTest
             status = result.status();
             drained.append(dst.getStringWithoutLengthUtf8(0, result.produced()));
             srcAt += result.consumed();
-            flags &= ~FLAGS_INIT;
+            flags &= ~INIT;
         } while (status == ModelStatus.OK || status == ModelStatus.OVERFLOW);
 
         assertEquals(ModelStatus.COMPLETE, status);
@@ -180,7 +181,7 @@ public class CoreExtModelPipelineTest
         ModelPipeline pipeline = decoder(engine(reported), stage(new Terminator(true, null)));
         UnsafeBufferEx dst = new UnsafeBufferEx(new byte[16]);
 
-        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, COMPLETE,
             buffer("secret"), 0, 6, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.REJECTED, result.status());
@@ -195,7 +196,7 @@ public class CoreExtModelPipelineTest
         ModelPipeline pipeline = decoder(engine(reported), stage(new Terminator(false, "unacceptable")));
         UnsafeBufferEx dst = new UnsafeBufferEx(new byte[16]);
 
-        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, COMPLETE,
             buffer("secret"), 0, 6, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.REJECTED, result.status());
@@ -221,7 +222,7 @@ public class CoreExtModelPipelineTest
         ModelPipeline pipeline = handler.supplyEncoder(ModelEnvelope.NONE, ModelTransform.NONE);
         UnsafeBufferEx dst = new UnsafeBufferEx(new byte[16]);
 
-        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, COMPLETE,
             buffer("abc"), 0, 3, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.COMPLETE, result.status());
@@ -247,7 +248,7 @@ public class CoreExtModelPipelineTest
         ModelPipeline pipeline = handler.supplyEncoder(ModelEnvelope.NONE, ModelTransform.NONE);
         UnsafeBufferEx dst = new UnsafeBufferEx(new byte[16]);
 
-        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, COMPLETE,
             buffer("abc"), 0, 3, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.COMPLETE, result.status());
@@ -296,7 +297,7 @@ public class CoreExtModelPipelineTest
         ModelPipeline pipeline = handler.supplyDecoder(envelope, ModelTransform.NONE, ModelCache.NONE);
         UnsafeBufferEx dst = new UnsafeBufferEx(new byte[16]);
 
-        pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE, buffer("abc"), 0, 3, dst, 0, dst.capacity());
+        pipeline.transform(0L, 0L, 0L, COMPLETE, buffer("abc"), 0, 3, dst, 0, dst.capacity());
 
         assertSame(envelope, envelopes.observed);
     }
@@ -309,7 +310,7 @@ public class CoreExtModelPipelineTest
         ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
         UnsafeBufferEx dst = new UnsafeBufferEx(new byte[16]);
 
-        pipeline.transform(0L, 0L, 42L, FLAGS_COMPLETE, buffer("abc"), 0, 3, dst, 0, dst.capacity());
+        pipeline.transform(0L, 0L, 42L, COMPLETE, buffer("abc"), 0, 3, dst, 0, dst.capacity());
 
         assertEquals(42L, authorizations.observed);
     }
@@ -696,8 +697,8 @@ public class CoreExtModelPipelineTest
             int index,
             int length)
         {
-            initial += (flags & CoreModelValidator.FLAGS_INIT) != 0 ? 1 : 0;
-            finished += (flags & CoreModelValidator.FLAGS_FIN) != 0 ? 1 : 0;
+            initial += hasInit(flags) ? 1 : 0;
+            finished += hasFin(flags) ? 1 : 0;
             return Validity.VALID;
         }
     }

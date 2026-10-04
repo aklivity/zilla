@@ -60,6 +60,7 @@ import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttS
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.stream.MqttServerCapabilities.WILDCARD;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasInit;
 import static java.nio.ByteOrder.BIG_ENDIAN;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -2144,7 +2145,7 @@ public final class MqttClientFactory implements MqttStreamFactory
             OctetsFW extension,
             String topic)
         {
-            if ((flags & 0x02) != 0)
+            if (hasInit(flags))
             {
                 final MqttDataExFW mqttDataEx = extension.get(mqttPublishDataExRO::tryWrap);
                 final int payloadSize = payload.sizeof();

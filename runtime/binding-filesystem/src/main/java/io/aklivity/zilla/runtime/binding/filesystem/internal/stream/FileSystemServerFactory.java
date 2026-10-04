@@ -22,6 +22,8 @@ import static io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream
 import static io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.FileSystemError.FILE_MODIFIED;
 import static io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.FileSystemError.FILE_NOT_FOUND;
 import static io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.FileSystemError.FILE_TAG_MISSING;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasFin;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasInit;
 import static java.nio.file.LinkOption.NOFOLLOW_LINKS;
 import static java.nio.file.StandardCopyOption.ATOMIC_MOVE;
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
@@ -101,8 +103,6 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
     private static final String DEFAULT_CONTENT_TYPE = "application/octet-stream";
     private static final int TIMEOUT_EXPIRED_SIGNAL_ID = 0;
     public static final int FILE_CHANGED_SIGNAL_ID = 1;
-    private static final int FLAG_FIN = 0x01;
-    private static final int FLAG_INIT = 0x02;
     private static final String DIRECTORY_NAME = "directory";
     private static final String FILE_NAME = "file";
 
@@ -1037,7 +1037,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
             {
                 try
                 {
-                    if ((flags & FLAG_INIT) != 0x00)
+                    if (hasInit(flags))
                     {
                         out = getOutputStream();
                     }
@@ -1046,7 +1046,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
 
                     out.write(payload.buffer().byteBuffer().slice(offset, length));
 
-                    if ((flags & FLAG_FIN) != 0x00)
+                    if (hasFin(flags))
                     {
                         out.close();
 

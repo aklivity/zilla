@@ -14,6 +14,12 @@
  */
 package io.aklivity.zilla.runtime.model.core.internal;
 
+import static io.aklivity.zilla.runtime.engine.util.Flags.FIN;
+import static io.aklivity.zilla.runtime.engine.util.Flags.INIT;
+import static io.aklivity.zilla.runtime.engine.util.Flags.NONE;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasFin;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasInit;
+
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
@@ -38,9 +44,6 @@ import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 // fragment arrives as a further segment of the same value.
 abstract class CoreExtModelPipeline implements ModelPipeline
 {
-    private static final int FLAGS_INIT = 0x02;
-    private static final int FLAGS_FIN = 0x01;
-
     private enum Phase
     {
         START,
@@ -103,7 +106,7 @@ abstract class CoreExtModelPipeline implements ModelPipeline
         int dstIndex,
         int dstLimit)
     {
-        if ((flags & FLAGS_INIT) != 0x00)
+        if (hasInit(flags))
         {
             reset();
         }
@@ -115,7 +118,7 @@ abstract class CoreExtModelPipeline implements ModelPipeline
         reported = 0;
 
         int srcLength = srcLimit - srcIndex;
-        boolean last = (flags & FLAGS_FIN) != 0x00;
+        boolean last = hasFin(flags);
         segment.wrap(src, srcIndex, srcLength);
 
         ModelStatus pumped = pump(srcLength, last);
@@ -326,7 +329,7 @@ abstract class CoreExtModelPipeline implements ModelPipeline
         boolean fin = tail && !finished;
         if (consumed > 0 || fin)
         {
-            int fragmentFlags = (initial ? FLAGS_INIT : 0x00) | (fin ? FLAGS_FIN : 0x00);
+            int fragmentFlags = (initial ? INIT : NONE) | (fin ? FIN : NONE);
             validity = validator.validate(fragmentFlags, src, srcIndex, consumed);
             initial = false;
             finished |= fin;

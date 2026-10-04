@@ -154,6 +154,43 @@ public final class GuardFactoryTest
         assertThat(handler.attribute(0L, "tenant"), equalTo("acme"));
     }
 
+    @Test
+    public void shouldNotResolveCredentialsWithoutAuthorizationWhenNotInjected()
+    {
+        GuardHandler handler = guardWithIdentityAndAttribute(true);
+
+        assertThat(handler.credentials(0L), nullValue());
+        assertThat(handler.credentials(1L), equalTo("token"));
+    }
+
+    @Test
+    public void shouldResolveInjectedIdentityAndCredentialsWithoutAuthorization()
+    {
+        GuardHandler handler = guardWithInject(true);
+
+        assertThat(handler.identity(0L), equalTo("service"));
+        assertThat(handler.credentials(0L), equalTo("service-secret"));
+    }
+
+    @Test
+    public void shouldResolveConfiguredIdentityAndCredentialsForAuthorizedSessionWhenInjectConfigured()
+    {
+        GuardHandler handler = guardWithInject(true);
+
+        assertThat(handler.identity(1L), equalTo("alice"));
+        assertThat(handler.credentials(1L), equalTo("token"));
+    }
+
+    @Test
+    public void shouldResolveInjectedIdentityWithoutAuthorizationWhenCredentialsNotConfigured()
+    {
+        GuardHandler handler = guardWithInject(false);
+
+        assertThat(handler.identity(0L), equalTo("service"));
+        assertThat(handler.credentials(0L), equalTo("service-secret"));
+        assertThat(handler.identity(1L), equalTo("alice"));
+    }
+
     private static GuardHandler guardWithIdentityAndAttribute(
         boolean credentials)
     {
@@ -165,6 +202,25 @@ public final class GuardFactoryTest
                 .credentials(credentials ? "token" : null)
                 .identity("alice")
                 .attribute("tenant", "acme")
+                .build()
+            .build();
+        return new TestGuardHandler(new TestGuardConfig(config), Runnable::run);
+    }
+
+    private static GuardHandler guardWithInject(
+        boolean credentials)
+    {
+        GuardConfig config = GenericGuardConfig.builder()
+            .namespace("test")
+            .name("test")
+            .type("test")
+            .options(TestGuardOptionsConfig::builder)
+                .credentials(credentials ? "token" : null)
+                .identity("alice")
+                .inject()
+                    .identity("service")
+                    .credentials("service-secret")
+                    .build()
                 .build()
             .build();
         return new TestGuardHandler(new TestGuardConfig(config), Runnable::run);

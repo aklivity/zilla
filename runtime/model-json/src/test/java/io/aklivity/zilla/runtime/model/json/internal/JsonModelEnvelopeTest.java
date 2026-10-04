@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.model.json.internal;
 
+import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
@@ -60,8 +61,6 @@ import io.aklivity.zilla.runtime.model.json.ext.JsonModelExtHandler;
 
 public class JsonModelEnvelopeTest
 {
-    private static final int FLAGS_COMPLETE = 0x03;
-
     private static final String SCHEMA = """
         {
             "type": "object",
@@ -149,7 +148,7 @@ public class JsonModelEnvelopeTest
         ModelPipeline pipeline)
     {
         MutableDirectBufferEx dst = new UnsafeBufferEx(new byte[256]);
-        pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        pipeline.transform(0L, 0L, 0L, COMPLETE,
             new UnsafeBufferEx(JSON), 0, JSON.length, dst, 0, dst.capacity());
     }
 

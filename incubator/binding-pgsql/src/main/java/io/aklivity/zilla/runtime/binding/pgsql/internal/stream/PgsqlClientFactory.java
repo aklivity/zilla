@@ -15,6 +15,10 @@
 package io.aklivity.zilla.runtime.binding.pgsql.internal.stream;
 
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
+import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
+import static io.aklivity.zilla.runtime.engine.util.Flags.FIN;
+import static io.aklivity.zilla.runtime.engine.util.Flags.INIT;
+import static io.aklivity.zilla.runtime.engine.util.Flags.NONE;
 import static java.nio.ByteOrder.BIG_ENDIAN;
 import static java.util.Objects.requireNonNull;
 
@@ -81,11 +85,6 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
 
     private static final int AUTHENTICATION_SUCCESS_CODE = 0;
     private static final int END_OF_FIELD = 0x00;
-
-    private static final int FLAGS_INIT = 0x02;
-    private static final int FLAGS_CONT = 0x00;
-    private static final int FLAGS_FIN = 0x01;
-    private static final int FLAGS_COMP = 0x03;
 
     private static final DirectBufferEx EMPTY_BUFFER = new UnsafeBufferEx(new byte[0]);
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
@@ -675,7 +674,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
 
                 messageBuffer.putInt(0, startupOffset, BIG_ENDIAN);
 
-                doNetworkData(traceId, authorization, FLAGS_COMP, 0L, messageBuffer, 0, startupOffset);
+                doNetworkData(traceId, authorization, COMPLETE, 0L, messageBuffer, 0, startupOffset);
 
                 encoder = this::doEncodeNetworkWindow;
             }
@@ -971,7 +970,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
                 }
                 else
                 {
-                    client.doNetworkData(traceId, authorization, FLAGS_COMP, 0L, payload.value(), 0, payload.sizeof());
+                    client.doNetworkData(traceId, authorization, COMPLETE, 0L, payload.value(), 0, payload.sizeof());
                 }
             }
         }
@@ -1160,7 +1159,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
             messageBuffer.putBytes(queryOffset, queryBuffer, 0, rowSize);
             queryOffset += rowSize;
 
-            client.doNetworkData(traceId, authorization, FLAGS_COMP, 0L, messageBuffer, 0, queryOffset);
+            client.doNetworkData(traceId, authorization, COMPLETE, 0L, messageBuffer, 0, queryOffset);
         }
 
         private void doEncodeTermination(
@@ -1172,7 +1171,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
                 .length(Integer.BYTES)
                 .build();
 
-            client.doNetworkData(traceId, authorization, FLAGS_COMP, 0L, messageBuffer, 0, messageTermination.limit());
+            client.doNetworkData(traceId, authorization, COMPLETE, 0L, messageBuffer, 0, messageTermination.limit());
         }
     }
 
@@ -1565,7 +1564,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
 
             if (length > 0)
             {
-                final int flags = rowSize == length ? FLAGS_COMP : FLAGS_INIT;
+                final int flags = rowSize == length ? COMPLETE : INIT;
                 final int deferred = rowSize - length;
 
                 client.onDecodeMessageRow(traceId, authorization, flags, deferred,
@@ -1734,7 +1733,7 @@ public final class PgsqlClientFactory implements PgsqlStreamFactory
         final int payloadSize = payloadRemaining.get();
         final int length = Math.min(payloadSize, limit - offset);
 
-        final int flags = payloadSize == length ? FLAGS_FIN : FLAGS_CONT;
+        final int flags = payloadSize == length ? FIN : NONE;
 
         client.stream.doApplicationData(traceId, authorization, flags, buffer, offset, offset + limit,
             EMPTY_EXTENSION);

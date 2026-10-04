@@ -15,6 +15,8 @@
 package io.aklivity.zilla.runtime.model.avro.internal;
 
 import static io.aklivity.zilla.runtime.engine.catalog.CatalogHandler.NO_SCHEMA_ID;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasFin;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasInit;
 
 import org.agrona.collections.Int2ObjectCache;
 
@@ -41,9 +43,6 @@ import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 // each field to the wired ModelTransform inline, as the value flows through.
 final class AvroModelDecoderPipeline implements ModelPipeline
 {
-    private static final int FLAGS_INIT = 0x02;
-    private static final int FLAGS_FIN = 0x01;
-
     private final AvroModelHandlerImpl handler;
     private final JsonGeneratorEx generator;
     private final AvroTransform adapter;
@@ -95,7 +94,7 @@ final class AvroModelDecoderPipeline implements ModelPipeline
         int dstLength = dstLimit - dstIndex;
         int prefix = 0;
         int framing = 0;
-        if ((flags & FLAGS_INIT) != 0)
+        if (hasInit(flags))
         {
             // the catalog framing sits at the value start; strip it once on the first fragment and select
             // the schema-bound pipeline, then later fragments stream straight through
@@ -131,7 +130,7 @@ final class AvroModelDecoderPipeline implements ModelPipeline
         else
         {
             active.authorization(authorization);
-            boolean last = (flags & FLAGS_FIN) != 0;
+            boolean last = hasFin(flags);
             AvroPipelineResult avro = active.transform(src, srcIndex + prefix, srcIndex + srcLength, last,
                 dst, dstIndex + framing, dstIndex + dstLength);
             status = map(avro.status());

@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.binding.mcp.kafka.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.KafkaCapabilities.FETCH_ONLY;
 import static io.aklivity.zilla.runtime.binding.mcp.kafka.internal.types.KafkaCapabilities.PRODUCE_ONLY;
+import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -270,7 +271,7 @@ public class McpKafkaProxyFactoryTest
             .maximum(0)
             .traceId(1L)
             .authorization(AUTHORIZATION)
-            .flags(0x03)
+            .flags(COMPLETE)
             .budgetId(0L)
             .reserved(bytes.length)
             .payload(buffer, 0, bytes.length)
@@ -375,7 +376,7 @@ public class McpKafkaProxyFactoryTest
             .maximum(0)
             .traceId(1L)
             .authorization(AUTHORIZATION)
-            .flags(0x03)
+            .flags(COMPLETE)
             .budgetId(0L)
             .reserved(bytes.length)
             .payload(buffer, 0, bytes.length)

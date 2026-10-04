@@ -41,6 +41,9 @@ public final class TestGuardOptionsConfigAdapter extends ConfigAdapter<OptionsCo
     private static final String ACQUIRE_NAME = "acquire";
     private static final String ACQUIRE_DEFERRED = "deferred";
     private static final String MAX_SESSIONS_NAME = "max-sessions";
+    private static final String INJECT_NAME = "inject";
+    private static final String INJECT_IDENTITY_NAME = "identity";
+    private static final String INJECT_CREDENTIALS_NAME = "credentials";
 
     @Override
     public JsonObject adaptToJson(
@@ -98,6 +101,23 @@ public final class TestGuardOptionsConfigAdapter extends ConfigAdapter<OptionsCo
         if (testOptions.maxSessions != DEFAULT_MAX_SESSIONS_UNLIMITED)
         {
             object.add(MAX_SESSIONS_NAME, testOptions.maxSessions);
+        }
+
+        if (testOptions.inject != null)
+        {
+            JsonObjectBuilder inject = Json.createObjectBuilder();
+
+            if (testOptions.inject.identity != null)
+            {
+                inject.add(INJECT_IDENTITY_NAME, testOptions.inject.identity);
+            }
+
+            if (testOptions.inject.credentials != null)
+            {
+                inject.add(INJECT_CREDENTIALS_NAME, testOptions.inject.credentials);
+            }
+
+            object.add(INJECT_NAME, inject);
         }
 
         return object.build();
@@ -158,6 +178,15 @@ public final class TestGuardOptionsConfigAdapter extends ConfigAdapter<OptionsCo
             if (object.containsKey(MAX_SESSIONS_NAME))
             {
                 testOptions.maxSessions(object.getInt(MAX_SESSIONS_NAME));
+            }
+
+            if (object.containsKey(INJECT_NAME))
+            {
+                JsonObject inject = object.getJsonObject(INJECT_NAME);
+                testOptions.inject()
+                    .identity(inject.getString(INJECT_IDENTITY_NAME, null))
+                    .credentials(inject.getString(INJECT_CREDENTIALS_NAME, null))
+                    .build();
             }
         }
 

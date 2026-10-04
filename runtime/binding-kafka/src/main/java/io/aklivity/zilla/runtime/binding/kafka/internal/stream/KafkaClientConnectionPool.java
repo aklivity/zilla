@@ -18,6 +18,7 @@ package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 import static io.aklivity.zilla.runtime.engine.budget.BudgetCreditor.NO_BUDGET_ID;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
+import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
 import static java.lang.System.currentTimeMillis;
 
 import java.time.Instant;
@@ -69,10 +70,6 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
     private static final int ERROR_NONE = 0;
     private static final long NO_OFFSET = -1L;
     private static final int KAFKA_FRAME_LENGTH_FIELD_OFFSET = 4;
-    private static final int FLAG_FIN = 0x01;
-    private static final int FLAG_INIT = 0x02;
-    private static final int FLAG_SKIP = 0x08;
-    private static final int FLAG_NONE = 0x00;
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
 
     private static final int SIGNAL_STREAM_BEGIN = 0x80000001;
@@ -1626,7 +1623,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
 
                     KafkaClientStream stream = streamsByInitialId.get(initialId);
 
-                    stream.doStreamData(traceId, flags | FLAG_INIT | FLAG_FIN,
+                    stream.doStreamData(traceId, flags | COMPLETE,
                         reserved, buffer, progress, responseBytesMin, extension);
 
                     progress += responseBytesMin;

@@ -15,6 +15,12 @@
 package io.aklivity.zilla.runtime.binding.risingwave.internal.stream;
 
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
+import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
+import static io.aklivity.zilla.runtime.engine.util.Flags.NONE;
+import static io.aklivity.zilla.runtime.engine.util.Flags.fin;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasFin;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasInit;
+import static io.aklivity.zilla.runtime.engine.util.Flags.init;
 import static java.util.Objects.requireNonNull;
 
 import java.nio.ByteOrder;
@@ -89,11 +95,6 @@ import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
 public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
 {
     private static final int END_OF_FIELD = 0x00;
-
-    private static final int FLAGS_INIT = 0x02;
-    private static final int FLAGS_CONT = 0x00;
-    private static final int FLAGS_FIN = 0x01;
-    private static final int FLAGS_COMP = 0x03;
 
     private static final String SEVERITY_ERROR = "ERROR\u0000";
     private static final String SEVERITY_FATAL = "FATAL\u0000";
@@ -437,7 +438,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
                 slotBuffer.putBytes(parserSlotOffset, buffer, offset, limit - offset);
                 parserSlotOffset += limit - offset;
 
-                if ((flags & FLAGS_FIN) != 0x00)
+                if (hasFin(flags))
                 {
                     doParseQuery(traceId, authorization);
                 }
@@ -860,7 +861,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             {
                 int progress = offset;
 
-                if ((flags & FLAGS_INIT) != 0x00)
+                if (hasInit(flags))
                 {
                     progress += Short.BYTES;
                 }
@@ -916,7 +917,7 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
                     .events(command.events())
                     .build();
 
-                doAppData(client, traceId, authorization, FLAGS_COMP,
+                doAppData(client, traceId, authorization, COMPLETE,
                         statementBuffer, 0, row.limit(), dataEx);
             }
 
@@ -1382,17 +1383,17 @@ public final class RisingwaveProxyFactory implements RisingwaveStreamFactory
             {
                 final int deferred = remaining - length;
 
-                int flags = 0x00;
+                int flags = NONE;
                 if (messageOffset == 0)
                 {
-                    flags |= FLAGS_INIT;
+                    flags = init(flags);
                 }
                 if (length == remaining)
                 {
-                    flags |= FLAGS_FIN;
+                    flags = fin(flags);
                 }
 
-                Consumer<OctetsFW.Builder> queryEx = (flags & FLAGS_INIT) != 0x00
+                Consumer<OctetsFW.Builder> queryEx = hasInit(flags)
                     ? e -> e.set((b, o, l) -> dataExRW.wrap(b, o, l)
                         .typeId(pgsqlTypeId)
                         .query(q -> q.deferred(deferred))

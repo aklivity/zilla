@@ -27,6 +27,9 @@ import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.Z
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.ZillaExtensionKind.FLUSH;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.ZillaExtensionKind.REDIRECT;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.ADVISORY_FLUSH;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasFin;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasIncomplete;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasInit;
 import static org.jboss.netty.channel.Channels.fireChannelClosed;
 import static org.jboss.netty.channel.Channels.fireChannelDisconnected;
 import static org.jboss.netty.channel.Channels.fireChannelUnbound;
@@ -285,7 +288,7 @@ public final class ZillaStreamFactory
                     channel.readExtBuffer(DATA, false).writeBytes(dataExtCopy);
                 }
 
-                if ((flags & 0x02) != 0x00 && fragments != 0)
+                if (hasInit(flags) && fragments != 0)
                 {
                     // INIT flag set on non-initial message fragment
                     fireExceptionCaught(channel, new IllegalStateException("invalid message boundary"));
@@ -307,7 +310,7 @@ public final class ZillaStreamFactory
                         channel.pendingSharedCredit(reservedBytes);
                     }
 
-                    if ((flags & 0x01) != 0x00 || (flags & 0x04) != 0x00)
+                    if (hasFin(flags) || hasIncomplete(flags))
                     {
                         message.markWriterIndex(); // FIN | INCOMPLETE
                         fragments = 0;

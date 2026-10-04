@@ -4,6 +4,10 @@
 
 [Full Changelog](https://github.com/aklivity/zilla/compare/2.4.7...HEAD)
 
+**Fixed bugs:**
+
+- mcp-kafka: consume data frames use INIT and FIN flag values that are swapped relative to the stream frame flags [\#2649](https://github.com/aklivity/zilla/issues/2649) ([jfallows](https://github.com/jfallows))
+
 **Closed issues:**
 
 - binding-llm.spec: llm.idl — LlmBeginEx, LlmDataEx, LlmFlushEx union [\#2476](https://github.com/aklivity/zilla/issues/2476) ([jfallows](https://github.com/jfallows))
@@ -37,6 +41,7 @@
 - binding-llm: replace LlmFlushEx union + event mapper with uniform DATA + LlmDataEx, driven directly by common-json [\#2596](https://github.com/aklivity/zilla/issues/2596) ([jfallows](https://github.com/jfallows))
 - binding-llm: emit token-usage metrics via a metrics-llm module [\#2605](https://github.com/aklivity/zilla/issues/2605) ([jfallows](https://github.com/jfallows))
 - binding-llm: signal request/response failure on the llm stream \(RESET/ABORT with error\), declare dialect content types [\#2607](https://github.com/aklivity/zilla/issues/2607) ([jfallows](https://github.com/jfallows))
+- common-yaml: configure duplicate-key handling with the standard JsonConfig.KEY\_STRATEGY [\#2652](https://github.com/aklivity/zilla/issues/2652) ([jfallows](https://github.com/jfallows))
 
 **Merged pull requests:**
 
@@ -74,6 +79,14 @@
 - ci\(codeql\): skip zpm resolve in the autobuild [\#2627](https://github.com/aklivity/zilla/pull/2627) ([jfallows](https://github.com/jfallows))
 - refactor\(binding-llm\): remove dead data-URL handler and response-direction dialect transforms [\#2628](https://github.com/aklivity/zilla/pull/2628) ([jfallows](https://github.com/jfallows))
 - fix\(binding-llm.conf\): tighten llm config schema \(proxy options, client server URL, shared authorization\) [\#2629](https://github.com/aklivity/zilla/pull/2629) ([jfallows](https://github.com/jfallows))
+- fix\(binding-llm.conf\): use the common http\(s\) URL pattern for the llm client server [\#2630](https://github.com/aklivity/zilla/pull/2630) ([jfallows](https://github.com/jfallows))
+- fix\(engine\): test guard resolves no identity or attributes for unauthorized sessions [\#2631](https://github.com/aklivity/zilla/pull/2631) ([jfallows](https://github.com/jfallows))
+- feat\(common-jwt\): replace jose4j with modular common-jwt in guard-jwt [\#2648](https://github.com/aklivity/zilla/pull/2648) ([jfallows](https://github.com/jfallows))
+- refactor\(engine\): add Flags helper for data frame flags [\#2651](https://github.com/aklivity/zilla/pull/2651) ([jfallows](https://github.com/jfallows))
+- feat\(common-yaml\): configure duplicate-key handling with JsonConfig.KEY\_STRATEGY [\#2653](https://github.com/aklivity/zilla/pull/2653) ([jfallows](https://github.com/jfallows))
+- fix\(binding-mcp-kafka\): use INIT and FIN data flags for fragmented consume result [\#2654](https://github.com/aklivity/zilla/pull/2654) ([jfallows](https://github.com/jfallows))
+- feat\(engine\): test guard injects identity and credentials for unauthorized sessions [\#2656](https://github.com/aklivity/zilla/pull/2656) ([jfallows](https://github.com/jfallows))
+- fix\(engine\): test binding preauthorizes with the stream's authorization [\#2657](https://github.com/aklivity/zilla/pull/2657) ([jfallows](https://github.com/jfallows))
 
 ## [2.4.7](https://github.com/aklivity/zilla/tree/2.4.7) (2026-09-30)
 

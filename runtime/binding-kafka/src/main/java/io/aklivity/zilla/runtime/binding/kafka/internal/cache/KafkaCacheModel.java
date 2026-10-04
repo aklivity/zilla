@@ -15,6 +15,11 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.cache;
 
+import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
+import static io.aklivity.zilla.runtime.engine.util.Flags.FIN;
+import static io.aklivity.zilla.runtime.engine.util.Flags.INIT;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasFin;
+
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableArrayBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
@@ -29,9 +34,6 @@ import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 public final class KafkaCacheModel
 {
     public static final KafkaCacheModel NONE = new KafkaCacheModel();
-
-    private static final int FLAGS_INIT = 0x02;
-    private static final int FLAGS_FIN = 0x01;
 
     @FunctionalInterface
     public interface Output
@@ -179,14 +181,14 @@ public final class KafkaCacheModel
         }
         else
         {
-            final Result whole = transform(traceId, bindingId, authorization, FLAGS_INIT | FLAGS_FIN,
+            final Result whole = transform(traceId, bindingId, authorization, COMPLETE,
                 data, index, limit, next);
             total = whole.status() == ModelStatus.REJECTED ? -1 : whole.produced();
         }
         return total;
     }
 
-    // fragment-wise: flags are the caller's own DATA-frame FLAGS_INIT / FLAGS_FIN, so a value may be
+    // fragment-wise: flags are the caller's own DATA-frame INIT / FIN, so a value may be
     // presented across any number of calls; every byte of data[index..limit) is absorbed by this call --
     // a caller never sees or manages a carried-over tail, even when the pipeline underflows mid-value.
     // Every caller of this overload must gate on != NONE first, as the whole-value overload above does
@@ -207,7 +209,7 @@ public final class KafkaCacheModel
         if (pipeline == null)
         {
             next.accept(data, index, inputLength);
-            outcome = result.set((flags & FLAGS_FIN) != 0 ? ModelStatus.COMPLETE : ModelStatus.UNDERFLOW,
+            outcome = result.set(hasFin(flags) ? ModelStatus.COMPLETE : ModelStatus.UNDERFLOW,
                 inputLength, inputLength);
         }
         else
@@ -225,7 +227,7 @@ public final class KafkaCacheModel
             }
 
             int total = 0;
-            int callFlags = (started ? 0 : FLAGS_INIT) | (flags & FLAGS_FIN);
+            int callFlags = (started ? 0 : INIT) | (flags & FIN);
             started = true;
             ModelStatus finalStatus = null;
             if (completedEarly)
@@ -234,7 +236,7 @@ public final class KafkaCacheModel
                 // COMPLETE branch below) -- absorb this fragment without re-invoking the pipeline,
                 // since it has nothing left to produce, and only report COMPLETE once the caller's
                 // own FIN fragment actually arrives
-                if ((callFlags & FLAGS_FIN) != 0)
+                if (hasFin(callFlags))
                 {
                     completedEarly = false;
                     started = false;
@@ -265,7 +267,7 @@ public final class KafkaCacheModel
                     started = false;
                     finalStatus = ModelStatus.REJECTED;
                 }
-                else if (status == ModelStatus.COMPLETE && (callFlags & FLAGS_FIN) != 0)
+                else if (status == ModelStatus.COMPLETE && hasFin(callFlags))
                 {
                     pipeline.reset();
                     started = false;
@@ -281,7 +283,7 @@ public final class KafkaCacheModel
                     completedEarly = true;
                     finalStatus = ModelStatus.UNDERFLOW;
                 }
-                else if (status == ModelStatus.UNDERFLOW && (callFlags & FLAGS_FIN) != 0)
+                else if (status == ModelStatus.UNDERFLOW && hasFin(callFlags))
                 {
                     // contract violation: a FIN call must resolve to COMPLETE or REJECTED, never
                     // UNDERFLOW -- every shipped pipeline maps an incomplete value under FIN to
@@ -304,7 +306,7 @@ public final class KafkaCacheModel
                 else
                 {
                     srcAt += consumed;
-                    callFlags &= ~FLAGS_INIT;
+                    callFlags &= ~INIT;
                 }
             }
 

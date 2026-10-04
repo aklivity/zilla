@@ -14,6 +14,11 @@
  */
 package io.aklivity.zilla.runtime.model.core.internal;
 
+import static io.aklivity.zilla.runtime.engine.util.Flags.FIN;
+import static io.aklivity.zilla.runtime.engine.util.Flags.INIT;
+import static io.aklivity.zilla.runtime.engine.util.Flags.NONE;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasFin;
+
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.engine.model.ModelPipeline;
@@ -25,9 +30,6 @@ import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 // on the supplied CoreModelValidator, so interleaved streams on one worker never corrupt each other.
 final class CoreModelPipeline implements ModelPipeline
 {
-    private static final int FLAGS_INIT = 0x02;
-    private static final int FLAGS_FIN = 0x01;
-
     private final CoreModelHandler handler;
     private final CoreModelValidator validator;
     // LENIENT: a structurally-valid value that violates a semantic constraint (INVALID) is reported then
@@ -63,8 +65,8 @@ final class CoreModelPipeline implements ModelPipeline
         int dstLength = dstLimit - dstIndex;
         int available = Math.min(srcLength, dstLength);
         // only the tail of the final fragment closes the value; a bounded dst defers FIN to a later call
-        boolean tail = (flags & FLAGS_FIN) != 0 && available == srcLength;
-        int fragmentFlags = (flags & FLAGS_INIT) | (tail ? FLAGS_FIN : 0);
+        boolean tail = hasFin(flags) && available == srcLength;
+        int fragmentFlags = (flags & INIT) | (tail ? FIN : NONE);
 
         Validity validity = validator.validate(fragmentFlags, src, srcIndex, available);
         // MALFORMED always rejects; INVALID rejects under STRICT but, under LENIENT, reports then passes the

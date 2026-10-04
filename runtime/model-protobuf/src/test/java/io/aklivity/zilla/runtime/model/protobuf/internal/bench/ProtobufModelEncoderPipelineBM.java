@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.model.protobuf.internal.bench;
 
+import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.mockito.Mockito.mock;
@@ -64,8 +65,6 @@ import io.aklivity.zilla.runtime.model.protobuf.internal.ProtobufModelHandlerImp
 @OutputTimeUnit(SECONDS)
 public class ProtobufModelEncoderPipelineBM
 {
-    private static final int FLAGS_COMPLETE = 0x03;
-
     private static final String SCHEMA = """
                                             syntax = "proto3";
                                             package io.aklivity.examples.clients.proto;
@@ -92,7 +91,7 @@ public class ProtobufModelEncoderPipelineBM
     public int encodeToWire()
     {
         pipeline.reset();
-        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, COMPLETE,
             inputBuffer, 0, JSON.length, outputBuffer, 0, outputBuffer.capacity());
         return result.produced();
     }

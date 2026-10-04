@@ -34,6 +34,7 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeg
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_CALL;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_LIST;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
+import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
 
 import java.util.Iterator;
 import java.util.Map;
@@ -181,7 +182,6 @@ public final class McpClientFactory implements McpStreamFactory
     private static final String JSON_RPC_NOTIFY_INITIALIZED = "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}";
     private static final String JSON_RPC_PARAMS_CLOSE = "}";
 
-    private static final int DATA_FLAGS_COMPLETE = 0x03;
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -2193,7 +2193,7 @@ public final class McpClientFactory implements McpStreamFactory
                 final int reserved = length + replyPad;
 
                 doData(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                    traceId, authorization, DATA_FLAGS_COMPLETE, replyBud, reserved, buffer, offset, length);
+                    traceId, authorization, COMPLETE, replyBud, reserved, buffer, offset, length);
 
                 replySeq += reserved;
                 assert replySeq <= replyAck + replyMax;
@@ -4814,7 +4814,7 @@ public final class McpClientFactory implements McpStreamFactory
                 final int reserved = length;
 
                 doData(net, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                    traceId, authorization, DATA_FLAGS_COMPLETE, 0L, reserved,
+                    traceId, authorization, COMPLETE, 0L, reserved,
                     buffer, offset, length);
 
                 initialSeq += reserved;
@@ -6223,7 +6223,7 @@ public final class McpClientFactory implements McpStreamFactory
             doData(net, originId, routedId, initialId,
                 initialSeq, initialAck, initialMax,
                 traceId, authorization,
-                DATA_FLAGS_COMPLETE, 0L, reserved,
+                COMPLETE, 0L, reserved,
                 buffer, offset, length);
 
             initialSeq += reserved;
@@ -6469,7 +6469,7 @@ public final class McpClientFactory implements McpStreamFactory
             doData(net, originId, routedId, initialId,
                 initialSeq, initialAck, initialMax,
                 traceId, authorization,
-                DATA_FLAGS_COMPLETE, 0L, reserved,
+                COMPLETE, 0L, reserved,
                 codecBuffer, 0, codecLength);
 
             initialSeq += reserved;

@@ -28,6 +28,15 @@ import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffset
 import static io.aklivity.zilla.runtime.engine.budget.BudgetCreditor.NO_BUDGET_ID;
 import static io.aklivity.zilla.runtime.engine.budget.BudgetDebitor.NO_DEBITOR_INDEX;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
+import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
+import static io.aklivity.zilla.runtime.engine.util.Flags.FIN;
+import static io.aklivity.zilla.runtime.engine.util.Flags.INIT;
+import static io.aklivity.zilla.runtime.engine.util.Flags.NONE;
+import static io.aklivity.zilla.runtime.engine.util.Flags.SKIP;
+import static io.aklivity.zilla.runtime.engine.util.Flags.fin;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasFin;
+import static io.aklivity.zilla.runtime.engine.util.Flags.init;
+import static io.aklivity.zilla.runtime.engine.util.Flags.skip;
 import static java.lang.System.currentTimeMillis;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
@@ -107,11 +116,6 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
 
     private static final long OFFSET_LIVE = LIVE.value();
     private static final long OFFSET_HISTORICAL = HISTORICAL.value();
-
-    private static final int FLAG_FIN = 0x01;
-    private static final int FLAG_INIT = 0x02;
-    private static final int FLAG_SKIP = 0x08;
-    private static final int FLAG_NONE = 0x00;
 
     private static final int SIGNAL_FANOUT_REPLY_WINDOW = 1;
     private static final int SIGNAL_RECONNECT = 2;
@@ -1434,22 +1438,22 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
                 final int deferred = remaining - length;
                 assert deferred >= 0 : String.format("%d >= 0", deferred);
 
-                int flags = 0x00;
+                int flags = NONE;
                 if (messageOffset == 0)
                 {
-                    flags |= FLAG_INIT;
+                    flags = init(flags);
                 }
                 if (length == remaining)
                 {
-                    flags |= FLAG_FIN;
+                    flags = fin(flags);
                 }
                 if ((entryFlags & CACHE_ENTRY_FLAGS_ABORTED) != 0)
                 {
-                    flags |= FLAG_SKIP;
+                    flags = skip(flags);
                 }
 
                 OctetsFW fragment = value;
-                if ((flags & ~FLAG_SKIP) != (FLAG_INIT | FLAG_FIN))
+                if ((flags & ~SKIP) != COMPLETE)
                 {
                     final int fragmentOffset = value.offset() + messageOffset;
                     final int fragmentLimit = fragmentOffset + length;
@@ -1457,28 +1461,28 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
                 }
 
                 final int partitionId = group.partition.id();
-                switch (flags & ~FLAG_SKIP)
+                switch (flags & ~SKIP)
                 {
-                case FLAG_INIT | FLAG_FIN:
+                case COMPLETE:
                     doClientReplyDataFull(traceId, timestamp, timestampType, ownerId, filters, key, headers, trailers,
                         deltaType, ancestor, fragment, reserved, flags, partitionId, partitionOffset, stableOffset,
                         latestOffset);
                     break;
-                case FLAG_INIT:
+                case INIT:
                     doClientReplyDataInit(traceId, headers, trailers, deferred, timestamp, timestampType, ownerId, filters,
                         key, deltaType, ancestor, fragment, reserved, length, flags, partitionId, partitionOffset, stableOffset,
                         latestOffset);
                     break;
-                case FLAG_NONE:
+                case NONE:
                     doClientReplyDataNone(traceId, fragment, reserved, length, flags);
                     break;
-                case FLAG_FIN:
+                case FIN:
                     doClientReplyDataFin(traceId, headers, trailers, deltaType, ancestor, fragment,
                         reserved, length, flags, partitionId, partitionOffset, stableOffset, latestOffset);
                     break;
                 }
 
-                if ((flags & FLAG_FIN) == 0x00)
+                if (!hasFin(flags))
                 {
                     this.messageOffset += length;
                 }

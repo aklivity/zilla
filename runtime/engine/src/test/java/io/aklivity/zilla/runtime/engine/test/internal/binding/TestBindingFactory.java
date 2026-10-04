@@ -20,6 +20,11 @@ import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static io.aklivity.zilla.runtime.engine.guard.GuardHandler.MASK_AUTHORIZED;
 import static io.aklivity.zilla.runtime.engine.guard.GuardHandler.NEEDS_PREAUTHORIZE;
 import static io.aklivity.zilla.runtime.engine.guard.GuardHandler.NOT_AUTHORIZED;
+import static io.aklivity.zilla.runtime.engine.util.Flags.FIN;
+import static io.aklivity.zilla.runtime.engine.util.Flags.INIT;
+import static io.aklivity.zilla.runtime.engine.util.Flags.NONE;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasFin;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasInit;
 import static java.util.Collections.emptyList;
 
 import java.net.URLEncoder;
@@ -88,8 +93,6 @@ import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
 
 final class TestBindingFactory implements BindingHandler
 {
-    private static final int FLAGS_INIT = 0x02;
-    private static final int FLAGS_FIN = 0x01;
     private static final int DATA_FRAME_HEADER_SIZE = 85;
     private static final List<String> EMPTY_ROLES = emptyList();
 
@@ -645,7 +648,7 @@ final class TestBindingFactory implements BindingHandler
                     {
                         if (sessionId == NEEDS_PREAUTHORIZE && callbackUri != null)
                         {
-                            doPreauthorizeAndCallback(traceId);
+                            doPreauthorizeAndCallback(traceId, authorization);
                         }
                         else
                         {
@@ -665,9 +668,10 @@ final class TestBindingFactory implements BindingHandler
         }
 
         private void doPreauthorizeAndCallback(
-            long traceId)
+            long traceId,
+            long authorization)
         {
-            String url = guard.preauthorize(traceId, routedId, 0, 0, callbackUri);
+            String url = guard.preauthorize(traceId, routedId, 0, authorization, callbackUri);
             if (url == null)
             {
                 onAuthorized(traceId, NOT_AUTHORIZED);
@@ -1219,7 +1223,7 @@ final class TestBindingFactory implements BindingHandler
 
             if (pipeline == null)
             {
-                boolean fin = (flags & FLAGS_FIN) != 0;
+                boolean fin = hasFin(flags);
                 target.doInitialData(traceId, fin, payload, copyExtension(data.extension()));
             }
             else if (decodeSlotOffset + payload.sizeof() > decodeMax)
@@ -1285,7 +1289,7 @@ final class TestBindingFactory implements BindingHandler
                 if (status != ModelStatus.REJECTED)
                 {
                     srcAt += result.consumed();
-                    stepFlags &= ~FLAGS_INIT;
+                    stepFlags &= ~INIT;
 
                     int produced = result.produced();
                     if (produced > 0 || status == ModelStatus.COMPLETE)
@@ -1310,7 +1314,7 @@ final class TestBindingFactory implements BindingHandler
 
             awaitingResume = false;
 
-            boolean truncated = status == ModelStatus.UNDERFLOW && (flags & FLAGS_FIN) != 0;
+            boolean truncated = status == ModelStatus.UNDERFLOW && hasFin(flags);
             if (status == ModelStatus.REJECTED || truncated)
             {
                 pipeline.reset();
@@ -1548,10 +1552,10 @@ final class TestBindingFactory implements BindingHandler
             if (length > 0 || fin)
             {
                 int reserved = length + replyPad;
-                int flags = (replyStarted ? 0x00 : FLAGS_INIT) | (fin ? FLAGS_FIN : 0x00);
+                int flags = (replyStarted ? NONE : INIT) | (fin ? FIN : NONE);
 
                 OctetsFW out = octetsRO.wrap(buffer, offset, offset + length);
-                OctetsFW ext = (flags & FLAGS_INIT) != 0 && replyEnvelopeExt != null
+                OctetsFW ext = hasInit(flags) && replyEnvelopeExt != null
                         ? envelopeExtRO.wrap(replyEnvelopeExt, 0, replyEnvelopeExt.capacity())
                         : null;
                 doData(source, originId, routedId, replyId, replySeq, replyAck, replyMax, replyBud,
@@ -1866,7 +1870,7 @@ final class TestBindingFactory implements BindingHandler
 
                 if (pipeline == null)
                 {
-                    boolean fin = (flags & FLAGS_FIN) != 0;
+                    boolean fin = hasFin(flags);
                     source.doReplyData(traceId, fin, payload, copyExtension(data.extension()));
                 }
                 else if (decodeSlotOffset + payload.sizeof() > decodeMax)
@@ -1932,7 +1936,7 @@ final class TestBindingFactory implements BindingHandler
                     if (status != ModelStatus.REJECTED)
                     {
                         srcAt += result.consumed();
-                        stepFlags &= ~FLAGS_INIT;
+                        stepFlags &= ~INIT;
 
                         int produced = result.produced();
                         if (produced > 0 || status == ModelStatus.COMPLETE)
@@ -1957,7 +1961,7 @@ final class TestBindingFactory implements BindingHandler
 
                 awaitingResume = false;
 
-                boolean truncated = status == ModelStatus.UNDERFLOW && (flags & FLAGS_FIN) != 0;
+                boolean truncated = status == ModelStatus.UNDERFLOW && hasFin(flags);
                 if (status == ModelStatus.REJECTED || truncated)
                 {
                     pipeline.reset();
@@ -2086,10 +2090,10 @@ final class TestBindingFactory implements BindingHandler
                 if (length > 0 || fin)
                 {
                     int reserved = length + initialPad;
-                    int flags = (initialStarted ? 0x00 : FLAGS_INIT) | (fin ? FLAGS_FIN : 0x00);
+                    int flags = (initialStarted ? NONE : INIT) | (fin ? FIN : NONE);
 
                     OctetsFW out = octetsRO.wrap(buffer, offset, offset + length);
-                    OctetsFW ext = (flags & FLAGS_INIT) != 0 && initialEnvelopeExt != null
+                    OctetsFW ext = hasInit(flags) && initialEnvelopeExt != null
                             ? envelopeExtRO.wrap(initialEnvelopeExt, 0, initialEnvelopeExt.capacity())
                             : null;
                     doData(target, originId, routedId, initialId, initialSeq, initialAck, initialMax, initialBud,

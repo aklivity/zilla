@@ -32,6 +32,7 @@ public final class YamlJsonReaderFactory implements JsonReaderFactory
         Map<String, ?> config)
     {
         this.config = config == null ? Map.of() : Map.copyOf(config);
+        YamlJsonParser.uniqueKeys(this.config);
     }
 
     @Override

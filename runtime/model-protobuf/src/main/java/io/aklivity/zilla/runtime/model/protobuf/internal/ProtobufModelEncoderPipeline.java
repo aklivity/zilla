@@ -14,6 +14,9 @@
  */
 package io.aklivity.zilla.runtime.model.protobuf.internal;
 
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasFin;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasInit;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -35,9 +38,6 @@ import io.aklivity.zilla.runtime.engine.model.ModelStatus;
 // destination after them.
 final class ProtobufModelEncoderPipeline implements ModelPipeline
 {
-    private static final int FLAGS_INIT = 0x02;
-    private static final int FLAGS_FIN = 0x01;
-
     private final ProtobufModelHandlerImpl handler;
     private final Map<String, ProtobufPipeline> pipelines;
     private final ProtobufEnvelope envelope;
@@ -74,7 +74,7 @@ final class ProtobufModelEncoderPipeline implements ModelPipeline
         int srcLength = srcLimit - srcIndex;
         int dstLength = dstLimit - dstIndex;
         int prefix = 0;
-        if ((flags & FLAGS_INIT) != 0)
+        if (hasInit(flags))
         {
             int schemaId = handler.resolveSchemaId();
             int[] path = handler.messagePath(schemaId);
@@ -103,7 +103,7 @@ final class ProtobufModelEncoderPipeline implements ModelPipeline
         else
         {
             active.authorization(authorization);
-            boolean last = (flags & FLAGS_FIN) != 0;
+            boolean last = hasFin(flags);
             ProtobufPipelineResult proto =
                 active.transform(src, srcIndex, srcIndex + srcLength, last, dst, dstIndex + prefix, dstIndex + dstLength);
             status = map(proto.status());

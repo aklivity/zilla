@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.model.core.internal;
 
+import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
@@ -47,8 +48,6 @@ import io.aklivity.zilla.runtime.model.core.ext.StringTransformable;
 
 public class StringModelContextTest
 {
-    private static final int FLAGS_COMPLETE = 0x03;
-
     @Test
     public void shouldPassThroughUnmodifiedWithZeroExtensions()
     {
@@ -61,7 +60,7 @@ public class StringModelContextTest
         byte[] bytes = "hello".getBytes();
         UnsafeBufferEx dst = new UnsafeBufferEx(new byte[16]);
 
-        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, COMPLETE,
             new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.COMPLETE, result.status());
@@ -86,7 +85,7 @@ public class StringModelContextTest
         byte[] bytes = "ignored".getBytes();
         UnsafeBufferEx dst = new UnsafeBufferEx(new byte[16]);
 
-        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = pipeline.transform(0L, 0L, 0L, COMPLETE,
             new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.COMPLETE, result.status());
@@ -113,7 +112,7 @@ public class StringModelContextTest
         {
             ModelPipeline pipeline = handler.supplyDecoder(ModelEnvelope.NONE, ModelTransform.NONE, ModelCache.NONE);
             UnsafeBufferEx dst = new UnsafeBufferEx(new byte[16]);
-            pipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+            pipeline.transform(0L, 0L, 0L, COMPLETE,
                 new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
         }
 
@@ -141,7 +140,7 @@ public class StringModelContextTest
         byte[] bytes = { 1, 2, 3, 4 };
         UnsafeBufferEx dst = new UnsafeBufferEx(new byte[16]);
 
-        ModelPipelineResult result = bytesPipeline.transform(0L, 0L, 0L, FLAGS_COMPLETE,
+        ModelPipelineResult result = bytesPipeline.transform(0L, 0L, 0L, COMPLETE,
             new UnsafeBufferEx(bytes), 0, bytes.length, dst, 0, dst.capacity());
 
         assertEquals(ModelStatus.COMPLETE, result.status());
