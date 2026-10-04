@@ -1293,4 +1293,94 @@ public class LlmFunctionsTest
 
         assertThrows(Exception.class, () -> matcher.match(byteBuf));
     }
+
+    @Test
+    public void shouldGenerateAndMatchBeginExId() throws Exception
+    {
+        byte[] bytes = LlmFunctions.beginEx()
+            .typeId(0)
+            .dialect("openai")
+            .model("gpt-x")
+            .id("chatcmpl_1")
+            .build();
+
+        LlmBeginExFW beginEx = new LlmBeginExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
+        assertEquals("chatcmpl_1", beginEx.id().asString());
+
+        BytesMatcher matcher = LlmFunctions.matchBeginEx()
+            .typeId(0)
+            .id("chatcmpl_1")
+            .build();
+
+        assertNotNull(matcher.match(ByteBuffer.wrap(bytes)));
+    }
+
+    @Test
+    public void shouldFailMatchBeginExIdMismatch() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchBeginEx()
+            .typeId(0)
+            .id("a")
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.wrap(LlmFunctions.beginEx()
+            .typeId(0)
+            .dialect("openai")
+            .id("b")
+            .build());
+
+        assertThrows(Exception.class, () -> matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldGenerateAndMatchEndExFinishReason() throws Exception
+    {
+        byte[] bytes = LlmFunctions.endEx()
+            .typeId(0)
+            .inputTokens(1)
+            .finishReason("tool-call")
+            .build();
+
+        LlmEndExFW endEx = new LlmEndExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
+        assertEquals("tool-call", endEx.finishReason().asString());
+
+        BytesMatcher matcher = LlmFunctions.matchEndEx()
+            .typeId(0)
+            .finishReason("tool-call")
+            .build();
+
+        assertNotNull(matcher.match(ByteBuffer.wrap(bytes)));
+    }
+
+    @Test
+    public void shouldMatchEndExFinishReasonNull() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchEndEx()
+            .typeId(0)
+            .finishReasonNull()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.wrap(LlmFunctions.endEx()
+            .typeId(0)
+            .inputTokens(1)
+            .build());
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldFailMatchEndExFinishReasonMismatch() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchEndEx()
+            .typeId(0)
+            .finishReason("stop")
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.wrap(LlmFunctions.endEx()
+            .typeId(0)
+            .finishReason("length")
+            .build());
+
+        assertThrows(Exception.class, () -> matcher.match(byteBuf));
+    }
 }

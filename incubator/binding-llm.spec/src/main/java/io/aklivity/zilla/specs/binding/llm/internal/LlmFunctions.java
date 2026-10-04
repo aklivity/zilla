@@ -131,6 +131,13 @@ public final class LlmFunctions
             return this;
         }
 
+        public LlmBeginExBuilder id(
+            String id)
+        {
+            beginExRW.id(id);
+            return this;
+        }
+
         public LlmBeginExBuilder extension(
             String extension)
         {
@@ -158,6 +165,7 @@ public final class LlmFunctions
         private String dialect;
         private String contentType;
         private String model;
+        private String id;
         private String extension;
         private boolean extensionNull;
 
@@ -186,6 +194,13 @@ public final class LlmFunctions
             String model)
         {
             this.model = model;
+            return this;
+        }
+
+        public LlmBeginExMatcherBuilder id(
+            String id)
+        {
+            this.id = id;
             return this;
         }
 
@@ -223,6 +238,7 @@ public final class LlmFunctions
                 matchDialect(beginEx) &&
                 matchContentType(beginEx) &&
                 matchModel(beginEx) &&
+                matchId(beginEx) &&
                 matchExtension(beginEx))
             {
                 byteBuf.position(byteBuf.position() + beginEx.sizeof());
@@ -254,6 +270,12 @@ public final class LlmFunctions
             LlmBeginExFW beginEx)
         {
             return model == null || beginEx.model() != null && model.equals(beginEx.model().asString());
+        }
+
+        private boolean matchId(
+            LlmBeginExFW beginEx)
+        {
+            return id == null || beginEx.id() != null && id.equals(beginEx.id().asString());
         }
 
         private boolean matchExtension(
@@ -465,6 +487,7 @@ public final class LlmFunctions
         private Integer reasoningTokens;
         private Integer totalTokens;
         private String nativeUsage;
+        private String finishReason;
 
         private LlmEndExBuilder()
         {
@@ -528,6 +551,13 @@ public final class LlmFunctions
             return this;
         }
 
+        public LlmEndExBuilder finishReason(
+            String finishReason)
+        {
+            this.finishReason = finishReason;
+            return this;
+        }
+
         public byte[] build()
         {
             endExRW.usage(u ->
@@ -540,6 +570,7 @@ public final class LlmFunctions
                 u.totalTokens(totalTokens != null ? totalTokens : -1);
                 u.nativeUsage(nativeUsage);
             });
+            endExRW.finishReason(finishReason);
             final LlmEndExFW endEx = endExRW.build();
             final byte[] array = new byte[endEx.sizeof()];
             endEx.buffer().getBytes(endEx.offset(), array);
@@ -562,6 +593,8 @@ public final class LlmFunctions
         private Integer totalTokens;
         private String nativeUsage;
         private boolean nativeUsageNull;
+        private String finishReason;
+        private boolean finishReasonNull;
 
         public LlmEndExMatcherBuilder typeId(
             int typeId)
@@ -625,6 +658,19 @@ public final class LlmFunctions
             return this;
         }
 
+        public LlmEndExMatcherBuilder finishReason(
+            String finishReason)
+        {
+            this.finishReason = finishReason;
+            return this;
+        }
+
+        public LlmEndExMatcherBuilder finishReasonNull()
+        {
+            this.finishReasonNull = true;
+            return this;
+        }
+
         public BytesMatcher build()
         {
             return this::match;
@@ -649,7 +695,8 @@ public final class LlmFunctions
                 matchOutputTokens(endEx) &&
                 matchReasoningTokens(endEx) &&
                 matchTotalTokens(endEx) &&
-                matchNativeUsage(endEx))
+                matchNativeUsage(endEx) &&
+                matchFinishReason(endEx))
             {
                 byteBuf.position(byteBuf.position() + endEx.sizeof());
                 return endEx;
@@ -705,6 +752,13 @@ public final class LlmFunctions
         {
             return nativeUsageNull ? endEx.usage().nativeUsage().asString() == null
                 : nativeUsage == null || nativeUsage.equals(endEx.usage().nativeUsage().asString());
+        }
+
+        private boolean matchFinishReason(
+            LlmEndExFW endEx)
+        {
+            final String actual = endEx.finishReason().asString();
+            return finishReasonNull ? actual == null : finishReason == null || finishReason.equals(actual);
         }
     }
 
