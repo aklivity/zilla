@@ -1447,6 +1447,12 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             {
                 closeMessage();
 
+                if (toolsOpened && !toolsClosed)
+                {
+                    putByte(']');
+                    toolsClosed = true;
+                }
+
                 if (!messagesOpened)
                 {
                     put(MESSAGES_EMPTY);
@@ -1455,12 +1461,6 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 {
                     putByte(']');
                     messagesClosed = true;
-                }
-
-                if (toolsOpened && !toolsClosed)
-                {
-                    putByte(']');
-                    toolsClosed = true;
                 }
 
                 putByte('}');
