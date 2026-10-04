@@ -19,9 +19,12 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThrows;
 
+import java.lang.reflect.Field;
+import java.nio.ByteBuffer;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -53,6 +56,8 @@ public class JwtGuardEncryptedTest
     private static final String GHOST_KEY =
         "-----BEGIN SECRET KEY-----\nR2hvc3RHaG9zdEdob3N0R2hvc3RHaG9zdEdob3N0R2g=\n-----END SECRET KEY-----";
 
+    private static final long EXPIRY = 300_000L;
+
     private SecretKeyManager opening;
     private SecretKeyManager sealing;
     private SecretKeyManager ghosts;
@@ -82,7 +87,7 @@ public class JwtGuardEncryptedTest
     {
         AtomicInteger unwraps = new AtomicInteger();
         AtomicLong clock = new AtomicLong(1_000L);
-        VaultJweKeyManager encryption = new VaultJweKeyManager(counting(opening, unwraps), clock::get);
+        VaultJweKeyManager encryption = new VaultJweKeyManager(counting(opening, unwraps), clock::get, EXPIRY);
         byte[] wrapped = Jwe.parse(seal(sealing, "tenant-1", claims())).encryptedKey();
 
         byte[] first = encryption.unwrap(wrapped);
@@ -95,7 +100,7 @@ public class JwtGuardEncryptedTest
     @Test
     public void shouldKeepCachedKeyIntactAfterCallerClearsIt() throws Exception
     {
-        VaultJweKeyManager encryption = new VaultJweKeyManager(opening, () -> 1_000L);
+        VaultJweKeyManager encryption = new VaultJweKeyManager(opening, () -> 1_000L, EXPIRY);
         byte[] wrapped = Jwe.parse(seal(sealing, "tenant-1", claims())).encryptedKey();
 
         byte[] expected = encryption.unwrap(wrapped);
@@ -109,7 +114,7 @@ public class JwtGuardEncryptedTest
     {
         AtomicInteger unwraps = new AtomicInteger();
         AtomicLong clock = new AtomicLong(1_000L);
-        VaultJweKeyManager encryption = new VaultJweKeyManager(counting(opening, unwraps), clock::get);
+        VaultJweKeyManager encryption = new VaultJweKeyManager(counting(opening, unwraps), clock::get, EXPIRY);
         byte[] wrapped = Jwe.parse(seal(sealing, "tenant-1", claims())).encryptedKey();
 
         encryption.unwrap(wrapped);
@@ -120,10 +125,44 @@ public class JwtGuardEncryptedTest
     }
 
     @Test
+    public void shouldHonorConfiguredExpiry() throws Exception
+    {
+        AtomicInteger unwraps = new AtomicInteger();
+        AtomicLong clock = new AtomicLong(1_000L);
+        VaultJweKeyManager encryption = new VaultJweKeyManager(counting(opening, unwraps), clock::get, 10_000L);
+        byte[] wrapped = Jwe.parse(seal(sealing, "tenant-1", claims())).encryptedKey();
+
+        encryption.unwrap(wrapped);
+        clock.addAndGet(9_999L);
+        encryption.unwrap(wrapped);
+        clock.addAndGet(1L);
+        encryption.unwrap(wrapped);
+
+        assertThat(unwraps.get(), equalTo(2));
+    }
+
+    @Test
+    public void shouldZeroCachedKeyOnExpiry() throws Exception
+    {
+        AtomicLong clock = new AtomicLong(1_000L);
+        VaultJweKeyManager encryption = new VaultJweKeyManager(opening, clock::get, EXPIRY);
+        byte[] wrapped = Jwe.parse(seal(sealing, "tenant-1", claims())).encryptedKey();
+
+        encryption.unwrap(wrapped);
+        byte[] cached = cachedKey(encryption, wrapped);
+        assertThat(allZero(cached), equalTo(false));
+
+        clock.addAndGet(EXPIRY);
+        encryption.unwrap(wrapped);
+
+        assertThat(allZero(cached), equalTo(true));
+    }
+
+    @Test
     public void shouldEvictLeastRecentlyUsedKeys() throws Exception
     {
         AtomicInteger unwraps = new AtomicInteger();
-        VaultJweKeyManager encryption = new VaultJweKeyManager(counting(opening, unwraps), () -> 1_000L);
+        VaultJweKeyManager encryption = new VaultJweKeyManager(counting(opening, unwraps), () -> 1_000L, EXPIRY);
         byte[] oldest = Jwe.parse(seal(sealing, "tenant-1", claims())).encryptedKey();
 
         encryption.unwrap(oldest);
@@ -140,7 +179,7 @@ public class JwtGuardEncryptedTest
     @Test
     public void shouldRejectUnwrapFailureAndSealing() throws Exception
     {
-        VaultJweKeyManager encryption = new VaultJweKeyManager(opening, () -> 1_000L);
+        VaultJweKeyManager encryption = new VaultJweKeyManager(opening, () -> 1_000L, EXPIRY);
         byte[] foreign = Jwe.parse(seal(ghosts, "ghost", claims())).encryptedKey();
 
         assertThrows(JwtException.class, () -> encryption.unwrap(foreign));
@@ -207,6 +246,30 @@ public class JwtGuardEncryptedTest
                 return delegate.unwrap(bytes, index, length, dst, dstIndex);
             }
         };
+    }
+
+    private static byte[] cachedKey(
+        VaultJweKeyManager encryption,
+        byte[] wrapped) throws Exception
+    {
+        Field cacheField = VaultJweKeyManager.class.getDeclaredField("cache");
+        cacheField.setAccessible(true);
+        Map<?, ?> cache = (Map<?, ?>) cacheField.get(encryption);
+        Object entry = cache.get(ByteBuffer.wrap(wrapped));
+        Field keyField = entry.getClass().getDeclaredField("key");
+        keyField.setAccessible(true);
+        return (byte[]) keyField.get(entry);
+    }
+
+    private static boolean allZero(
+        byte[] key)
+    {
+        boolean zero = true;
+        for (byte b : key)
+        {
+            zero &= b == 0;
+        }
+        return zero;
     }
 
     private static VaultConfig vault(

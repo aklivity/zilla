@@ -31,19 +31,21 @@ final class VaultJweKeyManager implements JweKeyManager
     static final String ALGORITHM = "io.aklivity.zilla.vault.v1";
 
     private static final int CACHE_CAPACITY = 1024;
-    private static final long CACHE_EXPIRY_MILLIS = 300_000L;
     private static final int UNWRAPPED_CAPACITY = 64;
 
     private final SecretKeyManager secrets;
     private final LongSupplier clock;
+    private final long expiryMillis;
     private final Map<ByteBuffer, CachedKey> cache;
 
     VaultJweKeyManager(
         SecretKeyManager secrets,
-        LongSupplier clock)
+        LongSupplier clock,
+        long expiryMillis)
     {
         this.secrets = secrets;
         this.clock = clock;
+        this.expiryMillis = expiryMillis;
         this.cache = new KeyCache();
     }
 
@@ -70,6 +72,7 @@ final class VaultJweKeyManager implements JweKeyManager
         CachedKey cached = cache.get(cacheKey);
         if (cached != null && cached.expiresAt <= now)
         {
+            Arrays.fill(cached.key, (byte) 0);
             cache.remove(cacheKey);
             cached = null;
         }
@@ -91,7 +94,7 @@ final class VaultJweKeyManager implements JweKeyManager
             key = new byte[length];
             unwrapped.getBytes(0, key);
 
-            cache.put(cacheKey, new CachedKey(key.clone(), now + CACHE_EXPIRY_MILLIS));
+            cache.put(cacheKey, new CachedKey(key.clone(), now + expiryMillis));
         }
 
         return key;
