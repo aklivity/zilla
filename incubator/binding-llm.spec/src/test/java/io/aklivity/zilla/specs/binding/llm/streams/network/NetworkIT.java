@@ -1478,6 +1478,24 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/anthropic.section.tool.result.error.first/client",
+        "${net}/anthropic.section.tool.result.error.first/server"})
+    public void shouldAnthropicSectionToolResultErrorFirst() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.section.tool.result.error.last/client",
+        "${net}/anthropic.section.tool.result.error.last/server"})
+    public void shouldAnthropicSectionToolResultErrorLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/openai.transform.anthropic.tool.result.error/client",
         "${net}/openai.transform.anthropic.tool.result.error/server"})
     public void shouldOpenaiTransformAnthropicToolResultError() throws Exception

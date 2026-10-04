@@ -1271,6 +1271,24 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/anthropic.section.tool.result.error.first/client",
+        "${app}/anthropic.section.tool.result.error.first/server"})
+    public void shouldAnthropicSectionToolResultErrorFirst() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.tool.result.error.last/client",
+        "${app}/anthropic.section.tool.result.error.last/server"})
+    public void shouldAnthropicSectionToolResultErrorLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/anthropic.section.user.text.shorthand/client",
         "${app}/anthropic.section.user.text.shorthand/server"})
     public void shouldAnthropicSectionUserTextShorthand() throws Exception

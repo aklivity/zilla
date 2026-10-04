@@ -136,7 +136,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
     private static final byte[] TEXT_BLOCK_START = "{\"type\":\"text\",\"text\":\"".getBytes(UTF_8);
     private static final byte[] TOOL_RESULT_START = "{\"type\":\"tool_result\",\"tool_use_id\":\"".getBytes(UTF_8);
     private static final byte[] TOOL_RESULT_CONTENT = "\",\"content\":[".getBytes(UTF_8);
-    private static final byte[] TOOL_RESULT_ERROR_CONTENT = "\",\"is_error\":true,\"content\":[".getBytes(UTF_8);
+    private static final byte[] TOOL_RESULT_ERROR_END = "],\"is_error\":true}".getBytes(UTF_8);
     private static final byte[] IMAGE_BASE64_START =
         "{\"type\":\"image\",\"source\":{\"type\":\"base64\",\"media_type\":\"".getBytes(UTF_8);
     private static final byte[] DOCUMENT_BASE64_START =
@@ -555,8 +555,11 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                         sectionKind(type),
                         type,
                         llmDataEx != null ? llmDataEx.message() : NO_MESSAGE,
-                        sectionAttributes.toolCallId(),
-                        LlmSectionAttributes.TRUE.equals(sectionAttributes.isError()));
+                        sectionAttributes.toolCallId());
+                }
+                else
+                {
+                    sectionAttributes.mergeFrom(data.extension().get(llmDataExRO::tryWrap));
                 }
 
                 final OctetsFW payload = data.payload();
@@ -573,7 +576,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
 
                 if (fin)
                 {
-                    http.doEncodeSectionEnd();
+                    http.doEncodeSectionEnd(LlmSectionAttributes.TRUE.equals(sectionAttributes.isError()));
                 }
 
                 if (http.encodeFailed)
@@ -1144,6 +1147,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         private int messageCount;
         private int messageIndex = NO_MESSAGE;
         private int messageRole = ROLE_NONE;
+        private boolean toolResultError;
         private int blockCount;
         private boolean textBlockOpen;
         private String toolResultId;
@@ -1247,8 +1251,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             int kind,
             String type,
             int message,
-            String toolCallId,
-            boolean isError)
+            String toolCallId)
         {
             sectionKind = kind;
             sectionType = type;
@@ -1291,7 +1294,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                 }
                 else
                 {
-                    beginMessageBlock(kind, message, toolCallId, isError);
+                    beginMessageBlock(kind, message, toolCallId);
                 }
             }
 
@@ -1345,8 +1348,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         private void beginMessageBlock(
             int kind,
             int message,
-            String toolCallId,
-            boolean isError)
+            String toolCallId)
         {
             openRegion(REGION_MESSAGES);
 
@@ -1372,8 +1374,9 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                         beginMessageBlockSeparator();
                         put(TOOL_RESULT_START);
                         putEscaped(toolCallId);
-                        put(isError ? TOOL_RESULT_ERROR_CONTENT : TOOL_RESULT_CONTENT);
+                        put(TOOL_RESULT_CONTENT);
                         toolResultId = toolCallId;
+                        toolResultError = false;
                         blockCount = 0;
                     }
 
@@ -1500,8 +1503,9 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         {
             if (toolResultId != null)
             {
-                put(ARRAY_OBJECT_END);
+                put(toolResultError ? TOOL_RESULT_ERROR_END : ARRAY_OBJECT_END);
                 toolResultId = null;
+                toolResultError = false;
                 blockCount = 1;
             }
         }
@@ -1566,8 +1570,11 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             }
         }
 
-        private void doEncodeSectionEnd()
+        private void doEncodeSectionEnd(
+            boolean isError)
         {
+            toolResultError |= sectionKind == KIND_TOOL_RESULT && isError;
+
             if (mediaStreaming)
             {
                 put(mediaSuffix);

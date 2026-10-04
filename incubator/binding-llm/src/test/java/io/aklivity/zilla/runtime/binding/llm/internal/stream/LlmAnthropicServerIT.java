@@ -507,6 +507,26 @@ public class LlmAnthropicServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/anthropic.section.tool.result.error.first/client",
+        "${app}/anthropic.section.tool.result.error.first/server"})
+    public void shouldDecodeAnthropicSectionToolResultErrorFirst() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.section.tool.result.error.last/client",
+        "${app}/anthropic.section.tool.result.error.last/server"})
+    public void shouldDecodeAnthropicSectionToolResultErrorLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/anthropic.section.user.text.shorthand/client",
         "${app}/anthropic.section.user.text.shorthand/server"})
     public void shouldDecodeAnthropicSectionUserTextShorthand() throws Exception
