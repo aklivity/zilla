@@ -178,7 +178,7 @@ A JSON string value can itself hold a JSON document. Two paired events, `START_E
 `END_ESCAPED`, delimit a **scope** within the event stream whose content is escaped on the way out and
 parsed on the way in; they never appear unless a stage asked for them.
 
-- **Unembed** — a stage that has just seen a `KEY_NAME` calls `JsonController.escaped()` to ask the parser to
+- **Unescape** — a stage that has just seen a `KEY_NAME` calls `JsonController.escaped()` to ask the parser to
   treat the string value that follows as a document. The parser decodes the string and delivers
   `START_ESCAPED`, the events of the document, and `END_ESCAPED` once the string completes. A stage that does
   not forward the two markers shows its downstream the document directly. The content must be exactly one
@@ -188,9 +188,9 @@ parsed on the way in; they never appear unless a stage asked for them.
   across windows anywhere, including in the middle of an escape sequence. Inside the scope the events are
   always structured, never segments or verbatim bytes, because the source bytes are the escaped form, and
   `getLocation()` reports the position within the decoded text of the document.
-- **Embed** — a stage sends `START_ESCAPED` to its sink in a value position, the events of a value, and
+- **Escape** — a stage sends `START_ESCAPED` to its sink in a value position, the events of a value, and
   `END_ESCAPED`. The generator writes the opening quote, escapes everything written inside the scope, and
-  writes the closing quote, so the value is embedded as a string. Scopes nest: a document stringified twice
+  writes the closing quote, so the value is escaped as a string. Scopes nest: a document stringified twice
   is escaped twice, the same way `GENERATE_ESCAPED` is the level of a document that starts already inside
   a string. A start without a matching end, an end without a start, or a start in a key position is rejected.
 
@@ -200,7 +200,7 @@ stage between two of them forwards them too. A projector that defers a key until
 cannot be asked for a scope on that key, so the stage that asks sits upstream of it.
 
 ```java
-JsonTransform unembed = (control, source, event, sink) ->
+JsonTransform unescape = (control, source, event, sink) ->
 {
     // read the key before it is forwarded, which consumes it
     final boolean stringified = event == JsonEvent.KEY_NAME && "payload".contentEquals(source.getStringView());

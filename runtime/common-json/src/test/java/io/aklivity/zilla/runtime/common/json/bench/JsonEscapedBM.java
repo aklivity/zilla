@@ -50,9 +50,9 @@ import io.aklivity.zilla.runtime.common.json.JsonTransform;
 
 /**
  * Measures the escaped scope — a string value that itself holds a JSON document — against a control that
- * carries the same document as a plain value. {@code unembed} parses the string as a document and drops the
- * markers, {@code unembedForward} forwards them so the generator renders the string again, {@code embed}
- * renders a plain value as the string, and {@code unembedWindowed} feeds {@code unembed} through windows
+ * carries the same document as a plain value. {@code unescape} parses the string as a document and drops the
+ * markers, {@code unescapeForward} forwards them so the generator renders the string again, {@code escape}
+ * renders a plain value as the string, and {@code unescapeWindowed} feeds {@code unescape} through windows
  * narrower than the string so the document is carried across fragments. After warm-up each should allocate
  * nothing under {@code -prof gc}, as the control does.
  */
@@ -74,9 +74,9 @@ public class JsonEscapedBM
     private final JsonSink sink = JsonEx.createSink(generator, Map.of(JsonSink.DELIVERY, Delivery.STRUCTURED));
 
     private JsonPipeline plainPipeline;
-    private JsonPipeline unembedPipeline;
-    private JsonPipeline unembedForwardPipeline;
-    private JsonPipeline embedPipeline;
+    private JsonPipeline unescapePipeline;
+    private JsonPipeline unescapeForwardPipeline;
+    private JsonPipeline escapePipeline;
 
     private UnsafeBufferEx plainBuffer;
     private UnsafeBufferEx stringifiedBuffer;
@@ -88,9 +88,9 @@ public class JsonEscapedBM
     public void init()
     {
         plainPipeline = JsonEx.stream(JsonEx.createParser()).into(sink);
-        unembedPipeline = JsonEx.stream(JsonEx.createParser()).transform(new Unembed(false)).into(sink);
-        unembedForwardPipeline = JsonEx.stream(JsonEx.createParser()).transform(new Unembed(true)).into(sink);
-        embedPipeline = JsonEx.stream(JsonEx.createParser()).transform(new Embed()).into(sink);
+        unescapePipeline = JsonEx.stream(JsonEx.createParser()).transform(new Unescape(false)).into(sink);
+        unescapeForwardPipeline = JsonEx.stream(JsonEx.createParser()).transform(new Unescape(true)).into(sink);
+        escapePipeline = JsonEx.stream(JsonEx.createParser()).transform(new Escape()).into(sink);
 
         byte[] plainBytes = PLAIN.getBytes(UTF_8);
         byte[] stringifiedBytes = STRINGIFIED.getBytes(UTF_8);
@@ -109,27 +109,27 @@ public class JsonEscapedBM
     }
 
     @Benchmark
-    public int unembed()
+    public int unescape()
     {
-        return run(unembedPipeline, stringifiedBuffer, stringifiedLength);
+        return run(unescapePipeline, stringifiedBuffer, stringifiedLength);
     }
 
     @Benchmark
-    public int unembedForward()
+    public int unescapeForward()
     {
-        return run(unembedForwardPipeline, stringifiedBuffer, stringifiedLength);
+        return run(unescapeForwardPipeline, stringifiedBuffer, stringifiedLength);
     }
 
     @Benchmark
-    public int unembedWindowed()
+    public int unescapeWindowed()
     {
-        return runWindowed(unembedPipeline, stringifiedBuffer, stringifiedLength, WINDOW);
+        return runWindowed(unescapePipeline, stringifiedBuffer, stringifiedLength, WINDOW);
     }
 
     @Benchmark
-    public int embed()
+    public int escape()
     {
-        return run(embedPipeline, plainBuffer, plainLength);
+        return run(escapePipeline, plainBuffer, plainLength);
     }
 
     private int run(
@@ -170,12 +170,12 @@ public class JsonEscapedBM
 
     // Asks for the string value of key "a" to be parsed as a document, dropping the markers or forwarding them;
     // mediating, so the structured events it matches on are what it sees. Allocates nothing per document.
-    private static final class Unembed implements JsonTransform
+    private static final class Unescape implements JsonTransform
     {
         private final boolean forward;
         private final Mediator mediator;
 
-        private Unembed(
+        private Unescape(
             boolean forward)
         {
             this.forward = forward;
@@ -210,18 +210,18 @@ public class JsonEscapedBM
     }
 
     // Wraps the value of key "a" in markers, so the generator renders it as a string.
-    private static final class Embed implements JsonTransform
+    private static final class Escape implements JsonTransform
     {
         private final Mediator mediator = new Mediator();
 
         private int depth;
-        private boolean embedding;
+        private boolean escaping;
 
         @Override
         public void reset()
         {
             depth = 0;
-            embedding = false;
+            escaping = false;
         }
 
         @Override
@@ -232,9 +232,9 @@ public class JsonEscapedBM
             JsonSink sink)
         {
             mediator.upstream = control;
-            final boolean embed = event == JsonEvent.KEY_NAME && isKeyA(source.getStringView());
+            final boolean escape = event == JsonEvent.KEY_NAME && isKeyA(source.getStringView());
             final Status status = sink.transform(mediator, source, event);
-            if (embedding)
+            if (escaping)
             {
                 switch (event)
                 {
@@ -251,13 +251,13 @@ public class JsonEscapedBM
                 }
                 if (depth == 1)
                 {
-                    embedding = false;
+                    escaping = false;
                     sink.transform(mediator, source, JsonEvent.END_ESCAPED);
                 }
             }
-            else if (embed)
+            else if (escape)
             {
-                embedding = true;
+                escaping = true;
                 sink.transform(mediator, source, JsonEvent.START_ESCAPED);
             }
             else if (event == JsonEvent.START_OBJECT)

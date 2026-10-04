@@ -62,7 +62,7 @@ public interface JsonController
      * stringified JSON document: the upstream parses the decoded content of the string and delivers
      * {@link JsonEvent#START_ESCAPED}, the events of that document, and {@link JsonEvent#END_ESCAPED} once the
      * string completes, in place of the string value. A stage that does not forward the two markers shows its
-     * downstream the document directly, which unembeds it.
+     * downstream the document directly, which unescapes it.
      * <p>
      * The content must be exactly one complete JSON value, with optional surrounding whitespace; an empty
      * string delivers the two markers with no events between. A value that is not a string, or content that is

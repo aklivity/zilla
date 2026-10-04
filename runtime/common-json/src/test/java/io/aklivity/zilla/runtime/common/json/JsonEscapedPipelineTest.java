@@ -22,11 +22,11 @@ import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 
-import io.aklivity.zilla.runtime.common.json.JsonEscapedFixture.Embedder;
 import io.aklivity.zilla.runtime.common.json.JsonEscapedFixture.Escaper;
 import io.aklivity.zilla.runtime.common.json.JsonEscapedFixture.Misuse;
 import io.aklivity.zilla.runtime.common.json.JsonEscapedFixture.Misuse.Mode;
 import io.aklivity.zilla.runtime.common.json.JsonEscapedFixture.Outcome;
+import io.aklivity.zilla.runtime.common.json.JsonEscapedFixture.Unescaper;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 import io.aklivity.zilla.runtime.common.json.JsonSink.Delivery;
 
@@ -40,11 +40,11 @@ class JsonEscapedPipelineTest
         "\"n\":[1,2.5,-3e2,true,false,null,{}],\"o\":{\"p\":\"\"}}";
 
     @Test
-    void shouldEmbedObjectAsString()
+    void shouldEscapeObjectAsString()
     {
         for (int window = 1; window <= 24; window++)
         {
-            final Outcome outcome = embed("{\"a\":{\"b\":1},\"c\":2}", window, "a");
+            final Outcome outcome = escape("{\"a\":{\"b\":1},\"c\":2}", window, "a");
 
             assertEquals(Status.COMPLETED, outcome.status(), "window " + window);
             assertEquals("{\"a\":\"{\\\"b\\\":1}\",\"c\":2}", outcome.output(), "window " + window);
@@ -52,31 +52,31 @@ class JsonEscapedPipelineTest
     }
 
     @Test
-    void shouldEmbedArrayAndScalarsAsString()
+    void shouldEscapeArrayAndScalarsAsString()
     {
-        assertEquals("{\"a\":\"[1,2]\"}", embed("{\"a\":[1,2]}", BOUND, "a").output());
-        assertEquals("{\"a\":\"42\"}", embed("{\"a\":42}", BOUND, "a").output());
-        assertEquals("{\"a\":\"\\\"x\\\"\"}", embed("{\"a\":\"x\"}", BOUND, "a").output());
-        assertEquals("{\"a\":\"true\"}", embed("{\"a\":true}", BOUND, "a").output());
-        assertEquals("{\"a\":\"null\"}", embed("{\"a\":null}", BOUND, "a").output());
+        assertEquals("{\"a\":\"[1,2]\"}", escape("{\"a\":[1,2]}", BOUND, "a").output());
+        assertEquals("{\"a\":\"42\"}", escape("{\"a\":42}", BOUND, "a").output());
+        assertEquals("{\"a\":\"\\\"x\\\"\"}", escape("{\"a\":\"x\"}", BOUND, "a").output());
+        assertEquals("{\"a\":\"true\"}", escape("{\"a\":true}", BOUND, "a").output());
+        assertEquals("{\"a\":\"null\"}", escape("{\"a\":null}", BOUND, "a").output());
     }
 
     @Test
-    void shouldEmbedNestedScopesTwice()
+    void shouldEscapeNestedScopesTwice()
     {
-        final Outcome outcome = embed("{\"a\":{\"c\":{\"d\":1}}}", BOUND, "a", "c");
+        final Outcome outcome = escape("{\"a\":{\"c\":{\"d\":1}}}", BOUND, "a", "c");
 
         assertEquals(Status.COMPLETED, outcome.status());
         assertEquals("{\"a\":\"{\\\"c\\\":\\\"{\\\\\\\"d\\\\\\\":1}\\\"}\"}", outcome.output());
     }
 
     @Test
-    void shouldRoundTripUnembeddedThenEmbedded()
+    void shouldRoundTripUnescapedThenEscaped()
     {
         final String json = "{\"a\":" + quote(DOCUMENT) + ",\"z\":1}";
         final JsonStream stream = JsonEx.stream(JsonEx.createParser())
-            .transform(new Escaper(false, "a"))
-            .transform(new Embedder("a"));
+            .transform(new Unescaper(false, "a"))
+            .transform(new Escaper("a"));
 
         final Outcome outcome = drive(stream, Delivery.STRUCTURED, json, BOUND, BOUND);
 
@@ -93,7 +93,7 @@ class JsonEscapedPipelineTest
         {
             for (int bound : new int[] {32, 96, BOUND})
             {
-                final JsonStream stream = JsonEx.stream(JsonEx.createParser()).transform(new Escaper(true, "a"));
+                final JsonStream stream = JsonEx.stream(JsonEx.createParser()).transform(new Unescaper(true, "a"));
 
                 final Outcome outcome = drive(stream, Delivery.STRUCTURED, json, window, bound);
 
@@ -111,7 +111,7 @@ class JsonEscapedPipelineTest
 
         for (int window = 1; window <= json.length() + 1; window += 5)
         {
-            final JsonStream stream = JsonEx.stream(JsonEx.createParser()).transform(new Escaper(true, "a", "c"));
+            final JsonStream stream = JsonEx.stream(JsonEx.createParser()).transform(new Unescaper(true, "a", "c"));
 
             final Outcome outcome = drive(stream, Delivery.STRUCTURED, json, window, 48);
 
@@ -123,7 +123,7 @@ class JsonEscapedPipelineTest
     @Test
     void shouldRoundTripEmptyContent()
     {
-        final JsonStream stream = JsonEx.stream(JsonEx.createParser()).transform(new Escaper(true, "a"));
+        final JsonStream stream = JsonEx.stream(JsonEx.createParser()).transform(new Unescaper(true, "a"));
 
         final Outcome outcome = drive(stream, Delivery.STRUCTURED, "{\"a\":\"\",\"b\":1}", 4, BOUND);
 
@@ -184,7 +184,7 @@ class JsonEscapedPipelineTest
     }
 
     @Test
-    void shouldRejectStringifiedDocumentWhenNotUnembedded()
+    void shouldRejectStringifiedDocumentWhenNotUnescaped()
     {
         final String schema = "{\"type\":\"object\",\"properties\":{\"a\":{\"type\":\"object\"}}}";
         final JsonStream stream = JsonEx.stream(JsonEx.createParser()).transform(JsonSchema.of(schema).validator());
@@ -261,7 +261,7 @@ class JsonEscapedPipelineTest
         for (int window = 1; window <= json.length() + 1; window++)
         {
             final JsonStream stream = JsonEx.stream(JsonEx.createParser())
-                .transform(new Escaper(true, "a"))
+                .transform(new Unescaper(true, "a"))
                 .transform(JsonTransforms.flatten(Map.of("a.b", "b")));
 
             final Outcome outcome = drive(stream, Delivery.STRUCTURED, json, window, BOUND);
@@ -279,7 +279,7 @@ class JsonEscapedPipelineTest
         for (int window = 1; window <= json.length() + 1; window++)
         {
             final JsonStream stream = JsonEx.stream(JsonEx.createParser())
-                .transform(new Escaper(true, "a"))
+                .transform(new Unescaper(true, "a"))
                 .transform(JsonTransforms.flatten(Map.of("a", "x")));
 
             final Outcome outcome = drive(stream, Delivery.STRUCTURED, json, window, BOUND);
@@ -289,12 +289,12 @@ class JsonEscapedPipelineTest
         }
     }
 
-    private static Outcome embed(
+    private static Outcome escape(
         String json,
         int window,
         String... keys)
     {
-        final JsonStream stream = JsonEx.stream(JsonEx.createParser()).transform(new Embedder(keys));
+        final JsonStream stream = JsonEx.stream(JsonEx.createParser()).transform(new Escaper(keys));
 
         return drive(stream, Delivery.STRUCTURED, json, window, BOUND);
     }
@@ -314,7 +314,7 @@ class JsonEscapedPipelineTest
         int window)
     {
         final JsonStream stream = JsonEx.stream(JsonEx.createParser())
-            .transform(new Escaper(true, "a"))
+            .transform(new Unescaper(true, "a"))
             .transform(JsonSchema.of(schema).validator());
 
         return drive(stream, Delivery.SEGMENTABLE, json, window, BOUND);
@@ -327,7 +327,7 @@ class JsonEscapedPipelineTest
         String... keys)
     {
         final JsonStream stream = JsonEx.stream(JsonEx.createParser())
-            .transform(new Escaper(true, keys.length != 0 ? keys : new String[] {"a"}))
+            .transform(new Unescaper(true, keys.length != 0 ? keys : new String[] {"a"}))
             .transform(JsonTransforms.projector(pointers));
 
         return drive(stream, Delivery.STRUCTURED, json, window, BOUND);

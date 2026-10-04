@@ -34,7 +34,7 @@ class JsonGeneratorEscapedScopeTest
     private final MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[1024]);
 
     @Test
-    void shouldEmbedObjectAsStringValue()
+    void shouldEscapeObjectAsStringValue()
     {
         final JsonGeneratorEx generator = generator();
 
@@ -52,7 +52,7 @@ class JsonGeneratorEscapedScopeTest
     }
 
     @Test
-    void shouldEmbedArrayAndScalarsAsStringValues()
+    void shouldEscapeArrayAndScalarsAsStringValues()
     {
         final JsonGeneratorEx array = generator();
         array.writeStartObject().writeKey("a").writeStartEscaped();
@@ -70,7 +70,7 @@ class JsonGeneratorEscapedScopeTest
     }
 
     @Test
-    void shouldEmbedEmptyScopeAsEmptyString()
+    void shouldEscapeEmptyScopeAsEmptyString()
     {
         final JsonGeneratorEx generator = generator();
 
@@ -80,7 +80,7 @@ class JsonGeneratorEscapedScopeTest
     }
 
     @Test
-    void shouldEmbedArrayElementsAndTopLevelValue()
+    void shouldEscapeArrayElementsAndTopLevelValue()
     {
         final JsonGeneratorEx elements = generator();
         elements.writeStartArray().write(1);

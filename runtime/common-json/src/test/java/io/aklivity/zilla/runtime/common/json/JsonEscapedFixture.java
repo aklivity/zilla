@@ -41,15 +41,15 @@ final class JsonEscapedFixture
     }
 
     // Asks the upstream to parse the string value of each named key as a document, and forwards every event
-    // (including the markers) when forward is set; otherwise the markers are dropped, which unembeds the document.
+    // (including the markers) when forward is set; otherwise the markers are dropped, which unescapes the document.
     // Mediating: it declines segmentable() so the structured events it inspects are what it sees.
-    static final class Escaper implements JsonTransform
+    static final class Unescaper implements JsonTransform
     {
         private final Set<String> keys;
         private final boolean forward;
         private final Controller controller;
 
-        Escaper(
+        Unescaper(
             boolean forward,
             String... keys)
         {
@@ -132,10 +132,10 @@ final class JsonEscapedFixture
         }
     }
 
-    // Wraps the value of each named key in synthesized markers, which embeds the value as a string: the
+    // Wraps the value of each named key in synthesized markers, which escapes the value as a string: the
     // key is forwarded, then START_ESCAPED, then the events of the value, then END_ESCAPED. The value may be a
-    // scalar or a container. Mediating, like Escaper.
-    static final class Embedder implements JsonTransform
+    // scalar or a container. Mediating, like Unescaper.
+    static final class Escaper implements JsonTransform
     {
         private final Set<String> keys;
         private final int[] bases;
@@ -143,7 +143,7 @@ final class JsonEscapedFixture
         private int scopes;
         private int depth;
 
-        Embedder(
+        Escaper(
             String... keys)
         {
             this.keys = Set.of(keys);
@@ -172,7 +172,7 @@ final class JsonEscapedFixture
             }
             else
             {
-                final boolean embed = event == JsonEvent.KEY_NAME && keys.contains(source.getStringView().toString());
+                final boolean escape = event == JsonEvent.KEY_NAME && keys.contains(source.getStringView().toString());
                 status = sink.transform(control, source, event);
                 switch (event)
                 {
@@ -194,7 +194,7 @@ final class JsonEscapedFixture
                     scopes--;
                     sink.transform(control, source, JsonEvent.END_ESCAPED);
                 }
-                if (embed)
+                if (escape)
                 {
                     bases[scopes++] = depth;
                     sink.transform(control, source, JsonEvent.START_ESCAPED);

@@ -29,9 +29,9 @@ import org.junit.jupiter.api.Test;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
-import io.aklivity.zilla.runtime.common.json.JsonEscapedFixture.Escaper;
 import io.aklivity.zilla.runtime.common.json.JsonEscapedFixture.Outcome;
 import io.aklivity.zilla.runtime.common.json.JsonEscapedFixture.Recorder;
+import io.aklivity.zilla.runtime.common.json.JsonEscapedFixture.Unescaper;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
 import io.aklivity.zilla.runtime.common.json.JsonSink.Delivery;
 
@@ -41,31 +41,31 @@ class JsonEscapedParserTest
     private static final int BOUND = 4096;
 
     @Test
-    void shouldUnembedStringifiedObject()
+    void shouldUnescapeStringifiedObject()
     {
-        final Outcome outcome = unembed("{\"a\":\"{\\\"b\\\":1}\"}", WHOLE, BOUND, "a");
+        final Outcome outcome = unescape("{\"a\":\"{\\\"b\\\":1}\"}", WHOLE, BOUND, "a");
 
         assertEquals(Status.COMPLETED, outcome.status());
         assertEquals("{\"a\":{\"b\":1}}", outcome.output());
     }
 
     @Test
-    void shouldUnembedStringifiedArray()
+    void shouldUnescapeStringifiedArray()
     {
-        final Outcome outcome = unembed("{\"a\":\"[1,\\\"x\\\",true]\"}", WHOLE, BOUND, "a");
+        final Outcome outcome = unescape("{\"a\":\"[1,\\\"x\\\",true]\"}", WHOLE, BOUND, "a");
 
         assertEquals(Status.COMPLETED, outcome.status());
         assertEquals("{\"a\":[1,\"x\",true]}", outcome.output());
     }
 
     @Test
-    void shouldUnembedStringifiedScalars()
+    void shouldUnescapeStringifiedScalars()
     {
-        assertEquals("{\"a\":42}", unembed("{\"a\":\"42\"}", WHOLE, BOUND, "a").output());
-        assertEquals("{\"a\":\"x\"}", unembed("{\"a\":\"\\\"x\\\"\"}", WHOLE, BOUND, "a").output());
-        assertEquals("{\"a\":true}", unembed("{\"a\":\"true\"}", WHOLE, BOUND, "a").output());
-        assertEquals("{\"a\":false}", unembed("{\"a\":\"false\"}", WHOLE, BOUND, "a").output());
-        assertEquals("{\"a\":null}", unembed("{\"a\":\"null\"}", WHOLE, BOUND, "a").output());
+        assertEquals("{\"a\":42}", unescape("{\"a\":\"42\"}", WHOLE, BOUND, "a").output());
+        assertEquals("{\"a\":\"x\"}", unescape("{\"a\":\"\\\"x\\\"\"}", WHOLE, BOUND, "a").output());
+        assertEquals("{\"a\":true}", unescape("{\"a\":\"true\"}", WHOLE, BOUND, "a").output());
+        assertEquals("{\"a\":false}", unescape("{\"a\":\"false\"}", WHOLE, BOUND, "a").output());
+        assertEquals("{\"a\":null}", unescape("{\"a\":\"null\"}", WHOLE, BOUND, "a").output());
     }
 
     @Test
@@ -121,7 +121,7 @@ class JsonEscapedParserTest
     @Test
     void shouldIgnoreWhitespaceAroundContent()
     {
-        final Outcome outcome = unembed("{\"a\":\" \\n\\t {\\\"b\\\":1}\\r\\n \"}", WHOLE, BOUND, "a");
+        final Outcome outcome = unescape("{\"a\":\" \\n\\t {\\\"b\\\":1}\\r\\n \"}", WHOLE, BOUND, "a");
 
         assertEquals(Status.COMPLETED, outcome.status());
         assertEquals("{\"a\":{\"b\":1}}", outcome.output());
@@ -137,7 +137,7 @@ class JsonEscapedParserTest
 
         for (int window = 1; window <= json.length() + 1; window++)
         {
-            final Outcome outcome = unembed(json, window, BOUND, "a");
+            final Outcome outcome = unescape(json, window, BOUND, "a");
 
             assertEquals(Status.COMPLETED, outcome.status(), "window " + window);
             assertEquals(expected, outcome.output(), "window " + window);
@@ -145,7 +145,7 @@ class JsonEscapedParserTest
     }
 
     @Test
-    void shouldUnembedAtEveryWindowAndBound()
+    void shouldUnescapeAtEveryWindowAndBound()
     {
         final String json = "{\"x\":1,\"a\":\"{\\\"b\\\":[1,2,{\\\"c\\\":\\\"caf\\u00e9 \\\\u00e9 \\ud83d\\ude00 \\\\\\\\ " +
             "\\\\\\\"q\\\\\\\"\\\"}],\\\"d\\\":null}\",\"y\":true}";
@@ -156,7 +156,7 @@ class JsonEscapedParserTest
         {
             for (int bound : new int[] {24, 64, BOUND})
             {
-                final Outcome outcome = unembed(json, window, bound, "a");
+                final Outcome outcome = unescape(json, window, bound, "a");
 
                 assertEquals(Status.COMPLETED, outcome.status(), "window " + window + " bound " + bound);
                 assertEquals(expected, outcome.output(), "window " + window + " bound " + bound);
@@ -165,7 +165,7 @@ class JsonEscapedParserTest
     }
 
     @Test
-    void shouldUnembedDocumentLargerThanWindow()
+    void shouldUnescapeDocumentLargerThanWindow()
     {
         final String value = "x".repeat(300);
         final String json = "{\"a\":\"{\\\"k\\\":\\\"" + value + "\\\",\\\"n\\\":" + "9".repeat(40) + "}\"}";
@@ -173,7 +173,7 @@ class JsonEscapedParserTest
 
         for (int window : new int[] {7, 64, 128, 301})
         {
-            final Outcome outcome = unembed(json, window, 96, "a");
+            final Outcome outcome = unescape(json, window, 96, "a");
 
             assertEquals(Status.COMPLETED, outcome.status(), "window " + window);
             assertEquals(expected, outcome.output(), "window " + window);
@@ -181,13 +181,13 @@ class JsonEscapedParserTest
     }
 
     @Test
-    void shouldUnembedNestedDocuments()
+    void shouldUnescapeNestedDocuments()
     {
         final String json = "{\"a\":\"{\\\"c\\\":\\\"{\\\\\\\"d\\\\\\\":1}\\\"}\"}";
 
         for (int window = 1; window <= json.length() + 1; window++)
         {
-            final Outcome outcome = unembed(json, window, BOUND, "a", "c");
+            final Outcome outcome = unescape(json, window, BOUND, "a", "c");
 
             assertEquals(Status.COMPLETED, outcome.status(), "window " + window);
             assertEquals("{\"a\":{\"c\":{\"d\":1}}}", outcome.output(), "window " + window);
@@ -207,9 +207,9 @@ class JsonEscapedParserTest
     }
 
     @Test
-    void shouldUnembedOnlyRequestedKeys()
+    void shouldUnescapeOnlyRequestedKeys()
     {
-        final Outcome outcome = unembed("{\"a\":\"{\\\"b\\\":1}\",\"s\":\"{\\\"b\\\":1}\"}", WHOLE, BOUND, "a");
+        final Outcome outcome = unescape("{\"a\":\"{\\\"b\\\":1}\",\"s\":\"{\\\"b\\\":1}\"}", WHOLE, BOUND, "a");
 
         assertEquals(Status.COMPLETED, outcome.status());
         assertEquals("{\"a\":{\"b\":1},\"s\":\"{\\\"b\\\":1}\"}", outcome.output());
@@ -246,7 +246,7 @@ class JsonEscapedParserTest
             return sink.transform(control, source, event);
         };
         final JsonStream stream = JsonEx.stream(JsonEx.createParser())
-            .transform(new Escaper(true, "a"))
+            .transform(new Unescaper(true, "a"))
             .transform(locator);
 
         final Outcome outcome = record(stream, new Recorder(), "{\"a\":\"{\\\"b\\\":1}\"}", WHOLE);
@@ -256,13 +256,13 @@ class JsonEscapedParserTest
     }
 
     @Test
-    void shouldRejectUnembedOfNonString()
+    void shouldRejectUnescapeOfNonString()
     {
         for (String json : new String[] {"{\"a\":1}", "{\"a\":{\"b\":1}}", "{\"a\":[1]}", "{\"a\":true}", "{\"a\":null}"})
         {
             for (int window : new int[] {1, 3, WHOLE})
             {
-                assertEquals(Status.REJECTED, unembed(json, window, BOUND, "a").status(), json + " window " + window);
+                assertEquals(Status.REJECTED, unescape(json, window, BOUND, "a").status(), json + " window " + window);
             }
         }
     }
@@ -275,7 +275,7 @@ class JsonEscapedParserTest
             for (int window : new int[] {1, 3, 8, WHOLE})
             {
                 final String json = "{\"a\":\"" + content + "\"}";
-                assertEquals(Status.REJECTED, unembed(json, window, BOUND, "a").status(), json + " window " + window);
+                assertEquals(Status.REJECTED, unescape(json, window, BOUND, "a").status(), json + " window " + window);
             }
         }
     }
@@ -288,7 +288,7 @@ class JsonEscapedParserTest
             for (int window : new int[] {1, 3, 8, WHOLE})
             {
                 final String json = "{\"a\":\"" + content + "\"}";
-                assertEquals(Status.REJECTED, unembed(json, window, BOUND, "a").status(), json + " window " + window);
+                assertEquals(Status.REJECTED, unescape(json, window, BOUND, "a").status(), json + " window " + window);
             }
         }
     }
@@ -301,7 +301,7 @@ class JsonEscapedParserTest
             for (int window : new int[] {1, 3, 8, WHOLE})
             {
                 final String json = "{\"a\":\"" + content + "\"}";
-                assertEquals(Status.REJECTED, unembed(json, window, BOUND, "a").status(), json + " window " + window);
+                assertEquals(Status.REJECTED, unescape(json, window, BOUND, "a").status(), json + " window " + window);
             }
         }
     }
@@ -324,10 +324,10 @@ class JsonEscapedParserTest
         boolean forward,
         String... keys)
     {
-        return JsonEx.stream(JsonEx.createParser()).transform(new Escaper(forward, keys));
+        return JsonEx.stream(JsonEx.createParser()).transform(new Unescaper(forward, keys));
     }
 
-    private static Outcome unembed(
+    private static Outcome unescape(
         String json,
         int window,
         int bound,
