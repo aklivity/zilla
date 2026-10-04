@@ -44,7 +44,7 @@ final class JwtGuardContext implements GuardContext
         this.context = context;
         this.supplyAuthorizedId = context::supplyAuthorizedId;
         this.parent = parent;
-        this.keyCacheExpiryMillis = config.keyCacheExpiryMillis();
+        this.keyCacheExpiryMillis = config.keyCacheExpiry().toMillis();
     }
 
     @Override

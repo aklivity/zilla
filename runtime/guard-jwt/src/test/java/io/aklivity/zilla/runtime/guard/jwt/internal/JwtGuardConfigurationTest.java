@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.guard.jwt.internal;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
+import java.time.Duration;
 import java.util.Properties;
 
 import org.junit.Test;
@@ -30,17 +31,17 @@ public class JwtGuardConfigurationTest
     {
         JwtGuardConfiguration config = new JwtGuardConfiguration(new Configuration());
 
-        assertThat(config.keyCacheExpiryMillis(), equalTo(300_000L));
+        assertThat(config.keyCacheExpiry(), equalTo(Duration.ofMinutes(5L)));
     }
 
     @Test
     public void shouldConfigureKeyCacheExpiry()
     {
         Properties properties = new Properties();
-        properties.setProperty("zilla.guard.jwt.key.cache.expiry.millis", "60000");
+        properties.setProperty("zilla.guard.jwt.key.cache.expiry", "PT1M");
 
         JwtGuardConfiguration config = new JwtGuardConfiguration(new Configuration(properties));
 
-        assertThat(config.keyCacheExpiryMillis(), equalTo(60_000L));
+        assertThat(config.keyCacheExpiry(), equalTo(Duration.ofMinutes(1L)));
     }
 }

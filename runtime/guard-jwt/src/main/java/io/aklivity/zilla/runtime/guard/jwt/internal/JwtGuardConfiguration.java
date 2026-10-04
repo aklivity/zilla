@@ -14,18 +14,20 @@
  */
 package io.aklivity.zilla.runtime.guard.jwt.internal;
 
+import java.time.Duration;
+
 import io.aklivity.zilla.runtime.engine.Configuration;
 
 public class JwtGuardConfiguration extends Configuration
 {
-    public static final LongPropertyDef KEY_CACHE_EXPIRY_MILLIS;
+    public static final PropertyDef<Duration> KEY_CACHE_EXPIRY;
 
     private static final ConfigurationDef JWT_GUARD_CONFIG;
 
     static
     {
         final ConfigurationDef config = new ConfigurationDef("zilla.guard.jwt");
-        KEY_CACHE_EXPIRY_MILLIS = config.property("key.cache.expiry.millis", 300_000L);
+        KEY_CACHE_EXPIRY = config.property(Duration.class, "key.cache.expiry", (c, v) -> Duration.parse(v), "PT5M");
         JWT_GUARD_CONFIG = config;
     }
 
@@ -35,8 +37,8 @@ public class JwtGuardConfiguration extends Configuration
         super(JWT_GUARD_CONFIG, config);
     }
 
-    public long keyCacheExpiryMillis()
+    public Duration keyCacheExpiry()
     {
-        return KEY_CACHE_EXPIRY_MILLIS.getAsLong(this);
+        return KEY_CACHE_EXPIRY.get(this);
     }
 }
