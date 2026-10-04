@@ -82,4 +82,76 @@ public class JwtGuardIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("guard-vault.token.tampered.yaml")
+    @Specification({
+        "${net}/handshake.abort/client" })
+    public void shouldRejectTamperedVaultWrappedToken() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("guard-vault.token.unknown.key.yaml")
+    @Specification({
+        "${net}/handshake.abort/client" })
+    public void shouldRejectVaultWrappedTokenWithUnknownKey() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("guard-vault.token.key.not.permitted.yaml")
+    @Specification({
+        "${net}/handshake.abort/client" })
+    public void shouldRejectVaultWrappedTokenWithKeyNotPermitted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("guard-vault.token.expired.yaml")
+    @Specification({
+        "${net}/handshake.abort/client" })
+    public void shouldRejectExpiredVaultWrappedToken() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("guard-vault.token.issuer.yaml")
+    @Specification({
+        "${net}/handshake.abort/client" })
+    public void shouldRejectVaultWrappedTokenWithWrongIssuer() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("guard-vault.token.audience.yaml")
+    @Specification({
+        "${net}/handshake.abort/client" })
+    public void shouldRejectVaultWrappedTokenWithWrongAudience() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("guard-vault.token.algorithm.yaml")
+    @Specification({
+        "${net}/handshake.abort/client" })
+    public void shouldRejectVaultWrappedTokenWithWrongAlgorithm() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("guard-vault.token.unsupported.yaml")
+    @Specification({
+        "${net}/handshake.abort/client" })
+    public void shouldRejectVaultWrappedTokenWhenVaultNotConfigured() throws Exception
+    {
+        k3po.finish();
+    }
 }

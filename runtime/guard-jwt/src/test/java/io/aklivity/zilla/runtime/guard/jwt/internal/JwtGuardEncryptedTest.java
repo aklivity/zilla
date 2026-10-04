@@ -31,7 +31,6 @@ import static org.mockito.Mockito.when;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Arrays;
-import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -122,76 +121,6 @@ public class JwtGuardEncryptedTest
 
         assertThat(first, not(equalTo(0L)));
         assertThat(second, not(equalTo(0L)));
-    }
-
-    @Test
-    public void shouldNotAuthorizeTamperedToken() throws Exception
-    {
-        JwtGuardHandler guard = newGuard(newEncryption(permitted));
-        String[] parts = seal(sealing, "tenant-1", claims()).split("\\.", -1);
-
-        byte[] ciphertext = Base64.getUrlDecoder().decode(parts[3]);
-        ciphertext[0] ^= 0x01;
-        parts[3] = Base64.getUrlEncoder().withoutPadding().encodeToString(ciphertext);
-
-        assertThat(guard.reauthorize(0L, 0L, 101L, String.join(".", parts)), equalTo(0L));
-    }
-
-    @Test
-    public void shouldNotAuthorizeUnknownKeyName() throws Exception
-    {
-        JwtGuardHandler guard = newGuard(newEncryption(permitted));
-
-        assertThat(guard.reauthorize(0L, 0L, 101L, seal(ghosts, "ghost", claims())), equalTo(0L));
-    }
-
-    @Test
-    public void shouldNotAuthorizeKeyOutsidePermittedSet() throws Exception
-    {
-        JwtGuardHandler guard = newGuard(newEncryption(permitted));
-
-        assertThat(guard.reauthorize(0L, 0L, 101L, seal(sealing, "other", claims())), equalTo(0L));
-    }
-
-    @Test
-    public void shouldNotAuthorizeExpiredToken() throws Exception
-    {
-        JwtGuardHandler guard = newGuard(newEncryption(permitted));
-
-        String claims = claims("test issuer", "testAudience", Instant.now().getEpochSecond() - 10L);
-
-        assertThat(guard.reauthorize(0L, 0L, 101L, seal(sealing, "tenant-1", claims)), equalTo(0L));
-    }
-
-    @Test
-    public void shouldNotAuthorizeWrongIssuerOrAudience() throws Exception
-    {
-        JwtGuardHandler guard = newGuard(newEncryption(permitted));
-        long exp = Instant.now().getEpochSecond() + 10L;
-
-        assertThat(guard.reauthorize(0L, 0L, 101L,
-            seal(sealing, "tenant-1", claims("other issuer", "testAudience", exp))), equalTo(0L));
-        assertThat(guard.reauthorize(0L, 0L, 102L,
-            seal(sealing, "tenant-1", claims("test issuer", "otherAudience", exp))), equalTo(0L));
-    }
-
-    @Test
-    public void shouldNotAuthorizeWrongAlgorithm() throws Exception
-    {
-        JwtGuardHandler guard = newGuard(newEncryption(permitted));
-        JweKeyManager other = new VaultSealer(sealing, "tenant-1", "io.aklivity.zilla.other.v1");
-
-        String token = Jwe.seal(other, null, claims().getBytes(UTF_8));
-
-        assertThat(guard.reauthorize(0L, 0L, 101L, token), equalTo(0L));
-    }
-
-    @Test
-    public void shouldNotAuthorizeEncryptedTokenWithoutVault() throws Exception
-    {
-        JwtGuardHandler guard = newGuard(null);
-
-        assertThat(guard.reauthorize(0L, 0L, 101L, seal(sealing, "tenant-1", claims())), equalTo(0L));
     }
 
     @Test

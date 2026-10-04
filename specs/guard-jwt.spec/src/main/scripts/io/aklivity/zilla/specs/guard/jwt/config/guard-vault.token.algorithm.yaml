@@ -1,0 +1,71 @@
+#
+# Copyright 2021-2026 Aklivity Inc
+#
+# Licensed under the Aklivity Community License (the "License"); you may not use
+# this file except in compliance with the License.  You may obtain a copy of the
+# License at
+#
+#   https://www.aklivity.io/aklivity-community-license/
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations under the License.
+#
+
+---
+name: test
+telemetry:
+  exporters:
+    exporter0:
+      type: test
+      options:
+        events:
+          - qname: engine:events
+            id: engine.started
+            name: ENGINE_STARTED
+            message: Engine Started.
+          - qname: test:net0
+            id: guard.jwt.authorization.failed
+            name: GUARD_JWT_AUTHORIZATION_FAILED
+            message: "JWT token authorization failed for identity (). Unsupported algorithm: io.aklivity.zilla.other.v1"
+vaults:
+  vault0:
+    type: test
+    options:
+      wrap:
+        - alias: tenant-1
+          entry: |
+            -----BEGIN SECRET KEY-----
+            jOl3tg1ZDuqTrzB7WOVaUOEoezst8sz/ywPPbsGE8bA=
+            -----END SECRET KEY-----
+        - alias: other
+          entry: |
+            -----BEGIN SECRET KEY-----
+            Q2hhbmdlTWVDaGFuZ2VNZUNoYW5nZU1lQ2hhbmdlTWU=
+            -----END SECRET KEY-----
+guards:
+  jwt0:
+    type: jwt
+    options:
+      issuer: http://localhost:8080
+      audience: https://api.aklivity.com
+      keys: []
+      vault: vault0
+      secrets:
+        - tenant-1
+      attributes:
+        site: website
+bindings:
+  net0:
+    type: test
+    kind: server
+    options:
+      authorization:
+        jwt0:
+          credentials: eyJhbGciOiJpby5ha2xpdml0eS56aWxsYS5vdGhlci52MSIsImVuYyI6IkEyNTZHQ00ifQ.AAAACHRlbmFudC0xDyul24Vj3j4KDomdr2fjdn2GVwpDeak_c5yiVC4yd49GKqY2EZsW4MjR9_1GmT_3hZDBHWhWX3bUEDUl.MGUyofxVrQvSeaZW.9g3WBl9woNtvJWpBoonWnaOn9cP_-8YrezFlLqkp9_Tu7OpOHlUMhCOgDVoZUb_r6OQ0IKnRKcFAb-F4SZSeDAlqlLidpqA8wwFPbhu7-y7u8fMroRh27mxJSBH7ggaeUH0xTB9_zEM9jq_9vHBChW4f7GXvbkRfJyLo6opipuNWiH4FJx-Ns89TM4TBPEADI4W7.H9p2XwmfWpTiwOha81G4wA
+    routes:
+      - guarded:
+          jwt0:
+            - read
+        exit: app0
