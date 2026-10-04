@@ -783,4 +783,148 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/openai.response.decode.text/client",
+        "${app}/openai.response.decode.text/server"})
+    public void shouldDecodeOpenaiResponseText() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.response.decode.text.and.tool.call/client",
+        "${app}/openai.response.decode.text.and.tool.call/server"})
+    public void shouldDecodeOpenaiResponseTextAndToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.response.decode.refusal/client",
+        "${app}/openai.response.decode.refusal/server"})
+    public void shouldDecodeOpenaiResponseRefusal() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.response.decode.streaming/client",
+        "${app}/openai.response.decode.streaming/server"})
+    public void shouldDecodeOpenaiResponseStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.response.decode.streaming.tool.call/client",
+        "${app}/openai.response.decode.streaming.tool.call/server"})
+    public void shouldDecodeOpenaiResponseStreamingToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.response.decode.streaming.usage/client",
+        "${app}/openai.response.decode.streaming.usage/server"})
+    public void shouldDecodeOpenaiResponseStreamingUsage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.response.decode.streaming.error/client",
+        "${app}/openai.response.decode.streaming.error/server"})
+    public void shouldDecodeOpenaiResponseStreamingError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.response.decode.text.100k/client",
+        "${app}/openai.response.decode.text.100k/server"})
+    public void shouldDecodeOpenaiResponseText100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.response.encode.text/client",
+        "${app}/openai.response.encode.text/server"})
+    public void shouldEncodeOpenaiResponseText() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.response.encode.text.and.tool.call/client",
+        "${app}/openai.response.encode.text.and.tool.call/server"})
+    public void shouldEncodeOpenaiResponseTextAndToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.response.encode.refusal/client",
+        "${app}/openai.response.encode.refusal/server"})
+    public void shouldEncodeOpenaiResponseRefusal() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.response.encode.streaming/client",
+        "${app}/openai.response.encode.streaming/server"})
+    public void shouldEncodeOpenaiResponseStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.response.encode.streaming.tool.call/client",
+        "${app}/openai.response.encode.streaming.tool.call/server"})
+    public void shouldEncodeOpenaiResponseStreamingToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.response.encode.streaming.error/client",
+        "${app}/openai.response.encode.streaming.error/server"})
+    public void shouldEncodeOpenaiResponseStreamingError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.response.encode.text.100k/client",
+        "${app}/openai.response.encode.text.100k/server"})
+    public void shouldEncodeOpenaiResponseText100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.response.encode.reasoning/client",
+        "${app}/openai.response.encode.reasoning/server"})
+    public void shouldEncodeOpenaiResponseReasoning() throws Exception
+    {
+        k3po.finish();
+    }
 }
