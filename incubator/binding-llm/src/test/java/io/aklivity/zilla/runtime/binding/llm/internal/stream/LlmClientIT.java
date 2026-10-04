@@ -1218,4 +1218,84 @@ public class LlmClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.response.decode.reasoning/client",
+        "${net}/anthropic.response.decode.reasoning/server"})
+    public void shouldDecodeAnthropicResponseReasoning() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.response.decode.streaming/client",
+        "${net}/anthropic.response.decode.streaming/server"})
+    public void shouldDecodeAnthropicResponseStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.response.decode.streaming.error/client",
+        "${net}/anthropic.response.decode.streaming.error/server"})
+    public void shouldDecodeAnthropicResponseStreamingError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.response.decode.streaming.tool.call/client",
+        "${net}/anthropic.response.decode.streaming.tool.call/server"})
+    public void shouldDecodeAnthropicResponseStreamingToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.response.decode.text/client",
+        "${net}/anthropic.response.decode.text/server"})
+    public void shouldDecodeAnthropicResponseText() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.response.decode.text.100k/client",
+        "${net}/anthropic.response.decode.text.100k/server"})
+    public void shouldDecodeAnthropicResponseText100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.response.decode.text.and.tool.call/client",
+        "${net}/anthropic.response.decode.text.and.tool.call/server"})
+    public void shouldDecodeAnthropicResponseTextAndToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.response.decode.text.escaped/client",
+        "${net}/anthropic.response.decode.text.escaped/server"})
+    public void shouldDecodeAnthropicResponseTextEscaped() throws Exception
+    {
+        k3po.finish();
+    }
 }
