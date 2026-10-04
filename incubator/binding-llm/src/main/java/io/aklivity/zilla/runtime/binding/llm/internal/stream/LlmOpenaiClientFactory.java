@@ -43,8 +43,8 @@ import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.ChallengeFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.EndFW;
+import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.HttpBeginExFW;
-import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmAbortExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmBeginExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmDataExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmResetExFW;
@@ -124,6 +124,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
     private final EndFW endRO = new EndFW();
+    private final FlushFW flushRO = new FlushFW();
     private final AbortFW abortRO = new AbortFW();
     private final ResetFW resetRO = new ResetFW();
     private final WindowFW windowRO = new WindowFW();
@@ -145,7 +146,6 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
     private final LlmBeginExFW.Builder llmBeginExRW = new LlmBeginExFW.Builder();
     private final LlmDataExFW.Builder llmDataExRW = new LlmDataExFW.Builder();
     private final LlmResetExFW.Builder llmResetExRW = new LlmResetExFW.Builder();
-    private final LlmAbortExFW.Builder llmAbortExRW = new LlmAbortExFW.Builder();
 
     private final MutableDirectBufferEx writeBuffer;
     private final MutableDirectBufferEx extBuffer;
@@ -384,6 +384,9 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             case EndFW.TYPE_ID:
                 onAppEnd(endRO.wrap(buffer, index, index + length));
                 break;
+            case FlushFW.TYPE_ID:
+                onAppFlush(flushRO.wrap(buffer, index, index + length));
+                break;
             case AbortFW.TYPE_ID:
                 onAppAbort(abortRO.wrap(buffer, index, index + length));
                 break;
@@ -488,6 +491,15 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
             initialSeq = end.sequence();
             state = LlmState.closingInitial(state);
+
+            http.doEncodeRequestEnd();
+            http.flushEncode(traceId);
+        }
+
+        private void onAppFlush(
+            FlushFW flush)
+        {
+            final long traceId = flush.traceId();
 
             http.doEncodeRequestEnd();
             http.flushEncode(traceId);
@@ -714,64 +726,6 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
                 app.accept(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());
                 state = LlmState.closeInitial(state);
-            }
-        }
-
-        private void doAppRejected(
-            long traceId,
-            int status,
-            String type,
-            String message)
-        {
-            if (LlmState.initialClosing(state) || LlmState.initialClosed(state))
-            {
-                if (!LlmState.replyClosed(state))
-                {
-                    if (!LlmState.replyOpening(state) && !LlmState.replyOpened(state))
-                    {
-                        doAppBegin(traceId, null);
-                    }
-
-                    final LlmAbortExFW.Builder builder = llmAbortExRW.wrap(extBuffer, 0, extBuffer.capacity())
-                        .typeId(llmTypeId)
-                        .usage(u ->
-                        {
-                        });
-
-                    builder.error(e ->
-                    {
-                        e.status(status);
-                        if (type != null)
-                        {
-                            e.type(type);
-                        }
-                        if (message != null)
-                        {
-                            e.message(message);
-                        }
-                    });
-
-                    final LlmAbortExFW llmAbortEx = builder.build();
-
-                    final AbortFW abort = abortRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                        .originId(originId)
-                        .routedId(routedId)
-                        .streamId(replyId)
-                        .sequence(replySeq)
-                        .acknowledge(replyAck)
-                        .maximum(replyMax)
-                        .traceId(traceId)
-                        .authorization(authorization)
-                        .extension(llmAbortEx.buffer(), llmAbortEx.offset(), llmAbortEx.sizeof())
-                        .build();
-
-                    app.accept(abort.typeId(), abort.buffer(), abort.offset(), abort.sizeof());
-                    state = LlmState.closeReply(state);
-                }
-            }
-            else
-            {
-                doAppReset(traceId, status, type, message);
             }
         }
 
@@ -1080,22 +1034,25 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
         private void doEncodeRequestEnd()
         {
-            closeMessage();
-
-            if (!messagesClosed)
+            if (!LlmState.initialClosing(state) && !LlmState.initialClosed(state))
             {
-                putByte(']');
-                messagesClosed = true;
-            }
+                closeMessage();
 
-            if (toolsOpened)
-            {
-                putByte(']');
-            }
+                if (!messagesClosed)
+                {
+                    putByte(']');
+                    messagesClosed = true;
+                }
 
-            putByte('}');
-            encodeHold = NOT_HELD;
-            state = LlmState.closingInitial(state);
+                if (toolsOpened)
+                {
+                    putByte(']');
+                }
+
+                putByte('}');
+                encodeHold = NOT_HELD;
+                state = LlmState.closingInitial(state);
+            }
         }
 
         private void openMessage(
@@ -1560,7 +1517,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 }
 
                 cleanupDecodeSlot();
-                stream.doAppRejected(traceId, status, type, message);
+                stream.doAppReset(traceId, status, type, message);
                 state = LlmState.closeReply(state);
             }
             else if (decoder != null)

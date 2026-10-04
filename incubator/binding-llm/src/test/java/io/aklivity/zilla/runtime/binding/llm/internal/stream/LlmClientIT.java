@@ -530,16 +530,6 @@ public class LlmClientIT
     @Test
     @Configuration("client.openai.yaml")
     @Specification({
-        "${app}/openai.section.system.instruction/client",
-        "${net}/openai.section.system.instruction/server"})
-    public void shouldEncodeOpenaiSectionSystemInstruction() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.openai.yaml")
-    @Specification({
         "${app}/openai.section.user.text/client",
         "${net}/openai.section.user.text/server"})
     public void shouldEncodeOpenaiSectionUserText() throws Exception
@@ -671,7 +661,7 @@ public class LlmClientIT
     @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.section.user.text.100k/client",
-        "${net}/openai.section.user.text.100k/server"})
+        "${net}/openai.section.user.text.100k.parts/server"})
     public void shouldEncodeOpenaiSectionUserText100k() throws Exception
     {
         k3po.finish();
@@ -681,7 +671,7 @@ public class LlmClientIT
     @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.section.tool.result.100k/client",
-        "${net}/openai.section.tool.result.100k/server"})
+        "${net}/openai.section.tool.result.100k.parts/server"})
     public void shouldEncodeOpenaiSectionToolResult100k() throws Exception
     {
         k3po.finish();

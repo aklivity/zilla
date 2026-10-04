@@ -473,6 +473,26 @@ public class LlmServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/openai.section.user.text.100k.parts/client",
+        "${app}/openai.section.user.text.100k/server"})
+    public void shouldDecodeOpenaiSectionUserText100kParts() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.section.tool.result.100k.parts/client",
+        "${app}/openai.section.tool.result.100k/server"})
+    public void shouldDecodeOpenaiSectionToolResult100kParts() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/openai.section.unknown.part/client",
         "${app}/openai.section.unknown.part/server"})
     public void shouldDecodeOpenaiSectionUnknownPart() throws Exception

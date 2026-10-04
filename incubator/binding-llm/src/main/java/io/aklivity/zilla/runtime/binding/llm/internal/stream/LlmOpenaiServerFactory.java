@@ -42,6 +42,7 @@ import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.ChallengeFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.EndFW;
+import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmBeginExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmDataExFW;
@@ -128,6 +129,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
     private final DataFW.Builder dataRW = new DataFW.Builder();
     private final EndFW.Builder endRW = new EndFW.Builder();
+    private final FlushFW.Builder flushRW = new FlushFW.Builder();
     private final AbortFW.Builder abortRW = new AbortFW.Builder();
     private final ResetFW.Builder resetRW = new ResetFW.Builder();
     private final WindowFW.Builder windowRW = new WindowFW.Builder();
@@ -2001,14 +2003,19 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             {
                 cleanup(traceId);
             }
-            else if (LlmState.replyClosed(stream.state))
-            {
-                appEndPending = false;
-                stream.doAppEnd(traceId);
-            }
             else
             {
-                appEndPending = true;
+                stream.doAppFlush(traceId);
+
+                if (LlmState.replyClosed(stream.state))
+                {
+                    appEndPending = false;
+                    stream.doAppEnd(traceId);
+                }
+                else
+                {
+                    appEndPending = true;
+                }
             }
         }
 
@@ -2775,6 +2782,27 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             final OctetsFW extension = challenge.extension();
 
             server.doNetChallenge(traceId, authorization, extension);
+        }
+
+        private void doAppFlush(
+            long traceId)
+        {
+            if (!LlmState.initialClosed(state))
+            {
+                final FlushFW flush = flushRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+                    .originId(server.routedId)
+                    .routedId(server.exitId)
+                    .streamId(initialId)
+                    .sequence(initialSeq)
+                    .acknowledge(initialAck)
+                    .maximum(initialMax)
+                    .traceId(traceId)
+                    .budgetId(0L)
+                    .reserved(0)
+                    .build();
+
+                app.accept(flush.typeId(), flush.buffer(), flush.offset(), flush.sizeof());
+            }
         }
 
         private void doAppEnd(
