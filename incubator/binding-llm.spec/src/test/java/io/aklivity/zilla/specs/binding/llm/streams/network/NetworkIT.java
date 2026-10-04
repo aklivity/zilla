@@ -189,11 +189,6 @@ public class NetworkIT
         k3po.finish();
     }
 
-    // network/openai.authorized and network/anthropic.authorized are exercised as two
-    // independent, cross-directory pairs -- client.rpt (an already-authenticated caller) by LlmServerIT,
-    // server.rpt (asserts the guard-resolved zilla:authorization arrived) by LlmClientIT -- not self-paired
-    // here, since a plain k3po connect never carries an authorization value the accept side would resolve.
-
     @Test
     @Specification({
         "${net}/openai.rejected.authorization/client",
@@ -1531,6 +1526,33 @@ public class NetworkIT
         "${net}/anthropic.section.tool.result.shorthand/client",
         "${net}/anthropic.section.tool.result.shorthand/server"})
     public void shouldAnthropicSectionToolResultShorthand() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.authorized/client",
+        "${net}/openai.authorized/server"})
+    public void shouldForwardOpenaiRequestAuthorized() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.authorized/client",
+        "${net}/anthropic.authorized/server"})
+    public void shouldForwardAnthropicRequestAuthorized() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/proxy.route.unmatched/client",
+        "${net}/proxy.route.unmatched/server"})
+    public void shouldRejectProxyRequestWithUnmatchedRoute() throws Exception
     {
         k3po.finish();
     }
