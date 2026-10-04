@@ -56,8 +56,9 @@ final class LlmOpenaiClientHandler implements LlmDialectHandler
     {
         final BeginFW begin = beginRO.wrap(buffer, index, index + length);
         final LlmBeginExFW llmBeginEx = begin.extension().get(llmBeginExRO::tryWrap);
-        final boolean openai = llmBeginEx != null && NAME.equals(llmBeginEx.dialect().asString());
+        final boolean sections = llmBeginEx != null &&
+            (NAME.equals(llmBeginEx.dialect().asString()) || llmBeginEx.model().asString() != null);
 
-        return (openai ? canonical : legacy).newStream(msgTypeId, buffer, index, length, sender);
+        return (sections ? canonical : legacy).newStream(msgTypeId, buffer, index, length, sender);
     }
 }

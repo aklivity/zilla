@@ -35,6 +35,12 @@
                                     "null"
                                 ]
                             },
+                            "refusal": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
                             "tool_calls": {
                                 "type": "array",
                                 "items": {
@@ -72,6 +78,12 @@
                                 "type": "string"
                             },
                             "content": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "refusal": {
                                 "type": [
                                     "string",
                                     "null"

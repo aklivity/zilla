@@ -46,6 +46,9 @@ final class LlmOpenaiResponseExtractor implements JsonTransform
     private int documentReasoningTokens = NONE;
     private String documentErrorType;
     private String documentErrorMessage;
+    private String documentId;
+    private String documentModel;
+    private String documentFinishReason;
 
     private int inputTokens = NONE;
     private int outputTokens = NONE;
@@ -54,6 +57,9 @@ final class LlmOpenaiResponseExtractor implements JsonTransform
     private int reasoningTokens = NONE;
     private String errorType;
     private String errorMessage;
+    private String id;
+    private String model;
+    private String finishReason;
 
     LlmOpenaiResponseExtractor()
     {
@@ -75,6 +81,35 @@ final class LlmOpenaiResponseExtractor implements JsonTransform
     String errorMessage()
     {
         return errorMessage;
+    }
+
+    String id()
+    {
+        return documentId != null ? documentId : id;
+    }
+
+    String model()
+    {
+        return documentModel != null ? documentModel : model;
+    }
+
+    String finishReason()
+    {
+        final String reported = documentFinishReason != null ? documentFinishReason : finishReason;
+
+        String neutral = reported;
+
+        if (reported != null)
+        {
+            neutral = switch (reported)
+            {
+            case "tool_calls", "function_call" -> "tool-call";
+            case "content_filter" -> "content-filter";
+            default -> reported;
+            };
+        }
+
+        return neutral;
     }
 
     void populateUsage(
@@ -282,6 +317,15 @@ final class LlmOpenaiResponseExtractor implements JsonTransform
         case "error.message":
             documentErrorMessage = source.getString();
             break;
+        case "id":
+            documentId = source.getString();
+            break;
+        case "model":
+            documentModel = source.getString();
+            break;
+        case "choices.finish_reason":
+            documentFinishReason = source.getString();
+            break;
         default:
             break;
         }
@@ -322,6 +366,9 @@ final class LlmOpenaiResponseExtractor implements JsonTransform
         reasoningTokens = documentReasoningTokens != NONE ? documentReasoningTokens : reasoningTokens;
         errorType = documentErrorType != null ? documentErrorType : errorType;
         errorMessage = documentErrorMessage != null ? documentErrorMessage : errorMessage;
+        id = documentId != null ? documentId : id;
+        model = documentModel != null ? documentModel : model;
+        finishReason = documentFinishReason != null ? documentFinishReason : finishReason;
 
         clearDocument();
     }
@@ -335,6 +382,9 @@ final class LlmOpenaiResponseExtractor implements JsonTransform
         documentReasoningTokens = NONE;
         documentErrorType = null;
         documentErrorMessage = null;
+        documentId = null;
+        documentModel = null;
+        documentFinishReason = null;
     }
 
     private static void addIfPresent(
