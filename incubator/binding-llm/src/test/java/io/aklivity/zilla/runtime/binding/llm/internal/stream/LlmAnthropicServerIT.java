@@ -613,4 +613,104 @@ public class LlmAnthropicServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.response.encode.reasoning/client",
+        "${app}/anthropic.response.encode.reasoning/server"})
+    public void shouldEncodeAnthropicResponseReasoning() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.response.encode.refusal/client",
+        "${app}/anthropic.response.encode.refusal/server"})
+    public void shouldEncodeAnthropicResponseRefusal() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.response.encode.streaming/client",
+        "${app}/anthropic.response.encode.streaming/server"})
+    public void shouldEncodeAnthropicResponseStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.response.encode.streaming.error/client",
+        "${app}/anthropic.response.encode.streaming.error/server"})
+    public void shouldEncodeAnthropicResponseStreamingError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.response.encode.streaming.multibyte/client",
+        "${app}/anthropic.response.encode.streaming.multibyte/server"})
+    public void shouldEncodeAnthropicResponseStreamingMultibyte() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.response.encode.streaming.tool.call/client",
+        "${app}/anthropic.response.encode.streaming.tool.call/server"})
+    public void shouldEncodeAnthropicResponseStreamingToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.response.encode.text/client",
+        "${app}/anthropic.response.encode.text/server"})
+    public void shouldEncodeAnthropicResponseText() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.response.encode.text.100k/client",
+        "${app}/anthropic.response.encode.text.100k/server"})
+    public void shouldEncodeAnthropicResponseText100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.response.encode.text.and.tool.call/client",
+        "${app}/anthropic.response.encode.text.and.tool.call/server"})
+    public void shouldEncodeAnthropicResponseTextAndToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.response.encode.text.escaped/client",
+        "${app}/anthropic.response.encode.text.escaped/server"})
+    public void shouldEncodeAnthropicResponseTextEscaped() throws Exception
+    {
+        k3po.finish();
+    }
 }

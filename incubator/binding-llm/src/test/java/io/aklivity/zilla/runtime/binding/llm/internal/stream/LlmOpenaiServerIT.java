@@ -574,4 +574,104 @@ public class LlmOpenaiServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.response.encode.text/client",
+        "${app}/openai.response.encode.text/server"})
+    public void shouldEncodeOpenaiResponseText() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.response.encode.text.and.tool.call/client",
+        "${app}/openai.response.encode.text.and.tool.call/server"})
+    public void shouldEncodeOpenaiResponseTextAndToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.response.encode.refusal/client",
+        "${app}/openai.response.encode.refusal/server"})
+    public void shouldEncodeOpenaiResponseRefusal() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.response.encode.streaming/client",
+        "${app}/openai.response.encode.streaming/server"})
+    public void shouldEncodeOpenaiResponseStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.response.encode.streaming.tool.call/client",
+        "${app}/openai.response.encode.streaming.tool.call/server"})
+    public void shouldEncodeOpenaiResponseStreamingToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.response.encode.streaming.error/client",
+        "${app}/openai.response.encode.streaming.error/server"})
+    public void shouldEncodeOpenaiResponseStreamingError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.response.encode.text.100k/client",
+        "${app}/openai.response.encode.text.100k/server"})
+    public void shouldEncodeOpenaiResponseText100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.response.encode.reasoning/client",
+        "${app}/openai.response.encode.reasoning/server"})
+    public void shouldEncodeOpenaiResponseReasoning() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.response.encode.text.escaped/client",
+        "${app}/openai.response.encode.text.escaped/server"})
+    public void shouldEncodeOpenaiResponseTextEscaped() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.response.encode.streaming.multibyte/client",
+        "${app}/openai.response.encode.streaming.multibyte/server"})
+    public void shouldEncodeOpenaiResponseStreamingMultibyte() throws Exception
+    {
+        k3po.finish();
+    }
 }

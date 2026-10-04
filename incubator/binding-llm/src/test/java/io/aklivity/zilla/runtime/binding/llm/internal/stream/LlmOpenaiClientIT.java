@@ -701,4 +701,94 @@ public class LlmOpenaiClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.response.decode.text/client",
+        "${net}/openai.response.decode.text/server"})
+    public void shouldDecodeOpenaiResponseText() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.response.decode.text.and.tool.call/client",
+        "${net}/openai.response.decode.text.and.tool.call/server"})
+    public void shouldDecodeOpenaiResponseTextAndToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.response.decode.refusal/client",
+        "${net}/openai.response.decode.refusal/server"})
+    public void shouldDecodeOpenaiResponseRefusal() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.response.decode.streaming/client",
+        "${net}/openai.response.decode.streaming/server"})
+    public void shouldDecodeOpenaiResponseStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.response.decode.streaming.tool.call/client",
+        "${net}/openai.response.decode.streaming.tool.call/server"})
+    public void shouldDecodeOpenaiResponseStreamingToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.response.decode.streaming.usage/client",
+        "${net}/openai.response.decode.streaming.usage/server"})
+    public void shouldDecodeOpenaiResponseStreamingUsage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.response.decode.streaming.error/client",
+        "${net}/openai.response.decode.streaming.error/server"})
+    public void shouldDecodeOpenaiResponseStreamingError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.response.decode.text.100k/client",
+        "${net}/openai.response.decode.text.100k/server"})
+    public void shouldDecodeOpenaiResponseText100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.response.decode.text.escaped/client",
+        "${net}/openai.response.decode.text.escaped/server"})
+    public void shouldDecodeOpenaiResponseTextEscaped() throws Exception
+    {
+        k3po.finish();
+    }
 }
