@@ -45,6 +45,9 @@ final class LlmAnthropicResponseExtractor implements JsonTransform
     private int documentCacheReadTokens = NONE;
     private String documentErrorType;
     private String documentErrorMessage;
+    private String documentId;
+    private String documentModel;
+    private String documentFinishReason;
 
     private int inputTokens = NONE;
     private int outputTokens = NONE;
@@ -52,6 +55,9 @@ final class LlmAnthropicResponseExtractor implements JsonTransform
     private int cacheReadTokens = NONE;
     private String errorType;
     private String errorMessage;
+    private String id;
+    private String model;
+    private String finishReason;
 
     LlmAnthropicResponseExtractor()
     {
@@ -73,6 +79,37 @@ final class LlmAnthropicResponseExtractor implements JsonTransform
     String errorMessage()
     {
         return errorMessage;
+    }
+
+    String id()
+    {
+        return documentId != null ? documentId : id;
+    }
+
+    String model()
+    {
+        return documentModel != null ? documentModel : model;
+    }
+
+    String finishReason()
+    {
+        final String reported = documentFinishReason != null ? documentFinishReason : finishReason;
+
+        String neutral = reported;
+
+        if (reported != null)
+        {
+            neutral = switch (reported)
+            {
+            case "end_turn", "stop_sequence", "pause_turn" -> "stop";
+            case "max_tokens" -> "length";
+            case "tool_use" -> "tool-call";
+            case "refusal" -> "content-filter";
+            default -> reported;
+            };
+        }
+
+        return neutral;
     }
 
     void populateUsage(
@@ -181,6 +218,12 @@ final class LlmAnthropicResponseExtractor implements JsonTransform
         return true;
     }
 
+    @Override
+    public boolean deterministic()
+    {
+        return true;
+    }
+
     private void onContainerStart()
     {
         pathLengthAt[depth++] = path.length();
@@ -279,6 +322,18 @@ final class LlmAnthropicResponseExtractor implements JsonTransform
         case "error.message":
             documentErrorMessage = source.getString();
             break;
+        case "id":
+        case "message.id":
+            documentId = source.getString();
+            break;
+        case "model":
+        case "message.model":
+            documentModel = source.getString();
+            break;
+        case "stop_reason":
+        case "delta.stop_reason":
+            documentFinishReason = source.getString();
+            break;
         default:
             break;
         }
@@ -318,6 +373,9 @@ final class LlmAnthropicResponseExtractor implements JsonTransform
         cacheReadTokens = documentCacheReadTokens != NONE ? documentCacheReadTokens : cacheReadTokens;
         errorType = documentErrorType != null ? documentErrorType : errorType;
         errorMessage = documentErrorMessage != null ? documentErrorMessage : errorMessage;
+        id = documentId != null ? documentId : id;
+        model = documentModel != null ? documentModel : model;
+        finishReason = documentFinishReason != null ? documentFinishReason : finishReason;
 
         clearDocument();
     }
@@ -330,6 +388,9 @@ final class LlmAnthropicResponseExtractor implements JsonTransform
         documentCacheReadTokens = NONE;
         documentErrorType = null;
         documentErrorMessage = null;
+        documentId = null;
+        documentModel = null;
+        documentFinishReason = null;
     }
 
     private static void addIfPresent(

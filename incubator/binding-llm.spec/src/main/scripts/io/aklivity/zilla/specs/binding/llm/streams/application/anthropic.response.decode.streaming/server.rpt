@@ -54,11 +54,6 @@ write "Hello"
 write flush
 
 write option zilla:flags "none"
-write zilla:data.ext ${llm:dataEx()
-                          .typeId(zilla:id("llm"))
-                          .type("assistant-text")
-                          .message(0)
-                          .build()}
 write " there"
 write flush
 

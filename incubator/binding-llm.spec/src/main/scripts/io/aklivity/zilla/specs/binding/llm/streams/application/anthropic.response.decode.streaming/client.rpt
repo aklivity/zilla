@@ -51,11 +51,6 @@ read zilla:data.ext ${llm:matchDataEx()
 read "Hello"
 
 read option zilla:flags "none"
-read zilla:data.ext ${llm:matchDataEx()
-                          .typeId(zilla:id("llm"))
-                          .type("assistant-text")
-                          .message(0)
-                          .build()}
 read " there"
 
 read option zilla:flags "fin"
