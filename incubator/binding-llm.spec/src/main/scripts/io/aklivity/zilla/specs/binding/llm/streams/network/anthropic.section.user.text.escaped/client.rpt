@@ -29,7 +29,7 @@ write zilla:begin.ext ${http:beginEx()
 
 connected
 
-write "{\"model\":\"claude-3-opus-20240229\",\"messages\":[{\"role\":\"user\",\"content\":\"line\\nbreak A \\\"quoted\\\" \\\\ \\/\"}],\"max_tokens\":1024}"
+write "{\"model\":\"claude-3-opus-20240229\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"line\\nbreak A \\\"quoted\\\" \\\\ /\"}]}]}"
 write close
 
 read zilla:begin.ext ${http:matchBeginEx()

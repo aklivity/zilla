@@ -1289,6 +1289,33 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/anthropic.section.user.text.shorthand/client",
+        "${app}/anthropic.section.user.text.shorthand/server"})
+    public void shouldAnthropicSectionUserTextShorthand() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.system.instruction.shorthand/client",
+        "${app}/anthropic.section.system.instruction.shorthand/server"})
+    public void shouldAnthropicSectionSystemInstructionShorthand() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.tool.result.shorthand/client",
+        "${app}/anthropic.section.tool.result.shorthand/server"})
+    public void shouldAnthropicSectionToolResultShorthand() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/anthropic.response.decode.reasoning/client",
         "${app}/anthropic.response.decode.reasoning/server"})
     public void shouldDecodeAnthropicResponseReasoning() throws Exception
