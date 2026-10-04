@@ -1999,10 +1999,8 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             int length,
             boolean last)
         {
-            final int flags = (blockFirst ? Flags.INIT : Flags.NONE) | (last ? Flags.FIN : Flags.NONE);
-
-            stream.doAppBlockData(traceId, authorization, flags, blockFirst ? blockType : null, blockMessage,
-                blockExtension, buffer, offset, length);
+            stream.doAppBlockData(traceId, authorization, sliceFlags(Flags.COMPLETE, blockFirst, last),
+                blockFirst ? blockType : null, blockMessage, blockExtension, buffer, offset, length);
 
             blockFirst = false;
         }
@@ -2313,14 +2311,11 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                         break;
                     }
 
-                    final boolean first = chunk.sent == 0;
-                    final boolean last = chunk.sent + sliceLength == chunk.length;
-                    final int outputFlags = sliceFlags(chunk.flags, first, last);
-
                     final int sliceOffset = chunk.sent;
                     chunk.sent += sliceLength;
-                    doNetData(chunk.traceId, chunk.authorization, outputFlags, chunk.budgetId,
-                        sliceLength + replyPad, buffer, sliceOffset, sliceLength);
+                    doNetData(chunk.traceId, chunk.authorization,
+                        sliceFlags(chunk.flags, sliceOffset == 0, chunk.sent == chunk.length),
+                        chunk.budgetId, sliceLength + replyPad, buffer, sliceOffset, sliceLength);
 
                     if (chunk.sent >= chunk.length)
                     {
@@ -2703,10 +2698,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             }
             else
             {
-                final boolean first = Flags.hasInit(flags);
-                final boolean last = Flags.hasFin(flags);
-
-                if (first)
+                if (Flags.hasInit(flags))
                 {
                     final OctetsFW extension = data.extension();
                     final LlmDataExFW llmDataEx = extension.get(llmDataExRO::tryWrap);
@@ -2716,27 +2708,27 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 }
 
                 int position = 0;
-                if (first)
+                if (Flags.hasInit(flags))
                 {
                     position += encoder.encodeEvent(pendingResponseEvent, copyBuffer, position, copyBuffer.capacity());
                 }
-                if (payload.sizeof() > 0 || first || last)
+                if (payload.sizeof() > 0 || Flags.hasInit(flags) || Flags.hasFin(flags))
                 {
-                    position += encoder.encodeData(payload.buffer(), payload.offset(), payload.sizeof(), first, last,
-                        copyBuffer, position, copyBuffer.capacity());
+                    position += encoder.encodeData(payload.buffer(), payload.offset(), payload.sizeof(),
+                        Flags.hasInit(flags), Flags.hasFin(flags), copyBuffer, position, copyBuffer.capacity());
                 }
-                if (last)
+                if (Flags.hasFin(flags))
                 {
                     position += encoder.encodeFlush(EMPTY_OCTETS.buffer(), 0, 0, copyBuffer, position, copyBuffer.capacity());
                 }
 
                 if (position > 0)
                 {
-                    server.doNetData(copyBuffer, 0, position, reserved, sliceFlags(Flags.COMPLETE, first, last),
+                    server.doNetData(copyBuffer, 0, position, reserved, flags & Flags.COMPLETE,
                         budgetId, traceId, authorization);
                 }
 
-                if (last)
+                if (Flags.hasFin(flags))
                 {
                     pendingResponseEvent = null;
                 }
@@ -3151,9 +3143,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
                 final int remaining = body.capacity() - bodySent;
                 final int length = (int) Math.min(remaining, available);
-                final boolean first = bodySent == 0;
-                final boolean last = bodySent + length == body.capacity();
-                final int flags = (first ? Flags.INIT : Flags.NONE) | (last ? Flags.FIN : Flags.NONE);
+                final int flags = sliceFlags(Flags.COMPLETE, bodySent == 0, bodySent + length == body.capacity());
 
                 final DataFW data = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                     .originId(originId)
