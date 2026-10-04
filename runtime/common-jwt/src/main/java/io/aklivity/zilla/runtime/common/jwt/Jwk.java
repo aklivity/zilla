@@ -19,6 +19,9 @@ import java.security.AlgorithmParameters;
 import java.security.GeneralSecurityException;
 import java.security.KeyFactory;
 import java.security.PublicKey;
+import java.security.interfaces.ECPublicKey;
+import java.security.interfaces.EdECPublicKey;
+import java.security.interfaces.RSAPublicKey;
 import java.security.spec.ECFieldFp;
 import java.security.spec.ECGenParameterSpec;
 import java.security.spec.ECParameterSpec;
@@ -80,6 +83,48 @@ public final class Jwk
         return new Jwk(keyType, member(json, "kid"), member(json, "alg"), member(json, "use"), publicKey);
     }
 
+    public static Jwk of(
+        PublicKey publicKey) throws JwtException
+    {
+        Jwk jwk;
+
+        if (publicKey instanceof RSAPublicKey rsa)
+        {
+            if (rsa.getModulus().bitLength() < JwsAlgorithm.MIN_RSA_MODULUS_BITS)
+            {
+                throw new JwtException("RSA key is too weak");
+            }
+
+            jwk = new Jwk("RSA", null, null, null, rsa(rsa.getModulus(), rsa.getPublicExponent()));
+        }
+        else if (publicKey instanceof ECPublicKey ec)
+        {
+            String name = curveName(ec.getParams());
+            if (name == null)
+            {
+                throw new JwtException("Unsupported curve");
+            }
+
+            jwk = new Jwk("EC", null, null, null, ec(name, ec.getW().getAffineX(), ec.getW().getAffineY()));
+        }
+        else if (publicKey instanceof EdECPublicKey ed)
+        {
+            String name = ed.getParams().getName();
+            if (!"Ed25519".equals(name) && !"Ed448".equals(name))
+            {
+                throw new JwtException("Unsupported curve: " + name);
+            }
+
+            jwk = new Jwk("OKP", null, null, null, okp(name, ed.getPoint()));
+        }
+        else
+        {
+            throw new JwtException("Unsupported key type: " + (publicKey != null ? publicKey.getAlgorithm() : null));
+        }
+
+        return jwk;
+    }
+
     public String keyType()
     {
         return keyType;
@@ -122,9 +167,13 @@ public final class Jwk
     private static PublicKey rsa(
         JsonObject json) throws JwtException
     {
-        BigInteger modulus = integer(json, "n");
-        BigInteger exponent = integer(json, "e");
+        return rsa(integer(json, "n"), integer(json, "e"));
+    }
 
+    private static PublicKey rsa(
+        BigInteger modulus,
+        BigInteger exponent) throws JwtException
+    {
         PublicKey key;
         try
         {
@@ -148,8 +197,15 @@ public final class Jwk
             throw new JwtException("Unsupported curve: " + name);
         }
 
-        BigInteger x = integer(json, "x");
-        BigInteger y = integer(json, "y");
+        return ec(name, integer(json, "x"), integer(json, "y"));
+    }
+
+    private static PublicKey ec(
+        String name,
+        BigInteger x,
+        BigInteger y) throws JwtException
+    {
+        ECParameterSpec curve = CURVES.get(name);
         if (!onCurve(curve.getCurve(), x, y))
         {
             throw new JwtException("Point is not on curve " + name);
@@ -194,7 +250,13 @@ public final class Jwk
             bigEndian[i] = encoded[length - 1 - i];
         }
 
-        EdECPoint point = new EdECPoint(xOdd, new BigInteger(1, bigEndian));
+        return okp(name, new EdECPoint(xOdd, new BigInteger(1, bigEndian)));
+    }
+
+    private static PublicKey okp(
+        String name,
+        EdECPoint point) throws JwtException
+    {
         EdECPublicKeySpec spec = new EdECPublicKeySpec(new NamedParameterSpec(name), point);
 
         PublicKey key;
@@ -208,6 +270,26 @@ public final class Jwk
         }
 
         return key;
+    }
+
+    private static String curveName(
+        ECParameterSpec params)
+    {
+        String name = null;
+
+        for (Map.Entry<String, ECParameterSpec> entry : CURVES.entrySet())
+        {
+            ECParameterSpec curve = entry.getValue();
+            if (curve.getCurve().equals(params.getCurve()) &&
+                curve.getGenerator().equals(params.getGenerator()) &&
+                curve.getOrder().equals(params.getOrder()) &&
+                curve.getCofactor() == params.getCofactor())
+            {
+                name = entry.getKey();
+            }
+        }
+
+        return name;
     }
 
     private static boolean onCurve(

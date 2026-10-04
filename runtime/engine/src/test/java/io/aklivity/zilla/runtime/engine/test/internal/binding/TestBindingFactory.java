@@ -56,6 +56,7 @@ import io.aklivity.zilla.config.engine.test.internal.binding.config.TestRouteCon
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.common.json.JsonStrings;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
@@ -904,7 +905,7 @@ final class TestBindingFactory implements BindingHandler
             {
                 for (Map.Entry<String, String> entry : attributes.entrySet())
                 {
-                    if (!entry.getValue().equals(guard.attribute(authorization, entry.getKey())))
+                    if (!entry.getValue().equals(JsonStrings.asString(guard.attribute(authorization, entry.getKey()))))
                     {
                         doInitialReset(traceId);
                     }

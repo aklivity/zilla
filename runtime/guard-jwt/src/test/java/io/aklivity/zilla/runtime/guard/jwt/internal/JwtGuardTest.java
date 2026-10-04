@@ -32,6 +32,9 @@ import java.util.Map;
 import java.util.function.LongFunction;
 import java.util.function.UnaryOperator;
 
+import jakarta.json.Json;
+import jakarta.json.JsonValue;
+
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -534,8 +537,8 @@ public class JwtGuardTest
 
         long sessionId = handler.reauthorize(0L, 0L, 101L, token);
 
-        LongObjectBiFunction<String, String> attributor = guard.attributor(s -> 0, guarded);
-        assertEquals(attributor.apply(sessionId, "mail_to"), "recipient@email.address");
+        LongObjectBiFunction<String, JsonValue> attributor = guard.attributor(s -> 0, guarded);
+        assertEquals(attributor.apply(sessionId, "mail_to"), Json.createValue("recipient@email.address"));
     }
 
     @Test

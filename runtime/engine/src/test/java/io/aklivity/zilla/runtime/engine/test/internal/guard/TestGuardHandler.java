@@ -19,6 +19,7 @@ import static io.aklivity.zilla.config.engine.test.internal.guard.config.TestGua
 import static io.aklivity.zilla.config.engine.test.internal.guard.config.TestGuardOptionsConfigBuilder.DEFAULT_IDENTITY;
 import static io.aklivity.zilla.config.engine.test.internal.guard.config.TestGuardOptionsConfigBuilder.DEFAULT_LIFETIME_FOREVER;
 import static io.aklivity.zilla.config.engine.test.internal.guard.config.TestGuardOptionsConfigBuilder.DEFAULT_MAX_SESSIONS_UNLIMITED;
+import static java.util.stream.Collectors.toMap;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -29,6 +30,9 @@ import java.util.Map;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import jakarta.json.Json;
+import jakarta.json.JsonValue;
 
 import org.agrona.collections.Long2LongHashMap;
 import org.agrona.collections.MutableLong;
@@ -50,7 +54,7 @@ public final class TestGuardHandler implements GuardHandler
     private final Duration lifetime;
     private final String identity;
     private final List<String> roles;
-    private final Map<String, String> attributes;
+    private final Map<String, JsonValue> attributes;
     private final String preauthorize;
     private final boolean deferAcquire;
     private final int maxSessions;
@@ -76,7 +80,10 @@ public final class TestGuardHandler implements GuardHandler
         this.maxSessions = config.options != null ? config.options.maxSessions : DEFAULT_MAX_SESSIONS_UNLIMITED;
         this.sessions = new Long2LongHashMap(-1L);
         this.nextSessionId = new MutableLong(1L);
-        this.attributes = config.options != null ? config.options.attributes : null;
+        this.attributes = config.options != null && config.options.attributes != null
+            ? config.options.attributes.entrySet().stream()
+                .collect(toMap(Map.Entry::getKey, e -> Json.createValue(e.getValue())))
+            : null;
         this.injectIdentity = config.options != null && config.options.inject != null
             ? config.options.inject.identity
             : null;
@@ -217,7 +224,7 @@ public final class TestGuardHandler implements GuardHandler
     }
 
     @Override
-    public String attribute(
+    public JsonValue attribute(
         long sessionId,
         String name)
     {

@@ -29,9 +29,12 @@ import java.util.regex.MatchResult;
 
 import javax.net.ssl.TrustManagerFactory;
 
+import jakarta.json.JsonValue;
+
 import io.aklivity.zilla.config.binding.tls.TlsConditionConfig;
 import io.aklivity.zilla.config.binding.tls.TlsWithConfig;
 import io.aklivity.zilla.config.engine.RouteConfig;
+import io.aklivity.zilla.runtime.common.json.JsonStrings;
 import io.aklivity.zilla.runtime.common.lang.util.function.LongObjectBiFunction;
 import io.aklivity.zilla.runtime.common.lang.util.function.LongObjectPredicate;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -112,7 +115,7 @@ public final class TlsRouteConfig
         {
             final TlsWithConfig with = (TlsWithConfig) route.with;
             final Map<String, LongFunction<String>> identifiers = new HashMap<>();
-            final Map<String, LongObjectBiFunction<String, String>> attributors = new HashMap<>();
+            final Map<String, LongObjectBiFunction<String, JsonValue>> attributors = new HashMap<>();
 
             final Set<String> guardNames = TlsWithResolver.extractGuardNames(with);
 
@@ -141,14 +144,14 @@ public final class TlsRouteConfig
                 return identity != null ? identity : "";
             };
 
-            final LongObjectBiFunction<String, String> defaultAttributor = (sessionId, name) -> null;
+            final LongObjectBiFunction<String, JsonValue> defaultAttributor = (sessionId, name) -> null;
             final LongObjectBiFunction<MatchResult, String> attributeReplacer = (sessionId, match) ->
             {
-                final LongObjectBiFunction<String, String> attributor =
+                final LongObjectBiFunction<String, JsonValue> attributor =
                     attributors.getOrDefault(match.group(1), defaultAttributor);
 
-                final String value = attributor.apply(sessionId, match.group(2));
-                return value != null ? value : "";
+                final JsonValue value = attributor.apply(sessionId, match.group(2));
+                return value != null ? JsonStrings.asString(value) : "";
             };
 
             resolver = new TlsWithResolver(qname, identityReplacer, attributeReplacer, with);

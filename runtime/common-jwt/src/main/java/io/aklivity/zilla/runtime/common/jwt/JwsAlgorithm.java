@@ -45,7 +45,7 @@ public enum JwsAlgorithm
     ES512("ES512", Family.ECDSA, "SHA512withECDSAinP1363Format", null, 521),
     EDDSA("EdDSA", Family.EDDSA, "EdDSA", null, 0);
 
-    private static final int MIN_RSA_MODULUS_BITS = 2048;
+    static final int MIN_RSA_MODULUS_BITS = 2048;
     private static final Map<String, JwsAlgorithm> BY_JOSE_NAME =
         Stream.of(values()).collect(toMap(JwsAlgorithm::joseName, identity()));
 

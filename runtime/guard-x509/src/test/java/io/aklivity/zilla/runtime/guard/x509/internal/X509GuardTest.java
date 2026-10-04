@@ -27,6 +27,9 @@ import java.time.Clock;
 import java.util.function.LongFunction;
 import java.util.function.UnaryOperator;
 
+import jakarta.json.Json;
+import jakarta.json.JsonValue;
+
 import org.junit.Before;
 import org.junit.Test;
 
@@ -163,12 +166,12 @@ public class X509GuardTest
         GuardedConfig guarded = guarded();
 
         LongFunction<String> identifier = guard.identifier(s -> 0, guarded);
-        LongObjectBiFunction<String, String> attributor = guard.attributor(s -> 0, guarded);
+        LongObjectBiFunction<String, JsonValue> attributor = guard.attributor(s -> 0, guarded);
 
         long sessionId = handler.reauthorize(0L, 0L, 101L, PLATFORM_CHAIN);
 
         assertEquals("platform.example.com", identifier.apply(sessionId));
-        assertEquals("Example Inc", attributor.apply(sessionId, "organization"));
+        assertEquals(Json.createValue("Example Inc"), attributor.apply(sessionId, "organization"));
     }
 
     private static GuardedConfig guarded()

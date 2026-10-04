@@ -23,6 +23,9 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
+import jakarta.json.Json;
+import jakarta.json.JsonValue;
+
 import org.junit.jupiter.api.Test;
 
 class JwtClaimsTest
@@ -35,6 +38,26 @@ class JwtClaimsTest
         assertEquals("issuer", claims.getIssuer());
         assertEquals("subject", claims.getSubject());
         assertEquals("tenant", claims.getStringClaim("tid"));
+    }
+
+    @Test
+    void shouldReadTypedClaims() throws Exception
+    {
+        JwtClaims claims = JwtClaims.parse(
+            "{\"s\":\"x\",\"i\":7,\"b\":true,\"n\":null,\"a\":[\"p\",\"q\"],\"o\":{\"id\":\"12345\"}}");
+
+        assertEquals(Json.createValue("x"), claims.getJsonClaim("s"));
+        assertEquals(Json.createValue(7), claims.getJsonClaim("i"));
+        assertEquals(JsonValue.TRUE, claims.getJsonClaim("b"));
+        assertEquals(JsonValue.NULL, claims.getJsonClaim("n"));
+        assertEquals(Json.createArrayBuilder().add("p").add("q").build(), claims.getJsonClaim("a"));
+        assertEquals(Json.createObjectBuilder().add("id", "12345").build(), claims.getJsonClaim("o"));
+    }
+
+    @Test
+    void shouldReturnNullTypedClaimWhenAbsent() throws Exception
+    {
+        assertNull(JwtClaims.parse("{}").getJsonClaim("missing"));
     }
 
     @Test
