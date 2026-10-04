@@ -24,9 +24,13 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.math.BigInteger;
 import java.security.KeyPair;
+import java.security.KeyPairGenerator;
 import java.security.interfaces.ECPublicKey;
 import java.security.interfaces.EdECPublicKey;
 import java.security.interfaces.RSAPublicKey;
+import java.security.spec.ECParameterSpec;
+import java.security.spec.ECPoint;
+import java.security.spec.EllipticCurve;
 
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
@@ -267,5 +271,178 @@ class JwkTest
             .add("n", "!!!")
             .add("e", RFC7515_RS256_E)
             .build()));
+    }
+
+    @Test
+    void shouldCreateFromRsaPublicKey() throws Exception
+    {
+        RSAPublicKey expected = (RSAPublicKey) JwtTestKeys.RSA_2048.getPublic();
+
+        Jwk jwk = Jwk.of(expected);
+
+        assertEquals("RSA", jwk.keyType());
+        assertEquals(expected, jwk.publicKey());
+        assertNull(jwk.keyId());
+        assertNull(jwk.algorithm());
+        assertNull(jwk.use());
+    }
+
+    @Test
+    void shouldCreateFromGeneratedEcPublicKeys() throws Exception
+    {
+        for (var pair : new KeyPair[] {JwtTestKeys.EC_P256, JwtTestKeys.EC_P384, JwtTestKeys.EC_P521})
+        {
+            Jwk jwk = Jwk.of(pair.getPublic());
+
+            assertEquals("EC", jwk.keyType());
+            assertEquals(pair.getPublic(), jwk.publicKey());
+            assertNull(jwk.keyId());
+            assertNull(jwk.algorithm());
+            assertNull(jwk.use());
+        }
+    }
+
+    @Test
+    void shouldCreateFromGeneratedOkpPublicKeys() throws Exception
+    {
+        for (var pair : new KeyPair[] {JwtTestKeys.ED25519, JwtTestKeys.ED448})
+        {
+            Jwk jwk = Jwk.of(pair.getPublic());
+
+            assertEquals("OKP", jwk.keyType());
+            assertEquals(pair.getPublic(), jwk.publicKey());
+            assertNull(jwk.keyId());
+            assertNull(jwk.algorithm());
+            assertNull(jwk.use());
+        }
+    }
+
+    @Test
+    void shouldCreateEqualToParsedRfc7515RsaKey() throws Exception
+    {
+        Jwk parsed = Jwk.parse(Json.createObjectBuilder()
+            .add("kty", "RSA")
+            .add("n", RFC7515_RS256_N)
+            .add("e", RFC7515_RS256_E)
+            .build());
+
+        Jwk created = Jwk.of(JwtTestKeys.RFC7515_RS256.getPublic());
+
+        assertEquals(parsed.keyType(), created.keyType());
+        assertEquals(parsed.publicKey(), created.publicKey());
+    }
+
+    @Test
+    void shouldCreateEqualToParsedRfc7515EcKey() throws Exception
+    {
+        Jwk parsed = Jwk.parse(Json.createObjectBuilder()
+            .add("kty", "EC")
+            .add("crv", "P-256")
+            .add("x", RFC7515_ES256_X)
+            .add("y", RFC7515_ES256_Y)
+            .build());
+
+        Jwk created = Jwk.of(JwtTestKeys.RFC7515_ES256.getPublic());
+
+        assertEquals(parsed.keyType(), created.keyType());
+        assertEquals(parsed.publicKey(), created.publicKey());
+    }
+
+    @Test
+    void shouldCreateEqualToParsedRfc8037OkpKey() throws Exception
+    {
+        Jwk parsed = Jwk.parse(Json.createObjectBuilder()
+            .add("kty", "OKP")
+            .add("crv", "Ed25519")
+            .add("x", JwtTestKeys.RFC8037_ED25519_X)
+            .build());
+
+        Jwk created = Jwk.of(parsed.publicKey());
+
+        assertEquals(parsed.keyType(), created.keyType());
+        assertEquals(parsed.publicKey(), created.publicKey());
+    }
+
+    @Test
+    void shouldVerifyUsingCreatedKey() throws Exception
+    {
+        String token = Jws.sign(JwsAlgorithm.RS256, JwtTestKeys.RSA_2048.getPrivate(), null, "{}");
+
+        assertEquals("{}", Jws.parse(token).verifiedPayload(Jwk.of(JwtTestKeys.RSA_2048.getPublic())));
+    }
+
+    @Test
+    void shouldRejectCreateFromWeakRsaPublicKey()
+    {
+        assertThrows(JwtException.class, () -> Jwk.of(JwtTestKeys.RSA_1024.getPublic()));
+    }
+
+    @Test
+    void shouldRejectCreateFromUnsupportedEcCurve()
+    {
+        ECPublicKey p256 = (ECPublicKey) JwtTestKeys.EC_P256.getPublic();
+        ECParameterSpec params = p256.getParams();
+        EllipticCurve curve = params.getCurve();
+        ECParameterSpec other = new ECParameterSpec(
+            new EllipticCurve(curve.getField(), curve.getA(), curve.getB().add(BigInteger.ONE)),
+            params.getGenerator(), params.getOrder(), params.getCofactor());
+
+        ECPublicKey unsupported = new ECPublicKey()
+        {
+            private static final long serialVersionUID = 1L;
+
+            @Override
+            public ECPoint getW()
+            {
+                return p256.getW();
+            }
+
+            @Override
+            public ECParameterSpec getParams()
+            {
+                return other;
+            }
+
+            @Override
+            public String getAlgorithm()
+            {
+                return "EC";
+            }
+
+            @Override
+            public String getFormat()
+            {
+                return p256.getFormat();
+            }
+
+            @Override
+            public byte[] getEncoded()
+            {
+                return p256.getEncoded();
+            }
+        };
+
+        assertThrows(JwtException.class, () -> Jwk.of(unsupported));
+    }
+
+    @Test
+    void shouldRejectCreateFromUnsupportedOkpCurve() throws Exception
+    {
+        assertThrows(JwtException.class, () -> Jwk.of(KeyPairGenerator.getInstance("X25519").generateKeyPair().getPublic()));
+    }
+
+    @Test
+    void shouldRejectCreateFromUnsupportedKeyType() throws Exception
+    {
+        KeyPairGenerator generator = KeyPairGenerator.getInstance("DSA");
+        generator.initialize(2048);
+
+        assertThrows(JwtException.class, () -> Jwk.of(generator.generateKeyPair().getPublic()));
+    }
+
+    @Test
+    void shouldRejectCreateFromNullKey()
+    {
+        assertThrows(JwtException.class, () -> Jwk.of(null));
     }
 }
