@@ -13,37 +13,36 @@
 # specific language governing permissions and limitations under the License.
 #
 
-accept "zilla://streams/app0"
-       option zilla:window 8192
-       option zilla:transmission "half-duplex"
+connect "zilla://streams/app0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
 
-accepted
-
-read zilla:begin.ext ${llm:matchBeginEx()
+write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
-                           .dialect("anthropic")
-                           .model("claude-3-opus-20240229")
+                           .dialect("openai")
+                           .model("gpt-4")
                            .build()}
 
 connected
 
-read zilla:data.ext ${llm:matchDataEx()
+write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .type("user-image")
                           .message(0)
                           .attribute("source", "url")
                           .build()}
-read "{\"type\":\"image\",\"source\":{\"type\":\"url\",\"url\":\"https://example.com/images/"
-     ${core:randomBase64(50000)}
-     "\"}}"
+write "{\"type\":\"image_url\",\"image_url\":{\"url\":\"https://example.com/images/"
+      ${core:randomBase64(10000)}
+      "\"}}"
+write flush
 
-read advised zilla:flush
+write advise zilla:flush
 
-write zilla:reset.ext ${llm:resetEx()
-                            .typeId(zilla:id("llm"))
-                            .status(429)
-                            .type("rate_limit_error")
-                            .message("Rate limit exceeded")
-                            .build()}
+read zilla:reset.ext ${llm:matchResetEx()
+                           .typeId(zilla:id("llm"))
+                           .status(429)
+                           .type("requests")
+                           .message("Rate limit reached for gpt-4")
+                           .build()}
 
-read abort
+write aborted

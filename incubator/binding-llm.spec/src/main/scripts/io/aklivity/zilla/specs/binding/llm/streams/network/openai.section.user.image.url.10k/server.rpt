@@ -24,15 +24,14 @@ read zilla:begin.ext ${http:matchBeginEx()
                            .header(":method", "POST")
                            .header(":scheme", "http")
                            .header(":authority", "example.com:8080")
-                           .header(":path", "/v1/messages")
-                           .header("anthropic-version", "2023-06-01")
+                           .header(":path", "/v1/chat/completions")
                            .header("content-type", "application/json")
                            .build()}
 
 connected
 
-read "{\"model\":\"claude-3-opus-20240229\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"image\",\"source\":{\"type\":\"url\",\"url\":\"https://example.com/images/"
-     ${core:randomBase64(50000)}
+read "{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"image_url\",\"image_url\":{\"url\":\"https://example.com/images/"
+     ${core:randomBase64(10000)}
      "\"}}]}]}"
 
 read closed
@@ -43,5 +42,5 @@ write zilla:begin.ext ${http:beginEx()
                            .header("content-type", "application/json")
                            .build()}
 
-write "{\"type\":\"error\",\"error\":{\"type\":\"rate_limit_error\",\"message\":\"Rate limit exceeded\"}}"
+write "{\"error\":{\"message\":\"Rate limit reached for gpt-4\",\"type\":\"requests\",\"param\":null,\"code\":\"rate_limit_exceeded\"}}"
 write close

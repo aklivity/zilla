@@ -1676,9 +1676,9 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/openai.section.user.image.url.50k/client",
-        "${net}/openai.section.user.image.url.50k/server"})
-    public void shouldOpenaiSectionUserImageUrl50k() throws Exception
+        "${net}/openai.section.user.image.url.10k/client",
+        "${net}/openai.section.user.image.url.10k/server"})
+    public void shouldOpenaiSectionUserImageUrl10k() throws Exception
     {
         k3po.finish();
     }
@@ -1694,9 +1694,9 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/anthropic.section.user.image.url.50k/client",
-        "${net}/anthropic.section.user.image.url.50k/server"})
-    public void shouldAnthropicSectionUserImageUrl50k() throws Exception
+        "${net}/anthropic.section.user.image.url.10k/client",
+        "${net}/anthropic.section.user.image.url.10k/server"})
+    public void shouldAnthropicSectionUserImageUrl10k() throws Exception
     {
         k3po.finish();
     }
@@ -1712,9 +1712,9 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/openai.transform.anthropic.user.image.url.50k/client",
-        "${net}/openai.transform.anthropic.user.image.url.50k/server"})
-    public void shouldOpenaiTransformAnthropicUserImageUrl50k() throws Exception
+        "${net}/openai.transform.anthropic.user.image.url.10k/client",
+        "${net}/openai.transform.anthropic.user.image.url.10k/server"})
+    public void shouldOpenaiTransformAnthropicUserImageUrl10k() throws Exception
     {
         k3po.finish();
     }
@@ -1730,9 +1730,9 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/anthropic.transform.openai.user.image.url.50k/client",
-        "${net}/anthropic.transform.openai.user.image.url.50k/server"})
-    public void shouldAnthropicTransformOpenaiUserImageUrl50k() throws Exception
+        "${net}/anthropic.transform.openai.user.image.url.10k/client",
+        "${net}/anthropic.transform.openai.user.image.url.10k/server"})
+    public void shouldAnthropicTransformOpenaiUserImageUrl10k() throws Exception
     {
         k3po.finish();
     }

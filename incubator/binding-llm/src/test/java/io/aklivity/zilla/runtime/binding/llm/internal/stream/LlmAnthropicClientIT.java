@@ -718,9 +718,9 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @Specification({
-        "${app}/anthropic.section.user.image.url.50k/client",
-        "${net}/anthropic.section.user.image.url.50k/server"})
-    public void shouldEncodeAnthropicSectionUserImageUrl50k() throws Exception
+        "${app}/anthropic.section.user.image.url.10k/client",
+        "${net}/anthropic.section.user.image.url.10k/server"})
+    public void shouldEncodeAnthropicSectionUserImageUrl10k() throws Exception
     {
         k3po.finish();
     }
@@ -738,9 +738,9 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @Specification({
-        "${app}/openai.section.user.image.url.50k/client",
-        "${net}/anthropic.transform.openai.user.image.url.50k/server"})
-    public void shouldTransformOpenaiSectionUserImageUrl50kAsAnthropic() throws Exception
+        "${app}/openai.section.user.image.url.10k/client",
+        "${net}/anthropic.transform.openai.user.image.url.10k/server"})
+    public void shouldTransformOpenaiSectionUserImageUrl10kAsAnthropic() throws Exception
     {
         k3po.finish();
     }

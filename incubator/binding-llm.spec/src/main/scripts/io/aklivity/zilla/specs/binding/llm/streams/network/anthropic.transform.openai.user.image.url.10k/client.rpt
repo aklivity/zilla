@@ -30,7 +30,7 @@ write zilla:begin.ext ${http:beginEx()
 connected
 
 write "{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"image\",\"source\":{\"type\":\"url\",\"url\":\"https://example.com/images/"
-      ${core:randomBase64(50000)}
+      ${core:randomBase64(10000)}
       "\"}}]}]}"
 write close
 

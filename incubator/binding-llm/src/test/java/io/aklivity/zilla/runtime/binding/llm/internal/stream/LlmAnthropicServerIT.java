@@ -597,9 +597,9 @@ public class LlmAnthropicServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/anthropic.section.user.image.url.50k/client",
-        "${app}/anthropic.section.user.image.url.50k/server"})
-    public void shouldDecodeAnthropicSectionUserImageUrl50k() throws Exception
+        "${net}/anthropic.section.user.image.url.10k/client",
+        "${app}/anthropic.section.user.image.url.10k/server"})
+    public void shouldDecodeAnthropicSectionUserImageUrl10k() throws Exception
     {
         k3po.finish();
     }

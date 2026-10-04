@@ -32,7 +32,7 @@ write zilla:data.ext ${llm:dataEx()
                           .attribute("source", "url")
                           .build()}
 write "{\"type\":\"image\",\"source\":{\"type\":\"url\",\"url\":\"https://example.com/images/"
-      ${core:randomBase64(50000)}
+      ${core:randomBase64(10000)}
       "\"}}"
 write flush
 

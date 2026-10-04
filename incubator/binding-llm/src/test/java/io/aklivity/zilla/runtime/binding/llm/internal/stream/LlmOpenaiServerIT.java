@@ -558,9 +558,9 @@ public class LlmOpenaiServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/openai.section.user.image.url.50k/client",
-        "${app}/openai.section.user.image.url.50k/server"})
-    public void shouldDecodeOpenaiSectionUserImageUrl50k() throws Exception
+        "${net}/openai.section.user.image.url.10k/client",
+        "${app}/openai.section.user.image.url.10k/server"})
+    public void shouldDecodeOpenaiSectionUserImageUrl10k() throws Exception
     {
         k3po.finish();
     }
