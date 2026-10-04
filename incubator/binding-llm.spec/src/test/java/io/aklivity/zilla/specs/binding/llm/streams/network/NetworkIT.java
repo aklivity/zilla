@@ -655,6 +655,24 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/openai.section.user.text.100k.parts/client",
+        "${net}/openai.section.user.text.100k.parts/server"})
+    public void shouldOpenaiSectionUserText100kParts() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.section.tool.result.100k.parts/client",
+        "${net}/openai.section.tool.result.100k.parts/server"})
+    public void shouldOpenaiSectionToolResult100kParts() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/openai.section.tool.result.100k/client",
         "${net}/openai.section.tool.result.100k/server"})
     public void shouldOpenaiSectionToolResult100k() throws Exception
