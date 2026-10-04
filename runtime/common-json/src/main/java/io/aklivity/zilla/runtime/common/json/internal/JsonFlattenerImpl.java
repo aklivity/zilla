@@ -154,9 +154,34 @@ public final class JsonFlattenerImpl implements JsonTransform
         case END_ARRAY:
             status = onValueEnd(source, event, sink);
             break;
+        case START_ESCAPED:
+            status = onScopeStart(source, event, sink);
+            break;
+        case END_ESCAPED:
+            status = Status.ADVANCED;
+            break;
         default:
             status = onValueScalar(source, event, sink);
             break;
+        }
+        return status;
+    }
+
+    // The markers do not nest the path, so a scope around an ancestor is dropped with the wrapper it belongs to,
+    // while a scope around a hoisted value is forwarded with it, the hoisted value being everything up to the
+    // matching close.
+    private Status onScopeStart(
+        JsonSource source,
+        JsonEvent event,
+        JsonSink sink)
+    {
+        Status status = Status.ADVANCED;
+        if (pendingIsTerminal)
+        {
+            status = sink.transform(upstreamControl, source, event);
+            pendingIsTerminal = false;
+            mode = Mode.VERBATIM_CONTAINER;
+            verbatimContainerDepth = 1;
         }
         return status;
     }
@@ -327,10 +352,12 @@ public final class JsonFlattenerImpl implements JsonTransform
         {
         case START_OBJECT:
         case START_ARRAY:
+        case START_ESCAPED:
             verbatimContainerDepth++;
             break;
         case END_OBJECT:
         case END_ARRAY:
+        case END_ESCAPED:
             verbatimContainerDepth--;
             break;
         default:
@@ -374,6 +401,12 @@ public final class JsonFlattenerImpl implements JsonTransform
             {
                 control.consumed(sourceBytes);
             }
+        }
+
+        @Override
+        public void escaped()
+        {
+            control.escaped();
         }
     }
 

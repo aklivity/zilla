@@ -47,6 +47,9 @@ import io.aklivity.zilla.runtime.common.json.JsonVerbatim;
 public final class JsonGeneratorImpl implements JsonGeneratorEx
 {
     private static final int MAX_DEPTH = 64;
+    // each escape level doubles the width of a quote, so the depth that stays within an int is far deeper than
+    // any document is stringified
+    private static final int MAX_ESCAPE_DEPTH = 16;
     // worst-case ASCII lexeme width for write(int)/write(long): Integer.MIN_VALUE and Long.MIN_VALUE
     private static final int MAX_INT_DIGITS = 11;
     private static final int MAX_LONG_DIGITS = 20;
@@ -56,16 +59,28 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
 
     private final boolean[] inArray = new boolean[MAX_DEPTH];
     private final boolean[] hasMembers = new boolean[MAX_DEPTH];
-    private final IntConsumer putByte;
-    private final SegmentWriter writeSegment;
     private final boolean escaped;
+    private final int baseDepth;
 
+    private IntConsumer putByte;
+    private SegmentWriter writeSegment;
     private MutableDirectBufferEx buffer = EMPTY;
     private int offset;
     private int progress;
     private int limit;
     private int depth;
     private int consumed;
+    // number of escape levels in force: the configured GENERATE_ESCAPED level plus one per open scope; the
+    // output path is bound once for the level and rebound only when a scope opens or closes. The state below
+    // is created on the first scope and never otherwise.
+    private int escapeDepth;
+    private IntConsumer[] escapePuts;
+    private SegmentWriter[] escapeSegments;
+    private int[] scopeFrames;
+    private int scopeCount;
+    // set when a verbatim key step leaves its colon in the bytes of the value that follows and no run of bytes
+    // has carried it yet, so a scope opened in that value position writes the colon itself
+    private boolean colonPending;
     // at most one of these positions holds at a time: a value is expected after a key, or an
     // incomplete string/number fragment is open awaiting its remaining fragments
     private Pending pending = Pending.NONE;
@@ -79,6 +94,8 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         Map<String, ?> config)
     {
         this.escaped = Boolean.TRUE.equals(config.get(JsonGeneratorEx.GENERATE_ESCAPED));
+        this.baseDepth = escaped ? 1 : 0;
+        this.escapeDepth = baseDepth;
         this.putByte = escaped ? this::putEscaped : this::putRaw;
         this.writeSegment = escaped ? this::writeEscapedSegment : this::writeRawSegment;
     }
@@ -121,6 +138,12 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     {
         this.depth = 0;
         this.pending = Pending.NONE;
+        this.scopeCount = 0;
+        this.colonPending = false;
+        if (escapeDepth != baseDepth)
+        {
+            bind(baseDepth);
+        }
     }
 
     @Override
@@ -210,7 +233,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         CharSequence name,
         Completion completion)
     {
-        final int quoteWidth = escaped ? 2 : 1;
+        final int quoteWidth = 1 << escapeDepth;
         if (pending != Pending.KEY)
         {
             final boolean closesEmpty = completion == Completion.COMPLETE && name.length() == 0;
@@ -266,6 +289,77 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     }
 
     @Override
+    public boolean writeStartEscapedEx()
+    {
+        if (!valuePosition())
+        {
+            throw new JsonException("escaped scope must start in a value position");
+        }
+        if (escapeDepth == MAX_ESCAPE_DEPTH)
+        {
+            throw new JsonException("escaped scopes nest more than " + MAX_ESCAPE_DEPTH + " levels deep");
+        }
+        final boolean written = remaining() >= (needsComma() ? 1 : 0) + (colonPending ? 1 : 0) + (1 << escapeDepth);
+        if (written)
+        {
+            if (colonPending)
+            {
+                putByte.accept(':');
+                colonPending = false;
+            }
+            preValue();
+            putByte.accept('"');
+            push(false);
+            if (scopeFrames == null)
+            {
+                scopeFrames = new int[MAX_DEPTH];
+            }
+            scopeFrames[scopeCount++] = depth - 1;
+            bind(escapeDepth + 1);
+        }
+        return written;
+    }
+
+    @Override
+    public boolean writeEndEscapedEx()
+    {
+        if (!inScope() || pending != Pending.NONE)
+        {
+            throw new JsonException("escaped scope is not balanced");
+        }
+        final int quoteWidth = 1 << escapeDepth - 1;
+        final boolean written = remaining() >= quoteWidth;
+        if (written)
+        {
+            depth--;
+            scopeCount--;
+            bind(escapeDepth - 1);
+            putByte.accept('"');
+        }
+        return written;
+    }
+
+    @Override
+    public JsonGeneratorImpl writeStartEscaped()
+    {
+        if (!writeStartEscapedEx())
+        {
+            throw new JsonException("insufficient room to write start escaped");
+        }
+        return this;
+    }
+
+    @Override
+    public JsonGeneratorImpl writeEndEscaped()
+    {
+        if (!writeEndEscapedEx())
+        {
+            throw new JsonException("insufficient room to write end escaped");
+        }
+        return this;
+    }
+
+    @Override
     public JsonGeneratorImpl write(
         String value)
     {
@@ -284,7 +378,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         CharSequence value,
         Completion completion)
     {
-        final int quoteWidth = escaped ? 2 : 1;
+        final int quoteWidth = 1 << escapeDepth;
         if (pending != Pending.STRING)
         {
             final boolean closesEmpty = completion == Completion.COMPLETE && value.length() == 0;
@@ -643,6 +737,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     public JsonGeneratorImpl writeVerbatim(
         JsonVerbatim verbatim)
     {
+        assert scopeCount == 0 : "verbatim bytes cannot be spliced into an escaped scope";
         final Iterator<JsonStep> steps = verbatim.getSteps();
         final DirectBufferEx segment = verbatim.getSegment();
         // synthesize the leading separator only when the block begins a member/element that was first in the
@@ -666,7 +761,23 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
                 advance(steps.next());
             }
         }
+        else if (colonPending)
+        {
+            // a run of bytes between tokens (drained at the end of a window) may carry the colon of a verbatim key
+            colonPending = !colon(segment);
+        }
         return this;
+    }
+
+    private static boolean colon(
+        DirectBufferEx segment)
+    {
+        boolean found = false;
+        for (int index = 0; index < segment.capacity() && !found; index++)
+        {
+            found = segment.getByte(index) == ':';
+        }
+        return found;
     }
 
     // Copies the verbatim block 1:1; the caller pre-bounds the pull to remaining(), so the bytes always fit.
@@ -716,6 +827,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         case KEY_NAME:
             hasMembers[depth - 1] = true;
             pending = Pending.AFTER_KEY;
+            colonPending = true;
             break;
         case VALUE:
             markValueStart();
@@ -732,6 +844,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     // current array occupied; no separator is emitted (the bytes carry it, or needsSeparator synthesized it).
     private void markValueStart()
     {
+        colonPending = false;
         if (pending == Pending.AFTER_KEY)
         {
             pending = Pending.NONE;
@@ -863,7 +976,7 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     private int codePointWidth(
         int codePoint)
     {
-        return escaped ? escapedCodePointWidth(codePoint) : verbatimCodePointWidth(codePoint);
+        return escapeDepth != 0 ? escapedCodePointWidth(codePoint, 1 << escapeDepth) : verbatimCodePointWidth(codePoint);
     }
 
     // Verbatim-mode width: a short escape (2 bytes), a control-char \\uXXXX escape (6), or the UTF-8
@@ -911,28 +1024,29 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     }
 
     // Escaped-mode width: emitStringCodePoint's own escape bytes (e.g. '\\' then '"' for a quote) are
-    // themselves routed through the escaping putByte, so each doubles up per escapedWidth; a code point
-    // with no special handling falls through to writeUtf8, whose raw bytes are never special escape
-    // values and so cost the same as verbatim.
+    // themselves routed through the escaping putByte, so each is escaped once per level — escapedBackslash is
+    // the width of an escaped backslash (2 per level, doubling); a code point with no special handling falls
+    // through to writeUtf8, whose raw bytes are never special escape values and so cost the same as verbatim.
     private static int escapedCodePointWidth(
-        int codePoint)
+        int codePoint,
+        int escapedBackslash)
     {
         int width;
         switch (codePoint)
         {
         case '"':
         case '\\':
-            width = 4;
+            width = 2 * escapedBackslash;
             break;
         case '\n':
         case '\r':
         case '\t':
         case '\b':
         case '\f':
-            width = 3;
+            width = escapedBackslash + 1;
             break;
         default:
-            width = codePoint < 0x20 ? 7 : verbatimCodePointWidth(codePoint);
+            width = codePoint < 0x20 ? escapedBackslash + 5 : verbatimCodePointWidth(codePoint);
             break;
         }
         return width;
@@ -1035,13 +1149,39 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
         while (written < length)
         {
             int unit = unitLength(source, index + written, length - written);
-            if (limit - progress < escapedUnitWidth(source, index + written, unit))
+            if (limit - progress < escapedUnitWidth(source, index + written, unit, 2))
             {
                 break;
             }
             for (int i = 0; i < unit; i++)
             {
                 putEscaped(source.getByte(index + written + i) & 0xff);
+            }
+            written += unit;
+        }
+        consumed += written;
+        return written;
+    }
+
+    // Escapes whole source units for a scope nested inside another escape level, through the bound output
+    // path of the level in force; the per-unit width grows with the level.
+    private int writeNestedEscapedSegment(
+        DirectBufferEx source,
+        int index,
+        int length)
+    {
+        final int escapedBackslash = 1 << escapeDepth;
+        int written = 0;
+        while (written < length)
+        {
+            int unit = unitLength(source, index + written, length - written);
+            if (limit - progress < escapedUnitWidth(source, index + written, unit, escapedBackslash))
+            {
+                break;
+            }
+            for (int i = 0; i < unit; i++)
+            {
+                putByte.accept(source.getByte(index + written + i) & 0xff);
             }
             written += unit;
         }
@@ -1090,14 +1230,127 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     private static int escapedUnitWidth(
         DirectBufferEx source,
         int index,
-        int unit)
+        int unit,
+        int escapedBackslash)
     {
         int width = 0;
         for (int i = 0; i < unit; i++)
         {
-            width += escapedWidth(source.getByte(index + i) & 0xff);
+            width += escapedWidth(source.getByte(index + i) & 0xff, escapedBackslash);
         }
         return width;
+    }
+
+    private boolean valuePosition()
+    {
+        return pending == Pending.AFTER_KEY ||
+            pending == Pending.NONE && (depth == 0 || inArray[depth - 1] || inScope());
+    }
+
+    private boolean inScope()
+    {
+        return scopeCount > 0 && scopeFrames[scopeCount - 1] == depth - 1;
+    }
+
+    // Binds the output path for an escape level: the byte writer that escapes into the level below, and the
+    // segment writer matching it. Levels are created the first time they are needed and kept.
+    private void bind(
+        int level)
+    {
+        if (escapePuts == null)
+        {
+            escapePuts = new IntConsumer[MAX_DEPTH];
+            escapeSegments = new SegmentWriter[MAX_DEPTH];
+        }
+        for (int index = 0; index <= level; index++)
+        {
+            if (escapePuts[index] == null)
+            {
+                switch (index)
+                {
+                case 0:
+                    escapePuts[index] = this::putRaw;
+                    escapeSegments[index] = this::writeRawSegment;
+                    break;
+                case 1:
+                    escapePuts[index] = this::putEscaped;
+                    escapeSegments[index] = this::writeEscapedSegment;
+                    break;
+                default:
+                    escapePuts[index] = new EscapeLevel(escapePuts[index - 1]);
+                    escapeSegments[index] = this::writeNestedEscapedSegment;
+                    break;
+                }
+            }
+        }
+        escapeDepth = level;
+        putByte = escapePuts[level];
+        writeSegment = escapeSegments[level];
+    }
+
+    // Escapes a byte into the level below, the nested counterpart of putEscaped for a scope inside a scope.
+    private final class EscapeLevel implements IntConsumer
+    {
+        private final IntConsumer out;
+
+        private EscapeLevel(
+            IntConsumer out)
+        {
+            this.out = out;
+        }
+
+        @Override
+        public void accept(
+            int value)
+        {
+            final int unsigned = value & 0xff;
+            switch (unsigned)
+            {
+            case '"':
+                out.accept('\\');
+                out.accept('"');
+                break;
+            case '\\':
+                out.accept('\\');
+                out.accept('\\');
+                break;
+            case '\n':
+                out.accept('\\');
+                out.accept('n');
+                break;
+            case '\r':
+                out.accept('\\');
+                out.accept('r');
+                break;
+            case '\t':
+                out.accept('\\');
+                out.accept('t');
+                break;
+            case '\b':
+                out.accept('\\');
+                out.accept('b');
+                break;
+            case '\f':
+                out.accept('\\');
+                out.accept('f');
+                break;
+            default:
+                if (unsigned < 0x20)
+                {
+                    out.accept('\\');
+                    out.accept('u');
+                    out.accept(HEX[unsigned >> 12 & 0xf]);
+                    out.accept(HEX[unsigned >> 8 & 0xf]);
+                    out.accept(HEX[unsigned >> 4 & 0xf]);
+                    out.accept(HEX[unsigned & 0xf]);
+                }
+                else
+                {
+                    out.accept(unsigned);
+                }
+                break;
+            }
+        }
     }
 
     private void putEscaped(
@@ -1153,22 +1406,25 @@ public final class JsonGeneratorImpl implements JsonGeneratorEx
     }
 
     private static int escapedWidth(
-        int value)
+        int value,
+        int escapedBackslash)
     {
         int width;
         switch (value)
         {
         case '"':
         case '\\':
+            width = escapedBackslash;
+            break;
         case '\n':
         case '\r':
         case '\t':
         case '\b':
         case '\f':
-            width = 2;
+            width = escapedBackslash / 2 + 1;
             break;
         default:
-            width = value < 0x20 ? 6 : 1;
+            width = value < 0x20 ? escapedBackslash / 2 + 5 : 1;
             break;
         }
         return width;

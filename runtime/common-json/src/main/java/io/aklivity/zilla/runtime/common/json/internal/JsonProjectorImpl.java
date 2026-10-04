@@ -19,6 +19,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import jakarta.json.JsonException;
 import jakarta.json.stream.JsonLocation;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
@@ -73,12 +74,20 @@ public final class JsonProjectorImpl implements JsonTransform
     // buffered. At most one key is ever pending — the value that follows consumes it before the next key.
     private final StringBuilder pendingKeyBuffer = new StringBuilder();
 
+    // For each open escaped scope, whether its markers were forwarded: a scope's fate is that of the value it
+    // holds, which is only known once the value's first event arrives, so markers wait in pendingEscapes until
+    // then. The markers do not nest the path, so the projection sees the stringified document as the value of
+    // the key.
+    private final boolean[] escapeEmit = new boolean[MAX_DEPTH];
+
     private final KeySource keySource = new KeySource();
 
     private final DownstreamControl downstreamControl = new DownstreamControl();
 
     private JsonController upstreamControl;
     private int containers;
+    private int escapes;
+    private int pendingEscapes;
     private Decision keyDecision;
     private Node keyNode;
     private Node valueNode;
@@ -120,6 +129,8 @@ public final class JsonProjectorImpl implements JsonTransform
     public void reset()
     {
         containers = 0;
+        escapes = 0;
+        pendingEscapes = 0;
         keyDecision = null;
         keyNode = null;
         valueNode = null;
@@ -167,6 +178,18 @@ public final class JsonProjectorImpl implements JsonTransform
             {
                 upstreamControl.consumed(sourceBytes);
             }
+        }
+
+        @Override
+        public void escaped()
+        {
+            // a buffered key is forwarded only once its value has been read, so the parser is already past the
+            // value the scope would have applied to; a key forwarded live is the parser's current event
+            if (forwardingKey)
+            {
+                throw new JsonException("escaped scope must be requested while the key is the current event");
+            }
+            upstreamControl.escaped();
         }
     }
 
@@ -289,9 +312,60 @@ public final class JsonProjectorImpl implements JsonTransform
         case END_ARRAY:
             onEnd(source, event, sink);
             break;
+        case START_ESCAPED:
+            pendingEscapes++;
+            break;
+        case END_ESCAPED:
+            onEscapeEnd(source, sink);
+            break;
         default:
             onScalar(source, event, sink);
             break;
+        }
+    }
+
+    // Opens the scopes held back since their markers arrived, now that the first event of their value has decided
+    // whether it is kept: forwards the markers of a kept value, and records the decision for the closing marker.
+    private void openEscapes(
+        JsonSource source,
+        JsonSink sink,
+        boolean emit)
+    {
+        while (pendingEscapes > 0)
+        {
+            escapeEmit[escapes++] = emit;
+            if (emit)
+            {
+                forward(sink, source, JsonEvent.START_ESCAPED);
+            }
+            pendingEscapes--;
+        }
+    }
+
+    // A scope with no content has no first event to decide on, so it is decided as an empty scalar would be.
+    private void onEscapeEnd(
+        JsonSource source,
+        JsonSink sink)
+    {
+        if (pendingEscapes > 0)
+        {
+            Decision d = enterValue();
+            boolean parentEmit = containers == 0 || frameEmit[containers - 1];
+            boolean emit = parentEmit && d == Decision.KEEP_ALL;
+            if (emit)
+            {
+                forwardPendingKey(sink);
+            }
+            else
+            {
+                pendingKey = null;
+            }
+            openEscapes(source, sink, emit);
+        }
+        escapes--;
+        if (escapeEmit[escapes])
+        {
+            forward(sink, source, JsonEvent.END_ESCAPED);
         }
     }
 
@@ -451,6 +525,7 @@ public final class JsonProjectorImpl implements JsonTransform
         if (emit && d == Decision.KEEP_ALL && downstreamDemand)
         {
             forwardPendingKey(sink);
+            openEscapes(source, sink, true);
             control.segmentable();
             segMode = SegMode.AWAITING;
             deferredStart = event;
@@ -458,12 +533,14 @@ public final class JsonProjectorImpl implements JsonTransform
         else if (emit)
         {
             forwardPendingKey(sink);
+            openEscapes(source, sink, true);
             forward(sink, source, event);
             pushFrame(event, true, d);
         }
         else
         {
             pendingKey = null;
+            openEscapes(source, sink, false);
             pushFrame(event, false, d);
         }
     }
@@ -558,11 +635,13 @@ public final class JsonProjectorImpl implements JsonTransform
             if (scalarEmit)
             {
                 forwardPendingKey(sink);
+                openEscapes(source, sink, true);
                 forward(sink, source, event);
             }
             else
             {
                 pendingKey = null;
+                openEscapes(source, sink, false);
             }
             if (source.deferredBytes())
             {

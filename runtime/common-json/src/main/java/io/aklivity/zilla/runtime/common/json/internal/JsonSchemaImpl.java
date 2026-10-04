@@ -2586,6 +2586,12 @@ public final class JsonSchemaImpl implements JsonSchema
             {
                 upstreamControl.consumed(sourceBytes);
             }
+
+            @Override
+            public void escaped()
+            {
+                upstreamControl.escaped();
+            }
         }
 
         private final JsonController decline = new Decline();
@@ -2603,6 +2609,8 @@ public final class JsonSchemaImpl implements JsonSchema
 
         private JsonController upstreamControl;
         private boolean downstreamVerbatim;
+        private boolean verbatimSuspended;
+        private int escapes;
         private boolean failed;
 
         private Validator(
@@ -2761,6 +2769,15 @@ public final class JsonSchemaImpl implements JsonSchema
                     ? leniently(downstream)
                     : verdictStatus(verdict, downstream);
             }
+            else if (event.isEscaped())
+            {
+                // the markers of an escaped scope are not part of the document the schema describes, so they
+                // are not fed to eval and the stringified document is validated as the value of its key; they
+                // forward untouched, and the scope's content is forwarded structured because the original bytes
+                // are the escaped form of it
+                scope(event);
+                status = leniently(sink.transform(decline, source, event));
+            }
             else if (event == JsonEvent.KEY_NAME && source.deferredBytes())
             {
                 // unlike a scalar value, a key has no needsContent-style shortcut — every object position
@@ -2840,8 +2857,32 @@ public final class JsonSchemaImpl implements JsonSchema
         private JsonEvent forward(
             JsonEvent event)
         {
-            boolean body = event != JsonEvent.START_DOCUMENT && event != JsonEvent.END_DOCUMENT && !event.segmented();
-            return downstreamVerbatim && body ? JsonEvent.VERBATIM : event;
+            return downstreamVerbatim && body(event) ? JsonEvent.VERBATIM : event;
+        }
+
+        private static boolean body(
+            JsonEvent event)
+        {
+            return event != JsonEvent.START_DOCUMENT && event != JsonEvent.END_DOCUMENT &&
+                !event.segmented() && !event.isEscaped();
+        }
+
+        // Suspends the verbatim assertion for the duration of the outermost scope and restores it at its close.
+        private void scope(
+            JsonEvent marker)
+        {
+            if (marker == JsonEvent.START_ESCAPED)
+            {
+                if (escapes++ == 0)
+                {
+                    verbatimSuspended = downstreamVerbatim;
+                    downstreamVerbatim = false;
+                }
+            }
+            else if (--escapes == 0)
+            {
+                downstreamVerbatim = verbatimSuspended;
+            }
         }
 
         // SUSPENDED must outrank a VALID verdict: a schema verdict of VALID only means the document read so
@@ -2875,6 +2916,8 @@ public final class JsonSchemaImpl implements JsonSchema
             trace.reset();
             eval.reset();
             downstreamVerbatim = false;
+            verbatimSuspended = false;
+            escapes = 0;
             failed = false;
         }
 

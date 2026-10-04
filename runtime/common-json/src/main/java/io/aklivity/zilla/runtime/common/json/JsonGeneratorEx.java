@@ -209,6 +209,39 @@ public interface JsonGeneratorEx extends JsonGenerator
     boolean writeEndEx();
 
     /**
+     * Opens an escaped scope as the next value: writes the opening quote of a string value, and escapes
+     * everything written until the matching {@link #writeEndEscaped()} as JSON string <em>content</em>, so
+     * the events of a document written inside the scope become the stringified form of that document. The
+     * scope nests: a document stringified twice is escaped twice. Valid only in a value position — after a
+     * key, as an array element, or as the top-level value; a key position throws a
+     * {@link jakarta.json.JsonException}.
+     * <p>
+     * Checked like {@link #writeStartObjectEx()}: writes nothing and returns {@code false} when the opening
+     * quote (and a possible leading separator) does not fit the output bound.
+     */
+    boolean writeStartEscapedEx();
+
+    /**
+     * Closes the scope opened by the matching {@link #writeStartEscapedEx()}: writes the closing quote and
+     * restores the escaping in force around the scope. The values written inside the scope must be
+     * balanced; an end without a start, or an end while a container opened inside the scope is still open,
+     * throws a {@link jakarta.json.JsonException}. Checked like {@link #writeEndEx()}.
+     */
+    boolean writeEndEscapedEx();
+
+    /**
+     * Unchecked counterpart to {@link #writeStartEscapedEx()}: throws when it would have returned
+     * {@code false}.
+     */
+    JsonGeneratorEx writeStartEscaped();
+
+    /**
+     * Unchecked counterpart to {@link #writeEndEscapedEx()}: throws when it would have returned
+     * {@code false}.
+     */
+    JsonGeneratorEx writeEndEscaped();
+
+    /**
      * Checked counterpart to {@link #write(boolean)}; semantics match {@link #writeStartObjectEx()}.
      */
     boolean writeEx(
