@@ -127,6 +127,7 @@ public final class TestBindingOptionsConfig extends OptionsConfig
         public final boolean trustcacerts;
         public final String secretKey;
         public final String wrap;
+        public final boolean unwrapOnly;
 
         public VaultAssertion(
             String key,
@@ -134,7 +135,8 @@ public final class TestBindingOptionsConfig extends OptionsConfig
             String trust,
             boolean trustcacerts,
             String secretKey,
-            String wrap)
+            String wrap,
+            boolean unwrapOnly)
         {
             this.key = key;
             this.signer = signer;
@@ -142,6 +144,7 @@ public final class TestBindingOptionsConfig extends OptionsConfig
             this.trustcacerts = trustcacerts;
             this.secretKey = secretKey;
             this.wrap = wrap;
+            this.unwrapOnly = unwrapOnly;
         }
     }
 

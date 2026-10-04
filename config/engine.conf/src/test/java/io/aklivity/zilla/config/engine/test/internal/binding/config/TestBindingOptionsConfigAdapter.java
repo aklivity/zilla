@@ -66,6 +66,7 @@ public final class TestBindingOptionsConfigAdapter extends ConfigAdapter<Options
     private static final String VAULT_TRUST_NAME = "trust";
     private static final String VAULT_TRUSTCACERTS_NAME = "trustcacerts";
     private static final String VAULT_SECRETKEY_NAME = "secretKey";
+    private static final String VAULT_UNWRAPONLY_NAME = "unwrapOnly";
     private static final String VAULT_WRAP_NAME = "wrap";
     private static final String METRICS_NAME = "metrics";
     private static final String NAME_NAME = "name";
@@ -273,6 +274,11 @@ public final class TestBindingOptionsConfigAdapter extends ConfigAdapter<Options
             if (v.wrap != null)
             {
                 assertion.add(VAULT_WRAP_NAME, v.wrap);
+            }
+
+            if (v.unwrapOnly)
+            {
+                assertion.add(VAULT_UNWRAPONLY_NAME, v.unwrapOnly);
             }
 
             assertions.add(VAULT_NAME, assertion);
@@ -529,7 +535,8 @@ public final class TestBindingOptionsConfigAdapter extends ConfigAdapter<Options
                 vaultJson.getString(VAULT_TRUST_NAME, null),
                 vaultJson.getBoolean(VAULT_TRUSTCACERTS_NAME, false),
                 vaultJson.getString(VAULT_SECRETKEY_NAME, null),
-                vaultJson.getString(VAULT_WRAP_NAME, null)));
+                vaultJson.getString(VAULT_WRAP_NAME, null),
+                vaultJson.getBoolean(VAULT_UNWRAPONLY_NAME, false)));
         }
 
         if (assertionsJson.containsKey(STORE_NAME))
