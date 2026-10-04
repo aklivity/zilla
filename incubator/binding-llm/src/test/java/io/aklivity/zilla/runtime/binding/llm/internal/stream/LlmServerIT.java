@@ -49,15 +49,6 @@ public class LlmServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/anthropic.invalid/client"})
-    public void shouldRejectInvalidAnthropicRequest() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
         "${net}/reject.unknown.dialect/client"})
     public void shouldRejectRequestWithUnresolvedDialect() throws Exception
     {

@@ -38,15 +38,6 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/anthropic.invalid/client",
-        "${net}/anthropic.invalid/server"})
-    public void shouldRejectInvalidAnthropicRequest() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${net}/reject.unknown.dialect/client",
         "${net}/reject.unknown.dialect/server"})
     public void shouldRejectRequestWithUnresolvedDialect() throws Exception

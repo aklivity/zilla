@@ -29,9 +29,9 @@ read zilla:begin.ext ${http:matchBeginEx()
 
 connected
 
-read '{"model":"claude-3-opus-20240229","max_tokens":1024,"messages":[{"role":"user","content":"'
-read ${core:randomBase64(10000)}
-read '"}],"stream":false}'
+read "{\"model\":\"gpt-b\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\""
+      ${core:randomBase64(10000)}
+      "\"}]}]}"
 
 read closed
 
