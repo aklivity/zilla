@@ -927,4 +927,31 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/openai.response.decode.text.escaped/client",
+        "${app}/openai.response.decode.text.escaped/server"})
+    public void shouldDecodeOpenaiResponseTextEscaped() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.response.encode.text.escaped/client",
+        "${app}/openai.response.encode.text.escaped/server"})
+    public void shouldEncodeOpenaiResponseTextEscaped() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.response.encode.streaming.multibyte/client",
+        "${app}/openai.response.encode.streaming.multibyte/server"})
+    public void shouldEncodeOpenaiResponseStreamingMultibyte() throws Exception
+    {
+        k3po.finish();
+    }
 }
