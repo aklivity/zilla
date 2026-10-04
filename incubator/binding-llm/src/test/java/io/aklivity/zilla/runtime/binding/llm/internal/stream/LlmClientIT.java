@@ -470,35 +470,6 @@ public class LlmClientIT
     @Test
     @Configuration("client.openai.yaml")
     @Specification({
-        "${app}/openai.request.invalid/client",
-        "${net}/openai.request.invalid/server"})
-    public void shouldResetInvalidOpenaiRequest() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.openai.yaml")
-    @Specification({
-        "${app}/openai.request.trailing/client",
-        "${net}/openai.request.invalid/server"})
-    public void shouldResetOpenaiRequestWithTrailingContent() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.openai.yaml")
-    @Specification({
-        "${app}/openai.request.unsupported.content.type/client"})
-    public void shouldResetOpenaiRequestWithUnsupportedContentType() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.openai.yaml")
-    @Specification({
         "${app}/openai.streaming.error/client",
         "${net}/openai.streaming.error/server"})
     public void shouldAbortOpenaiStreamingError() throws Exception

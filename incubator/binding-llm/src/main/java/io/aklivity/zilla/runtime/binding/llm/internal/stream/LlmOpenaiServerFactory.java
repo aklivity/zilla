@@ -2005,7 +2005,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             }
             else
             {
-                stream.doAppFlush(traceId);
+                stream.doAppFlush(traceId, initialAuthorization);
 
                 if (LlmState.replyClosed(stream.state))
                 {
@@ -2528,6 +2528,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
         private LlmContentEncoder encoder;
         private String pendingResponseEvent;
+        private boolean flushed;
 
         private LlmOpenaiStream(
             LlmOpenaiServer server)
@@ -2785,10 +2786,13 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         }
 
         private void doAppFlush(
-            long traceId)
+            long traceId,
+            long authorization)
         {
-            if (!LlmState.initialClosed(state))
+            if (!flushed && !LlmState.initialClosed(state))
             {
+                flushed = true;
+
                 final FlushFW flush = flushRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                     .originId(server.routedId)
                     .routedId(server.exitId)
@@ -2797,6 +2801,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                     .acknowledge(initialAck)
                     .maximum(initialMax)
                     .traceId(traceId)
+                    .authorization(authorization)
                     .budgetId(0L)
                     .reserved(0)
                     .build();
