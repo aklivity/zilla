@@ -31,6 +31,8 @@ read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("tool-call")
                           .message(0)
+                          .attribute("tool-name", "get_weather")
+                          .attribute("tool-call-id", "call_1")
                           .build()}
 read "{\"id\":\"call_1\",\"type\":\"function\",\"function\":{\"name\":\"get_weather\",\"arguments\":\"{\\\"city\\\":\\\"Paris\\\"}\"}}"
 
@@ -38,6 +40,8 @@ read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("tool-call")
                           .message(0)
+                          .attribute("tool-name", "get_weather")
+                          .attribute("tool-call-id", "call_2")
                           .build()}
 read "{\"id\":\"call_2\",\"type\":\"function\",\"function\":{\"name\":\"get_weather\",\"arguments\":\"{\\\"city\\\":\\\"London\\\"}\"}}"
 

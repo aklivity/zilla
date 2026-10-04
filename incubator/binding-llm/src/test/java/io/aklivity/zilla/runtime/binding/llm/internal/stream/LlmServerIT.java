@@ -411,7 +411,6 @@ public class LlmServerIT
         k3po.finish();
     }
 
-
     @Test
     @Configuration("server.yaml")
     @Specification({
@@ -461,8 +460,6 @@ public class LlmServerIT
     {
         k3po.finish();
     }
-
-
 
     @Test
     @Configuration("server.yaml")
@@ -958,6 +955,86 @@ public class LlmServerIT
         "${net}/anthropic.section.user.text.multibyte/client",
         "${app}/anthropic.section.user.text.multibyte/server"})
     public void shouldDecodeAnthropicSectionUserTextMultibyte() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.section.user.image.inline/client",
+        "${app}/openai.section.user.image.inline/server"})
+    public void shouldDecodeOpenaiSectionUserImageInline() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.section.user.document.inline/client",
+        "${app}/openai.section.user.document.inline/server"})
+    public void shouldDecodeOpenaiSectionUserDocumentInline() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.section.user.image.inline/client",
+        "${app}/anthropic.section.user.image.inline/server"})
+    public void shouldDecodeAnthropicSectionUserImageInline() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.section.user.image.reference/client",
+        "${app}/anthropic.section.user.image.reference/server"})
+    public void shouldDecodeAnthropicSectionUserImageReference() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.section.user.document.inline/client",
+        "${app}/anthropic.section.user.document.inline/server"})
+    public void shouldDecodeAnthropicSectionUserDocumentInline() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.section.tool.result.error/client",
+        "${app}/anthropic.section.tool.result.error/server"})
+    public void shouldDecodeAnthropicSectionToolResultError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.section.rejected.tool.definition.name.last/client",
+        "${app}/openai.section.rejected.tool.definition.name.last/server"})
+    public void shouldDecodeOpenaiSectionRejectedToolDefinitionNameLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.section.rejected.tool.definition.name.last/client",
+        "${app}/anthropic.section.rejected.tool.definition.name.last/server"})
+    public void shouldDecodeAnthropicSectionRejectedToolDefinitionNameLast() throws Exception
     {
         k3po.finish();
     }

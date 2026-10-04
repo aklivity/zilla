@@ -31,8 +31,10 @@ read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("user-image")
                           .message(0)
+                          .attribute("media-type", "image/png")
+                          .attribute("source", "inline")
                           .build()}
-read "{\"type\":\"image_url\",\"image_url\":{\"url\":\"https://example.com/"
+read "{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:image/png;base64,"
      ${core:randomBase64(50000)}
      "\"}}"
 

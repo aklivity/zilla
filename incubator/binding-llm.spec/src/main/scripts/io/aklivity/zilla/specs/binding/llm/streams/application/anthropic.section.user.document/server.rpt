@@ -31,6 +31,8 @@ read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("user-document")
                           .message(0)
+                          .attribute("source", "url")
+                          .attribute("uri", "https://example.com/report.pdf")
                           .build()}
 read "{\"type\":\"document\",\"source\":{\"type\":\"url\",\"url\":\"https://example.com/report.pdf\"}}"
 

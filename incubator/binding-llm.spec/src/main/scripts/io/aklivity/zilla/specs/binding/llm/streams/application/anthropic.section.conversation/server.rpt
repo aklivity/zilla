@@ -38,6 +38,7 @@ read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("tool-definition")
                           .message(-1)
+                          .attribute("tool-name", "get_weather")
                           .build()}
 read "{\"name\":\"get_weather\",\"description\":\"Get the weather\",\"input_schema\":{\"type\":\"object\",\"properties\":{\"city\":{\"type\":\"string\"}}}}"
 
@@ -52,6 +53,8 @@ read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("tool-call")
                           .message(1)
+                          .attribute("tool-name", "get_weather")
+                          .attribute("tool-call-id", "toolu_1")
                           .build()}
 read "{\"type\":\"tool_use\",\"id\":\"toolu_1\",\"name\":\"get_weather\",\"input\":{\"city\":\"Paris\"}}"
 
@@ -59,7 +62,7 @@ read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("tool-result")
                           .message(2)
-                          .extension("toolu_1")
+                          .attribute("tool-call-id", "toolu_1")
                           .build()}
 read "sunny"
 

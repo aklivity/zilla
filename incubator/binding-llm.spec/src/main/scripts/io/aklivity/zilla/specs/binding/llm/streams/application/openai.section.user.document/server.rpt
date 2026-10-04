@@ -31,6 +31,8 @@ read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("user-document")
                           .message(0)
+                          .attribute("source", "reference")
+                          .attribute("ref-id", "file-abc123")
                           .build()}
 read "{\"type\":\"file\",\"file\":{\"file_id\":\"file-abc123\"}}"
 

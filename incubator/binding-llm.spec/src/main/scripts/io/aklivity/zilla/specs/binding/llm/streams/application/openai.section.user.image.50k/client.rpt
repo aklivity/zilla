@@ -29,8 +29,10 @@ write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .type("user-image")
                           .message(0)
+                          .attribute("media-type", "image/png")
+                          .attribute("source", "inline")
                           .build()}
-write "{\"type\":\"image_url\",\"image_url\":{\"url\":\"https://example.com/"
+write "{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:image/png;base64,"
       ${core:randomBase64(50000)}
       "\"}}"
 write flush

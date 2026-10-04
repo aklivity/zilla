@@ -638,7 +638,6 @@ public class LlmClientIT
         k3po.finish();
     }
 
-
     @Test
     @Configuration("client.openai.yaml")
     @Specification({
@@ -1205,6 +1204,66 @@ public class LlmClientIT
         "${app}/anthropic.section.assistant.text.citations/client",
         "${net}/openai.encode.anthropic.assistant.text.citations/server"})
     public void shouldEncodeAnthropicSectionAssistantTextCitationsAsOpenai() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.section.user.image.inline/client",
+        "${net}/openai.section.user.image.inline/server"})
+    public void shouldEncodeOpenaiSectionUserImageInline() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.section.user.document.inline/client",
+        "${net}/openai.section.user.document.inline/server"})
+    public void shouldEncodeOpenaiSectionUserDocumentInline() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.section.user.image.inline/client",
+        "${net}/anthropic.section.user.image.inline/server"})
+    public void shouldEncodeAnthropicSectionUserImageInline() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.section.user.image.reference/client",
+        "${net}/anthropic.section.user.image.reference/server"})
+    public void shouldEncodeAnthropicSectionUserImageReference() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.section.user.document.inline/client",
+        "${net}/anthropic.section.user.document.inline/server"})
+    public void shouldEncodeAnthropicSectionUserDocumentInline() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.section.tool.result.error/client",
+        "${net}/anthropic.section.tool.result.error/server"})
+    public void shouldEncodeAnthropicSectionToolResultError() throws Exception
     {
         k3po.finish();
     }

@@ -38,6 +38,8 @@ read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("user-image")
                           .message(0)
+                          .attribute("source", "url")
+                          .attribute("uri", "https://example.com/cat.png")
                           .build()}
 read "{\"type\":\"image\",\"source\":{\"type\":\"url\",\"url\":\"https://example.com/cat.png\"}}"
 
@@ -45,7 +47,7 @@ read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("tool-result")
                           .message(0)
-                          .extension("toolu_1")
+                          .attribute("tool-call-id", "toolu_1")
                           .build()}
 read "sunny"
 

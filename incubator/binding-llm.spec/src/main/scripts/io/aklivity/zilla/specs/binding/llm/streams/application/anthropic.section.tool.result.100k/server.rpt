@@ -31,7 +31,7 @@ read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("tool-result")
                           .message(0)
-                          .extension("toolu_1")
+                          .attribute("tool-call-id", "toolu_1")
                           .build()}
 read ${core:randomBase64(100000)}
 

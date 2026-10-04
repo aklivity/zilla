@@ -29,6 +29,8 @@ write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .type("user-document")
                           .message(0)
+                          .attribute("source", "reference")
+                          .attribute("ref-id", "file-abc123")
                           .build()}
 write "{\"type\":\"file\",\"file\":{\"file_id\":\"file-abc123\"}}"
 write flush
