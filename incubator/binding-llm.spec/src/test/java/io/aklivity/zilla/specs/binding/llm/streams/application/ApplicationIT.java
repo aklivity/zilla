@@ -1334,6 +1334,24 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/anthropic.section.user.document.reference/client",
+        "${app}/anthropic.section.user.document.reference/server"})
+    public void shouldAnthropicSectionUserDocumentReference() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.user.image.50k/client",
+        "${app}/anthropic.section.user.image.50k/server"})
+    public void shouldAnthropicSectionUserImage50k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/anthropic.response.decode.reasoning/client",
         "${app}/anthropic.response.decode.reasoning/server"})
     public void shouldDecodeAnthropicResponseReasoning() throws Exception

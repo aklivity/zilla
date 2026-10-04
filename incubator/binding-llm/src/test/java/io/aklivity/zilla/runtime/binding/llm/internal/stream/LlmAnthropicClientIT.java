@@ -654,4 +654,54 @@ public class LlmAnthropicClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.section.user.document.reference/client",
+        "${net}/anthropic.section.user.document.reference/server"})
+    public void shouldEncodeAnthropicSectionUserDocumentReference() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.section.user.image.50k/client",
+        "${net}/anthropic.section.user.image.50k/server"})
+    public void shouldEncodeAnthropicSectionUserImage50k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/openai.section.user.image.inline/client",
+        "${net}/anthropic.transform.openai.user.image.inline/server"})
+    public void shouldTransformOpenaiSectionUserImageInlineAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/openai.section.user.document.inline/client",
+        "${net}/anthropic.transform.openai.user.document.inline/server"})
+    public void shouldTransformOpenaiSectionUserDocumentInlineAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/openai.section.user.image.50k/client",
+        "${net}/anthropic.transform.openai.user.image.50k/server"})
+    public void shouldTransformOpenaiSectionUserImage50kAsAnthropic() throws Exception
+    {
+        k3po.finish();
+    }
 }

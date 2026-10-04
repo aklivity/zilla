@@ -114,6 +114,24 @@ final class LlmSectionAttributes
         providerExecuted = that.providerExecuted;
     }
 
+    String get(
+        String name)
+    {
+        return switch (name)
+        {
+        case MEDIA_TYPE -> mediaType;
+        case SOURCE -> source;
+        case URI -> uri;
+        case REF_ID -> refId;
+        case FILENAME -> filename;
+        case TOOL_NAME -> toolName;
+        case TOOL_CALL_ID -> toolCallId;
+        case IS_ERROR -> isError;
+        case PROVIDER_EXECUTED -> providerExecuted;
+        default -> null;
+        };
+    }
+
     String mediaType()
     {
         return mediaType;

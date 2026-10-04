@@ -1577,6 +1577,87 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/anthropic.section.user.document.reference/client",
+        "${net}/anthropic.section.user.document.reference/server"})
+    public void shouldAnthropicSectionUserDocumentReference() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.section.user.image.50k/client",
+        "${net}/anthropic.section.user.image.50k/server"})
+    public void shouldAnthropicSectionUserImage50k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.openai.user.image.inline/client",
+        "${net}/anthropic.transform.openai.user.image.inline/server"})
+    public void shouldAnthropicTransformOpenaiUserImageInline() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.openai.user.document.inline/client",
+        "${net}/anthropic.transform.openai.user.document.inline/server"})
+    public void shouldAnthropicTransformOpenaiUserDocumentInline() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.transform.openai.user.image.50k/client",
+        "${net}/anthropic.transform.openai.user.image.50k/server"})
+    public void shouldAnthropicTransformOpenaiUserImage50k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.anthropic.user.image.inline/client",
+        "${net}/openai.transform.anthropic.user.image.inline/server"})
+    public void shouldOpenaiTransformAnthropicUserImageInline() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.anthropic.user.document.inline/client",
+        "${net}/openai.transform.anthropic.user.document.inline/server"})
+    public void shouldOpenaiTransformAnthropicUserDocumentInline() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.anthropic.user.document.reference/client",
+        "${net}/openai.transform.anthropic.user.document.reference/server"})
+    public void shouldOpenaiTransformAnthropicUserDocumentReference() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.transform.anthropic.user.image.50k/client",
+        "${net}/openai.transform.anthropic.user.image.50k/server"})
+    public void shouldOpenaiTransformAnthropicUserImage50k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/anthropic.response.decode.reasoning/client",
         "${net}/anthropic.response.decode.reasoning/server"})
     public void shouldDecodeAnthropicResponseReasoning() throws Exception

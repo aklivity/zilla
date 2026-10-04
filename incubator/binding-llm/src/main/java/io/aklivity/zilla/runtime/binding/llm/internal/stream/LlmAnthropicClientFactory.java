@@ -137,6 +137,17 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
     private static final byte[] TOOL_RESULT_START = "{\"type\":\"tool_result\",\"tool_use_id\":\"".getBytes(UTF_8);
     private static final byte[] TOOL_RESULT_CONTENT = "\",\"content\":[".getBytes(UTF_8);
     private static final byte[] TOOL_RESULT_ERROR_CONTENT = "\",\"is_error\":true,\"content\":[".getBytes(UTF_8);
+    private static final byte[] IMAGE_BASE64_START =
+        "{\"type\":\"image\",\"source\":{\"type\":\"base64\",\"media_type\":\"".getBytes(UTF_8);
+    private static final byte[] DOCUMENT_BASE64_START =
+        "{\"type\":\"document\",\"source\":{\"type\":\"base64\",\"media_type\":\"".getBytes(UTF_8);
+    private static final byte[] DATA_MEMBER = "\",\"data\":".getBytes(UTF_8);
+    private static final byte[] SOURCE_END = "}}".getBytes(UTF_8);
+    private static final byte[] IMAGE_URL_START =
+        "{\"type\":\"image\",\"source\":{\"type\":\"url\",\"url\":\"".getBytes(UTF_8);
+    private static final byte[] DOCUMENT_FILE_START =
+        "{\"type\":\"document\",\"source\":{\"type\":\"file\",\"file_id\":\"".getBytes(UTF_8);
+    private static final byte[] STRING_SOURCE_END = "\"}}".getBytes(UTF_8);
     private static final byte[] CITATIONS_MEMBER = ",\"citations\":".getBytes(UTF_8);
     private static final byte[] ARRAY_OBJECT_END = "]}".getBytes(UTF_8);
 
@@ -315,6 +326,12 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             kind == KIND_USER_DOCUMENT ||
             kind == KIND_TOOL_CALL ||
             kind == KIND_TOOL_DEFINITION;
+    }
+
+    private static boolean media(
+        int kind)
+    {
+        return kind == KIND_USER_IMAGE || kind == KIND_USER_DOCUMENT;
     }
 
     private static int sectionKind(
@@ -543,13 +560,18 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                 }
 
                 final OctetsFW payload = data.payload();
+                final boolean fin = Flags.hasFin(flags);
 
                 if (payload != null && payload.sizeof() > 0)
                 {
-                    http.doEncodeSectionData(payload.buffer(), payload.offset(), payload.sizeof());
+                    http.doEncodeSectionData(payload.buffer(), payload.offset(), payload.sizeof(), fin);
+                }
+                else if (fin && http.mediaStreaming)
+                {
+                    http.doEncodeSectionData(EMPTY_OCTETS.buffer(), 0, 0, true);
                 }
 
-                if (Flags.hasFin(flags))
+                if (fin)
                 {
                     http.doEncodeSectionEnd();
                 }
@@ -1131,6 +1153,11 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         private boolean translating;
         private byte[] translateBytes = new byte[0];
         private int translateLength;
+        private boolean media;
+        private boolean mediaStreaming;
+        private byte[] mediaSuffix;
+        private LlmMediaPipeline mediaPipeline;
+        private final LlmMediaPipeline.Output mediaOutput = this::put;
 
         private int decodeSlot = NO_SLOT;
         private int decodeSlotOffset;
@@ -1226,7 +1253,9 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             sectionKind = kind;
             sectionType = type;
             sectionOpen = false;
-            translating = !NAME.equals(stream.dialect) && translated(kind);
+            final boolean translate = !NAME.equals(stream.dialect) && translated(kind);
+            media = translate && media(kind);
+            translating = translate && !media;
             translateLength = 0;
 
             if (kind == 0 || kind == KIND_USER_AUDIO || kind == KIND_UNKNOWN && !NAME.equals(stream.dialect))
@@ -1264,6 +1293,52 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                 {
                     beginMessageBlock(kind, message, toolCallId, isError);
                 }
+            }
+
+            if (media && !encodeFailed)
+            {
+                beginMedia(kind);
+            }
+        }
+
+        private void beginMedia(
+            int kind)
+        {
+            final String source = sectionAttributes.source();
+            final String mediaType = sectionAttributes.mediaType();
+            final String uri = sectionAttributes.uri();
+            final String refId = sectionAttributes.refId();
+
+            if (LlmSectionAttributes.SOURCE_INLINE.equals(source) && mediaType != null)
+            {
+                if (mediaPipeline == null)
+                {
+                    mediaPipeline = new LlmMediaPipeline(new LlmOpenaiMediaDataTransform(), transformBuffer);
+                }
+
+                put(kind == KIND_USER_IMAGE ? IMAGE_BASE64_START : DOCUMENT_BASE64_START);
+                putEscaped(mediaType);
+                put(DATA_MEMBER);
+
+                mediaPipeline.begin(sectionAttributes);
+                mediaStreaming = true;
+                mediaSuffix = SOURCE_END;
+            }
+            else if (kind == KIND_USER_IMAGE && LlmSectionAttributes.SOURCE_URL.equals(source) && uri != null)
+            {
+                put(IMAGE_URL_START);
+                putEscaped(uri);
+                put(STRING_SOURCE_END);
+            }
+            else if (kind == KIND_USER_DOCUMENT && LlmSectionAttributes.SOURCE_REFERENCE.equals(source) && refId != null)
+            {
+                put(DOCUMENT_FILE_START);
+                putEscaped(refId);
+                put(STRING_SOURCE_END);
+            }
+            else
+            {
+                encodeFailed = true;
             }
         }
 
@@ -1443,13 +1518,21 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         private void doEncodeSectionData(
             DirectBufferEx buffer,
             int offset,
-            int length)
+            int length,
+            boolean fin)
         {
-            if (translating)
+            if (mediaStreaming)
+            {
+                if (!mediaPipeline.feed(buffer, offset, length, fin, mediaOutput))
+                {
+                    encodeFailed = true;
+                }
+            }
+            else if (translating)
             {
                 accumulate(buffer, offset, length);
             }
-            else if (sectionKind != 0)
+            else if (!media && sectionKind != 0)
             {
                 if (text(sectionKind))
                 {
@@ -1485,6 +1568,14 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
 
         private void doEncodeSectionEnd()
         {
+            if (mediaStreaming)
+            {
+                put(mediaSuffix);
+                mediaStreaming = false;
+            }
+
+            media = false;
+
             if (translating)
             {
                 final String translated = LlmSectionTranslator.toAnthropic(
