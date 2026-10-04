@@ -31,6 +31,7 @@ final class LlmAnthropicDialectContext implements LlmDialectContext
     private final LlmContentCodecFactory codecs;
 
     private LlmAnthropicServerFactory server;
+    private LlmAnthropicClientFactory client;
     private LlmLegacyClientFactory legacy;
 
     LlmAnthropicDialectContext(
@@ -62,7 +63,10 @@ final class LlmAnthropicDialectContext implements LlmDialectContext
         case CLIENT:
             if (NAME.equals(fixed))
             {
-                handler = new LlmLegacyClientHandler(NAME, supplyLegacy(), new LlmLegacyBindingConfig(binding, context, codecs));
+                supplyClient().attach(binding);
+                handler = new LlmAnthropicClientHandler(
+                    client,
+                    new LlmLegacyClientHandler(NAME, supplyLegacy(), new LlmLegacyBindingConfig(binding, context, codecs)));
             }
             break;
         default:
@@ -80,6 +84,11 @@ final class LlmAnthropicDialectContext implements LlmDialectContext
         {
             server.detach(bindingId);
         }
+
+        if (client != null)
+        {
+            client.detach(bindingId);
+        }
     }
 
     private LlmAnthropicServerFactory supplyServer()
@@ -89,6 +98,15 @@ final class LlmAnthropicDialectContext implements LlmDialectContext
             server = new LlmAnthropicServerFactory(context);
         }
         return server;
+    }
+
+    private LlmAnthropicClientFactory supplyClient()
+    {
+        if (client == null)
+        {
+            client = new LlmAnthropicClientFactory(context);
+        }
+        return client;
     }
 
     private LlmLegacyClientFactory supplyLegacy()
