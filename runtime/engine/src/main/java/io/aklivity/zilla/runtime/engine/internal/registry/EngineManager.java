@@ -373,6 +373,14 @@ public class EngineManager
                 guard.storeId = resolver.resolve(guard.store);
                 guard.qstore = resolver.format(guard.storeId);
             }
+
+            if (guard.options != null)
+            {
+                for (Config.Reference ref : guard.options.refs())
+                {
+                    ref.visit(resolver);
+                }
+            }
         }
 
         for (StoreConfig store : namespace.stores)
