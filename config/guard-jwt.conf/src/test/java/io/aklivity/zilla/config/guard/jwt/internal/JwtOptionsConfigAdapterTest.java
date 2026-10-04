@@ -22,7 +22,6 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
 import java.time.Duration;
-import java.util.List;
 import java.util.Map;
 
 import jakarta.json.bind.Jsonb;
@@ -201,69 +200,5 @@ public class JwtOptionsConfigAdapterTest
         assertThat(options.keys, empty());
         assertThat(options.keysURL.isPresent(), is(true));
         assertThat(options.keysURL.get(), equalTo("https://auth.example.com/.well-known/jwks.json"));
-    }
-
-    @Test
-    public void shouldReadOptionsWithVault()
-    {
-        String yaml = """
-            issuer: "https://auth.example.com"
-            audience: "https://api.example.com"
-            keys: []
-            vault: vault0
-            secrets:
-              - tenant-1
-              - tenant-2
-            """;
-
-        JwtOptionsConfig options = jsonb.fromJson(yaml, JwtOptionsConfig.class);
-
-        assertThat(options.vault.name, equalTo("vault0"));
-        assertThat(options.secrets, equalTo(List.of("tenant-1", "tenant-2")));
-        assertThat(options.refs(), equalTo(List.of(options.vault)));
-        assertThat(options.keysURL.isPresent(), is(false));
-    }
-
-    @Test
-    public void shouldReadOptionsWithoutVault()
-    {
-        String yaml = """
-            issuer: "https://auth.example.com"
-            audience: "https://api.example.com"
-            keys: []
-            """;
-
-        JwtOptionsConfig options = jsonb.fromJson(yaml, JwtOptionsConfig.class);
-
-        assertThat(options.vault, nullValue());
-        assertThat(options.secrets, nullValue());
-        assertThat(options.refs(), empty());
-    }
-
-    @Test
-    public void shouldWriteOptionsWithVault()
-    {
-        JwtOptionsConfig options = JwtOptionsConfig.builder()
-                .issuer("https://auth.example.com")
-                .audience("https://api.example.com")
-                .keys(List.of())
-                .vault("vault0")
-                .secret("tenant-1")
-                .secret("tenant-2")
-                .build();
-
-        String yaml = jsonb.toJson(options);
-
-        String expected = """
-            issuer: "https://auth.example.com"
-            audience: "https://api.example.com"
-            keys: []
-            vault: vault0
-            secrets:
-              - tenant-1
-              - tenant-2
-            """;
-
-        assertThat(yaml, equalTo(expected));
     }
 }

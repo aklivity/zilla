@@ -53,21 +53,21 @@ final class JwtGuardContext implements GuardContext
         JwtOptionsConfig options = (JwtOptionsConfig) guard.options;
         long guardId = guard.id;
         LongFunction<String> credentialer = sessionId -> parent.credentials(context.indexOf(sessionId), guardId, sessionId);
-        JweKeyManager encryption = options.vault != null ? newEncryption(options) : null;
+        JweKeyManager encryption = guard.vault != null ? newEncryption(guard) : null;
         JwtGuardHandler handler = new JwtGuardHandler(options, context, supplyAuthorizedId, credentialer, encryption);
         handlersById.put(guard.id, handler);
         return handler;
     }
 
     private JweKeyManager newEncryption(
-        JwtOptionsConfig options)
+        GuardConfig guard)
     {
-        VaultHandler vault = context.supplyVault(options.vault.id);
-        SecretKeyManagerFactory factory = vault != null ? vault.initSecretKeys(options.secrets) : null;
+        VaultHandler vault = context.supplyVault(guard.vaultId);
+        SecretKeyManagerFactory factory = vault != null ? vault.initSecretKeys() : null;
 
         if (factory == null)
         {
-            throw new IllegalStateException("Unable to resolve secrets from vault: " + options.vault.name);
+            throw new IllegalStateException("Unable to unwrap secret keys from vault: " + guard.vault);
         }
 
         return new VaultJweKeyManager(factory.getSecretKeyManager(), System::currentTimeMillis);

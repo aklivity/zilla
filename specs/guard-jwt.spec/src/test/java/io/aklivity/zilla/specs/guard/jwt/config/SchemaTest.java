@@ -75,9 +75,6 @@ public class SchemaTest
         JsonObject config = schema.validate("guard-vault.yaml");
 
         assertThat(config, not(nullValue()));
-        JsonObject optionsConfig = (JsonObject) config.getValue("/guards/jwt0/options");
-        assertThat(optionsConfig.getString("vault"), equalTo("vault0"));
-        assertThat(optionsConfig.getJsonArray("secrets"), is(instanceOf(JsonArray.class)));
-        assertThat(optionsConfig.getJsonArray("secrets").size(), equalTo(2));
+        assertThat(((JsonString) config.getValue("/guards/jwt0/vault")).getString(), equalTo("vault0"));
     }
 }

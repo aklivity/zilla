@@ -84,11 +84,11 @@ public class JwtGuardIT
     }
 
     @Test
-    @Configuration("guard-vault.token.secrets.yaml")
+    @Configuration("guard-vault.token.any.key.yaml")
     @Specification({
         "${net}/handshake/client",
         "${app}/handshake.authorized/server" })
-    public void shouldAuthorizeVaultWrappedTokenSealedWithAnyPermittedKey() throws Exception
+    public void shouldAuthorizeVaultWrappedTokenSealedWithAnyVaultKey() throws Exception
     {
         k3po.finish();
     }
@@ -117,15 +117,6 @@ public class JwtGuardIT
     @Specification({
         "${net}/handshake.abort/client" })
     public void shouldRejectVaultWrappedTokenWithUnknownKey() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("guard-vault.token.key.not.permitted.yaml")
-    @Specification({
-        "${net}/handshake.abort/client" })
-    public void shouldRejectVaultWrappedTokenWithKeyNotPermitted() throws Exception
     {
         k3po.finish();
     }

@@ -18,11 +18,8 @@ name: test
 guards:
   jwt0:
     type: jwt
+    vault: vault0
     options:
       issuer: http://localhost:8080
       audience: https://api.aklivity.com
       keys: []
-      vault: vault0
-      secrets:
-        - tenant-1
-        - tenant-2
