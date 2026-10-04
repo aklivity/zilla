@@ -855,7 +855,8 @@ public class JwtGuardHandlerTest
                 "unknown", "unknown"))
             .key(RFC7515_RS256_CONFIG)
             .build();
-        JwtGuardHandler guard = new JwtGuardHandler(options, context, new MutableLong(1L)::getAndIncrement, sessionId -> null);
+        JwtGuardHandler guard = new JwtGuardHandler(
+            options, context, new MutableLong(1L)::getAndIncrement, sessionId -> null, null);
 
         long exp = Instant.now().getEpochSecond() + 10L;
         String claims = "{\"iss\":\"test issuer\",\"aud\":\"testAudience\",\"sub\":\"testSubject\",\"exp\":" + exp + "," +

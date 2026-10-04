@@ -106,7 +106,7 @@ public class JwtGuardEncryptedTest
 
         assertThat(sessionId, not(equalTo(0L)));
         assertThat(guard.identity(sessionId), equalTo("alice"));
-        assertThat(guard.attribute(sessionId, "site"), equalTo("http://example.com"));
+        assertThat(guard.attribute(sessionId, "site"), equalTo(Json.createValue("http://example.com")));
         assertTrue(guard.verify(sessionId, asList("read")));
         assertFalse(guard.verify(sessionId, asList("admin")));
     }
