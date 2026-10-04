@@ -20,6 +20,8 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 
 import java.nio.ByteBuffer;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.junit.Test;
 
@@ -112,14 +114,46 @@ public class LlmFunctionsTest
             .typeId(0)
             .type("user-text")
             .message(2)
-            .attributes("attrs")
+            .attribute("media-type", "image/png")
+            .attribute("source", "url")
             .extension("ext")
             .build();
 
         LlmDataExFW dataEx = new LlmDataExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
         assertEquals("user-text", dataEx.type().asString());
         assertEquals(2, dataEx.message());
-        assertEquals(5, dataEx.attributesLength());
+        assertEquals(Map.of("media-type", "image/png", "source", "url"), attributesOf(dataEx));
+        assertEquals(3, dataEx.extensionLength());
+    }
+
+    @Test
+    public void shouldGenerateDataExWithAttributesBeforeExtension()
+    {
+        byte[] bytes = LlmFunctions.dataEx()
+            .typeId(0)
+            .type("tool-result")
+            .attribute("tool-call-id", "call_1")
+            .extension("ext")
+            .build();
+
+        LlmDataExFW dataEx = new LlmDataExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
+        assertEquals(Map.of("tool-call-id", "call_1"), attributesOf(dataEx));
+        assertEquals("ext", dataEx.extension().buffer()
+            .getStringWithoutLengthUtf8(dataEx.extension().offset(), dataEx.extensionLength()));
+    }
+
+    @Test
+    public void shouldGenerateDataExWithAttributesAfterExtension()
+    {
+        byte[] bytes = LlmFunctions.dataEx()
+            .typeId(0)
+            .type("tool-result")
+            .extension("ext")
+            .attribute("tool-call-id", "call_1")
+            .build();
+
+        LlmDataExFW dataEx = new LlmDataExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
+        assertEquals(Map.of("tool-call-id", "call_1"), attributesOf(dataEx));
         assertEquals(3, dataEx.extensionLength());
     }
 
@@ -251,7 +285,7 @@ public class LlmFunctionsTest
             .typeId(0)
             .type("tool-result")
             .message(3)
-            .attributes("attrs")
+            .attribute("tool-call-id", "call_1")
             .extension("ext")
             .build();
 
@@ -259,11 +293,63 @@ public class LlmFunctionsTest
             .typeId(0)
             .type("tool-result")
             .message(3)
-            .attributes("attrs")
+            .attribute("tool-call-id", "call_1")
             .extension("ext")
             .build());
 
         assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldMatchDataExAttributesInAnyOrder() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchDataEx()
+            .typeId(0)
+            .attribute("source", "url")
+            .attribute("media-type", "image/png")
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.wrap(LlmFunctions.dataEx()
+            .typeId(0)
+            .attribute("media-type", "image/png")
+            .attribute("source", "url")
+            .build());
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldFailMatchDataExAttributesWithExtraAttribute() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchDataEx()
+            .typeId(0)
+            .attribute("source", "url")
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.wrap(LlmFunctions.dataEx()
+            .typeId(0)
+            .attribute("source", "url")
+            .attribute("media-type", "image/png")
+            .build());
+
+        assertThrows(Exception.class, () -> matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldFailMatchDataExAttributesWithMissingAttribute() throws Exception
+    {
+        BytesMatcher matcher = LlmFunctions.matchDataEx()
+            .typeId(0)
+            .attribute("source", "url")
+            .attribute("media-type", "image/png")
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.wrap(LlmFunctions.dataEx()
+            .typeId(0)
+            .attribute("source", "url")
+            .build());
+
+        assertThrows(Exception.class, () -> matcher.match(byteBuf));
     }
 
     @Test
@@ -276,7 +362,7 @@ public class LlmFunctionsTest
 
         LlmDataExFW dataEx = new LlmDataExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
         assertEquals(-1, dataEx.message());
-        assertNull(dataEx.attributes());
+        assertEquals(Map.of(), attributesOf(dataEx));
         assertNull(dataEx.extension());
     }
 
@@ -301,12 +387,12 @@ public class LlmFunctionsTest
     {
         BytesMatcher matcher = LlmFunctions.matchDataEx()
             .typeId(0)
-            .attributes("a")
+            .attribute("source", "url")
             .build();
 
         ByteBuffer byteBuf = ByteBuffer.wrap(LlmFunctions.dataEx()
             .typeId(0)
-            .attributes("b")
+            .attribute("source", "reference")
             .build());
 
         assertThrows(Exception.class, () -> matcher.match(byteBuf));
@@ -322,7 +408,7 @@ public class LlmFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.wrap(LlmFunctions.dataEx()
             .typeId(0)
-            .attributes("a")
+            .attribute("source", "url")
             .build());
 
         assertThrows(Exception.class, () -> matcher.match(byteBuf));
@@ -1382,5 +1468,13 @@ public class LlmFunctionsTest
             .build());
 
         assertThrows(Exception.class, () -> matcher.match(byteBuf));
+    }
+
+    private static Map<String, String> attributesOf(
+        LlmDataExFW dataEx)
+    {
+        final Map<String, String> attributes = new HashMap<>();
+        dataEx.attributes().forEach(a -> attributes.put(a.name().asString(), a.value().asString()));
+        return attributes;
     }
 }
