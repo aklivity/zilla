@@ -499,8 +499,8 @@ public class LlmAnthropicClientIT
     @Configuration("client.anthropic.yaml")
     @Specification({
         "${app}/openai.section.system.instruction/client",
-        "${net}/anthropic.encode.openai.system.instruction/server"})
-    public void shouldEncodeOpenaiSectionSystemInstructionAsAnthropic() throws Exception
+        "${net}/anthropic.transform.openai.system.instruction/server"})
+    public void shouldTransformOpenaiSectionSystemInstructionAsAnthropic() throws Exception
     {
         k3po.finish();
     }
@@ -509,8 +509,8 @@ public class LlmAnthropicClientIT
     @Configuration("client.anthropic.yaml")
     @Specification({
         "${app}/openai.section.user.text/client",
-        "${net}/anthropic.encode.openai.user.text/server"})
-    public void shouldEncodeOpenaiSectionUserTextAsAnthropic() throws Exception
+        "${net}/anthropic.transform.openai.user.text/server"})
+    public void shouldTransformOpenaiSectionUserTextAsAnthropic() throws Exception
     {
         k3po.finish();
     }
@@ -519,8 +519,8 @@ public class LlmAnthropicClientIT
     @Configuration("client.anthropic.yaml")
     @Specification({
         "${app}/openai.section.user.image/client",
-        "${net}/anthropic.encode.openai.user.image/server"})
-    public void shouldEncodeOpenaiSectionUserImageAsAnthropic() throws Exception
+        "${net}/anthropic.transform.openai.user.image/server"})
+    public void shouldTransformOpenaiSectionUserImageAsAnthropic() throws Exception
     {
         k3po.finish();
     }
@@ -529,8 +529,8 @@ public class LlmAnthropicClientIT
     @Configuration("client.anthropic.yaml")
     @Specification({
         "${app}/openai.section.user.document/client",
-        "${net}/anthropic.encode.openai.user.document/server"})
-    public void shouldEncodeOpenaiSectionUserDocumentAsAnthropic() throws Exception
+        "${net}/anthropic.transform.openai.user.document/server"})
+    public void shouldTransformOpenaiSectionUserDocumentAsAnthropic() throws Exception
     {
         k3po.finish();
     }
@@ -539,8 +539,8 @@ public class LlmAnthropicClientIT
     @Configuration("client.anthropic.yaml")
     @Specification({
         "${app}/openai.section.assistant.text/client",
-        "${net}/anthropic.encode.openai.assistant.text/server"})
-    public void shouldEncodeOpenaiSectionAssistantTextAsAnthropic() throws Exception
+        "${net}/anthropic.transform.openai.assistant.text/server"})
+    public void shouldTransformOpenaiSectionAssistantTextAsAnthropic() throws Exception
     {
         k3po.finish();
     }
@@ -549,8 +549,8 @@ public class LlmAnthropicClientIT
     @Configuration("client.anthropic.yaml")
     @Specification({
         "${app}/openai.section.assistant.refusal/client",
-        "${net}/anthropic.encode.openai.assistant.refusal/server"})
-    public void shouldEncodeOpenaiSectionAssistantRefusalAsAnthropic() throws Exception
+        "${net}/anthropic.transform.openai.assistant.refusal/server"})
+    public void shouldTransformOpenaiSectionAssistantRefusalAsAnthropic() throws Exception
     {
         k3po.finish();
     }
@@ -559,8 +559,8 @@ public class LlmAnthropicClientIT
     @Configuration("client.anthropic.yaml")
     @Specification({
         "${app}/openai.section.assistant.text.and.tool.call/client",
-        "${net}/anthropic.encode.openai.assistant.text.and.tool.call/server"})
-    public void shouldEncodeOpenaiSectionAssistantTextAndToolCallAsAnthropic() throws Exception
+        "${net}/anthropic.transform.openai.assistant.text.and.tool.call/server"})
+    public void shouldTransformOpenaiSectionAssistantTextAndToolCallAsAnthropic() throws Exception
     {
         k3po.finish();
     }
@@ -569,8 +569,8 @@ public class LlmAnthropicClientIT
     @Configuration("client.anthropic.yaml")
     @Specification({
         "${app}/openai.section.tool.definition/client",
-        "${net}/anthropic.encode.openai.tool.definition/server"})
-    public void shouldEncodeOpenaiSectionToolDefinitionAsAnthropic() throws Exception
+        "${net}/anthropic.transform.openai.tool.definition/server"})
+    public void shouldTransformOpenaiSectionToolDefinitionAsAnthropic() throws Exception
     {
         k3po.finish();
     }
@@ -579,8 +579,8 @@ public class LlmAnthropicClientIT
     @Configuration("client.anthropic.yaml")
     @Specification({
         "${app}/openai.section.tool.result/client",
-        "${net}/anthropic.encode.openai.tool.result/server"})
-    public void shouldEncodeOpenaiSectionToolResultAsAnthropic() throws Exception
+        "${net}/anthropic.transform.openai.tool.result/server"})
+    public void shouldTransformOpenaiSectionToolResultAsAnthropic() throws Exception
     {
         k3po.finish();
     }
@@ -589,8 +589,8 @@ public class LlmAnthropicClientIT
     @Configuration("client.anthropic.yaml")
     @Specification({
         "${app}/openai.section.mixed.content/client",
-        "${net}/anthropic.encode.openai.mixed.content/server"})
-    public void shouldEncodeOpenaiSectionMixedContentAsAnthropic() throws Exception
+        "${net}/anthropic.transform.openai.mixed.content/server"})
+    public void shouldTransformOpenaiSectionMixedContentAsAnthropic() throws Exception
     {
         k3po.finish();
     }
@@ -599,8 +599,8 @@ public class LlmAnthropicClientIT
     @Configuration("client.anthropic.yaml")
     @Specification({
         "${app}/openai.section.conversation/client",
-        "${net}/anthropic.encode.openai.conversation/server"})
-    public void shouldEncodeOpenaiSectionConversationAsAnthropic() throws Exception
+        "${net}/anthropic.transform.openai.conversation/server"})
+    public void shouldTransformOpenaiSectionConversationAsAnthropic() throws Exception
     {
         k3po.finish();
     }

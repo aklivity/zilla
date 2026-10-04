@@ -1222,207 +1222,207 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/anthropic.encode.openai.system.instruction/client",
-        "${net}/anthropic.encode.openai.system.instruction/server"})
-    public void shouldAnthropicEncodeOpenaiSystemInstruction() throws Exception
+        "${net}/anthropic.transform.openai.system.instruction/client",
+        "${net}/anthropic.transform.openai.system.instruction/server"})
+    public void shouldAnthropicTransformOpenaiSystemInstruction() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/anthropic.encode.openai.user.text/client",
-        "${net}/anthropic.encode.openai.user.text/server"})
-    public void shouldAnthropicEncodeOpenaiUserText() throws Exception
+        "${net}/anthropic.transform.openai.user.text/client",
+        "${net}/anthropic.transform.openai.user.text/server"})
+    public void shouldAnthropicTransformOpenaiUserText() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/anthropic.encode.openai.user.image/client",
-        "${net}/anthropic.encode.openai.user.image/server"})
-    public void shouldAnthropicEncodeOpenaiUserImage() throws Exception
+        "${net}/anthropic.transform.openai.user.image/client",
+        "${net}/anthropic.transform.openai.user.image/server"})
+    public void shouldAnthropicTransformOpenaiUserImage() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/anthropic.encode.openai.user.document/client",
-        "${net}/anthropic.encode.openai.user.document/server"})
-    public void shouldAnthropicEncodeOpenaiUserDocument() throws Exception
+        "${net}/anthropic.transform.openai.user.document/client",
+        "${net}/anthropic.transform.openai.user.document/server"})
+    public void shouldAnthropicTransformOpenaiUserDocument() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/anthropic.encode.openai.assistant.text/client",
-        "${net}/anthropic.encode.openai.assistant.text/server"})
-    public void shouldAnthropicEncodeOpenaiAssistantText() throws Exception
+        "${net}/anthropic.transform.openai.assistant.text/client",
+        "${net}/anthropic.transform.openai.assistant.text/server"})
+    public void shouldAnthropicTransformOpenaiAssistantText() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/anthropic.encode.openai.assistant.refusal/client",
-        "${net}/anthropic.encode.openai.assistant.refusal/server"})
-    public void shouldAnthropicEncodeOpenaiAssistantRefusal() throws Exception
+        "${net}/anthropic.transform.openai.assistant.refusal/client",
+        "${net}/anthropic.transform.openai.assistant.refusal/server"})
+    public void shouldAnthropicTransformOpenaiAssistantRefusal() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/anthropic.encode.openai.assistant.text.and.tool.call/client",
-        "${net}/anthropic.encode.openai.assistant.text.and.tool.call/server"})
-    public void shouldAnthropicEncodeOpenaiAssistantTextAndToolCall() throws Exception
+        "${net}/anthropic.transform.openai.assistant.text.and.tool.call/client",
+        "${net}/anthropic.transform.openai.assistant.text.and.tool.call/server"})
+    public void shouldAnthropicTransformOpenaiAssistantTextAndToolCall() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/anthropic.encode.openai.tool.definition/client",
-        "${net}/anthropic.encode.openai.tool.definition/server"})
-    public void shouldAnthropicEncodeOpenaiToolDefinition() throws Exception
+        "${net}/anthropic.transform.openai.tool.definition/client",
+        "${net}/anthropic.transform.openai.tool.definition/server"})
+    public void shouldAnthropicTransformOpenaiToolDefinition() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/anthropic.encode.openai.tool.result/client",
-        "${net}/anthropic.encode.openai.tool.result/server"})
-    public void shouldAnthropicEncodeOpenaiToolResult() throws Exception
+        "${net}/anthropic.transform.openai.tool.result/client",
+        "${net}/anthropic.transform.openai.tool.result/server"})
+    public void shouldAnthropicTransformOpenaiToolResult() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/anthropic.encode.openai.mixed.content/client",
-        "${net}/anthropic.encode.openai.mixed.content/server"})
-    public void shouldAnthropicEncodeOpenaiMixedContent() throws Exception
+        "${net}/anthropic.transform.openai.mixed.content/client",
+        "${net}/anthropic.transform.openai.mixed.content/server"})
+    public void shouldAnthropicTransformOpenaiMixedContent() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/anthropic.encode.openai.conversation/client",
-        "${net}/anthropic.encode.openai.conversation/server"})
-    public void shouldAnthropicEncodeOpenaiConversation() throws Exception
+        "${net}/anthropic.transform.openai.conversation/client",
+        "${net}/anthropic.transform.openai.conversation/server"})
+    public void shouldAnthropicTransformOpenaiConversation() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/openai.encode.anthropic.system.instruction/client",
-        "${net}/openai.encode.anthropic.system.instruction/server"})
-    public void shouldOpenaiEncodeAnthropicSystemInstruction() throws Exception
+        "${net}/openai.transform.anthropic.system.instruction/client",
+        "${net}/openai.transform.anthropic.system.instruction/server"})
+    public void shouldOpenaiTransformAnthropicSystemInstruction() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/openai.encode.anthropic.user.text/client",
-        "${net}/openai.encode.anthropic.user.text/server"})
-    public void shouldOpenaiEncodeAnthropicUserText() throws Exception
+        "${net}/openai.transform.anthropic.user.text/client",
+        "${net}/openai.transform.anthropic.user.text/server"})
+    public void shouldOpenaiTransformAnthropicUserText() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/openai.encode.anthropic.user.image/client",
-        "${net}/openai.encode.anthropic.user.image/server"})
-    public void shouldOpenaiEncodeAnthropicUserImage() throws Exception
+        "${net}/openai.transform.anthropic.user.image/client",
+        "${net}/openai.transform.anthropic.user.image/server"})
+    public void shouldOpenaiTransformAnthropicUserImage() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/openai.encode.anthropic.assistant.text/client",
-        "${net}/openai.encode.anthropic.assistant.text/server"})
-    public void shouldOpenaiEncodeAnthropicAssistantText() throws Exception
+        "${net}/openai.transform.anthropic.assistant.text/client",
+        "${net}/openai.transform.anthropic.assistant.text/server"})
+    public void shouldOpenaiTransformAnthropicAssistantText() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/openai.encode.anthropic.assistant.tool.call/client",
-        "${net}/openai.encode.anthropic.assistant.tool.call/server"})
-    public void shouldOpenaiEncodeAnthropicAssistantToolCall() throws Exception
+        "${net}/openai.transform.anthropic.assistant.tool.call/client",
+        "${net}/openai.transform.anthropic.assistant.tool.call/server"})
+    public void shouldOpenaiTransformAnthropicAssistantToolCall() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/openai.encode.anthropic.tool.result/client",
-        "${net}/openai.encode.anthropic.tool.result/server"})
-    public void shouldOpenaiEncodeAnthropicToolResult() throws Exception
+        "${net}/openai.transform.anthropic.tool.result/client",
+        "${net}/openai.transform.anthropic.tool.result/server"})
+    public void shouldOpenaiTransformAnthropicToolResult() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/openai.encode.anthropic.tool.result.blocks/client",
-        "${net}/openai.encode.anthropic.tool.result.blocks/server"})
-    public void shouldOpenaiEncodeAnthropicToolResultBlocks() throws Exception
+        "${net}/openai.transform.anthropic.tool.result.blocks/client",
+        "${net}/openai.transform.anthropic.tool.result.blocks/server"})
+    public void shouldOpenaiTransformAnthropicToolResultBlocks() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/openai.encode.anthropic.tool.definition/client",
-        "${net}/openai.encode.anthropic.tool.definition/server"})
-    public void shouldOpenaiEncodeAnthropicToolDefinition() throws Exception
+        "${net}/openai.transform.anthropic.tool.definition/client",
+        "${net}/openai.transform.anthropic.tool.definition/server"})
+    public void shouldOpenaiTransformAnthropicToolDefinition() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/openai.encode.anthropic.mixed.content/client",
-        "${net}/openai.encode.anthropic.mixed.content/server"})
-    public void shouldOpenaiEncodeAnthropicMixedContent() throws Exception
+        "${net}/openai.transform.anthropic.mixed.content/client",
+        "${net}/openai.transform.anthropic.mixed.content/server"})
+    public void shouldOpenaiTransformAnthropicMixedContent() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/openai.encode.anthropic.assistant.reasoning/client",
-        "${net}/openai.encode.anthropic.assistant.reasoning/server"})
-    public void shouldOpenaiEncodeAnthropicAssistantReasoning() throws Exception
+        "${net}/openai.transform.anthropic.assistant.reasoning/client",
+        "${net}/openai.transform.anthropic.assistant.reasoning/server"})
+    public void shouldOpenaiTransformAnthropicAssistantReasoning() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/openai.encode.anthropic.server.tool.result/client",
-        "${net}/openai.encode.anthropic.server.tool.result/server"})
-    public void shouldOpenaiEncodeAnthropicServerToolResult() throws Exception
+        "${net}/openai.transform.anthropic.server.tool.result/client",
+        "${net}/openai.transform.anthropic.server.tool.result/server"})
+    public void shouldOpenaiTransformAnthropicServerToolResult() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/openai.encode.anthropic.assistant.text.citations/client",
-        "${net}/openai.encode.anthropic.assistant.text.citations/server"})
-    public void shouldOpenaiEncodeAnthropicAssistantTextCitations() throws Exception
+        "${net}/openai.transform.anthropic.assistant.text.citations/client",
+        "${net}/openai.transform.anthropic.assistant.text.citations/server"})
+    public void shouldOpenaiTransformAnthropicAssistantTextCitations() throws Exception
     {
         k3po.finish();
     }
@@ -1501,9 +1501,9 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/openai.encode.anthropic.tool.result.error/client",
-        "${net}/openai.encode.anthropic.tool.result.error/server"})
-    public void shouldOpenaiEncodeAnthropicToolResultError() throws Exception
+        "${net}/openai.transform.anthropic.tool.result.error/client",
+        "${net}/openai.transform.anthropic.tool.result.error/server"})
+    public void shouldOpenaiTransformAnthropicToolResultError() throws Exception
     {
         k3po.finish();
     }
