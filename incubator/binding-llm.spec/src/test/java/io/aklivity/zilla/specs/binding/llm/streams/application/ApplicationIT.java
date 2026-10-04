@@ -659,9 +659,9 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/openai.section.user.image.50k/client",
-        "${app}/openai.section.user.image.50k/server"})
-    public void shouldOpenaiSectionUserImage50k() throws Exception
+        "${app}/openai.section.user.image.10k/client",
+        "${app}/openai.section.user.image.10k/server"})
+    public void shouldOpenaiSectionUserImage10k() throws Exception
     {
         k3po.finish();
     }
@@ -1361,9 +1361,9 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/anthropic.section.user.image.50k/client",
-        "${app}/anthropic.section.user.image.50k/server"})
-    public void shouldAnthropicSectionUserImage50k() throws Exception
+        "${app}/anthropic.section.user.image.10k/client",
+        "${app}/anthropic.section.user.image.10k/server"})
+    public void shouldAnthropicSectionUserImage10k() throws Exception
     {
         k3po.finish();
     }

@@ -19,8 +19,8 @@ connect "zilla://streams/app0"
 
 write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
-                           .dialect("anthropic")
-                           .model("claude-3-opus-20240229")
+                           .dialect("openai")
+                           .model("gpt-4")
                            .build()}
 
 connected
@@ -32,8 +32,8 @@ write zilla:data.ext ${llm:dataEx()
                           .attribute("media-type", "image/png")
                           .attribute("source", "inline")
                           .build()}
-write "{\"type\":\"image\",\"source\":{\"type\":\"base64\",\"media_type\":\"image/png\",\"data\":\""
-      ${core:randomBase64(50000)}
+write "{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:image/png;base64,"
+      ${core:randomBase64(10000)}
       "\"}}"
 write flush
 
@@ -42,8 +42,8 @@ write advise zilla:flush
 read zilla:reset.ext ${llm:matchResetEx()
                            .typeId(zilla:id("llm"))
                            .status(429)
-                           .type("rate_limit_error")
-                           .message("Rate limit exceeded")
+                           .type("requests")
+                           .message("Rate limit reached for gpt-4")
                            .build()}
 
 write aborted

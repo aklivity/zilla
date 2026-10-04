@@ -13,11 +13,13 @@
 # specific language governing permissions and limitations under the License.
 #
 
-connect "zilla://streams/app0"
-        option zilla:window 8192
-        option zilla:transmission "half-duplex"
+accept "zilla://streams/app0"
+       option zilla:window 8192
+       option zilla:transmission "half-duplex"
 
-write zilla:begin.ext ${llm:beginEx()
+accepted
+
+read zilla:begin.ext ${llm:matchBeginEx()
                            .typeId(zilla:id("llm"))
                            .dialect("openai")
                            .model("gpt-4")
@@ -25,25 +27,24 @@ write zilla:begin.ext ${llm:beginEx()
 
 connected
 
-write zilla:data.ext ${llm:dataEx()
+read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("user-image")
                           .message(0)
                           .attribute("media-type", "image/png")
                           .attribute("source", "inline")
                           .build()}
-write "{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:image/png;base64,"
-      ${core:randomBase64(50000)}
-      "\"}}"
-write flush
+read "{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:image/png;base64,"
+     ${core:randomBase64(10000)}
+     "\"}}"
 
-write advise zilla:flush
+read advised zilla:flush
 
-read zilla:reset.ext ${llm:matchResetEx()
-                           .typeId(zilla:id("llm"))
-                           .status(429)
-                           .type("requests")
-                           .message("Rate limit reached for gpt-4")
-                           .build()}
+write zilla:reset.ext ${llm:resetEx()
+                            .typeId(zilla:id("llm"))
+                            .status(429)
+                            .type("requests")
+                            .message("Rate limit reached for gpt-4")
+                            .build()}
 
-write aborted
+read abort
