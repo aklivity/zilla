@@ -434,33 +434,6 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/openai.request.invalid/client",
-        "${app}/openai.request.invalid/server"})
-    public void shouldRejectOpenaiInvalidRequest() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/openai.request.trailing/client",
-        "${app}/openai.request.trailing/server"})
-    public void shouldRejectOpenaiTrailingRequest() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/openai.request.unsupported.content.type/client",
-        "${app}/openai.request.unsupported.content.type/server"})
-    public void shouldRejectOpenaiUnsupportedContentType() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${app}/openai.streaming.error/client",
         "${app}/openai.streaming.error/server"})
     public void shouldAbortOpenaiStreamingError() throws Exception

@@ -28,9 +28,9 @@ write zilla:begin.ext ${http:beginEx()
 
 connected
 
-write '{"model":"gpt-4","messages":[{"role":"user","content":"'
+write '{"model":"gpt-a","messages":[{"role":"user","content":"'
       ${core:randomBase64(10000)}
-      '"}],"stream":false}'
+      '"}]}'
 write close
 
 read zilla:begin.ext ${http:matchBeginEx()

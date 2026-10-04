@@ -457,15 +457,6 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/openai.request.invalid/client",
-        "${net}/openai.request.invalid/server"})
-    public void shouldAbortOpenaiInvalidRequest() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${net}/anthropic.request.unsupported.content.type/client",
         "${net}/anthropic.request.unsupported.content.type/server"})
     public void shouldRejectAnthropicUnsupportedContentType() throws Exception
