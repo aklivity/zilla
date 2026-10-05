@@ -62,7 +62,6 @@ import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline;
 import io.aklivity.zilla.runtime.common.json.JsonPipeline.Status;
-import io.aklivity.zilla.runtime.common.json.JsonPipelineResult;
 import io.aklivity.zilla.runtime.common.json.JsonSchema;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
@@ -383,7 +382,6 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         private final String model;
         private final String dialect;
         private final LlmAnthropicHttpStream http;
-        private final boolean sections;
         private final LlmAnthropicResponseExtractor extractor;
         private final LlmAnthropicSectionSink sink;
         private final Deque<ReplyFrame> replyFrames;
@@ -404,9 +402,6 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
 
         private int replyEncodeSlot = NO_SLOT;
         private int replyEncodeSlotOffset;
-        private String replyPendingEvent;
-        private boolean replyValueStarted;
-        private boolean replyValueEnding;
 
         private LlmAnthropicStream(
             MessageConsumer app,
@@ -431,26 +426,14 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             this.binding = binding;
             this.model = model;
             this.dialect = dialect;
-            this.sections = !NAME.equals(dialect);
             this.extractor = new LlmAnthropicResponseExtractor();
             this.replyFrames = new ArrayDeque<>();
 
-            if (sections)
-            {
-                this.sink = new LlmAnthropicSectionSink(new ReplyOutput());
-                this.responsePipeline = JsonEx.stream(JsonEx.createParser())
-                    .transform(responseSchema.validator())
-                    .transform(extractor)
-                    .into(sink);
-            }
-            else
-            {
-                this.sink = null;
-                this.responsePipeline = JsonEx.stream(JsonEx.createParser())
-                    .transform(responseSchema.validator())
-                    .transform(extractor)
-                    .into(JsonEx.createGenerator());
-            }
+            this.sink = new LlmAnthropicSectionSink(new ReplyOutput());
+            this.responsePipeline = JsonEx.stream(JsonEx.createParser())
+                .transform(responseSchema.validator())
+                .transform(extractor)
+                .into(sink);
             this.http = new LlmAnthropicHttpStream(this);
         }
 
@@ -627,15 +610,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             replyPad = window.padding();
             state = LlmState.openReply(state);
 
-            if (sections)
-            {
-                drainReplyFrames(traceId);
-            }
-            else if (replyEncodeSlot != NO_SLOT)
-            {
-                final MutableDirectBufferEx slotBuffer = encodePool.buffer(replyEncodeSlot);
-                encodeReply(traceId, slotBuffer, 0, replyEncodeSlotOffset);
-            }
+            drainReplyFrames(traceId);
 
             http.decodeNet(traceId);
         }
@@ -674,25 +649,17 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             }
         }
 
-        private void doAppBegin(
-            long traceId,
-            String contentType)
-        {
-            doAppBegin(traceId, contentType, null, null);
-        }
-
         private void doAppBeginSections(
             long traceId)
         {
             if (!LlmState.replyOpening(state))
             {
-                doAppBegin(traceId, null, extractor.model(), extractor.id());
+                doAppBegin(traceId, extractor.model(), extractor.id());
             }
         }
 
         private void doAppBegin(
             long traceId,
-            String contentType,
             String servedModel,
             String servedId)
         {
@@ -701,11 +668,6 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             final LlmBeginExFW.Builder builder = llmBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(llmTypeId)
                 .dialect(NAME);
-
-            if (contentType != null)
-            {
-                builder.contentType(contentType);
-            }
 
             if (servedModel != null)
             {
@@ -734,136 +696,6 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
 
             app.accept(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof());
             state = LlmState.openReply(state);
-        }
-
-        private void doAppData(
-            long traceId,
-            String event,
-            boolean last,
-            DirectBuffer buffer,
-            int offset,
-            int length)
-        {
-            if (!replyValueStarted)
-            {
-                replyPendingEvent = event;
-            }
-            replyValueEnding = last;
-
-            DirectBuffer encodeBuffer = buffer;
-            int encodeOffset = offset;
-            int encodeLimit = offset + length;
-
-            if (replyEncodeSlot != NO_SLOT)
-            {
-                final MutableDirectBufferEx slotBuffer = encodePool.buffer(replyEncodeSlot);
-                slotBuffer.putBytes(replyEncodeSlotOffset, buffer, offset, length);
-                replyEncodeSlotOffset += length;
-
-                encodeBuffer = slotBuffer;
-                encodeOffset = 0;
-                encodeLimit = replyEncodeSlotOffset;
-            }
-
-            encodeReply(traceId, encodeBuffer, encodeOffset, encodeLimit);
-        }
-
-        private void encodeReply(
-            long traceId,
-            DirectBuffer buffer,
-            int offset,
-            int limit)
-        {
-            final int maxLength = limit - offset;
-            final int length = maxLength == 0 ? 0 : Math.max(Math.min(replyWindow(), maxLength), 0);
-
-            if (length > 0 || maxLength == 0)
-            {
-                final boolean fin = replyValueEnding && length == maxLength;
-                final int initFlags = replyValueStarted ? Flags.NONE : Flags.INIT;
-                final int flags = fin ? Flags.fin(initFlags) : initFlags;
-
-                final OctetsFW extension;
-
-                if (Flags.hasInit(flags))
-                {
-                    final LlmDataExFW.Builder dataExBuilder = llmDataExRW.wrap(extBuffer, 0, extBuffer.capacity())
-                        .typeId(llmTypeId);
-
-                    if (replyPendingEvent != null)
-                    {
-                        dataExBuilder.type(replyPendingEvent);
-                    }
-
-                    final LlmDataExFW llmDataEx = dataExBuilder.build();
-                    extension = extensionRO.wrap(llmDataEx.buffer(), llmDataEx.offset(), llmDataEx.offset() + llmDataEx.sizeof());
-                }
-                else
-                {
-                    extension = EMPTY_OCTETS;
-                }
-
-                if (length > 0)
-                {
-                    copyBuffer.putBytes(0, buffer, offset, length);
-                }
-
-                final DataFW data = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                    .originId(originId)
-                    .routedId(routedId)
-                    .streamId(replyId)
-                    .sequence(replySeq)
-                    .acknowledge(replyAck)
-                    .maximum(replyMax)
-                    .traceId(traceId)
-                    .authorization(authorization)
-                    .flags(flags)
-                    .budgetId(0L)
-                    .reserved(length + replyPad)
-                    .payload(copyBuffer, 0, length)
-                    .extension(extension)
-                    .build();
-
-                app.accept(data.typeId(), data.buffer(), data.offset(), data.sizeof());
-                replySeq += data.reserved();
-                replyValueStarted = !fin;
-
-                if (fin)
-                {
-                    replyValueEnding = false;
-                    replyPendingEvent = null;
-                }
-            }
-
-            final int remaining = maxLength - length;
-
-            if (remaining > 0)
-            {
-                if (replyEncodeSlot == NO_SLOT)
-                {
-                    replyEncodeSlot = encodePool.acquire(replyId);
-                }
-
-                if (replyEncodeSlot == NO_SLOT)
-                {
-                    cleanup(traceId);
-                }
-                else
-                {
-                    final MutableDirectBufferEx slotBuffer = encodePool.buffer(replyEncodeSlot);
-                    slotBuffer.putBytes(0, buffer, offset + length, remaining);
-                    replyEncodeSlotOffset = remaining;
-                }
-            }
-            else
-            {
-                cleanupReplyEncodeSlot();
-
-                if (LlmState.replyClosing(state))
-                {
-                    doAppEnd(traceId);
-                }
-            }
         }
 
         private void queueReplyFrame(
@@ -1029,7 +861,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         {
             state = LlmState.closingReply(state);
 
-            if (sections && !sectionsFinished && !extractor.failed() && replyAvailable() && !LlmState.replyClosed(state))
+            if (!sectionsFinished && !extractor.failed() && replyAvailable() && !LlmState.replyClosed(state))
             {
                 sectionsFinished = true;
                 sink.finish();
@@ -1043,10 +875,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                 }
                 else
                 {
-                    if (sections)
-                    {
-                        doAppBeginSections(traceId);
-                    }
+                    doAppBeginSections(traceId);
 
                     state = LlmState.closeReply(state);
 
@@ -1078,10 +907,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         {
             if (!LlmState.replyClosed(state))
             {
-                if (sections)
-                {
-                    doAppBeginSections(traceId);
-                }
+                doAppBeginSections(traceId);
 
                 state = LlmState.closeReply(state);
                 cleanupReplyEncodeSlot();
@@ -1315,10 +1141,6 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         private long decodeTraceId;
         private long pendingEndTraceId;
         private boolean responseStarted;
-        private boolean responsePipelineSuspended;
-        private boolean lastResponseFeedFinal;
-        private String suspendedResponseEvent;
-        private String pendingResponseEvent;
 
         private LlmAnthropicHttpStream(
             LlmAnthropicStream stream)
@@ -1956,11 +1778,6 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                 decoder = codecs.createDecoder(responseContentType);
                 streaming = decoder.streaming();
 
-                if (!stream.sections)
-                {
-                    stream.doAppBegin(traceId, responseContentType);
-                }
-
                 doNetWindow(traceId);
             }
         }
@@ -2092,11 +1909,6 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         private void decodeNet(
             long traceId)
         {
-            if (responsePipelineSuspended && stream.replyAvailable())
-            {
-                resumeResponsePipeline(traceId);
-            }
-
             if (decodeSlot != NO_SLOT)
             {
                 final MutableDirectBufferEx slotBuffer = decodePool.buffer(decodeSlot);
@@ -2114,15 +1926,13 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         {
             int progress = offset;
 
-            if ((stream.sections || stream.replyWindow() > 0) && stream.replyAvailable())
+            if (stream.replyAvailable())
             {
                 decodeTraceId = traceId;
 
                 progress = streaming
                     ? decoder.decode(buffer, offset, limit, this)
-                    : stream.sections
-                        ? decodeJsonSections(buffer, offset, limit)
-                        : decodeJsonContent(buffer, offset, limit);
+                    : decodeJsonSections(buffer, offset, limit);
             }
 
             if (progress < limit)
@@ -2190,73 +2000,6 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             return progress;
         }
 
-        private int decodeJsonContent(
-            DirectBufferEx buffer,
-            int offset,
-            int limit)
-        {
-            int progress = offset;
-            final boolean last = LlmState.replyClosing(state);
-
-            while ((progress < limit || last) && stream.replyAvailable())
-            {
-                JsonPipelineResult result = stream.responsePipeline.transform(buffer, progress, limit, last,
-                    transformBuffer, 0, transformBuffer.capacity());
-                Status status = result.status();
-
-                boolean forwarded = true;
-                while (status == Status.SUSPENDED && forwarded)
-                {
-                    responseStarted = true;
-                    stream.doAppData(decodeTraceId, null, false, transformBuffer, 0, result.produced());
-
-                    forwarded = stream.replyAvailable();
-                    if (forwarded)
-                    {
-                        result = stream.responsePipeline.transform(buffer, progress, limit, last,
-                            transformBuffer, 0, transformBuffer.capacity());
-                        status = result.status();
-                    }
-                }
-
-                if (!forwarded)
-                {
-                    break;
-                }
-
-                if (status == Status.REJECTED)
-                {
-                    stream.responsePipeline.reset();
-                    cleanupNet(decodeTraceId);
-                    progress = limit;
-                    break;
-                }
-
-                responseStarted = true;
-
-                final int producedLength = result.produced();
-                final boolean complete = status == Status.COMPLETED;
-                if (producedLength > 0 || complete)
-                {
-                    stream.doAppData(decodeTraceId, null, complete, transformBuffer, 0, producedLength);
-                }
-
-                if (complete)
-                {
-                    responseStarted = false;
-                }
-
-                final int consumed = result.consumed();
-                if (consumed == 0)
-                {
-                    break;
-                }
-                progress += consumed;
-            }
-
-            return progress;
-        }
-
         @Override
         public boolean available()
         {
@@ -2267,10 +2010,6 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         public void event(
             String event)
         {
-            if (event != null)
-            {
-                pendingResponseEvent = event;
-            }
         }
 
         @Override
@@ -2280,7 +2019,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             int length,
             boolean last)
         {
-            forwardResponseContent(pendingResponseEvent, buffer, offset, length, last);
+            forwardResponseSections(buffer, offset, length, last);
         }
 
         @Override
@@ -2290,124 +2029,6 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             int offset,
             int length)
         {
-            pendingResponseEvent = null;
-        }
-
-        private void resumeResponsePipeline(
-            long traceId)
-        {
-            final JsonPipeline pipeline = stream.responsePipeline;
-            final String event = suspendedResponseEvent;
-
-            JsonPipelineResult result = pipeline.transform(emptyBufferRO, 0, 0, lastResponseFeedFinal,
-                transformBuffer, 0, transformBuffer.capacity());
-
-            boolean forwarded = true;
-            while (result.status() == Status.SUSPENDED && forwarded)
-            {
-                if (result.produced() > 0)
-                {
-                    stream.doAppData(traceId, event, false, transformBuffer, 0, result.produced());
-                }
-
-                forwarded = stream.replyAvailable();
-                if (forwarded)
-                {
-                    result = pipeline.transform(emptyBufferRO, 0, 0, lastResponseFeedFinal,
-                        transformBuffer, 0, transformBuffer.capacity());
-                }
-            }
-
-            responsePipelineSuspended = result.status() == Status.SUSPENDED;
-
-            if (!responsePipelineSuspended)
-            {
-                if (result.status() == Status.REJECTED)
-                {
-                    pipeline.reset();
-                    cleanupNet(traceId);
-                }
-                else
-                {
-                    final int producedLength = result.produced();
-                    final boolean complete = result.status() == Status.COMPLETED;
-                    if (producedLength > 0 || complete && lastResponseFeedFinal)
-                    {
-                        stream.doAppData(traceId, event, complete && lastResponseFeedFinal, transformBuffer, 0,
-                            producedLength);
-                    }
-
-                    if (complete && lastResponseFeedFinal)
-                    {
-                        pipeline.nextDocument();
-                    }
-                }
-            }
-        }
-
-        private void forwardResponseContent(
-            String event,
-            DirectBuffer buffer,
-            int offset,
-            int length,
-            boolean last)
-        {
-            if (stream.sections)
-            {
-                forwardResponseSections(buffer, offset, length, last);
-            }
-            else if (length > 0 || last)
-            {
-                lastResponseFeedFinal = last;
-                suspendedResponseEvent = event;
-
-                final JsonPipeline pipeline = stream.responsePipeline;
-
-                JsonPipelineResult result = pipeline.transform((DirectBufferEx) buffer, offset, offset + length,
-                    last, transformBuffer, 0, transformBuffer.capacity());
-
-                boolean forwarded = true;
-                while (result.status() == Status.SUSPENDED && forwarded)
-                {
-                    if (result.produced() > 0)
-                    {
-                        stream.doAppData(decodeTraceId, event, false, transformBuffer, 0, result.produced());
-                    }
-
-                    forwarded = stream.replyAvailable();
-                    if (forwarded)
-                    {
-                        result = pipeline.transform((DirectBufferEx) buffer, offset, offset + length,
-                            last, transformBuffer, 0, transformBuffer.capacity());
-                    }
-                }
-
-                responsePipelineSuspended = result.status() == Status.SUSPENDED;
-
-                if (!responsePipelineSuspended)
-                {
-                    if (result.status() == Status.REJECTED)
-                    {
-                        pipeline.reset();
-                        cleanupNet(decodeTraceId);
-                    }
-                    else
-                    {
-                        final int producedLength = result.produced();
-                        final boolean complete = result.status() == Status.COMPLETED;
-                        if (producedLength > 0 || complete && last)
-                        {
-                            stream.doAppData(decodeTraceId, event, complete && last, transformBuffer, 0,
-                                producedLength);
-                        }
-
-                        if (complete && last)
-                        {
-                            pipeline.nextDocument();
-                        }
-                    }
-                }
-            }
         }
 
         private void forwardResponseSections(
