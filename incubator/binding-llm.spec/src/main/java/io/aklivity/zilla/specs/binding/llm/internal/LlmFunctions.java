@@ -29,7 +29,6 @@ import io.aklivity.zilla.specs.binding.llm.internal.types.OctetsFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmAbortExFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmBeginExFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmDataExFW;
-import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmDialectScope;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmEndExFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmErrorFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmResetExFW;
@@ -70,6 +69,30 @@ public final class LlmFunctions
     public static LlmDialectDataExMatcherBuilder matchDialectDataEx()
     {
         return new LlmDialectDataExMatcherBuilder();
+    }
+
+    @Function
+    public static LlmDialectPreSectionDataExBuilder dialectPreSectionDataEx()
+    {
+        return new LlmDialectPreSectionDataExBuilder();
+    }
+
+    @Function
+    public static LlmDialectPreSectionDataExMatcherBuilder matchDialectPreSectionDataEx()
+    {
+        return new LlmDialectPreSectionDataExMatcherBuilder();
+    }
+
+    @Function
+    public static LlmDialectPostSectionDataExBuilder dialectPostSectionDataEx()
+    {
+        return new LlmDialectPostSectionDataExBuilder();
+    }
+
+    @Function
+    public static LlmDialectPostSectionDataExMatcherBuilder matchDialectPostSectionDataEx()
+    {
+        return new LlmDialectPostSectionDataExMatcherBuilder();
     }
 
     @Function
@@ -389,11 +412,9 @@ public final class LlmFunctions
         private final LlmDataExFW.Builder dataExRW;
 
         private String block;
-        private LlmDialectScope type;
 
         private LlmDialectDataExBuilder()
         {
-            this.type = LlmDialectScope.STREAM;
             final MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[1024]);
             this.dataExRW = new LlmDataExFW.Builder().wrap(writeBuffer, 0, writeBuffer.capacity());
         }
@@ -412,16 +433,87 @@ public final class LlmFunctions
             return this;
         }
 
-        public LlmDialectDataExBuilder type(
+        public byte[] build()
+        {
+            final LlmDataExFW dataEx = dataExRW.dialect(d -> d.block(block)).build();
+            final byte[] array = new byte[dataEx.sizeof()];
+            dataEx.buffer().getBytes(dataEx.offset(), array);
+            return array;
+        }
+    }
+
+    public static final class LlmDialectPreSectionDataExBuilder
+    {
+        private final LlmDataExFW.Builder dataExRW;
+
+        private String type;
+        private String block;
+
+        private LlmDialectPreSectionDataExBuilder()
+        {
+            final MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[1024]);
+            this.dataExRW = new LlmDataExFW.Builder().wrap(writeBuffer, 0, writeBuffer.capacity());
+        }
+
+        public LlmDialectPreSectionDataExBuilder typeId(
+            int typeId)
+        {
+            dataExRW.typeId(typeId);
+            return this;
+        }
+
+        public LlmDialectPreSectionDataExBuilder type(
             String type)
         {
-            this.type = LlmDialectScope.valueOf(type);
+            this.type = type;
+            return this;
+        }
+
+        public LlmDialectPreSectionDataExBuilder block(
+            String block)
+        {
+            this.block = block;
             return this;
         }
 
         public byte[] build()
         {
-            final LlmDataExFW dataEx = dataExRW.dialect(d -> d.block(block).type(t -> t.set(type))).build();
+            final LlmDataExFW dataEx = dataExRW.preSection(d -> d.type(type).block(block)).build();
+            final byte[] array = new byte[dataEx.sizeof()];
+            dataEx.buffer().getBytes(dataEx.offset(), array);
+            return array;
+        }
+    }
+
+    public static final class LlmDialectPostSectionDataExBuilder
+    {
+        private final LlmDataExFW.Builder dataExRW;
+
+        private String block;
+
+        private LlmDialectPostSectionDataExBuilder()
+        {
+            final MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[1024]);
+            this.dataExRW = new LlmDataExFW.Builder().wrap(writeBuffer, 0, writeBuffer.capacity());
+        }
+
+        public LlmDialectPostSectionDataExBuilder typeId(
+            int typeId)
+        {
+            dataExRW.typeId(typeId);
+            return this;
+        }
+
+        public LlmDialectPostSectionDataExBuilder block(
+            String block)
+        {
+            this.block = block;
+            return this;
+        }
+
+        public byte[] build()
+        {
+            final LlmDataExFW dataEx = dataExRW.postSection(d -> d.block(block)).build();
             final byte[] array = new byte[dataEx.sizeof()];
             dataEx.buffer().getBytes(dataEx.offset(), array);
             return array;
@@ -577,7 +669,6 @@ public final class LlmFunctions
 
         private Integer typeId;
         private String block;
-        private LlmDialectScope type = LlmDialectScope.STREAM;
 
         public LlmDialectDataExMatcherBuilder typeId(
             int typeId)
@@ -590,13 +681,6 @@ public final class LlmFunctions
             String block)
         {
             this.block = block;
-            return this;
-        }
-
-        public LlmDialectDataExMatcherBuilder type(
-            String type)
-        {
-            this.type = LlmDialectScope.valueOf(type);
             return this;
         }
 
@@ -619,8 +703,120 @@ public final class LlmFunctions
             if (dataEx != null &&
                 dataEx.kind() == LlmDataExFW.KIND_DIALECT &&
                 (typeId == null || typeId == dataEx.typeId()) &&
-                (block == null || block.equals(dataEx.dialect().block().asString())) &&
-                type == dataEx.dialect().type().get())
+                (block == null || block.equals(dataEx.dialect().block().asString())))
+            {
+                byteBuf.position(byteBuf.position() + dataEx.sizeof());
+                return dataEx;
+            }
+
+            throw new Exception(String.valueOf(dataEx));
+        }
+    }
+
+    public static final class LlmDialectPreSectionDataExMatcherBuilder
+    {
+        private final DirectBufferEx bufferRO = new UnsafeBufferEx();
+
+        private final LlmDataExFW dataExRO = new LlmDataExFW();
+
+        private Integer typeId;
+        private String type;
+        private String block;
+
+        public LlmDialectPreSectionDataExMatcherBuilder typeId(
+            int typeId)
+        {
+            this.typeId = typeId;
+            return this;
+        }
+
+        public LlmDialectPreSectionDataExMatcherBuilder type(
+            String type)
+        {
+            this.type = type;
+            return this;
+        }
+
+        public LlmDialectPreSectionDataExMatcherBuilder block(
+            String block)
+        {
+            this.block = block;
+            return this;
+        }
+
+        public BytesMatcher build()
+        {
+            return this::match;
+        }
+
+        private LlmDataExFW match(
+            ByteBuffer byteBuf) throws Exception
+        {
+            if (!byteBuf.hasRemaining())
+            {
+                return null;
+            }
+
+            bufferRO.wrap(byteBuf);
+            final LlmDataExFW dataEx = dataExRO.tryWrap(bufferRO, byteBuf.position(), byteBuf.capacity());
+
+            if (dataEx != null &&
+                dataEx.kind() == LlmDataExFW.KIND_PRE_SECTION &&
+                (typeId == null || typeId == dataEx.typeId()) &&
+                (type == null || type.equals(dataEx.preSection().type().asString())) &&
+                (block == null || block.equals(dataEx.preSection().block().asString())))
+            {
+                byteBuf.position(byteBuf.position() + dataEx.sizeof());
+                return dataEx;
+            }
+
+            throw new Exception(String.valueOf(dataEx));
+        }
+    }
+
+    public static final class LlmDialectPostSectionDataExMatcherBuilder
+    {
+        private final DirectBufferEx bufferRO = new UnsafeBufferEx();
+
+        private final LlmDataExFW dataExRO = new LlmDataExFW();
+
+        private Integer typeId;
+        private String block;
+
+        public LlmDialectPostSectionDataExMatcherBuilder typeId(
+            int typeId)
+        {
+            this.typeId = typeId;
+            return this;
+        }
+
+        public LlmDialectPostSectionDataExMatcherBuilder block(
+            String block)
+        {
+            this.block = block;
+            return this;
+        }
+
+        public BytesMatcher build()
+        {
+            return this::match;
+        }
+
+        private LlmDataExFW match(
+            ByteBuffer byteBuf) throws Exception
+        {
+            if (!byteBuf.hasRemaining())
+            {
+                return null;
+            }
+
+            bufferRO.wrap(byteBuf);
+            final LlmDataExFW dataEx = dataExRO.tryWrap(bufferRO, byteBuf.position(), byteBuf.capacity());
+
+            if (dataEx != null &&
+                dataEx.kind() == LlmDataExFW.KIND_POST_SECTION &&
+                (typeId == null || typeId == dataEx.typeId()) &&
+                (block == null || block.equals(dataEx.postSection().block().asString())))
             {
                 byteBuf.position(byteBuf.position() + dataEx.sizeof());
                 return dataEx;
