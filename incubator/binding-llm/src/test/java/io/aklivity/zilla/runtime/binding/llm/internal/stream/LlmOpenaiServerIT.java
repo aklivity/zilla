@@ -674,4 +674,94 @@ public class LlmOpenaiServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.section.tool.call.100k/client",
+        "${app}/openai.section.tool.call.100k/server"})
+    public void shouldDecodeOpenaiSectionToolCall100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.section.tool.call.10k/client",
+        "${app}/openai.section.tool.call.10k/server"})
+    public void shouldDecodeOpenaiSectionToolCall10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.section.tool.call.escaped/client",
+        "${app}/openai.section.tool.call.escaped/server"})
+    public void shouldDecodeOpenaiSectionToolCallEscaped() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.section.tool.call.id.last/client",
+        "${app}/openai.section.tool.call.id.last/server"})
+    public void shouldDecodeOpenaiSectionToolCallIdLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.section.tool.call.name.last/client",
+        "${app}/openai.section.tool.call.name.last/server"})
+    public void shouldDecodeOpenaiSectionToolCallNameLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.section.tool.definition.100k/client",
+        "${app}/openai.section.tool.definition.100k/server"})
+    public void shouldDecodeOpenaiSectionToolDefinition100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.section.tool.definition.10k/client",
+        "${app}/openai.section.tool.definition.10k/server"})
+    public void shouldDecodeOpenaiSectionToolDefinition10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.section.tool.definition.parameters.100k/client",
+        "${app}/openai.section.tool.definition.parameters.100k/server"})
+    public void shouldDecodeOpenaiSectionToolDefinitionParameters100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.section.tool.definition.parameters.10k/client",
+        "${app}/openai.section.tool.definition.parameters.10k/server"})
+    public void shouldDecodeOpenaiSectionToolDefinitionParameters10k() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -27,7 +27,7 @@ import io.aklivity.zilla.runtime.common.json.JsonPipelineResult;
 import io.aklivity.zilla.runtime.common.json.JsonSink;
 import io.aklivity.zilla.runtime.common.json.JsonTransform;
 
-final class LlmMediaPipeline
+final class LlmSectionPipeline
 {
     private static final int MIN_WINDOW = 64;
 
@@ -50,7 +50,7 @@ final class LlmMediaPipeline
     private int tailLength;
     private boolean completed;
 
-    LlmMediaPipeline(
+    LlmSectionPipeline(
         JsonTransform stage,
         MutableDirectBufferEx outputBuffer)
     {

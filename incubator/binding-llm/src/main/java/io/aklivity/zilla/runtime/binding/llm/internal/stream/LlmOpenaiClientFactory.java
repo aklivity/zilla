@@ -22,7 +22,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.util.ArrayDeque;
-import java.util.Arrays;
 import java.util.Deque;
 import java.util.Set;
 import java.util.function.LongUnaryOperator;
@@ -320,7 +319,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         return credentials;
     }
 
-    private static boolean translated(
+    private static boolean translatable(
         int kind)
     {
         return kind == KIND_USER_IMAGE ||
@@ -559,7 +558,6 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
                     http.doEncodeSectionBegin(
                         sectionKind(type),
-                        type,
                         llmDataEx != null ? llmDataEx.message() : NO_MESSAGE,
                         sectionAttributes.toolCallId());
                 }
@@ -571,7 +569,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 {
                     http.doEncodeSectionData(payload.buffer(), payload.offset(), payload.sizeof(), fin);
                 }
-                else if (fin && http.mediaStreaming)
+                else if (fin && http.sectionStreaming)
                 {
                     http.doEncodeSectionData(EMPTY_OCTETS.buffer(), 0, 0, true);
                 }
@@ -1147,17 +1145,17 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         private boolean messagesClosed;
         private boolean toolsOpened;
         private boolean toolsClosed;
-        private String sectionType;
-        private boolean translating;
-        private byte[] translateBytes = new byte[0];
-        private int translateLength;
-        private boolean media;
-        private boolean mediaStreaming;
+        private boolean translated;
+        private boolean sectionStreaming;
         private boolean mediaDropQuote;
-        private LlmMediaPipeline mediaPipeline;
-        private LlmMediaPipeline mediaDataPipeline;
-        private LlmMediaPipeline mediaUrlPipeline;
-        private final LlmMediaPipeline.Output mediaOutput = this::putMedia;
+        private LlmSectionPipeline sectionPipeline;
+        private LlmSectionPipeline.Output sectionOutput;
+        private LlmSectionPipeline mediaDataPipeline;
+        private LlmSectionPipeline mediaUrlPipeline;
+        private LlmSectionPipeline toolCallPipeline;
+        private LlmSectionPipeline toolDefinitionPipeline;
+        private final LlmSectionPipeline.Output mediaOutput = this::putMedia;
+        private final LlmSectionPipeline.Output toolOutput = this::put;
         private String messageRole;
         private String messageToolId;
         private boolean toolCallsOpened;
@@ -1253,18 +1251,13 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
         private void doEncodeSectionBegin(
             int kind,
-            String type,
             int message,
             String extension)
         {
             sectionKind = kind;
-            sectionType = type;
             sectionOpen = false;
             sectionArrayPart = false;
-            final boolean translate = !NAME.equals(stream.dialect) && translated(kind);
-            media = translate && media(kind);
-            translating = translate && !media;
-            translateLength = 0;
+            translated = !NAME.equals(stream.dialect) && translatable(kind);
 
             if (!sectionsStarted && kind != KIND_DROPPED)
             {
@@ -1297,9 +1290,37 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 beginMessageSection(kind, message, extension);
             }
 
-            if (media && !encodeFailed)
+            if (translated && !encodeFailed)
+            {
+                beginTranslated(kind);
+            }
+        }
+
+        private void beginTranslated(
+            int kind)
+        {
+            if (media(kind))
             {
                 beginMedia(kind);
+            }
+            else if (kind == KIND_TOOL_CALL)
+            {
+                if (toolCallPipeline == null)
+                {
+                    toolCallPipeline = new LlmSectionPipeline(new LlmAnthropicToolCallTransform(), transformBuffer);
+                }
+
+                beginSectionStreaming(toolCallPipeline, toolOutput);
+            }
+            else
+            {
+                if (toolDefinitionPipeline == null)
+                {
+                    toolDefinitionPipeline = new LlmSectionPipeline(new LlmAnthropicToolDefinitionTransform(),
+                        transformBuffer);
+                }
+
+                beginSectionStreaming(toolDefinitionPipeline, toolOutput);
             }
         }
 
@@ -1314,7 +1335,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             {
                 if (mediaDataPipeline == null)
                 {
-                    mediaDataPipeline = new LlmMediaPipeline(new LlmAnthropicMediaDataTransform(), transformBuffer);
+                    mediaDataPipeline = new LlmSectionPipeline(new LlmAnthropicMediaDataTransform(), transformBuffer);
                 }
 
                 put(kind == KIND_USER_IMAGE ? IMAGE_URL_START : FILE_DATA_START);
@@ -1328,7 +1349,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             {
                 if (mediaUrlPipeline == null)
                 {
-                    mediaUrlPipeline = new LlmMediaPipeline(new LlmAnthropicMediaUrlTransform(), transformBuffer);
+                    mediaUrlPipeline = new LlmSectionPipeline(new LlmAnthropicMediaUrlTransform(), transformBuffer);
                 }
 
                 put(IMAGE_URL_START);
@@ -1348,12 +1369,20 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         }
 
         private void beginMediaStreaming(
-            LlmMediaPipeline pipeline)
+            LlmSectionPipeline pipeline)
         {
-            mediaPipeline = pipeline;
-            mediaPipeline.begin(sectionAttributes);
-            mediaStreaming = true;
+            beginSectionStreaming(pipeline, mediaOutput);
             mediaDropQuote = true;
+        }
+
+        private void beginSectionStreaming(
+            LlmSectionPipeline pipeline,
+            LlmSectionPipeline.Output output)
+        {
+            sectionPipeline = pipeline;
+            sectionOutput = output;
+            sectionPipeline.begin(sectionAttributes);
+            sectionStreaming = true;
         }
 
         private void putMedia(
@@ -1467,18 +1496,14 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             int length,
             boolean fin)
         {
-            if (mediaStreaming)
+            if (sectionStreaming)
             {
-                if (!mediaPipeline.feed(buffer, offset, length, fin, mediaOutput))
+                if (!sectionPipeline.feed(buffer, offset, length, fin, sectionOutput))
                 {
                     encodeFailed = true;
                 }
             }
-            else if (translating)
-            {
-                accumulate(buffer, offset, length);
-            }
-            else if (!media && sectionKind != 0 && sectionKind != KIND_DROPPED)
+            else if (!translated && sectionKind != 0 && sectionKind != KIND_DROPPED)
             {
                 if (text(sectionKind) || sectionKind == KIND_ASSISTANT_REFUSAL)
                 {
@@ -1496,53 +1521,19 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             }
         }
 
-        private void accumulate(
-            DirectBufferEx buffer,
-            int offset,
-            int length)
-        {
-            if (translateLength + length > encodeMax)
-            {
-                encodeFailed = true;
-            }
-            else
-            {
-                if (translateLength + length > translateBytes.length)
-                {
-                    translateBytes = Arrays.copyOf(translateBytes, Math.max(translateLength + length, translateBytes.length * 2));
-                }
-
-                buffer.getBytes(offset, translateBytes, translateLength, length);
-                translateLength += length;
-            }
-        }
-
         private void doEncodeSectionEnd()
         {
-            if (mediaStreaming)
+            if (sectionStreaming)
             {
-                put(SOURCE_END);
-                mediaStreaming = false;
-            }
-
-            media = false;
-
-            if (translating)
-            {
-                final String translated = LlmSectionTranslator.toOpenai(
-                    sectionType, new String(translateBytes, 0, translateLength, UTF_8));
-
-                if (translated != null)
+                if (media(sectionKind))
                 {
-                    put(translated.getBytes(UTF_8));
-                }
-                else
-                {
-                    encodeFailed = true;
+                    put(SOURCE_END);
                 }
 
-                translating = false;
+                sectionStreaming = false;
             }
+
+            translated = false;
 
             if (sectionOpen)
             {

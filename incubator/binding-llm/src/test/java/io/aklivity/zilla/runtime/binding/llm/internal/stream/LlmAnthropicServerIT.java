@@ -713,4 +713,94 @@ public class LlmAnthropicServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.section.assistant.tool.call.100k/client",
+        "${app}/anthropic.section.assistant.tool.call.100k/server"})
+    public void shouldDecodeAnthropicSectionAssistantToolCall100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.section.assistant.tool.call.10k/client",
+        "${app}/anthropic.section.assistant.tool.call.10k/server"})
+    public void shouldDecodeAnthropicSectionAssistantToolCall10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.section.assistant.tool.call.escaped/client",
+        "${app}/anthropic.section.assistant.tool.call.escaped/server"})
+    public void shouldDecodeAnthropicSectionAssistantToolCallEscaped() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.section.assistant.tool.call.id.last/client",
+        "${app}/anthropic.section.assistant.tool.call.id.last/server"})
+    public void shouldDecodeAnthropicSectionAssistantToolCallIdLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.section.assistant.tool.call.name.last/client",
+        "${app}/anthropic.section.assistant.tool.call.name.last/server"})
+    public void shouldDecodeAnthropicSectionAssistantToolCallNameLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.section.tool.definition.100k/client",
+        "${app}/anthropic.section.tool.definition.100k/server"})
+    public void shouldDecodeAnthropicSectionToolDefinition100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.section.tool.definition.10k/client",
+        "${app}/anthropic.section.tool.definition.10k/server"})
+    public void shouldDecodeAnthropicSectionToolDefinition10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.section.tool.definition.parameters.100k/client",
+        "${app}/anthropic.section.tool.definition.parameters.100k/server"})
+    public void shouldDecodeAnthropicSectionToolDefinitionParameters100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.section.tool.definition.parameters.10k/client",
+        "${app}/anthropic.section.tool.definition.parameters.10k/server"})
+    public void shouldDecodeAnthropicSectionToolDefinitionParameters10k() throws Exception
+    {
+        k3po.finish();
+    }
 }
