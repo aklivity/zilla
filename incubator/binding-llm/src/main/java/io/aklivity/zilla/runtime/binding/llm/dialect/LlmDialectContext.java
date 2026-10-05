@@ -35,8 +35,6 @@ public interface LlmDialectContext
      *
      * @param bindingId  the binding identifier
      */
-    default void detach(
-        long bindingId)
-    {
-    }
+    void detach(
+        long bindingId);
 }
