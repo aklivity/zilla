@@ -53,6 +53,7 @@ import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmDataExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmEndExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmResetExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmSectionDataExFW;
+import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmSectionType;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
@@ -338,31 +339,24 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
     }
 
     private static int sectionKind(
-        String type)
+        LlmSectionType type)
     {
-        int kind = 0;
-
-        if (type != null)
+        return switch (type)
         {
-            kind = switch (type)
-            {
-            case "system-instruction" -> KIND_SYSTEM_INSTRUCTION;
-            case "user-text" -> KIND_USER_TEXT;
-            case "user-image" -> KIND_USER_IMAGE;
-            case "user-document" -> KIND_USER_DOCUMENT;
-            case "user-audio" -> KIND_USER_AUDIO;
-            case "assistant-text" -> KIND_ASSISTANT_TEXT;
-            case "assistant-refusal" -> KIND_ASSISTANT_REFUSAL;
-            case "tool-definition" -> KIND_TOOL_DEFINITION;
-            case "tool-call" -> KIND_TOOL_CALL;
-            case "tool-result" -> KIND_TOOL_RESULT;
-            case "assistant-reasoning", "server-tool-result", "citations" -> KIND_DROPPED;
-            case "unknown" -> KIND_UNKNOWN;
-            default -> 0;
-            };
-        }
-
-        return kind;
+        case SYSTEM_INSTRUCTION -> KIND_SYSTEM_INSTRUCTION;
+        case USER_TEXT -> KIND_USER_TEXT;
+        case USER_IMAGE -> KIND_USER_IMAGE;
+        case USER_DOCUMENT -> KIND_USER_DOCUMENT;
+        case USER_AUDIO -> KIND_USER_AUDIO;
+        case ASSISTANT_TEXT -> KIND_ASSISTANT_TEXT;
+        case ASSISTANT_REFUSAL -> KIND_ASSISTANT_REFUSAL;
+        case TOOL_DEFINITION -> KIND_TOOL_DEFINITION;
+        case TOOL_CALL -> KIND_TOOL_CALL;
+        case TOOL_RESULT -> KIND_TOOL_RESULT;
+        case ASSISTANT_REASONING, SERVER_TOOL_RESULT, CITATIONS -> KIND_DROPPED;
+        case UNKNOWN -> KIND_UNKNOWN;
+        default -> 0;
+        };
     }
 
     private static String role(
@@ -565,7 +559,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                         final LlmSectionDataExFW section = llmDataEx != null ? llmDataEx.section() : null;
                         sectionAttributes.readFrom(section);
 
-                        final String type = section != null ? section.type().asString() : null;
+                        final LlmSectionType type = section != null ? section.type().get() : LlmSectionType.NONE;
 
                         http.doEncodeSectionBegin(
                             sectionKind(type),
@@ -748,7 +742,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
                 options.deliver(slot);
 
-                queueReplyFrame(member, true, NO_MESSAGE, null, null, Flags.COMPLETE,
+                queueReplyFrame(member, null, NO_MESSAGE, null, null, Flags.COMPLETE,
                     new UnsafeBufferEx(literal), 0, literal.length);
 
                 slot = options.next();
@@ -756,8 +750,8 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         }
 
         private void queueReplyFrame(
-            String type,
-            boolean dialect,
+            String block,
+            LlmSectionType type,
             int message,
             String toolCallId,
             String toolName,
@@ -787,7 +781,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                     replyEncodeSlotOffset += length;
                 }
 
-                replyFrames.add(new ReplyFrame(type, dialect, message, toolCallId, toolName, flags, slotOffset, length));
+                replyFrames.add(new ReplyFrame(block, type, message, toolCallId, toolName, flags, slotOffset, length));
 
                 drainReplyFrames(traceId);
             }
@@ -848,15 +842,15 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 final LlmDataExFW.Builder dataExBuilder = llmDataExRW.wrap(extBuffer, 0, extBuffer.capacity())
                     .typeId(llmTypeId);
 
-                if (header.dialect)
+                if (header.block != null)
                 {
-                    dataExBuilder.dialect(d -> d.block(header.type));
+                    dataExBuilder.dialect(d -> d.block(header.block));
                 }
                 else
                 {
                     dataExBuilder.section(x ->
                     {
-                        x.type(header.type).message(header.message);
+                        x.type(t -> t.set(header.type)).message(header.message);
 
                         if (header.toolName != null)
                         {
@@ -909,7 +903,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
             @Override
             public void frame(
-                String type,
+                LlmSectionType type,
                 int message,
                 String toolCallId,
                 String toolName,
@@ -918,7 +912,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 int offset,
                 int length)
             {
-                queueReplyFrame(type, false, message, toolCallId, toolName, flags, buffer, offset, length);
+                queueReplyFrame(null, type, message, toolCallId, toolName, flags, buffer, offset, length);
             }
         }
 
@@ -1128,8 +1122,8 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
     private static final class ReplyFrame
     {
-        private final String type;
-        private final boolean dialect;
+        private final String block;
+        private final LlmSectionType type;
         private final int message;
         private final String toolCallId;
         private final String toolName;
@@ -1139,8 +1133,8 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         private int sent;
 
         private ReplyFrame(
-            String type,
-            boolean dialect,
+            String block,
+            LlmSectionType type,
             int message,
             String toolCallId,
             String toolName,
@@ -1148,8 +1142,8 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             int offset,
             int length)
         {
+            this.block = block;
             this.type = type;
-            this.dialect = dialect;
             this.message = message;
             this.toolCallId = toolCallId;
             this.toolName = toolName;

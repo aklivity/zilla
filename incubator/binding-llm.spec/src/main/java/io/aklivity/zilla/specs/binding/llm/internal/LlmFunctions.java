@@ -32,6 +32,7 @@ import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmDataExFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmEndExFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmErrorFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmResetExFW;
+import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmSectionType;
 
 public final class LlmFunctions
 {
@@ -330,7 +331,7 @@ public final class LlmFunctions
         private final LlmDataExFW.Builder dataExRW;
         private final Map<String, String> attributes;
 
-        private String type;
+        private LlmSectionType type;
         private Integer message;
         private String extension;
 
@@ -351,7 +352,7 @@ public final class LlmFunctions
         public LlmDataExBuilder type(
             String type)
         {
-            this.type = type;
+            this.type = LlmSectionType.valueOf(type);
             return this;
         }
 
@@ -383,7 +384,7 @@ public final class LlmFunctions
             {
                 if (type != null)
                 {
-                    s.type(type);
+                    s.type(t -> t.set(type));
                 }
 
                 if (message != null)
@@ -446,7 +447,7 @@ public final class LlmFunctions
     {
         private final LlmDataExFW.Builder dataExRW;
 
-        private String type;
+        private LlmSectionType type;
         private int message = -1;
         private String block;
 
@@ -466,7 +467,7 @@ public final class LlmFunctions
         public LlmDialectPreSectionDataExBuilder type(
             String type)
         {
-            this.type = type;
+            this.type = LlmSectionType.valueOf(type);
             return this;
         }
 
@@ -486,7 +487,7 @@ public final class LlmFunctions
 
         public byte[] build()
         {
-            final LlmDataExFW dataEx = dataExRW.preSection(d -> d.type(type).message(message).block(block)).build();
+            final LlmDataExFW dataEx = dataExRW.preSection(d -> d.type(t -> t.set(type)).message(message).block(block)).build();
             final byte[] array = new byte[dataEx.sizeof()];
             dataEx.buffer().getBytes(dataEx.offset(), array);
             return array;
@@ -535,7 +536,7 @@ public final class LlmFunctions
         private final LlmDataExFW dataExRO = new LlmDataExFW();
 
         private Integer typeId;
-        private String type;
+        private LlmSectionType type;
         private boolean typeNull;
         private Integer message;
         private Map<String, String> attributes;
@@ -553,7 +554,7 @@ public final class LlmFunctions
         public LlmDataExMatcherBuilder type(
             String type)
         {
-            this.type = type;
+            this.type = LlmSectionType.valueOf(type);
             return this;
         }
 
@@ -642,8 +643,8 @@ public final class LlmFunctions
         private boolean matchType(
             LlmDataExFW dataEx)
         {
-            return typeNull ? dataEx.section().type().asString() == null
-                : type == null || type.equals(dataEx.section().type().asString());
+            return typeNull ? dataEx.section().type().get() == LlmSectionType.NONE
+                : type == null || type == dataEx.section().type().get();
         }
 
         private boolean matchMessage(
@@ -728,7 +729,7 @@ public final class LlmFunctions
         private final LlmDataExFW dataExRO = new LlmDataExFW();
 
         private Integer typeId;
-        private String type;
+        private LlmSectionType type;
         private Integer message;
         private String block;
 
@@ -742,7 +743,7 @@ public final class LlmFunctions
         public LlmDialectPreSectionDataExMatcherBuilder type(
             String type)
         {
-            this.type = type;
+            this.type = LlmSectionType.valueOf(type);
             return this;
         }
 
@@ -779,7 +780,7 @@ public final class LlmFunctions
             if (dataEx != null &&
                 dataEx.kind() == LlmDataExFW.KIND_PRE_SECTION &&
                 (typeId == null || typeId == dataEx.typeId()) &&
-                (type == null || type.equals(dataEx.preSection().type().asString())) &&
+                (type == null || type == dataEx.preSection().type().get()) &&
                 (message == null || message == dataEx.preSection().message()) &&
                 (block == null || block.equals(dataEx.preSection().block().asString())))
             {

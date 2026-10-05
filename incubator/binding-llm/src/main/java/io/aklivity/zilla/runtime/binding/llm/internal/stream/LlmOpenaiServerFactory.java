@@ -49,6 +49,7 @@ import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmEndExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmErrorFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmResetExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmSectionDataExFW;
+import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmSectionType;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmUsageFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.WindowFW;
@@ -119,17 +120,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
     private static final String TYPE_TEXT = "text";
     private static final String TYPE_REFUSAL = "refusal";
 
-    private static final String BLOCK_SYSTEM_INSTRUCTION = "system-instruction";
-    private static final String BLOCK_USER_TEXT = "user-text";
-    private static final String BLOCK_USER_IMAGE = "user-image";
-    private static final String BLOCK_USER_DOCUMENT = "user-document";
-    private static final String BLOCK_USER_AUDIO = "user-audio";
-    private static final String BLOCK_ASSISTANT_TEXT = "assistant-text";
-    private static final String BLOCK_ASSISTANT_REFUSAL = "assistant-refusal";
-    private static final String BLOCK_TOOL_DEFINITION = "tool-definition";
-    private static final String BLOCK_TOOL_CALL = "tool-call";
-    private static final String BLOCK_TOOL_RESULT = "tool-result";
-    private static final String BLOCK_UNKNOWN = "unknown";
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -844,7 +834,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             switch (event)
             {
             case VALUE_STRING:
-                server.text(BLOCK_ASSISTANT_REFUSAL, null, decodeMessage);
+                server.text(LlmSectionType.ASSISTANT_REFUSAL, null, decodeMessage);
                 progress = decodeTextValue(server, traceId, authorization, buffer, progress, limit, event);
                 break decode;
             case VALUE_NULL:
@@ -916,7 +906,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             {
             case START_OBJECT:
                 server.hold();
-                server.probe(BLOCK_TOOL_CALL, server.message, decodeToolCalls);
+                server.probe(LlmSectionType.TOOL_CALL, server.message, decodeToolCalls);
                 server.decoder = decodeAttributes;
                 break;
             case END_ARRAY:
@@ -988,7 +978,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             {
             case START_OBJECT:
                 server.hold();
-                server.probe(BLOCK_TOOL_DEFINITION, -1, decodeTools);
+                server.probe(LlmSectionType.TOOL_DEFINITION, -1, decodeTools);
                 server.decoder = decodeAttributes;
                 break;
             case END_ARRAY:
@@ -1113,7 +1103,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 }
                 else
                 {
-                    final String blockType = partBlockType(type);
+                    final LlmSectionType blockType = partBlockType(type);
 
                     if (LlmOpenaiAttributeProbe.carries(blockType))
                     {
@@ -1164,7 +1154,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 }
                 else if (matches(key, TYPE_REFUSAL))
                 {
-                    server.text(BLOCK_ASSISTANT_REFUSAL, null, decodePart);
+                    server.text(LlmSectionType.ASSISTANT_REFUSAL, null, decodePart);
                     server.decoder = decodeText;
                 }
                 else
@@ -1453,25 +1443,25 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         return server.role != null && (!ROLE_TOOL.equals(server.role) || server.toolCallId != null);
     }
 
-    private String textBlockType(
+    private LlmSectionType textBlockType(
         LlmOpenaiServer server)
     {
         final String role = server.role;
-        final String type;
+        final LlmSectionType type;
 
         if (role == null)
         {
-            type = BLOCK_UNKNOWN;
+            type = LlmSectionType.UNKNOWN;
         }
         else
         {
             type = switch (role)
             {
-            case "system", "developer" -> BLOCK_SYSTEM_INSTRUCTION;
-            case "user" -> BLOCK_USER_TEXT;
-            case "assistant" -> BLOCK_ASSISTANT_TEXT;
-            case ROLE_TOOL -> BLOCK_TOOL_RESULT;
-            default -> BLOCK_UNKNOWN;
+            case "system", "developer" -> LlmSectionType.SYSTEM_INSTRUCTION;
+            case "user" -> LlmSectionType.USER_TEXT;
+            case "assistant" -> LlmSectionType.ASSISTANT_TEXT;
+            case ROLE_TOOL -> LlmSectionType.TOOL_RESULT;
+            default -> LlmSectionType.UNKNOWN;
             };
         }
 
@@ -1484,15 +1474,15 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         return ROLE_TOOL.equals(server.role) ? server.toolCallId : null;
     }
 
-    private static String partBlockType(
+    private static LlmSectionType partBlockType(
         String type)
     {
         return switch (type)
         {
-        case "image_url" -> BLOCK_USER_IMAGE;
-        case "input_audio" -> BLOCK_USER_AUDIO;
-        case "file" -> BLOCK_USER_DOCUMENT;
-        default -> BLOCK_UNKNOWN;
+        case "image_url" -> LlmSectionType.USER_IMAGE;
+        case "input_audio" -> LlmSectionType.USER_AUDIO;
+        case "file" -> LlmSectionType.USER_DOCUMENT;
+        default -> LlmSectionType.UNKNOWN;
         };
     }
 
@@ -1722,13 +1712,13 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private boolean streaming;
 
         private LlmOpenaiServerDecoder textThen;
-        private String textType;
+        private LlmSectionType textType;
         private String textToolCallId;
         private boolean textOpen;
         private char textHighSurrogate;
 
         private LlmOpenaiServerDecoder probeThen;
-        private String probeType;
+        private LlmSectionType probeType;
         private int probeMessage;
 
         private LlmOpenaiServerDecoder captureThen;
@@ -1751,9 +1741,9 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private final LlmSectionAttributes finAttributes;
         private boolean probing;
 
-        private String blockType;
+        private String blockName;
         private int blockKind;
-        private String blockSectionType;
+        private LlmSectionType blockSection;
         private int blockMessage;
         private int blockFlags;
 
@@ -2071,7 +2061,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         }
 
         private void text(
-            String type,
+            LlmSectionType type,
             String toolCallId,
             LlmOpenaiServerDecoder then)
         {
@@ -2082,7 +2072,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         }
 
         private void probe(
-            String type,
+            LlmSectionType type,
             int message,
             LlmOpenaiServerDecoder then)
         {
@@ -2106,7 +2096,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         }
 
         private void captureHeld(
-            String type,
+            LlmSectionType type,
             int blockMessage,
             LlmOpenaiServerDecoder then,
             int depth)
@@ -2190,9 +2180,9 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private void onDecodeDialectBlock(
             String block)
         {
-            blockType = block;
+            blockName = block;
             blockKind = BLOCK_DIALECT;
-            blockSectionType = null;
+            blockSection = null;
             blockMessage = -1;
             blockFlags = Flags.INIT;
 
@@ -2221,13 +2211,13 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         }
 
         private void onDecodeBlock(
-            String type,
+            LlmSectionType type,
             int message,
             String toolCallId)
         {
-            blockType = type;
+            blockName = null;
             blockKind = BLOCK_SECTION;
-            blockSectionType = null;
+            blockSection = type;
             blockMessage = message;
             blockFlags = Flags.INIT;
 
@@ -2268,8 +2258,8 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 attributes = null;
             }
 
-            stream.doAppBlockData(traceId, authorization, flags, init ? blockType : null, blockKind, blockSectionType,
-                blockMessage, attributes, buffer, offset, length);
+            stream.doAppBlockData(traceId, authorization, flags, blockKind, init ? blockName : null,
+                init ? blockSection : null, blockMessage, attributes, buffer, offset, length);
 
             blockFlags = Flags.NONE;
         }
@@ -2997,7 +2987,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                     replyAttributes.readFrom(section);
 
                     length += responseEncoder.section(copyBuffer, length,
-                        section != null ? section.type().asString() : null,
+                        section != null ? section.type().get() : LlmSectionType.NONE,
                         section != null ? section.message() : -1,
                         replyAttributes.toolCallId(),
                         replyAttributes.toolName());
@@ -3270,9 +3260,9 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             long traceId,
             long authorization,
             int flags,
-            String type,
             int kind,
-            String sectionType,
+            String block,
+            LlmSectionType type,
             int message,
             LlmSectionAttributes attributes,
             DirectBufferEx buffer,
@@ -3293,22 +3283,22 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 .reserved(length)
                 .payload(buffer, offset, length);
 
-            if (type != null || attributes != null && attributes.present())
+            if (block != null || type != null || attributes != null && attributes.present())
             {
                 final LlmDataExFW.Builder dataExBuilder = llmDataExRW.wrap(extBuffer, 0, extBuffer.capacity())
                     .typeId(llmTypeId);
 
                 if (kind == BLOCK_DIALECT)
                 {
-                    dataExBuilder.dialect(d -> d.block(type));
+                    dataExBuilder.dialect(d -> d.block(block));
                 }
                 else if (kind == BLOCK_PRE_SECTION)
                 {
-                    dataExBuilder.preSection(d -> d.type(sectionType).message(message).block(type));
+                    dataExBuilder.preSection(d -> d.type(t -> t.set(type)).message(message).block(block));
                 }
                 else if (kind == BLOCK_POST_SECTION)
                 {
-                    dataExBuilder.postSection(d -> d.block(type));
+                    dataExBuilder.postSection(d -> d.block(block));
                 }
                 else
                 {
@@ -3316,7 +3306,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                     {
                         if (type != null)
                         {
-                            x.type(type).message(message);
+                            x.type(t -> t.set(type)).message(message);
                         }
 
                         if (attributes != null)

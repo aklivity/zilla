@@ -25,6 +25,8 @@ import static org.hamcrest.Matchers.nullValue;
 
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmSectionType;
+
 public class LlmAnthropicAttributeProbeTest
 {
     private final LlmAnthropicAttributeProbe probe = new LlmAnthropicAttributeProbe();
@@ -32,18 +34,18 @@ public class LlmAnthropicAttributeProbeTest
     @Test
     public void shouldCarryAttributesForMediaAndToolSectionsOnly()
     {
-        assertThat(LlmAnthropicAttributeProbe.carries("user-image"), equalTo(true));
-        assertThat(LlmAnthropicAttributeProbe.carries("user-document"), equalTo(true));
-        assertThat(LlmAnthropicAttributeProbe.carries("tool-call"), equalTo(true));
-        assertThat(LlmAnthropicAttributeProbe.carries("tool-definition"), equalTo(true));
-        assertThat(LlmAnthropicAttributeProbe.carries("server-tool-result"), equalTo(true));
-        assertThat(LlmAnthropicAttributeProbe.carries("user-text"), equalTo(false));
-        assertThat(LlmAnthropicAttributeProbe.carries("system-instruction"), equalTo(false));
-        assertThat(LlmAnthropicAttributeProbe.carries("assistant-text"), equalTo(false));
-        assertThat(LlmAnthropicAttributeProbe.carries("assistant-reasoning"), equalTo(false));
-        assertThat(LlmAnthropicAttributeProbe.carries("citations"), equalTo(false));
-        assertThat(LlmAnthropicAttributeProbe.carries("tool-result"), equalTo(false));
-        assertThat(LlmAnthropicAttributeProbe.carries("unknown"), equalTo(false));
+        assertThat(LlmAnthropicAttributeProbe.carries(LlmSectionType.USER_IMAGE), equalTo(true));
+        assertThat(LlmAnthropicAttributeProbe.carries(LlmSectionType.USER_DOCUMENT), equalTo(true));
+        assertThat(LlmAnthropicAttributeProbe.carries(LlmSectionType.TOOL_CALL), equalTo(true));
+        assertThat(LlmAnthropicAttributeProbe.carries(LlmSectionType.TOOL_DEFINITION), equalTo(true));
+        assertThat(LlmAnthropicAttributeProbe.carries(LlmSectionType.SERVER_TOOL_RESULT), equalTo(true));
+        assertThat(LlmAnthropicAttributeProbe.carries(LlmSectionType.USER_TEXT), equalTo(false));
+        assertThat(LlmAnthropicAttributeProbe.carries(LlmSectionType.SYSTEM_INSTRUCTION), equalTo(false));
+        assertThat(LlmAnthropicAttributeProbe.carries(LlmSectionType.ASSISTANT_TEXT), equalTo(false));
+        assertThat(LlmAnthropicAttributeProbe.carries(LlmSectionType.ASSISTANT_REASONING), equalTo(false));
+        assertThat(LlmAnthropicAttributeProbe.carries(LlmSectionType.CITATIONS), equalTo(false));
+        assertThat(LlmAnthropicAttributeProbe.carries(LlmSectionType.TOOL_RESULT), equalTo(false));
+        assertThat(LlmAnthropicAttributeProbe.carries(LlmSectionType.UNKNOWN), equalTo(false));
     }
 
     @Test
@@ -51,7 +53,7 @@ public class LlmAnthropicAttributeProbeTest
     {
         final String json = "{\"type\":\"image\",\"source\":{\"type\":\"url\",\"url\":\"https://example.com/cat.png\"}}";
 
-        assertThat(LlmAttributeProbeRunner.run(probe, "user-image", null, json, WHOLE), equalTo(RESOLVED));
+        assertThat(LlmAttributeProbeRunner.run(probe, LlmSectionType.USER_IMAGE, null, json, WHOLE), equalTo(RESOLVED));
         assertThat(probe.attributes().source(), equalTo("url"));
         assertThat(probe.attributes().mediaType(), nullValue());
     }
@@ -62,7 +64,7 @@ public class LlmAnthropicAttributeProbeTest
         final String json = "{\"type\":\"image\",\"source\":{\"type\":\"base64\",\"media_type\":\"image/png\"," +
             "\"data\":\"AAAA\"}}";
 
-        assertThat(LlmAttributeProbeRunner.run(probe, "user-image", null, json, WHOLE), equalTo(RESOLVED));
+        assertThat(LlmAttributeProbeRunner.run(probe, LlmSectionType.USER_IMAGE, null, json, WHOLE), equalTo(RESOLVED));
         assertThat(probe.attributes().source(), equalTo("inline"));
         assertThat(probe.attributes().mediaType(), equalTo("image/png"));
     }
@@ -73,7 +75,7 @@ public class LlmAnthropicAttributeProbeTest
         final String json = "{\"type\":\"image\",\"source\":{\"type\":\"base64\",\"media_type\":\"image/jpeg\"," +
             "\"data\":\"" + "A".repeat(4096) + "\"}}";
 
-        assertThat(LlmAttributeProbeRunner.run(probe, "user-image", null, json, 96), equalTo(RESOLVED));
+        assertThat(LlmAttributeProbeRunner.run(probe, LlmSectionType.USER_IMAGE, null, json, 96), equalTo(RESOLVED));
         assertThat(probe.attributes().source(), equalTo("inline"));
         assertThat(probe.attributes().mediaType(), equalTo("image/jpeg"));
     }
@@ -83,7 +85,7 @@ public class LlmAnthropicAttributeProbeTest
     {
         final String json = "{\"type\":\"image\",\"source\":{\"type\":\"file\",\"file_id\":\"file_011abc\"}}";
 
-        assertThat(LlmAttributeProbeRunner.run(probe, "user-image", null, json, WHOLE), equalTo(RESOLVED));
+        assertThat(LlmAttributeProbeRunner.run(probe, LlmSectionType.USER_IMAGE, null, json, WHOLE), equalTo(RESOLVED));
         assertThat(probe.attributes().source(), equalTo("reference"));
         assertThat(probe.attributes().refId(), equalTo("file_011abc"));
     }
@@ -94,7 +96,7 @@ public class LlmAnthropicAttributeProbeTest
         final String json = "{\"type\":\"document\",\"title\":\"Contract\",\"source\":{\"type\":\"url\"," +
             "\"url\":\"https://example.com/contract.pdf\"}}";
 
-        assertThat(LlmAttributeProbeRunner.run(probe, "user-document", null, json, WHOLE), equalTo(RESOLVED));
+        assertThat(LlmAttributeProbeRunner.run(probe, LlmSectionType.USER_DOCUMENT, null, json, WHOLE), equalTo(RESOLVED));
         assertThat(probe.attributes().source(), equalTo("url"));
         assertThat(probe.attributes().filename(), nullValue());
     }
@@ -105,7 +107,7 @@ public class LlmAnthropicAttributeProbeTest
         final String json = "{\"type\":\"document\",\"source\":{\"type\":\"text\",\"media_type\":\"text/plain\"," +
             "\"data\":\"hello\"}}";
 
-        assertThat(LlmAttributeProbeRunner.run(probe, "user-document", null, json, WHOLE), equalTo(RESOLVED));
+        assertThat(LlmAttributeProbeRunner.run(probe, LlmSectionType.USER_DOCUMENT, null, json, WHOLE), equalTo(RESOLVED));
         assertThat(probe.attributes().source(), equalTo("inline"));
         assertThat(probe.attributes().mediaType(), equalTo("text/plain"));
     }
@@ -116,7 +118,7 @@ public class LlmAnthropicAttributeProbeTest
         final String json = "{\"type\":\"document\",\"source\":{\"type\":\"content\",\"content\":[" +
             "{\"type\":\"text\",\"text\":\"hello\"}]}}";
 
-        assertThat(LlmAttributeProbeRunner.run(probe, "user-document", null, json, WHOLE), equalTo(RESOLVED));
+        assertThat(LlmAttributeProbeRunner.run(probe, LlmSectionType.USER_DOCUMENT, null, json, WHOLE), equalTo(RESOLVED));
         assertThat(probe.attributes().source(), equalTo("inline"));
         assertThat(probe.attributes().mediaType(), nullValue());
     }
@@ -127,7 +129,7 @@ public class LlmAnthropicAttributeProbeTest
         final String json = "{\"type\":\"image\",\"source\":{\"type\":\"url\",\"url\":\"https://example.com/" +
             "a".repeat(4096) + "\"}}";
 
-        assertThat(LlmAttributeProbeRunner.run(probe, "user-image", null, json, 96), equalTo(RESOLVED));
+        assertThat(LlmAttributeProbeRunner.run(probe, LlmSectionType.USER_IMAGE, null, json, 96), equalTo(RESOLVED));
         assertThat(probe.attributes().source(), equalTo("url"));
     }
 
@@ -137,7 +139,7 @@ public class LlmAnthropicAttributeProbeTest
         final String json = "{\"type\":\"image\",\"source\":{\"type\":\"file\",\"file_id\":\"" +
             "a".repeat(4096) + "\"}}";
 
-        assertThat(LlmAttributeProbeRunner.run(probe, "user-image", null, json, 96), equalTo(REJECTED));
+        assertThat(LlmAttributeProbeRunner.run(probe, LlmSectionType.USER_IMAGE, null, json, 96), equalTo(REJECTED));
     }
 
     @Test
@@ -145,7 +147,7 @@ public class LlmAnthropicAttributeProbeTest
     {
         final String json = "{\"type\":\"image\",\"source\":{\"type\":\"base64\"}}";
 
-        assertThat(LlmAttributeProbeRunner.run(probe, "user-image", null, json, WHOLE), equalTo(COMPLETE));
+        assertThat(LlmAttributeProbeRunner.run(probe, LlmSectionType.USER_IMAGE, null, json, WHOLE), equalTo(COMPLETE));
         assertThat(probe.attributes().source(), nullValue());
     }
 
@@ -155,7 +157,7 @@ public class LlmAnthropicAttributeProbeTest
         final String json = "{\"type\":\"tool_use\",\"id\":\"toolu_01\",\"name\":\"get_weather\"," +
             "\"input\":{\"location\":\"Paris\"}}";
 
-        assertThat(LlmAttributeProbeRunner.run(probe, "tool-call", null, json, WHOLE), equalTo(RESOLVED));
+        assertThat(LlmAttributeProbeRunner.run(probe, LlmSectionType.TOOL_CALL, null, json, WHOLE), equalTo(RESOLVED));
         assertThat(probe.attributes().toolCallId(), equalTo("toolu_01"));
         assertThat(probe.attributes().toolName(), equalTo("get_weather"));
         assertThat(probe.attributes().providerExecuted(), nullValue());
@@ -167,7 +169,7 @@ public class LlmAnthropicAttributeProbeTest
         final String json = "{\"type\":\"tool_use\",\"id\":\"toolu_01\",\"input\":{\"name\":\"nested\"}," +
             "\"name\":\"get_weather\"}";
 
-        assertThat(runToEnd(probe, "tool-call", null, json, WHOLE), equalTo(COMPLETE));
+        assertThat(runToEnd(probe, LlmSectionType.TOOL_CALL, null, json, WHOLE), equalTo(COMPLETE));
         assertThat(probe.attributes().toolCallId(), equalTo("toolu_01"));
         assertThat(probe.attributes().toolName(), equalTo("get_weather"));
     }
@@ -178,7 +180,7 @@ public class LlmAnthropicAttributeProbeTest
         final String json = "{\"type\":\"custom\",\"description\":\"" + "x".repeat(4096) +
             "\",\"name\":\"get_weather\",\"input_schema\":{\"type\":\"object\"}}";
 
-        assertThat(runToEnd(probe, "tool-definition", null, json, WHOLE), equalTo(COMPLETE));
+        assertThat(runToEnd(probe, LlmSectionType.TOOL_DEFINITION, null, json, WHOLE), equalTo(COMPLETE));
         assertThat(probe.attributes().toolName(), equalTo("get_weather"));
     }
 
@@ -188,7 +190,7 @@ public class LlmAnthropicAttributeProbeTest
         final String json = "{\"type\":\"server_tool_use\",\"id\":\"srvtoolu_01\",\"name\":\"web_search\"," +
             "\"input\":{\"query\":\"zilla\"}}";
 
-        assertThat(LlmAttributeProbeRunner.run(probe, "server-tool-result", "server_tool_use", json, WHOLE),
+        assertThat(LlmAttributeProbeRunner.run(probe, LlmSectionType.SERVER_TOOL_RESULT, "server_tool_use", json, WHOLE),
             equalTo(RESOLVED));
         assertThat(probe.attributes().toolCallId(), equalTo("srvtoolu_01"));
         assertThat(probe.attributes().toolName(), equalTo("web_search"));
@@ -200,7 +202,7 @@ public class LlmAnthropicAttributeProbeTest
     {
         final String json = "{\"type\":\"web_search_tool_result\",\"tool_use_id\":\"srvtoolu_01\",\"content\":[]}";
 
-        assertThat(LlmAttributeProbeRunner.run(probe, "server-tool-result", "web_search_tool_result", json, WHOLE),
+        assertThat(LlmAttributeProbeRunner.run(probe, LlmSectionType.SERVER_TOOL_RESULT, "web_search_tool_result", json, WHOLE),
             equalTo(RESOLVED));
         assertThat(probe.attributes().toolCallId(), equalTo("srvtoolu_01"));
         assertThat(probe.attributes().toolName(), nullValue());
@@ -213,7 +215,7 @@ public class LlmAnthropicAttributeProbeTest
         final String json = "{\"type\":\"custom\",\"name\":\"get_weather\",\"description\":\"Weather\"," +
             "\"input_schema\":{\"type\":\"object\"}}";
 
-        assertThat(LlmAttributeProbeRunner.run(probe, "tool-definition", null, json, WHOLE), equalTo(RESOLVED));
+        assertThat(LlmAttributeProbeRunner.run(probe, LlmSectionType.TOOL_DEFINITION, null, json, WHOLE), equalTo(RESOLVED));
         assertThat(probe.attributes().toolName(), equalTo("get_weather"));
         assertThat(probe.attributes().toolCallId(), nullValue());
     }
@@ -224,7 +226,7 @@ public class LlmAnthropicAttributeProbeTest
         final String json = "{\"type\":\"thinking\",\"id\":\"toolu_01\",\"name\":\"get_weather\"," +
             "\"source\":{\"type\":\"url\",\"url\":\"https://example.com/cat.png\"}}";
 
-        assertThat(LlmAttributeProbeRunner.run(probe, "assistant-reasoning", null, json, WHOLE), equalTo(COMPLETE));
+        assertThat(LlmAttributeProbeRunner.run(probe, LlmSectionType.ASSISTANT_REASONING, null, json, WHOLE), equalTo(COMPLETE));
         assertThat(probe.attributes().source(), nullValue());
         assertThat(probe.attributes().toolCallId(), nullValue());
         assertThat(probe.attributes().toolName(), nullValue());
@@ -237,8 +239,8 @@ public class LlmAnthropicAttributeProbeTest
         final String serverToolUse = "{\"type\":\"server_tool_use\",\"id\":\"srvtoolu_01\",\"name\":\"web_search\"}";
         final String toolUse = "{\"type\":\"tool_use\",\"id\":\"toolu_01\",\"name\":\"get_weather\"}";
 
-        LlmAttributeProbeRunner.run(probe, "server-tool-result", "server_tool_use", serverToolUse, WHOLE);
-        LlmAttributeProbeRunner.run(probe, "tool-call", null, toolUse, WHOLE);
+        LlmAttributeProbeRunner.run(probe, LlmSectionType.SERVER_TOOL_RESULT, "server_tool_use", serverToolUse, WHOLE);
+        LlmAttributeProbeRunner.run(probe, LlmSectionType.TOOL_CALL, null, toolUse, WHOLE);
 
         assertThat(probe.attributes().toolCallId(), equalTo("toolu_01"));
         assertThat(probe.attributes().providerExecuted(), nullValue());

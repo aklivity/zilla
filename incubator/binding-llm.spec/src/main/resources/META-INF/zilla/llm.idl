@@ -32,9 +32,28 @@ scope llm
             string16 value;
         }
 
+        enum LlmSectionType (uint8)
+        {
+            NONE(0),
+            SYSTEM_INSTRUCTION(1),
+            USER_TEXT(2),
+            USER_IMAGE(3),
+            USER_DOCUMENT(4),
+            USER_AUDIO(5),
+            ASSISTANT_TEXT(6),
+            ASSISTANT_REFUSAL(7),
+            ASSISTANT_REASONING(8),
+            TOOL_DEFINITION(9),
+            TOOL_CALL(10),
+            TOOL_RESULT(11),
+            SERVER_TOOL_RESULT(12),
+            CITATIONS(13),
+            UNKNOWN(14)
+        }
+
         struct LlmSectionDataEx
         {
-            string16 type = null;
+            LlmSectionType type = NONE;
             int32 message = -1;
             LlmAttribute[] attributes;
             varint32 extensionLength;
@@ -48,7 +67,7 @@ scope llm
 
         struct LlmDialectPreSectionDataEx
         {
-            string16 type;
+            LlmSectionType type;
             int32 message = -1;
             string16 block;
         }

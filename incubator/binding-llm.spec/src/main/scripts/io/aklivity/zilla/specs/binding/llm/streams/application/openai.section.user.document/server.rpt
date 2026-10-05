@@ -29,7 +29,7 @@ connected
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
-                          .type("user-document")
+                          .type("USER_DOCUMENT")
                           .message(0)
                           .attribute("source", "reference")
                           .attribute("ref-id", "file-abc123")

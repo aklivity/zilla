@@ -30,7 +30,7 @@ connected
 read option zilla:flags "init"
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
-                          .type("user-document")
+                          .type("USER_DOCUMENT")
                           .message(0)
                           .attribute("media-type", "application/pdf")
                           .attribute("source", "inline")

@@ -27,7 +27,7 @@ connected
 
 write zilla:data.ext ${llm:dialectPreSectionDataEx()
                            .typeId(zilla:id("llm"))
-                           .type("user-text")
+                           .type("USER_TEXT")
                            .message(0)
                            .block("cache_control")
                            .build()}

@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
+import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmSectionType;
+
 final class LlmOpenaiAttributeProbe extends LlmAttributeProbe
 {
     private static final int KEY_OTHER = -1;
@@ -41,14 +43,14 @@ final class LlmOpenaiAttributeProbe extends LlmAttributeProbe
     private int section;
 
     static boolean carries(
-        String type)
+        LlmSectionType type)
     {
         return sectionOf(type) != SECTION_NONE;
     }
 
     @Override
     protected void onBegin(
-        String type,
+        LlmSectionType type,
         String blockType)
     {
         section = sectionOf(type);
@@ -269,23 +271,16 @@ final class LlmOpenaiAttributeProbe extends LlmAttributeProbe
     }
 
     private static int sectionOf(
-        String type)
+        LlmSectionType type)
     {
-        int section = SECTION_NONE;
-
-        if (type != null)
+        return switch (type)
         {
-            section = switch (type)
-            {
-            case "user-image" -> SECTION_IMAGE;
-            case "user-document" -> SECTION_DOCUMENT;
-            case "user-audio" -> SECTION_AUDIO;
-            case "tool-call" -> SECTION_TOOL_CALL;
-            case "tool-definition" -> SECTION_TOOL_DEFINITION;
-            default -> SECTION_NONE;
-            };
-        }
-
-        return section;
+        case USER_IMAGE -> SECTION_IMAGE;
+        case USER_DOCUMENT -> SECTION_DOCUMENT;
+        case USER_AUDIO -> SECTION_AUDIO;
+        case TOOL_CALL -> SECTION_TOOL_CALL;
+        case TOOL_DEFINITION -> SECTION_TOOL_DEFINITION;
+        default -> SECTION_NONE;
+        };
     }
 }

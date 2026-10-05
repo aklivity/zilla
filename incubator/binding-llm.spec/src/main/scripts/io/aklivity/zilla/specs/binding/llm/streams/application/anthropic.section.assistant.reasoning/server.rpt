@@ -29,21 +29,21 @@ connected
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
-                          .type("user-text")
+                          .type("USER_TEXT")
                           .message(0)
                           .build()}
 read "Hi"
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
-                          .type("assistant-reasoning")
+                          .type("ASSISTANT_REASONING")
                           .message(1)
                           .build()}
 read "{\"type\":\"thinking\",\"thinking\":\"Let me think.\",\"signature\":\"sig-1\"}"
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
-                          .type("assistant-text")
+                          .type("ASSISTANT_TEXT")
                           .message(1)
                           .build()}
 read "Hello!"

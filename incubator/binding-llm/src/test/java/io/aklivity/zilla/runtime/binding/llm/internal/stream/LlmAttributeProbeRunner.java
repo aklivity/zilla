@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmSectionType;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
@@ -29,7 +30,7 @@ final class LlmAttributeProbeRunner
 
     static LlmAttributeProbe.Status run(
         LlmAttributeProbe probe,
-        String type,
+        LlmSectionType type,
         String blockType,
         String json,
         int window)
@@ -39,7 +40,7 @@ final class LlmAttributeProbeRunner
 
     static LlmAttributeProbe.Status runToEnd(
         LlmAttributeProbe probe,
-        String type,
+        LlmSectionType type,
         String blockType,
         String json,
         int window)
@@ -49,7 +50,7 @@ final class LlmAttributeProbeRunner
 
     static LlmAttributeProbe.Status runResumed(
         LlmAttributeProbe probe,
-        String type,
+        LlmSectionType type,
         String blockType,
         String json,
         int window)
@@ -80,7 +81,7 @@ final class LlmAttributeProbeRunner
 
     private static LlmAttributeProbe.Status run(
         LlmAttributeProbe probe,
-        String type,
+        LlmSectionType type,
         String blockType,
         String json,
         int window,

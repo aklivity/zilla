@@ -27,7 +27,7 @@ connected
 
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
-                          .type("assistant-refusal")
+                          .type("ASSISTANT_REFUSAL")
                           .message(0)
                           .build()}
 write "I cannot help with that"

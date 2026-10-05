@@ -19,6 +19,8 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 
+import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmSectionType;
+
 final class LlmAnthropicResponseEncoder
 {
     private static final int KIND_NONE = 0;
@@ -30,10 +32,6 @@ final class LlmAnthropicResponseEncoder
     private static final int NONE = -1;
     private static final int MESSAGE_FIRST = 0;
 
-    private static final String TYPE_ASSISTANT_TEXT = "assistant-text";
-    private static final String TYPE_ASSISTANT_REFUSAL = "assistant-refusal";
-    private static final String TYPE_ASSISTANT_REASONING = "assistant-reasoning";
-    private static final String TYPE_TOOL_CALL = "tool-call";
 
     private static final byte[] EVENT_MESSAGE_START = "event: message_start\ndata: ".getBytes(UTF_8);
     private static final byte[] EVENT_BLOCK_START = "event: content_block_start\ndata: ".getBytes(UTF_8);
@@ -159,7 +157,7 @@ final class LlmAnthropicResponseEncoder
     int section(
         MutableDirectBuffer out,
         int offset,
-        String type,
+        LlmSectionType type,
         int message,
         String toolCallId,
         String toolName)
@@ -545,22 +543,15 @@ final class LlmAnthropicResponseEncoder
     }
 
     private static int kindOf(
-        String type)
+        LlmSectionType type)
     {
-        int kind = KIND_SKIPPED;
-
-        if (type != null)
+        return switch (type)
         {
-            kind = switch (type)
-            {
-            case TYPE_ASSISTANT_TEXT, TYPE_ASSISTANT_REFUSAL -> KIND_TEXT;
-            case TYPE_ASSISTANT_REASONING -> KIND_REASONING;
-            case TYPE_TOOL_CALL -> KIND_TOOL_CALL;
-            default -> KIND_SKIPPED;
-            };
-        }
-
-        return kind;
+        case ASSISTANT_TEXT, ASSISTANT_REFUSAL -> KIND_TEXT;
+        case ASSISTANT_REASONING -> KIND_REASONING;
+        case TOOL_CALL -> KIND_TOOL_CALL;
+        default -> KIND_SKIPPED;
+        };
     }
 
     private void wrap(

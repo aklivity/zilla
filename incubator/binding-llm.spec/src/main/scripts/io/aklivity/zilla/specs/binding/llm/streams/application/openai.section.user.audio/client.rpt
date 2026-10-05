@@ -27,7 +27,7 @@ connected
 
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
-                          .type("user-audio")
+                          .type("USER_AUDIO")
                           .message(0)
                           .attribute("media-type", "audio/wav")
                           .attribute("source", "inline")

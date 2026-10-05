@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
 import org.agrona.DirectBuffer;
 
+import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmSectionType;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonController;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
@@ -26,9 +27,6 @@ import io.aklivity.zilla.runtime.engine.util.Flags;
 
 final class LlmOpenaiSectionSink implements JsonSink
 {
-    private static final String TYPE_ASSISTANT_TEXT = "assistant-text";
-    private static final String TYPE_ASSISTANT_REFUSAL = "assistant-refusal";
-    private static final String TYPE_TOOL_CALL = "tool-call";
 
     private static final int NO_INDEX = -1;
     private static final int REPLACEMENT_CHARACTER = 0xFFFD;
@@ -48,7 +46,7 @@ final class LlmOpenaiSectionSink implements JsonSink
 
     private boolean sectionOpen;
     private boolean sectionStarted;
-    private String sectionType;
+    private LlmSectionType sectionType;
     private int sectionMessage;
     private int sectionTool;
     private String sectionToolId;
@@ -237,11 +235,11 @@ final class LlmOpenaiSectionSink implements JsonSink
         {
         case "choices.delta.content":
         case "choices.message.content":
-            onText(control, source, TYPE_ASSISTANT_TEXT, deferred, field.startsWith("choices.message"));
+            onText(control, source, LlmSectionType.ASSISTANT_TEXT, deferred, field.startsWith("choices.message"));
             break;
         case "choices.delta.refusal":
         case "choices.message.refusal":
-            onText(control, source, TYPE_ASSISTANT_REFUSAL, deferred, field.startsWith("choices.message"));
+            onText(control, source, LlmSectionType.ASSISTANT_REFUSAL, deferred, field.startsWith("choices.message"));
             break;
         case "choices.delta.tool_calls.id":
         case "choices.message.tool_calls.id":
@@ -315,7 +313,7 @@ final class LlmOpenaiSectionSink implements JsonSink
     private void onText(
         JsonController control,
         JsonSource source,
-        String type,
+        LlmSectionType type,
         boolean deferred,
         boolean atomic)
     {
@@ -324,7 +322,7 @@ final class LlmOpenaiSectionSink implements JsonSink
 
         if (length > 0 || highSurrogate != 0 || !deferred && atomic && sectionOpen)
         {
-            if (!sectionOpen || !type.equals(sectionType) || sectionMessage != choiceIndex)
+            if (!sectionOpen || type != sectionType || sectionMessage != choiceIndex)
             {
                 closeSection();
                 openSection(type, choiceIndex, null, null, NO_INDEX);
@@ -367,7 +365,7 @@ final class LlmOpenaiSectionSink implements JsonSink
 
     private boolean continuesTool()
     {
-        return TYPE_TOOL_CALL.equals(sectionType) &&
+        return sectionType == LlmSectionType.TOOL_CALL &&
             sectionMessage == choiceIndex &&
             toolIndex != NO_INDEX &&
             sectionTool == toolIndex &&
@@ -379,12 +377,12 @@ final class LlmOpenaiSectionSink implements JsonSink
         if (!sectionOpen || !continuesTool())
         {
             closeSection();
-            openSection(TYPE_TOOL_CALL, choiceIndex, toolId, toolName, toolIndex);
+            openSection(LlmSectionType.TOOL_CALL, choiceIndex, toolId, toolName, toolIndex);
         }
     }
 
     private void openSection(
-        String type,
+        LlmSectionType type,
         int message,
         String toolCallId,
         String toolName,
@@ -566,7 +564,7 @@ final class LlmOpenaiSectionSink implements JsonSink
         void begin();
 
         void frame(
-            String type,
+            LlmSectionType type,
             int message,
             String toolCallId,
             String toolName,

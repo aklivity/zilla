@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
+import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmSectionType;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 
@@ -50,7 +51,7 @@ abstract class LlmAttributeProbe
     }
 
     final void begin(
-        String type,
+        LlmSectionType type,
         String blockType)
     {
         attributes.clear();
@@ -125,7 +126,7 @@ abstract class LlmAttributeProbe
     }
 
     protected abstract void onBegin(
-        String type,
+        LlmSectionType type,
         String blockType);
 
     protected abstract int onKey(

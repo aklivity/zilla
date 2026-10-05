@@ -29,7 +29,7 @@ connected
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
-                          .type("tool-result")
+                          .type("TOOL_RESULT")
                           .message(0)
                           .attribute("tool-call-id", "call_1")
                           .build()}

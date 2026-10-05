@@ -29,14 +29,14 @@ connected
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
-                          .type("system-instruction")
+                          .type("SYSTEM_INSTRUCTION")
                           .message(0)
                           .build()}
 read "Be brief"
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
-                          .type("user-text")
+                          .type("USER_TEXT")
                           .message(1)
                           .build()}
 read "Hello  there"

@@ -27,7 +27,7 @@ connected
 
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
-                          .type("user-text")
+                          .type("USER_TEXT")
                           .message(0)
                           .build()}
 write "Search"
@@ -35,7 +35,7 @@ write flush
 
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
-                          .type("server-tool-result")
+                          .type("SERVER_TOOL_RESULT")
                           .message(1)
                           .extension("server_tool_use")
                           .attribute("tool-name", "web_search")
@@ -47,7 +47,7 @@ write flush
 
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
-                          .type("server-tool-result")
+                          .type("SERVER_TOOL_RESULT")
                           .message(1)
                           .extension("web_search_tool_result")
                           .attribute("tool-call-id", "srvtoolu_1")

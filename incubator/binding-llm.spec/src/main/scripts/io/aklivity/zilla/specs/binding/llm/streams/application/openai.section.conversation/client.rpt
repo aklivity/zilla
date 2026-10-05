@@ -27,7 +27,7 @@ connected
 
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
-                          .type("system-instruction")
+                          .type("SYSTEM_INSTRUCTION")
                           .message(0)
                           .build()}
 write "Be brief"
@@ -35,7 +35,7 @@ write flush
 
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
-                          .type("user-text")
+                          .type("USER_TEXT")
                           .message(1)
                           .build()}
 write "Weather in Paris?"
@@ -43,7 +43,7 @@ write flush
 
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
-                          .type("tool-call")
+                          .type("TOOL_CALL")
                           .message(2)
                           .attribute("tool-name", "get_weather")
                           .attribute("tool-call-id", "call_1")
@@ -53,7 +53,7 @@ write flush
 
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
-                          .type("tool-result")
+                          .type("TOOL_RESULT")
                           .message(3)
                           .attribute("tool-call-id", "call_1")
                           .build()}
@@ -62,7 +62,7 @@ write flush
 
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
-                          .type("user-text")
+                          .type("USER_TEXT")
                           .message(4)
                           .build()}
 write "And in London?"
@@ -70,7 +70,7 @@ write flush
 
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
-                          .type("tool-definition")
+                          .type("TOOL_DEFINITION")
                           .message(-1)
                           .attribute("tool-name", "get_weather")
                           .build()}

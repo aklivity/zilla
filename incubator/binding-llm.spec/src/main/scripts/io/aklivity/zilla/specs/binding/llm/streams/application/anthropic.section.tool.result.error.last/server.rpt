@@ -30,7 +30,7 @@ connected
 read option zilla:flags "init"
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
-                          .type("tool-result")
+                          .type("TOOL_RESULT")
                           .message(0)
                           .attribute("tool-call-id", "toolu_1")
                           .build()}

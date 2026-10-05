@@ -30,7 +30,7 @@ connected
 read option zilla:flags "init"
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
-                          .type("user-audio")
+                          .type("USER_AUDIO")
                           .message(0)
                           .attribute("source", "inline")
                           .build()}

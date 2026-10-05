@@ -33,6 +33,7 @@ import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmDataExFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmEndExFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmResetExFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmSectionDataExFW;
+import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmSectionType;
 
 public class LlmFunctionsTest
 {
@@ -113,7 +114,7 @@ public class LlmFunctionsTest
     {
         byte[] bytes = LlmFunctions.dataEx()
             .typeId(0)
-            .type("user-text")
+            .type("USER_TEXT")
             .message(2)
             .attribute("media-type", "image/png")
             .attribute("source", "url")
@@ -121,7 +122,7 @@ public class LlmFunctionsTest
             .build();
 
         LlmSectionDataExFW dataEx = new LlmDataExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length).section();
-        assertEquals("user-text", dataEx.type().asString());
+        assertEquals(LlmSectionType.USER_TEXT, dataEx.type().get());
         assertEquals(2, dataEx.message());
         assertEquals(Map.of("media-type", "image/png", "source", "url"), attributesOf(dataEx));
         assertEquals(3, dataEx.extensionLength());
@@ -132,7 +133,7 @@ public class LlmFunctionsTest
     {
         byte[] bytes = LlmFunctions.dataEx()
             .typeId(0)
-            .type("tool-result")
+            .type("TOOL_RESULT")
             .attribute("tool-call-id", "call_1")
             .extension("ext")
             .build();
@@ -148,7 +149,7 @@ public class LlmFunctionsTest
     {
         byte[] bytes = LlmFunctions.dataEx()
             .typeId(0)
-            .type("tool-result")
+            .type("TOOL_RESULT")
             .extension("ext")
             .attribute("tool-call-id", "call_1")
             .build();
@@ -180,7 +181,7 @@ public class LlmFunctionsTest
             .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .section(s -> s
-                .type("message"))
+                .type(t -> t.set(LlmSectionType.USER_TEXT)))
             .build();
 
         assertNotNull(matcher.match(byteBuf));
@@ -191,7 +192,7 @@ public class LlmFunctionsTest
     {
         BytesMatcher matcher = LlmFunctions.matchDataEx()
             .typeId(0)
-            .type("message")
+            .type("USER_TEXT")
             .build();
 
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
@@ -200,7 +201,7 @@ public class LlmFunctionsTest
             .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .section(s -> s
-                .type("message"))
+                .type(t -> t.set(LlmSectionType.USER_TEXT)))
             .build();
 
         assertNotNull(matcher.match(byteBuf));
@@ -250,7 +251,7 @@ public class LlmFunctionsTest
     {
         BytesMatcher matcher = LlmFunctions.matchDataEx()
             .typeId(0)
-            .type("message")
+            .type("USER_TEXT")
             .build();
 
         ByteBuffer byteBuf = ByteBuffer.allocate(256);
@@ -259,7 +260,7 @@ public class LlmFunctionsTest
             .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .section(s -> s
-                .type("other"))
+                .type(t -> t.set(LlmSectionType.ASSISTANT_TEXT)))
             .build();
 
         assertThrows(Exception.class, () -> matcher.match(byteBuf));
@@ -279,7 +280,7 @@ public class LlmFunctionsTest
             .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
             .section(s -> s
-                .type("message"))
+                .type(t -> t.set(LlmSectionType.USER_TEXT)))
             .build();
 
         assertThrows(Exception.class, () -> matcher.match(byteBuf));
@@ -290,7 +291,7 @@ public class LlmFunctionsTest
     {
         BytesMatcher matcher = LlmFunctions.matchDataEx()
             .typeId(0)
-            .type("tool-result")
+            .type("TOOL_RESULT")
             .message(3)
             .attribute("tool-call-id", "call_1")
             .extension("ext")
@@ -298,7 +299,7 @@ public class LlmFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.wrap(LlmFunctions.dataEx()
             .typeId(0)
-            .type("tool-result")
+            .type("TOOL_RESULT")
             .message(3)
             .attribute("tool-call-id", "call_1")
             .extension("ext")
@@ -364,7 +365,7 @@ public class LlmFunctionsTest
     {
         byte[] bytes = LlmFunctions.dataEx()
             .typeId(0)
-            .type("user-text")
+            .type("USER_TEXT")
             .build();
 
         LlmSectionDataExFW dataEx = new LlmDataExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length).section();
@@ -1543,7 +1544,7 @@ public class LlmFunctionsTest
     {
         final byte[] dataEx = LlmFunctions.dataEx()
             .typeId(0)
-            .type("user-text")
+            .type("USER_TEXT")
             .build();
 
         assertThrows(Exception.class, () -> LlmFunctions.matchDialectDataEx().build().match(ByteBuffer.wrap(dataEx)));
@@ -1579,13 +1580,13 @@ public class LlmFunctionsTest
     {
         final byte[] dataEx = LlmFunctions.dialectPreSectionDataEx()
             .typeId(0)
-            .type("user-text")
+            .type("USER_TEXT")
             .block("cache_control")
             .build();
 
         final BytesMatcher matcher = LlmFunctions.matchDialectPreSectionDataEx()
             .typeId(0)
-            .type("user-text")
+            .type("USER_TEXT")
             .block("cache_control")
             .build();
 
@@ -1599,14 +1600,14 @@ public class LlmFunctionsTest
     {
         final byte[] bytes = LlmFunctions.dialectPreSectionDataEx()
             .typeId(0)
-            .type("user-text")
+            .type("USER_TEXT")
             .block("cache_control")
             .build();
 
         final LlmDataExFW dataEx = new LlmDataExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
 
         assertEquals(LlmDataExFW.KIND_PRE_SECTION, dataEx.kind());
-        assertEquals("user-text", dataEx.preSection().type().asString());
+        assertEquals(LlmSectionType.USER_TEXT, dataEx.preSection().type().get());
         assertEquals("cache_control", dataEx.preSection().block().asString());
     }
 
@@ -1615,7 +1616,7 @@ public class LlmFunctionsTest
     {
         final byte[] dataEx = LlmFunctions.dialectPreSectionDataEx()
             .typeId(0)
-            .type("user-text")
+            .type("USER_TEXT")
             .message(2)
             .block("cache_control")
             .build();
@@ -1633,7 +1634,7 @@ public class LlmFunctionsTest
     {
         final byte[] bytes = LlmFunctions.dialectPreSectionDataEx()
             .typeId(0)
-            .type("system-instruction")
+            .type("SYSTEM_INSTRUCTION")
             .block("cache_control")
             .build();
 
@@ -1647,13 +1648,13 @@ public class LlmFunctionsTest
     {
         final byte[] dataEx = LlmFunctions.dialectPreSectionDataEx()
             .typeId(0)
-            .type("user-text")
+            .type("USER_TEXT")
             .block("cache_control")
             .build();
 
         final BytesMatcher matcher = LlmFunctions.matchDialectPreSectionDataEx()
             .typeId(0)
-            .type("assistant-text")
+            .type("ASSISTANT_TEXT")
             .build();
 
         assertThrows(Exception.class, () -> matcher.match(ByteBuffer.wrap(dataEx)));
@@ -1664,7 +1665,7 @@ public class LlmFunctionsTest
     {
         final byte[] dataEx = LlmFunctions.dialectPreSectionDataEx()
             .typeId(0)
-            .type("user-text")
+            .type("USER_TEXT")
             .block("cache_control")
             .build();
 
@@ -1681,7 +1682,7 @@ public class LlmFunctionsTest
     {
         final byte[] dataEx = LlmFunctions.dialectPreSectionDataEx()
             .typeId(0)
-            .type("user-text")
+            .type("USER_TEXT")
             .block("cache_control")
             .build();
 
@@ -1693,7 +1694,7 @@ public class LlmFunctionsTest
     {
         final byte[] dataEx = LlmFunctions.dialectPreSectionDataEx()
             .typeId(0)
-            .type("user-text")
+            .type("USER_TEXT")
             .block("cache_control")
             .build();
 

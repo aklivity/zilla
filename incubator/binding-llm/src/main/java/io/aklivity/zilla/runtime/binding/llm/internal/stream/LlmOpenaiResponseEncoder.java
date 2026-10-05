@@ -19,6 +19,8 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 
+import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmSectionType;
+
 final class LlmOpenaiResponseEncoder
 {
     private static final int KIND_NONE = 0;
@@ -35,9 +37,6 @@ final class LlmOpenaiResponseEncoder
     private static final int NONE = -1;
     private static final int MESSAGE_FIRST = 0;
 
-    private static final String TYPE_ASSISTANT_TEXT = "assistant-text";
-    private static final String TYPE_ASSISTANT_REFUSAL = "assistant-refusal";
-    private static final String TYPE_TOOL_CALL = "tool-call";
 
     private static final byte[] SSE_DATA = "data: ".getBytes(UTF_8);
     private static final byte[] SSE_END = "\n\n".getBytes(UTF_8);
@@ -165,7 +164,7 @@ final class LlmOpenaiResponseEncoder
     int section(
         MutableDirectBuffer out,
         int offset,
-        String type,
+        LlmSectionType type,
         int message,
         String toolCallId,
         String toolName)
@@ -383,22 +382,15 @@ final class LlmOpenaiResponseEncoder
     }
 
     private static int kindOf(
-        String type)
+        LlmSectionType type)
     {
-        int kind = KIND_SKIPPED;
-
-        if (type != null)
+        return switch (type)
         {
-            kind = switch (type)
-            {
-            case TYPE_ASSISTANT_TEXT -> KIND_TEXT;
-            case TYPE_ASSISTANT_REFUSAL -> KIND_REFUSAL;
-            case TYPE_TOOL_CALL -> KIND_TOOL_CALL;
-            default -> KIND_SKIPPED;
-            };
-        }
-
-        return kind;
+        case ASSISTANT_TEXT -> KIND_TEXT;
+        case ASSISTANT_REFUSAL -> KIND_REFUSAL;
+        case TOOL_CALL -> KIND_TOOL_CALL;
+        default -> KIND_SKIPPED;
+        };
     }
 
     private void sectionText()

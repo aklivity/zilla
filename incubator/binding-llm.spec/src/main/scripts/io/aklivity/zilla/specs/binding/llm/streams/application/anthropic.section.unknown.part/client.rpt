@@ -27,7 +27,7 @@ connected
 
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
-                          .type("unknown")
+                          .type("UNKNOWN")
                           .message(0)
                           .build()}
 write "{\"type\":\"mystery\",\"x\":1}"

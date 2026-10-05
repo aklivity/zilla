@@ -28,7 +28,7 @@ connected
 write option zilla:flags "init"
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
-                          .type("user-text")
+                          .type("USER_TEXT")
                           .message(0)
                           .extension("ext-user-text")
                           .build()}
@@ -54,7 +54,7 @@ read zilla:begin.ext ${llm:matchBeginEx()
 read option zilla:flags "init"
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
-                          .type("assistant-text")
+                          .type("ASSISTANT_TEXT")
                           .message(0)
                           .extension("ext-assistant-text")
                           .build()}

@@ -27,7 +27,7 @@ connected
 
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
-                          .type("user-image")
+                          .type("USER_IMAGE")
                           .message(0)
                           .attribute("media-type", "image/png")
                           .attribute("source", "inline")

@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
 import org.agrona.DirectBuffer;
 
+import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmSectionType;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonController;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
@@ -26,9 +27,6 @@ import io.aklivity.zilla.runtime.engine.util.Flags;
 
 final class LlmAnthropicSectionSink implements JsonSink
 {
-    private static final String TYPE_ASSISTANT_TEXT = "assistant-text";
-    private static final String TYPE_ASSISTANT_REASONING = "assistant-reasoning";
-    private static final String TYPE_TOOL_CALL = "tool-call";
 
     private static final String BLOCK_TOOL_USE = "tool_use";
     private static final String BLOCK_CONTENT = "content";
@@ -55,7 +53,7 @@ final class LlmAnthropicSectionSink implements JsonSink
 
     private boolean sectionOpen;
     private boolean sectionStarted;
-    private String sectionType;
+    private LlmSectionType sectionType;
     private String sectionToolCallId;
     private String sectionToolName;
 
@@ -197,7 +195,7 @@ final class LlmAnthropicSectionSink implements JsonSink
         }
         else if (event == JsonEvent.END_OBJECT && pathIs(BLOCK_CONTENT_BLOCK) && BLOCK_TOOL_USE.equals(blockType))
         {
-            openSection(TYPE_TOOL_CALL, toolId, toolName);
+            openSection(LlmSectionType.TOOL_CALL, toolId, toolName);
             emit(0, false);
         }
 
@@ -211,7 +209,7 @@ final class LlmAnthropicSectionSink implements JsonSink
         if (pathIs("content.input") && BLOCK_TOOL_USE.equals(blockType))
         {
             closeSection();
-            openSection(TYPE_TOOL_CALL, toolId, toolName);
+            openSection(LlmSectionType.TOOL_CALL, toolId, toolName);
             emit(encode(input, true), true);
         }
     }
@@ -420,16 +418,16 @@ final class LlmAnthropicSectionSink implements JsonSink
             }
             break;
         case "content.text":
-            onText(control, source, TYPE_ASSISTANT_TEXT, deferred, true);
+            onText(control, source, LlmSectionType.ASSISTANT_TEXT, deferred, true);
             break;
         case "content.thinking":
-            onText(control, source, TYPE_ASSISTANT_REASONING, deferred, true);
+            onText(control, source, LlmSectionType.ASSISTANT_REASONING, deferred, true);
             break;
         case "delta.text":
-            onText(control, source, TYPE_ASSISTANT_TEXT, deferred, false);
+            onText(control, source, LlmSectionType.ASSISTANT_TEXT, deferred, false);
             break;
         case "delta.thinking":
-            onText(control, source, TYPE_ASSISTANT_REASONING, deferred, false);
+            onText(control, source, LlmSectionType.ASSISTANT_REASONING, deferred, false);
             break;
         case "delta.partial_json":
             onArguments(control, source, deferred);
@@ -467,7 +465,7 @@ final class LlmAnthropicSectionSink implements JsonSink
     private void onText(
         JsonController control,
         JsonSource source,
-        String type,
+        LlmSectionType type,
         boolean deferred,
         boolean atomic)
     {
@@ -476,7 +474,7 @@ final class LlmAnthropicSectionSink implements JsonSink
 
         if (length > 0 || highSurrogate != 0 || !deferred && atomic && sectionOpen)
         {
-            if (!sectionOpen || !type.equals(sectionType))
+            if (!sectionOpen || type != sectionType)
             {
                 closeSection();
                 openSection(type, null, null);
@@ -496,7 +494,7 @@ final class LlmAnthropicSectionSink implements JsonSink
         final CharSequence chars = source.getStringView();
         final int length = chars.length();
 
-        if (sectionOpen && TYPE_TOOL_CALL.equals(sectionType) && (length > 0 || highSurrogate != 0))
+        if (sectionOpen && sectionType == LlmSectionType.TOOL_CALL && (length > 0 || highSurrogate != 0))
         {
             emit(encode(chars, !deferred), false);
         }
@@ -505,7 +503,7 @@ final class LlmAnthropicSectionSink implements JsonSink
     }
 
     private void openSection(
-        String type,
+        LlmSectionType type,
         String toolCallId,
         String toolName)
     {
@@ -684,7 +682,7 @@ final class LlmAnthropicSectionSink implements JsonSink
         void begin();
 
         void frame(
-            String type,
+            LlmSectionType type,
             int message,
             String toolCallId,
             String toolName,

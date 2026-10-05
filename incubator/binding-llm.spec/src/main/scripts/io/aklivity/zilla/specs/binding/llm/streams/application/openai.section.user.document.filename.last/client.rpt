@@ -28,7 +28,7 @@ connected
 write option zilla:flags "init"
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
-                          .type("user-document")
+                          .type("USER_DOCUMENT")
                           .message(0)
                           .attribute("media-type", "application/pdf")
                           .attribute("source", "inline")
