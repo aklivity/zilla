@@ -147,6 +147,46 @@ public class LlmAnthropicServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/anthropic.section.rejected.cache.control.without.text/client",
+        "${app}/anthropic.section.rejected.cache.control.without.text/server"})
+    public void shouldDecodeAnthropicSectionRejectedCacheControlWithoutText() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.section.system.instruction.cache.control/client",
+        "${app}/anthropic.section.system.instruction.cache.control/server"})
+    public void shouldDecodeAnthropicSectionSystemInstructionCacheControl() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.section.user.text.cache.control.first/client",
+        "${app}/anthropic.section.user.text.cache.control.first/server"})
+    public void shouldDecodeAnthropicSectionUserTextCacheControlFirst() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.section.user.text.cache.control/client",
+        "${app}/anthropic.section.user.text.cache.control/server"})
+    public void shouldDecodeAnthropicSectionUserTextCacheControl() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/anthropic.section.assistant.text.and.tool.call/client",
         "${app}/anthropic.section.assistant.text.and.tool.call/server"})
     public void shouldDecodeAnthropicSectionAssistantTextAndToolCall() throws Exception

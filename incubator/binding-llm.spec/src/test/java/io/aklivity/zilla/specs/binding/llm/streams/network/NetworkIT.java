@@ -938,6 +938,42 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/anthropic.section.rejected.cache.control.without.text/client",
+        "${net}/anthropic.section.rejected.cache.control.without.text/server"})
+    public void shouldAnthropicSectionRejectedCacheControlWithoutText() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.section.system.instruction.cache.control/client",
+        "${net}/anthropic.section.system.instruction.cache.control/server"})
+    public void shouldAnthropicSectionSystemInstructionCacheControl() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.section.user.text.cache.control.first/client",
+        "${net}/anthropic.section.user.text.cache.control.first/server"})
+    public void shouldAnthropicSectionUserTextCacheControlFirst() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.section.user.text.cache.control/client",
+        "${net}/anthropic.section.user.text.cache.control/server"})
+    public void shouldAnthropicSectionUserTextCacheControl() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/anthropic.section.assistant.text.and.tool.call/client",
         "${net}/anthropic.section.assistant.text.and.tool.call/server"})
     public void shouldAnthropicSectionAssistantTextAndToolCall() throws Exception

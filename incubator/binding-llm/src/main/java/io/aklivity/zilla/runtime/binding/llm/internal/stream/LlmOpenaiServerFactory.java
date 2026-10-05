@@ -106,6 +106,10 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
     private static final DirectBufferEx STREAM_TRUE = new UnsafeBufferEx("true".getBytes(UTF_8));
     private static final DirectBufferEx STREAM_FALSE = new UnsafeBufferEx("false".getBytes(UTF_8));
     private static final DirectBufferEx STREAM_NULL = new UnsafeBufferEx("null".getBytes(UTF_8));
+    private static final int BLOCK_SECTION = 0;
+    private static final int BLOCK_DIALECT = 1;
+    private static final int BLOCK_PRE_SECTION = 2;
+    private static final int BLOCK_POST_SECTION = 3;
     private static final int MIN_WINDOW = 64;
     private static final int HOLD_MAX = 1024;
     private static final int REPLACEMENT_CHARACTER = 0xFFFD;
@@ -1748,7 +1752,8 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private boolean probing;
 
         private String blockType;
-        private boolean blockDialect;
+        private int blockKind;
+        private String blockSectionType;
         private int blockMessage;
         private int blockFlags;
 
@@ -2186,7 +2191,8 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             String block)
         {
             blockType = block;
-            blockDialect = true;
+            blockKind = BLOCK_DIALECT;
+            blockSectionType = null;
             blockMessage = -1;
             blockFlags = Flags.INIT;
 
@@ -2220,7 +2226,8 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             String toolCallId)
         {
             blockType = type;
-            blockDialect = false;
+            blockKind = BLOCK_SECTION;
+            blockSectionType = null;
             blockMessage = message;
             blockFlags = Flags.INIT;
 
@@ -2261,8 +2268,8 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 attributes = null;
             }
 
-            stream.doAppBlockData(traceId, authorization, flags, init ? blockType : null, blockDialect, blockMessage,
-                attributes, buffer, offset, length);
+            stream.doAppBlockData(traceId, authorization, flags, init ? blockType : null, blockKind, blockSectionType,
+                blockMessage, attributes, buffer, offset, length);
 
             blockFlags = Flags.NONE;
         }
@@ -3264,7 +3271,8 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             long authorization,
             int flags,
             String type,
-            boolean dialect,
+            int kind,
+            String sectionType,
             int message,
             LlmSectionAttributes attributes,
             DirectBufferEx buffer,
@@ -3290,9 +3298,17 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 final LlmDataExFW.Builder dataExBuilder = llmDataExRW.wrap(extBuffer, 0, extBuffer.capacity())
                     .typeId(llmTypeId);
 
-                if (dialect)
+                if (kind == BLOCK_DIALECT)
                 {
                     dataExBuilder.dialect(d -> d.block(type));
+                }
+                else if (kind == BLOCK_PRE_SECTION)
+                {
+                    dataExBuilder.preSection(d -> d.type(sectionType).message(message).block(type));
+                }
+                else if (kind == BLOCK_POST_SECTION)
+                {
+                    dataExBuilder.postSection(d -> d.block(type));
                 }
                 else
                 {

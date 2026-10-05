@@ -49,6 +49,7 @@ scope llm
         struct LlmDialectPreSectionDataEx
         {
             string16 type;
+            int32 message = -1;
             string16 block;
         }
 

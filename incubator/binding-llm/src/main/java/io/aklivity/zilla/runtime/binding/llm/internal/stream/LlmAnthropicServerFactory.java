@@ -90,6 +90,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
     private static final String MESSAGE_MODEL_MISSING = "model: Field required";
     private static final String MESSAGE_MODEL_ORDER =
         "model: must precede messages, system and tools in a request that does not fit the decode buffer";
+    private static final String MESSAGE_PART_TEXT_MISSING = "text: Field required";
     private static final String MESSAGE_ROLE_MISSING = "messages.%d.role: Field required";
     private static final String MESSAGE_ROLE_ORDER = "role must precede content in each message";
     private static final String MESSAGE_TOOL_USE_ID_ORDER = "tool_use_id must precede content in a tool_result block";
@@ -106,6 +107,10 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
     private static final DirectBufferEx STREAM_TRUE = new UnsafeBufferEx("true".getBytes(UTF_8));
     private static final DirectBufferEx STREAM_FALSE = new UnsafeBufferEx("false".getBytes(UTF_8));
     private static final DirectBufferEx STREAM_NULL = new UnsafeBufferEx("null".getBytes(UTF_8));
+    private static final int BLOCK_SECTION = 0;
+    private static final int BLOCK_DIALECT = 1;
+    private static final int BLOCK_PRE_SECTION = 2;
+    private static final int BLOCK_POST_SECTION = 3;
     private static final int MIN_WINDOW = 64;
     private static final int HOLD_MAX = 1024;
 
@@ -930,6 +935,8 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             {
             case START_OBJECT:
                 server.hold();
+                server.partTextDone = false;
+                server.partPre = false;
                 server.decoder = decodePartType;
                 break;
             case END_ARRAY:
@@ -1080,6 +1087,10 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                 {
                     server.decoder = decodeCitationsStart;
                 }
+                else if (server.context != CONTEXT_TOOL_RESULT && server.partOptions.slot(key) != LlmOptions.NONE)
+                {
+                    server.onDecodePartOption(server.partOptions.slot(key), textBlockType(server), textMessage(server));
+                }
                 else
                 {
                     server.skip(decodePart);
@@ -1087,6 +1098,11 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                 }
                 break;
             case END_OBJECT:
+                if (server.partPre)
+                {
+                    server.onDecodeInvalidRequest(traceId, MESSAGE_PART_TEXT_MISSING);
+                    break decode;
+                }
                 server.decoder = decodeParts;
                 break;
             default:
@@ -1475,6 +1491,8 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             if (fin)
             {
                 server.textOpen = false;
+                server.partTextDone = true;
+                server.partPre = false;
                 server.decoder = server.textThen;
             }
             else
@@ -1904,6 +1922,8 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
 
         private boolean holding;
         private boolean lookahead;
+        private boolean partTextDone;
+        private boolean partPre;
         private boolean replaying;
         private int lookaheadMembers;
         private int holdFrom;
@@ -1918,13 +1938,15 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
 
         private final LlmAnthropicAttributeProbe probe;
         private final LlmOptions options;
+        private final LlmOptions partOptions;
         private final LlmSectionAttributes blockAttributes;
         private final LlmSectionAttributes sentAttributes;
         private final LlmSectionAttributes finAttributes;
         private boolean probing;
 
         private String blockType;
-        private boolean blockDialect;
+        private int blockKind;
+        private String blockSectionType;
         private int blockMessage;
         private String blockExtension;
         private int blockFlags;
@@ -1951,6 +1973,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             this.parser = JsonEx.createParser();
             this.probe = new LlmAnthropicAttributeProbe();
             this.options = LlmAnthropicOptions.request();
+            this.partOptions = LlmAnthropicOptions.part();
             this.lookahead = true;
             this.holding = true;
             this.blockAttributes = new LlmSectionAttributes();
@@ -2440,13 +2463,51 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             }
         }
 
+        private void onDecodePartOption(
+            int slot,
+            String sectionType,
+            int message)
+        {
+            final boolean pre = !partTextDone;
+
+            captureThen = decodePart;
+            partPre |= pre;
+
+            onDecodeSectionBlock(partOptions.member(slot), pre ? BLOCK_PRE_SECTION : BLOCK_POST_SECTION, sectionType, message);
+
+            captureOpen = true;
+            captureDepth = 0;
+            captureFrom = position();
+            captureTrim = true;
+            decoder = decodeCapture;
+        }
+
+        private void onDecodeSectionBlock(
+            String block,
+            int kind,
+            String sectionType,
+            int message)
+        {
+            flushHeld();
+
+            blockType = block;
+            blockKind = kind;
+            blockSectionType = sectionType;
+            blockMessage = message;
+            blockExtension = null;
+            blockFlags = Flags.INIT;
+
+            blockAttributes.clear();
+        }
+
         private void onDecodeDialectBlock(
             String block)
         {
             flushHeld();
 
             blockType = block;
-            blockDialect = true;
+            blockKind = BLOCK_DIALECT;
+            blockSectionType = null;
             blockMessage = -1;
             blockExtension = null;
             blockFlags = Flags.INIT;
@@ -2483,7 +2544,8 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             flushHeld();
 
             blockType = type;
-            blockDialect = false;
+            blockKind = BLOCK_SECTION;
+            blockSectionType = null;
             blockMessage = message;
             blockExtension = extension;
             blockFlags = Flags.INIT;
@@ -2530,8 +2592,8 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                 attributes = null;
             }
 
-            stream.doAppBlockData(traceId, authorization, flags, init ? blockType : null, blockDialect, blockMessage,
-                init ? blockExtension : null, attributes, buffer, offset, length);
+            stream.doAppBlockData(traceId, authorization, flags, init ? blockType : null, blockKind, blockSectionType,
+                blockMessage, init ? blockExtension : null, attributes, buffer, offset, length);
 
             blockFlags = Flags.NONE;
         }
@@ -3537,7 +3599,8 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             long authorization,
             int flags,
             String type,
-            boolean dialect,
+            int kind,
+            String sectionType,
             int message,
             String extension,
             LlmSectionAttributes attributes,
@@ -3564,9 +3627,17 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                 final LlmDataExFW.Builder dataExBuilder = llmDataExRW.wrap(extBuffer, 0, extBuffer.capacity())
                     .typeId(llmTypeId);
 
-                if (dialect)
+                if (kind == BLOCK_DIALECT)
                 {
                     dataExBuilder.dialect(d -> d.block(type));
+                }
+                else if (kind == BLOCK_PRE_SECTION)
+                {
+                    dataExBuilder.preSection(d -> d.type(sectionType).message(message).block(type));
+                }
+                else if (kind == BLOCK_POST_SECTION)
+                {
+                    dataExBuilder.postSection(d -> d.block(type));
                 }
                 else
                 {

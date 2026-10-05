@@ -26,6 +26,11 @@ final class LlmAnthropicOptions
         "thinking", "container_id", "mcp_servers"
     };
 
+    private static final String[] PART_MEMBERS =
+    {
+        "cache_control"
+    };
+
     private static final String[] RESPONSE_MEMBERS =
     {
         "stop_sequence"
@@ -34,6 +39,11 @@ final class LlmAnthropicOptions
     static LlmOptions request()
     {
         return new LlmOptions(REQUEST_MEMBERS);
+    }
+
+    static LlmOptions part()
+    {
+        return new LlmOptions(PART_MEMBERS);
     }
 
     static LlmResponseOptions response()

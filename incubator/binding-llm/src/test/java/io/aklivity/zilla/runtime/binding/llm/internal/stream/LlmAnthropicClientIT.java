@@ -159,6 +159,36 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @Specification({
+        "${app}/anthropic.section.system.instruction.cache.control/client",
+        "${net}/anthropic.section.system.instruction.cache.control/server"})
+    public void shouldEncodeAnthropicSectionSystemInstructionCacheControl() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.section.user.text.cache.control.first/client",
+        "${net}/anthropic.section.user.text.cache.control.first/server"})
+    public void shouldEncodeAnthropicSectionUserTextCacheControlFirst() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.section.user.text.cache.control/client",
+        "${net}/anthropic.section.user.text.cache.control/server"})
+    public void shouldEncodeAnthropicSectionUserTextCacheControl() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
         "${app}/anthropic.section.assistant.text.and.tool.call/client",
         "${net}/anthropic.section.assistant.text.and.tool.call/server"})
     public void shouldEncodeAnthropicSectionAssistantTextAndToolCall() throws Exception

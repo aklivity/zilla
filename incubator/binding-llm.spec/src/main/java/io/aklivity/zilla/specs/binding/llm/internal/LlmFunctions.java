@@ -447,6 +447,7 @@ public final class LlmFunctions
         private final LlmDataExFW.Builder dataExRW;
 
         private String type;
+        private int message = -1;
         private String block;
 
         private LlmDialectPreSectionDataExBuilder()
@@ -469,6 +470,13 @@ public final class LlmFunctions
             return this;
         }
 
+        public LlmDialectPreSectionDataExBuilder message(
+            int message)
+        {
+            this.message = message;
+            return this;
+        }
+
         public LlmDialectPreSectionDataExBuilder block(
             String block)
         {
@@ -478,7 +486,7 @@ public final class LlmFunctions
 
         public byte[] build()
         {
-            final LlmDataExFW dataEx = dataExRW.preSection(d -> d.type(type).block(block)).build();
+            final LlmDataExFW dataEx = dataExRW.preSection(d -> d.type(type).message(message).block(block)).build();
             final byte[] array = new byte[dataEx.sizeof()];
             dataEx.buffer().getBytes(dataEx.offset(), array);
             return array;
@@ -721,6 +729,7 @@ public final class LlmFunctions
 
         private Integer typeId;
         private String type;
+        private Integer message;
         private String block;
 
         public LlmDialectPreSectionDataExMatcherBuilder typeId(
@@ -734,6 +743,13 @@ public final class LlmFunctions
             String type)
         {
             this.type = type;
+            return this;
+        }
+
+        public LlmDialectPreSectionDataExMatcherBuilder message(
+            int message)
+        {
+            this.message = message;
             return this;
         }
 
@@ -764,6 +780,7 @@ public final class LlmFunctions
                 dataEx.kind() == LlmDataExFW.KIND_PRE_SECTION &&
                 (typeId == null || typeId == dataEx.typeId()) &&
                 (type == null || type.equals(dataEx.preSection().type().asString())) &&
+                (message == null || message == dataEx.preSection().message()) &&
                 (block == null || block.equals(dataEx.preSection().block().asString())))
             {
                 byteBuf.position(byteBuf.position() + dataEx.sizeof());

@@ -920,6 +920,42 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/anthropic.section.rejected.cache.control.without.text/client",
+        "${app}/anthropic.section.rejected.cache.control.without.text/server"})
+    public void shouldAnthropicSectionRejectedCacheControlWithoutText() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.system.instruction.cache.control/client",
+        "${app}/anthropic.section.system.instruction.cache.control/server"})
+    public void shouldAnthropicSectionSystemInstructionCacheControl() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.user.text.cache.control.first/client",
+        "${app}/anthropic.section.user.text.cache.control.first/server"})
+    public void shouldAnthropicSectionUserTextCacheControlFirst() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.user.text.cache.control/client",
+        "${app}/anthropic.section.user.text.cache.control/server"})
+    public void shouldAnthropicSectionUserTextCacheControl() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/anthropic.section.assistant.text.and.tool.call/client",
         "${app}/anthropic.section.assistant.text.and.tool.call/server"})
     public void shouldAnthropicSectionAssistantTextAndToolCall() throws Exception

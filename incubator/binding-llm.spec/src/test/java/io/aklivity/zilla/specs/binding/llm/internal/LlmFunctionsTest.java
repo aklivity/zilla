@@ -1611,6 +1611,38 @@ public class LlmFunctionsTest
     }
 
     @Test
+    public void shouldGenerateAndMatchDialectPreSectionDataExMessage() throws Exception
+    {
+        final byte[] dataEx = LlmFunctions.dialectPreSectionDataEx()
+            .typeId(0)
+            .type("user-text")
+            .message(2)
+            .block("cache_control")
+            .build();
+
+        final LlmDataExFW decoded = new LlmDataExFW().wrap(new UnsafeBufferEx(dataEx), 0, dataEx.length);
+
+        assertEquals(2, decoded.preSection().message());
+        assertNotNull(LlmFunctions.matchDialectPreSectionDataEx().typeId(0).message(2).build().match(ByteBuffer.wrap(dataEx)));
+        assertThrows(Exception.class,
+            () -> LlmFunctions.matchDialectPreSectionDataEx().typeId(0).message(3).build().match(ByteBuffer.wrap(dataEx)));
+    }
+
+    @Test
+    public void shouldDefaultDialectPreSectionDataExMessageToNone()
+    {
+        final byte[] bytes = LlmFunctions.dialectPreSectionDataEx()
+            .typeId(0)
+            .type("system-instruction")
+            .block("cache_control")
+            .build();
+
+        final LlmDataExFW dataEx = new LlmDataExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
+
+        assertEquals(-1, dataEx.preSection().message());
+    }
+
+    @Test
     public void shouldFailMatchDialectPreSectionDataExTypeMismatch() throws Exception
     {
         final byte[] dataEx = LlmFunctions.dialectPreSectionDataEx()

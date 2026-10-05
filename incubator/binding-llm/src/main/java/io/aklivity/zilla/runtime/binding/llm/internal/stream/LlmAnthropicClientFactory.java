@@ -50,6 +50,7 @@ import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.HttpBeginExFW
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmAbortExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmBeginExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmDataExFW;
+import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmDialectPreSectionDataExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmEndExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmResetExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmSectionDataExFW;
@@ -137,6 +138,8 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
     private static final byte[] MESSAGE_USER_START = "{\"role\":\"user\",\"content\":[".getBytes(UTF_8);
     private static final byte[] MESSAGE_ASSISTANT_START = "{\"role\":\"assistant\",\"content\":[".getBytes(UTF_8);
     private static final byte[] TEXT_BLOCK_START = "{\"type\":\"text\",\"text\":\"".getBytes(UTF_8);
+    private static final byte[] PART_TEXT_START = "{\"type\":\"text\"".getBytes(UTF_8);
+    private static final byte[] TEXT_MEMBER_START = ",\"text\":\"".getBytes(UTF_8);
     private static final byte[] TOOL_RESULT_START = "{\"type\":\"tool_result\",\"tool_use_id\":\"".getBytes(UTF_8);
     private static final byte[] TOOL_RESULT_CONTENT = "\",\"content\":[".getBytes(UTF_8);
     private static final byte[] TOOL_RESULT_ERROR_END = "],\"is_error\":true}".getBytes(UTF_8);
@@ -380,6 +383,14 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         };
     }
 
+    private static boolean part(
+        int kind)
+    {
+        return kind == KIND_SYSTEM_INSTRUCTION ||
+            kind == KIND_USER_TEXT ||
+            kind == KIND_ASSISTANT_TEXT;
+    }
+
     private static boolean text(
         int kind)
     {
@@ -558,6 +569,16 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                     {
                         http.doEncodeDialectBegin(llmDataEx.dialect().block().asString());
                     }
+                    else if (llmDataEx != null && llmDataEx.kind() == LlmDataExFW.KIND_PRE_SECTION)
+                    {
+                        final LlmDialectPreSectionDataExFW pre = llmDataEx.preSection();
+
+                        http.doEncodePreSectionBegin(sectionKind(pre.type().asString()), pre.message(), pre.block().asString());
+                    }
+                    else if (llmDataEx != null && llmDataEx.kind() == LlmDataExFW.KIND_POST_SECTION)
+                    {
+                        http.doEncodePostSectionBegin(llmDataEx.postSection().block().asString());
+                    }
                     else
                     {
                         sectionAttributes.readFrom(section);
@@ -614,7 +635,16 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             state = LlmState.closingInitial(state);
 
             http.doEncodeRequestEnd();
-            http.flushEncode(traceId);
+
+            if (http.encodeFailed)
+            {
+                doAppReset(traceId, STATUS_BAD_REQUEST, ERROR_TYPE_INVALID_REQUEST, MESSAGE_SECTION_INVALID);
+                http.doNetAbort(traceId);
+            }
+            else
+            {
+                http.flushEncode(traceId);
+            }
         }
 
         private void onAppFlush(
@@ -1199,6 +1229,8 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         private boolean toolResultError;
         private int blockCount;
         private boolean textBlockOpen;
+        private int preKind;
+        private int preMessage;
         private String toolResultId;
         private int sectionKind;
         private boolean sectionOpen;
@@ -1317,6 +1349,95 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             }
         }
 
+        private void doEncodePreSectionBegin(
+            int kind,
+            int message,
+            String block)
+        {
+            sectionOpen = false;
+            translated = false;
+
+            if (!NAME.equals(stream.dialect))
+            {
+                sectionKind = KIND_DROPPED;
+            }
+            else if (preKind == 0 ? !part(kind) : preKind != kind || preMessage != message)
+            {
+                sectionKind = KIND_DROPPED;
+                encodeFailed = true;
+            }
+            else
+            {
+                sectionKind = KIND_DIALECT;
+
+                if (preKind == 0)
+                {
+                    closeTextBlock();
+
+                    if (kind == KIND_SYSTEM_INSTRUCTION)
+                    {
+                        openRegion(REGION_SYSTEM);
+                        beginRegionBlock();
+                        put(PART_TEXT_START);
+                    }
+                    else
+                    {
+                        beginMessageBlock(kind, message, null, true);
+                    }
+
+                    preKind = kind;
+                    preMessage = message;
+                }
+
+                putByte(',');
+                putByte('"');
+                putEscaped(block);
+                put(MEMBER_NAME_END);
+            }
+        }
+
+        private void doEncodePostSectionBegin(
+            String block)
+        {
+            sectionOpen = false;
+            translated = false;
+
+            if (!NAME.equals(stream.dialect))
+            {
+                sectionKind = KIND_DROPPED;
+            }
+            else if (!textBlockOpen)
+            {
+                sectionKind = KIND_DROPPED;
+                encodeFailed = true;
+            }
+            else
+            {
+                sectionKind = KIND_DIALECT;
+                putByte(',');
+                putByte('"');
+                putEscaped(block);
+                put(MEMBER_NAME_END);
+            }
+        }
+
+        private void doEncodePartContinue(
+            int kind,
+            int message)
+        {
+            if (kind == preKind && message == preMessage)
+            {
+                put(TEXT_MEMBER_START);
+                sectionOpen = !encodeFailed;
+            }
+            else
+            {
+                encodeFailed = true;
+            }
+
+            preKind = 0;
+        }
+
         private void doEncodeSectionBegin(
             int kind,
             int message,
@@ -1326,7 +1447,11 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             sectionOpen = false;
             translated = !NAME.equals(stream.dialect) && translatable(kind);
 
-            if (kind == 0 || kind == KIND_USER_AUDIO || kind == KIND_UNKNOWN && !NAME.equals(stream.dialect))
+            if (preKind != 0)
+            {
+                doEncodePartContinue(kind, message);
+            }
+            else if (kind == 0 || kind == KIND_USER_AUDIO || kind == KIND_UNKNOWN && !NAME.equals(stream.dialect))
             {
                 encodeFailed = true;
             }
@@ -1359,7 +1484,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                 }
                 else
                 {
-                    beginMessageBlock(kind, message, toolCallId);
+                    beginMessageBlock(kind, message, toolCallId, false);
                 }
             }
 
@@ -1450,7 +1575,8 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         private void beginMessageBlock(
             int kind,
             int message,
-            String toolCallId)
+            String toolCallId,
+            boolean pre)
         {
             openRegion(REGION_MESSAGES);
 
@@ -1494,8 +1620,8 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
 
                 if (text(kind))
                 {
-                    put(TEXT_BLOCK_START);
-                    sectionOpen = !encodeFailed;
+                    put(pre ? PART_TEXT_START : TEXT_BLOCK_START);
+                    sectionOpen = !pre && !encodeFailed;
                 }
             }
         }
@@ -1561,6 +1687,8 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
 
         private void closeRegion()
         {
+            closeTextBlock();
+
             if (region == REGION_MESSAGES)
             {
                 closeMessage();
@@ -1668,7 +1796,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             {
                 putByte('"');
 
-                if (sectionKind == KIND_SYSTEM_INSTRUCTION || sectionKind == KIND_TOOL_RESULT)
+                if (sectionKind == KIND_TOOL_RESULT)
                 {
                     putByte('}');
                 }
@@ -1690,7 +1818,11 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
 
         private void doEncodeRequestEnd()
         {
-            if (!LlmState.initialClosing(state) && !LlmState.initialClosed(state))
+            if (preKind != 0)
+            {
+                encodeFailed = true;
+            }
+            else if (!LlmState.initialClosing(state) && !LlmState.initialClosed(state))
             {
                 closeRegion();
                 putByte('}');
