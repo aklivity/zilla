@@ -34,35 +34,35 @@ write "Hello"
 write flush
 
 write option zilla:flags "init fin"
-write zilla:data.ext ${llm:dialectDataEx()
+write zilla:data.ext ${llm:dialectBlockDataEx()
                            .typeId(zilla:id("llm"))
                            .block("temperature")
                            .build()}
 write "0.7"
 write flush
 write option zilla:flags "init fin"
-write zilla:data.ext ${llm:dialectDataEx()
+write zilla:data.ext ${llm:dialectBlockDataEx()
                            .typeId(zilla:id("llm"))
                            .block("top_p")
                            .build()}
 write "0.9"
 write flush
 write option zilla:flags "init fin"
-write zilla:data.ext ${llm:dialectDataEx()
+write zilla:data.ext ${llm:dialectBlockDataEx()
                            .typeId(zilla:id("llm"))
                            .block("max_tokens")
                            .build()}
 write "100"
 write flush
 write option zilla:flags "init fin"
-write zilla:data.ext ${llm:dialectDataEx()
+write zilla:data.ext ${llm:dialectBlockDataEx()
                            .typeId(zilla:id("llm"))
                            .block("seed")
                            .build()}
 write "42"
 write flush
 write option zilla:flags "init fin"
-write zilla:data.ext ${llm:dialectDataEx()
+write zilla:data.ext ${llm:dialectBlockDataEx()
                            .typeId(zilla:id("llm"))
                            .block("stop")
                            .build()}
@@ -70,42 +70,42 @@ write "[\"END\"]"
 write flush
 
 write option zilla:flags "init fin"
-write zilla:data.ext ${llm:dialectDataEx()
+write zilla:data.ext ${llm:dialectBlockDataEx()
                            .typeId(zilla:id("llm"))
                            .block("store")
                            .build()}
 write "true"
 write flush
 write option zilla:flags "init fin"
-write zilla:data.ext ${llm:dialectDataEx()
+write zilla:data.ext ${llm:dialectBlockDataEx()
                            .typeId(zilla:id("llm"))
                            .block("service_tier")
                            .build()}
 write "\"auto\""
 write flush
 write option zilla:flags "init fin"
-write zilla:data.ext ${llm:dialectDataEx()
+write zilla:data.ext ${llm:dialectBlockDataEx()
                            .typeId(zilla:id("llm"))
                            .block("logprobs")
                            .build()}
 write "true"
 write flush
 write option zilla:flags "init fin"
-write zilla:data.ext ${llm:dialectDataEx()
+write zilla:data.ext ${llm:dialectBlockDataEx()
                            .typeId(zilla:id("llm"))
                            .block("top_logprobs")
                            .build()}
 write "3"
 write flush
 write option zilla:flags "init fin"
-write zilla:data.ext ${llm:dialectDataEx()
+write zilla:data.ext ${llm:dialectBlockDataEx()
                            .typeId(zilla:id("llm"))
                            .block("n")
                            .build()}
 write "2"
 write flush
 write option zilla:flags "init fin"
-write zilla:data.ext ${llm:dialectDataEx()
+write zilla:data.ext ${llm:dialectBlockDataEx()
                            .typeId(zilla:id("llm"))
                            .block("audio")
                            .build()}

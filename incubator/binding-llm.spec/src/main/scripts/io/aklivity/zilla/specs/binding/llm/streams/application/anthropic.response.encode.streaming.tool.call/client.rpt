@@ -25,14 +25,14 @@ write zilla:begin.ext ${llm:beginEx()
 
 connected
 
-write zilla:data.ext ${llm:dialectDataEx()
+write zilla:data.ext ${llm:dialectBlockDataEx()
                            .typeId(zilla:id("llm"))
                            .block("max_tokens")
                            .build()}
 write "1024"
 write flush
 
-write zilla:data.ext ${llm:dialectDataEx()
+write zilla:data.ext ${llm:dialectBlockDataEx()
                            .typeId(zilla:id("llm"))
                            .block("stream")
                            .build()}

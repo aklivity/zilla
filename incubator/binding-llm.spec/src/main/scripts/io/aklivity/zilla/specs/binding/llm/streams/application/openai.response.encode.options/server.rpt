@@ -61,14 +61,14 @@ write zilla:begin.ext ${llm:beginEx()
 write flush
 
 write option zilla:flags "init fin"
-write zilla:data.ext ${llm:dialectDataEx()
+write zilla:data.ext ${llm:dialectBlockDataEx()
                            .typeId(zilla:id("llm"))
                            .block("created")
                            .build()}
 write "1700000000"
 write flush
 write option zilla:flags "init fin"
-write zilla:data.ext ${llm:dialectDataEx()
+write zilla:data.ext ${llm:dialectBlockDataEx()
                            .typeId(zilla:id("llm"))
                            .block("service_tier")
                            .build()}
@@ -85,7 +85,7 @@ write "Hello! How can I help you today?"
 write flush
 
 write option zilla:flags "init fin"
-write zilla:data.ext ${llm:dialectDataEx()
+write zilla:data.ext ${llm:dialectBlockDataEx()
                            .typeId(zilla:id("llm"))
                            .block("system_fingerprint")
                            .build()}

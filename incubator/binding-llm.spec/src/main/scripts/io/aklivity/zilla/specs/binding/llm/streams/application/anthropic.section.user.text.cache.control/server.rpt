@@ -34,7 +34,7 @@ read zilla:data.ext ${llm:matchDataEx()
                           .build()}
 read "Hello"
 
-read zilla:data.ext ${llm:matchDialectPostSectionDataEx()
+read zilla:data.ext ${llm:matchDialectAfterBlockDataEx()
                           .typeId(zilla:id("llm"))
                           .block("cache_control")
                           .build()}

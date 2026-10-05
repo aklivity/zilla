@@ -37,7 +37,7 @@ read zilla:data.ext ${llm:matchDataEx()
                           .build()}
 read "Hello"
 
-read zilla:data.ext ${llm:matchDialectDataEx()
+read zilla:data.ext ${llm:matchDialectBlockDataEx()
                           .typeId(zilla:id("llm"))
                           .block("stream")
                           .build()}

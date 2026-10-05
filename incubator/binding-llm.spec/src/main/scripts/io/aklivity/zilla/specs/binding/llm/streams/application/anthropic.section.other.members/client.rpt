@@ -25,7 +25,7 @@ write zilla:begin.ext ${llm:beginEx()
 
 connected
 
-write zilla:data.ext ${llm:dialectDataEx()
+write zilla:data.ext ${llm:dialectBlockDataEx()
                            .typeId(zilla:id("llm"))
                            .block("metadata")
                            .build()}
@@ -40,14 +40,14 @@ write zilla:data.ext ${llm:dataEx()
 write "Hello"
 write flush
 
-write zilla:data.ext ${llm:dialectPostSectionDataEx()
+write zilla:data.ext ${llm:dialectAfterBlockDataEx()
                            .typeId(zilla:id("llm"))
                            .block("x_custom")
                            .build()}
 write "1"
 write flush
 
-write zilla:data.ext ${llm:dialectDataEx()
+write zilla:data.ext ${llm:dialectBlockDataEx()
                            .typeId(zilla:id("llm"))
                            .block("tool_choice")
                            .build()}

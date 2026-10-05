@@ -28,7 +28,7 @@ read zilla:begin.ext ${llm:matchBeginEx()
 connected
 
 read option zilla:flags "init fin"
-read zilla:data.ext ${llm:matchDialectDataEx()
+read zilla:data.ext ${llm:matchDialectBlockDataEx()
                           .typeId(zilla:id("llm"))
                           .block("temperature")
                           .build()}

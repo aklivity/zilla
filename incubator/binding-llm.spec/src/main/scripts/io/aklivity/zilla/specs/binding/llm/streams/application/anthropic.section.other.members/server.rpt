@@ -27,7 +27,7 @@ read zilla:begin.ext ${llm:matchBeginEx()
 
 connected
 
-read zilla:data.ext ${llm:matchDialectDataEx()
+read zilla:data.ext ${llm:matchDialectBlockDataEx()
                           .typeId(zilla:id("llm"))
                           .block("metadata")
                           .build()}
@@ -40,13 +40,13 @@ read zilla:data.ext ${llm:matchDataEx()
                           .build()}
 read "Hello"
 
-read zilla:data.ext ${llm:matchDialectPostSectionDataEx()
+read zilla:data.ext ${llm:matchDialectAfterBlockDataEx()
                           .typeId(zilla:id("llm"))
                           .block("x_custom")
                           .build()}
 read "1"
 
-read zilla:data.ext ${llm:matchDialectDataEx()
+read zilla:data.ext ${llm:matchDialectBlockDataEx()
                           .typeId(zilla:id("llm"))
                           .block("tool_choice")
                           .build()}

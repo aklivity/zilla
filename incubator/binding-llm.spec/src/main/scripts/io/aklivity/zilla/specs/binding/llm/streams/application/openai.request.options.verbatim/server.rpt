@@ -28,19 +28,19 @@ read zilla:begin.ext ${llm:matchBeginEx()
 connected
 
 read option zilla:flags "init fin"
-read zilla:data.ext ${llm:matchDialectDataEx()
+read zilla:data.ext ${llm:matchDialectBlockDataEx()
                           .typeId(zilla:id("llm"))
                           .block("temperature")
                           .build()}
 read "0.7"
 read option zilla:flags "init fin"
-read zilla:data.ext ${llm:matchDialectDataEx()
+read zilla:data.ext ${llm:matchDialectBlockDataEx()
                           .typeId(zilla:id("llm"))
                           .block("service_tier")
                           .build()}
 read "\"au\\u0074o\""
 read option zilla:flags "init fin"
-read zilla:data.ext ${llm:matchDialectDataEx()
+read zilla:data.ext ${llm:matchDialectBlockDataEx()
                           .typeId(zilla:id("llm"))
                           .block("response_format")
                           .build()}

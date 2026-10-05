@@ -60,29 +60,38 @@ scope llm
             octets[extensionLength] extension = null;
         }
 
-        struct LlmDialectDataEx
+        enum LlmBlockOwner (uint8)
+        {
+            SECTION(0),
+            CONTAINER(1)
+        }
+
+        struct LlmDialectBlockDataEx
         {
             string16 block;
         }
 
-        struct LlmDialectPreSectionDataEx
+        struct LlmDialectBeforeBlockDataEx
         {
             LlmSectionType type;
             int32 message = -1;
+            LlmAttribute[] attributes;
+            LlmBlockOwner owner = SECTION;
             string16 block;
         }
 
-        struct LlmDialectPostSectionDataEx
+        struct LlmDialectAfterBlockDataEx
         {
+            LlmBlockOwner owner = SECTION;
             string16 block;
         }
 
         union LlmDataEx switch (uint8) extends core::stream::Extension
         {
             case 0: llm::stream::LlmSectionDataEx section;
-            case 1: llm::stream::LlmDialectDataEx dialect;
-            case 2: llm::stream::LlmDialectPreSectionDataEx preSection;
-            case 3: llm::stream::LlmDialectPostSectionDataEx postSection;
+            case 1: llm::stream::LlmDialectBlockDataEx block;
+            case 2: llm::stream::LlmDialectBeforeBlockDataEx before;
+            case 3: llm::stream::LlmDialectAfterBlockDataEx after;
         }
 
         struct LlmUsage

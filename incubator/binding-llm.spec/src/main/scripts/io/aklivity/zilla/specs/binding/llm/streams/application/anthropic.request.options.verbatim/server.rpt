@@ -28,19 +28,19 @@ read zilla:begin.ext ${llm:matchBeginEx()
 connected
 
 read option zilla:flags "init fin"
-read zilla:data.ext ${llm:matchDialectDataEx()
+read zilla:data.ext ${llm:matchDialectBlockDataEx()
                           .typeId(zilla:id("llm"))
                           .block("temperature")
                           .build()}
 read "0.5"
 read option zilla:flags "init fin"
-read zilla:data.ext ${llm:matchDialectDataEx()
+read zilla:data.ext ${llm:matchDialectBlockDataEx()
                           .typeId(zilla:id("llm"))
                           .block("container_id")
                           .build()}
 read "\"ctr\\u005f1\""
 read option zilla:flags "init fin"
-read zilla:data.ext ${llm:matchDialectDataEx()
+read zilla:data.ext ${llm:matchDialectBlockDataEx()
                           .typeId(zilla:id("llm"))
                           .block("thinking")
                           .build()}

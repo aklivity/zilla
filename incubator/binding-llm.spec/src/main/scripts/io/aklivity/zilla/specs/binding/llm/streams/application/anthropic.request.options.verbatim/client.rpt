@@ -26,21 +26,21 @@ write zilla:begin.ext ${llm:beginEx()
 connected
 
 write option zilla:flags "init fin"
-write zilla:data.ext ${llm:dialectDataEx()
+write zilla:data.ext ${llm:dialectBlockDataEx()
                            .typeId(zilla:id("llm"))
                            .block("temperature")
                            .build()}
 write "0.5"
 write flush
 write option zilla:flags "init fin"
-write zilla:data.ext ${llm:dialectDataEx()
+write zilla:data.ext ${llm:dialectBlockDataEx()
                            .typeId(zilla:id("llm"))
                            .block("container_id")
                            .build()}
 write "\"ctr\\u005f1\""
 write flush
 write option zilla:flags "init fin"
-write zilla:data.ext ${llm:dialectDataEx()
+write zilla:data.ext ${llm:dialectBlockDataEx()
                            .typeId(zilla:id("llm"))
                            .block("thinking")
                            .build()}

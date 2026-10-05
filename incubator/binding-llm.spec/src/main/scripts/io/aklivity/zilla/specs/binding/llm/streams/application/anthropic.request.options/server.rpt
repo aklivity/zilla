@@ -35,49 +35,49 @@ read zilla:data.ext ${llm:matchDataEx()
 read "Hello"
 
 read option zilla:flags "init fin"
-read zilla:data.ext ${llm:matchDialectDataEx()
+read zilla:data.ext ${llm:matchDialectBlockDataEx()
                           .typeId(zilla:id("llm"))
                           .block("temperature")
                           .build()}
 read "0.5"
 read option zilla:flags "init fin"
-read zilla:data.ext ${llm:matchDialectDataEx()
+read zilla:data.ext ${llm:matchDialectBlockDataEx()
                           .typeId(zilla:id("llm"))
                           .block("top_p")
                           .build()}
 read "0.9"
 read option zilla:flags "init fin"
-read zilla:data.ext ${llm:matchDialectDataEx()
+read zilla:data.ext ${llm:matchDialectBlockDataEx()
                           .typeId(zilla:id("llm"))
                           .block("top_k")
                           .build()}
 read "40"
 read option zilla:flags "init fin"
-read zilla:data.ext ${llm:matchDialectDataEx()
+read zilla:data.ext ${llm:matchDialectBlockDataEx()
                           .typeId(zilla:id("llm"))
                           .block("max_tokens")
                           .build()}
 read "1024"
 read option zilla:flags "init fin"
-read zilla:data.ext ${llm:matchDialectDataEx()
+read zilla:data.ext ${llm:matchDialectBlockDataEx()
                           .typeId(zilla:id("llm"))
                           .block("stop_sequences")
                           .build()}
 read "[\"END\"]"
 read option zilla:flags "init fin"
-read zilla:data.ext ${llm:matchDialectDataEx()
+read zilla:data.ext ${llm:matchDialectBlockDataEx()
                           .typeId(zilla:id("llm"))
                           .block("thinking")
                           .build()}
 read "{\"type\":\"enabled\",\"budget_tokens\":2048}"
 read option zilla:flags "init fin"
-read zilla:data.ext ${llm:matchDialectDataEx()
+read zilla:data.ext ${llm:matchDialectBlockDataEx()
                           .typeId(zilla:id("llm"))
                           .block("container_id")
                           .build()}
 read "\"ctr_1\""
 read option zilla:flags "init fin"
-read zilla:data.ext ${llm:matchDialectDataEx()
+read zilla:data.ext ${llm:matchDialectBlockDataEx()
                           .typeId(zilla:id("llm"))
                           .block("mcp_servers")
                           .build()}

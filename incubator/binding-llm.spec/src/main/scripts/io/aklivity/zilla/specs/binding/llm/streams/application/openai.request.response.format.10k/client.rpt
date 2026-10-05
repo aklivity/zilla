@@ -33,7 +33,7 @@ write zilla:data.ext ${llm:dataEx()
 write "Hello"
 write flush
 
-write zilla:data.ext ${llm:dialectDataEx()
+write zilla:data.ext ${llm:dialectBlockDataEx()
                            .typeId(zilla:id("llm"))
                            .block("response_format")
                            .build()}

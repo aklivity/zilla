@@ -34,7 +34,7 @@ write "Hello"
 write flush
 
 write option zilla:flags "init fin"
-write zilla:data.ext ${llm:dialectDataEx()
+write zilla:data.ext ${llm:dialectBlockDataEx()
                            .typeId(zilla:id("llm"))
                            .block("response_format")
                            .build()}

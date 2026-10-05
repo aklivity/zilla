@@ -25,7 +25,7 @@ write zilla:begin.ext ${llm:beginEx()
 
 connected
 
-write zilla:data.ext ${llm:dialectPreSectionDataEx()
+write zilla:data.ext ${llm:dialectBeforeBlockDataEx()
                            .typeId(zilla:id("llm"))
                            .type("USER_TEXT")
                            .message(0)

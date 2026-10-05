@@ -33,7 +33,7 @@ write zilla:data.ext ${llm:dataEx()
 write "Be brief."
 write flush
 
-write zilla:data.ext ${llm:dialectPostSectionDataEx()
+write zilla:data.ext ${llm:dialectAfterBlockDataEx()
                            .typeId(zilla:id("llm"))
                            .block("cache_control")
                            .build()}

@@ -50,7 +50,7 @@ import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.HttpBeginExFW
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmAbortExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmBeginExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmDataExFW;
-import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmDialectPreSectionDataExFW;
+import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmDialectBeforeBlockDataExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmEndExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmResetExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmSectionDataExFW;
@@ -559,19 +559,19 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
 
                 if (Flags.hasInit(flags))
                 {
-                    if (llmDataEx != null && llmDataEx.kind() == LlmDataExFW.KIND_DIALECT)
+                    if (llmDataEx != null && llmDataEx.kind() == LlmDataExFW.KIND_BLOCK)
                     {
-                        http.doEncodeDialectBegin(llmDataEx.dialect().block().asString());
+                        http.doEncodeDialectBegin(llmDataEx.block().block().asString());
                     }
-                    else if (llmDataEx != null && llmDataEx.kind() == LlmDataExFW.KIND_PRE_SECTION)
+                    else if (llmDataEx != null && llmDataEx.kind() == LlmDataExFW.KIND_BEFORE)
                     {
-                        final LlmDialectPreSectionDataExFW pre = llmDataEx.preSection();
+                        final LlmDialectBeforeBlockDataExFW pre = llmDataEx.before();
 
-                        http.doEncodePreSectionBegin(sectionKind(pre.type().get()), pre.message(), pre.block().asString());
+                        http.doEncodeBeforeBlockBegin(sectionKind(pre.type().get()), pre.message(), pre.block().asString());
                     }
-                    else if (llmDataEx != null && llmDataEx.kind() == LlmDataExFW.KIND_POST_SECTION)
+                    else if (llmDataEx != null && llmDataEx.kind() == LlmDataExFW.KIND_AFTER)
                     {
-                        http.doEncodePostSectionBegin(llmDataEx.postSection().block().asString());
+                        http.doEncodeAfterBlockBegin(llmDataEx.after().block().asString());
                     }
                     else
                     {
@@ -875,7 +875,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
 
                 if (header.block != null)
                 {
-                    dataExBuilder.dialect(d -> d.block(header.block));
+                    dataExBuilder.block(d -> d.block(header.block));
                 }
                 else
                 {
@@ -1343,7 +1343,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             }
         }
 
-        private void doEncodePreSectionBegin(
+        private void doEncodeBeforeBlockBegin(
             int kind,
             int message,
             String block)
@@ -1390,7 +1390,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             }
         }
 
-        private void doEncodePostSectionBegin(
+        private void doEncodeAfterBlockBegin(
             String block)
         {
             sectionOpen = false;

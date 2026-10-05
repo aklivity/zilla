@@ -34,7 +34,7 @@ write zilla:data.ext ${llm:dataEx()
 write "sunny"
 write flush
 
-write zilla:data.ext ${llm:dialectDataEx()
+write zilla:data.ext ${llm:dialectBlockDataEx()
                            .typeId(zilla:id("llm"))
                            .block("max_tokens")
                            .build()}

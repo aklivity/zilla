@@ -59,13 +59,13 @@ read zilla:begin.ext ${llm:matchBeginEx()
                            .build()}
 
 read option zilla:flags "init fin"
-read zilla:data.ext ${llm:matchDialectDataEx()
+read zilla:data.ext ${llm:matchDialectBlockDataEx()
                           .typeId(zilla:id("llm"))
                           .block("created")
                           .build()}
 read "1700000000"
 read option zilla:flags "init fin"
-read zilla:data.ext ${llm:matchDialectDataEx()
+read zilla:data.ext ${llm:matchDialectBlockDataEx()
                           .typeId(zilla:id("llm"))
                           .block("service_tier")
                           .build()}
@@ -80,7 +80,7 @@ read zilla:data.ext ${llm:matchDataEx()
 read "Hello! How can I help you today?"
 
 read option zilla:flags "init fin"
-read zilla:data.ext ${llm:matchDialectDataEx()
+read zilla:data.ext ${llm:matchDialectBlockDataEx()
                           .typeId(zilla:id("llm"))
                           .block("system_fingerprint")
                           .build()}

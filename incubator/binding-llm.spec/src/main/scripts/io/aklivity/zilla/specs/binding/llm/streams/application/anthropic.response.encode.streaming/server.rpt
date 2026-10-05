@@ -27,13 +27,13 @@ read zilla:begin.ext ${llm:matchBeginEx()
 
 connected
 
-read zilla:data.ext ${llm:matchDialectDataEx()
+read zilla:data.ext ${llm:matchDialectBlockDataEx()
                           .typeId(zilla:id("llm"))
                           .block("max_tokens")
                           .build()}
 read "1024"
 
-read zilla:data.ext ${llm:matchDialectDataEx()
+read zilla:data.ext ${llm:matchDialectBlockDataEx()
                           .typeId(zilla:id("llm"))
                           .block("stream")
                           .build()}

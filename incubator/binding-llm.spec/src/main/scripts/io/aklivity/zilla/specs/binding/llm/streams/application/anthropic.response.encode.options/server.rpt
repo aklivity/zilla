@@ -27,7 +27,7 @@ read zilla:begin.ext ${llm:matchBeginEx()
 
 connected
 
-read zilla:data.ext ${llm:matchDialectDataEx()
+read zilla:data.ext ${llm:matchDialectBlockDataEx()
                           .typeId(zilla:id("llm"))
                           .block("max_tokens")
                           .build()}
@@ -60,14 +60,14 @@ write "Hello! How can I help you today?"
 write flush
 
 write option zilla:flags "init fin"
-write zilla:data.ext ${llm:dialectDataEx()
+write zilla:data.ext ${llm:dialectBlockDataEx()
                            .typeId(zilla:id("llm"))
                            .block("stop_sequence")
                            .build()}
 write "\"END\""
 write flush
 write option zilla:flags "init fin"
-write zilla:data.ext ${llm:dialectDataEx()
+write zilla:data.ext ${llm:dialectBlockDataEx()
                            .typeId(zilla:id("llm"))
                            .block("container")
                            .build()}

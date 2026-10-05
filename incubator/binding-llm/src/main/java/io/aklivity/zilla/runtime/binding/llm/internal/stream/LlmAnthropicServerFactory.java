@@ -109,9 +109,9 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
     private static final DirectBufferEx STREAM_FALSE = new UnsafeBufferEx("false".getBytes(UTF_8));
     private static final DirectBufferEx STREAM_NULL = new UnsafeBufferEx("null".getBytes(UTF_8));
     private static final int BLOCK_SECTION = 0;
-    private static final int BLOCK_DIALECT = 1;
-    private static final int BLOCK_PRE_SECTION = 2;
-    private static final int BLOCK_POST_SECTION = 3;
+    private static final int BLOCK_STREAM = 1;
+    private static final int BLOCK_BEFORE = 2;
+    private static final int BLOCK_AFTER = 3;
     private static final int MIN_WINDOW = 64;
     private static final int HOLD_MAX = 1024;
 
@@ -2456,7 +2456,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             captureThen = decodePart;
             partPre |= pre;
 
-            onDecodeSectionBlock(member, pre ? BLOCK_PRE_SECTION : BLOCK_POST_SECTION, sectionType, message);
+            onDecodeSectionBlock(member, pre ? BLOCK_BEFORE : BLOCK_AFTER, sectionType, message);
 
             captureOpen = true;
             captureDepth = 0;
@@ -2489,7 +2489,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             flushHeld();
 
             blockName = block;
-            blockKind = BLOCK_DIALECT;
+            blockKind = BLOCK_STREAM;
             blockSection = null;
             blockMessage = -1;
             blockExtension = null;
@@ -3293,10 +3293,10 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             {
                 final LlmDataExFW llmDataEx = data.extension().get(llmDataExRO::tryWrap);
 
-                if (llmDataEx != null && llmDataEx.kind() == LlmDataExFW.KIND_DIALECT)
+                if (llmDataEx != null && llmDataEx.kind() == LlmDataExFW.KIND_BLOCK)
                 {
                     replyBlock = true;
-                    responseEncoder.blockBegin(llmDataEx.dialect().block().asString(), replyDialect);
+                    responseEncoder.blockBegin(llmDataEx.block().block().asString(), replyDialect);
                 }
                 else
                 {
@@ -3610,17 +3610,17 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                 final LlmDataExFW.Builder dataExBuilder = llmDataExRW.wrap(extBuffer, 0, extBuffer.capacity())
                     .typeId(llmTypeId);
 
-                if (kind == BLOCK_DIALECT)
+                if (kind == BLOCK_STREAM)
                 {
-                    dataExBuilder.dialect(d -> d.block(block));
+                    dataExBuilder.block(d -> d.block(block));
                 }
-                else if (kind == BLOCK_PRE_SECTION)
+                else if (kind == BLOCK_BEFORE)
                 {
-                    dataExBuilder.preSection(d -> d.type(t -> t.set(type)).message(message).block(block));
+                    dataExBuilder.before(d -> d.type(t -> t.set(type)).message(message).block(block));
                 }
-                else if (kind == BLOCK_POST_SECTION)
+                else if (kind == BLOCK_AFTER)
                 {
-                    dataExBuilder.postSection(d -> d.block(block));
+                    dataExBuilder.after(d -> d.block(block));
                 }
                 else
                 {

@@ -550,9 +550,9 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 {
                     final LlmDataExFW llmDataEx = data.extension().get(llmDataExRO::tryWrap);
 
-                    if (llmDataEx != null && llmDataEx.kind() == LlmDataExFW.KIND_DIALECT)
+                    if (llmDataEx != null && llmDataEx.kind() == LlmDataExFW.KIND_BLOCK)
                     {
-                        http.doEncodeDialectBegin(llmDataEx.dialect().block().asString());
+                        http.doEncodeDialectBegin(llmDataEx.block().block().asString());
                     }
                     else
                     {
@@ -844,7 +844,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
                 if (header.block != null)
                 {
-                    dataExBuilder.dialect(d -> d.block(header.block));
+                    dataExBuilder.block(d -> d.block(header.block));
                 }
                 else
                 {

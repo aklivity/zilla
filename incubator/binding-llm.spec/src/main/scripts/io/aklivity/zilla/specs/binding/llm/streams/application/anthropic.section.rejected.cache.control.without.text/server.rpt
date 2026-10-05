@@ -27,7 +27,7 @@ read zilla:begin.ext ${llm:matchBeginEx()
 
 connected
 
-read zilla:data.ext ${llm:matchDialectPreSectionDataEx()
+read zilla:data.ext ${llm:matchDialectBeforeBlockDataEx()
                           .typeId(zilla:id("llm"))
                           .type("USER_TEXT")
                           .message(0)
