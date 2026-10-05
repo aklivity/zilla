@@ -22,7 +22,9 @@ final class LlmAnthropicOptions
 
     private static final String[] REQUEST_MEMBERS =
     {
-        "stream", "temperature", "top_p", "top_k", "max_tokens", "stop_sequences", "output_config"
+        "stream", "temperature", "top_p", "top_k", "max_tokens", "stop_sequences", "output_config",
+        "thinking", "container_id", "mcp_servers",
+        "thinking", "container_id", "mcp_servers"
     };
 
     private static final String[] RESPONSE_MEMBERS =

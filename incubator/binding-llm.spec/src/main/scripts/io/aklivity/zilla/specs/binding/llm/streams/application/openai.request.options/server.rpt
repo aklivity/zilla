@@ -64,6 +64,36 @@ read zilla:data.ext ${llm:matchDialectDataEx()
                           .block("stop")
                           .build()}
 read "[\"END\"]"
+read option zilla:flags "init fin"
+read zilla:data.ext ${llm:matchDialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .block("store")
+                          .build()}
+read "true"
+read option zilla:flags "init fin"
+read zilla:data.ext ${llm:matchDialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .block("service_tier")
+                          .build()}
+read "\"auto\""
+read option zilla:flags "init fin"
+read zilla:data.ext ${llm:matchDialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .block("logprobs")
+                          .build()}
+read "true"
+read option zilla:flags "init fin"
+read zilla:data.ext ${llm:matchDialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .block("top_logprobs")
+                          .build()}
+read "3"
+read option zilla:flags "init fin"
+read zilla:data.ext ${llm:matchDialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .block("n")
+                          .build()}
+read "2"
 
 read advised zilla:flush
 

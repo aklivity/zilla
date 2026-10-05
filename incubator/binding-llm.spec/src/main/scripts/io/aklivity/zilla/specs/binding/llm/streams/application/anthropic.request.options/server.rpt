@@ -64,6 +64,24 @@ read zilla:data.ext ${llm:matchDialectDataEx()
                           .block("stop_sequences")
                           .build()}
 read "[\"END\"]"
+read option zilla:flags "init fin"
+read zilla:data.ext ${llm:matchDialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .block("thinking")
+                          .build()}
+read "{\"type\":\"enabled\",\"budget_tokens\":2048}"
+read option zilla:flags "init fin"
+read zilla:data.ext ${llm:matchDialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .block("container_id")
+                          .build()}
+read "\"ctr_1\""
+read option zilla:flags "init fin"
+read zilla:data.ext ${llm:matchDialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .block("mcp_servers")
+                          .build()}
+read "[{\"type\":\"url\",\"url\":\"https://mcp.example.com\",\"name\":\"example\"}]"
 
 read advised zilla:flush
 

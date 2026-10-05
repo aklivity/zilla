@@ -24,7 +24,9 @@ final class LlmOpenaiOptions
 
     private static final String[] REQUEST_MEMBERS =
     {
-        "stream", "stream_options", "temperature", "top_p", "max_tokens", "seed", "stop", "response_format"
+        "stream", "stream_options", "temperature", "top_p", "max_tokens", "seed", "stop", "response_format",
+        "store", "service_tier", "logprobs", "top_logprobs", "n",
+        "store", "service_tier", "logprobs", "top_logprobs", "n"
     };
 
     private static final String[] RESPONSE_MEMBERS =

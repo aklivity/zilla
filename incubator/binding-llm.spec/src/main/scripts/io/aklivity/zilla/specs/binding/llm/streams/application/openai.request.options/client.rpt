@@ -69,6 +69,41 @@ write zilla:data.ext ${llm:dialectDataEx()
 write "[\"END\"]"
 write flush
 
+write option zilla:flags "init fin"
+write zilla:data.ext ${llm:dialectDataEx()
+                           .typeId(zilla:id("llm"))
+                           .block("store")
+                           .build()}
+write "true"
+write flush
+write option zilla:flags "init fin"
+write zilla:data.ext ${llm:dialectDataEx()
+                           .typeId(zilla:id("llm"))
+                           .block("service_tier")
+                           .build()}
+write "\"auto\""
+write flush
+write option zilla:flags "init fin"
+write zilla:data.ext ${llm:dialectDataEx()
+                           .typeId(zilla:id("llm"))
+                           .block("logprobs")
+                           .build()}
+write "true"
+write flush
+write option zilla:flags "init fin"
+write zilla:data.ext ${llm:dialectDataEx()
+                           .typeId(zilla:id("llm"))
+                           .block("top_logprobs")
+                           .build()}
+write "3"
+write flush
+write option zilla:flags "init fin"
+write zilla:data.ext ${llm:dialectDataEx()
+                           .typeId(zilla:id("llm"))
+                           .block("n")
+                           .build()}
+write "2"
+write flush
 write advise zilla:flush
 
 read zilla:reset.ext ${llm:matchResetEx()

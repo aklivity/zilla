@@ -69,6 +69,27 @@ write zilla:data.ext ${llm:dialectDataEx()
 write "[\"END\"]"
 write flush
 
+write option zilla:flags "init fin"
+write zilla:data.ext ${llm:dialectDataEx()
+                           .typeId(zilla:id("llm"))
+                           .block("thinking")
+                           .build()}
+write "{\"type\":\"enabled\",\"budget_tokens\":2048}"
+write flush
+write option zilla:flags "init fin"
+write zilla:data.ext ${llm:dialectDataEx()
+                           .typeId(zilla:id("llm"))
+                           .block("container_id")
+                           .build()}
+write "\"ctr_1\""
+write flush
+write option zilla:flags "init fin"
+write zilla:data.ext ${llm:dialectDataEx()
+                           .typeId(zilla:id("llm"))
+                           .block("mcp_servers")
+                           .build()}
+write "[{\"type\":\"url\",\"url\":\"https://mcp.example.com\",\"name\":\"example\"}]"
+write flush
 write advise zilla:flush
 
 read zilla:reset.ext ${llm:matchResetEx()
