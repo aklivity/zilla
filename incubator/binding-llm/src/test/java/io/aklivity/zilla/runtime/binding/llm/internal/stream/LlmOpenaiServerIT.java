@@ -821,4 +821,34 @@ public class LlmOpenaiServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.response.encode.streaming.logprobs/client",
+        "${app}/openai.response.encode.streaming.logprobs/server"})
+    public void shouldEncodeOpenaiResponseStreamingLogprobs() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.response.encode.text.logprobs/client",
+        "${app}/openai.response.encode.text.logprobs/server"})
+    public void shouldEncodeOpenaiResponseTextLogprobs() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.response.encode.streaming.logprobs.foreign/client",
+        "${app}/openai.response.encode.streaming.logprobs.foreign/server"})
+    public void shouldEncodeOpenaiResponseStreamingLogprobsForeign() throws Exception
+    {
+        k3po.finish();
+    }
 }

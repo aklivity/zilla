@@ -1961,4 +1961,49 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/openai.response.decode.streaming.logprobs/client",
+        "${app}/openai.response.decode.streaming.logprobs/server"})
+    public void shouldDecodeOpenaiResponseStreamingLogprobs() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.response.decode.text.logprobs/client",
+        "${app}/openai.response.decode.text.logprobs/server"})
+    public void shouldDecodeOpenaiResponseTextLogprobs() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.response.encode.streaming.logprobs/client",
+        "${app}/openai.response.encode.streaming.logprobs/server"})
+    public void shouldEncodeOpenaiResponseStreamingLogprobs() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.response.encode.text.logprobs/client",
+        "${app}/openai.response.encode.text.logprobs/server"})
+    public void shouldEncodeOpenaiResponseTextLogprobs() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.response.encode.streaming.logprobs.foreign/client",
+        "${app}/openai.response.encode.streaming.logprobs.foreign/server"})
+    public void shouldEncodeOpenaiResponseStreamingLogprobsForeign() throws Exception
+    {
+        k3po.finish();
+    }
 }

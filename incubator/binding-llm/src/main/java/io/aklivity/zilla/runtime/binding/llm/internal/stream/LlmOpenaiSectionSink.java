@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
+import java.util.Arrays;
+
 import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmSectionType;
@@ -30,6 +32,9 @@ final class LlmOpenaiSectionSink implements JsonSink
 
     private static final int NO_INDEX = -1;
     private static final int REPLACEMENT_CHARACTER = 0xFFFD;
+    private static final String LOGPROBS = "logprobs";
+    private static final int CAPTURE_DEPTH_MAX = 64;
+    private static final int CAPTURE_FLUSH = 4096;
 
     private final Output output;
     private final StringBuilder path;
@@ -56,6 +61,20 @@ final class LlmOpenaiSectionSink implements JsonSink
     private byte[] textBytes;
     private UnsafeBufferEx textBuffer;
 
+    private boolean logprobs;
+    private boolean sectionFollow;
+    private boolean followPending;
+
+    private final boolean[] captureFirst;
+    private int captureDepth;
+    private boolean captureValue;
+    private boolean captureOpen;
+    private boolean captureStarted;
+    private char captureHigh;
+    private int captureLength;
+    private byte[] captureBytes;
+    private UnsafeBufferEx captureBuffer;
+
     LlmOpenaiSectionSink(
         Output output)
     {
@@ -65,6 +84,15 @@ final class LlmOpenaiSectionSink implements JsonSink
         this.textBytes = new byte[1024];
         this.textBuffer = new UnsafeBufferEx(textBytes);
         this.sectionTool = NO_INDEX;
+        this.captureFirst = new boolean[CAPTURE_DEPTH_MAX];
+        this.captureBytes = new byte[CAPTURE_FLUSH + 64];
+        this.captureBuffer = new UnsafeBufferEx(captureBytes);
+    }
+
+    void logprobs(
+        boolean requested)
+    {
+        this.logprobs = requested;
     }
 
     void finish()
@@ -74,6 +102,16 @@ final class LlmOpenaiSectionSink implements JsonSink
 
     @Override
     public Status transform(
+        JsonController control,
+        JsonSource source,
+        JsonEvent event)
+    {
+        return captureDepth > 0
+            ? onCapture(control, source, event)
+            : onEvent(control, source, event);
+    }
+
+    private Status onEvent(
         JsonController control,
         JsonSource source,
         JsonEvent event)
@@ -117,6 +155,14 @@ final class LlmOpenaiSectionSink implements JsonSink
         sectionStarted = false;
         sectionTool = NO_INDEX;
         highSurrogate = 0;
+        sectionFollow = false;
+        followPending = false;
+        captureDepth = 0;
+        captureValue = false;
+        captureOpen = false;
+        captureStarted = false;
+        captureHigh = 0;
+        captureLength = 0;
     }
 
     @Override
@@ -144,6 +190,12 @@ final class LlmOpenaiSectionSink implements JsonSink
             }
             path.append(pendingKey);
             pendingKey = null;
+
+            if (event == JsonEvent.START_OBJECT && path.length() == "choices.logprobs".length() &&
+                path.indexOf("choices.logprobs") == 0)
+            {
+                startCapture();
+            }
         }
         else if (event == JsonEvent.START_OBJECT)
         {
@@ -168,6 +220,10 @@ final class LlmOpenaiSectionSink implements JsonSink
         {
             openTool();
             emit(0, !delta());
+        }
+        else if (event == JsonEvent.END_OBJECT && followPending && pathIs("choices"))
+        {
+            emitAfter(0);
         }
 
         path.setLength(pathLengthAt[--depth]);
@@ -216,6 +272,10 @@ final class LlmOpenaiSectionSink implements JsonSink
             else if (event == JsonEvent.VALUE_NUMBER)
             {
                 onNumber(control, source, field, deferred);
+            }
+            else if (event == JsonEvent.VALUE_NULL && followPending && "choices.logprobs".equals(field))
+            {
+                emitAfter(0);
             }
 
             if (!deferred)
@@ -326,9 +386,10 @@ final class LlmOpenaiSectionSink implements JsonSink
             {
                 closeSection();
                 openSection(type, choiceIndex, null, null, NO_INDEX);
+                sectionFollow = logprobs && !atomic;
             }
 
-            emit(encode(chars, !deferred), !deferred && atomic);
+            emit(encode(chars, !deferred), !deferred && (atomic || sectionFollow));
         }
 
         control.consumed(length);
@@ -390,6 +451,7 @@ final class LlmOpenaiSectionSink implements JsonSink
     {
         sectionOpen = true;
         sectionStarted = false;
+        sectionFollow = false;
         sectionType = type;
         sectionMessage = message;
         sectionTool = tool;
@@ -424,11 +486,297 @@ final class LlmOpenaiSectionSink implements JsonSink
                 sectionMessage,
                 sectionToolId,
                 sectionToolName,
+                sectionFollow,
                 fin ? Flags.fin(flags) : flags,
                 textBuffer,
                 0,
                 length);
+
+            followPending = fin && sectionFollow;
         }
+    }
+
+    private void emitAfter(
+        int length)
+    {
+        followPending = false;
+
+        output.begin();
+        output.after(LOGPROBS, Flags.COMPLETE, captureBuffer, 0, length);
+    }
+
+    private void startCapture()
+    {
+        captureDepth = 1;
+        captureFirst[0] = true;
+        captureValue = false;
+        captureOpen = false;
+        captureStarted = false;
+        captureLength = 0;
+        captureByte('{');
+    }
+
+    private Status onCapture(
+        JsonController control,
+        JsonSource source,
+        JsonEvent event)
+    {
+        Status status = Status.ADVANCED;
+
+        switch (event)
+        {
+        case START_OBJECT:
+        case START_ARRAY:
+            captureSeparator();
+            captureByte(event == JsonEvent.START_OBJECT ? '{' : '[');
+            captureFirst[captureDepth++] = true;
+            break;
+        case END_OBJECT:
+        case END_ARRAY:
+            captureByte(event == JsonEvent.END_OBJECT ? '}' : ']');
+            captureDepth--;
+
+            if (captureDepth == 0)
+            {
+                finishCapture();
+                status = onContainerEnd(event);
+            }
+            break;
+        case KEY_NAME:
+            if (source.deferredBytes())
+            {
+                control.consumed(0);
+            }
+            else
+            {
+                captureSeparator();
+                captureByte('"');
+                captureEscaped(source.getStringView());
+                captureByte('"');
+                captureByte(':');
+                captureValue = true;
+            }
+            break;
+        case VALUE_STRING:
+            captureString(control, source);
+            break;
+        case VALUE_NUMBER:
+            if (source.deferredBytes())
+            {
+                control.consumed(0);
+            }
+            else
+            {
+                captureSeparator();
+                captureEscaped(source.getStringView());
+            }
+            break;
+        case VALUE_TRUE:
+            captureSeparator();
+            captureEscaped("true");
+            break;
+        case VALUE_FALSE:
+            captureSeparator();
+            captureEscaped("false");
+            break;
+        case VALUE_NULL:
+            captureSeparator();
+            captureEscaped("null");
+            break;
+        default:
+            break;
+        }
+
+        if (captureDepth > 0 && captureLength >= CAPTURE_FLUSH)
+        {
+            flushCapture(false);
+        }
+
+        return status;
+    }
+
+    private void captureString(
+        JsonController control,
+        JsonSource source)
+    {
+        final CharSequence chars = source.getStringView();
+        final int length = chars.length();
+
+        if (!captureOpen)
+        {
+            captureSeparator();
+            captureByte('"');
+            captureOpen = true;
+        }
+
+        captureEscaped(chars);
+
+        if (!source.deferredBytes())
+        {
+            captureByte('"');
+            captureOpen = false;
+        }
+
+        control.consumed(length);
+    }
+
+    private void captureSeparator()
+    {
+        if (captureValue)
+        {
+            captureValue = false;
+        }
+        else
+        {
+            if (!captureFirst[captureDepth - 1])
+            {
+                captureByte(',');
+            }
+
+            captureFirst[captureDepth - 1] = false;
+        }
+    }
+
+    private void captureEscaped(
+        CharSequence chars)
+    {
+        final int length = chars.length();
+
+        for (int index = 0; index < length; index++)
+        {
+            final char c = chars.charAt(index);
+
+            if (captureHigh != 0)
+            {
+                if (Character.isLowSurrogate(c))
+                {
+                    capturePut(Character.toCodePoint(captureHigh, c));
+                }
+                else
+                {
+                    capturePut(REPLACEMENT_CHARACTER);
+                    index--;
+                }
+                captureHigh = 0;
+            }
+            else if (Character.isHighSurrogate(c))
+            {
+                captureHigh = c;
+            }
+            else if (Character.isLowSurrogate(c))
+            {
+                capturePut(REPLACEMENT_CHARACTER);
+            }
+            else
+            {
+                switch (c)
+                {
+                case '"':
+                    captureByte('\\');
+                    captureByte('"');
+                    break;
+                case '\\':
+                    captureByte('\\');
+                    captureByte('\\');
+                    break;
+                case '\n':
+                    captureByte('\\');
+                    captureByte('n');
+                    break;
+                case '\r':
+                    captureByte('\\');
+                    captureByte('r');
+                    break;
+                case '\t':
+                    captureByte('\\');
+                    captureByte('t');
+                    break;
+                case '\b':
+                    captureByte('\\');
+                    captureByte('b');
+                    break;
+                case '\f':
+                    captureByte('\\');
+                    captureByte('f');
+                    break;
+                default:
+                    if (c < 0x20)
+                    {
+                        captureByte('\\');
+                        captureByte('u');
+                        captureByte('0');
+                        captureByte('0');
+                        captureByte(Character.forDigit(c >> 4, 16));
+                        captureByte(Character.forDigit(c & 0x0f, 16));
+                    }
+                    else
+                    {
+                        capturePut(c);
+                    }
+                    break;
+                }
+            }
+        }
+    }
+
+    private void capturePut(
+        int codePoint)
+    {
+        if (codePoint < 0x80)
+        {
+            captureByte(codePoint);
+        }
+        else if (codePoint < 0x800)
+        {
+            captureByte(0xC0 | codePoint >> 6);
+            captureByte(0x80 | codePoint & 0x3F);
+        }
+        else if (codePoint < 0x10000)
+        {
+            captureByte(0xE0 | codePoint >> 12);
+            captureByte(0x80 | codePoint >> 6 & 0x3F);
+            captureByte(0x80 | codePoint & 0x3F);
+        }
+        else
+        {
+            captureByte(0xF0 | codePoint >> 18);
+            captureByte(0x80 | codePoint >> 12 & 0x3F);
+            captureByte(0x80 | codePoint >> 6 & 0x3F);
+            captureByte(0x80 | codePoint & 0x3F);
+        }
+    }
+
+    private void captureByte(
+        int value)
+    {
+        if (captureLength == captureBytes.length)
+        {
+            captureBytes = Arrays.copyOf(captureBytes, captureBytes.length * 2);
+            captureBuffer = new UnsafeBufferEx(captureBytes);
+        }
+
+        captureBytes[captureLength++] = (byte) value;
+    }
+
+    private void finishCapture()
+    {
+        followPending = false;
+        flushCapture(true);
+    }
+
+    private void flushCapture(
+        boolean fin)
+    {
+        final int flags = captureStarted
+            ? fin ? Flags.FIN : Flags.NONE
+            : fin ? Flags.COMPLETE : Flags.INIT;
+
+        captureStarted = !fin;
+
+        output.begin();
+        output.after(LOGPROBS, flags, captureBuffer, 0, captureLength);
+
+        captureLength = 0;
     }
 
     private boolean pathIs(
@@ -568,6 +916,14 @@ final class LlmOpenaiSectionSink implements JsonSink
             int message,
             String toolCallId,
             String toolName,
+            boolean follow,
+            int flags,
+            DirectBuffer buffer,
+            int offset,
+            int length);
+
+        void after(
+            String block,
             int flags,
             DirectBuffer buffer,
             int offset,

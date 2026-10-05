@@ -90,6 +90,9 @@ final class LlmOpenaiResponseEncoder
     private static final byte[] ERROR_PARAM = ",\"param\":".getBytes(UTF_8);
     private static final byte[] ERROR_CODE = ",\"code\":null}}".getBytes(UTF_8);
     private static final byte[] NULL = "null".getBytes(UTF_8);
+    private static final byte[] DELTA_CLOSE = "}".getBytes(UTF_8);
+    private static final byte[] CHUNK_FINISH = ",\"finish_reason\":null}".getBytes(UTF_8);
+    private static final byte[] MEMBER_COLON = "\":".getBytes(UTF_8);
     private static final byte[] REPLACEMENT = "\\ufffd".getBytes(UTF_8);
 
     private final boolean streaming;
@@ -110,6 +113,11 @@ final class LlmOpenaiResponseEncoder
     private int blocksLength;
     private int blockFrom;
     private boolean blockOpen;
+    private boolean follow;
+    private boolean chunkOpen;
+    private boolean messageClosed;
+    private boolean afterRender;
+    private boolean afterWritten;
 
     LlmOpenaiResponseEncoder(
         boolean streaming,
@@ -167,11 +175,13 @@ final class LlmOpenaiResponseEncoder
         LlmSectionType type,
         int message,
         String toolCallId,
-        String toolName)
+        String toolName,
+        boolean follow)
     {
         wrap(out, offset);
 
-        kind = message == MESSAGE_FIRST ? kindOf(type) : KIND_SKIPPED;
+        kind = message == MESSAGE_FIRST && !messageClosed ? kindOf(type) : KIND_SKIPPED;
+        this.follow = follow && streaming && (kind == KIND_TEXT || kind == KIND_REFUSAL);
 
         switch (kind)
         {
@@ -196,13 +206,18 @@ final class LlmOpenaiResponseEncoder
         int offset,
         DirectBuffer payload,
         int payloadOffset,
-        int payloadLength)
+        int payloadLength,
+        boolean fin)
     {
         wrap(out, offset);
 
         if (kind == KIND_TEXT || kind == KIND_REFUSAL || kind == KIND_TOOL_CALL)
         {
-            if (streaming)
+            if (streaming && follow && fin)
+            {
+                dataChunkOpen(payload, payloadOffset, payloadLength);
+            }
+            else if (streaming)
             {
                 dataChunk(payload, payloadOffset, payloadLength);
             }
@@ -271,6 +286,11 @@ final class LlmOpenaiResponseEncoder
     {
         wrap(out, offset);
 
+        if (follow && !chunkOpen && (kind == KIND_TEXT || kind == KIND_REFUSAL))
+        {
+            dataChunkOpen(null, 0, 0);
+        }
+
         if (streaming && carried > 0 && kind != KIND_NONE && kind != KIND_SKIPPED)
         {
             carried = 0;
@@ -285,6 +305,76 @@ final class LlmOpenaiResponseEncoder
         }
 
         kind = KIND_NONE;
+        follow = false;
+
+        return position - offset;
+    }
+
+    int afterBegin(
+        MutableDirectBuffer out,
+        int offset,
+        String block,
+        boolean render)
+    {
+        wrap(out, offset);
+
+        afterRender = render && (streaming ? chunkOpen : kind == KIND_NONE);
+        afterWritten = false;
+
+        if (afterRender)
+        {
+            if (!streaming && !messageClosed)
+            {
+                closeMember();
+                put(MESSAGE_END);
+                messageClosed = true;
+            }
+
+            put(COMMA);
+            put(QUOTE);
+            put(escape(block));
+            put(MEMBER_COLON);
+        }
+
+        return position - offset;
+    }
+
+    int afterData(
+        MutableDirectBuffer out,
+        int offset,
+        DirectBuffer payload,
+        int payloadOffset,
+        int payloadLength)
+    {
+        wrap(out, offset);
+
+        if (afterRender && payloadLength > 0)
+        {
+            out.putBytes(position, payload, payloadOffset, payloadLength);
+            position += payloadLength;
+            afterWritten = true;
+        }
+
+        return position - offset;
+    }
+
+    int afterEnd(
+        MutableDirectBuffer out,
+        int offset)
+    {
+        wrap(out, offset);
+
+        if (afterRender && !afterWritten)
+        {
+            put(NULL);
+        }
+
+        afterRender = false;
+
+        if (chunkOpen)
+        {
+            closeChunk();
+        }
 
         return position - offset;
     }
@@ -302,6 +392,11 @@ final class LlmOpenaiResponseEncoder
         wrap(out, offset);
 
         final byte[] reason = finishReason(finishReason);
+
+        if (chunkOpen)
+        {
+            closeChunk();
+        }
 
         if (streaming)
         {
@@ -325,7 +420,12 @@ final class LlmOpenaiResponseEncoder
         else
         {
             closeMember();
-            put(MESSAGE_END);
+
+            if (!messageClosed)
+            {
+                put(MESSAGE_END);
+            }
+
             put(FINISH_REASON);
             put(reason);
             put(QUOTE);
@@ -347,6 +447,11 @@ final class LlmOpenaiResponseEncoder
         String message)
     {
         wrap(out, offset);
+
+        if (chunkOpen)
+        {
+            closeChunk();
+        }
 
         put(SSE_DATA);
         put(ERROR_START);
@@ -494,6 +599,36 @@ final class LlmOpenaiResponseEncoder
         }
 
         member = MEMBER_NONE;
+    }
+
+    private void dataChunkOpen(
+        DirectBuffer payload,
+        int offset,
+        int length)
+    {
+        chunkStart();
+        put(DELTA_START);
+        put(kind == KIND_TEXT ? DELTA_CONTENT : DELTA_REFUSAL);
+        putEscaped(carry, 0, carried);
+        carried = 0;
+
+        if (length > 0)
+        {
+            putEscaped(payload, offset, length);
+        }
+
+        put(QUOTE);
+        put(DELTA_CLOSE);
+        chunkOpen = true;
+    }
+
+    private void closeChunk()
+    {
+        put(CHUNK_FINISH);
+        put(CHOICES_END);
+        put(OBJECT_END);
+        put(SSE_END);
+        chunkOpen = false;
     }
 
     private void dataChunk(

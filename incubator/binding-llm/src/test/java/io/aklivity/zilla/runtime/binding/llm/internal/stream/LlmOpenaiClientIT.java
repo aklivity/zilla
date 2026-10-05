@@ -1015,4 +1015,24 @@ public class LlmOpenaiClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.response.decode.streaming.logprobs/client",
+        "${net}/openai.response.decode.streaming.logprobs/server"})
+    public void shouldDecodeOpenaiResponseStreamingLogprobs() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.response.decode.text.logprobs/client",
+        "${net}/openai.response.decode.text.logprobs/server"})
+    public void shouldDecodeOpenaiResponseTextLogprobs() throws Exception
+    {
+        k3po.finish();
+    }
 }

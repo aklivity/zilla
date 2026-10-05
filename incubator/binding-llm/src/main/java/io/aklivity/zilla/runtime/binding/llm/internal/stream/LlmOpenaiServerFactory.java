@@ -48,6 +48,7 @@ import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmBlockOwner
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmDataExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmEndExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmErrorFW;
+import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmFollow;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmResetExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmSectionDataExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmSectionType;
@@ -2792,7 +2793,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
         private LlmOpenaiResponseEncoder responseEncoder;
         private boolean replyDialect;
-        private boolean replyBlock;
+        private int replyKind;
         private boolean flushed;
 
         private LlmOpenaiStream(
@@ -2971,13 +2972,18 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             {
                 final LlmDataExFW llmDataEx = data.extension().get(llmDataExRO::tryWrap);
 
-                if (llmDataEx != null && llmDataEx.kind() == LlmDataExFW.KIND_BLOCK)
+                replyKind = llmDataEx != null ? llmDataEx.kind() : LlmDataExFW.KIND_SECTION;
+
+                switch (replyKind)
                 {
-                    replyBlock = true;
+                case LlmDataExFW.KIND_BLOCK:
                     responseEncoder.blockBegin(llmDataEx.block().block().asString(), replyDialect);
-                }
-                else
-                {
+                    break;
+                case LlmDataExFW.KIND_AFTER:
+                    length += responseEncoder.afterBegin(copyBuffer, length,
+                        llmDataEx.after().block().asString(), replyDialect);
+                    break;
+                case LlmDataExFW.KIND_SECTION:
                     final LlmSectionDataExFW section = llmDataEx != null ? llmDataEx.section() : null;
 
                     replyAttributes.readFrom(section);
@@ -2986,31 +2992,46 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                         section != null ? section.type().get() : LlmSectionType.NONE,
                         section != null ? section.message() : -1,
                         replyAttributes.toolCallId(),
-                        replyAttributes.toolName());
+                        replyAttributes.toolName(),
+                        section != null && section.follow().get() == LlmFollow.AFTER_BLOCK);
+                    break;
+                default:
+                    break;
                 }
             }
 
-            if (replyBlock)
+            switch (replyKind)
             {
+            case LlmDataExFW.KIND_BLOCK:
                 responseEncoder.blockData(payload.buffer(), payload.offset(), payload.sizeof());
 
                 if (Flags.hasFin(flags))
                 {
                     responseEncoder.blockEnd();
-                    replyBlock = false;
                 }
-            }
-            else
-            {
+                break;
+            case LlmDataExFW.KIND_AFTER:
+                length += responseEncoder.afterData(copyBuffer, length, payload.buffer(), payload.offset(), payload.sizeof());
+
+                if (Flags.hasFin(flags))
+                {
+                    length += responseEncoder.afterEnd(copyBuffer, length);
+                }
+                break;
+            case LlmDataExFW.KIND_SECTION:
                 if (payload.sizeof() > 0)
                 {
-                    length += responseEncoder.data(copyBuffer, length, payload.buffer(), payload.offset(), payload.sizeof());
+                    length += responseEncoder.data(copyBuffer, length, payload.buffer(), payload.offset(), payload.sizeof(),
+                        Flags.hasFin(flags));
                 }
 
                 if (Flags.hasFin(flags))
                 {
                     length += responseEncoder.end(copyBuffer, length);
                 }
+                break;
+            default:
+                break;
             }
 
             if (length > 0)

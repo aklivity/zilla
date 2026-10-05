@@ -2519,4 +2519,49 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/openai.response.decode.streaming.logprobs/client",
+        "${net}/openai.response.decode.streaming.logprobs/server"})
+    public void shouldDecodeOpenaiResponseStreamingLogprobs() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.response.decode.text.logprobs/client",
+        "${net}/openai.response.decode.text.logprobs/server"})
+    public void shouldDecodeOpenaiResponseTextLogprobs() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.response.encode.streaming.logprobs/client",
+        "${net}/openai.response.encode.streaming.logprobs/server"})
+    public void shouldEncodeOpenaiResponseStreamingLogprobs() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.response.encode.text.logprobs/client",
+        "${net}/openai.response.encode.text.logprobs/server"})
+    public void shouldEncodeOpenaiResponseTextLogprobs() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.response.encode.streaming.logprobs.foreign/client",
+        "${net}/openai.response.encode.streaming.logprobs.foreign/server"})
+    public void shouldEncodeOpenaiResponseStreamingLogprobsForeign() throws Exception
+    {
+        k3po.finish();
+    }
 }
