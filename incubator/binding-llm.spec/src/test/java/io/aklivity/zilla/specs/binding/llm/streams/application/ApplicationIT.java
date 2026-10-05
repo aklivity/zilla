@@ -920,6 +920,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/anthropic.section.tool.definition.cache.control/client",
+        "${app}/anthropic.section.tool.definition.cache.control/server"})
+    public void shouldAnthropicSectionToolDefinitionCacheControl() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/anthropic.section.other.members/client",
         "${app}/anthropic.section.other.members/server"})
     public void shouldAnthropicSectionOtherMembers() throws Exception

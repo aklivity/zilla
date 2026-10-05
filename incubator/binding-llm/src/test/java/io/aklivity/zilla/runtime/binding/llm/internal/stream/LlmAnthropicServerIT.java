@@ -147,6 +147,16 @@ public class LlmAnthropicServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/anthropic.section.tool.definition.cache.control/client",
+        "${app}/anthropic.section.tool.definition.cache.control/server"})
+    public void shouldDecodeAnthropicSectionToolDefinitionCacheControl() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/anthropic.section.other.members/client",
         "${app}/anthropic.section.other.members/server"})
     public void shouldDecodeAnthropicSectionOtherMembers() throws Exception

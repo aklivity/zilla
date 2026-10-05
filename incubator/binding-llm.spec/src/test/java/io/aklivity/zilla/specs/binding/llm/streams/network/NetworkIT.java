@@ -938,6 +938,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/anthropic.section.tool.definition.cache.control/client",
+        "${net}/anthropic.section.tool.definition.cache.control/server"})
+    public void shouldAnthropicSectionToolDefinitionCacheControl() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/anthropic.section.other.members/client",
         "${net}/anthropic.section.other.members/server"})
     public void shouldAnthropicSectionOtherMembers() throws Exception
