@@ -104,6 +104,13 @@ write zilla:data.ext ${llm:dialectDataEx()
                            .build()}
 write "2"
 write flush
+write option zilla:flags "init fin"
+write zilla:data.ext ${llm:dialectDataEx()
+                           .typeId(zilla:id("llm"))
+                           .block("audio")
+                           .build()}
+write "{\"voice\":\"alloy\",\"format\":\"wav\"}"
+write flush
 write advise zilla:flush
 
 read zilla:reset.ext ${llm:matchResetEx()

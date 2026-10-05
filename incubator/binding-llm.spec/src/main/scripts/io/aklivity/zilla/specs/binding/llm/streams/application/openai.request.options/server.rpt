@@ -94,6 +94,12 @@ read zilla:data.ext ${llm:matchDialectDataEx()
                           .block("n")
                           .build()}
 read "2"
+read option zilla:flags "init fin"
+read zilla:data.ext ${llm:matchDialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .block("audio")
+                          .build()}
+read "{\"voice\":\"alloy\",\"format\":\"wav\"}"
 
 read advised zilla:flush
 
