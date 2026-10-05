@@ -35,6 +35,11 @@ write flush
 
 write advise zilla:flush
 
-read aborted
+read zilla:reset.ext ${llm:matchResetEx()
+                           .typeId(zilla:id("llm"))
+                           .status(502)
+                           .typeNull()
+                           .messageNull()
+                           .build()}
 
-write close
+write aborted

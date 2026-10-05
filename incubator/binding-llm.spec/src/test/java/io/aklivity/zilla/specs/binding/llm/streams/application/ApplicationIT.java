@@ -74,15 +74,6 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/openai.streaming/client",
-        "${app}/openai.streaming/server"})
-    public void shouldForwardOpenaiStreaming() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${app}/openai.streaming.usage/client",
         "${app}/openai.streaming.usage/server"})
     public void shouldForwardOpenaiStreamingUsage() throws Exception

@@ -38,40 +38,26 @@ write advise zilla:flush
 read zilla:begin.ext ${llm:matchBeginEx()
                            .typeId(zilla:id("llm"))
                            .dialect("openai")
-                           .contentType("text/event-stream")
+                           .model("gpt-4")
+                           .id("chatcmpl_2")
                            .build()}
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
-                          .typeNull()
+                          .type("assistant-text")
+                          .message(0)
                           .build()}
-read "{\"id\":\"chatcmpl_2\",\"model\":\"gpt-4\",\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\"},\"finish_reason\":null}]}"
+read ${core:randomBase64(100000)}
 
-read zilla:data.ext ${llm:matchDataEx()
-                          .typeId(zilla:id("llm"))
-                          .typeNull()
-                          .build()}
-read '{"choices":[{"index":0,"delta":{"content":"'
-     ${core:randomBase64(100000)}
-     '"},"finish_reason":null}]}'
+read option zilla:flags "fin"
+read zilla:data.empty
 
-read zilla:data.ext ${llm:matchDataEx()
-                          .typeId(zilla:id("llm"))
-                          .typeNull()
-                          .build()}
-read "{\"choices\":[{\"index\":0,\"delta\":{},\"finish_reason\":\"stop\"}]}"
-
-read zilla:data.ext ${llm:matchDataEx()
-                          .typeId(zilla:id("llm"))
-                          .typeNull()
-                          .build()}
-read "{\"choices\":[],\"usage\":{\"prompt_tokens\":25,\"completion_tokens\":15}}"
-
-read zilla:data.ext ${llm:matchDataEx()
-                          .typeId(zilla:id("llm"))
-                          .typeNull()
-                          .build()}
-read "[DONE]"
+read zilla:end.ext ${llm:matchEndEx()
+                            .typeId(zilla:id("llm"))
+                            .inputTokens(25)
+                            .outputTokens(15)
+                            .finishReason("stop")
+                            .build()}
 
 read closed
 

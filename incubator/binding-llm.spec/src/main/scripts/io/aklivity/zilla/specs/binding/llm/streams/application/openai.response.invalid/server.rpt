@@ -36,6 +36,9 @@ read "Hello"
 
 read advised zilla:flush
 
-write abort
+write zilla:reset.ext ${llm:resetEx()
+                            .typeId(zilla:id("llm"))
+                            .status(502)
+                            .build()}
 
-read closed
+read abort

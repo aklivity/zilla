@@ -41,14 +41,17 @@ read advised zilla:flush
 write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
                            .dialect("openai")
-                           .contentType("application/json")
+                           .model("gpt-4o-mini-2024-07-18")
+                           .id("chatcmpl-EQNKhNLHHohc7KwUHH83164mX3IMA")
                            .build()}
 write flush
 
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
+                          .type("assistant-text")
+                          .message(0)
                           .build()}
-write "{\"id\":\"chatcmpl-EQNKhNLHHohc7KwUHH83164mX3IMA\",\"object\":\"chat.completion\",\"created\":1789954927,\"model\":\"gpt-4o-mini-2024-07-18\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"Hello! How can I assist you today?\",\"refusal\":null,\"annotations\":[]},\"logprobs\":null,\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":13,\"completion_tokens\":9,\"total_tokens\":22,\"prompt_tokens_details\":{\"cached_tokens\":0,\"audio_tokens\":0},\"completion_tokens_details\":{\"reasoning_tokens\":0,\"audio_tokens\":0,\"accepted_prediction_tokens\":0,\"rejected_prediction_tokens\":0}},\"service_tier\":\"default\",\"system_fingerprint\":\"fp_c28ee603a6\"}"
+write "Hello! How can I assist you today?"
 write flush
 
 write zilla:end.ext ${llm:endEx()
@@ -58,6 +61,7 @@ write zilla:end.ext ${llm:endEx()
                             .outputTokens(9)
                             .reasoningTokens(0)
                             .totalTokens(22)
+                            .finishReason("stop")
                             .build()}
 
 write close

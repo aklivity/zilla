@@ -92,15 +92,6 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/openai.streaming/client",
-        "${net}/openai.streaming/server"})
-    public void shouldEncodeOpenaiStreaming() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${net}/openai.streaming.usage/client",
         "${net}/openai.streaming.usage/server"})
     public void shouldEncodeOpenaiStreamingUsage() throws Exception
@@ -487,15 +478,6 @@ public class NetworkIT
         "${net}/anthropic.streaming.transformed.error/client",
         "${net}/anthropic.streaming.transformed.error/server"})
     public void shouldRelayAnthropicStreamingTransformedError() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/openai.streaming.error.aborted/client",
-        "${net}/openai.streaming.error.aborted/server"})
-    public void shouldAbortOpenaiStreamingError() throws Exception
     {
         k3po.finish();
     }

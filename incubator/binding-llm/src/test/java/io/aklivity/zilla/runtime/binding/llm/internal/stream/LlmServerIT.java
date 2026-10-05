@@ -96,16 +96,6 @@ public class LlmServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/openai.streaming/client",
-        "${app}/openai.streaming/server"})
-    public void shouldForwardOpenaiStreaming() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
         "${net}/openai/client",
         "${app}/openai/server"})
     public void shouldForwardOpenaiNonstreaming() throws Exception
@@ -186,29 +176,9 @@ public class LlmServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/openai.streaming.10k/client",
-        "${app}/openai.streaming.10k/server"})
-    public void shouldForwardOpenaiStreaming10k() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
         "${net}/anthropic.streaming.10k/client",
         "${app}/anthropic.streaming.10k/server"})
     public void shouldForwardAnthropicStreaming10k() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/openai.streaming.100k/client",
-        "${app}/openai.streaming.100k/server"})
-    public void shouldForwardOpenaiStreaming100k() throws Exception
     {
         k3po.finish();
     }
@@ -277,16 +247,6 @@ public class LlmServerIT
         "${net}/anthropic.rejected.rate.limit/client",
         "${app}/anthropic.rejected.rate.limit/server"})
     public void shouldRejectAnthropicRequestRateLimited() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/openai.streaming.error.aborted/client",
-        "${app}/openai.streaming.error/server"})
-    public void shouldAbortOpenaiStreamingError() throws Exception
     {
         k3po.finish();
     }

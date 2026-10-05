@@ -37,8 +37,29 @@ read "Hello"
 
 read advised zilla:flush
 
-write "{\"model\":\"gpt-4\",\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}]}"
+write zilla:begin.ext ${llm:beginEx()
+                           .typeId(zilla:id("llm"))
+                           .dialect("openai")
+                           .model("gpt-4")
+                           .id("chatcmpl_2")
+                           .build()}
 write flush
+
+write zilla:data.ext ${llm:dataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("assistant-text")
+                          .message(0)
+                          .build()}
+write "Hello! How can I help you today?"
+write flush
+
+write zilla:end.ext ${llm:endEx()
+                            .typeId(zilla:id("llm"))
+                            .inputTokens(25)
+                            .outputTokens(15)
+                            .totalTokens(40)
+                            .finishReason("stop")
+                            .build()}
 
 write close
 

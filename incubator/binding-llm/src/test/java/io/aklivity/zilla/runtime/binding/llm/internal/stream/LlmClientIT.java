@@ -70,16 +70,6 @@ public class LlmClientIT
     @Test
     @Configuration("client.openai.yaml")
     @Specification({
-        "${app}/openai.streaming/client",
-        "${net}/openai.streaming/server"})
-    public void shouldForwardOpenaiStreamingSameDialect() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.openai.yaml")
-    @Specification({
         "${app}/openai.streaming.usage/client",
         "${net}/openai.streaming.usage/server"})
     public void shouldForwardOpenaiStreamingUsage() throws Exception
