@@ -1377,4 +1377,22 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.model.last/client",
+        "${app}/anthropic.section.model.last/server"})
+    public void shouldAnthropicSectionModelLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.model.last.system.tools/client",
+        "${app}/anthropic.section.model.last.system.tools/server"})
+    public void shouldAnthropicSectionModelLastSystemTools() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -1807,4 +1807,31 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.section.model.last/client",
+        "${net}/anthropic.section.model.last/server"})
+    public void shouldAnthropicSectionModelLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.section.model.last.system.tools/client",
+        "${net}/anthropic.section.model.last.system.tools/server"})
+    public void shouldAnthropicSectionModelLastSystemTools() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.section.rejected.model.last.oversize/client",
+        "${net}/anthropic.section.rejected.model.last.oversize/server"})
+    public void shouldAnthropicSectionRejectedModelLastOversize() throws Exception
+    {
+        k3po.finish();
+    }
 }
