@@ -1090,4 +1090,14 @@ public class LlmServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.section.model.last.text.10k/client",
+        "${app}/anthropic.section.model.last.text.10k/server"})
+    public void shouldDecodeAnthropicSectionModelLastText10k() throws Exception
+    {
+        k3po.finish();
+    }
 }

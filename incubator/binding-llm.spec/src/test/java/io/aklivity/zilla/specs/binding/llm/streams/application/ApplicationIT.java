@@ -1395,4 +1395,13 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.model.last.text.10k/client",
+        "${app}/anthropic.section.model.last.text.10k/server"})
+    public void shouldAnthropicSectionModelLastText10k() throws Exception
+    {
+        k3po.finish();
+    }
 }

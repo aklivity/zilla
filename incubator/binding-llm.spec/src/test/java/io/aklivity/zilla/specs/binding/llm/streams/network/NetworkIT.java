@@ -1834,4 +1834,13 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.section.model.last.text.10k/client",
+        "${net}/anthropic.section.model.last.text.10k/server"})
+    public void shouldAnthropicSectionModelLastText10k() throws Exception
+    {
+        k3po.finish();
+    }
 }
