@@ -54,43 +54,4 @@ public class LlmServerIT
     {
         k3po.finish();
     }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/anthropic.section.model.last/client",
-        "${app}/anthropic.section.model.last/server"})
-    public void shouldDecodeAnthropicSectionModelLast() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/anthropic.section.model.last.system.tools/client",
-        "${app}/anthropic.section.model.last.system.tools/server"})
-    public void shouldDecodeAnthropicSectionModelLastSystemTools() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/anthropic.section.rejected.model.last.oversize/client"})
-    public void shouldDecodeAnthropicSectionRejectedModelLastOversize() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/anthropic.section.model.last.text.10k/client",
-        "${app}/anthropic.section.model.last.text.10k/server"})
-    public void shouldDecodeAnthropicSectionModelLastText10k() throws Exception
-    {
-        k3po.finish();
-    }
 }

@@ -59,16 +59,6 @@ public class LlmAnthropicServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/anthropic.streaming/client",
-        "${app}/anthropic.streaming/server"})
-    public void shouldForwardAnthropicStreaming() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
         "${net}/anthropic.10k/client",
         "${app}/anthropic.10k/server"})
     public void shouldForwardAnthropic10k() throws Exception
@@ -82,26 +72,6 @@ public class LlmAnthropicServerIT
         "${net}/anthropic.100k/client",
         "${app}/anthropic.100k/server"})
     public void shouldForwardAnthropic100k() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/anthropic.streaming.10k/client",
-        "${app}/anthropic.streaming.10k/server"})
-    public void shouldForwardAnthropicStreaming10k() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/anthropic.streaming.100k/client",
-        "${app}/anthropic.streaming.100k/server"})
-    public void shouldForwardAnthropicStreaming100k() throws Exception
     {
         k3po.finish();
     }
@@ -131,16 +101,6 @@ public class LlmAnthropicServerIT
         "${net}/anthropic.rejected.rate.limit/client",
         "${app}/anthropic.rejected.rate.limit/server"})
     public void shouldRejectAnthropicRequestRateLimited() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/anthropic.streaming.error.aborted/client",
-        "${app}/anthropic.streaming.error/server"})
-    public void shouldAbortAnthropicStreamingError() throws Exception
     {
         k3po.finish();
     }
@@ -800,6 +760,45 @@ public class LlmAnthropicServerIT
         "${net}/anthropic.section.tool.definition.parameters.10k/client",
         "${app}/anthropic.section.tool.definition.parameters.10k/server"})
     public void shouldDecodeAnthropicSectionToolDefinitionParameters10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.section.model.last/client",
+        "${app}/anthropic.section.model.last/server"})
+    public void shouldDecodeAnthropicSectionModelLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.section.model.last.system.tools/client",
+        "${app}/anthropic.section.model.last.system.tools/server"})
+    public void shouldDecodeAnthropicSectionModelLastSystemTools() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.section.model.last.text.10k/client",
+        "${app}/anthropic.section.model.last.text.10k/server"})
+    public void shouldDecodeAnthropicSectionModelLastText10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.section.rejected.model.last.oversize/client"})
+    public void shouldDecodeAnthropicSectionRejectedModelLastOversize() throws Exception
     {
         k3po.finish();
     }

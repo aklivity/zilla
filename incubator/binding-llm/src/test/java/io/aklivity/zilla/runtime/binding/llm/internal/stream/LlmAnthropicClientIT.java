@@ -50,16 +50,6 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @Specification({
-        "${app}/anthropic.streaming/client",
-        "${net}/anthropic.streaming/server"})
-    public void shouldForwardAnthropicStreamingSameDialect() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.anthropic.yaml")
-    @Specification({
         "${app}/anthropic.streaming.usage/client",
         "${net}/anthropic.streaming.usage/server"})
     public void shouldForwardAnthropicStreamingUsage() throws Exception

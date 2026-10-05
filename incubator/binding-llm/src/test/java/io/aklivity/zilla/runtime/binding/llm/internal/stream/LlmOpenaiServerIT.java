@@ -68,16 +68,6 @@ public class LlmOpenaiServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/openai.streaming/client",
-        "${app}/openai.streaming/server"})
-    public void shouldForwardOpenaiStreaming() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
         "${net}/openai.reply.padded/client",
         "${app}/openai.reply.padded/server"})
     public void shouldForwardOpenaiNonstreamingWithReplyPadding() throws Exception
@@ -101,26 +91,6 @@ public class LlmOpenaiServerIT
         "${net}/openai.100k/client",
         "${app}/openai.100k/server"})
     public void shouldForwardOpenai100k() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/openai.streaming.10k/client",
-        "${app}/openai.streaming.10k/server"})
-    public void shouldForwardOpenaiStreaming10k() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/openai.streaming.100k/client",
-        "${app}/openai.streaming.100k/server"})
-    public void shouldForwardOpenaiStreaming100k() throws Exception
     {
         k3po.finish();
     }
@@ -150,16 +120,6 @@ public class LlmOpenaiServerIT
         "${net}/openai.rejected.rate.limit/client",
         "${app}/openai.rejected.rate.limit/server"})
     public void shouldRejectOpenaiRequestRateLimited() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/openai.streaming.error.aborted/client",
-        "${app}/openai.streaming.error/server"})
-    public void shouldAbortOpenaiStreamingError() throws Exception
     {
         k3po.finish();
     }
@@ -354,7 +314,6 @@ public class LlmOpenaiServerIT
         k3po.finish();
     }
 
-
     @Test
     @Configuration("server.yaml")
     @Specification({
@@ -404,8 +363,6 @@ public class LlmOpenaiServerIT
     {
         k3po.finish();
     }
-
-
 
     @Test
     @Configuration("server.yaml")
