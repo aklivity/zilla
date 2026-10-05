@@ -668,9 +668,18 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/openai.rejected.model.last/client",
-        "${net}/openai.rejected.model.last/server"})
-    public void shouldOpenaiRejectedModelLast() throws Exception
+        "${net}/openai.section.rejected.model.last.oversize/client",
+        "${net}/openai.section.rejected.model.last.oversize/server"})
+    public void shouldOpenaiSectionRejectedModelLastOversize() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.section.model.last/client",
+        "${net}/openai.section.model.last/server"})
+    public void shouldOpenaiSectionModelLast() throws Exception
     {
         k3po.finish();
     }

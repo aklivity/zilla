@@ -30,7 +30,9 @@ read zilla:begin.ext ${http:matchBeginEx()
 
 connected
 
-read "{\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}],\"model\":\"gpt-4\"}"
+read '{"messages":[{"role":"user","content":"'
+      ${core:randomBase64(40000)}
+      '"}],"model":"gpt-4"}'
 
 read abort
 
@@ -40,5 +42,5 @@ write zilla:begin.ext ${http:beginEx()
                            .header("content-type", "application/json")
                            .build()}
 
-write "{\"error\":{\"message\":\"The 'model' parameter must precede 'messages' and 'tools'.\",\"type\":\"invalid_request_error\",\"param\":null,\"code\":null}}"
+write "{\"error\":{\"message\":\"The 'model' parameter must precede 'messages' and 'tools' in a request that does not fit the decode buffer.\",\"type\":\"invalid_request_error\",\"param\":null,\"code\":null}}"
 write close

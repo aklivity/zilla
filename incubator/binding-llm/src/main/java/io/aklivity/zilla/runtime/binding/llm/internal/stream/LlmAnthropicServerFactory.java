@@ -88,7 +88,6 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
 
     private static final String MESSAGE_PARSE_ERROR = "There was an error parsing the body";
     private static final String MESSAGE_MODEL_MISSING = "model: Field required";
-    private static final String MESSAGE_OPTION_TOO_LARGE = "A request option value is too large.";
     private static final String MESSAGE_MODEL_ORDER =
         "model: must precede messages, system and tools in a request that does not fit the decode buffer";
     private static final String MESSAGE_ROLE_MISSING = "messages.%d.role: Field required";
@@ -104,14 +103,12 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBufferEx(new byte[0]), 0, 0);
     private static final DirectBufferEx BRACKET = new UnsafeBufferEx(new byte[] {'['});
 
+    private static final DirectBufferEx STREAM_TRUE = new UnsafeBufferEx("true".getBytes(UTF_8));
+    private static final DirectBufferEx STREAM_FALSE = new UnsafeBufferEx("false".getBytes(UTF_8));
+    private static final DirectBufferEx STREAM_NULL = new UnsafeBufferEx("null".getBytes(UTF_8));
     private static final int MIN_WINDOW = 64;
     private static final int HOLD_MAX = 1024;
 
-    private static final int REORDER_NONE = 0;
-    private static final int REORDER_SCAN = 1;
-    private static final int REORDER_TOOLS = 2;
-    private static final int REORDER_SYSTEM = 3;
-    private static final int REORDER_MESSAGES = 4;
     private static final int REPLACEMENT_CHARACTER = 0xFFFD;
 
     private static final String ROLE_USER = "user";
@@ -204,12 +201,12 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
     private final LlmAnthropicServerDecoder decodeCapture = this::decodeCapture;
     private final LlmAnthropicServerDecoder decodeText = this::decodeText;
     private final LlmAnthropicServerDecoder decodeSkip = this::decodeSkip;
+    private final LlmAnthropicServerDecoder decodeStreamValue = this::decodeStreamValue;
     private final LlmAnthropicServerDecoder decodeEnd = this::decodeEnd;
     private final LlmAnthropicServerDecoder decodeIgnore = this::decodeIgnore;
 
     private byte[] textBytes;
     private UnsafeBufferEx textBuffer;
-    private UnsafeBufferEx replayBuffer;
 
     public LlmAnthropicServerFactory(
         EngineContext context)
@@ -226,7 +223,6 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         this.bindings = new Long2ObjectHashMap<>();
         this.textBytes = new byte[1024];
         this.textBuffer = new UnsafeBufferEx(textBytes);
-        this.replayBuffer = new UnsafeBufferEx(new byte[decodeMax]);
         this.llmTypeId = context.supplyTypeId(LlmBinding.NAME);
         this.httpTypeId = context.supplyTypeId(HTTP_TYPE_NAME);
     }
@@ -423,34 +419,15 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                 {
                     server.decoder = decodeModelValue;
                 }
-                else if (matches(key, "messages") || matches(key, "system") || matches(key, "tools"))
-                {
-                    if (server.scan(traceId, key, buffer, limit))
-                    {
-                        server.skip(decodeModelMember);
-                        server.decoder = decodeSkip;
-                    }
-                    break decode;
-                }
-                else if (server.capturesOptions() && server.options.slot(key) != LlmOptions.NONE)
-                {
-                    server.onDecodeOption(key, decodeModelMember);
-                }
                 else
                 {
+                    server.lookaheadMembers++;
                     server.skip(decodeModelMember);
                     server.decoder = decodeSkip;
                 }
                 break;
             case END_OBJECT:
-                if (server.reordering == REORDER_SCAN && server.scanModel != null)
-                {
-                    server.decoder = decodeEnd;
-                }
-                else
-                {
-                    server.onDecodeInvalidRequest(traceId, MESSAGE_MODEL_MISSING);
-                }
+                server.onDecodeInvalidRequest(traceId, MESSAGE_MODEL_MISSING);
                 break decode;
             default:
                 server.onDecodeParseError(traceId);
@@ -487,17 +464,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
 
             if (!parser.deferredBytes())
             {
-                final String model = parser.getString();
-
-                if (server.reordering == REORDER_SCAN)
-                {
-                    server.scanModel = model;
-                    server.decoder = decodeModelMember;
-                }
-                else
-                {
-                    server.onDecodeModel(traceId, authorization, model);
-                }
+                server.onDecodeModel(traceId, authorization, parser.getString());
             }
         }
 
@@ -556,7 +523,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                 break decode;
             }
 
-            server.decoder = server.reordering >= REORDER_TOOLS ? decodeRoot : decodeModelMember;
+            server.decoder = server.lookahead ? decodeModelMember : decodeRoot;
         }
 
         return server.position();
@@ -576,7 +543,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         final JsonParserEx parser = server.parser;
 
         decode:
-        if (server.flushOptions(traceId, authorization) && parser.hasNextEvent())
+        if (parser.hasNextEvent())
         {
             final JsonEvent event = parser.nextEvent();
             switch (event)
@@ -587,19 +554,19 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                     break;
                 }
                 final CharSequence key = parser.getStringView();
-                if (matches(key, "messages") && server.reordered(REORDER_MESSAGES))
+                if (matches(key, "messages"))
                 {
                     server.decoder = decodeMessagesStart;
                 }
-                else if (matches(key, "system") && server.reordered(REORDER_SYSTEM))
+                else if (matches(key, "system"))
                 {
                     server.decoder = decodeSystemStart;
                 }
-                else if (matches(key, "tools") && server.reordered(REORDER_TOOLS))
+                else if (matches(key, "tools"))
                 {
                     server.decoder = decodeToolsStart;
                 }
-                else if (server.capturesOptions() && server.options.slot(key) != LlmOptions.NONE)
+                else if (server.options.slot(key) != LlmOptions.NONE)
                 {
                     server.onDecodeOption(key, decodeRoot);
                 }
@@ -1527,6 +1494,45 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         return server.decoder == decodeIgnore ? limit : server.position();
     }
 
+    private int decodeStreamValue(
+        LlmAnthropicServer server,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBufferEx buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        final JsonParserEx parser = server.parser;
+
+        decode:
+        if (parser.hasNextEvent())
+        {
+            final JsonEvent event = parser.nextEvent();
+            final DirectBufferEx value = switch (event)
+            {
+            case VALUE_TRUE -> STREAM_TRUE;
+            case VALUE_FALSE -> STREAM_FALSE;
+            case VALUE_NULL -> STREAM_NULL;
+            default -> null;
+            };
+
+            if (value == null)
+            {
+                server.onDecodeParseError(traceId);
+                break decode;
+            }
+
+            server.streaming = event == JsonEvent.VALUE_TRUE;
+            server.onDecodeData(traceId, authorization, value, 0, value.capacity(), true);
+            server.decoder = server.captureThen;
+        }
+
+        return server.position();
+    }
+
     private static boolean separator(
         byte value)
     {
@@ -1852,10 +1858,6 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         private int decodeSlot = NO_SLOT;
         private int decodeSlotOffset;
 
-        private int scanSlot = NO_SLOT;
-        private int scanSlotOffset;
-        private int reordering;
-        private String scanModel;
 
         private DirectBufferEx decodedInput;
         private int decodedWindowLimit;
@@ -1898,10 +1900,12 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         private boolean captureOpen;
         private int captureDepth;
         private int captureFrom;
-        private int captureSlot;
         private boolean captureTrim;
 
         private boolean holding;
+        private boolean lookahead;
+        private boolean replaying;
+        private int lookaheadMembers;
         private int holdFrom;
         private int retained;
 
@@ -1947,7 +1951,8 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             this.parser = JsonEx.createParser();
             this.probe = new LlmAnthropicAttributeProbe();
             this.options = LlmAnthropicOptions.request();
-            this.captureSlot = LlmOptions.NONE;
+            this.lookahead = true;
+            this.holding = true;
             this.blockAttributes = new LlmSectionAttributes();
             this.sentAttributes = new LlmSectionAttributes();
             this.finAttributes = new LlmSectionAttributes();
@@ -1977,11 +1982,6 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             final OctetsFW payload = data.payload();
 
             initialSeq = data.sequence() + reserved;
-
-            if (reordering == REORDER_SCAN)
-            {
-                scanAppend(traceId, payload.buffer(), payload.offset(), payload.sizeof());
-            }
 
             if (decodeSlot == NO_SLOT)
             {
@@ -2163,6 +2163,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             holdFrom = offset;
             parser.wrap(buffer, offset + retained, windowLimit, windowLast);
 
+            boolean replayed = false;
             LlmAnthropicServerDecoder previous = null;
             int progress = offset;
             while (progress <= limit && previous != decoder && (stream != null) == gated)
@@ -2181,14 +2182,25 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                 retained = position() - holdFrom;
                 progress = holdFrom;
 
-                if (retained > HOLD_MAX)
+                if (lookahead && retained >= decodeMax)
+                {
+                    onDecodeInvalidRequest(traceId, MESSAGE_MODEL_ORDER);
+                    progress = limit;
+                }
+                else if (!lookahead && retained > HOLD_MAX)
                 {
                     onDecodeParseError(traceId);
                     progress = limit;
                 }
             }
+            else if (replaying)
+            {
+                replaying = false;
+                replayed = true;
+                progress = holdFrom;
+            }
 
-            if (windowLast && decoder != decodeEnd && decoder != decodeIgnore)
+            if (windowLast && !replayed && decoder != decodeEnd && decoder != decodeIgnore)
             {
                 onDecodeParseError(traceId);
                 progress = limit;
@@ -2374,21 +2386,9 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         {
             flushCapture(traceId, authorization, true);
             captureOpen = false;
-            probing = false;
-
-            final int slot = captureSlot;
-            captureSlot = LlmOptions.NONE;
             captureTrim = false;
-
-            if (decoder == decodeCapture)
-            {
-                decoder = captureThen;
-
-                if (slot != LlmOptions.NONE)
-                {
-                    onDecodeOptionValue(traceId, slot);
-                }
-            }
+            probing = false;
+            decoder = captureThen;
         }
 
         private void flushCapture(
@@ -2411,26 +2411,10 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
 
             if (end > from || fin)
             {
-                if (captureSlot == LlmOptions.NONE)
-                {
-                    onDecodeData(traceId, authorization, decodedInput, from, end - from, fin);
-                }
-                else if (!options.append(captureSlot, decodedInput, from, end - from))
-                {
-                    options.remove(captureSlot);
-                    captureOpen = false;
-                    captureSlot = LlmOptions.NONE;
-                    captureTrim = false;
-                    onDecodeInvalidRequest(traceId, MESSAGE_OPTION_TOO_LARGE);
-                }
+                onDecodeData(traceId, authorization, decodedInput, from, end - from, fin);
             }
 
             captureFrom = end;
-        }
-
-        private boolean capturesOptions()
-        {
-            return reordering == REORDER_NONE || reordering == REORDER_TOOLS;
         }
 
         private void onDecodeOption(
@@ -2438,70 +2422,22 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             LlmAnthropicServerDecoder then)
         {
             final int slot = options.slot(member);
-            final boolean buffered = stream == null || slot == LlmAnthropicOptions.STREAM;
 
             captureThen = then;
-            captureOpen = true;
-            captureDepth = 0;
-            captureFrom = position();
-            captureTrim = true;
+            onDecodeDialectBlock(options.member(slot));
 
-            if (buffered)
+            if (slot == LlmAnthropicOptions.STREAM)
             {
-                captureSlot = slot;
-                options.begin(slot);
+                decoder = decodeStreamValue;
             }
             else
             {
-                captureSlot = LlmOptions.NONE;
-                onDecodeDialectBlock(options.member(slot));
+                captureOpen = true;
+                captureDepth = 0;
+                captureFrom = position();
+                captureTrim = true;
+                decoder = decodeCapture;
             }
-
-            decoder = decodeCapture;
-        }
-
-        private void onDecodeOptionValue(
-            long traceId,
-            int slot)
-        {
-            if (slot == LlmAnthropicOptions.STREAM)
-            {
-                final String literal = options.get(slot);
-
-                if ("true".equals(literal) || "false".equals(literal) || "null".equals(literal))
-                {
-                    streaming = "true".equals(literal);
-                }
-                else
-                {
-                    onDecodeParseError(traceId);
-                }
-            }
-        }
-
-        private boolean flushOptions(
-            long traceId,
-            long authorization)
-        {
-            boolean flushed = true;
-
-            int slot = options.next();
-            while (flushed && stream != null && slot != LlmOptions.NONE)
-            {
-                final int length = options.length(slot);
-
-                flushed = available() >= length;
-
-                if (flushed)
-                {
-                    onDecodeDialectBlock(options.member(slot));
-                    onDecodeData(traceId, authorization, options.value(slot), 0, length, true);
-                    options.remove(slot);
-                    slot = options.next();
-                }
-            }
-
-            return flushed;
         }
 
         private void onDecodeDialectBlock(
@@ -2526,6 +2462,17 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             decoder = decodeRoot;
             stream = new LlmAnthropicStream(this);
             stream.doAppBegin(traceId, authorization, model);
+
+            if (lookaheadMembers > 0)
+            {
+                parser.reset();
+                decoder = decodeStart;
+                replaying = true;
+            }
+
+            lookahead = false;
+            holding = false;
+            retained = 0;
         }
 
         private void onDecodeBlock(
@@ -2589,120 +2536,10 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             blockFlags = Flags.NONE;
         }
 
-        private boolean scan(
-            long traceId,
-            CharSequence key,
-            DirectBufferEx buffer,
-            int limit)
-        {
-            boolean scanned = reordering == REORDER_SCAN;
-
-            if (!scanned)
-            {
-                final int position = position();
-                final int remaining = Math.max(limit - position, 0);
-                final int length = key.length() + 3 + remaining;
-
-                scanSlot = decodePool.acquire(initialId);
-                scanned = scanSlot != NO_SLOT && length <= decodeMax;
-
-                if (scanned)
-                {
-                    reordering = REORDER_SCAN;
-
-                    final MutableDirectBufferEx slot = decodePool.buffer(scanSlot);
-                    slot.putByte(0, (byte) '{');
-                    slot.putByte(1, (byte) '"');
-                    for (int i = 0; i < key.length(); i++)
-                    {
-                        slot.putByte(2 + i, (byte) key.charAt(i));
-                    }
-                    slot.putByte(2 + key.length(), (byte) '"');
-                    slot.putBytes(3 + key.length(), buffer, position, remaining);
-                    scanSlotOffset = length;
-                }
-                else
-                {
-                    cleanupScanSlot();
-                    onDecodeInvalidRequest(traceId, MESSAGE_MODEL_ORDER);
-                }
-            }
-
-            return scanned;
-        }
-
-        private void scanAppend(
-            long traceId,
-            DirectBufferEx buffer,
-            int offset,
-            int length)
-        {
-            if (scanSlotOffset + length <= decodeMax)
-            {
-                decodePool.buffer(scanSlot).putBytes(scanSlotOffset, buffer, offset, length);
-                scanSlotOffset += length;
-            }
-            else
-            {
-                cleanupScanSlot();
-                onDecodeInvalidRequest(traceId, MESSAGE_MODEL_ORDER);
-            }
-        }
-
-        private boolean reordered(
-            int target)
-        {
-            return reordering == REORDER_NONE || reordering == target;
-        }
-
-        private void onDecodeReorder(
-            long traceId)
-        {
-            if (reordering == REORDER_SCAN)
-            {
-                onDecodeModel(traceId, initialAuthorization, scanModel);
-            }
-
-            reordering++;
-
-            parser.reset();
-            decoder = decodeStart;
-
-            cleanupDecodeSlot();
-            decodeSlot = decodePool.acquire(initialId);
-
-            if (decodeSlot == NO_SLOT)
-            {
-                onDecodeInvalidRequest(traceId, MESSAGE_MODEL_ORDER);
-            }
-            else
-            {
-                decodePool.buffer(scanSlot).getBytes(0, replayBuffer, 0, scanSlotOffset);
-                decodePool.buffer(decodeSlot).putBytes(0, replayBuffer, 0, scanSlotOffset);
-                decodeSlotOffset = scanSlotOffset;
-                state = LlmState.deferInitialEnd(state);
-
-                decodeNet(traceId, initialAuthorization, 0L);
-            }
-        }
-
         private void onDecodeEnd(
             long traceId)
         {
-            if (decoder == decodeEnd && reordering != REORDER_NONE)
-            {
-                if (reordering == REORDER_MESSAGES)
-                {
-                    reordering = REORDER_NONE;
-                    cleanupScanSlot();
-                    onDecodeEnd(traceId);
-                }
-                else
-                {
-                    onDecodeReorder(traceId);
-                }
-            }
-            else if (decoder != decodeEnd)
+            if (decoder != decodeEnd)
             {
                 onDecodeParseError(traceId);
             }
@@ -2769,7 +2606,6 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             final DirectBufferEx body = asBuffer(errorBody(status, message));
 
             cleanupDecodeSlot();
-            cleanupScanSlot();
 
             doNetBegin(traceId, authorization, 0L, Integer.toString(status), CONTENT_TYPE_JSON);
             doNetData(body, 0, body.capacity(), 0, Flags.COMPLETE, 0L, traceId, authorization);
@@ -2793,7 +2629,6 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         {
             decoder = decodeIgnore;
             cleanupDecodeSlot();
-            cleanupScanSlot();
             cleanupEncodeSlot();
             if (!deauthorized)
             {
@@ -2810,17 +2645,6 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                 decodeSlot = NO_SLOT;
             }
             decodeSlotOffset = 0;
-        }
-
-        private void cleanupScanSlot()
-        {
-            if (scanSlot != NO_SLOT)
-            {
-                decodePool.release(scanSlot);
-                scanSlot = NO_SLOT;
-            }
-            scanSlotOffset = 0;
-            scanModel = null;
         }
 
         private void cleanupEncodeSlot()

@@ -467,8 +467,18 @@ public class LlmOpenaiServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/openai.rejected.model.last/client"})
-    public void shouldDecodeOpenaiRejectedModelLast() throws Exception
+        "${net}/openai.section.rejected.model.last.oversize/client"})
+    public void shouldDecodeOpenaiSectionRejectedModelLastOversize() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.section.model.last/client",
+        "${app}/openai.section.user.text/server"})
+    public void shouldDecodeOpenaiSectionModelLast() throws Exception
     {
         k3po.finish();
     }
