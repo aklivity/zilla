@@ -46,6 +46,13 @@ write zilla:data.ext ${llm:dialectBlockDataEx()
 write "{\"50256\":-100}"
 write flush
 
+write zilla:data.ext ${llm:dialectBlockDataEx()
+                           .typeId(zilla:id("llm"))
+                           .block("model")
+                           .build()}
+write "\"gpt-4\""
+write flush
+
 write zilla:data.ext ${llm:dialectBeforeBlockDataEx()
                            .typeId(zilla:id("llm"))
                            .type("USER_TEXT")

@@ -66,6 +66,7 @@ import io.aklivity.zilla.runtime.engine.util.Flags;
 
 public final class LlmAnthropicClientFactory implements LlmDialectHandler
 {
+    private static final String MODEL = "model";
     private static final String HTTP_TYPE_NAME = "http";
     private static final String HEADER_METHOD = ":method";
     private static final String HEADER_SCHEME = ":scheme";
@@ -122,11 +123,10 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
     private static final int ESCAPE_EXPANSION = 6;
     private static final int ENCODE_SLACK = 256;
 
-    private static final byte[] REQUEST_START = "{\"model\":\"".getBytes(UTF_8);
-    private static final byte[] MESSAGES_START = "\",\"messages\":[".getBytes(UTF_8);
-    private static final byte[] MESSAGES_REGION = ",\"messages\":[".getBytes(UTF_8);
-    private static final byte[] SYSTEM_REGION = ",\"system\":[".getBytes(UTF_8);
-    private static final byte[] TOOLS_REGION = ",\"tools\":[".getBytes(UTF_8);
+    private static final byte[] MESSAGES_REGION = "\"messages\":[".getBytes(UTF_8);
+    private static final byte[] SYSTEM_REGION = "\"system\":[".getBytes(UTF_8);
+    private static final byte[] TOOLS_REGION = "\"tools\":[".getBytes(UTF_8);
+    private static final byte[] MODEL_MEMBER = "\"model\":\"".getBytes(UTF_8);
     private static final byte[] MODEL_END = "\"".getBytes(UTF_8);
     private static final byte[] MEMBER_NAME_END = "\":".getBytes(UTF_8);
     private static final byte[] MESSAGE_USER_START = "{\"role\":\"user\",\"content\":[".getBytes(UTF_8);
@@ -1065,6 +1065,8 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         private boolean encodeFailed;
 
         private int region = REGION_NONE;
+        private boolean membersStarted;
+        private boolean modelWritten;
         private boolean messagesOpened;
         private boolean systemOpened;
         private boolean toolsOpened;
@@ -1173,9 +1175,31 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
 
         private void doEncodeRequestBegin()
         {
-            put(REQUEST_START);
+            putByte('{');
+
+            if (!NAME.equals(stream.dialect))
+            {
+                putModelMember();
+            }
+        }
+
+        private void startMember()
+        {
+            if (membersStarted)
+            {
+                putByte(',');
+            }
+
+            membersStarted = true;
+        }
+
+        private void putModelMember()
+        {
+            startMember();
+            put(MODEL_MEMBER);
             putEscaped(stream.model);
             put(MODEL_END);
+            modelWritten = true;
         }
 
         private void doEncodeDialectBegin(
@@ -1189,10 +1213,11 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                 sectionKind = KIND_DIALECT;
                 closeTextBlock();
                 closeRegion();
-                putByte(',');
+                startMember();
                 putByte('"');
                 putEscaped(block);
                 put(MEMBER_NAME_END);
+                modelWritten |= MODEL.equals(block);
             }
             else
             {
@@ -1577,15 +1602,18 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                     {
                     case REGION_MESSAGES:
                         messagesOpened = true;
+                        startMember();
                         put(MESSAGES_REGION);
                         messageCount = 0;
                         break;
                     case REGION_SYSTEM:
                         systemOpened = true;
+                        startMember();
                         put(SYSTEM_REGION);
                         break;
                     default:
                         toolsOpened = true;
+                        startMember();
                         put(TOOLS_REGION);
                         break;
                     }
@@ -1743,6 +1771,12 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             else if (!LlmState.initialClosing(state) && !LlmState.initialClosed(state))
             {
                 closeRegion();
+
+                if (!modelWritten)
+                {
+                    putModelMember();
+                }
+
                 putByte('}');
                 state = LlmState.closingInitial(state);
             }

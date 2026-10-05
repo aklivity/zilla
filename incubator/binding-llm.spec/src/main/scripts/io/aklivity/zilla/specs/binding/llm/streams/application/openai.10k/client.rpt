@@ -28,6 +28,13 @@ write zilla:begin.ext ${llm:beginEx()
 
 connected
 
+write zilla:data.ext ${llm:dialectBlockDataEx()
+                           .typeId(zilla:id("llm"))
+                           .block("model")
+                           .build()}
+write "\"gpt-a\""
+write flush
+
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
                           .type("USER_TEXT")

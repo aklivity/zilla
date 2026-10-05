@@ -27,6 +27,12 @@ read zilla:begin.ext ${llm:matchBeginEx()
 
 connected
 
+read zilla:data.ext ${llm:matchDialectBlockDataEx()
+                          .typeId(zilla:id("llm"))
+                          .block("model")
+                          .build()}
+read "\"claude-3-opus-20240229\""
+
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("TOOL_DEFINITION")

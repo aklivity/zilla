@@ -27,6 +27,13 @@ connected
 
 write zilla:data.ext ${llm:dialectBlockDataEx()
                            .typeId(zilla:id("llm"))
+                           .block("model")
+                           .build()}
+write "\"claude-3-opus-20240229\""
+write flush
+
+write zilla:data.ext ${llm:dialectBlockDataEx()
+                           .typeId(zilla:id("llm"))
                            .block("metadata")
                            .build()}
 write "{\"user_id\":\"u1\"}"

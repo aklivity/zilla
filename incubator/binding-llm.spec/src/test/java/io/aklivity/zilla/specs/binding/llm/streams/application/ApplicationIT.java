@@ -1937,6 +1937,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/openai.section.model.last/client",
+        "${app}/openai.section.model.last/server"})
+    public void shouldOpenaiSectionModelLast() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/anthropic.section.model.last/client",
         "${app}/anthropic.section.model.last/server"})
     public void shouldAnthropicSectionModelLast() throws Exception

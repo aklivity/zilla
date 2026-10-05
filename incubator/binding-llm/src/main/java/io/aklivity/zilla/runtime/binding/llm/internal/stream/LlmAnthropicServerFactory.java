@@ -427,7 +427,6 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                 }
                 else
                 {
-                    server.lookaheadMembers++;
                     server.skip(decodeModelMember);
                     server.decoder = decodeSkip;
                 }
@@ -571,11 +570,6 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                 else if (matches(key, "tools"))
                 {
                     server.decoder = decodeToolsStart;
-                }
-                else if (matches(key, "model"))
-                {
-                    server.skip(decodeRoot);
-                    server.decoder = decodeSkip;
                 }
                 else
                 {
@@ -1936,7 +1930,6 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         private boolean toolContentSeen;
         private boolean containerPre;
         private boolean replaying;
-        private int lookaheadMembers;
         private int holdFrom;
         private int retained;
 
@@ -2554,12 +2547,9 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             stream = new LlmAnthropicStream(this);
             stream.doAppBegin(traceId, authorization, model);
 
-            if (lookaheadMembers > 0)
-            {
-                parser.reset();
-                decoder = decodeStart;
-                replaying = true;
-            }
+            parser.reset();
+            decoder = decodeStart;
+            replaying = true;
 
             lookahead = false;
             holding = false;

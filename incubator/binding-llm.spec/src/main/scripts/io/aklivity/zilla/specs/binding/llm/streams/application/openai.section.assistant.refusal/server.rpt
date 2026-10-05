@@ -27,6 +27,12 @@ read zilla:begin.ext ${llm:matchBeginEx()
 
 connected
 
+read zilla:data.ext ${llm:matchDialectBlockDataEx()
+                          .typeId(zilla:id("llm"))
+                          .block("model")
+                          .build()}
+read "\"gpt-4\""
+
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("ASSISTANT_REFUSAL")

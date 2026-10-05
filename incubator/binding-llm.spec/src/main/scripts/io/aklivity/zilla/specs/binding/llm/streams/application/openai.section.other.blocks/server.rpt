@@ -45,6 +45,12 @@ read zilla:data.ext ${llm:matchDialectBlockDataEx()
                           .build()}
 read "{\"50256\":-100}"
 
+read zilla:data.ext ${llm:matchDialectBlockDataEx()
+                          .typeId(zilla:id("llm"))
+                          .block("model")
+                          .build()}
+read "\"gpt-4\""
+
 read zilla:data.ext ${llm:matchDialectBeforeBlockDataEx()
                            .typeId(zilla:id("llm"))
                            .type("USER_TEXT")

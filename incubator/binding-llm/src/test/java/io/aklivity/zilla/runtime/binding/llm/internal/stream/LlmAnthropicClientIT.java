@@ -1095,4 +1095,14 @@ public class LlmAnthropicClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.request.options.early/client",
+        "${net}/anthropic.request.options.early/server"})
+    public void shouldEncodeAnthropicRequestOptionsEarly() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -407,7 +407,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 }
                 else
                 {
-                    server.lookaheadMembers++;
                     server.skip(decodeModelMember);
                     server.decoder = decodeSkip;
                 }
@@ -547,11 +546,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 else if (matches(key, "tools"))
                 {
                     server.decoder = decodeToolsStart;
-                }
-                else if (matches(key, "model"))
-                {
-                    server.skip(decodeRoot);
-                    server.decoder = decodeSkip;
                 }
                 else
                 {
@@ -1737,7 +1731,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private boolean holding;
         private boolean lookahead;
         private boolean replaying;
-        private int lookaheadMembers;
         private int holdFrom;
         private int retained;
 
@@ -2304,12 +2297,9 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             stream = new LlmOpenaiStream(this);
             stream.doAppBegin(traceId, authorization, model);
 
-            if (lookaheadMembers > 0)
-            {
-                parser.reset();
-                decoder = decodeStart;
-                replaying = true;
-            }
+            parser.reset();
+            decoder = decodeStart;
+            replaying = true;
 
             lookahead = false;
             holding = false;

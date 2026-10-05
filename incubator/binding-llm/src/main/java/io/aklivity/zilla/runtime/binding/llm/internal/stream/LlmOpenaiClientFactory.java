@@ -81,6 +81,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
     private static final String CONTENT_TYPE_JSON = "application/json";
     private static final String CONTENT_TYPE_EVENT_STREAM = "text/event-stream";
     private static final String ERROR_TYPE_INVALID_REQUEST = "invalid_request_error";
+    private static final String MODEL = "model";
     private static final String MESSAGE_MODEL_MISSING = "Missing required parameter: 'model'.";
     private static final String MESSAGE_SECTION_INVALID = "Invalid request section.";
     private static final Set<String> RESPONSE_CONTENT_TYPES = Set.of(CONTENT_TYPE_JSON, CONTENT_TYPE_EVENT_STREAM);
@@ -119,11 +120,11 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
     private static final int ENCODE_SLACK = 256;
     private static final int CONVERT_THRESHOLD = ENCODE_SLACK + ESCAPE_EXPANSION * 1024;
 
-    private static final byte[] REQUEST_START = "{\"model\":\"".getBytes(UTF_8);
     private static final byte[] MODEL_END = "\"".getBytes(UTF_8);
     private static final byte[] MEMBER_NAME_END = "\":".getBytes(UTF_8);
-    private static final byte[] MESSAGES_REGION = ",\"messages\":[".getBytes(UTF_8);
-    private static final byte[] MESSAGES_EMPTY = ",\"messages\":[]".getBytes(UTF_8);
+    private static final byte[] MESSAGES_REGION = "\"messages\":[".getBytes(UTF_8);
+    private static final byte[] MESSAGES_EMPTY = "\"messages\":[]".getBytes(UTF_8);
+    private static final byte[] MODEL_MEMBER = "\"model\":\"".getBytes(UTF_8);
     private static final byte[] MESSAGE_START = "{\"role\":\"".getBytes(UTF_8);
     private static final byte[] TOOL_CALL_ID = ",\"tool_call_id\":\"".getBytes(UTF_8);
     private static final byte[] IMAGE_URL_START =
@@ -145,7 +146,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
     private static final byte[] PART_TEXT_END = "\"}".getBytes(UTF_8);
     private static final byte[] REFUSAL_START = ",\"refusal\":\"".getBytes(UTF_8);
     private static final byte[] TOOL_CALLS_START = ",\"tool_calls\":[".getBytes(UTF_8);
-    private static final byte[] TOOLS_START = ",\"tools\":[".getBytes(UTF_8);
+    private static final byte[] TOOLS_START = "\"tools\":[".getBytes(UTF_8);
 
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBufferEx(new byte[0]), 0, 0);
 
@@ -1098,6 +1099,8 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
         private int messageCount;
         private int messageIndex = NO_MESSAGE;
+        private boolean membersStarted;
+        private boolean modelWritten;
         private boolean messagesOpened;
         private boolean messagesClosed;
         private boolean toolsOpened;
@@ -1203,10 +1206,33 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
         private void doEncodeRequestBegin()
         {
-            put(REQUEST_START);
+            putByte('{');
+
+            if (!NAME.equals(stream.dialect))
+            {
+                putModelMember();
+            }
+
+            encodeHold = 0;
+        }
+
+        private void startMember()
+        {
+            if (membersStarted)
+            {
+                putByte(',');
+            }
+
+            membersStarted = true;
+        }
+
+        private void putModelMember()
+        {
+            startMember();
+            put(MODEL_MEMBER);
             putEscaped(stream.model);
             put(MODEL_END);
-            encodeHold = 0;
+            modelWritten = true;
         }
 
         private void doEncodeDialectBegin(
@@ -1233,10 +1259,11 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                     toolsClosed = true;
                 }
 
-                putByte(',');
+                startMember();
                 putByte('"');
                 putEscaped(block);
                 put(MEMBER_NAME_END);
+                modelWritten |= MODEL.equals(block);
             }
             else
             {
@@ -1474,6 +1501,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 }
                 else
                 {
+                    startMember();
                     put(TOOLS_START);
                 }
                 toolsOpened = true;
@@ -1530,6 +1558,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
             if (!messagesOpened)
             {
+                startMember();
                 put(MESSAGES_REGION);
                 messagesOpened = true;
             }
@@ -1623,12 +1652,18 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
                 if (!messagesOpened)
                 {
+                    startMember();
                     put(MESSAGES_EMPTY);
                 }
                 else if (!messagesClosed)
                 {
                     putByte(']');
                     messagesClosed = true;
+                }
+
+                if (!modelWritten)
+                {
+                    putModelMember();
                 }
 
                 putByte('}');

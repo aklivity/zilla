@@ -497,7 +497,7 @@ public class LlmOpenaiServerIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/openai.section.model.last/client",
-        "${app}/openai.section.user.text/server"})
+        "${app}/openai.section.model.last/server"})
     public void shouldDecodeOpenaiSectionModelLast() throws Exception
     {
         k3po.finish();

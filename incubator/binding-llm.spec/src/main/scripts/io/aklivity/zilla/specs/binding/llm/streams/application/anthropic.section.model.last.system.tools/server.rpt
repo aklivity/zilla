@@ -40,6 +40,12 @@ read zilla:data.ext ${llm:matchDataEx()
                           .build()}
 read "Weather in Paris?"
 
+read zilla:data.ext ${llm:matchDialectBlockDataEx()
+                           .typeId(zilla:id("llm"))
+                           .block("model")
+                           .build()}
+read "\"claude-3-opus-20240229\""
+
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("SYSTEM_INSTRUCTION")

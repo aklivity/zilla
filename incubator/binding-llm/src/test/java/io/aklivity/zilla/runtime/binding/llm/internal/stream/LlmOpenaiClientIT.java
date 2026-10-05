@@ -1065,4 +1065,24 @@ public class LlmOpenaiClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.request.options.early/client",
+        "${net}/openai.request.options.early/server"})
+    public void shouldEncodeOpenaiRequestOptionsEarly() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.section.model.last/client",
+        "${net}/openai.section.model.last/server"})
+    public void shouldEncodeOpenaiSectionModelLast() throws Exception
+    {
+        k3po.finish();
+    }
 }

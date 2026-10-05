@@ -40,6 +40,12 @@ read zilla:data.ext ${llm:matchDataEx()
                           .build()}
 read ${core:randomBase64(10000)}
 
+read zilla:data.ext ${llm:matchDialectBlockDataEx()
+                          .typeId(zilla:id("llm"))
+                          .block("model")
+                          .build()}
+read "\"claude-3-opus-20240229\""
+
 read advised zilla:flush
 
 write zilla:reset.ext ${llm:resetEx()
