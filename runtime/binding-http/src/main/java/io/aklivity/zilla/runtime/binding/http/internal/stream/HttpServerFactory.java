@@ -554,6 +554,7 @@ public final class HttpServerFactory implements HttpStreamFactory
     private final BufferPool bufferPool;
     private final EngineContext context;
     private final BindingHandler streamFactory;
+    private final BindingHandler sseFactory;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final LongSupplier supplyBudgetId;
@@ -583,6 +584,7 @@ public final class HttpServerFactory implements HttpStreamFactory
         this.writeBuffer = context.writeBuffer();
         this.bufferPool = context.bufferPool();
         this.streamFactory = context.streamFactory();
+        this.sseFactory = new HttpSseServerFactory(context, streamFactory);
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.supplyBudgetId = context::supplyBudgetId;
@@ -739,7 +741,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 .build();
 
         MessageConsumer receiver =
-                streamFactory.newStream(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof(), sender);
+                sseFactory.newStream(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof(), sender);
 
         receiver.accept(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof());
 
