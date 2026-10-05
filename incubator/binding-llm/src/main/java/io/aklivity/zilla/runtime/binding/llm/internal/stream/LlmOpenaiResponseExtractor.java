@@ -61,8 +61,11 @@ final class LlmOpenaiResponseExtractor implements JsonTransform
     private String model;
     private String finishReason;
 
+    private final LlmResponseOptions responseOptions;
+
     LlmOpenaiResponseExtractor()
     {
+        this.responseOptions = new LlmResponseOptions(LlmOpenaiOptions.RESPONSE_COUNT);
         this.path = new StringBuilder();
         this.pathLengthAt = new int[16];
         this.mediator = new Mediator();
@@ -81,6 +84,16 @@ final class LlmOpenaiResponseExtractor implements JsonTransform
     String errorMessage()
     {
         return errorMessage;
+    }
+
+    String[] beginOptions()
+    {
+        return responseOptions.begin();
+    }
+
+    String[] endOptions()
+    {
+        return responseOptions.end();
     }
 
     String id()
@@ -210,6 +223,7 @@ final class LlmOpenaiResponseExtractor implements JsonTransform
         path.setLength(0);
         depth = 0;
         pendingKey = null;
+        responseOptions.clear();
         clearDocument();
     }
 
@@ -332,6 +346,12 @@ final class LlmOpenaiResponseExtractor implements JsonTransform
         case "choices.finish_reason":
             documentFinishReason = source.getString();
             break;
+        case "service_tier":
+            responseOptions.set(LlmOpenaiOptions.RESPONSE_SERVICE_TIER, source.getString());
+            break;
+        case "system_fingerprint":
+            responseOptions.set(LlmOpenaiOptions.RESPONSE_SYSTEM_FINGERPRINT, source.getString());
+            break;
         default:
             break;
         }
@@ -343,6 +363,9 @@ final class LlmOpenaiResponseExtractor implements JsonTransform
     {
         switch (fieldPath)
         {
+        case "created":
+            responseOptions.set(LlmOpenaiOptions.RESPONSE_CREATED, source.getBigDecimal().toPlainString());
+            break;
         case "usage.prompt_tokens":
             documentInputTokens = source.getInt();
             break;
@@ -375,6 +398,7 @@ final class LlmOpenaiResponseExtractor implements JsonTransform
         id = documentId != null ? documentId : id;
         model = documentModel != null ? documentModel : model;
         finishReason = documentFinishReason != null ? documentFinishReason : finishReason;
+        responseOptions.endDocument();
 
         clearDocument();
     }

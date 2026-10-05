@@ -59,8 +59,11 @@ final class LlmAnthropicResponseExtractor implements JsonTransform
     private String model;
     private String finishReason;
 
+    private final LlmResponseOptions responseOptions;
+
     LlmAnthropicResponseExtractor()
     {
+        this.responseOptions = new LlmResponseOptions(LlmAnthropicOptions.RESPONSE_COUNT);
         this.path = new StringBuilder();
         this.pathLengthAt = new int[16];
         this.mediator = new Mediator();
@@ -79,6 +82,16 @@ final class LlmAnthropicResponseExtractor implements JsonTransform
     String errorMessage()
     {
         return errorMessage;
+    }
+
+    String[] beginOptions()
+    {
+        return responseOptions.begin();
+    }
+
+    String[] endOptions()
+    {
+        return responseOptions.end();
     }
 
     String id()
@@ -209,6 +222,7 @@ final class LlmAnthropicResponseExtractor implements JsonTransform
         path.setLength(0);
         depth = 0;
         pendingKey = null;
+        responseOptions.clear();
         clearDocument();
     }
 
@@ -334,6 +348,14 @@ final class LlmAnthropicResponseExtractor implements JsonTransform
         case "delta.stop_reason":
             documentFinishReason = source.getString();
             break;
+        case "stop_sequence":
+        case "delta.stop_sequence":
+            responseOptions.set(LlmAnthropicOptions.RESPONSE_STOP_SEQUENCE, source.getString());
+            break;
+        case "container.id":
+        case "message.container.id":
+            responseOptions.set(LlmAnthropicOptions.RESPONSE_CONTAINER_ID, source.getString());
+            break;
         default:
             break;
         }
@@ -376,6 +398,7 @@ final class LlmAnthropicResponseExtractor implements JsonTransform
         id = documentId != null ? documentId : id;
         model = documentModel != null ? documentModel : model;
         finishReason = documentFinishReason != null ? documentFinishReason : finishReason;
+        responseOptions.endDocument();
 
         clearDocument();
     }

@@ -24,6 +24,11 @@ final class LlmOpenaiOptions
     static final int SEED = 5;
     static final int STOP = 6;
 
+    static final int RESPONSE_CREATED = 0;
+    static final int RESPONSE_SERVICE_TIER = 1;
+    static final int RESPONSE_SYSTEM_FINGERPRINT = 2;
+    static final int RESPONSE_COUNT = 3;
+
     private static final String[] MEMBERS =
     {
         "stream", "stream_options", "temperature", "top_p", "max_tokens", "seed", "stop"

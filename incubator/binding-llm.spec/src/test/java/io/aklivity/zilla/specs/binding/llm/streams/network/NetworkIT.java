@@ -794,6 +794,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/openai.response.decode.options/client",
+        "${net}/openai.response.decode.options/server"})
+    public void shouldOpenaiResponseDecodeOptions() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/openai.response.decode.text/client",
         "${net}/openai.response.decode.text/server"})
     public void shouldDecodeOpenaiResponseText() throws Exception
@@ -1832,6 +1841,15 @@ public class NetworkIT
         "${net}/anthropic.response.decode.streaming.tool.call/client",
         "${net}/anthropic.response.decode.streaming.tool.call/server"})
     public void shouldDecodeAnthropicResponseStreamingToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.response.decode.options/client",
+        "${net}/anthropic.response.decode.options/server"})
+    public void shouldAnthropicResponseDecodeOptions() throws Exception
     {
         k3po.finish();
     }

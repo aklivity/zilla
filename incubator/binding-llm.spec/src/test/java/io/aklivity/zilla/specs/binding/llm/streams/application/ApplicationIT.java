@@ -794,6 +794,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/openai.response.decode.options/client",
+        "${app}/openai.response.decode.options/server"})
+    public void shouldOpenaiResponseDecodeOptions() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/openai.response.decode.text/client",
         "${app}/openai.response.decode.text/server"})
     public void shouldDecodeOpenaiResponseText() throws Exception
@@ -1490,6 +1499,15 @@ public class ApplicationIT
         "${app}/anthropic.response.decode.streaming.tool.call/client",
         "${app}/anthropic.response.decode.streaming.tool.call/server"})
     public void shouldDecodeAnthropicResponseStreamingToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.response.decode.options/client",
+        "${app}/anthropic.response.decode.options/server"})
+    public void shouldAnthropicResponseDecodeOptions() throws Exception
     {
         k3po.finish();
     }

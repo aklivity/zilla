@@ -53,6 +53,7 @@ import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmDataExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmEndExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmFlushExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmOpenaiRequestExFW;
+import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmOpenaiResponseExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmResetExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.WindowFW;
@@ -164,6 +165,9 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
     private final LlmBeginExFW llmBeginExRO = new LlmBeginExFW();
     private final LlmFlushExFW llmFlushExRO = new LlmFlushExFW();
     private final LlmOpenaiRequestExFW requestExRO = new LlmOpenaiRequestExFW();
+    private final LlmOpenaiResponseExFW.Builder responseExRW = new LlmOpenaiResponseExFW.Builder();
+    private final OctetsFW responseExRO = new OctetsFW();
+    private final MutableDirectBufferEx responseExBuffer;
     private final LlmOptions requestOptions = LlmOpenaiOptions.request();
     private final LlmDataExFW llmDataExRO = new LlmDataExFW();
     private final OctetsFW extensionRO = new OctetsFW();
@@ -208,6 +212,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
     {
         this.writeBuffer = context.writeBuffer();
         this.extBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
+        this.responseExBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.decodePool = context.bufferPool();
         this.encodePool = context.bufferPool().duplicate();
         this.decodeMax = decodePool.slotCapacity();
@@ -320,6 +325,25 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         {
             requestOptions.set(slot, literal);
         }
+    }
+
+    private OctetsFW responseEx(
+        String[] values)
+    {
+        OctetsFW octets = null;
+
+        if (values != null)
+        {
+            final LlmOpenaiResponseExFW responseEx = responseExRW.wrap(responseExBuffer, 0, responseExBuffer.capacity())
+                .created(values[LlmOpenaiOptions.RESPONSE_CREATED])
+                .serviceTier(values[LlmOpenaiOptions.RESPONSE_SERVICE_TIER])
+                .systemFingerprint(values[LlmOpenaiOptions.RESPONSE_SYSTEM_FINGERPRINT])
+                .build();
+
+            octets = responseExRO.wrap(responseEx.buffer(), responseEx.offset(), responseEx.limit());
+        }
+
+        return octets;
     }
 
     private static String header(
@@ -733,14 +757,15 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         {
             if (!LlmState.replyOpening(state))
             {
-                doAppBegin(traceId, extractor.model(), extractor.id());
+                doAppBegin(traceId, extractor.model(), extractor.id(), responseEx(extractor.beginOptions()));
             }
         }
 
         private void doAppBegin(
             long traceId,
             String servedModel,
-            String servedId)
+            String servedId,
+            OctetsFW responseEx)
         {
             state = LlmState.openingReply(state);
 
@@ -756,6 +781,11 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             if (servedId != null)
             {
                 builder.id(servedId);
+            }
+
+            if (responseEx != null)
+            {
+                builder.extensionLength(responseEx.sizeof()).extension(responseEx);
             }
 
             final LlmBeginExFW llmBeginEx = builder.build();
@@ -956,11 +986,19 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
                     state = LlmState.closeReply(state);
 
-                    final LlmEndExFW llmEndEx = llmEndExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                    final OctetsFW responseEx = responseEx(extractor.endOptions());
+
+                    final LlmEndExFW.Builder endExBuilder = llmEndExRW.wrap(extBuffer, 0, extBuffer.capacity())
                         .typeId(llmTypeId)
                         .usage(u -> extractor.populateUsage(u))
-                        .finishReason(extractor.finishReason())
-                        .build();
+                        .finishReason(extractor.finishReason());
+
+                    if (responseEx != null)
+                    {
+                        endExBuilder.extensionLength(responseEx.sizeof()).extension(responseEx);
+                    }
+
+                    final LlmEndExFW llmEndEx = endExBuilder.build();
 
                     final EndFW end = endRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                         .originId(originId)

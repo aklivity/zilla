@@ -714,6 +714,16 @@ public class LlmOpenaiClientIT
     @Test
     @Configuration("client.openai.yaml")
     @Specification({
+        "${app}/openai.response.decode.options/client",
+        "${net}/openai.response.decode.options/server"})
+    public void shouldDecodeOpenaiResponseOptions() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
         "${app}/openai.response.decode.text/client",
         "${net}/openai.response.decode.text/server"})
     public void shouldDecodeOpenaiResponseText() throws Exception

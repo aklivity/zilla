@@ -808,6 +808,16 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @Specification({
+        "${app}/anthropic.response.decode.options/client",
+        "${net}/anthropic.response.decode.options/server"})
+    public void shouldDecodeAnthropicResponseOptions() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
         "${app}/anthropic.response.decode.text/client",
         "${net}/anthropic.response.decode.text/server"})
     public void shouldDecodeAnthropicResponseText() throws Exception

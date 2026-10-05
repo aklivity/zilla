@@ -23,6 +23,10 @@ final class LlmAnthropicOptions
     static final int MAX_TOKENS = 4;
     static final int STOP_SEQUENCES = 5;
 
+    static final int RESPONSE_STOP_SEQUENCE = 0;
+    static final int RESPONSE_CONTAINER_ID = 1;
+    static final int RESPONSE_COUNT = 2;
+
     private static final String[] MEMBERS =
     {
         "stream", "temperature", "top_p", "top_k", "max_tokens", "stop_sequences"
