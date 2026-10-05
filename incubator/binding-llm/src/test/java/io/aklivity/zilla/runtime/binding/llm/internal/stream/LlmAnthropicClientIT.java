@@ -209,9 +209,9 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @Specification({
-        "${app}/anthropic.section.other.members/client",
-        "${net}/anthropic.section.other.members/server"})
-    public void shouldEncodeAnthropicSectionOtherMembers() throws Exception
+        "${app}/anthropic.section.other.blocks/client",
+        "${net}/anthropic.section.other.blocks/server"})
+    public void shouldEncodeAnthropicSectionOtherBlocks() throws Exception
     {
         k3po.finish();
     }

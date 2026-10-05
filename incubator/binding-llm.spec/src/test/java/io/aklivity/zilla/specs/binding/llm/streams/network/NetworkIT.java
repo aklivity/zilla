@@ -641,9 +641,9 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/openai.section.other.members/client",
-        "${net}/openai.section.other.members/server"})
-    public void shouldOpenaiSectionOtherMembers() throws Exception
+        "${net}/openai.section.other.blocks/client",
+        "${net}/openai.section.other.blocks/server"})
+    public void shouldOpenaiSectionOtherBlocks() throws Exception
     {
         k3po.finish();
     }
@@ -1010,9 +1010,9 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/anthropic.section.other.members/client",
-        "${net}/anthropic.section.other.members/server"})
-    public void shouldAnthropicSectionOtherMembers() throws Exception
+        "${net}/anthropic.section.other.blocks/client",
+        "${net}/anthropic.section.other.blocks/server"})
+    public void shouldAnthropicSectionOtherBlocks() throws Exception
     {
         k3po.finish();
     }
@@ -2579,6 +2579,33 @@ public class NetworkIT
         "${net}/anthropic.request.version.unsupported/client",
         "${net}/anthropic.request.version.unsupported/server"})
     public void shouldRejectAnthropicRequestWithVersionUnsupported() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.section.message.name/client",
+        "${net}/openai.section.message.name/server"})
+    public void shouldDecodeOpenaiSectionMessageName() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.section.message.name.after/client",
+        "${net}/openai.section.message.name.after/server"})
+    public void shouldDecodeOpenaiSectionMessageNameAfter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.section.message.name.tool.result/client",
+        "${net}/openai.section.message.name.tool.result/server"})
+    public void shouldDecodeOpenaiSectionMessageNameToolResult() throws Exception
     {
         k3po.finish();
     }

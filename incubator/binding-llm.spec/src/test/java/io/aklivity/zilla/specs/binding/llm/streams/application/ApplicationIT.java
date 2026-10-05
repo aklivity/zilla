@@ -650,9 +650,9 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/openai.section.other.members/client",
-        "${app}/openai.section.other.members/server"})
-    public void shouldOpenaiSectionOtherMembers() throws Exception
+        "${app}/openai.section.other.blocks/client",
+        "${app}/openai.section.other.blocks/server"})
+    public void shouldOpenaiSectionOtherBlocks() throws Exception
     {
         k3po.finish();
     }
@@ -992,9 +992,9 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/anthropic.section.other.members/client",
-        "${app}/anthropic.section.other.members/server"})
-    public void shouldAnthropicSectionOtherMembers() throws Exception
+        "${app}/anthropic.section.other.blocks/client",
+        "${app}/anthropic.section.other.blocks/server"})
+    public void shouldAnthropicSectionOtherBlocks() throws Exception
     {
         k3po.finish();
     }
@@ -2003,6 +2003,33 @@ public class ApplicationIT
         "${app}/openai.response.encode.streaming.logprobs.foreign/client",
         "${app}/openai.response.encode.streaming.logprobs.foreign/server"})
     public void shouldEncodeOpenaiResponseStreamingLogprobsForeign() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.section.message.name/client",
+        "${app}/openai.section.message.name/server"})
+    public void shouldDecodeOpenaiSectionMessageName() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.section.message.name.after/client",
+        "${app}/openai.section.message.name.after/server"})
+    public void shouldDecodeOpenaiSectionMessageNameAfter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.section.message.name.tool.result/client",
+        "${app}/openai.section.message.name.tool.result/server"})
+    public void shouldDecodeOpenaiSectionMessageNameToolResult() throws Exception
     {
         k3po.finish();
     }

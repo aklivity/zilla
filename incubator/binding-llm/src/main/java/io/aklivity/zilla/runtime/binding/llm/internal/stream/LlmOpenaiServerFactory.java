@@ -99,6 +99,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         "The 'tool_call_id' parameter must precede 'content' in a tool message.";
     private static final String MESSAGE_PART_TYPE_ORDER = "The 'type' parameter must be the first member of each content part.";
     private static final String MESSAGE_ATTRIBUTE_TOO_LARGE = "A content part attribute value is too large.";
+    private static final String MESSAGE_MEMBER_TOO_LARGE = "A message member that precedes its content is too large.";
 
     private static final int RESPONSE_ENCODE_PADDING = 128;
     private static final int RESPONSE_ESCAPE_EXPANSION = 6;
@@ -115,6 +116,8 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
     private static final int BLOCK_AFTER = 3;
     private static final int MIN_WINDOW = 64;
     private static final int HOLD_MAX = 1024;
+    private static final int MEMBER_MAX = 4096;
+    private static final int MEMBER_NAMES_MAX = 8;
     private static final int REPLACEMENT_CHARACTER = 0xFFFD;
 
 
@@ -621,6 +624,9 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 server.message++;
                 server.role = null;
                 server.toolCallId = null;
+                server.memberCount = 0;
+                server.memberLength = 0;
+                server.messageSectioned = false;
                 server.decoder = decodeMessage;
                 break;
             case END_ARRAY:
@@ -689,8 +695,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 }
                 else
                 {
-                    server.skip(decodeMessage);
-                    server.decoder = decodeSkip;
+                    server.onDecodeMessageMember(key.toString(), decodeMessage);
                 }
                 break;
             case END_OBJECT:
@@ -1742,7 +1747,18 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private final LlmSectionAttributes finAttributes;
         private boolean probing;
 
+        private int memberCount;
+        private int memberLength;
+        private boolean memberBuffering;
+        private boolean messageSectioned;
+        private String[] memberNames;
+        private int[] memberEnds;
+        private byte[] memberBytes;
+        private long decodeTraceId;
+        private long decodeAuthorization;
+
         private String blockName;
+        private LlmBlockOwner blockOwner;
         private int blockKind;
         private LlmSectionType blockSection;
         private int blockMessage;
@@ -1971,6 +1987,8 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             final boolean gated = stream != null;
 
             decodedWindowLimit = windowLimit;
+            decodeTraceId = traceId;
+            decodeAuthorization = authorization;
             captureFrom = offset;
             holdFrom = offset;
             parser.wrap(buffer, offset + retained, windowLimit, windowLast);
@@ -2121,10 +2139,96 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             long authorization)
         {
             flushCapture(traceId, authorization, true);
+
+            if (memberBuffering)
+            {
+                memberBuffering = false;
+                memberEnds[memberCount++] = memberLength;
+            }
+
             captureOpen = false;
             captureTrim = false;
             probing = false;
-            decoder = captureThen;
+            decoder = decoder == decodeIgnore ? decoder : captureThen;
+        }
+
+        private void onDecodeMessageMember(
+            String member,
+            LlmOpenaiServerDecoder then)
+        {
+            captureThen = then;
+            captureOpen = true;
+            captureDepth = 0;
+            captureFrom = position();
+            captureTrim = true;
+            decoder = decodeCapture;
+
+            if (messageSectioned)
+            {
+                onDecodeDialectBlock(member);
+                blockKind = BLOCK_AFTER;
+                blockOwner = LlmBlockOwner.CONTAINER;
+            }
+            else
+            {
+                if (memberNames == null)
+                {
+                    memberNames = new String[MEMBER_NAMES_MAX];
+                    memberEnds = new int[MEMBER_NAMES_MAX];
+                    memberBytes = new byte[MEMBER_MAX];
+                }
+
+                if (memberCount == MEMBER_NAMES_MAX)
+                {
+                    onDecodeInvalidRequest(decodeTraceId, MESSAGE_MEMBER_TOO_LARGE);
+                    captureOpen = false;
+                }
+                else
+                {
+                    memberNames[memberCount] = member;
+                    memberBuffering = true;
+                }
+            }
+        }
+
+        private void onDecodeMemberBytes(
+            long traceId,
+            int from,
+            int length)
+        {
+            if (memberLength + length > MEMBER_MAX)
+            {
+                memberBuffering = false;
+                captureOpen = false;
+                onDecodeInvalidRequest(traceId, MESSAGE_MEMBER_TOO_LARGE);
+            }
+            else if (length > 0)
+            {
+                decodedInput.getBytes(from, memberBytes, memberLength, length);
+                memberLength += length;
+            }
+        }
+
+        private void onDecodeMembersBefore(
+            LlmSectionType type,
+            int message,
+            String toolCallId)
+        {
+            blockAttributes.clear();
+            blockAttributes.toolCallId(toolCallId);
+
+            final DirectBufferEx members = new UnsafeBufferEx(memberBytes);
+
+            int from = 0;
+            for (int i = 0; i < memberCount; i++)
+            {
+                stream.doAppBlockData(decodeTraceId, decodeAuthorization, Flags.COMPLETE, BLOCK_BEFORE, memberNames[i],
+                    LlmBlockOwner.CONTAINER, type, message, blockAttributes, members, from, memberEnds[i] - from);
+                from = memberEnds[i];
+            }
+
+            memberCount = 0;
+            memberLength = 0;
         }
 
         private void flushCapture(
@@ -2145,7 +2249,11 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 captureTrim = from == end;
             }
 
-            if (end > from || fin)
+            if (memberBuffering)
+            {
+                onDecodeMemberBytes(traceId, from, end - from);
+            }
+            else if (end > from || fin)
             {
                 onDecodeData(traceId, authorization, decodedInput, from, end - from, fin);
             }
@@ -2178,6 +2286,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             String block)
         {
             blockName = block;
+            blockOwner = null;
             blockKind = BLOCK_STREAM;
             blockSection = null;
             blockMessage = -1;
@@ -2212,7 +2321,15 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             int message,
             String toolCallId)
         {
+            if (memberCount > 0 && message >= 0)
+            {
+                onDecodeMembersBefore(type, message, toolCallId);
+            }
+
+            messageSectioned = message >= 0;
+
             blockName = null;
+            blockOwner = null;
             blockKind = BLOCK_SECTION;
             blockSection = type;
             blockMessage = message;
@@ -2255,7 +2372,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 attributes = null;
             }
 
-            stream.doAppBlockData(traceId, authorization, flags, blockKind, init ? blockName : null, null,
+            stream.doAppBlockData(traceId, authorization, flags, blockKind, init ? blockName : null, blockOwner,
                 init ? blockSection : null, blockMessage, attributes, buffer, offset, length);
 
             blockFlags = Flags.NONE;
@@ -3312,7 +3429,17 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 }
                 else if (kind == BLOCK_BEFORE)
                 {
-                    dataExBuilder.before(d -> d.type(t -> t.set(type)).message(message).owner(o -> o.set(owner)).block(block));
+                    dataExBuilder.before(d ->
+                    {
+                        d.type(t -> t.set(type)).message(message);
+
+                        if (attributes != null)
+                        {
+                            attributes.writeTo(d);
+                        }
+
+                        d.owner(o -> o.set(owner)).block(block);
+                    });
                 }
                 else if (kind == BLOCK_AFTER)
                 {

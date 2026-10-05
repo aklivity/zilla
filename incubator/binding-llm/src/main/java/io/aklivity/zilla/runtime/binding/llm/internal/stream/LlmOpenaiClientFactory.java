@@ -49,7 +49,10 @@ import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmAbortExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmBeginExFW;
+import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmBlockOwner;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmDataExFW;
+import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmDialectAfterBlockDataExFW;
+import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmDialectBeforeBlockDataExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmEndExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmFollow;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmResetExFW;
@@ -111,6 +114,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
     private static final int KIND_UNKNOWN = 11;
     private static final int KIND_DROPPED = 12;
     private static final int KIND_DIALECT = 13;
+    private static final int KIND_MEMBER = 14;
 
     private static final int CONTENT_NONE = 0;
     private static final int CONTENT_STRING = 1;
@@ -575,35 +579,50 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                             section != null ? section.message() : NO_MESSAGE,
                             sectionAttributes.toolCallId());
                         break;
+                    case LlmDataExFW.KIND_BEFORE:
+                        final LlmDialectBeforeBlockDataExFW before = llmDataEx.before();
+                        sectionAttributes.readFrom(before);
+
+                        http.doEncodeMemberBegin(true,
+                            sectionKind(before.type().get()),
+                            before.message(),
+                            sectionAttributes.toolCallId(),
+                            before.block().asString(),
+                            before.owner().get() == LlmBlockOwner.CONTAINER);
+                        break;
+                    case LlmDataExFW.KIND_AFTER:
+                        final LlmDialectAfterBlockDataExFW after = llmDataEx.after();
+
+                        http.doEncodeMemberBegin(false, 0, NO_MESSAGE, null,
+                            after.block().asString(),
+                            after.owner().get() == LlmBlockOwner.CONTAINER);
+                        break;
                     default:
                         break;
                     }
                 }
 
-                if (appKind == LlmDataExFW.KIND_BLOCK || appKind == LlmDataExFW.KIND_SECTION)
+                final OctetsFW payload = data.payload();
+                final boolean fin = Flags.hasFin(flags);
+
+                if (payload != null && payload.sizeof() > 0)
                 {
-                    final OctetsFW payload = data.payload();
-                    final boolean fin = Flags.hasFin(flags);
-
-                    if (payload != null && payload.sizeof() > 0)
+                    if (logprobsBlock)
                     {
-                        if (logprobsBlock)
-                        {
-                            sink.logprobs(payload.buffer().getByte(payload.offset()) == 't');
-                            logprobsBlock = false;
-                        }
-
-                        http.doEncodeSectionData(payload.buffer(), payload.offset(), payload.sizeof(), fin);
-                    }
-                    else if (fin && http.sectionStreaming)
-                    {
-                        http.doEncodeSectionData(EMPTY_OCTETS.buffer(), 0, 0, true);
+                        sink.logprobs(payload.buffer().getByte(payload.offset()) == 't');
+                        logprobsBlock = false;
                     }
 
-                    if (fin)
-                    {
-                        http.doEncodeSectionEnd();
-                    }
+                    http.doEncodeSectionData(payload.buffer(), payload.offset(), payload.sizeof(), fin);
+                }
+                else if (fin && http.sectionStreaming)
+                {
+                    http.doEncodeSectionData(EMPTY_OCTETS.buffer(), 0, 0, true);
+                }
+
+                if (fin)
+                {
+                    http.doEncodeSectionEnd();
                 }
 
                 if (http.encodeFailed)
@@ -1379,6 +1398,62 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             }
         }
 
+        private void doEncodeMemberBegin(
+            boolean before,
+            int kind,
+            int message,
+            String extension,
+            String block,
+            boolean container)
+        {
+            sectionOpen = false;
+            sectionArrayPart = false;
+            translated = false;
+
+            if (!NAME.equals(stream.dialect) || !container ||
+                before && (kind == 0 || kind == KIND_TOOL_DEFINITION || kind == KIND_DROPPED || kind == KIND_UNKNOWN))
+            {
+                sectionKind = KIND_DROPPED;
+            }
+            else
+            {
+                sectionKind = KIND_MEMBER;
+
+                if (!sectionsStarted)
+                {
+                    sectionsStarted = true;
+                    encodeHold = NOT_HELD;
+                }
+
+                if (before && messagesClosed || !before && messageIndex == NO_MESSAGE)
+                {
+                    encodeFailed = true;
+                }
+                else if (before)
+                {
+                    ensureMessage(kind, message, extension);
+                }
+                else
+                {
+                    closeContent(false);
+
+                    if (toolCallsOpened)
+                    {
+                        putByte(']');
+                        toolCallsOpened = false;
+                    }
+                }
+
+                if (!encodeFailed)
+                {
+                    putByte(',');
+                    putByte('"');
+                    putEscaped(block);
+                    put(MEMBER_NAME_END);
+                }
+            }
+        }
+
         private void doEncodeSectionBegin(
             int kind,
             int message,
@@ -1564,25 +1639,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             int message,
             String extension)
         {
-            if (toolsOpened && !toolsClosed)
-            {
-                putByte(']');
-                toolsClosed = true;
-            }
-
-            if (!messagesOpened)
-            {
-                put(MESSAGES_REGION);
-                messagesOpened = true;
-            }
-
-            final String role = kind == KIND_UNKNOWN && messageRole != null ? messageRole : role(kind);
-
-            if (message != messageIndex || !role.equals(messageRole) || kind == KIND_TOOL_RESULT && !extensionMatches(extension))
-            {
-                closeMessage();
-                openMessage(kind, role, message, extension);
-            }
+            ensureMessage(kind, message, extension);
 
             if (text(kind))
             {
@@ -1611,6 +1668,32 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                     put(TOOL_CALLS_START);
                 }
                 toolCallsOpened = true;
+            }
+        }
+
+        private void ensureMessage(
+            int kind,
+            int message,
+            String extension)
+        {
+            if (toolsOpened && !toolsClosed)
+            {
+                putByte(']');
+                toolsClosed = true;
+            }
+
+            if (!messagesOpened)
+            {
+                put(MESSAGES_REGION);
+                messagesOpened = true;
+            }
+
+            final String role = kind == KIND_UNKNOWN && messageRole != null ? messageRole : role(kind);
+
+            if (message != messageIndex || !role.equals(messageRole) || kind == KIND_TOOL_RESULT && !extensionMatches(extension))
+            {
+                closeMessage();
+                openMessage(kind, role, message, extension);
             }
         }
 

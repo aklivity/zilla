@@ -1035,4 +1035,34 @@ public class LlmOpenaiClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.section.message.name/client",
+        "${net}/openai.section.message.name/server"})
+    public void shouldEncodeOpenaiSectionMessageName() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.section.message.name.after/client",
+        "${net}/openai.section.message.name.after/server"})
+    public void shouldEncodeOpenaiSectionMessageNameAfter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.section.message.name.tool.result/client",
+        "${net}/openai.section.message.name.tool.result/server"})
+    public void shouldEncodeOpenaiSectionMessageNameToolResult() throws Exception
+    {
+        k3po.finish();
+    }
 }
