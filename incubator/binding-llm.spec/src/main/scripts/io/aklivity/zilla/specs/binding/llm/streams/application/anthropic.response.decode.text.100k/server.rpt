@@ -52,6 +52,14 @@ write zilla:data.ext ${llm:dataEx()
 write ${core:randomBase64(100000)}
 write flush
 
+write option zilla:flags "init fin"
+write zilla:data.ext ${llm:dialectBlockDataEx()
+                          .typeId(zilla:id("llm"))
+                          .block("stop_sequence")
+                          .build()}
+write "null"
+write flush
+
 write zilla:end.ext ${llm:endEx()
                             .typeId(zilla:id("llm"))
                             .inputTokens(25)

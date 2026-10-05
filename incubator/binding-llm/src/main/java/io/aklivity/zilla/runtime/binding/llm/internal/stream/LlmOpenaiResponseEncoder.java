@@ -16,6 +16,10 @@ package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 
@@ -76,7 +80,6 @@ final class LlmOpenaiResponseEncoder
     private static final byte[] DELTA_TOOL_END = "\"}}]".getBytes(UTF_8);
     private static final byte[] DELTA_FINISH_START = "{\"index\":0,\"delta\":{},\"finish_reason\":\"".getBytes(UTF_8);
     private static final byte[] DELTA_FINISH_END = "\"}".getBytes(UTF_8);
-    private static final int BLOCKS_MAX = 4096;
     private static final byte[] USAGE_START = ",\"usage\":{".getBytes(UTF_8);
     private static final byte[] USAGE_END = "}".getBytes(UTF_8);
     private static final byte[] PROMPT_TOKENS = "\"prompt_tokens\":".getBytes(UTF_8);
@@ -96,10 +99,11 @@ final class LlmOpenaiResponseEncoder
     private static final byte[] REPLACEMENT = "\\ufffd".getBytes(UTF_8);
 
     private final boolean streaming;
+    private final int membersMax;
     private final byte[] id;
     private final byte[] model;
     private final byte[] carry;
-    private final byte[] blocks;
+    private final Map<String, byte[]> members;
 
     private MutableDirectBuffer out;
     private int position;
@@ -110,8 +114,10 @@ final class LlmOpenaiResponseEncoder
     private boolean refusalWritten;
     private int toolCalls;
     private int carried;
-    private int blocksLength;
-    private int blockFrom;
+    private int membersLength;
+    private String blockName;
+    private byte[] blockBytes;
+    private int blockLength;
     private boolean blockOpen;
     private boolean follow;
     private boolean chunkOpen;
@@ -122,13 +128,15 @@ final class LlmOpenaiResponseEncoder
     LlmOpenaiResponseEncoder(
         boolean streaming,
         String id,
-        String model)
+        String model,
+        int membersMax)
     {
         this.streaming = streaming;
+        this.membersMax = membersMax;
         this.id = id != null ? escape(id) : null;
         this.model = model != null ? escape(model) : null;
         this.carry = new byte[3];
-        this.blocks = new byte[BLOCKS_MAX];
+        this.members = new LinkedHashMap<>();
     }
 
     int begin(
@@ -235,24 +243,8 @@ final class LlmOpenaiResponseEncoder
         boolean render)
     {
         blockOpen = render;
-        blockFrom = blocksLength;
-
-        if (render)
-        {
-            final byte[] name = escape(block);
-
-            blockOpen = blocksLength + name.length + 4 <= BLOCKS_MAX;
-
-            if (blockOpen)
-            {
-                blocks[blocksLength++] = ',';
-                blocks[blocksLength++] = '"';
-                System.arraycopy(name, 0, blocks, blocksLength, name.length);
-                blocksLength += name.length;
-                blocks[blocksLength++] = '"';
-                blocks[blocksLength++] = ':';
-            }
-        }
+        blockName = block;
+        blockLength = 0;
     }
 
     void blockData(
@@ -262,14 +254,20 @@ final class LlmOpenaiResponseEncoder
     {
         if (blockOpen)
         {
-            if (blocksLength + length <= BLOCKS_MAX)
+            if (membersLength + blockLength + length <= membersMax)
             {
-                payload.getBytes(offset, blocks, blocksLength, length);
-                blocksLength += length;
+                if (blockBytes == null || blockBytes.length < blockLength + length)
+                {
+                    blockBytes = blockBytes == null
+                        ? new byte[Math.max(256, length)]
+                        : Arrays.copyOf(blockBytes, Math.max(blockBytes.length * 2, blockLength + length));
+                }
+
+                payload.getBytes(offset, blockBytes, blockLength, length);
+                blockLength += length;
             }
             else
             {
-                blocksLength = blockFrom;
                 blockOpen = false;
             }
         }
@@ -277,6 +275,13 @@ final class LlmOpenaiResponseEncoder
 
     void blockEnd()
     {
+        if (blockOpen)
+        {
+            final byte[] previous = members.put(blockName, Arrays.copyOf(blockBytes, blockLength));
+
+            membersLength += blockLength - (previous != null ? previous.length : 0);
+        }
+
         blockOpen = false;
     }
 
@@ -874,9 +879,17 @@ final class LlmOpenaiResponseEncoder
 
     private void putBlocks()
     {
-        out.putBytes(position, blocks, 0, blocksLength);
-        position += blocksLength;
-        blocksLength = 0;
+        for (Map.Entry<String, byte[]> member : members.entrySet())
+        {
+            put(COMMA);
+            put(QUOTE);
+            put(escape(member.getKey()));
+            put(MEMBER_COLON);
+            put(member.getValue());
+        }
+
+        members.clear();
+        membersLength = 0;
     }
 
     private void putNumber(

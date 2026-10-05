@@ -16,6 +16,10 @@ package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 
@@ -44,7 +48,6 @@ final class LlmAnthropicResponseEncoder
     private static final byte[] ERROR_MESSAGE = "\",\"message\":\"".getBytes(UTF_8);
     private static final byte[] ERROR_END = "\"}}\n\n".getBytes(UTF_8);
     private static final byte[] SSE_END = "\n\n".getBytes(UTF_8);
-    private static final int BLOCKS_MAX = 4096;
     private static final String BLOCK_STOP_SEQUENCE = "stop_sequence";
     private static final byte[] OBJECT_START = "{".getBytes(UTF_8);
     private static final byte[] OBJECT_END = "}".getBytes(UTF_8);
@@ -76,6 +79,7 @@ final class LlmAnthropicResponseEncoder
     private static final byte[] STOP_SEQUENCE_MEMBER = "\",\"stop_sequence\":".getBytes(UTF_8);
     private static final byte[] MESSAGE_DELTA_USAGE = "},".getBytes(UTF_8);
     private static final byte[] NULL = "null".getBytes(UTF_8);
+    private static final byte[] MEMBER_NAME_END = "\":".getBytes(UTF_8);
     private static final byte[] STOP_REASON = ",\"stop_reason\":\"".getBytes(UTF_8);
     private static final byte[] MEMBER_SEPARATOR = ",".getBytes(UTF_8);
     private static final byte[] USAGE_START = "\"usage\":{\"input_tokens\":".getBytes(UTF_8);
@@ -98,8 +102,8 @@ final class LlmAnthropicResponseEncoder
     private final byte[] id;
     private final byte[] model;
     private final byte[] carry;
-    private final byte[] members;
-    private final byte[] stopSequence;
+    private final Map<String, byte[]> members;
+    private final int membersMax;
 
     private MutableDirectBuffer out;
     private int position;
@@ -109,23 +113,24 @@ final class LlmAnthropicResponseEncoder
     private boolean inputWritten;
     private int toolCalls;
     private int carried;
-    private int blocksLength;
-    private int stopSequenceLength;
-    private int blockFrom;
+    private int membersLength;
+    private String blockName;
+    private byte[] blockBytes;
+    private int blockLength;
     private boolean blockOpen;
-    private boolean blockStopSequence;
 
     LlmAnthropicResponseEncoder(
         boolean streaming,
         String id,
-        String model)
+        String model,
+        int membersMax)
     {
         this.streaming = streaming;
         this.id = id != null ? escape(id) : null;
         this.model = model != null ? escape(model) : null;
         this.carry = new byte[3];
-        this.members = new byte[BLOCKS_MAX];
-        this.stopSequence = new byte[BLOCKS_MAX];
+        this.members = new LinkedHashMap<>();
+        this.membersMax = membersMax;
     }
 
     int begin(
@@ -216,29 +221,8 @@ final class LlmAnthropicResponseEncoder
         boolean render)
     {
         blockOpen = render;
-        blockStopSequence = render && BLOCK_STOP_SEQUENCE.equals(block);
-        blockFrom = blocksLength;
-
-        if (blockStopSequence)
-        {
-            stopSequenceLength = 0;
-        }
-        else if (render)
-        {
-            final byte[] name = escape(block);
-
-            blockOpen = blocksLength + name.length + 4 <= BLOCKS_MAX;
-
-            if (blockOpen)
-            {
-                members[blocksLength++] = ',';
-                members[blocksLength++] = '"';
-                System.arraycopy(name, 0, members, blocksLength, name.length);
-                blocksLength += name.length;
-                members[blocksLength++] = '"';
-                members[blocksLength++] = ':';
-            }
-        }
+        blockName = block;
+        blockLength = 0;
     }
 
     void blockData(
@@ -248,20 +232,20 @@ final class LlmAnthropicResponseEncoder
     {
         if (blockOpen)
         {
-            if (blockStopSequence && stopSequenceLength + length <= BLOCKS_MAX)
+            if (membersLength + blockLength + length <= membersMax)
             {
-                payload.getBytes(offset, stopSequence, stopSequenceLength, length);
-                stopSequenceLength += length;
-            }
-            else if (!blockStopSequence && blocksLength + length <= BLOCKS_MAX)
-            {
-                payload.getBytes(offset, members, blocksLength, length);
-                blocksLength += length;
+                if (blockBytes == null || blockBytes.length < blockLength + length)
+                {
+                    blockBytes = blockBytes == null
+                        ? new byte[Math.max(256, length)]
+                        : Arrays.copyOf(blockBytes, Math.max(blockBytes.length * 2, blockLength + length));
+                }
+
+                payload.getBytes(offset, blockBytes, blockLength, length);
+                blockLength += length;
             }
             else
             {
-                blocksLength = blockStopSequence ? blocksLength : blockFrom;
-                stopSequenceLength = blockStopSequence ? 0 : stopSequenceLength;
                 blockOpen = false;
             }
         }
@@ -269,8 +253,14 @@ final class LlmAnthropicResponseEncoder
 
     void blockEnd()
     {
+        if (blockOpen)
+        {
+            final byte[] previous = members.put(blockName, Arrays.copyOf(blockBytes, blockLength));
+
+            membersLength += blockLength - (previous != null ? previous.length : 0);
+        }
+
         blockOpen = false;
-        blockStopSequence = false;
     }
 
     int end(
@@ -330,9 +320,9 @@ final class LlmAnthropicResponseEncoder
             put(reason);
             put(STOP_SEQUENCE_MEMBER);
             putStopSequence();
+            putBlocks();
             put(MESSAGE_DELTA_USAGE);
             putUsage(inputTokens, cacheWriteTokens, cacheReadTokens, outputTokens);
-            putBlocks();
             put(OBJECT_END);
             put(SSE_END);
             put(EVENT_MESSAGE_STOP);
@@ -634,11 +624,12 @@ final class LlmAnthropicResponseEncoder
 
     private void putStopSequence()
     {
-        if (stopSequenceLength > 0)
+        final byte[] value = members.remove(BLOCK_STOP_SEQUENCE);
+
+        if (value != null)
         {
-            out.putBytes(position, stopSequence, 0, stopSequenceLength);
-            position += stopSequenceLength;
-            stopSequenceLength = 0;
+            membersLength -= value.length;
+            put(value);
         }
         else
         {
@@ -648,9 +639,17 @@ final class LlmAnthropicResponseEncoder
 
     private void putBlocks()
     {
-        out.putBytes(position, members, 0, blocksLength);
-        position += blocksLength;
-        blocksLength = 0;
+        for (Map.Entry<String, byte[]> member : members.entrySet())
+        {
+            put(MEMBER_SEPARATOR);
+            put(QUOTE);
+            put(escape(member.getKey()));
+            put(MEMBER_NAME_END);
+            put(member.getValue());
+        }
+
+        members.clear();
+        membersLength = 0;
     }
 
     private void putNumber(

@@ -57,6 +57,13 @@ read zilla:data.ext ${llm:matchDialectBlockDataEx()
                           .build()}
 read "\"END\""
 
+read option zilla:flags "init fin"
+read zilla:data.ext ${llm:matchDialectBlockDataEx()
+                          .typeId(zilla:id("llm"))
+                          .block("container")
+                          .build()}
+read "{\"id\":\"container_1\"}"
+
 read zilla:end.ext ${llm:matchEndEx()
                             .typeId(zilla:id("llm"))
                             .inputTokens(25)

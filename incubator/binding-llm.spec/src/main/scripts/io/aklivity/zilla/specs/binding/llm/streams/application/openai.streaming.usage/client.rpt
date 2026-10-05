@@ -49,12 +49,42 @@ read zilla:data.ext ${llm:matchDialectBlockDataEx()
                           .build()}
 read "1789954951"
 
+read option zilla:flags "init fin"
 read zilla:data.ext ${llm:matchDialectBlockDataEx()
                           .typeId(zilla:id("llm"))
                           .block("service_tier")
                           .build()}
 read "\"default\""
 
+read option zilla:flags "init fin"
+read zilla:data.ext ${llm:matchDialectBlockDataEx()
+                          .typeId(zilla:id("llm"))
+                          .block("system_fingerprint")
+                          .build()}
+read "\"fp_c28ee603a6\""
+
+read option zilla:flags "init fin"
+read zilla:data.ext ${llm:matchDialectBlockDataEx()
+                          .typeId(zilla:id("llm"))
+                          .block("obfuscation")
+                          .build()}
+read "\"HHHL8bgoj\""
+
+read option zilla:flags "init fin"
+read zilla:data.ext ${llm:matchDialectBlockDataEx()
+                          .typeId(zilla:id("llm"))
+                          .block("created")
+                          .build()}
+read "1789954951"
+
+read option zilla:flags "init fin"
+read zilla:data.ext ${llm:matchDialectBlockDataEx()
+                          .typeId(zilla:id("llm"))
+                          .block("service_tier")
+                          .build()}
+read "\"default\""
+
+read option zilla:flags "init fin"
 read zilla:data.ext ${llm:matchDialectBlockDataEx()
                           .typeId(zilla:id("llm"))
                           .block("system_fingerprint")
@@ -71,6 +101,69 @@ read "Hello"
 
 read option zilla:flags "fin"
 read zilla:data.empty
+
+read option zilla:flags "init fin"
+read zilla:data.ext ${llm:matchDialectBlockDataEx()
+                          .typeId(zilla:id("llm"))
+                          .block("obfuscation")
+                          .build()}
+read "\"wruix7\""
+
+read option zilla:flags "init fin"
+read zilla:data.ext ${llm:matchDialectBlockDataEx()
+                          .typeId(zilla:id("llm"))
+                          .block("created")
+                          .build()}
+read "1789954951"
+
+read option zilla:flags "init fin"
+read zilla:data.ext ${llm:matchDialectBlockDataEx()
+                          .typeId(zilla:id("llm"))
+                          .block("service_tier")
+                          .build()}
+read "\"default\""
+
+read option zilla:flags "init fin"
+read zilla:data.ext ${llm:matchDialectBlockDataEx()
+                          .typeId(zilla:id("llm"))
+                          .block("system_fingerprint")
+                          .build()}
+read "\"fp_c28ee603a6\""
+
+read option zilla:flags "init fin"
+read zilla:data.ext ${llm:matchDialectBlockDataEx()
+                          .typeId(zilla:id("llm"))
+                          .block("obfuscation")
+                          .build()}
+read "\"0N4dN\""
+
+read option zilla:flags "init fin"
+read zilla:data.ext ${llm:matchDialectBlockDataEx()
+                          .typeId(zilla:id("llm"))
+                          .block("created")
+                          .build()}
+read "1789954951"
+
+read option zilla:flags "init fin"
+read zilla:data.ext ${llm:matchDialectBlockDataEx()
+                          .typeId(zilla:id("llm"))
+                          .block("service_tier")
+                          .build()}
+read "\"default\""
+
+read option zilla:flags "init fin"
+read zilla:data.ext ${llm:matchDialectBlockDataEx()
+                          .typeId(zilla:id("llm"))
+                          .block("system_fingerprint")
+                          .build()}
+read "\"fp_c28ee603a6\""
+
+read option zilla:flags "init fin"
+read zilla:data.ext ${llm:matchDialectBlockDataEx()
+                          .typeId(zilla:id("llm"))
+                          .block("obfuscation")
+                          .build()}
+read "\"TM5m3oG3ttJ\""
 
 read zilla:end.ext ${llm:matchEndEx()
                             .typeId(zilla:id("llm"))

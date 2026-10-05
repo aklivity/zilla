@@ -70,6 +70,12 @@ read zilla:data.ext ${llm:matchDialectBlockDataEx()
                           .block("service_tier")
                           .build()}
 read "\"default\""
+read option zilla:flags "init fin"
+read zilla:data.ext ${llm:matchDialectBlockDataEx()
+                          .typeId(zilla:id("llm"))
+                          .block("prompt_filter_results")
+                          .build()}
+read "[{\"prompt_index\":0}]"
 
 read option zilla:flags "init fin"
 read zilla:data.ext ${llm:matchDataEx()
@@ -78,6 +84,13 @@ read zilla:data.ext ${llm:matchDataEx()
                           .message(0)
                           .build()}
 read "Hello! How can I help you today?"
+
+read option zilla:flags "init fin"
+read zilla:data.ext ${llm:matchDialectBlockDataEx()
+                          .typeId(zilla:id("llm"))
+                          .block("x_unset")
+                          .build()}
+read "null"
 
 read option zilla:flags "init fin"
 read zilla:data.ext ${llm:matchDialectBlockDataEx()

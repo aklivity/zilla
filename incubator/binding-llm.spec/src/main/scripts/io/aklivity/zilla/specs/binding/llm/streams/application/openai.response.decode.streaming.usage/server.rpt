@@ -52,6 +52,7 @@ write zilla:data.ext ${llm:dialectBlockDataEx()
 write "1789954951"
 write flush
 
+write option zilla:flags "init fin"
 write zilla:data.ext ${llm:dialectBlockDataEx()
                            .typeId(zilla:id("llm"))
                            .block("service_tier")
@@ -59,6 +60,39 @@ write zilla:data.ext ${llm:dialectBlockDataEx()
 write "\"default\""
 write flush
 
+write option zilla:flags "init fin"
+write zilla:data.ext ${llm:dialectBlockDataEx()
+                           .typeId(zilla:id("llm"))
+                           .block("system_fingerprint")
+                           .build()}
+write "\"fp_c28ee603a6\""
+write flush
+
+write option zilla:flags "init fin"
+write zilla:data.ext ${llm:dialectBlockDataEx()
+                           .typeId(zilla:id("llm"))
+                           .block("obfuscation")
+                           .build()}
+write "\"HHHL8bgoj\""
+write flush
+
+write option zilla:flags "init fin"
+write zilla:data.ext ${llm:dialectBlockDataEx()
+                           .typeId(zilla:id("llm"))
+                           .block("created")
+                           .build()}
+write "1789954951"
+write flush
+
+write option zilla:flags "init fin"
+write zilla:data.ext ${llm:dialectBlockDataEx()
+                           .typeId(zilla:id("llm"))
+                           .block("service_tier")
+                           .build()}
+write "\"default\""
+write flush
+
+write option zilla:flags "init fin"
 write zilla:data.ext ${llm:dialectBlockDataEx()
                            .typeId(zilla:id("llm"))
                            .block("system_fingerprint")
@@ -77,6 +111,78 @@ write flush
 
 write option zilla:flags "fin"
 write zilla:data.empty
+write flush
+
+write option zilla:flags "init fin"
+write zilla:data.ext ${llm:dialectBlockDataEx()
+                           .typeId(zilla:id("llm"))
+                           .block("obfuscation")
+                           .build()}
+write "\"wruix7\""
+write flush
+
+write option zilla:flags "init fin"
+write zilla:data.ext ${llm:dialectBlockDataEx()
+                           .typeId(zilla:id("llm"))
+                           .block("created")
+                           .build()}
+write "1789954951"
+write flush
+
+write option zilla:flags "init fin"
+write zilla:data.ext ${llm:dialectBlockDataEx()
+                           .typeId(zilla:id("llm"))
+                           .block("service_tier")
+                           .build()}
+write "\"default\""
+write flush
+
+write option zilla:flags "init fin"
+write zilla:data.ext ${llm:dialectBlockDataEx()
+                           .typeId(zilla:id("llm"))
+                           .block("system_fingerprint")
+                           .build()}
+write "\"fp_c28ee603a6\""
+write flush
+
+write option zilla:flags "init fin"
+write zilla:data.ext ${llm:dialectBlockDataEx()
+                           .typeId(zilla:id("llm"))
+                           .block("obfuscation")
+                           .build()}
+write "\"0N4dN\""
+write flush
+
+write option zilla:flags "init fin"
+write zilla:data.ext ${llm:dialectBlockDataEx()
+                           .typeId(zilla:id("llm"))
+                           .block("created")
+                           .build()}
+write "1789954951"
+write flush
+
+write option zilla:flags "init fin"
+write zilla:data.ext ${llm:dialectBlockDataEx()
+                           .typeId(zilla:id("llm"))
+                           .block("service_tier")
+                           .build()}
+write "\"default\""
+write flush
+
+write option zilla:flags "init fin"
+write zilla:data.ext ${llm:dialectBlockDataEx()
+                           .typeId(zilla:id("llm"))
+                           .block("system_fingerprint")
+                           .build()}
+write "\"fp_c28ee603a6\""
+write flush
+
+write option zilla:flags "init fin"
+write zilla:data.ext ${llm:dialectBlockDataEx()
+                           .typeId(zilla:id("llm"))
+                           .block("obfuscation")
+                           .build()}
+write "\"TM5m3oG3ttJ\""
 write flush
 
 write zilla:end.ext ${llm:endEx()
