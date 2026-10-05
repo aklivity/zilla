@@ -70,6 +70,14 @@ write zilla:data.ext ${llm:dialectAfterBlockDataEx()
 write "{\"content\":[{\"token\":\"Hello\",\"logprob\":-0.5,\"bytes\":[72,101,108,108,111],\"top_logprobs\":[]},{\"token\":\"!\",\"logprob\":-1.25e-1,\"bytes\":[33],\"top_logprobs\":[]}],\"refusal\":null}"
 write flush
 
+write option zilla:flags "init fin"
+write zilla:data.ext ${llm:dialectAfterBlockDataEx()
+                        .typeId(zilla:id("llm"))
+                        .block("finish_reason")
+                        .build()}
+write "\"stop\""
+write flush
+
 write zilla:end.ext ${llm:endEx()
                            .typeId(zilla:id("llm"))
                            .inputTokens(25)

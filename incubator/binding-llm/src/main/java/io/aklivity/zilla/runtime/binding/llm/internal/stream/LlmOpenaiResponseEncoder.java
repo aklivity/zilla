@@ -16,10 +16,6 @@ package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import java.util.Arrays;
-import java.util.LinkedHashMap;
-import java.util.Map;
-
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 
@@ -38,9 +34,12 @@ final class LlmOpenaiResponseEncoder
     private static final int MEMBER_REFUSAL = 2;
     private static final int MEMBER_TOOL_CALLS = 3;
 
+    private static final int STATE_PRELUDE = 0;
+    private static final int STATE_CHOICE = 1;
+    private static final int STATE_TAIL = 2;
+
     private static final int NONE = -1;
     private static final int MESSAGE_FIRST = 0;
-
 
     private static final byte[] SSE_DATA = "data: ".getBytes(UTF_8);
     private static final byte[] SSE_END = "\n\n".getBytes(UTF_8);
@@ -56,6 +55,8 @@ final class LlmOpenaiResponseEncoder
     private static final byte[] MESSAGE_END = "}".getBytes(UTF_8);
     private static final byte[] CHOICE_END = "}".getBytes(UTF_8);
     private static final byte[] FINISH_REASON = ",\"finish_reason\":\"".getBytes(UTF_8);
+    private static final byte[] FINISH_REASON_NULL = ",\"finish_reason\":null".getBytes(UTF_8);
+    private static final String BLOCK_FINISH_REASON = "finish_reason";
     private static final byte[] CONTENT_START = ",\"content\":\"".getBytes(UTF_8);
     private static final byte[] REFUSAL_START = ",\"refusal\":\"".getBytes(UTF_8);
     private static final byte[] TOOL_CALLS_START = ",\"tool_calls\":[".getBytes(UTF_8);
@@ -99,11 +100,9 @@ final class LlmOpenaiResponseEncoder
     private static final byte[] REPLACEMENT = "\\ufffd".getBytes(UTF_8);
 
     private final boolean streaming;
-    private final int membersMax;
     private final byte[] id;
     private final byte[] model;
     private final byte[] carry;
-    private final Map<String, byte[]> members;
 
     private MutableDirectBuffer out;
     private int position;
@@ -114,10 +113,8 @@ final class LlmOpenaiResponseEncoder
     private boolean refusalWritten;
     private int toolCalls;
     private int carried;
-    private int membersLength;
-    private String blockName;
-    private byte[] blockBytes;
-    private int blockLength;
+    private int state;
+    private boolean finishReasonBlock;
     private boolean blockOpen;
     private boolean follow;
     private boolean chunkOpen;
@@ -128,15 +125,13 @@ final class LlmOpenaiResponseEncoder
     LlmOpenaiResponseEncoder(
         boolean streaming,
         String id,
-        String model,
-        int membersMax)
+        String model)
     {
         this.streaming = streaming;
-        this.membersMax = membersMax;
+        this.state = STATE_PRELUDE;
         this.id = id != null ? escape(id) : null;
         this.model = model != null ? escape(model) : null;
         this.carry = new byte[3];
-        this.members = new LinkedHashMap<>();
     }
 
     int begin(
@@ -169,9 +164,6 @@ final class LlmOpenaiResponseEncoder
                 put(model);
                 put(QUOTE);
             }
-            put(COMMA);
-            put(CHOICES_START);
-            put(MESSAGE_START);
         }
 
         return position - offset;
@@ -188,8 +180,13 @@ final class LlmOpenaiResponseEncoder
     {
         wrap(out, offset);
 
-        kind = message == MESSAGE_FIRST && !messageClosed ? kindOf(type) : KIND_SKIPPED;
+        kind = message == MESSAGE_FIRST && !messageClosed && state != STATE_TAIL ? kindOf(type) : KIND_SKIPPED;
         this.follow = follow && streaming && (kind == KIND_TEXT || kind == KIND_REFUSAL);
+
+        if (!streaming && kind != KIND_SKIPPED && state == STATE_PRELUDE)
+        {
+            openChoices();
+        }
 
         switch (kind)
         {
@@ -247,13 +244,19 @@ final class LlmOpenaiResponseEncoder
         wrap(out, offset);
 
         blockOpen = render;
-        blockName = block;
-        blockLength = 0;
 
-        if (render && streaming)
+        if (render)
         {
-            chunkStart();
-            put(CHOICES_END);
+            if (streaming)
+            {
+                chunkStart();
+                put(CHOICES_END);
+            }
+            else if (state == STATE_CHOICE)
+            {
+                closeChoice(null);
+            }
+
             put(COMMA);
             put(QUOTE);
             put(escape(block));
@@ -274,27 +277,8 @@ final class LlmOpenaiResponseEncoder
 
         if (blockOpen)
         {
-            if (streaming)
-            {
-                out.putBytes(position, payload, payloadOffset, payloadLength);
-                position += payloadLength;
-            }
-            else if (membersLength + blockLength + payloadLength <= membersMax)
-            {
-                if (blockBytes == null || blockBytes.length < blockLength + payloadLength)
-                {
-                    blockBytes = blockBytes == null
-                        ? new byte[Math.max(256, payloadLength)]
-                        : Arrays.copyOf(blockBytes, Math.max(blockBytes.length * 2, blockLength + payloadLength));
-                }
-
-                payload.getBytes(payloadOffset, blockBytes, blockLength, payloadLength);
-                blockLength += payloadLength;
-            }
-            else
-            {
-                blockOpen = false;
-            }
+            out.putBytes(position, payload, payloadOffset, payloadLength);
+            position += payloadLength;
         }
 
         return position - offset;
@@ -306,19 +290,10 @@ final class LlmOpenaiResponseEncoder
     {
         wrap(out, offset);
 
-        if (blockOpen)
+        if (blockOpen && streaming)
         {
-            if (streaming)
-            {
-                put(OBJECT_END);
-                put(SSE_END);
-            }
-            else
-            {
-                final byte[] previous = members.put(blockName, Arrays.copyOf(blockBytes, blockLength));
-
-                membersLength += blockLength - (previous != null ? previous.length : 0);
-            }
+            put(OBJECT_END);
+            put(SSE_END);
         }
 
         blockOpen = false;
@@ -364,17 +339,24 @@ final class LlmOpenaiResponseEncoder
     {
         wrap(out, offset);
 
-        afterRender = render && (streaming ? chunkOpen : kind == KIND_NONE);
+        afterRender = render && (streaming ? chunkOpen : kind == KIND_NONE && state != STATE_TAIL);
         afterWritten = false;
 
         if (afterRender)
         {
+            if (!streaming && state == STATE_PRELUDE)
+            {
+                openChoices();
+            }
+
             if (!streaming && !messageClosed)
             {
                 closeMember();
                 put(MESSAGE_END);
                 messageClosed = true;
             }
+
+            finishReasonBlock |= !streaming && BLOCK_FINISH_REASON.equals(block);
 
             put(COMMA);
             put(QUOTE);
@@ -453,7 +435,7 @@ final class LlmOpenaiResponseEncoder
 
             final boolean usage = inputTokens != NONE || outputTokens != NONE || totalTokens != NONE;
 
-            chunkEnd(!usage);
+            chunkEnd();
 
             if (usage)
             {
@@ -465,20 +447,17 @@ final class LlmOpenaiResponseEncoder
         }
         else
         {
-            closeMember();
-
-            if (!messageClosed)
+            if (state == STATE_PRELUDE)
             {
-                put(MESSAGE_END);
+                openChoices();
             }
 
-            put(FINISH_REASON);
-            put(reason);
-            put(QUOTE);
-            put(CHOICE_END);
-            put(CHOICES_END);
+            if (state == STATE_CHOICE)
+            {
+                closeChoice(reason);
+            }
+
             putUsage(inputTokens, cacheReadTokens, outputTokens, reasoningTokens, totalTokens);
-            putBlocks();
             put(OBJECT_END);
         }
 
@@ -628,6 +607,44 @@ final class LlmOpenaiResponseEncoder
             put(escape(toolName != null ? toolName : ""));
             put(TOOL_CALL_ARGUMENTS);
         }
+    }
+
+    private void openChoices()
+    {
+        put(COMMA);
+        put(CHOICES_START);
+        put(MESSAGE_START);
+        state = STATE_CHOICE;
+    }
+
+    private void closeChoice(
+        byte[] reason)
+    {
+        closeMember();
+
+        if (!messageClosed)
+        {
+            put(MESSAGE_END);
+            messageClosed = true;
+        }
+
+        if (!finishReasonBlock)
+        {
+            if (reason != null)
+            {
+                put(FINISH_REASON);
+                put(reason);
+                put(QUOTE);
+            }
+            else
+            {
+                put(FINISH_REASON_NULL);
+            }
+        }
+
+        put(CHOICE_END);
+        put(CHOICES_END);
+        state = STATE_TAIL;
     }
 
     private void closeMember()
@@ -792,19 +809,7 @@ final class LlmOpenaiResponseEncoder
 
     private void chunkEnd()
     {
-        chunkEnd(false);
-    }
-
-    private void chunkEnd(
-        boolean trailing)
-    {
         put(CHOICES_END);
-
-        if (trailing)
-        {
-            putBlocks();
-        }
-
         put(OBJECT_END);
         put(SSE_END);
     }
@@ -818,7 +823,6 @@ final class LlmOpenaiResponseEncoder
     {
         put(CHOICES_END);
         putUsage(inputTokens, cacheReadTokens, outputTokens, reasoningTokens, totalTokens);
-        putBlocks();
         put(OBJECT_END);
         put(SSE_END);
     }
@@ -916,21 +920,6 @@ final class LlmOpenaiResponseEncoder
     {
         out.putBytes(position, bytes);
         position += bytes.length;
-    }
-
-    private void putBlocks()
-    {
-        for (Map.Entry<String, byte[]> member : members.entrySet())
-        {
-            put(COMMA);
-            put(QUOTE);
-            put(escape(member.getKey()));
-            put(MEMBER_COLON);
-            put(member.getValue());
-        }
-
-        members.clear();
-        membersLength = 0;
     }
 
     private void putNumber(

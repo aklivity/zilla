@@ -3054,8 +3054,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             replyDialect = llmBeginEx != null && NAME.equals(llmBeginEx.dialect().asString());
             responseEncoder = new LlmOpenaiResponseEncoder(server.streaming,
                 llmBeginEx != null ? llmBeginEx.id().asString() : null,
-                llmBeginEx != null ? llmBeginEx.model().asString() : null,
-                encodePool.slotCapacity() - RESPONSE_ENCODE_SLACK);
+                llmBeginEx != null ? llmBeginEx.model().asString() : null);
 
             server.doNetBegin(traceId, authorization, affinity, STATUS_OK,
                 server.streaming ? CONTENT_TYPE_EVENT_STREAM : CONTENT_TYPE_JSON);

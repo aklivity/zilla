@@ -92,6 +92,14 @@ write "Hello! How can I help you today?"
 write flush
 
 write option zilla:flags "init fin"
+write zilla:data.ext ${llm:dialectAfterBlockDataEx()
+                         .typeId(zilla:id("llm"))
+                         .block("finish_reason")
+                         .build()}
+write "\"stop\""
+write flush
+
+write option zilla:flags "init fin"
 write zilla:data.ext ${llm:dialectBlockDataEx()
                            .typeId(zilla:id("llm"))
                            .block("x_unset")

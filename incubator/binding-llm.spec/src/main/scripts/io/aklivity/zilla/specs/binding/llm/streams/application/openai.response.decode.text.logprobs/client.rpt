@@ -67,6 +67,13 @@ read zilla:data.ext ${llm:matchDialectAfterBlockDataEx()
                         .build()}
 read "{\"content\":[{\"token\":\"Hello\",\"logprob\":-0.5,\"bytes\":[72,101,108,108,111],\"top_logprobs\":[]},{\"token\":\"!\",\"logprob\":-1.25e-1,\"bytes\":[33],\"top_logprobs\":[]}],\"refusal\":null}"
 
+read option zilla:flags "init fin"
+read zilla:data.ext ${llm:matchDialectAfterBlockDataEx()
+                        .typeId(zilla:id("llm"))
+                        .block("finish_reason")
+                        .build()}
+read "\"stop\""
+
 read zilla:end.ext ${llm:matchEndEx()
                           .typeId(zilla:id("llm"))
                           .inputTokens(25)

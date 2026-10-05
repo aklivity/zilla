@@ -50,6 +50,13 @@ read zilla:data.ext ${llm:matchDataEx()
                           .build()}
 read "I cannot help with that."
 
+read option zilla:flags "init fin"
+read zilla:data.ext ${llm:matchDialectAfterBlockDataEx()
+                        .typeId(zilla:id("llm"))
+                        .block("finish_reason")
+                        .build()}
+read "\"stop\""
+
 read zilla:end.ext ${llm:matchEndEx()
                             .typeId(zilla:id("llm"))
                             .inputTokens(12)

@@ -34,6 +34,7 @@ final class LlmOpenaiResponseDecoder
     private static final int NONE = -1;
     private static final int REPLACEMENT_CHARACTER = 0xFFFD;
     private static final String LOGPROBS = "logprobs";
+    private static final String FINISH_REASON = "finish_reason";
 
     private final Output output;
     private final JsonParserEx parser;
@@ -107,12 +108,15 @@ final class LlmOpenaiResponseDecoder
     private int captureDepth;
     private int captureFrom;
     private String captureName;
+    private boolean choiceMessage;
+    private final StringBuilder captureValue;
 
     LlmOpenaiResponseDecoder(
         Output output,
         int holdMax)
     {
         this.output = output;
+        this.captureValue = new StringBuilder();
         this.holdMax = holdMax;
         this.parser = JsonEx.createParser();
         this.path = new StringBuilder();
@@ -594,10 +598,26 @@ final class LlmOpenaiResponseDecoder
             {
                 beginCapture(pendingKey, false);
             }
-            else if (depth == 3 && pathIs("choices") && LOGPROBS.equals(pendingKey))
+            else if (depth == 3 && pathIs("choices"))
             {
-                beginCapture(LOGPROBS, true);
+                onChoiceKey();
             }
+        }
+    }
+
+    private void onChoiceKey()
+    {
+        if (LOGPROBS.equals(pendingKey))
+        {
+            beginCapture(LOGPROBS, true);
+        }
+        else if ("message".equals(pendingKey))
+        {
+            choiceMessage = true;
+        }
+        else if (choiceMessage && FINISH_REASON.equals(pendingKey))
+        {
+            beginCapture(FINISH_REASON, true);
         }
     }
 
@@ -980,6 +1000,7 @@ final class LlmOpenaiResponseDecoder
         capturing = true;
         captureAfter = after;
         captureName = name;
+        captureValue.setLength(0);
         captureStarted = false;
         captureTrim = true;
         captureDepth = 0;
@@ -1060,6 +1081,11 @@ final class LlmOpenaiResponseDecoder
 
             if (captureAfter)
             {
+                if (FINISH_REASON.equals(captureName))
+                {
+                    captureFinishReason(from, end, fin);
+                }
+
                 output.after(captureName, flags, input, from, end - from);
             }
             else
@@ -1069,6 +1095,27 @@ final class LlmOpenaiResponseDecoder
         }
 
         captureFrom = end;
+    }
+
+    private void captureFinishReason(
+        int from,
+        int end,
+        boolean fin)
+    {
+        for (int index = from; index < end; index++)
+        {
+            captureValue.append((char) input.getByte(index));
+        }
+
+        if (fin)
+        {
+            final String value = captureValue.toString().strip();
+
+            if (value.length() > 1 && value.charAt(0) == '"')
+            {
+                documentFinishReason = value.substring(1, value.length() - 1);
+            }
+        }
     }
 
     private void onDocumentEnd()
@@ -1094,6 +1141,7 @@ final class LlmOpenaiResponseDecoder
         documentId = null;
         documentModel = null;
         documentFinishReason = null;
+        choiceMessage = false;
     }
 
     private boolean pathIs(

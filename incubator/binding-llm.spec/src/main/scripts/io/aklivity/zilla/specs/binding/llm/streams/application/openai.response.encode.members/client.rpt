@@ -59,6 +59,13 @@ read zilla:data.ext ${llm:matchDataEx()
 read "Hello! How can I help you today?"
 
 read option zilla:flags "init fin"
+read zilla:data.ext ${llm:matchDialectAfterBlockDataEx()
+                         .typeId(zilla:id("llm"))
+                         .block("finish_reason")
+                         .build()}
+read "\"stop\""
+
+read option zilla:flags "init fin"
 read zilla:data.ext ${llm:matchDialectBlockDataEx()
                         .typeId(zilla:id("llm"))
                         .block("created")
