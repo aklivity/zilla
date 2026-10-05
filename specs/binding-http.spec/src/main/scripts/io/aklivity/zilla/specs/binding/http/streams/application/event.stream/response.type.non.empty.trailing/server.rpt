@@ -17,6 +17,7 @@
 accept "zilla://streams/app0"
   option zilla:window 8192
   option zilla:transmission "half-duplex"
+  option zilla:capabilities ${core:capabilities("FRAMING")}
 accepted
 
 read zilla:begin.ext ${http:matchBeginEx()
@@ -35,7 +36,6 @@ write zilla:begin.ext ${http:beginEx()
                               .typeId(zilla:id("http"))
                               .header(":status", "200")
                               .header("content-type", "text/event-stream")
-                              .header("zilla:framing", "event-stream")
                               .build()}
 write flush
 

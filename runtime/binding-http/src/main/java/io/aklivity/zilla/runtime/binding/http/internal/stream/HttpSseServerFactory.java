@@ -15,7 +15,9 @@
  */
 package io.aklivity.zilla.runtime.binding.http.internal.stream;
 
+import static io.aklivity.zilla.runtime.binding.http.internal.stream.HttpSseFraming.CAPABILITY_MASK;
 import static io.aklivity.zilla.runtime.binding.http.internal.types.stream.FrameFW.FIELD_OFFSET_STREAM_ID;
+import static io.aklivity.zilla.runtime.binding.http.internal.types.stream.WindowFW.FIELD_OFFSET_CAPABILITIES;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
 
@@ -90,11 +92,9 @@ public final class HttpSseServerFactory implements BindingHandler
     private final OctetsFW retainedRO = new OctetsFW();
 
     private final HttpSseEventFW.Builder eventRW = new HttpSseEventFW.Builder();
-    private final HttpSseFraming framing = new HttpSseFraming();
 
     private final MutableDirectBufferEx writeBuffer;
     private final MutableDirectBufferEx networkBuffer;
-    private final MutableDirectBufferEx extBuffer;
     private final MutableDirectBufferEx eventBuffer;
     private final MutableDirectBufferEx idBuffer;
     private final MutableDirectBufferEx typeBuffer;
@@ -113,7 +113,6 @@ public final class HttpSseServerFactory implements BindingHandler
     {
         this.writeBuffer = context.writeBuffer();
         this.networkBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
-        this.extBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.eventBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.idBuffer = new UnsafeBufferEx(new byte[FIELD_VALUE_MAX]);
         this.typeBuffer = new UnsafeBufferEx(new byte[FIELD_VALUE_MAX]);
@@ -266,36 +265,27 @@ public final class HttpSseServerFactory implements BindingHandler
             {
                 flushNetwork(traceId);
             }
+            else if (stream.appFraming && !stream.begun)
+            {
+                stream.flushAppWindow(traceId, true, true);
+            }
             else
             {
-                relay(stream.application, writeBuffer, WindowFW.TYPE_ID, buffer, index, length, stream.replyId);
+                relayWindow(stream.application, writeBuffer, buffer, index, length, stream.replyId);
             }
         }
 
         private void doNetBegin(
             BeginFW begin,
-            OctetsFW extension)
+            DirectBufferEx buffer,
+            int index,
+            int length)
         {
             this.httpReplySeq = begin.sequence();
 
-            final BeginFW forward = beginRW.wrap(networkBuffer, 0, networkBuffer.capacity())
-                    .originId(originId)
-                    .routedId(routedId)
-                    .streamId(replyId)
-                    .sequence(begin.sequence())
-                    .acknowledge(begin.acknowledge())
-                    .maximum(begin.maximum())
-                    .timestamp(begin.timestamp())
-                    .traceId(begin.traceId())
-                    .authorization(begin.authorization())
-                    .affinity(begin.affinity())
-                    .redirectedId(begin.redirectedId())
-                    .extension(extension.buffer(), extension.offset(), extension.sizeof())
-                    .build();
-
             state = HttpState.openingReply(state);
 
-            network.accept(forward.typeId(), forward.buffer(), forward.offset(), forward.sizeof());
+            relay(network, networkBuffer, BeginFW.TYPE_ID, buffer, index, length, replyId);
         }
 
         private void doNetData(
@@ -496,7 +486,7 @@ public final class HttpSseServerFactory implements BindingHandler
             long traceId)
         {
             flushDeferred(traceId);
-            stream.flushAppWindow(traceId, false);
+            stream.flushAppWindow(traceId, false, true);
         }
 
         private void cleanupNet()
@@ -519,6 +509,8 @@ public final class HttpSseServerFactory implements BindingHandler
             private final long replyId;
 
             private int state;
+            private boolean appFraming;
+            private boolean begun;
             private boolean framed;
 
             private long appReplySeq;
@@ -572,6 +564,11 @@ public final class HttpSseServerFactory implements BindingHandler
 
                 if (streamId == initialId)
                 {
+                    if (msgTypeId == WindowFW.TYPE_ID)
+                    {
+                        onAppWindow(windowRO.wrap(buffer, index, index + length));
+                    }
+
                     relay(network, networkBuffer, msgTypeId, buffer, index, length, HttpSseServer.this.initialId);
                 }
                 else if (msgTypeId == BeginFW.TYPE_ID)
@@ -608,6 +605,20 @@ public final class HttpSseServerFactory implements BindingHandler
                 }
             }
 
+            private void onAppWindow(
+                WindowFW window)
+            {
+                if (!appFraming && (window.capabilities() & CAPABILITY_MASK) != 0)
+                {
+                    appFraming = true;
+
+                    if (!begun && httpReplyMax > 0)
+                    {
+                        flushAppWindow(window.traceId(), true, true);
+                    }
+                }
+            }
+
             private void onAppBegin(
                 BeginFW begin,
                 DirectBufferEx buffer,
@@ -616,25 +627,29 @@ public final class HttpSseServerFactory implements BindingHandler
             {
                 final HttpBeginExFW beginEx = begin.extension().get(beginExRO::tryWrap);
 
-                framed = beginEx != null && framing.detect(beginEx);
+                begun = true;
+                framed = appFraming && beginEx != null && HttpSseFraming.isEventStream(beginEx);
 
                 if (framed)
                 {
-                    final HttpBeginExFW retained = framing.strip(beginEx, extBuffer, httpTypeId);
-
                     appReplySeq = begin.sequence();
                     appReplyAck = httpReplyAck;
                     appReplyMax = httpReplyMax;
                     appReplyPad = httpReplyPad;
                     state = HttpState.openingReply(state);
 
-                    doNetBegin(begin, retainedRO.wrap(retained.buffer(), retained.offset(), retained.limit()));
+                    doNetBegin(begin, buffer, index, length);
 
-                    flushAppWindow(begin.traceId(), true);
+                    flushAppWindow(begin.traceId(), true, true);
                 }
                 else
                 {
                     relay(network, networkBuffer, BeginFW.TYPE_ID, buffer, index, length, HttpSseServer.this.replyId);
+
+                    if (appFraming)
+                    {
+                        flushAppWindow(begin.traceId(), true, false);
+                    }
                 }
             }
 
@@ -673,7 +688,7 @@ public final class HttpSseServerFactory implements BindingHandler
 
                     doEncodeEvent(traceId, authorization, budgetId, reserved, flags, payload, id, type);
 
-                    flushAppWindow(traceId, false);
+                    flushAppWindow(traceId, false, true);
                 }
             }
 
@@ -720,11 +735,12 @@ public final class HttpSseServerFactory implements BindingHandler
 
             private void flushAppWindow(
                 long traceId,
-                boolean forced)
+                boolean forced,
+                boolean padded)
             {
                 final int httpReplyPendingAck = (int) (httpReplySeq - httpReplyAck) + networkSlotOffset;
                 final int appReplyAckMax = Math.max((int) (appReplySeq - httpReplyPendingAck), 0);
-                final int appReplyPadMax = httpReplyPad + MAXIMUM_HEADER_SIZE;
+                final int appReplyPadMax = httpReplyPad + (padded ? MAXIMUM_HEADER_SIZE : 0);
 
                 if (forced || appReplyAckMax > appReplyAck || httpReplyMax > appReplyMax || appReplyPadMax != appReplyPad)
                 {
@@ -736,7 +752,7 @@ public final class HttpSseServerFactory implements BindingHandler
                     appReplyPad = appReplyPadMax;
 
                     doWindow(application, writeBuffer, originId, routedId, replyId, appReplySeq, appReplyAck, appReplyMax,
-                            traceId, httpReplyAuth, httpReplyBud, appReplyPad, httpReplyMin, httpReplyCaps);
+                            traceId, httpReplyAuth, httpReplyBud, appReplyPad, httpReplyMin, httpReplyCaps | CAPABILITY_MASK);
                 }
             }
         }
@@ -755,6 +771,21 @@ public final class HttpSseServerFactory implements BindingHandler
         relayBuffer.putLong(FIELD_OFFSET_STREAM_ID, streamId);
 
         target.accept(msgTypeId, relayBuffer, 0, length);
+    }
+
+    private void relayWindow(
+        MessageConsumer target,
+        MutableDirectBufferEx relayBuffer,
+        DirectBufferEx buffer,
+        int index,
+        int length,
+        long streamId)
+    {
+        relayBuffer.putBytes(0, buffer, index, length);
+        relayBuffer.putLong(FIELD_OFFSET_STREAM_ID, streamId);
+        relayBuffer.putByte(FIELD_OFFSET_CAPABILITIES, (byte) (relayBuffer.getByte(FIELD_OFFSET_CAPABILITIES) | CAPABILITY_MASK));
+
+        target.accept(WindowFW.TYPE_ID, relayBuffer, 0, length);
     }
 
     private DirectBufferEx fieldValue(

@@ -17,6 +17,7 @@
 connect "zilla://streams/app0"
   option zilla:window 8192
   option zilla:transmission "half-duplex"
+  option zilla:capabilities ${core:capabilities("FRAMING")}
 
 write zilla:begin.ext ${http:beginEx()
                               .typeId(zilla:id("http"))
@@ -25,7 +26,6 @@ write zilla:begin.ext ${http:beginEx()
                               .header(":path", "/events")
                               .header(":authority", "localhost:8080")
                               .header("accept", "text/event-stream")
-                              .header("zilla:framing", "event-stream")
                               .build()}
 connected
 

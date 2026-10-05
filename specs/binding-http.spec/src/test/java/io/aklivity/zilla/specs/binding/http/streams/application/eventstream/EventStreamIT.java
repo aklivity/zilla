@@ -288,4 +288,13 @@ public class EventStreamIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/response.raw/client",
+        "${app}/response.raw/server" })
+    public void shouldReceiveResponseRaw() throws Exception
+    {
+        k3po.finish();
+    }
 }

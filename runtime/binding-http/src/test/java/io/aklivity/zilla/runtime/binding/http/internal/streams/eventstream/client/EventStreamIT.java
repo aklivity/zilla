@@ -326,4 +326,14 @@ public class EventStreamIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/response.raw/client",
+        "${net}/response.raw/server" })
+    public void shouldReceiveResponseRaw() throws Exception
+    {
+        k3po.finish();
+    }
 }

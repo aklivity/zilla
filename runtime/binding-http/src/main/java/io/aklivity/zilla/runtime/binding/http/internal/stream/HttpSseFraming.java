@@ -17,75 +17,44 @@ package io.aklivity.zilla.runtime.binding.http.internal.stream;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import java.util.function.Consumer;
-
 import io.aklivity.zilla.runtime.binding.http.internal.types.HttpHeaderFW;
+import io.aklivity.zilla.runtime.binding.http.internal.types.String8FW;
+import io.aklivity.zilla.runtime.binding.http.internal.types.stream.Capability;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
-import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 
 final class HttpSseFraming
 {
-    static final String HEADER_NAME = "zilla:framing";
-    static final String HEADER_VALUE = "event-stream";
+    static final int CAPABILITY_MASK = 1 << Capability.FRAMING.ordinal();
 
-    private static final byte[] NAME = HEADER_NAME.getBytes(UTF_8);
-    private static final byte[] VALUE = HEADER_VALUE.getBytes(UTF_8);
+    private static final String8FW HEADER_NAME_CONTENT_TYPE = new String8FW("content-type");
+    private static final byte[] CONTENT_TYPE_EVENT_STREAM = "text/event-stream".getBytes(UTF_8);
 
-    private final HttpBeginExFW.Builder beginExRW = new HttpBeginExFW.Builder();
-    private final Consumer<HttpHeaderFW> detectHeader = this::detectHeader;
-    private final Consumer<HttpHeaderFW> retainHeader = this::retainHeader;
-
-    private boolean detected;
-
-    boolean detect(
+    static boolean isEventStream(
         HttpBeginExFW beginEx)
     {
-        detected = false;
-        beginEx.headers().forEach(detectHeader);
+        final HttpHeaderFW contentType = beginEx.headers().matchFirst(h -> HEADER_NAME_CONTENT_TYPE.equals(h.name()));
 
-        return detected;
+        return contentType != null && startsWith(contentType.value().value(), CONTENT_TYPE_EVENT_STREAM);
     }
 
-    HttpBeginExFW strip(
-        HttpBeginExFW beginEx,
-        MutableDirectBufferEx buffer,
-        int httpTypeId)
-    {
-        beginExRW.wrap(buffer, 0, buffer.capacity()).typeId(httpTypeId);
-        beginEx.headers().forEach(retainHeader);
-
-        return beginExRW.build();
-    }
-
-    static boolean equalsBytes(
+    private static boolean startsWith(
         DirectBufferEx value,
-        byte[] expected)
+        byte[] prefix)
     {
         final int length = value != null ? value.capacity() : 0;
 
-        boolean equals = length == expected.length;
+        boolean starts = length >= prefix.length;
 
-        for (int i = 0; equals && i < length; i++)
+        for (int i = 0; starts && i < prefix.length; i++)
         {
-            equals = value.getByte(i) == expected[i];
+            starts = value.getByte(i) == prefix[i];
         }
 
-        return equals;
+        return starts;
     }
 
-    private void detectHeader(
-        HttpHeaderFW header)
+    private HttpSseFraming()
     {
-        detected |= equalsBytes(header.name().value(), NAME) && equalsBytes(header.value().value(), VALUE);
-    }
-
-    private void retainHeader(
-        HttpHeaderFW header)
-    {
-        if (!equalsBytes(header.name().value(), NAME))
-        {
-            beginExRW.headersItem(i -> i.name(header.name()).value(header.value()));
-        }
     }
 }
