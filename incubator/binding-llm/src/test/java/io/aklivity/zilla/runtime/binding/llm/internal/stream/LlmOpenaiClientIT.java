@@ -264,6 +264,26 @@ public class LlmOpenaiClientIT
     @Test
     @Configuration("client.openai.yaml")
     @Specification({
+        "${app}/openai.request.options/client",
+        "${net}/openai.request.options/server"})
+    public void shouldEncodeOpenaiRequestOptionsFromFlush() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.request.options.begin/client",
+        "${net}/openai.request.options.begin/server"})
+    public void shouldEncodeOpenaiRequestOptionsFromBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
         "${app}/openai.section.user.text/client",
         "${net}/openai.section.user.text/server"})
     public void shouldEncodeOpenaiSectionUserText() throws Exception
