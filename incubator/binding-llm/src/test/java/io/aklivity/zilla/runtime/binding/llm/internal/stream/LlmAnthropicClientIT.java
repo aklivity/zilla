@@ -428,6 +428,26 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @Specification({
+        "${app}/anthropic.request.options/client",
+        "${net}/anthropic.request.options/server"})
+    public void shouldEncodeAnthropicRequestOptionsFromFlush() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.request.options.begin/client",
+        "${net}/anthropic.request.options.begin/server"})
+    public void shouldEncodeAnthropicRequestOptionsFromBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
         "${app}/anthropic.section.user.text/client",
         "${net}/anthropic.section.user.text/server"})
     public void shouldEncodeAnthropicSectionUserText() throws Exception

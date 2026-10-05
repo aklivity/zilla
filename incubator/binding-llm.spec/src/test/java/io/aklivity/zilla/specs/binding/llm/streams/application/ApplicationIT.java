@@ -1190,6 +1190,33 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/anthropic.request.options/client",
+        "${app}/anthropic.request.options/server"})
+    public void shouldAnthropicRequestOptions() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.request.options.early/client",
+        "${app}/anthropic.request.options.early/server"})
+    public void shouldAnthropicRequestOptionsEarly() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.request.options.begin/client",
+        "${app}/anthropic.request.options.begin/server"})
+    public void shouldAnthropicRequestOptionsBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/anthropic.section.user.text/client",
         "${app}/anthropic.section.user.text/server"})
     public void shouldAnthropicSectionUserText() throws Exception

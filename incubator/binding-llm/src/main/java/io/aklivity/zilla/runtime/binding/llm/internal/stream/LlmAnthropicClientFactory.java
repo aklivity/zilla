@@ -48,9 +48,11 @@ import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmAbortExFW;
+import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmAnthropicRequestExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmBeginExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmDataExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmEndExFW;
+import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmFlushExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmResetExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.WindowFW;
@@ -130,6 +132,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
     private static final byte[] SYSTEM_REGION = ",\"system\":[".getBytes(UTF_8);
     private static final byte[] TOOLS_REGION = ",\"tools\":[".getBytes(UTF_8);
     private static final byte[] MODEL_END = "\"".getBytes(UTF_8);
+    private static final byte[] NO_OPTIONS = new byte[0];
     private static final byte[] MESSAGE_USER_START = "{\"role\":\"user\",\"content\":[".getBytes(UTF_8);
     private static final byte[] MESSAGE_ASSISTANT_START = "{\"role\":\"assistant\",\"content\":[".getBytes(UTF_8);
     private static final byte[] TEXT_BLOCK_START = "{\"type\":\"text\",\"text\":\"".getBytes(UTF_8);
@@ -162,6 +165,9 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
     private final ChallengeFW challengeRO = new ChallengeFW();
     private final HttpBeginExFW httpBeginExRO = new HttpBeginExFW();
     private final LlmBeginExFW llmBeginExRO = new LlmBeginExFW();
+    private final LlmFlushExFW llmFlushExRO = new LlmFlushExFW();
+    private final LlmAnthropicRequestExFW requestExRO = new LlmAnthropicRequestExFW();
+    private final LlmOptions requestOptions = LlmAnthropicOptions.request();
     private final LlmDataExFW llmDataExRO = new LlmDataExFW();
     private final OctetsFW extensionRO = new OctetsFW();
     private final LlmSectionAttributes sectionAttributes = new LlmSectionAttributes();
@@ -271,10 +277,47 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                 affinity,
                 binding,
                 llmBeginEx.model().asString(),
-                llmBeginEx.dialect().asString())::onAppMessage;
+                llmBeginEx.dialect().asString(),
+                requestOptions(llmBeginEx.dialect().asString(), llmBeginEx.extension()))::onAppMessage;
         }
 
         return newStream;
+    }
+
+    private byte[] requestOptions(
+        String dialect,
+        OctetsFW extension)
+    {
+        byte[] members = NO_OPTIONS;
+
+        if (NAME.equals(dialect) && extension != null && extension.sizeof() > 0)
+        {
+            final LlmAnthropicRequestExFW requestEx = extension.get(requestExRO::tryWrap);
+
+            if (requestEx != null)
+            {
+                requestOptions.clear();
+                setOption(LlmAnthropicOptions.STREAM, requestEx.stream().asString());
+                setOption(LlmAnthropicOptions.TEMPERATURE, requestEx.temperature().asString());
+                setOption(LlmAnthropicOptions.TOP_P, requestEx.topP().asString());
+                setOption(LlmAnthropicOptions.TOP_K, requestEx.topK().asString());
+                setOption(LlmAnthropicOptions.MAX_TOKENS, requestEx.maxTokens().asString());
+                setOption(LlmAnthropicOptions.STOP_SEQUENCES, requestEx.stopSequences().asString());
+                members = requestOptions.members(true);
+            }
+        }
+
+        return members;
+    }
+
+    private void setOption(
+        int slot,
+        String literal)
+    {
+        if (literal != null)
+        {
+            requestOptions.set(slot, literal);
+        }
     }
 
     private static String header(
@@ -399,6 +442,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         private final LlmBindingConfig binding;
         private final String model;
         private final String dialect;
+        private final byte[] beginOptions;
         private final LlmAnthropicHttpStream http;
         private final LlmAnthropicResponseExtractor extractor;
         private final LlmAnthropicSectionSink sink;
@@ -431,7 +475,8 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             long affinity,
             LlmBindingConfig binding,
             String model,
-            String dialect)
+            String dialect,
+            byte[] beginOptions)
         {
             this.app = app;
             this.originId = originId;
@@ -444,6 +489,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             this.binding = binding;
             this.model = model;
             this.dialect = dialect;
+            this.beginOptions = beginOptions;
             this.extractor = new LlmAnthropicResponseExtractor();
             this.replyFrames = new ArrayDeque<>();
 
@@ -606,6 +652,13 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             FlushFW flush)
         {
             final long traceId = flush.traceId();
+
+            final LlmFlushExFW llmFlushEx = flush.extension().get(llmFlushExRO::tryWrap);
+
+            if (llmFlushEx != null)
+            {
+                http.endOptions = requestOptions(dialect, llmFlushEx.extension());
+            }
 
             http.doEncodeRequestEnd();
             http.flushEncode(traceId);
@@ -1162,6 +1215,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         private int decodeSlotOffset;
         private LlmContentDecoder decoder;
         private boolean streaming;
+        private byte[] endOptions = NO_OPTIONS;
         private int errorStatus = NO_ERROR;
         private boolean errorBodyDropped;
         private long decodeTraceId;
@@ -1240,6 +1294,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             put(REQUEST_START);
             putEscaped(stream.model);
             put(MODEL_END);
+            put(stream.beginOptions);
         }
 
         private void doEncodeSectionBegin(
@@ -1618,6 +1673,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             if (!LlmState.initialClosing(state) && !LlmState.initialClosed(state))
             {
                 closeRegion();
+                put(endOptions);
                 putByte('}');
                 state = LlmState.closingInitial(state);
             }

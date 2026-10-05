@@ -1190,6 +1190,33 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/anthropic.request.options/client",
+        "${net}/anthropic.request.options/server"})
+    public void shouldAnthropicRequestOptions() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.request.options.early/client",
+        "${net}/anthropic.request.options.early/server"})
+    public void shouldAnthropicRequestOptionsEarly() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.request.options.begin/client",
+        "${net}/anthropic.request.options.begin/server"})
+    public void shouldAnthropicRequestOptionsBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/anthropic.section.user.text/client",
         "${net}/anthropic.section.user.text/server"})
     public void shouldAnthropicSectionUserText() throws Exception
