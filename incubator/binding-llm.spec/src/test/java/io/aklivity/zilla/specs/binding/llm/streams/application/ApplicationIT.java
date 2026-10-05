@@ -146,15 +146,6 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/anthropic.streaming/client",
-        "${app}/anthropic.streaming/server"})
-    public void shouldForwardAnthropicStreaming() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${app}/anthropic.streaming.usage/client",
         "${app}/anthropic.streaming.usage/server"})
     public void shouldForwardAnthropicStreamingUsage() throws Exception

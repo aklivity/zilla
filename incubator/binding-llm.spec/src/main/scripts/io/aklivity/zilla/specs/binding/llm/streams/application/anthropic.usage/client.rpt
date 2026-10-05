@@ -38,22 +38,26 @@ write advise zilla:flush
 read zilla:begin.ext ${llm:matchBeginEx()
                            .typeId(zilla:id("llm"))
                            .dialect("anthropic")
-                           .contentType("application/json")
+                           .model("claude-haiku-4-5-20251001")
+                           .id("msg_011CfFkXGJGvcevU8tu1qHAP")
                            .build()}
 
+read option zilla:flags "init fin"
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
-                          .typeNull()
+                          .type("assistant-text")
+                          .message(0)
                           .build()}
-read "{\"model\":\"claude-haiku-4-5-20251001\",\"id\":\"msg_011CfFkXGJGvcevU8tu1qHAP\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"Hello! I'm happy to help you with whatever you need.\"}],\"container\":null,\"stop_reason\":\"end_turn\",\"stop_sequence\":null,\"stop_details\":null,\"usage\":{\"input_tokens\":13,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"cache_creation\":{\"ephemeral_5m_input_tokens\":0,\"ephemeral_1h_input_tokens\":0},\"output_tokens\":16,\"service_tier\":\"standard\",\"inference_geo\":\"not_available\"}}"
+read "Hello! I'm happy to help you with whatever you need."
 
 read zilla:end.ext ${llm:matchEndEx()
-                           .typeId(zilla:id("llm"))
-                           .inputTokens(13)
-                           .cacheWriteTokens(0)
-                           .cacheReadTokens(0)
-                           .outputTokens(16)
-                           .build()}
+                            .typeId(zilla:id("llm"))
+                            .inputTokens(13)
+                            .cacheWriteTokens(0)
+                            .cacheReadTokens(0)
+                            .outputTokens(16)
+                            .finishReason("stop")
+                            .build()}
 
 read closed
 

@@ -37,8 +37,29 @@ read "Hello"
 
 read advised zilla:flush
 
-write "{\"model\":\"claude-3-opus-20240229\",\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}],\"max_tokens\":1024}"
+write zilla:begin.ext ${llm:beginEx()
+                           .typeId(zilla:id("llm"))
+                           .dialect("anthropic")
+                           .model("claude-3-opus-20240229")
+                           .id("msg_01")
+                           .build()}
 write flush
+
+write option zilla:flags "init fin"
+write zilla:data.ext ${llm:dataEx()
+                          .typeId(zilla:id("llm"))
+                          .type("assistant-text")
+                          .message(0)
+                          .build()}
+write "Hello! How can I help you today?"
+write flush
+
+write zilla:end.ext ${llm:endEx()
+                            .typeId(zilla:id("llm"))
+                            .inputTokens(25)
+                            .outputTokens(15)
+                            .finishReason("stop")
+                            .build()}
 
 write close
 

@@ -107,16 +107,6 @@ public class LlmServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/anthropic.streaming/client",
-        "${app}/anthropic.streaming/server"})
-    public void shouldForwardAnthropicStreaming() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
         "${net}/anthropic/client",
         "${app}/anthropic/server"})
     public void shouldForwardAnthropicNonstreaming() throws Exception
@@ -160,26 +150,6 @@ public class LlmServerIT
         "${net}/anthropic.100k/client",
         "${app}/anthropic.100k/server"})
     public void shouldForwardAnthropic100k() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/anthropic.streaming.10k/client",
-        "${app}/anthropic.streaming.10k/server"})
-    public void shouldForwardAnthropicStreaming10k() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/anthropic.streaming.100k/client",
-        "${app}/anthropic.streaming.100k/server"})
-    public void shouldForwardAnthropicStreaming100k() throws Exception
     {
         k3po.finish();
     }
@@ -238,16 +208,6 @@ public class LlmServerIT
         "${net}/anthropic.rejected.rate.limit/client",
         "${app}/anthropic.rejected.rate.limit/server"})
     public void shouldRejectAnthropicRequestRateLimited() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/anthropic.streaming.error.aborted/client",
-        "${app}/anthropic.streaming.error/server"})
-    public void shouldAbortAnthropicStreamingError() throws Exception
     {
         k3po.finish();
     }

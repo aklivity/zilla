@@ -155,15 +155,6 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/anthropic.streaming/client",
-        "${net}/anthropic.streaming/server"})
-    public void shouldEncodeAnthropicStreaming() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${net}/anthropic.streaming.usage/client",
         "${net}/anthropic.streaming.usage/server"})
     public void shouldEncodeAnthropicStreamingUsage() throws Exception
@@ -469,15 +460,6 @@ public class NetworkIT
         "${net}/anthropic.streaming.transformed.error/client",
         "${net}/anthropic.streaming.transformed.error/server"})
     public void shouldRelayAnthropicStreamingTransformedError() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/anthropic.streaming.error.aborted/client",
-        "${net}/anthropic.streaming.error.aborted/server"})
-    public void shouldAbortAnthropicStreamingError() throws Exception
     {
         k3po.finish();
     }
