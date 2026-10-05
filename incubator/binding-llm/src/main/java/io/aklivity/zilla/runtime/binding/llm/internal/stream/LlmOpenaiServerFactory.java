@@ -28,7 +28,6 @@ import jakarta.json.JsonObjectBuilder;
 
 import org.agrona.collections.Long2ObjectHashMap;
 
-import io.aklivity.zilla.runtime.binding.llm.codec.LlmContentEncoder;
 import io.aklivity.zilla.runtime.binding.llm.config.LlmAuthorizationResult;
 import io.aklivity.zilla.runtime.binding.llm.config.LlmBindingConfig;
 import io.aklivity.zilla.runtime.binding.llm.config.LlmRouteConfig;
@@ -157,7 +156,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
     private final BindingHandler streamFactory;
     private final BufferPool decodePool;
     private final BufferPool encodePool;
-    private final LlmContentCodecFactory codecs;
     private final Long2ObjectHashMap<LlmBindingConfig> bindings;
     private final int decodeMax;
     private final int llmTypeId;
@@ -205,7 +203,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.streamFactory = context.streamFactory();
-        this.codecs = new LlmContentCodecFactory();
         this.bindings = new Long2ObjectHashMap<>();
         this.textBytes = new byte[1024];
         this.textBuffer = new UnsafeBufferEx(textBytes);
@@ -2609,9 +2606,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
         private int state;
 
-        private LlmContentEncoder encoder;
         private LlmOpenaiResponseEncoder responseEncoder;
-        private String pendingResponseEvent;
         private boolean flushed;
 
         private LlmOpenaiStream(
@@ -2746,32 +2741,21 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
             final OctetsFW extension = begin.extension();
             final LlmBeginExFW llmBeginEx = extension.get(llmBeginExRO::tryWrap);
-            final String responseContentType = llmBeginEx != null ? llmBeginEx.contentType().asString() : null;
-            final String responseDialect = llmBeginEx != null ? llmBeginEx.dialect().asString() : null;
 
             replySeq = sequence;
             replyAck = acknowledge;
             state = LlmState.openingReply(state);
 
-            if (responseDialect != null && !NAME.equals(responseDialect))
-            {
-                replyMax = (encodePool.slotCapacity() - RESPONSE_ENCODE_SLACK) / RESPONSE_ESCAPE_EXPANSION;
-                responseEncoder = new LlmOpenaiResponseEncoder(server.streaming,
-                    llmBeginEx.id().asString(), llmBeginEx.model().asString());
+            replyMax = (encodePool.slotCapacity() - RESPONSE_ENCODE_SLACK) / RESPONSE_ESCAPE_EXPANSION;
+            responseEncoder = new LlmOpenaiResponseEncoder(server.streaming,
+                llmBeginEx != null ? llmBeginEx.id().asString() : null,
+                llmBeginEx != null ? llmBeginEx.model().asString() : null);
 
-                server.doNetBegin(traceId, authorization, affinity, STATUS_OK,
-                    server.streaming ? CONTENT_TYPE_EVENT_STREAM : CONTENT_TYPE_JSON);
+            server.doNetBegin(traceId, authorization, affinity, STATUS_OK,
+                server.streaming ? CONTENT_TYPE_EVENT_STREAM : CONTENT_TYPE_JSON);
 
-                final int length = responseEncoder.begin(copyBuffer, 0);
-                server.doNetData(copyBuffer, 0, length, 0, Flags.COMPLETE, 0L, traceId, authorization);
-            }
-            else
-            {
-                replyMax = encodePool.slotCapacity();
-                encoder = codecs.createEncoder(responseContentType);
-
-                server.doNetBegin(traceId, authorization, affinity, STATUS_OK, responseContentType);
-            }
+            final int length = responseEncoder.begin(copyBuffer, 0);
+            server.doNetData(copyBuffer, 0, length, 0, Flags.COMPLETE, 0L, traceId, authorization);
 
             doAppWindow(traceId);
         }
@@ -2779,60 +2763,9 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private void onAppData(
             DataFW data)
         {
-            final long traceId = data.traceId();
-            final long authorization = data.authorization();
-            final int flags = data.flags();
-            final long budgetId = data.budgetId();
-            final int reserved = data.reserved();
-            final OctetsFW payload = data.payload();
+            replySeq = data.sequence() + data.reserved();
 
-            replySeq = data.sequence() + reserved;
-
-            if (responseEncoder != null)
-            {
-                onAppSection(data);
-            }
-            else if (encoder == null)
-            {
-                server.doNetData(payload, flags, budgetId, traceId, authorization);
-            }
-            else
-            {
-                if (Flags.hasInit(flags))
-                {
-                    final OctetsFW extension = data.extension();
-                    final LlmDataExFW llmDataEx = extension.get(llmDataExRO::tryWrap);
-                    pendingResponseEvent = llmDataEx != null && llmDataEx.type() != null
-                        ? llmDataEx.type().asString()
-                        : null;
-                }
-
-                int position = 0;
-                if (Flags.hasInit(flags))
-                {
-                    position += encoder.encodeEvent(pendingResponseEvent, copyBuffer, position, copyBuffer.capacity());
-                }
-                if (payload.sizeof() > 0 || Flags.hasInit(flags) || Flags.hasFin(flags))
-                {
-                    position += encoder.encodeData(payload.buffer(), payload.offset(), payload.sizeof(),
-                        Flags.hasInit(flags), Flags.hasFin(flags), copyBuffer, position, copyBuffer.capacity());
-                }
-                if (Flags.hasFin(flags))
-                {
-                    position += encoder.encodeFlush(EMPTY_OCTETS.buffer(), 0, 0, copyBuffer, position, copyBuffer.capacity());
-                }
-
-                if (position > 0)
-                {
-                    server.doNetData(copyBuffer, 0, position, reserved, flags & Flags.COMPLETE,
-                        budgetId, traceId, authorization);
-                }
-
-                if (Flags.hasFin(flags))
-                {
-                    pendingResponseEvent = null;
-                }
-            }
+            onAppSection(data);
         }
 
         private void onAppSection(
@@ -2900,23 +2833,20 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             replySeq = end.sequence();
             state = LlmState.closeReply(state);
 
-            if (responseEncoder != null)
-            {
-                final LlmEndExFW llmEndEx = extension.get(llmEndExRO::tryWrap);
-                final LlmUsageFW usage = llmEndEx != null ? llmEndEx.usage() : null;
+            final LlmEndExFW llmEndEx = extension.get(llmEndExRO::tryWrap);
+            final LlmUsageFW usage = llmEndEx != null ? llmEndEx.usage() : null;
 
-                int length = responseEncoder.end(copyBuffer, 0);
+            int length = responseEncoder.end(copyBuffer, 0);
 
-                length += responseEncoder.finish(copyBuffer, length,
-                    llmEndEx != null ? llmEndEx.finishReason().asString() : null,
-                    usage != null ? usage.inputTokens() : -1,
-                    usage != null ? usage.cacheReadTokens() : -1,
-                    usage != null ? usage.outputTokens() : -1,
-                    usage != null ? usage.reasoningTokens() : -1,
-                    usage != null ? usage.totalTokens() : -1);
+            length += responseEncoder.finish(copyBuffer, length,
+                llmEndEx != null ? llmEndEx.finishReason().asString() : null,
+                usage != null ? usage.inputTokens() : -1,
+                usage != null ? usage.cacheReadTokens() : -1,
+                usage != null ? usage.outputTokens() : -1,
+                usage != null ? usage.reasoningTokens() : -1,
+                usage != null ? usage.totalTokens() : -1);
 
-                server.doNetData(copyBuffer, 0, length, 0, Flags.COMPLETE, 0L, traceId, authorization);
-            }
+            server.doNetData(copyBuffer, 0, length, 0, Flags.COMPLETE, 0L, traceId, authorization);
 
             if (server.encodeSlot != NO_SLOT)
             {
@@ -2926,7 +2856,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             }
             else
             {
-                server.doNetEnd(traceId, authorization, responseEncoder != null ? EMPTY_OCTETS : extension);
+                server.doNetEnd(traceId, authorization, EMPTY_OCTETS);
             }
 
             if (server.appEndPending)
@@ -2945,9 +2875,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             replySeq = abort.sequence();
             state = LlmState.closeReply(state);
 
-            final LlmAbortExFW llmAbortEx = responseEncoder != null && server.streaming
-                ? extension.get(llmAbortExRO::tryWrap)
-                : null;
+            final LlmAbortExFW llmAbortEx = server.streaming ? extension.get(llmAbortExRO::tryWrap) : null;
             final LlmErrorFW error = llmAbortEx != null ? llmAbortEx.error() : null;
 
             if (error != null && (error.type().asString() != null || error.message().asString() != null))
