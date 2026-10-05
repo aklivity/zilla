@@ -920,6 +920,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/anthropic.section.other.members/client",
+        "${app}/anthropic.section.other.members/server"})
+    public void shouldAnthropicSectionOtherMembers() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/anthropic.section.rejected.cache.control.without.text/client",
         "${app}/anthropic.section.rejected.cache.control.without.text/server"})
     public void shouldAnthropicSectionRejectedCacheControlWithoutText() throws Exception

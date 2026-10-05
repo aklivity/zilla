@@ -543,14 +543,14 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 {
                     server.decoder = decodeToolsStart;
                 }
-                else if (server.options.slot(key) != LlmOptions.NONE)
-                {
-                    server.onDecodeOption(key, decodeRoot);
-                }
-                else
+                else if (matches(key, "model"))
                 {
                     server.skip(decodeRoot);
                     server.decoder = decodeSkip;
+                }
+                else
+                {
+                    server.onDecodeOption(key.toString(), decodeRoot);
                 }
                 break;
             case END_OBJECT:
@@ -1735,7 +1735,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private int retained;
 
         private final LlmOpenaiAttributeProbe probe;
-        private final LlmOptions options;
         private final LlmSectionAttributes blockAttributes;
         private final LlmSectionAttributes sentAttributes;
         private final LlmSectionAttributes finAttributes;
@@ -1768,7 +1767,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             this.deauthorize = deauthorize;
             this.parser = JsonEx.createParser();
             this.probe = new LlmOpenaiAttributeProbe();
-            this.options = LlmOpenaiOptions.request();
             this.lookahead = true;
             this.holding = true;
             this.blockAttributes = new LlmSectionAttributes();
@@ -2154,21 +2152,18 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         }
 
         private void onDecodeOption(
-            CharSequence member,
+            String member,
             LlmOpenaiServerDecoder then)
         {
-            final int slot = options.slot(member);
-
             captureThen = then;
+            onDecodeDialectBlock(member);
 
-            if (slot == LlmOpenaiOptions.STREAM)
+            if ("stream".equals(member))
             {
-                onDecodeDialectBlock(options.member(slot));
                 decoder = decodeStreamValue;
             }
             else
             {
-                onDecodeDialectBlock(options.member(slot));
                 captureOpen = true;
                 captureDepth = 0;
                 captureFrom = position();

@@ -39,6 +39,12 @@ read zilla:data.ext ${llm:matchDialectDataEx()
                           .build()}
 read "0.5"
 
+read zilla:data.ext ${llm:matchDialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .block("logit_bias")
+                          .build()}
+read "{\"50256\":-100}"
+
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("USER_TEXT")

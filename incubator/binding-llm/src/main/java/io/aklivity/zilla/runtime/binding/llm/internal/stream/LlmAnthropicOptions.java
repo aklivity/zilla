@@ -16,35 +16,12 @@ package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
 final class LlmAnthropicOptions
 {
-    static final int STREAM = 0;
-
     static final int RESPONSE_STOP_SEQUENCE = 0;
-
-    private static final String[] REQUEST_MEMBERS =
-    {
-        "stream", "temperature", "top_p", "top_k", "max_tokens", "stop_sequences", "output_config",
-        "thinking", "container_id", "mcp_servers"
-    };
-
-    private static final String[] PART_MEMBERS =
-    {
-        "cache_control"
-    };
 
     private static final String[] RESPONSE_MEMBERS =
     {
         "stop_sequence"
     };
-
-    static LlmOptions request()
-    {
-        return new LlmOptions(REQUEST_MEMBERS);
-    }
-
-    static LlmOptions part()
-    {
-        return new LlmOptions(PART_MEMBERS);
-    }
 
     static LlmResponseOptions response()
     {

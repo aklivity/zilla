@@ -560,14 +560,14 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                 {
                     server.decoder = decodeToolsStart;
                 }
-                else if (server.options.slot(key) != LlmOptions.NONE)
-                {
-                    server.onDecodeOption(key, decodeRoot);
-                }
-                else
+                else if (matches(key, "model"))
                 {
                     server.skip(decodeRoot);
                     server.decoder = decodeSkip;
+                }
+                else
+                {
+                    server.onDecodeOption(key.toString(), decodeRoot);
                 }
                 break;
             case END_OBJECT:
@@ -1076,9 +1076,9 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                 {
                     server.decoder = decodeCitationsStart;
                 }
-                else if (server.context != CONTEXT_TOOL_RESULT && server.partOptions.slot(key) != LlmOptions.NONE)
+                else if (server.context != CONTEXT_TOOL_RESULT)
                 {
-                    server.onDecodePartOption(server.partOptions.slot(key), textBlockType(server), textMessage(server));
+                    server.onDecodePartOption(key.toString(), textBlockType(server), textMessage(server));
                 }
                 else
                 {
@@ -1926,8 +1926,6 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         private String lateIsError;
 
         private final LlmAnthropicAttributeProbe probe;
-        private final LlmOptions options;
-        private final LlmOptions partOptions;
         private final LlmSectionAttributes blockAttributes;
         private final LlmSectionAttributes sentAttributes;
         private final LlmSectionAttributes finAttributes;
@@ -1961,8 +1959,6 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             this.deauthorize = deauthorize;
             this.parser = JsonEx.createParser();
             this.probe = new LlmAnthropicAttributeProbe();
-            this.options = LlmAnthropicOptions.request();
-            this.partOptions = LlmAnthropicOptions.part();
             this.lookahead = true;
             this.holding = true;
             this.blockAttributes = new LlmSectionAttributes();
@@ -2430,15 +2426,13 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         }
 
         private void onDecodeOption(
-            CharSequence member,
+            String member,
             LlmAnthropicServerDecoder then)
         {
-            final int slot = options.slot(member);
-
             captureThen = then;
-            onDecodeDialectBlock(options.member(slot));
+            onDecodeDialectBlock(member);
 
-            if (slot == LlmAnthropicOptions.STREAM)
+            if ("stream".equals(member))
             {
                 decoder = decodeStreamValue;
             }
@@ -2453,7 +2447,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         }
 
         private void onDecodePartOption(
-            int slot,
+            String member,
             LlmSectionType sectionType,
             int message)
         {
@@ -2462,7 +2456,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             captureThen = decodePart;
             partPre |= pre;
 
-            onDecodeSectionBlock(partOptions.member(slot), pre ? BLOCK_PRE_SECTION : BLOCK_POST_SECTION, sectionType, message);
+            onDecodeSectionBlock(member, pre ? BLOCK_PRE_SECTION : BLOCK_POST_SECTION, sectionType, message);
 
             captureOpen = true;
             captureDepth = 0;

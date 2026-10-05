@@ -16,27 +16,14 @@ package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
 final class LlmOpenaiOptions
 {
-    static final int STREAM = 0;
-
     static final int RESPONSE_CREATED = 0;
     static final int RESPONSE_SERVICE_TIER = 1;
     static final int RESPONSE_SYSTEM_FINGERPRINT = 2;
-
-    private static final String[] REQUEST_MEMBERS =
-    {
-        "stream", "stream_options", "temperature", "top_p", "max_tokens", "seed", "stop", "response_format",
-        "store", "service_tier", "logprobs", "top_logprobs", "n", "audio"
-    };
 
     private static final String[] RESPONSE_MEMBERS =
     {
         "created", "service_tier", "system_fingerprint"
     };
-
-    static LlmOptions request()
-    {
-        return new LlmOptions(REQUEST_MEMBERS);
-    }
 
     static LlmResponseOptions response()
     {
