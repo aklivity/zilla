@@ -22,8 +22,6 @@ import org.junit.Test;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmAnthropicRequestExFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmAnthropicResponseExFW;
-import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmOllamaRequestExFW;
-import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmOllamaResponseExFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmOpenaiRequestExFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmOpenaiResponseExFW;
 
@@ -34,7 +32,6 @@ public class LlmDialectFunctionsTest
     {
         assertEquals("llm_openai", new LlmOpenaiFunctions.Mapper().getPrefixName());
         assertEquals("llm_anthropic", new LlmAnthropicFunctions.Mapper().getPrefixName());
-        assertEquals("llm_ollama", new LlmOllamaFunctions.Mapper().getPrefixName());
     }
 
     @Test
@@ -123,41 +120,5 @@ public class LlmDialectFunctionsTest
 
         assertEquals("END", responseEx.stopSequence().asString());
         assertEquals("container_1", responseEx.containerId().asString());
-    }
-
-    @Test
-    public void shouldGenerateOllamaRequestEx()
-    {
-        final byte[] bytes = LlmOllamaFunctions.requestEx()
-            .stream("false")
-            .options("{\"temperature\":0.8}")
-            .format("json")
-            .think("true")
-            .keepAlive("5m")
-            .build();
-
-        final LlmOllamaRequestExFW requestEx = new LlmOllamaRequestExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
-
-        assertEquals("false", requestEx.stream().asString());
-        assertEquals("{\"temperature\":0.8}", requestEx.options().asString());
-        assertEquals("json", requestEx.format().asString());
-        assertEquals("true", requestEx.think().asString());
-        assertEquals("5m", requestEx.keepAlive().asString());
-    }
-
-    @Test
-    public void shouldGenerateOllamaResponseEx()
-    {
-        final byte[] bytes = LlmOllamaFunctions.responseEx()
-            .createdAt("2026-10-05T00:00:00Z")
-            .totalDuration("100")
-            .loadDuration("10")
-            .build();
-
-        final LlmOllamaResponseExFW responseEx = new LlmOllamaResponseExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
-
-        assertEquals("2026-10-05T00:00:00Z", responseEx.createdAt().asString());
-        assertEquals("100", responseEx.totalDuration().asString());
-        assertEquals("10", responseEx.loadDuration().asString());
     }
 }
