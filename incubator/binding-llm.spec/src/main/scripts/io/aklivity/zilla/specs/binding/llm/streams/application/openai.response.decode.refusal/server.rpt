@@ -44,6 +44,22 @@ write zilla:begin.ext ${llm:beginEx()
                            .build()}
 write flush
 
+write zilla:data.ext ${llm:dialectBlockDataEx()
+                          .typeId(zilla:id("llm"))
+                          .block("model")
+                          .build()}
+write "\"gpt-4\""
+write flush
+
+write option zilla:flags "init fin"
+write zilla:data.ext ${llm:dialectAfterBlockDataEx()
+                          .typeId(zilla:id("llm"))
+                          .owner("CONTAINER")
+                          .block("content")
+                          .build()}
+write "null"
+write flush
+
 write option zilla:flags "init fin"
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))
@@ -59,6 +75,13 @@ write zilla:data.ext ${llm:dialectAfterBlockDataEx()
                         .block("finish_reason")
                         .build()}
 write "\"stop\""
+write flush
+
+write zilla:data.ext ${llm:dialectBlockDataEx()
+                          .typeId(zilla:id("llm"))
+                          .block("usage")
+                          .build()}
+write "{\"prompt_tokens\":12,\"completion_tokens\":6,\"total_tokens\":18}"
 write flush
 
 write zilla:end.ext ${llm:endEx()

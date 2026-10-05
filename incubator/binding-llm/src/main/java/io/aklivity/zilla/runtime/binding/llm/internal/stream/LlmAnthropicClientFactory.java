@@ -389,6 +389,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         private final String dialect;
         private final LlmAnthropicHttpStream http;
         private final LlmAnthropicResponseDecoder responseDecoder;
+        private final ReplyOutput replyOutput;
 
         private long initialSeq;
         private long initialAck;
@@ -426,7 +427,8 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             this.binding = binding;
             this.model = model;
             this.dialect = dialect;
-            this.responseDecoder = new LlmAnthropicResponseDecoder(new ReplyOutput(), decodeMax);
+            this.replyOutput = new ReplyOutput();
+            this.responseDecoder = new LlmAnthropicResponseDecoder(replyOutput, decodeMax);
             this.http = new LlmAnthropicHttpStream(this);
         }
 
@@ -798,16 +800,21 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
 
         private final class ReplyOutput implements LlmAnthropicResponseDecoder.Output
         {
+            private boolean muted;
+
             @Override
             public int credit()
             {
-                return replyCredit();
+                return muted ? Integer.MAX_VALUE : replyCredit();
             }
 
             @Override
             public void begin()
             {
-                doAppBeginSections(http.decodeTraceId);
+                if (!muted)
+                {
+                    doAppBeginSections(http.decodeTraceId);
+                }
             }
 
             @Override
@@ -821,7 +828,10 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                 int offset,
                 int length)
             {
-                doAppFrame(http.decodeTraceId, flags, null, type, message, toolCallId, toolName, buffer, offset, length);
+                if (!muted)
+                {
+                    doAppFrame(http.decodeTraceId, flags, null, type, message, toolCallId, toolName, buffer, offset, length);
+                }
             }
 
             @Override
@@ -832,8 +842,16 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                 int offset,
                 int length)
             {
-                doAppFrame(http.decodeTraceId, flags, block, null, NO_MESSAGE, null, null, buffer, offset, length);
+                if (!muted)
+                {
+                    doAppFrame(http.decodeTraceId, flags, block, null, NO_MESSAGE, null, null, buffer, offset, length);
+                }
             }
+        }
+
+        private void muteReply()
+        {
+            replyOutput.muted = true;
         }
 
         private void doAppEnd(
@@ -2057,6 +2075,21 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             AbortFW abort)
         {
             final long traceId = abort.traceId();
+
+            if (errorStatus == NO_ERROR)
+            {
+                stream.muteReply();
+
+                if (decodeSlot != NO_SLOT)
+                {
+                    final MutableDirectBufferEx slotBuffer = decodePool.buffer(decodeSlot);
+                    decodeNet(traceId, slotBuffer, 0, decodeSlotOffset);
+                }
+                else if (responseStarted)
+                {
+                    decodeNet(traceId, emptyBufferRO, 0, 0);
+                }
+            }
 
             cleanupDecodeSlot();
 

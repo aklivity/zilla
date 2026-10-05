@@ -57,6 +57,8 @@ final class LlmOpenaiResponseEncoder
     private static final byte[] FINISH_REASON = ",\"finish_reason\":\"".getBytes(UTF_8);
     private static final byte[] FINISH_REASON_NULL = ",\"finish_reason\":null".getBytes(UTF_8);
     private static final String BLOCK_FINISH_REASON = "finish_reason";
+    private static final String BLOCK_MODEL = "model";
+    private static final String BLOCK_USAGE = "usage";
     private static final byte[] CONTENT_START = ",\"content\":\"".getBytes(UTF_8);
     private static final byte[] REFUSAL_START = ",\"refusal\":\"".getBytes(UTF_8);
     private static final byte[] TOOL_CALLS_START = ",\"tool_calls\":[".getBytes(UTF_8);
@@ -115,6 +117,8 @@ final class LlmOpenaiResponseEncoder
     private int carried;
     private int state;
     private boolean finishReasonBlock;
+    private boolean modelBlock;
+    private boolean usageBlock;
     private boolean blockOpen;
     private boolean follow;
     private boolean chunkOpen;
@@ -157,13 +161,6 @@ final class LlmOpenaiResponseEncoder
                 put(COMMA);
             }
             put(OBJECT_COMPLETION);
-            if (model != null)
-            {
-                put(COMMA);
-                put(MODEL_START);
-                put(model);
-                put(QUOTE);
-            }
         }
 
         return position - offset;
@@ -252,9 +249,15 @@ final class LlmOpenaiResponseEncoder
                 chunkStart();
                 put(CHOICES_END);
             }
-            else if (state == STATE_CHOICE)
+            else
             {
-                closeChoice(null);
+                if (state == STATE_CHOICE)
+                {
+                    closeChoice(null);
+                }
+
+                modelBlock |= state == STATE_PRELUDE && BLOCK_MODEL.equals(block);
+                usageBlock |= BLOCK_USAGE.equals(block);
             }
 
             put(COMMA);
@@ -335,11 +338,14 @@ final class LlmOpenaiResponseEncoder
         MutableDirectBuffer out,
         int offset,
         String block,
+        boolean container,
         boolean render)
     {
         wrap(out, offset);
 
-        afterRender = render && (streaming ? chunkOpen : kind == KIND_NONE && state != STATE_TAIL);
+        afterRender = render && (streaming
+            ? chunkOpen
+            : kind == KIND_NONE && state != STATE_TAIL && !(container && messageClosed));
         afterWritten = false;
 
         if (afterRender)
@@ -349,7 +355,11 @@ final class LlmOpenaiResponseEncoder
                 openChoices();
             }
 
-            if (!streaming && !messageClosed)
+            if (!streaming && container)
+            {
+                closeMember();
+            }
+            else if (!streaming && !messageClosed)
             {
                 closeMember();
                 put(MESSAGE_END);
@@ -457,7 +467,11 @@ final class LlmOpenaiResponseEncoder
                 closeChoice(reason);
             }
 
-            putUsage(inputTokens, cacheReadTokens, outputTokens, reasoningTokens, totalTokens);
+            if (!usageBlock)
+            {
+                putUsage(inputTokens, cacheReadTokens, outputTokens, reasoningTokens, totalTokens);
+            }
+
             put(OBJECT_END);
         }
 
@@ -611,6 +625,14 @@ final class LlmOpenaiResponseEncoder
 
     private void openChoices()
     {
+        if (!modelBlock && model != null)
+        {
+            put(COMMA);
+            put(MODEL_START);
+            put(model);
+            put(QUOTE);
+        }
+
         put(COMMA);
         put(CHOICES_START);
         put(MESSAGE_START);

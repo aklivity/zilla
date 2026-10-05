@@ -43,6 +43,12 @@ read zilla:begin.ext ${llm:matchBeginEx()
                          .build()}
 
 read zilla:data.ext ${llm:matchDialectBlockDataEx()
+                          .typeId(zilla:id("llm"))
+                          .block("model")
+                          .build()}
+read "\"gpt-4\""
+
+read zilla:data.ext ${llm:matchDialectBlockDataEx()
                         .typeId(zilla:id("llm"))
                         .block("x_large")
                         .build()}
@@ -64,6 +70,12 @@ read zilla:data.ext ${llm:matchDialectAfterBlockDataEx()
                          .block("finish_reason")
                          .build()}
 read "\"stop\""
+
+read zilla:data.ext ${llm:matchDialectBlockDataEx()
+                          .typeId(zilla:id("llm"))
+                          .block("usage")
+                          .build()}
+read "{\"prompt_tokens\":25,\"completion_tokens\":15,\"total_tokens\":40}"
 
 read option zilla:flags "init fin"
 read zilla:data.ext ${llm:matchDialectBlockDataEx()

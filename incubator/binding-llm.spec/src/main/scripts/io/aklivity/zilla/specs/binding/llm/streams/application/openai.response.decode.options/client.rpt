@@ -64,12 +64,20 @@ read zilla:data.ext ${llm:matchDialectBlockDataEx()
                           .block("created")
                           .build()}
 read "1700000000"
+
+read zilla:data.ext ${llm:matchDialectBlockDataEx()
+                          .typeId(zilla:id("llm"))
+                          .block("model")
+                          .build()}
+read "\"gpt-4\""
+
 read option zilla:flags "init fin"
 read zilla:data.ext ${llm:matchDialectBlockDataEx()
                           .typeId(zilla:id("llm"))
                           .block("service_tier")
                           .build()}
 read "\"default\""
+
 read option zilla:flags "init fin"
 read zilla:data.ext ${llm:matchDialectBlockDataEx()
                           .typeId(zilla:id("llm"))
@@ -91,6 +99,12 @@ read zilla:data.ext ${llm:matchDialectAfterBlockDataEx()
                         .block("finish_reason")
                         .build()}
 read "\"stop\""
+
+read zilla:data.ext ${llm:matchDialectBlockDataEx()
+                          .typeId(zilla:id("llm"))
+                          .block("usage")
+                          .build()}
+read "{\"prompt_tokens\":25,\"completion_tokens\":15,\"total_tokens\":40}"
 
 read option zilla:flags "init fin"
 read zilla:data.ext ${llm:matchDialectBlockDataEx()

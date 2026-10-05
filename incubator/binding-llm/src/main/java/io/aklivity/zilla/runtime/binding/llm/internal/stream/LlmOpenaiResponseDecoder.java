@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import jakarta.json.Json;
 import jakarta.json.JsonException;
 import jakarta.json.JsonObject;
@@ -35,6 +37,9 @@ final class LlmOpenaiResponseDecoder
     private static final int REPLACEMENT_CHARACTER = 0xFFFD;
     private static final String LOGPROBS = "logprobs";
     private static final String FINISH_REASON = "finish_reason";
+    private static final String COMPLETION = "chat.completion";
+    private static final String MODEL = "model";
+    private static final String USAGE = "usage";
 
     private final Output output;
     private final JsonParserEx parser;
@@ -109,7 +114,15 @@ final class LlmOpenaiResponseDecoder
     private int captureFrom;
     private String captureName;
     private boolean choiceMessage;
+    private boolean completion;
+    private boolean captureContainer;
+    private boolean captureUsage;
+    private String usageKey;
+    private int usageDepth;
     private final StringBuilder captureValue;
+    private final StringBuilder usagePath;
+    private final int[] usageMark;
+    private final UnsafeBufferEx nullBuffer;
 
     LlmOpenaiResponseDecoder(
         Output output,
@@ -117,6 +130,9 @@ final class LlmOpenaiResponseDecoder
     {
         this.output = output;
         this.captureValue = new StringBuilder();
+        this.usagePath = new StringBuilder();
+        this.usageMark = new int[8];
+        this.nullBuffer = new UnsafeBufferEx("null".getBytes(UTF_8));
         this.holdMax = holdMax;
         this.parser = JsonEx.createParser();
         this.path = new StringBuilder();
@@ -594,13 +610,17 @@ final class LlmOpenaiResponseDecoder
         {
             pendingKey = parser.getString();
 
-            if (depth == 1 && !canonical(pendingKey))
+            if (depth == 1 && (!canonical(pendingKey) || completion && carried(pendingKey)))
             {
-                beginCapture(pendingKey, false);
+                beginCapture(pendingKey, false, false);
             }
             else if (depth == 3 && pathIs("choices"))
             {
                 onChoiceKey();
+            }
+            else if (depth == 4 && pathIs("choices.message") && completion && !messageCanonical(pendingKey))
+            {
+                beginCapture(pendingKey, true, true);
             }
         }
     }
@@ -609,16 +629,32 @@ final class LlmOpenaiResponseDecoder
     {
         if (LOGPROBS.equals(pendingKey))
         {
-            beginCapture(LOGPROBS, true);
+            beginCapture(LOGPROBS, true, false);
         }
         else if ("message".equals(pendingKey))
         {
             choiceMessage = true;
         }
-        else if (choiceMessage && FINISH_REASON.equals(pendingKey))
+        else if (choiceMessage && (FINISH_REASON.equals(pendingKey) || completion && !"index".equals(pendingKey)))
         {
-            beginCapture(FINISH_REASON, true);
+            beginCapture(pendingKey, true, false);
         }
+    }
+
+    private static boolean carried(
+        String member)
+    {
+        return MODEL.equals(member) || USAGE.equals(member);
+    }
+
+    private static boolean messageCanonical(
+        String member)
+    {
+        return switch (member)
+        {
+        case "role", "content", "refusal", "tool_calls" -> true;
+        default -> false;
+        };
     }
 
     private static boolean canonical(
@@ -636,6 +672,13 @@ final class LlmOpenaiResponseDecoder
     {
         if (pendingKey != null)
         {
+            if (event == JsonEvent.VALUE_NULL && completion && pathIs("choices.message") &&
+                messageCanonical(pendingKey) && !"role".equals(pendingKey))
+            {
+                closeSection();
+                output.after(pendingKey, true, Flags.COMPLETE, nullBuffer, 0, nullBuffer.capacity());
+            }
+
             final boolean deferred = parser.deferredBytes();
             final int fieldAt = path.length();
 
@@ -728,6 +771,16 @@ final class LlmOpenaiResponseDecoder
             else
             {
                 documentErrorMessage = parser.getString();
+            }
+            break;
+        case "object":
+            if (deferred)
+            {
+                parser.consumed(0);
+            }
+            else
+            {
+                completion = COMPLETION.equals(parser.getString());
             }
             break;
         case "id":
@@ -990,15 +1043,22 @@ final class LlmOpenaiResponseDecoder
     private void emitAfterEmpty()
     {
         followPending = false;
-        output.after(LOGPROBS, Flags.COMPLETE, textBuffer, 0, 0);
+        output.after(LOGPROBS, false, Flags.COMPLETE, textBuffer, 0, 0);
     }
 
     private void beginCapture(
         String name,
-        boolean after)
+        boolean after,
+        boolean container)
     {
         capturing = true;
         captureAfter = after;
+        captureContainer = container;
+        captureUsage = !after && USAGE.equals(name);
+        usagePath.setLength(0);
+        usagePath.append(USAGE);
+        usageKey = null;
+        usageDepth = 0;
         captureName = name;
         captureValue.setLength(0);
         captureStarted = false;
@@ -1014,6 +1074,11 @@ final class LlmOpenaiResponseDecoder
         JsonEvent event)
     {
         final boolean deferred = event == JsonEvent.VALUE_STRING && parser.deferredBytes();
+
+        if (captureUsage)
+        {
+            onUsage(event);
+        }
 
         switch (event)
         {
@@ -1037,7 +1102,7 @@ final class LlmOpenaiResponseDecoder
 
         if (captureDepth == 0 && !deferred)
         {
-            if (captureAfter && !captureStarted && event == JsonEvent.VALUE_NULL)
+            if (captureAfter && !completion && !captureStarted && event == JsonEvent.VALUE_NULL)
             {
                 capturing = false;
 
@@ -1086,7 +1151,7 @@ final class LlmOpenaiResponseDecoder
                     captureFinishReason(from, end, fin);
                 }
 
-                output.after(captureName, flags, input, from, end - from);
+                output.after(captureName, captureContainer, flags, input, from, end - from);
             }
             else
             {
@@ -1095,6 +1160,55 @@ final class LlmOpenaiResponseDecoder
         }
 
         captureFrom = end;
+    }
+
+    private void onUsage(
+        JsonEvent event)
+    {
+        switch (event)
+        {
+        case START_OBJECT:
+            usageMark[usageDepth++] = usagePath.length();
+
+            if (usageKey != null)
+            {
+                usagePath.append('.').append(usageKey);
+                usageKey = null;
+            }
+            break;
+        case END_OBJECT:
+            usagePath.setLength(usageMark[--usageDepth]);
+            break;
+        case KEY_NAME:
+            if (parser.deferredBytes())
+            {
+                parser.consumed(0);
+            }
+            else
+            {
+                usageKey = parser.getString();
+            }
+            break;
+        case VALUE_NUMBER:
+            if (usageKey != null)
+            {
+                final int length = usagePath.length();
+
+                usagePath.append('.').append(usageKey);
+                onNumber(usagePath.toString(), parser.deferredBytes());
+                usagePath.setLength(length);
+                usageKey = null;
+            }
+            break;
+        case VALUE_STRING:
+        case VALUE_TRUE:
+        case VALUE_FALSE:
+        case VALUE_NULL:
+            usageKey = null;
+            break;
+        default:
+            break;
+        }
     }
 
     private void captureFinishReason(
@@ -1142,6 +1256,7 @@ final class LlmOpenaiResponseDecoder
         documentModel = null;
         documentFinishReason = null;
         choiceMessage = false;
+        completion = false;
     }
 
     private boolean pathIs(
@@ -1321,6 +1436,7 @@ final class LlmOpenaiResponseDecoder
 
         void after(
             String block,
+            boolean container,
             int flags,
             DirectBufferEx buffer,
             int offset,

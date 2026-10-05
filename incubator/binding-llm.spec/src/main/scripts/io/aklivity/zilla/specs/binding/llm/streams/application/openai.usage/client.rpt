@@ -49,6 +49,12 @@ read zilla:data.ext ${llm:matchDialectBlockDataEx()
                           .build()}
 read "1789954927"
 
+read zilla:data.ext ${llm:matchDialectBlockDataEx()
+                          .typeId(zilla:id("llm"))
+                          .block("model")
+                          .build()}
+read "\"gpt-4o-mini-2024-07-18\""
+
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("ASSISTANT_TEXT")
@@ -58,10 +64,39 @@ read "Hello! How can I assist you today?"
 
 read option zilla:flags "init fin"
 read zilla:data.ext ${llm:matchDialectAfterBlockDataEx()
+                          .typeId(zilla:id("llm"))
+                          .owner("CONTAINER")
+                          .block("refusal")
+                          .build()}
+read "null"
+
+read option zilla:flags "init fin"
+read zilla:data.ext ${llm:matchDialectAfterBlockDataEx()
+                          .typeId(zilla:id("llm"))
+                          .owner("CONTAINER")
+                          .block("annotations")
+                          .build()}
+read "[]"
+
+read option zilla:flags "init fin"
+read zilla:data.ext ${llm:matchDialectAfterBlockDataEx()
+                          .typeId(zilla:id("llm"))
+                          .block("logprobs")
+                          .build()}
+read "null"
+
+read option zilla:flags "init fin"
+read zilla:data.ext ${llm:matchDialectAfterBlockDataEx()
                         .typeId(zilla:id("llm"))
                         .block("finish_reason")
                         .build()}
 read "\"stop\""
+
+read zilla:data.ext ${llm:matchDialectBlockDataEx()
+                          .typeId(zilla:id("llm"))
+                          .block("usage")
+                          .build()}
+read "{\"prompt_tokens\":13,\"completion_tokens\":9,\"total_tokens\":22,\"prompt_tokens_details\":{\"cached_tokens\":0,\"audio_tokens\":0},\"completion_tokens_details\":{\"reasoning_tokens\":0,\"audio_tokens\":0,\"accepted_prediction_tokens\":0,\"rejected_prediction_tokens\":0}}"
 
 read option zilla:flags "init fin"
 read zilla:data.ext ${llm:matchDialectBlockDataEx()

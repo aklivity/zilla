@@ -3098,7 +3098,9 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                     break;
                 case LlmDataExFW.KIND_AFTER:
                     length += responseEncoder.afterBegin(copyBuffer, length,
-                        llmDataEx.after().block().asString(), replyDialect);
+                        llmDataEx.after().block().asString(),
+                        llmDataEx.after().owner().get() == LlmBlockOwner.CONTAINER,
+                        replyDialect);
                     break;
                 case LlmDataExFW.KIND_SECTION:
                     final LlmSectionDataExFW section = llmDataEx != null ? llmDataEx.section() : null;

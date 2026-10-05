@@ -384,6 +384,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         private final String dialect;
         private final LlmOpenaiHttpStream http;
         private final LlmOpenaiResponseDecoder responseDecoder;
+        private final ReplyOutput replyOutput;
 
         private long initialSeq;
         private long initialAck;
@@ -423,7 +424,8 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             this.binding = binding;
             this.model = model;
             this.dialect = dialect;
-            this.responseDecoder = new LlmOpenaiResponseDecoder(new ReplyOutput(), decodeMax);
+            this.replyOutput = new ReplyOutput();
+            this.responseDecoder = new LlmOpenaiResponseDecoder(replyOutput, decodeMax);
             this.http = new LlmOpenaiHttpStream(this);
         }
 
@@ -732,7 +734,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             long traceId,
             int flags,
             String block,
-            boolean after,
+            LlmBlockOwner after,
             LlmSectionType type,
             int message,
             String toolCallId,
@@ -749,9 +751,9 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 final LlmDataExFW.Builder dataExBuilder = llmDataExRW.wrap(extBuffer, 0, extBuffer.capacity())
                     .typeId(llmTypeId);
 
-                if (after)
+                if (after != null)
                 {
-                    dataExBuilder.after(a -> a.block(block));
+                    dataExBuilder.after(a -> a.owner(o -> o.set(after)).block(block));
                 }
                 else if (block != null)
                 {
@@ -809,16 +811,21 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
         private final class ReplyOutput implements LlmOpenaiResponseDecoder.Output
         {
+            private boolean muted;
+
             @Override
             public int credit()
             {
-                return replyCredit();
+                return muted ? Integer.MAX_VALUE : replyCredit();
             }
 
             @Override
             public void begin()
             {
-                doAppBeginSections(http.decodeTraceId);
+                if (!muted)
+                {
+                    doAppBeginSections(http.decodeTraceId);
+                }
             }
 
             @Override
@@ -833,8 +840,11 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 int offset,
                 int length)
             {
-                doAppFrame(http.decodeTraceId, flags, null, false, type, message, toolCallId, toolName, follow,
-                    buffer, offset, length);
+                if (!muted)
+                {
+                    doAppFrame(http.decodeTraceId, flags, null, null, type, message, toolCallId, toolName, follow,
+                        buffer, offset, length);
+                }
             }
 
             @Override
@@ -845,21 +855,33 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 int offset,
                 int length)
             {
-                doAppFrame(http.decodeTraceId, flags, block, false, null, NO_MESSAGE, null, null, false,
-                    buffer, offset, length);
+                if (!muted)
+                {
+                    doAppFrame(http.decodeTraceId, flags, block, null, null, NO_MESSAGE, null, null, false,
+                        buffer, offset, length);
+                }
             }
 
             @Override
             public void after(
                 String block,
+                boolean container,
                 int flags,
                 DirectBufferEx buffer,
                 int offset,
                 int length)
             {
-                doAppFrame(http.decodeTraceId, flags, block, true, null, NO_MESSAGE, null, null, false,
-                    buffer, offset, length);
+                if (!muted)
+                {
+                    doAppFrame(http.decodeTraceId, flags, block, container ? LlmBlockOwner.CONTAINER : LlmBlockOwner.SECTION,
+                        null, NO_MESSAGE, null, null, false, buffer, offset, length);
+                }
             }
+        }
+
+        private void muteReply()
+        {
+            replyOutput.muted = true;
         }
 
         private void doAppEnd(
@@ -2097,6 +2119,21 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         {
             final long traceId = abort.traceId();
 
+            if (errorStatus == NO_ERROR)
+            {
+                stream.muteReply();
+
+                if (decodeSlot != NO_SLOT)
+                {
+                    final MutableDirectBufferEx slotBuffer = decodePool.buffer(decodeSlot);
+                    decodeNet(traceId, slotBuffer, 0, decodeSlotOffset);
+                }
+                else if (responseStarted)
+                {
+                    decodeNet(traceId, emptyBufferRO, 0, 0);
+                }
+            }
+
             cleanupDecodeSlot();
 
             if (errorStatus != NO_ERROR)
@@ -2667,6 +2704,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 @Override
                 public void after(
                     String block,
+                    boolean container,
                     int flags,
                     DirectBufferEx buffer,
                     int offset,
