@@ -3306,8 +3306,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             replyDialect = llmBeginEx != null && NAME.equals(llmBeginEx.dialect().asString());
             responseEncoder = new LlmAnthropicResponseEncoder(server.streaming,
                 llmBeginEx != null ? llmBeginEx.id().asString() : null,
-                llmBeginEx != null ? llmBeginEx.model().asString() : null,
-                encodePool.slotCapacity() - RESPONSE_ENCODE_SLACK);
+                llmBeginEx != null ? llmBeginEx.model().asString() : null);
 
             server.doNetBegin(traceId, authorization, affinity, STATUS_OK,
                 server.streaming ? CONTENT_TYPE_EVENT_STREAM : CONTENT_TYPE_JSON);
@@ -3347,7 +3346,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                 switch (replyKind)
                 {
                 case LlmDataExFW.KIND_BLOCK:
-                    responseEncoder.blockBegin(llmDataEx.block().block().asString(), replyDialect);
+                    length += responseEncoder.blockBegin(copyBuffer, length, llmDataEx.block().block().asString(), replyDialect);
                     break;
                 case LlmDataExFW.KIND_SECTION:
                     final LlmSectionDataExFW section = llmDataEx != null ? llmDataEx.section() : null;
@@ -3368,12 +3367,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             switch (replyKind)
             {
             case LlmDataExFW.KIND_BLOCK:
-                responseEncoder.blockData(payload.buffer(), payload.offset(), payload.sizeof());
-
-                if (Flags.hasFin(flags))
-                {
-                    responseEncoder.blockEnd();
-                }
+                length += responseEncoder.blockData(copyBuffer, length, payload.buffer(), payload.offset(), payload.sizeof());
                 break;
             case LlmDataExFW.KIND_SECTION:
                 if (payload.sizeof() > 0)

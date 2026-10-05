@@ -39,6 +39,7 @@ final class LlmAnthropicResponseDecoder
     private static final String BLOCK_CONTENT_BLOCK = "content_block";
 
     private static final String KEY_MESSAGE = "message";
+    private static final String KEY_STOP_REASON = "stop_reason";
     private static final String TYPE_MESSAGE = "message";
     private static final String TYPE_MESSAGE_START = "message_start";
     private static final String TYPE_MESSAGE_DELTA = "message_delta";
@@ -107,12 +108,14 @@ final class LlmAnthropicResponseDecoder
     private int captureDepth;
     private int captureFrom;
     private String captureName;
+    private final StringBuilder captureValue;
 
     LlmAnthropicResponseDecoder(
         Output output,
         int holdMax)
     {
         this.output = output;
+        this.captureValue = new StringBuilder();
         this.holdMax = holdMax;
         this.parser = JsonEx.createParser();
         this.path = new StringBuilder();
@@ -609,7 +612,7 @@ final class LlmAnthropicResponseDecoder
         {
         case TYPE_MESSAGE -> canonicalMessage(member) || "error".equals(member);
         case TYPE_MESSAGE_START -> canonicalMessage(member);
-        default -> "stop_reason".equals(member);
+        default -> false;
         };
     }
 
@@ -618,7 +621,7 @@ final class LlmAnthropicResponseDecoder
     {
         return switch (member)
         {
-        case "id", "type", "role", "model", "content", "stop_reason", "usage" -> true;
+        case "id", "type", "role", "model", "content", "usage" -> true;
         default -> false;
         };
     }
@@ -754,17 +757,6 @@ final class LlmAnthropicResponseDecoder
             else
             {
                 documentModel = parser.getString();
-            }
-            break;
-        case "stop_reason":
-        case "delta.stop_reason":
-            if (deferred)
-            {
-                parser.consumed(0);
-            }
-            else
-            {
-                documentFinishReason = parser.getString();
             }
             break;
         default:
@@ -974,6 +966,7 @@ final class LlmAnthropicResponseDecoder
         capturing = true;
         captureSection = false;
         captureName = name;
+        captureValue.setLength(0);
         captureStarted = false;
         captureTrim = true;
         captureDepth = 0;
@@ -1080,11 +1073,37 @@ final class LlmAnthropicResponseDecoder
 
                 captureStarted = !fin;
 
+                if (KEY_STOP_REASON.equals(captureName))
+                {
+                    captureStopReason(from, end, fin);
+                }
+
                 output.block(captureName, flags, input, from, end - from);
             }
         }
 
         captureFrom = end;
+    }
+
+    private void captureStopReason(
+        int from,
+        int end,
+        boolean fin)
+    {
+        for (int index = from; index < end; index++)
+        {
+            captureValue.append((char) input.getByte(index));
+        }
+
+        if (fin)
+        {
+            final String value = captureValue.toString().strip();
+
+            if (value.length() > 1 && value.charAt(0) == '"')
+            {
+                documentFinishReason = value.substring(1, value.length() - 1);
+            }
+        }
     }
 
     private void onDocumentEnd()

@@ -61,6 +61,13 @@ read "Hello!"
 read option zilla:flags "init fin"
 read zilla:data.ext ${llm:matchDialectBlockDataEx()
                           .typeId(zilla:id("llm"))
+                          .block("stop_reason")
+                          .build()}
+read "\"end_turn\""
+
+read option zilla:flags "init fin"
+read zilla:data.ext ${llm:matchDialectBlockDataEx()
+                          .typeId(zilla:id("llm"))
                           .block("stop_sequence")
                           .build()}
 read "null"

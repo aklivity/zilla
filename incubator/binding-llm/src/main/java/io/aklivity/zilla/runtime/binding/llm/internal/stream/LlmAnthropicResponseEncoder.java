@@ -16,10 +16,6 @@ package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import java.util.Arrays;
-import java.util.LinkedHashMap;
-import java.util.Map;
-
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 
@@ -33,9 +29,12 @@ final class LlmAnthropicResponseEncoder
     private static final int KIND_TOOL_CALL = 3;
     private static final int KIND_SKIPPED = 4;
 
+    private static final int STATE_PRELUDE = 0;
+    private static final int STATE_CONTENT = 1;
+    private static final int STATE_TAIL = 2;
+
     private static final int NONE = -1;
     private static final int MESSAGE_FIRST = 0;
-
 
     private static final byte[] EVENT_MESSAGE_START = "event: message_start\ndata: ".getBytes(UTF_8);
     private static final byte[] EVENT_BLOCK_START = "event: content_block_start\ndata: ".getBytes(UTF_8);
@@ -49,6 +48,7 @@ final class LlmAnthropicResponseEncoder
     private static final byte[] ERROR_END = "\"}}\n\n".getBytes(UTF_8);
     private static final byte[] SSE_END = "\n\n".getBytes(UTF_8);
     private static final String BLOCK_STOP_SEQUENCE = "stop_sequence";
+    private static final String BLOCK_STOP_REASON = "stop_reason";
     private static final byte[] OBJECT_START = "{".getBytes(UTF_8);
     private static final byte[] OBJECT_END = "}".getBytes(UTF_8);
     private static final byte[] MESSAGE_ID = "\"id\":\"".getBytes(UTF_8);
@@ -57,9 +57,9 @@ final class LlmAnthropicResponseEncoder
     private static final byte[] CONTENT_START = "\"content\":[".getBytes(UTF_8);
     private static final byte[] CONTENT_END = "]".getBytes(UTF_8);
     private static final byte[] STREAM_MESSAGE_START = "{\"type\":\"message_start\",\"message\":{".getBytes(UTF_8);
-    private static final byte[] STREAM_MESSAGE_FIELDS = ",\"content\":[],\"stop_reason\":null,\"stop_sequence\":null,"
-        .getBytes(UTF_8);
-    private static final byte[] STREAM_MESSAGE_USAGE = "\"usage\":{\"input_tokens\":0,\"output_tokens\":0}}}"
+    private static final byte[] STREAM_MESSAGE_CONTENT = ",\"content\":[]".getBytes(UTF_8);
+    private static final byte[] STOP_REASON_NULL = ",\"stop_reason\":null".getBytes(UTF_8);
+    private static final byte[] STREAM_MESSAGE_USAGE = ",\"usage\":{\"input_tokens\":0,\"output_tokens\":0}}}"
         .getBytes(UTF_8);
     private static final byte[] BLOCK_START = "{\"type\":\"content_block_start\",\"index\":".getBytes(UTF_8);
     private static final byte[] BLOCK_TEXT = ",\"content_block\":{\"type\":\"text\",\"text\":\"\"}}".getBytes(UTF_8);
@@ -75,10 +75,11 @@ final class LlmAnthropicResponseEncoder
     private static final byte[] DELTA_END = "\"}}".getBytes(UTF_8);
     private static final byte[] STOP_START = "{\"type\":\"content_block_stop\",\"index\":".getBytes(UTF_8);
     private static final byte[] STOP_END = "}".getBytes(UTF_8);
-    private static final byte[] MESSAGE_DELTA = "{\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"".getBytes(UTF_8);
-    private static final byte[] STOP_SEQUENCE_MEMBER = "\",\"stop_sequence\":".getBytes(UTF_8);
+    private static final byte[] STOP_REASON_FIRST = "\"stop_reason\":\"".getBytes(UTF_8);
+    private static final byte[] STOP_SEQUENCE_NULL = ",\"stop_sequence\":null".getBytes(UTF_8);
+    private static final byte[] STOP_SEQUENCE_NULL_FIRST = "\"stop_sequence\":null".getBytes(UTF_8);
+    private static final byte[] DELTA_START_OBJECT = "{\"type\":\"message_delta\",\"delta\":{".getBytes(UTF_8);
     private static final byte[] MESSAGE_DELTA_USAGE = "},".getBytes(UTF_8);
-    private static final byte[] NULL = "null".getBytes(UTF_8);
     private static final byte[] MEMBER_NAME_END = "\":".getBytes(UTF_8);
     private static final byte[] STOP_REASON = ",\"stop_reason\":\"".getBytes(UTF_8);
     private static final byte[] MEMBER_SEPARATOR = ",".getBytes(UTF_8);
@@ -102,8 +103,6 @@ final class LlmAnthropicResponseEncoder
     private final byte[] id;
     private final byte[] model;
     private final byte[] carry;
-    private final Map<String, byte[]> members;
-    private final int membersMax;
 
     private MutableDirectBuffer out;
     private int position;
@@ -113,24 +112,22 @@ final class LlmAnthropicResponseEncoder
     private boolean inputWritten;
     private int toolCalls;
     private int carried;
-    private int membersLength;
-    private String blockName;
-    private byte[] blockBytes;
-    private int blockLength;
+    private int state;
+    private int tailMembers;
+    private boolean stopSequence;
+    private boolean stopReason;
     private boolean blockOpen;
 
     LlmAnthropicResponseEncoder(
         boolean streaming,
         String id,
-        String model,
-        int membersMax)
+        String model)
     {
         this.streaming = streaming;
         this.id = id != null ? escape(id) : null;
         this.model = model != null ? escape(model) : null;
         this.carry = new byte[3];
-        this.members = new LinkedHashMap<>();
-        this.membersMax = membersMax;
+        this.state = STATE_PRELUDE;
     }
 
     int begin(
@@ -144,16 +141,12 @@ final class LlmAnthropicResponseEncoder
             put(EVENT_MESSAGE_START);
             put(STREAM_MESSAGE_START);
             messageIdentity();
-            put(STREAM_MESSAGE_FIELDS);
-            put(STREAM_MESSAGE_USAGE);
-            put(SSE_END);
+            put(STREAM_MESSAGE_CONTENT);
         }
         else
         {
             put(OBJECT_START);
             messageIdentity();
-            put(COMMA);
-            put(CONTENT_START);
         }
 
         return position - offset;
@@ -169,10 +162,15 @@ final class LlmAnthropicResponseEncoder
     {
         wrap(out, offset);
 
-        kind = message == MESSAGE_FIRST ? kindOf(type) : KIND_SKIPPED;
+        kind = message == MESSAGE_FIRST && state != STATE_TAIL ? kindOf(type) : KIND_SKIPPED;
 
         if (kind != KIND_SKIPPED)
         {
+            if (state == STATE_PRELUDE)
+            {
+                closePrelude();
+            }
+
             if (streaming)
             {
                 carried = 0;
@@ -216,51 +214,63 @@ final class LlmAnthropicResponseEncoder
         return position - offset;
     }
 
-    void blockBegin(
+    int blockBegin(
+        MutableDirectBuffer out,
+        int offset,
         String block,
         boolean render)
     {
-        blockOpen = render;
-        blockName = block;
-        blockLength = 0;
-    }
+        wrap(out, offset);
 
-    void blockData(
-        DirectBuffer payload,
-        int offset,
-        int length)
-    {
-        if (blockOpen)
+        blockOpen = render;
+
+        if (render)
         {
-            if (membersLength + blockLength + length <= membersMax)
+            if (state == STATE_CONTENT)
             {
-                if (blockBytes == null || blockBytes.length < blockLength + length)
+                openTail();
+            }
+
+            if (state == STATE_TAIL)
+            {
+                if (!streaming || tailMembers > 0)
                 {
-                    blockBytes = blockBytes == null
-                        ? new byte[Math.max(256, length)]
-                        : Arrays.copyOf(blockBytes, Math.max(blockBytes.length * 2, blockLength + length));
+                    put(MEMBER_SEPARATOR);
                 }
 
-                payload.getBytes(offset, blockBytes, blockLength, length);
-                blockLength += length;
+                tailMembers++;
             }
             else
             {
-                blockOpen = false;
+                put(MEMBER_SEPARATOR);
             }
+
+            stopSequence |= BLOCK_STOP_SEQUENCE.equals(block);
+            stopReason |= BLOCK_STOP_REASON.equals(block);
+
+            put(QUOTE);
+            put(escape(block));
+            put(MEMBER_NAME_END);
         }
+
+        return position - offset;
     }
 
-    void blockEnd()
+    int blockData(
+        MutableDirectBuffer out,
+        int offset,
+        DirectBuffer payload,
+        int payloadOffset,
+        int payloadLength)
     {
+        wrap(out, offset);
+
         if (blockOpen)
         {
-            final byte[] previous = members.put(blockName, Arrays.copyOf(blockBytes, blockLength));
-
-            membersLength += blockLength - (previous != null ? previous.length : 0);
+            put(payload, payloadOffset, payloadLength);
         }
 
-        blockOpen = false;
+        return position - offset;
     }
 
     int end(
@@ -313,14 +323,30 @@ final class LlmAnthropicResponseEncoder
 
         final byte[] reason = stopReason(finishReason);
 
+        if (state == STATE_PRELUDE)
+        {
+            closePrelude();
+        }
+
         if (streaming)
         {
-            put(EVENT_MESSAGE_DELTA);
-            put(MESSAGE_DELTA);
-            put(reason);
-            put(STOP_SEQUENCE_MEMBER);
-            putStopSequence();
-            putBlocks();
+            if (state == STATE_CONTENT)
+            {
+                openTail();
+            }
+
+            if (!stopReason)
+            {
+                put(tailMembers++ > 0 ? STOP_REASON : STOP_REASON_FIRST);
+                put(reason);
+                put(QUOTE);
+            }
+
+            if (!stopSequence)
+            {
+                put(tailMembers++ > 0 ? STOP_SEQUENCE_NULL : STOP_SEQUENCE_NULL_FIRST);
+            }
+
             put(MESSAGE_DELTA_USAGE);
             putUsage(inputTokens, cacheWriteTokens, cacheReadTokens, outputTokens);
             put(OBJECT_END);
@@ -329,16 +355,25 @@ final class LlmAnthropicResponseEncoder
         }
         else
         {
-            put(CONTENT_END);
-            put(STOP_REASON);
-            put(reason);
-            put(STOP_SEQUENCE_MEMBER);
-            putStopSequence();
+            if (state == STATE_CONTENT)
+            {
+                put(CONTENT_END);
+            }
+
+            if (!stopReason)
+            {
+                put(STOP_REASON);
+                put(reason);
+                put(QUOTE);
+            }
+
+            putStopSequenceDefault();
             put(MEMBER_SEPARATOR);
             putUsage(inputTokens, cacheWriteTokens, cacheReadTokens, outputTokens);
-            putBlocks();
             put(OBJECT_END);
         }
+
+        state = STATE_TAIL;
 
         return position - offset;
     }
@@ -351,6 +386,17 @@ final class LlmAnthropicResponseEncoder
         String message)
     {
         wrap(out, offset);
+
+        if (streaming && state == STATE_PRELUDE)
+        {
+            closePrelude();
+        }
+        else if (streaming && state == STATE_TAIL)
+        {
+            put(OBJECT_END);
+            put(OBJECT_END);
+            put(SSE_END);
+        }
 
         put(EVENT_ERROR);
         put(escape(type != null ? type : "api_error"));
@@ -622,34 +668,51 @@ final class LlmAnthropicResponseEncoder
         position += bytes.length;
     }
 
-    private void putStopSequence()
+    private void putStopSequenceDefault()
     {
-        final byte[] value = members.remove(BLOCK_STOP_SEQUENCE);
-
-        if (value != null)
+        if (!stopSequence)
         {
-            membersLength -= value.length;
-            put(value);
-        }
-        else
-        {
-            put(NULL);
+            put(STOP_SEQUENCE_NULL);
         }
     }
 
-    private void putBlocks()
+    private void closePrelude()
     {
-        for (Map.Entry<String, byte[]> member : members.entrySet())
+        if (streaming)
+        {
+            if (!stopReason)
+            {
+                put(STOP_REASON_NULL);
+            }
+
+            putStopSequenceDefault();
+            put(STREAM_MESSAGE_USAGE);
+            put(SSE_END);
+            stopSequence = false;
+            stopReason = false;
+        }
+        else
         {
             put(MEMBER_SEPARATOR);
-            put(QUOTE);
-            put(escape(member.getKey()));
-            put(MEMBER_NAME_END);
-            put(member.getValue());
+            put(CONTENT_START);
         }
 
-        members.clear();
-        membersLength = 0;
+        state = STATE_CONTENT;
+    }
+
+    private void openTail()
+    {
+        if (streaming)
+        {
+            put(EVENT_MESSAGE_DELTA);
+            put(DELTA_START_OBJECT);
+        }
+        else
+        {
+            put(CONTENT_END);
+        }
+
+        state = STATE_TAIL;
     }
 
     private void putNumber(

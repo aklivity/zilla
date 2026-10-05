@@ -56,6 +56,14 @@ write flush
 write option zilla:flags "init fin"
 write zilla:data.ext ${llm:dialectBlockDataEx()
                            .typeId(zilla:id("llm"))
+                           .block("stop_reason")
+                           .build()}
+write "\"end_turn\""
+write flush
+
+write option zilla:flags "init fin"
+write zilla:data.ext ${llm:dialectBlockDataEx()
+                           .typeId(zilla:id("llm"))
                            .block("stop_sequence")
                            .build()}
 write "\"END\""

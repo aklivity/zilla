@@ -46,6 +46,6 @@ write "event: content_block_start\ndata: {\"type\":\"content_block_start\",\"ind
 write "event: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"Hello\"}}\n\n"
 write "event: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" there\"}}\n\n"
 write "event: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0}\n\n"
-write "event: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"end_turn\",\"stop_sequence\":\"END\",\"container\":{\"id\":\"container_2\"}},\"usage\":{\"input_tokens\":25,\"output_tokens\":15}}\n\n"
+write "event: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"end_turn\",\"stop_sequence\":\"END\",\"container\":{\"id\":\"container_1\"}},\"usage\":{\"input_tokens\":25,\"output_tokens\":15}}\n\n"
 write "event: message_stop\ndata: {\"type\":\"message_stop\"}\n\n"
 write close

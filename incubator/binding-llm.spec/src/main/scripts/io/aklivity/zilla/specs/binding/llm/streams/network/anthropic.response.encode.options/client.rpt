@@ -38,6 +38,6 @@ read zilla:begin.ext ${http:matchBeginEx()
                            .header("content-type", "application/json")
                            .build()}
 
-read "{\"id\":\"msg_01\",\"type\":\"message\",\"role\":\"assistant\",\"model\":\"claude-3-opus-20240229\",\"content\":[{\"type\":\"text\",\"text\":\"Hello! How can I help you today?\"}],\"stop_reason\":\"end_turn\",\"stop_sequence\":\"END\",\"usage\":{\"input_tokens\":25,\"output_tokens\":15},\"container\":{\"id\":\"container_1\"}}"
+read "{\"id\":\"msg_01\",\"type\":\"message\",\"role\":\"assistant\",\"model\":\"claude-3-opus-20240229\",\"content\":[{\"type\":\"text\",\"text\":\"Hello! How can I help you today?\"}],\"stop_reason\":\"end_turn\",\"stop_sequence\":\"END\",\"container\":{\"id\":\"container_1\"},\"usage\":{\"input_tokens\":25,\"output_tokens\":15}}"
 
 read closed

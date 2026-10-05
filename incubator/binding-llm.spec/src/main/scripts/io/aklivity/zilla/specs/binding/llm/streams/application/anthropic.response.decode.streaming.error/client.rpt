@@ -45,6 +45,13 @@ read zilla:begin.ext ${llm:matchBeginEx()
 read option zilla:flags "init fin"
 read zilla:data.ext ${llm:matchDialectBlockDataEx()
                           .typeId(zilla:id("llm"))
+                          .block("stop_reason")
+                          .build()}
+read "null"
+
+read option zilla:flags "init fin"
+read zilla:data.ext ${llm:matchDialectBlockDataEx()
+                          .typeId(zilla:id("llm"))
                           .block("stop_sequence")
                           .build()}
 read "null"
