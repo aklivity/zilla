@@ -1002,4 +1002,22 @@ public class LlmAnthropicServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.request.version.missing/client"})
+    public void shouldRejectAnthropicRequestWithVersionMissing() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.request.version.unsupported/client"})
+    public void shouldRejectAnthropicRequestWithVersionUnsupported() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -2564,4 +2564,22 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.request.version.missing/client",
+        "${net}/anthropic.request.version.missing/server"})
+    public void shouldRejectAnthropicRequestWithVersionMissing() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.request.version.unsupported/client",
+        "${net}/anthropic.request.version.unsupported/server"})
+    public void shouldRejectAnthropicRequestWithVersionUnsupported() throws Exception
+    {
+        k3po.finish();
+    }
 }

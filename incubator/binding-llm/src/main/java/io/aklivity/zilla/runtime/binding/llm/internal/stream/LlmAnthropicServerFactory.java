@@ -75,6 +75,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
     private static final String HEADER_CONTENT_TYPE = "content-type";
     private static final String HEADER_API_KEY = "x-api-key";
     private static final String HEADER_ANTHROPIC_VERSION = "anthropic-version";
+    private static final String ANTHROPIC_VERSION = "2023-06-01";
     private static final String HEADER_AUTHORIZATION = "authorization";
     private static final String METHOD_POST = "POST";
     private static final String PATH_MESSAGES = "/v1/messages";
@@ -272,6 +273,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         {
             final LlmRequestHeaders headers = LlmRequestHeaders.of(httpBeginEx);
             final String contentType = header(headers, HEADER_CONTENT_TYPE);
+            final String version = header(headers, HEADER_ANTHROPIC_VERSION);
 
             if (!CONTENT_TYPE_JSON.equals(LlmContentCodecFactory.mediaType(contentType)))
             {
@@ -288,6 +290,14 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                 {
                     newStream = new LlmAnthropicRejectHandler(network, originId, routedId, initialId,
                         STATUS_UNAUTHORIZED, UNAUTHORIZED_BODY)::onNetMessage;
+                }
+                else if (version == null || !ANTHROPIC_VERSION.equals(version))
+                {
+                    newStream = new LlmAnthropicRejectHandler(network, originId, routedId, initialId,
+                        Integer.toString(STATUS_BAD_REQUEST),
+                        errorBody(STATUS_BAD_REQUEST, version == null
+                            ? "anthropic-version: header is required"
+                            : "anthropic-version: unsupported version " + version))::onNetMessage;
                 }
                 else
                 {
