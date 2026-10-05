@@ -44,6 +44,7 @@ import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmAbortExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmBeginExFW;
+import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmBlockOwner;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmDataExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmEndExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmErrorFW;
@@ -2253,7 +2254,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 attributes = null;
             }
 
-            stream.doAppBlockData(traceId, authorization, flags, blockKind, init ? blockName : null,
+            stream.doAppBlockData(traceId, authorization, flags, blockKind, init ? blockName : null, null,
                 init ? blockSection : null, blockMessage, attributes, buffer, offset, length);
 
             blockFlags = Flags.NONE;
@@ -3257,6 +3258,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             int flags,
             int kind,
             String block,
+            LlmBlockOwner owner,
             LlmSectionType type,
             int message,
             LlmSectionAttributes attributes,
@@ -3289,11 +3291,11 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 }
                 else if (kind == BLOCK_BEFORE)
                 {
-                    dataExBuilder.before(d -> d.type(t -> t.set(type)).message(message).block(block));
+                    dataExBuilder.before(d -> d.type(t -> t.set(type)).message(message).owner(o -> o.set(owner)).block(block));
                 }
                 else if (kind == BLOCK_AFTER)
                 {
-                    dataExBuilder.after(d -> d.block(block));
+                    dataExBuilder.after(d -> d.owner(o -> o.set(owner)).block(block));
                 }
                 else
                 {

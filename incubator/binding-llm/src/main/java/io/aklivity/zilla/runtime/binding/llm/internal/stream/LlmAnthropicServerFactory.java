@@ -43,6 +43,7 @@ import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmAbortExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmBeginExFW;
+import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmBlockOwner;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmDataExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmEndExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmErrorFW;
@@ -92,6 +93,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
     private static final String MESSAGE_MODEL_ORDER =
         "model: must precede messages, system and tools in a request that does not fit the decode buffer";
     private static final String MESSAGE_PART_TEXT_MISSING = "text: Field required";
+    private static final String MESSAGE_TOOL_RESULT_CONTENT_MISSING = "content: Field required";
     private static final String MESSAGE_ROLE_MISSING = "messages.%d.role: Field required";
     private static final String MESSAGE_ROLE_ORDER = "role must precede content in each message";
     private static final String MESSAGE_TOOL_USE_ID_ORDER = "tool_use_id must precede content in a tool_result block";
@@ -1017,6 +1019,8 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                     server.release();
                     server.toolUseId = null;
                     server.toolIsError = null;
+                    server.toolContentSeen = false;
+                    server.containerPre = false;
                     server.decoder = decodeToolResult;
                 }
                 else
@@ -1076,14 +1080,10 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                 {
                     server.decoder = decodeCitationsStart;
                 }
-                else if (server.context != CONTEXT_TOOL_RESULT)
-                {
-                    server.onDecodePartOption(key.toString(), textBlockType(server), textMessage(server));
-                }
                 else
                 {
-                    server.skip(decodePart);
-                    server.decoder = decodeSkip;
+                    server.onDecodePartOption(key.toString(), textBlockType(server), textMessage(server),
+                        textToolCallId(server));
                 }
                 break;
             case END_OBJECT:
@@ -1180,15 +1180,25 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                         server.onDecodeInvalidRequest(traceId, MESSAGE_TOOL_USE_ID_ORDER);
                         break decode;
                     }
+                    server.toolContentSeen = true;
                     server.decoder = decodeToolResultContent;
+                }
+                else if (!server.toolContentSeen && server.toolUseId == null)
+                {
+                    server.onDecodeInvalidRequest(traceId, MESSAGE_TOOL_USE_ID_ORDER);
+                    break decode;
                 }
                 else
                 {
-                    server.skip(decodeToolResult);
-                    server.decoder = decodeSkip;
+                    server.onDecodeContainerOption(key.toString());
                 }
                 break;
             case END_OBJECT:
+                if (server.containerPre)
+                {
+                    server.onDecodeInvalidRequest(traceId, MESSAGE_TOOL_RESULT_CONTENT_MISSING);
+                    break decode;
+                }
                 server.flushHeld();
                 server.context = CONTEXT_MESSAGE;
                 server.partsThen = decodeMessage;
@@ -1913,6 +1923,8 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         private boolean lookahead;
         private boolean partTextDone;
         private boolean partPre;
+        private boolean toolContentSeen;
+        private boolean containerPre;
         private boolean replaying;
         private int lookaheadMembers;
         private int holdFrom;
@@ -1934,6 +1946,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         private String blockName;
         private int blockKind;
         private LlmSectionType blockSection;
+        private LlmBlockOwner blockOwner;
         private int blockMessage;
         private String blockExtension;
         private int blockFlags;
@@ -2449,14 +2462,34 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         private void onDecodePartOption(
             String member,
             LlmSectionType sectionType,
-            int message)
+            int message,
+            String toolCallId)
         {
-            final boolean pre = !partTextDone;
+            final boolean before = !partTextDone;
 
             captureThen = decodePart;
-            partPre |= pre;
+            partPre |= before;
 
-            onDecodeSectionBlock(member, pre ? BLOCK_BEFORE : BLOCK_AFTER, sectionType, message);
+            onDecodeSectionBlock(member, before ? BLOCK_BEFORE : BLOCK_AFTER, LlmBlockOwner.SECTION, sectionType, message,
+                before ? toolCallId : null);
+
+            captureOpen = true;
+            captureDepth = 0;
+            captureFrom = position();
+            captureTrim = true;
+            decoder = decodeCapture;
+        }
+
+        private void onDecodeContainerOption(
+            String member)
+        {
+            final boolean before = !toolContentSeen;
+
+            captureThen = decodeToolResult;
+            containerPre |= before;
+
+            onDecodeSectionBlock(member, before ? BLOCK_BEFORE : BLOCK_AFTER, LlmBlockOwner.CONTAINER,
+                LlmSectionType.TOOL_RESULT, this.message, before ? toolUseId : null);
 
             captureOpen = true;
             captureDepth = 0;
@@ -2468,19 +2501,23 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         private void onDecodeSectionBlock(
             String block,
             int kind,
+            LlmBlockOwner owner,
             LlmSectionType sectionType,
-            int message)
+            int message,
+            String toolCallId)
         {
             flushHeld();
 
             blockName = block;
             blockKind = kind;
+            blockOwner = owner;
             blockSection = sectionType;
             blockMessage = message;
             blockExtension = null;
             blockFlags = Flags.INIT;
 
             blockAttributes.clear();
+            blockAttributes.toolCallId(toolCallId);
         }
 
         private void onDecodeDialectBlock(
@@ -2526,6 +2563,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         {
             flushHeld();
 
+            containerPre = false;
             blockName = null;
             blockKind = BLOCK_SECTION;
             blockSection = type;
@@ -2575,7 +2613,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                 attributes = null;
             }
 
-            stream.doAppBlockData(traceId, authorization, flags, blockKind, init ? blockName : null,
+            stream.doAppBlockData(traceId, authorization, flags, blockKind, init ? blockName : null, blockOwner,
                 init ? blockSection : null, blockMessage, init ? blockExtension : null, attributes, buffer, offset, length);
 
             blockFlags = Flags.NONE;
@@ -3583,6 +3621,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             int flags,
             int kind,
             String block,
+            LlmBlockOwner owner,
             LlmSectionType type,
             int message,
             String extension,
@@ -3616,11 +3655,21 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                 }
                 else if (kind == BLOCK_BEFORE)
                 {
-                    dataExBuilder.before(d -> d.type(t -> t.set(type)).message(message).block(block));
+                    dataExBuilder.before(d ->
+                    {
+                        d.type(t -> t.set(type)).message(message);
+
+                        if (attributes != null)
+                        {
+                            attributes.writeTo(d);
+                        }
+
+                        d.owner(o -> o.set(owner)).block(block);
+                    });
                 }
                 else if (kind == BLOCK_AFTER)
                 {
-                    dataExBuilder.after(d -> d.block(block));
+                    dataExBuilder.after(d -> d.owner(o -> o.set(owner)).block(block));
                 }
                 else
                 {

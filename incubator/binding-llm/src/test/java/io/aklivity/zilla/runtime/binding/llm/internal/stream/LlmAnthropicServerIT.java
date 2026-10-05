@@ -147,6 +147,56 @@ public class LlmAnthropicServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/anthropic.section.rejected.tool.result.cache.control.without.content/client",
+        "${app}/anthropic.section.rejected.tool.result.cache.control.without.content/server"})
+    public void shouldDecodeAnthropicSectionRejectedToolResultCacheControlWithoutContent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.section.tool.result.cache.control.part.first/client",
+        "${app}/anthropic.section.tool.result.cache.control.part.first/server"})
+    public void shouldDecodeAnthropicSectionToolResultCacheControlPartFirst() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.section.tool.result.cache.control.first/client",
+        "${app}/anthropic.section.tool.result.cache.control.first/server"})
+    public void shouldDecodeAnthropicSectionToolResultCacheControlFirst() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.section.tool.result.cache.control.part/client",
+        "${app}/anthropic.section.tool.result.cache.control.part/server"})
+    public void shouldDecodeAnthropicSectionToolResultCacheControlPart() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.section.tool.result.cache.control/client",
+        "${app}/anthropic.section.tool.result.cache.control/server"})
+    public void shouldDecodeAnthropicSectionToolResultCacheControl() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/anthropic.section.tool.definition.cache.control/client",
         "${app}/anthropic.section.tool.definition.cache.control/server"})
     public void shouldDecodeAnthropicSectionToolDefinitionCacheControl() throws Exception

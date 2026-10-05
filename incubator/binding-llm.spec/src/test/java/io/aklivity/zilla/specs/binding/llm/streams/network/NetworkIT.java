@@ -938,6 +938,51 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/anthropic.section.rejected.tool.result.cache.control.without.content/client",
+        "${net}/anthropic.section.rejected.tool.result.cache.control.without.content/server"})
+    public void shouldAnthropicSectionRejectedToolResultCacheControlWithoutContent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.section.tool.result.cache.control.part.first/client",
+        "${net}/anthropic.section.tool.result.cache.control.part.first/server"})
+    public void shouldAnthropicSectionToolResultCacheControlPartFirst() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.section.tool.result.cache.control.first/client",
+        "${net}/anthropic.section.tool.result.cache.control.first/server"})
+    public void shouldAnthropicSectionToolResultCacheControlFirst() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.section.tool.result.cache.control.part/client",
+        "${net}/anthropic.section.tool.result.cache.control.part/server"})
+    public void shouldAnthropicSectionToolResultCacheControlPart() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.section.tool.result.cache.control/client",
+        "${net}/anthropic.section.tool.result.cache.control/server"})
+    public void shouldAnthropicSectionToolResultCacheControl() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/anthropic.section.tool.definition.cache.control/client",
         "${net}/anthropic.section.tool.definition.cache.control/server"})
     public void shouldAnthropicSectionToolDefinitionCacheControl() throws Exception
