@@ -432,7 +432,9 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
         private int replyCredit()
         {
-            return Math.max(0, replyMax - (int) (replySeq - replyAck)) / (1 + replyPad);
+            return replyOutput.muted
+                ? Integer.MAX_VALUE
+                : Math.max(0, replyMax - (int) (replySeq - replyAck)) / (1 + replyPad);
         }
 
         private boolean replyAvailable()
@@ -817,7 +819,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             @Override
             public int credit()
             {
-                return muted ? Integer.MAX_VALUE : replyCredit();
+                return replyCredit();
             }
 
             @Override
@@ -2157,6 +2159,12 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             if (errorStatus == NO_ERROR)
             {
                 stream.muteReply();
+                decodeTraceId = traceId;
+
+                if (stageSlot != NO_SLOT)
+                {
+                    decodeStaged();
+                }
 
                 if (decodeSlot != NO_SLOT)
                 {

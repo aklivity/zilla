@@ -1105,4 +1105,14 @@ public class LlmAnthropicClientIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.streaming.abort.nocredit/client",
+        "${net}/anthropic.streaming.abort/server"})
+    public void shouldAbortAnthropicStreamingWithPartialUsageWithoutCredit() throws Exception
+    {
+        k3po.finish();
+    }
 }
