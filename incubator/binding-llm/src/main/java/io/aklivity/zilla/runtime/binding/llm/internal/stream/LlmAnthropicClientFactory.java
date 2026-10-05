@@ -2059,7 +2059,6 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             final long traceId = abort.traceId();
 
             cleanupDecodeSlot();
-            resetDecodeState();
 
             if (errorStatus != NO_ERROR)
             {
@@ -2070,6 +2069,8 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             {
                 stream.doAppAbort(traceId);
             }
+
+            resetDecodeState();
         }
 
         private void onNetWindow(
