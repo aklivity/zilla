@@ -16,76 +16,79 @@ package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
 final class LlmResponseOptions
 {
-    private final String[] document;
-    private final String[] known;
+    static final int NONE = -1;
+
+    private final String[] members;
+    private final String[] latest;
     private final String[] delivered;
-    private final String[] effective;
+    private final int[] order;
+
+    private int seen;
 
     LlmResponseOptions(
-        int count)
+        String... members)
     {
-        this.document = new String[count];
-        this.known = new String[count];
-        this.delivered = new String[count];
-        this.effective = new String[count];
+        this.members = members;
+        this.latest = new String[members.length];
+        this.delivered = new String[members.length];
+        this.order = new int[members.length];
+    }
+
+    String member(
+        int slot)
+    {
+        return members[slot];
+    }
+
+    String latest(
+        int slot)
+    {
+        return latest[slot];
     }
 
     void set(
         int slot,
-        String value)
+        String literal)
     {
-        document[slot] = value;
+        if (latest[slot] == null)
+        {
+            order[seen++] = slot;
+        }
+
+        latest[slot] = literal;
     }
 
-    void endDocument()
+    int next()
     {
-        for (int slot = 0; slot < document.length; slot++)
+        int next = NONE;
+
+        for (int index = 0; next == NONE && index < seen; index++)
         {
-            if (document[slot] != null)
+            final int slot = order[index];
+
+            if (!latest[slot].equals(delivered[slot]))
             {
-                known[slot] = document[slot];
-                document[slot] = null;
+                next = slot;
             }
         }
+
+        return next;
+    }
+
+    void deliver(
+        int slot)
+    {
+        delivered[slot] = latest[slot];
     }
 
     void clear()
     {
-        for (int slot = 0; slot < document.length; slot++)
+        for (int slot = 0; slot < latest.length; slot++)
         {
-            document[slot] = null;
-            known[slot] = null;
+            latest[slot] = null;
             delivered[slot] = null;
         }
-    }
 
-    String[] begin()
-    {
-        boolean present = false;
-
-        for (int slot = 0; slot < effective.length; slot++)
-        {
-            effective[slot] = document[slot] != null ? document[slot] : known[slot];
-            delivered[slot] = effective[slot];
-            present |= effective[slot] != null;
-        }
-
-        return present ? effective : null;
-    }
-
-    String[] end()
-    {
-        boolean changed = false;
-
-        for (int slot = 0; slot < effective.length; slot++)
-        {
-            final String current = document[slot] != null ? document[slot] : known[slot];
-            final boolean differs = current != null && !current.equals(delivered[slot]);
-
-            effective[slot] = differs ? current : null;
-            changed |= differs;
-        }
-
-        return changed ? effective : null;
+        seen = 0;
     }
 }

@@ -46,6 +46,8 @@ final class LlmAnthropicResponseEncoder
     private static final byte[] ERROR_MESSAGE = "\",\"message\":\"".getBytes(UTF_8);
     private static final byte[] ERROR_END = "\"}}\n\n".getBytes(UTF_8);
     private static final byte[] SSE_END = "\n\n".getBytes(UTF_8);
+    private static final int BLOCKS_MAX = 4096;
+    private static final String BLOCK_STOP_SEQUENCE = "stop_sequence";
     private static final byte[] OBJECT_START = "{".getBytes(UTF_8);
     private static final byte[] OBJECT_END = "}".getBytes(UTF_8);
     private static final byte[] MESSAGE_ID = "\"id\":\"".getBytes(UTF_8);
@@ -73,9 +75,11 @@ final class LlmAnthropicResponseEncoder
     private static final byte[] STOP_START = "{\"type\":\"content_block_stop\",\"index\":".getBytes(UTF_8);
     private static final byte[] STOP_END = "}".getBytes(UTF_8);
     private static final byte[] MESSAGE_DELTA = "{\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"".getBytes(UTF_8);
-    private static final byte[] MESSAGE_DELTA_USAGE = "\",\"stop_sequence\":null},".getBytes(UTF_8);
+    private static final byte[] STOP_SEQUENCE_MEMBER = "\",\"stop_sequence\":".getBytes(UTF_8);
+    private static final byte[] MESSAGE_DELTA_USAGE = "},".getBytes(UTF_8);
+    private static final byte[] NULL = "null".getBytes(UTF_8);
     private static final byte[] STOP_REASON = ",\"stop_reason\":\"".getBytes(UTF_8);
-    private static final byte[] STOP_SEQUENCE = "\",\"stop_sequence\":null,".getBytes(UTF_8);
+    private static final byte[] MEMBER_SEPARATOR = ",".getBytes(UTF_8);
     private static final byte[] USAGE_START = "\"usage\":{\"input_tokens\":".getBytes(UTF_8);
     private static final byte[] USAGE_CACHE_WRITE = ",\"cache_creation_input_tokens\":".getBytes(UTF_8);
     private static final byte[] USAGE_CACHE_READ = ",\"cache_read_input_tokens\":".getBytes(UTF_8);
@@ -96,6 +100,8 @@ final class LlmAnthropicResponseEncoder
     private final byte[] id;
     private final byte[] model;
     private final byte[] carry;
+    private final byte[] members;
+    private final byte[] stopSequence;
 
     private MutableDirectBuffer out;
     private int position;
@@ -105,6 +111,11 @@ final class LlmAnthropicResponseEncoder
     private boolean inputWritten;
     private int toolCalls;
     private int carried;
+    private int blocksLength;
+    private int stopSequenceLength;
+    private int blockFrom;
+    private boolean blockOpen;
+    private boolean blockStopSequence;
 
     LlmAnthropicResponseEncoder(
         boolean streaming,
@@ -115,6 +126,8 @@ final class LlmAnthropicResponseEncoder
         this.id = id != null ? escape(id) : null;
         this.model = model != null ? escape(model) : null;
         this.carry = new byte[3];
+        this.members = new byte[BLOCKS_MAX];
+        this.stopSequence = new byte[BLOCKS_MAX];
     }
 
     int begin(
@@ -200,6 +213,68 @@ final class LlmAnthropicResponseEncoder
         return position - offset;
     }
 
+    void blockBegin(
+        String block,
+        boolean render)
+    {
+        blockOpen = render;
+        blockStopSequence = render && BLOCK_STOP_SEQUENCE.equals(block);
+        blockFrom = blocksLength;
+
+        if (blockStopSequence)
+        {
+            stopSequenceLength = 0;
+        }
+        else if (render)
+        {
+            final byte[] name = escape(block);
+
+            blockOpen = blocksLength + name.length + 4 <= BLOCKS_MAX;
+
+            if (blockOpen)
+            {
+                members[blocksLength++] = ',';
+                members[blocksLength++] = '"';
+                System.arraycopy(name, 0, members, blocksLength, name.length);
+                blocksLength += name.length;
+                members[blocksLength++] = '"';
+                members[blocksLength++] = ':';
+            }
+        }
+    }
+
+    void blockData(
+        DirectBuffer payload,
+        int offset,
+        int length)
+    {
+        if (blockOpen)
+        {
+            if (blockStopSequence && stopSequenceLength + length <= BLOCKS_MAX)
+            {
+                payload.getBytes(offset, stopSequence, stopSequenceLength, length);
+                stopSequenceLength += length;
+            }
+            else if (!blockStopSequence && blocksLength + length <= BLOCKS_MAX)
+            {
+                payload.getBytes(offset, members, blocksLength, length);
+                blocksLength += length;
+            }
+            else
+            {
+                blocksLength = blockStopSequence ? blocksLength : blockFrom;
+                stopSequenceLength = blockStopSequence ? 0 : stopSequenceLength;
+                blockOpen = false;
+            }
+        }
+    }
+
+    void blockEnd()
+    {
+        blockOpen = false;
+        blockStopSequence = false;
+    }
+
     int end(
         MutableDirectBuffer out,
         int offset)
@@ -255,8 +330,11 @@ final class LlmAnthropicResponseEncoder
             put(EVENT_MESSAGE_DELTA);
             put(MESSAGE_DELTA);
             put(reason);
+            put(STOP_SEQUENCE_MEMBER);
+            putStopSequence();
             put(MESSAGE_DELTA_USAGE);
             putUsage(inputTokens, cacheWriteTokens, cacheReadTokens, outputTokens);
+            putBlocks();
             put(OBJECT_END);
             put(SSE_END);
             put(EVENT_MESSAGE_STOP);
@@ -266,8 +344,11 @@ final class LlmAnthropicResponseEncoder
             put(CONTENT_END);
             put(STOP_REASON);
             put(reason);
-            put(STOP_SEQUENCE);
+            put(STOP_SEQUENCE_MEMBER);
+            putStopSequence();
+            put(MEMBER_SEPARATOR);
             putUsage(inputTokens, cacheWriteTokens, cacheReadTokens, outputTokens);
+            putBlocks();
             put(OBJECT_END);
         }
 
@@ -558,6 +639,27 @@ final class LlmAnthropicResponseEncoder
     {
         out.putBytes(position, bytes);
         position += bytes.length;
+    }
+
+    private void putStopSequence()
+    {
+        if (stopSequenceLength > 0)
+        {
+            out.putBytes(position, stopSequence, 0, stopSequenceLength);
+            position += stopSequenceLength;
+            stopSequenceLength = 0;
+        }
+        else
+        {
+            put(NULL);
+        }
+    }
+
+    private void putBlocks()
+    {
+        out.putBytes(position, members, 0, blocksLength);
+        position += blocksLength;
+        blocksLength = 0;
     }
 
     private void putNumber(

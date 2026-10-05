@@ -21,12 +21,17 @@ write zilla:begin.ext ${llm:beginEx()
                            .typeId(zilla:id("llm"))
                            .dialect("anthropic")
                            .model("claude-3-opus-20240229")
-                           .extension(llm_anthropic:requestEx()
-                                          .temperature("0.5")
-                                          .build())
                            .build()}
 
 connected
+
+write option zilla:flags "init fin"
+write zilla:data.ext ${llm:dialectDataEx()
+                           .typeId(zilla:id("llm"))
+                           .block("temperature")
+                           .build()}
+write "0.5"
+write flush
 
 write zilla:data.ext ${llm:dataEx()
                           .typeId(zilla:id("llm"))

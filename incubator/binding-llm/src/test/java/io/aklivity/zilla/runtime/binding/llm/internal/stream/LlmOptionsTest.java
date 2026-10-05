@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
@@ -31,45 +30,59 @@ public class LlmOptionsTest
 
         assertEquals(0, options.slot("stream"));
         assertEquals(2, options.slot("top_p"));
+        assertEquals("temperature", options.member(1));
         assertEquals(LlmOptions.NONE, options.slot("model"));
         assertEquals(LlmOptions.NONE, options.slot("temp"));
     }
 
     @Test
-    public void shouldTrackPresence()
-    {
-        final LlmOptions options = new LlmOptions("stream", "temperature");
-
-        assertTrue(options.isEmpty());
-
-        options.set(1, "0.7");
-        options.set(1, "0.8");
-
-        assertFalse(options.isEmpty());
-        assertEquals("0.8", options.get(1));
-        assertNull(options.get(0));
-
-        options.clear();
-
-        assertTrue(options.isEmpty());
-        assertNull(options.get(1));
-    }
-
-    @Test
-    public void shouldRenderMembersInSlotOrder()
+    public void shouldKeepArrivalOrder()
     {
         final LlmOptions options = new LlmOptions("stream", "temperature", "stop");
 
         options.set(2, "[\"END\"]");
         options.set(1, "0.7");
 
-        assertEquals(",\"temperature\":0.7,\"stop\":[\"END\"]", new String(options.members(true), UTF_8));
-        assertEquals("\"temperature\":0.7,\"stop\":[\"END\"]", new String(options.members(false), UTF_8));
+        assertFalse(options.isEmpty());
+        assertEquals(2, options.next());
+        assertEquals("[\"END\"]", options.get(2));
+
+        options.remove(2);
+
+        assertEquals(1, options.next());
+        assertNull(options.get(2));
+
+        options.remove(1);
+
+        assertTrue(options.isEmpty());
+        assertEquals(LlmOptions.NONE, options.next());
     }
 
     @Test
-    public void shouldRenderNothingWhenEmpty()
+    public void shouldReplaceValueKeepingPosition()
     {
-        assertEquals(0, new LlmOptions("stream").members(true).length);
+        final LlmOptions options = new LlmOptions("a", "b");
+
+        options.set(1, "1");
+        options.set(0, "2");
+        options.set(1, "3");
+
+        assertEquals(1, options.next());
+        assertEquals("3", options.get(1));
+
+        options.remove(1);
+
+        assertEquals(0, options.next());
+    }
+
+    @Test
+    public void shouldIgnoreRemovalOfAbsentMember()
+    {
+        final LlmOptions options = new LlmOptions("a", "b");
+
+        options.set(0, "1");
+        options.remove(1);
+
+        assertEquals(0, options.next());
     }
 }

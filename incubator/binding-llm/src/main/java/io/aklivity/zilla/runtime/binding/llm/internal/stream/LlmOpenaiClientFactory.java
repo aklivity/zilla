@@ -51,10 +51,8 @@ import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmAbortExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmBeginExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmDataExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmEndExFW;
-import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmFlushExFW;
-import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmOpenaiRequestExFW;
-import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmOpenaiResponseExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmResetExFW;
+import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.LlmSectionDataExFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
@@ -110,6 +108,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
     private static final int KIND_TOOL_RESULT = 10;
     private static final int KIND_UNKNOWN = 11;
     private static final int KIND_DROPPED = 12;
+    private static final int KIND_DIALECT = 13;
 
     private static final int CONTENT_NONE = 0;
     private static final int CONTENT_STRING = 1;
@@ -125,7 +124,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
     private static final byte[] REQUEST_START = "{\"model\":\"".getBytes(UTF_8);
     private static final byte[] MODEL_END = "\"".getBytes(UTF_8);
-    private static final byte[] NO_OPTIONS = new byte[0];
+    private static final byte[] MEMBER_NAME_END = "\":".getBytes(UTF_8);
     private static final byte[] MESSAGES_REGION = ",\"messages\":[".getBytes(UTF_8);
     private static final byte[] MESSAGES_EMPTY = ",\"messages\":[]".getBytes(UTF_8);
     private static final byte[] MESSAGE_START = "{\"role\":\"".getBytes(UTF_8);
@@ -163,12 +162,6 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
     private final ChallengeFW challengeRO = new ChallengeFW();
     private final HttpBeginExFW httpBeginExRO = new HttpBeginExFW();
     private final LlmBeginExFW llmBeginExRO = new LlmBeginExFW();
-    private final LlmFlushExFW llmFlushExRO = new LlmFlushExFW();
-    private final LlmOpenaiRequestExFW requestExRO = new LlmOpenaiRequestExFW();
-    private final LlmOpenaiResponseExFW.Builder responseExRW = new LlmOpenaiResponseExFW.Builder();
-    private final OctetsFW responseExRO = new OctetsFW();
-    private final MutableDirectBufferEx responseExBuffer;
-    private final LlmOptions requestOptions = LlmOpenaiOptions.request();
     private final LlmDataExFW llmDataExRO = new LlmDataExFW();
     private final OctetsFW extensionRO = new OctetsFW();
     private final LlmSectionAttributes sectionAttributes = new LlmSectionAttributes();
@@ -212,7 +205,6 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
     {
         this.writeBuffer = context.writeBuffer();
         this.extBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
-        this.responseExBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.decodePool = context.bufferPool();
         this.encodePool = context.bufferPool().duplicate();
         this.decodeMax = decodePool.slotCapacity();
@@ -283,67 +275,10 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 affinity,
                 binding,
                 llmBeginEx.model().asString(),
-                llmBeginEx.dialect().asString(),
-                requestOptions(llmBeginEx.dialect().asString(), llmBeginEx.extension()))::onAppMessage;
+                llmBeginEx.dialect().asString())::onAppMessage;
         }
 
         return newStream;
-    }
-
-    private byte[] requestOptions(
-        String dialect,
-        OctetsFW extension)
-    {
-        byte[] members = NO_OPTIONS;
-
-        if (NAME.equals(dialect) && extension != null && extension.sizeof() > 0)
-        {
-            final LlmOpenaiRequestExFW requestEx = extension.get(requestExRO::tryWrap);
-
-            if (requestEx != null)
-            {
-                requestOptions.clear();
-                setOption(LlmOpenaiOptions.STREAM, requestEx.stream().asString());
-                setOption(LlmOpenaiOptions.STREAM_OPTIONS, requestEx.streamOptions().asString());
-                setOption(LlmOpenaiOptions.TEMPERATURE, requestEx.temperature().asString());
-                setOption(LlmOpenaiOptions.TOP_P, requestEx.topP().asString());
-                setOption(LlmOpenaiOptions.MAX_TOKENS, requestEx.maxTokens().asString());
-                setOption(LlmOpenaiOptions.SEED, requestEx.seed().asString());
-                setOption(LlmOpenaiOptions.STOP, requestEx.stop().asString());
-                members = requestOptions.members(true);
-            }
-        }
-
-        return members;
-    }
-
-    private void setOption(
-        int slot,
-        String literal)
-    {
-        if (literal != null)
-        {
-            requestOptions.set(slot, literal);
-        }
-    }
-
-    private OctetsFW responseEx(
-        String[] values)
-    {
-        OctetsFW octets = null;
-
-        if (values != null)
-        {
-            final LlmOpenaiResponseExFW responseEx = responseExRW.wrap(responseExBuffer, 0, responseExBuffer.capacity())
-                .created(values[LlmOpenaiOptions.RESPONSE_CREATED])
-                .serviceTier(values[LlmOpenaiOptions.RESPONSE_SERVICE_TIER])
-                .systemFingerprint(values[LlmOpenaiOptions.RESPONSE_SYSTEM_FINGERPRINT])
-                .build();
-
-            octets = responseExRO.wrap(responseEx.buffer(), responseEx.offset(), responseEx.limit());
-        }
-
-        return octets;
     }
 
     private static String header(
@@ -473,7 +408,6 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         private final LlmBindingConfig binding;
         private final String model;
         private final String dialect;
-        private final byte[] beginOptions;
         private final LlmOpenaiHttpStream http;
         private final LlmOpenaiResponseExtractor extractor;
         private final LlmOpenaiSectionSink sink;
@@ -506,8 +440,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             long affinity,
             LlmBindingConfig binding,
             String model,
-            String dialect,
-            byte[] beginOptions)
+            String dialect)
         {
             this.app = app;
             this.originId = originId;
@@ -520,7 +453,6 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             this.binding = binding;
             this.model = model;
             this.dialect = dialect;
-            this.beginOptions = beginOptions;
             this.extractor = new LlmOpenaiResponseExtractor();
             this.replyFrames = new ArrayDeque<>();
 
@@ -623,14 +555,23 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 if (Flags.hasInit(flags))
                 {
                     final LlmDataExFW llmDataEx = data.extension().get(llmDataExRO::tryWrap);
-                    sectionAttributes.readFrom(llmDataEx);
 
-                    final String type = llmDataEx != null ? llmDataEx.type().asString() : null;
+                    if (llmDataEx != null && llmDataEx.kind() == LlmDataExFW.KIND_DIALECT)
+                    {
+                        http.doEncodeDialectBegin(llmDataEx.dialect().block().asString());
+                    }
+                    else
+                    {
+                        final LlmSectionDataExFW section = llmDataEx != null ? llmDataEx.section() : null;
+                        sectionAttributes.readFrom(section);
 
-                    http.doEncodeSectionBegin(
-                        sectionKind(type),
-                        llmDataEx != null ? llmDataEx.message() : NO_MESSAGE,
-                        sectionAttributes.toolCallId());
+                        final String type = section != null ? section.type().asString() : null;
+
+                        http.doEncodeSectionBegin(
+                            sectionKind(type),
+                            section != null ? section.message() : NO_MESSAGE,
+                            sectionAttributes.toolCallId());
+                    }
                 }
 
                 final OctetsFW payload = data.payload();
@@ -679,13 +620,6 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             FlushFW flush)
         {
             final long traceId = flush.traceId();
-
-            final LlmFlushExFW llmFlushEx = flush.extension().get(llmFlushExRO::tryWrap);
-
-            if (llmFlushEx != null)
-            {
-                http.endOptions = requestOptions(dialect, llmFlushEx.extension());
-            }
 
             http.doEncodeRequestEnd();
             http.flushEncode(traceId);
@@ -757,15 +691,15 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         {
             if (!LlmState.replyOpening(state))
             {
-                doAppBegin(traceId, extractor.model(), extractor.id(), responseEx(extractor.beginOptions()));
+                doAppBegin(traceId, extractor.model(), extractor.id());
+                queueResponseBlocks();
             }
         }
 
         private void doAppBegin(
             long traceId,
             String servedModel,
-            String servedId,
-            OctetsFW responseEx)
+            String servedId)
         {
             state = LlmState.openingReply(state);
 
@@ -781,11 +715,6 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             if (servedId != null)
             {
                 builder.id(servedId);
-            }
-
-            if (responseEx != null)
-            {
-                builder.extensionLength(responseEx.sizeof()).extension(responseEx);
             }
 
             final LlmBeginExFW llmBeginEx = builder.build();
@@ -807,8 +736,26 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             state = LlmState.openReply(state);
         }
 
+        private void queueResponseBlocks()
+        {
+            final LlmResponseOptions options = extractor.options();
+
+            int slot = options.next();
+            while (slot != LlmResponseOptions.NONE)
+            {
+                final byte[] literal = options.latest(slot).getBytes(UTF_8);
+
+                queueReplyFrame(options.member(slot), true, NO_MESSAGE, null, null, Flags.COMPLETE,
+                    new UnsafeBufferEx(literal), 0, literal.length);
+
+                options.deliver(slot);
+                slot = options.next();
+            }
+        }
+
         private void queueReplyFrame(
             String type,
+            boolean dialect,
             int message,
             String toolCallId,
             String toolName,
@@ -838,7 +785,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                     replyEncodeSlotOffset += length;
                 }
 
-                replyFrames.add(new ReplyFrame(type, message, toolCallId, toolName, flags, slotOffset, length));
+                replyFrames.add(new ReplyFrame(type, dialect, message, toolCallId, toolName, flags, slotOffset, length));
 
                 drainReplyFrames(traceId);
             }
@@ -897,18 +844,28 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             if (header != null)
             {
                 final LlmDataExFW.Builder dataExBuilder = llmDataExRW.wrap(extBuffer, 0, extBuffer.capacity())
-                    .typeId(llmTypeId)
-                    .type(header.type)
-                    .message(header.message);
+                    .typeId(llmTypeId);
 
-                if (header.toolName != null)
+                if (header.dialect)
                 {
-                    dataExBuilder.attributesItem(a -> a.name(LlmSectionAttributes.TOOL_NAME).value(header.toolName));
+                    dataExBuilder.dialect(d -> d.block(header.type));
                 }
-
-                if (header.toolCallId != null)
+                else
                 {
-                    dataExBuilder.attributesItem(a -> a.name(LlmSectionAttributes.TOOL_CALL_ID).value(header.toolCallId));
+                    dataExBuilder.section(x ->
+                    {
+                        x.type(header.type).message(header.message);
+
+                        if (header.toolName != null)
+                        {
+                            x.attributesItem(a -> a.name(LlmSectionAttributes.TOOL_NAME).value(header.toolName));
+                        }
+
+                        if (header.toolCallId != null)
+                        {
+                            x.attributesItem(a -> a.name(LlmSectionAttributes.TOOL_CALL_ID).value(header.toolCallId));
+                        }
+                    });
                 }
 
                 final LlmDataExFW llmDataEx = dataExBuilder.build();
@@ -959,7 +916,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 int offset,
                 int length)
             {
-                queueReplyFrame(type, message, toolCallId, toolName, flags, buffer, offset, length);
+                queueReplyFrame(type, false, message, toolCallId, toolName, flags, buffer, offset, length);
             }
         }
 
@@ -983,22 +940,18 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 else
                 {
                     doAppBeginSections(traceId);
+                    queueResponseBlocks();
+                }
 
+                if (replyAvailable() && !extractor.failed())
+                {
                     state = LlmState.closeReply(state);
 
-                    final OctetsFW responseEx = responseEx(extractor.endOptions());
-
-                    final LlmEndExFW.Builder endExBuilder = llmEndExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                    final LlmEndExFW llmEndEx = llmEndExRW.wrap(extBuffer, 0, extBuffer.capacity())
                         .typeId(llmTypeId)
                         .usage(u -> extractor.populateUsage(u))
-                        .finishReason(extractor.finishReason());
-
-                    if (responseEx != null)
-                    {
-                        endExBuilder.extensionLength(responseEx.sizeof()).extension(responseEx);
-                    }
-
-                    final LlmEndExFW llmEndEx = endExBuilder.build();
+                        .finishReason(extractor.finishReason())
+                        .build();
 
                     final EndFW end = endRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                         .originId(originId)
@@ -1174,6 +1127,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
     private static final class ReplyFrame
     {
         private final String type;
+        private final boolean dialect;
         private final int message;
         private final String toolCallId;
         private final String toolName;
@@ -1184,6 +1138,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
         private ReplyFrame(
             String type,
+            boolean dialect,
             int message,
             String toolCallId,
             String toolName,
@@ -1192,6 +1147,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             int length)
         {
             this.type = type;
+            this.dialect = dialect;
             this.message = message;
             this.toolCallId = toolCallId;
             this.toolName = toolName;
@@ -1261,7 +1217,6 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         private int decodeSlotOffset;
         private LlmContentDecoder decoder;
         private boolean streaming;
-        private byte[] endOptions = NO_OPTIONS;
         private int errorStatus = NO_ERROR;
         private boolean errorBodyDropped;
         private long decodeTraceId;
@@ -1339,8 +1294,42 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             put(REQUEST_START);
             putEscaped(stream.model);
             put(MODEL_END);
-            put(stream.beginOptions);
             encodeHold = 0;
+        }
+
+        private void doEncodeDialectBegin(
+            String block)
+        {
+            sectionOpen = false;
+            sectionArrayPart = false;
+            translated = false;
+
+            if (NAME.equals(stream.dialect))
+            {
+                sectionKind = KIND_DIALECT;
+                closeMessage();
+
+                if (messagesOpened && !messagesClosed)
+                {
+                    putByte(']');
+                    messagesClosed = true;
+                }
+
+                if (toolsOpened && !toolsClosed)
+                {
+                    putByte(']');
+                    toolsClosed = true;
+                }
+
+                putByte(',');
+                putByte('"');
+                putEscaped(block);
+                put(MEMBER_NAME_END);
+            }
+            else
+            {
+                sectionKind = KIND_DROPPED;
+            }
         }
 
         private void doEncodeSectionBegin(
@@ -1666,7 +1655,6 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                     messagesClosed = true;
                 }
 
-                put(endOptions);
                 putByte('}');
                 encodeHold = NOT_HELD;
                 state = LlmState.closingInitial(state);

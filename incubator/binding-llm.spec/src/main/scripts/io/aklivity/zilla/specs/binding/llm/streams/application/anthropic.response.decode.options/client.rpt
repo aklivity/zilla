@@ -40,9 +40,6 @@ read zilla:begin.ext ${llm:matchBeginEx()
                            .dialect("anthropic")
                            .model("claude-3-opus-20240229")
                            .id("msg_01")
-                           .extension(llm_anthropic:responseEx()
-                                          .containerId("container_1")
-                                          .build())
                            .build()}
 
 read option zilla:flags "init fin"
@@ -53,14 +50,18 @@ read zilla:data.ext ${llm:matchDataEx()
                           .build()}
 read "Hello! How can I help you today?"
 
+read option zilla:flags "init fin"
+read zilla:data.ext ${llm:matchDialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .block("stop_sequence")
+                          .build()}
+read "\"END\""
+
 read zilla:end.ext ${llm:matchEndEx()
                             .typeId(zilla:id("llm"))
                             .inputTokens(25)
                             .outputTokens(15)
                             .finishReason("stop")
-                            .extension(llm_anthropic:responseEx()
-                                           .stopSequence("END")
-                                           .build())
                             .build()}
 
 read closed

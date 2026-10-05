@@ -41,9 +41,6 @@ write zilla:begin.ext ${llm:beginEx()
                            .dialect("anthropic")
                            .model("claude-3-opus-20240229")
                            .id("msg_01")
-                           .extension(llm_anthropic:responseEx()
-                                          .containerId("container_1")
-                                          .build())
                            .build()}
 write flush
 
@@ -56,14 +53,19 @@ write zilla:data.ext ${llm:dataEx()
 write "Hello! How can I help you today?"
 write flush
 
+write option zilla:flags "init fin"
+write zilla:data.ext ${llm:dialectDataEx()
+                           .typeId(zilla:id("llm"))
+                           .block("stop_sequence")
+                           .build()}
+write "\"END\""
+write flush
+
 write zilla:end.ext ${llm:endEx()
                             .typeId(zilla:id("llm"))
                             .inputTokens(25)
                             .outputTokens(15)
                             .finishReason("stop")
-                            .extension(llm_anthropic:responseEx()
-                                           .stopSequence("END")
-                                           .build())
                             .build()}
 
 write close

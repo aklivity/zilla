@@ -65,7 +65,7 @@ final class LlmOpenaiResponseExtractor implements JsonTransform
 
     LlmOpenaiResponseExtractor()
     {
-        this.responseOptions = new LlmResponseOptions(LlmOpenaiOptions.RESPONSE_COUNT);
+        this.responseOptions = LlmOpenaiOptions.response();
         this.path = new StringBuilder();
         this.pathLengthAt = new int[16];
         this.mediator = new Mediator();
@@ -86,14 +86,9 @@ final class LlmOpenaiResponseExtractor implements JsonTransform
         return errorMessage;
     }
 
-    String[] beginOptions()
+    LlmResponseOptions options()
     {
-        return responseOptions.begin();
-    }
-
-    String[] endOptions()
-    {
-        return responseOptions.end();
+        return responseOptions;
     }
 
     String id()
@@ -347,10 +342,10 @@ final class LlmOpenaiResponseExtractor implements JsonTransform
             documentFinishReason = source.getString();
             break;
         case "service_tier":
-            responseOptions.set(LlmOpenaiOptions.RESPONSE_SERVICE_TIER, source.getString());
+            responseOptions.set(LlmOpenaiOptions.RESPONSE_SERVICE_TIER, LlmJsonLiteral.quote(source.getString()));
             break;
         case "system_fingerprint":
-            responseOptions.set(LlmOpenaiOptions.RESPONSE_SYSTEM_FINGERPRINT, source.getString());
+            responseOptions.set(LlmOpenaiOptions.RESPONSE_SYSTEM_FINGERPRINT, LlmJsonLiteral.quote(source.getString()));
             break;
         default:
             break;
@@ -398,8 +393,6 @@ final class LlmOpenaiResponseExtractor implements JsonTransform
         id = documentId != null ? documentId : id;
         model = documentModel != null ? documentModel : model;
         finishReason = documentFinishReason != null ? documentFinishReason : finishReason;
-        responseOptions.endDocument();
-
         clearDocument();
     }
 

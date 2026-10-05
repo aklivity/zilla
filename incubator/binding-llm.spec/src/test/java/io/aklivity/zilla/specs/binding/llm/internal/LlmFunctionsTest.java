@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.specs.binding.llm.internal;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -33,6 +32,7 @@ import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmBeginExFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmDataExFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmEndExFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmResetExFW;
+import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmSectionDataExFW;
 
 public class LlmFunctionsTest
 {
@@ -120,7 +120,7 @@ public class LlmFunctionsTest
             .extension("ext")
             .build();
 
-        LlmDataExFW dataEx = new LlmDataExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
+        LlmSectionDataExFW dataEx = new LlmDataExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length).section();
         assertEquals("user-text", dataEx.type().asString());
         assertEquals(2, dataEx.message());
         assertEquals(Map.of("media-type", "image/png", "source", "url"), attributesOf(dataEx));
@@ -137,7 +137,7 @@ public class LlmFunctionsTest
             .extension("ext")
             .build();
 
-        LlmDataExFW dataEx = new LlmDataExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
+        LlmSectionDataExFW dataEx = new LlmDataExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length).section();
         assertEquals(Map.of("tool-call-id", "call_1"), attributesOf(dataEx));
         assertEquals("ext", dataEx.extension().buffer()
             .getStringWithoutLengthUtf8(dataEx.extension().offset(), dataEx.extensionLength()));
@@ -153,7 +153,7 @@ public class LlmFunctionsTest
             .attribute("tool-call-id", "call_1")
             .build();
 
-        LlmDataExFW dataEx = new LlmDataExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
+        LlmSectionDataExFW dataEx = new LlmDataExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length).section();
         assertEquals(Map.of("tool-call-id", "call_1"), attributesOf(dataEx));
         assertEquals(3, dataEx.extensionLength());
     }
@@ -179,7 +179,8 @@ public class LlmFunctionsTest
         new LlmDataExFW.Builder()
             .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
-            .type("message")
+            .section(s -> s
+                .type("message"))
             .build();
 
         assertNotNull(matcher.match(byteBuf));
@@ -198,7 +199,8 @@ public class LlmFunctionsTest
         new LlmDataExFW.Builder()
             .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
-            .type("message")
+            .section(s -> s
+                .type("message"))
             .build();
 
         assertNotNull(matcher.match(byteBuf));
@@ -219,6 +221,7 @@ public class LlmFunctionsTest
         new LlmDataExFW.Builder()
             .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
+            .section(s -> s.message(-1))
             .build();
 
         assertNotNull(matcher.match(byteBuf));
@@ -236,6 +239,7 @@ public class LlmFunctionsTest
         new LlmDataExFW.Builder()
             .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
+            .section(s -> s.message(-1))
             .build();
 
         assertThrows(Exception.class, () -> matcher.match(byteBuf));
@@ -254,7 +258,8 @@ public class LlmFunctionsTest
         new LlmDataExFW.Builder()
             .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
-            .type("other")
+            .section(s -> s
+                .type("other"))
             .build();
 
         assertThrows(Exception.class, () -> matcher.match(byteBuf));
@@ -273,7 +278,8 @@ public class LlmFunctionsTest
         new LlmDataExFW.Builder()
             .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
             .typeId(0)
-            .type("message")
+            .section(s -> s
+                .type("message"))
             .build();
 
         assertThrows(Exception.class, () -> matcher.match(byteBuf));
@@ -361,7 +367,7 @@ public class LlmFunctionsTest
             .type("user-text")
             .build();
 
-        LlmDataExFW dataEx = new LlmDataExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
+        LlmSectionDataExFW dataEx = new LlmDataExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length).section();
         assertEquals(-1, dataEx.message());
         assertEquals(Map.of(), attributesOf(dataEx));
         assertNull(dataEx.extension());
@@ -453,13 +459,13 @@ public class LlmFunctionsTest
         BytesMatcher matcher = LlmFunctions.matchBeginEx()
             .typeId(0)
             .dialect("openai")
-            .extension("ext".getBytes(UTF_8))
+            .extension("ext")
             .build();
 
         ByteBuffer byteBuf = ByteBuffer.wrap(LlmFunctions.beginEx()
             .typeId(0)
             .dialect("openai")
-            .extension("ext".getBytes(UTF_8))
+            .extension("ext")
             .build());
 
         assertNotNull(matcher.match(byteBuf));
@@ -488,13 +494,13 @@ public class LlmFunctionsTest
         BytesMatcher matcher = LlmFunctions.matchBeginEx()
             .typeId(0)
             .dialect("openai")
-            .extension("a".getBytes(UTF_8))
+            .extension("a")
             .build();
 
         ByteBuffer byteBuf = ByteBuffer.wrap(LlmFunctions.beginEx()
             .typeId(0)
             .dialect("openai")
-            .extension("b".getBytes(UTF_8))
+            .extension("b")
             .build());
 
         assertThrows(Exception.class, () -> matcher.match(byteBuf));
@@ -1472,43 +1478,6 @@ public class LlmFunctionsTest
     }
 
     @Test
-    public void shouldMatchBeginExWithBinaryExtension() throws Exception
-    {
-        final byte[] overlay = LlmOpenaiFunctions.requestEx().temperature("0.7").maxTokens("100").build();
-
-        final byte[] beginEx = LlmFunctions.beginEx()
-            .typeId(0)
-            .dialect("openai")
-            .model("gpt-4")
-            .extension(overlay)
-            .build();
-
-        final BytesMatcher matcher = LlmFunctions.matchBeginEx()
-            .typeId(0)
-            .extension(overlay)
-            .build();
-
-        assertNotNull(matcher.match(ByteBuffer.wrap(beginEx)));
-    }
-
-    @Test
-    public void shouldFailMatchBeginExWithDifferentBinaryExtension() throws Exception
-    {
-        final byte[] beginEx = LlmFunctions.beginEx()
-            .typeId(0)
-            .dialect("openai")
-            .extension(LlmOpenaiFunctions.requestEx().temperature("0.7").build())
-            .build();
-
-        final BytesMatcher matcher = LlmFunctions.matchBeginEx()
-            .typeId(0)
-            .extension(LlmOpenaiFunctions.requestEx().temperature("0.9").build())
-            .build();
-
-        assertThrows(Exception.class, () -> matcher.match(ByteBuffer.wrap(beginEx)));
-    }
-
-    @Test
     public void shouldMatchBeginExWithoutBinaryExtension() throws Exception
     {
         final byte[] beginEx = LlmFunctions.beginEx()
@@ -1525,94 +1494,88 @@ public class LlmFunctionsTest
     }
 
     @Test
-    public void shouldGenerateAndMatchFlushEx() throws Exception
+    public void shouldGenerateAndMatchDialectDataEx() throws Exception
     {
-        final byte[] overlay = LlmOpenaiFunctions.requestEx().seed("42").stop("[\"END\"]").build();
-
-        final byte[] flushEx = LlmFunctions.flushEx()
+        final byte[] dataEx = LlmFunctions.dialectDataEx()
             .typeId(0)
-            .extension(overlay)
+            .block("response_format")
             .build();
 
-        final BytesMatcher matcher = LlmFunctions.matchFlushEx()
+        final BytesMatcher matcher = LlmFunctions.matchDialectDataEx()
             .typeId(0)
-            .extension(overlay)
+            .block("response_format")
             .build();
 
-        final ByteBuffer byteBuf = ByteBuffer.wrap(flushEx);
+        final ByteBuffer byteBuf = ByteBuffer.wrap(dataEx);
         assertNotNull(matcher.match(byteBuf));
-        assertEquals(flushEx.length, byteBuf.position());
+        assertEquals(dataEx.length, byteBuf.position());
     }
 
     @Test
-    public void shouldFailMatchFlushExMismatch() throws Exception
+    public void shouldFailMatchDialectDataExBlockMismatch() throws Exception
     {
-        final byte[] flushEx = LlmFunctions.flushEx()
+        final byte[] dataEx = LlmFunctions.dialectDataEx()
             .typeId(0)
-            .extension(LlmOpenaiFunctions.requestEx().seed("42").build())
+            .block("response_format")
             .build();
 
-        final BytesMatcher matcher = LlmFunctions.matchFlushEx()
+        final BytesMatcher matcher = LlmFunctions.matchDialectDataEx()
             .typeId(0)
-            .extension(LlmOpenaiFunctions.requestEx().seed("43").build())
+            .block("output_config")
             .build();
 
-        assertThrows(Exception.class, () -> matcher.match(ByteBuffer.wrap(flushEx)));
+        assertThrows(Exception.class, () -> matcher.match(ByteBuffer.wrap(dataEx)));
     }
 
     @Test
-    public void shouldMatchFlushExExtensionNull() throws Exception
+    public void shouldMatchDialectDataExWithoutConstraints() throws Exception
     {
-        final byte[] flushEx = LlmFunctions.flushEx()
+        final byte[] dataEx = LlmFunctions.dialectDataEx()
             .typeId(0)
+            .block("n")
             .build();
 
-        final BytesMatcher matcher = LlmFunctions.matchFlushEx()
-            .typeId(0)
-            .extensionNull()
-            .build();
-
-        assertNotNull(matcher.match(ByteBuffer.wrap(flushEx)));
+        assertNotNull(LlmFunctions.matchDialectDataEx().build().match(ByteBuffer.wrap(dataEx)));
     }
 
     @Test
-    public void shouldGenerateAndMatchEndExWithExtension() throws Exception
+    public void shouldNotMatchSectionAsDialectDataEx() throws Exception
     {
-        final byte[] overlay = LlmOpenaiFunctions.responseEx().serviceTier("default").build();
-
-        final byte[] endEx = LlmFunctions.endEx()
+        final byte[] dataEx = LlmFunctions.dataEx()
             .typeId(0)
-            .finishReason("stop")
-            .extension(overlay)
+            .type("user-text")
             .build();
 
-        final BytesMatcher matcher = LlmFunctions.matchEndEx()
-            .typeId(0)
-            .finishReason("stop")
-            .extension(overlay)
-            .build();
-
-        assertNotNull(matcher.match(ByteBuffer.wrap(endEx)));
+        assertThrows(Exception.class, () -> LlmFunctions.matchDialectDataEx().build().match(ByteBuffer.wrap(dataEx)));
     }
 
     @Test
-    public void shouldMatchEndExExtensionNull() throws Exception
+    public void shouldNotMatchDialectAsSectionDataEx() throws Exception
     {
-        final byte[] endEx = LlmFunctions.endEx()
+        final byte[] dataEx = LlmFunctions.dialectDataEx()
             .typeId(0)
-            .finishReason("stop")
+            .block("n")
             .build();
 
-        final BytesMatcher matcher = LlmFunctions.matchEndEx()
+        assertThrows(Exception.class, () -> LlmFunctions.matchDataEx().build().match(ByteBuffer.wrap(dataEx)));
+    }
+
+    @Test
+    public void shouldGenerateDialectDataExAsDialectKind()
+    {
+        final byte[] bytes = LlmFunctions.dialectDataEx()
             .typeId(0)
-            .extensionNull()
+            .block("logprobs")
             .build();
 
-        assertNotNull(matcher.match(ByteBuffer.wrap(endEx)));
+        final LlmDataExFW dataEx = new LlmDataExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
+
+        assertEquals(LlmDataExFW.KIND_DIALECT, dataEx.kind());
+        assertEquals("logprobs", dataEx.dialect().block().asString());
     }
 
     private static Map<String, String> attributesOf(
-        LlmDataExFW dataEx)
+        LlmSectionDataExFW dataEx)
     {
         final Map<String, String> attributes = new HashMap<>();
         dataEx.attributes().forEach(a -> attributes.put(a.name().asString(), a.value().asString()));

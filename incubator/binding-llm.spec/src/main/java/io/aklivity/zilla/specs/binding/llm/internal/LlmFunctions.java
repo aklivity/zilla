@@ -16,7 +16,6 @@ package io.aklivity.zilla.specs.binding.llm.internal;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -32,7 +31,6 @@ import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmBeginExFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmDataExFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmEndExFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmErrorFW;
-import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmFlushExFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmResetExFW;
 
 public final class LlmFunctions
@@ -62,15 +60,15 @@ public final class LlmFunctions
     }
 
     @Function
-    public static LlmFlushExBuilder flushEx()
+    public static LlmDialectDataExBuilder dialectDataEx()
     {
-        return new LlmFlushExBuilder();
+        return new LlmDialectDataExBuilder();
     }
 
     @Function
-    public static LlmFlushExMatcherBuilder matchFlushEx()
+    public static LlmDialectDataExMatcherBuilder matchDialectDataEx()
     {
-        return new LlmFlushExMatcherBuilder();
+        return new LlmDialectDataExMatcherBuilder();
     }
 
     @Function
@@ -155,9 +153,10 @@ public final class LlmFunctions
         }
 
         public LlmBeginExBuilder extension(
-            byte[] extension)
+            String extension)
         {
-            beginExRW.extensionLength(extension.length).extension(e -> e.set(extension));
+            final byte[] bytes = extension.getBytes(StandardCharsets.UTF_8);
+            beginExRW.extensionLength(bytes.length).extension(e -> e.set(bytes));
             return this;
         }
 
@@ -181,7 +180,7 @@ public final class LlmFunctions
         private String contentType;
         private String model;
         private String id;
-        private byte[] extension;
+        private String extension;
         private boolean extensionNull;
 
         public LlmBeginExMatcherBuilder typeId(
@@ -220,7 +219,7 @@ public final class LlmFunctions
         }
 
         public LlmBeginExMatcherBuilder extension(
-            byte[] extension)
+            String extension)
         {
             this.extension = extension;
             return this;
@@ -296,8 +295,8 @@ public final class LlmFunctions
         private boolean matchExtension(
             LlmBeginExFW beginEx)
         {
-            final byte[] actual = asBytes(beginEx.extension());
-            return extensionNull ? actual == null : extension == null || Arrays.equals(extension, actual);
+            final String actual = asString(beginEx.extension());
+            return extensionNull ? actual == null : extension == null || extension.equals(actual);
         }
     }
 
@@ -307,6 +306,8 @@ public final class LlmFunctions
         private final LlmDataExFW.Builder dataExRW;
         private final Map<String, String> attributes;
 
+        private String type;
+        private Integer message;
         private String extension;
 
         private LlmDataExBuilder()
@@ -326,14 +327,14 @@ public final class LlmFunctions
         public LlmDataExBuilder type(
             String type)
         {
-            dataExRW.type(type);
+            this.type = type;
             return this;
         }
 
         public LlmDataExBuilder message(
             int message)
         {
-            dataExRW.message(message);
+            this.message = message;
             return this;
         }
 
@@ -354,15 +355,63 @@ public final class LlmFunctions
 
         public byte[] build()
         {
-            attributes.forEach((name, value) -> dataExRW.attributesItem(a -> a.name(name).value(value)));
-
-            if (extension != null)
+            dataExRW.section(s ->
             {
-                final byte[] bytes = extension.getBytes(StandardCharsets.UTF_8);
-                dataExRW.extensionLength(bytes.length).extension(e -> e.set(bytes));
-            }
+                if (type != null)
+                {
+                    s.type(type);
+                }
+
+                if (message != null)
+                {
+                    s.message(message);
+                }
+
+                attributes.forEach((name, value) -> s.attributesItem(a -> a.name(name).value(value)));
+
+                if (extension != null)
+                {
+                    final byte[] bytes = extension.getBytes(StandardCharsets.UTF_8);
+                    s.extensionLength(bytes.length).extension(e -> e.set(bytes));
+                }
+            });
 
             final LlmDataExFW dataEx = dataExRW.build();
+            final byte[] array = new byte[dataEx.sizeof()];
+            dataEx.buffer().getBytes(dataEx.offset(), array);
+            return array;
+        }
+    }
+
+    public static final class LlmDialectDataExBuilder
+    {
+        private final LlmDataExFW.Builder dataExRW;
+
+        private String block;
+
+        private LlmDialectDataExBuilder()
+        {
+            final MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[1024]);
+            this.dataExRW = new LlmDataExFW.Builder().wrap(writeBuffer, 0, writeBuffer.capacity());
+        }
+
+        public LlmDialectDataExBuilder typeId(
+            int typeId)
+        {
+            dataExRW.typeId(typeId);
+            return this;
+        }
+
+        public LlmDialectDataExBuilder block(
+            String block)
+        {
+            this.block = block;
+            return this;
+        }
+
+        public byte[] build()
+        {
+            final LlmDataExFW dataEx = dataExRW.dialect(d -> d.block(block)).build();
             final byte[] array = new byte[dataEx.sizeof()];
             dataEx.buffer().getBytes(dataEx.offset(), array);
             return array;
@@ -460,6 +509,7 @@ public final class LlmFunctions
             final LlmDataExFW dataEx = dataExRO.tryWrap(bufferRO, byteBuf.position(), byteBuf.capacity());
 
             if (dataEx != null &&
+                dataEx.kind() == LlmDataExFW.KIND_SECTION &&
                 matchTypeId(dataEx) &&
                 matchType(dataEx) &&
                 matchMessage(dataEx) &&
@@ -482,21 +532,21 @@ public final class LlmFunctions
         private boolean matchType(
             LlmDataExFW dataEx)
         {
-            return typeNull ? dataEx.type().asString() == null
-                : type == null || type.equals(dataEx.type().asString());
+            return typeNull ? dataEx.section().type().asString() == null
+                : type == null || type.equals(dataEx.section().type().asString());
         }
 
         private boolean matchMessage(
             LlmDataExFW dataEx)
         {
-            return message == null || message == dataEx.message();
+            return message == null || message == dataEx.section().message();
         }
 
         private boolean matchAttributes(
             LlmDataExFW dataEx)
         {
             final Map<String, String> actual = new LinkedHashMap<>();
-            dataEx.attributes().forEach(a -> actual.put(a.name().asString(), a.value().asString()));
+            dataEx.section().attributes().forEach(a -> actual.put(a.name().asString(), a.value().asString()));
 
             return attributesNull ? actual.isEmpty() : attributes == null || attributes.equals(actual);
         }
@@ -504,71 +554,31 @@ public final class LlmFunctions
         private boolean matchExtension(
             LlmDataExFW dataEx)
         {
-            final String actual = asString(dataEx.extension());
+            final String actual = asString(dataEx.section().extension());
             return extensionNull ? actual == null : extension == null || extension.equals(actual);
         }
     }
 
-    public static final class LlmFlushExBuilder
-    {
-        private final LlmFlushExFW.Builder flushExRW;
-
-        private LlmFlushExBuilder()
-        {
-            MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[1024 * 8]);
-            this.flushExRW = new LlmFlushExFW.Builder().wrap(writeBuffer, 0, writeBuffer.capacity());
-        }
-
-        public LlmFlushExBuilder typeId(
-            int typeId)
-        {
-            flushExRW.typeId(typeId);
-            return this;
-        }
-
-        public LlmFlushExBuilder extension(
-            byte[] extension)
-        {
-            flushExRW.extensionLength(extension.length).extension(e -> e.set(extension));
-            return this;
-        }
-
-        public byte[] build()
-        {
-            final LlmFlushExFW flushEx = flushExRW.build();
-            final byte[] array = new byte[flushEx.sizeof()];
-            flushEx.buffer().getBytes(flushEx.offset(), array);
-            return array;
-        }
-    }
-
-    public static final class LlmFlushExMatcherBuilder
+    public static final class LlmDialectDataExMatcherBuilder
     {
         private final DirectBufferEx bufferRO = new UnsafeBufferEx();
 
-        private final LlmFlushExFW flushExRO = new LlmFlushExFW();
+        private final LlmDataExFW dataExRO = new LlmDataExFW();
 
         private Integer typeId;
-        private byte[] extension;
-        private boolean extensionNull;
+        private String block;
 
-        public LlmFlushExMatcherBuilder typeId(
+        public LlmDialectDataExMatcherBuilder typeId(
             int typeId)
         {
             this.typeId = typeId;
             return this;
         }
 
-        public LlmFlushExMatcherBuilder extension(
-            byte[] extension)
+        public LlmDialectDataExMatcherBuilder block(
+            String block)
         {
-            this.extension = extension;
-            return this;
-        }
-
-        public LlmFlushExMatcherBuilder extensionNull()
-        {
-            this.extensionNull = true;
+            this.block = block;
             return this;
         }
 
@@ -577,7 +587,7 @@ public final class LlmFunctions
             return this::match;
         }
 
-        private LlmFlushExFW match(
+        private LlmDataExFW match(
             ByteBuffer byteBuf) throws Exception
         {
             if (!byteBuf.hasRemaining())
@@ -586,30 +596,18 @@ public final class LlmFunctions
             }
 
             bufferRO.wrap(byteBuf);
-            final LlmFlushExFW flushEx = flushExRO.tryWrap(bufferRO, byteBuf.position(), byteBuf.capacity());
+            final LlmDataExFW dataEx = dataExRO.tryWrap(bufferRO, byteBuf.position(), byteBuf.capacity());
 
-            if (flushEx != null &&
-                matchTypeId(flushEx) &&
-                matchExtension(flushEx))
+            if (dataEx != null &&
+                dataEx.kind() == LlmDataExFW.KIND_DIALECT &&
+                (typeId == null || typeId == dataEx.typeId()) &&
+                (block == null || block.equals(dataEx.dialect().block().asString())))
             {
-                byteBuf.position(byteBuf.position() + flushEx.sizeof());
-                return flushEx;
+                byteBuf.position(byteBuf.position() + dataEx.sizeof());
+                return dataEx;
             }
 
-            throw new Exception(flushEx.toString());
-        }
-
-        private boolean matchTypeId(
-            LlmFlushExFW flushEx)
-        {
-            return typeId == null || typeId == flushEx.typeId();
-        }
-
-        private boolean matchExtension(
-            LlmFlushExFW flushEx)
-        {
-            final byte[] actual = asBytes(flushEx.extension());
-            return extensionNull ? actual == null : extension == null || Arrays.equals(extension, actual);
+            throw new Exception(String.valueOf(dataEx));
         }
     }
 
@@ -626,7 +624,6 @@ public final class LlmFunctions
         private Integer totalTokens;
         private String nativeUsage;
         private String finishReason;
-        private byte[] extension;
 
         private LlmEndExBuilder()
         {
@@ -697,13 +694,6 @@ public final class LlmFunctions
             return this;
         }
 
-        public LlmEndExBuilder extension(
-            byte[] extension)
-        {
-            this.extension = extension;
-            return this;
-        }
-
         public byte[] build()
         {
             endExRW.usage(u ->
@@ -717,10 +707,6 @@ public final class LlmFunctions
                 u.nativeUsage(nativeUsage);
             });
             endExRW.finishReason(finishReason);
-            if (extension != null)
-            {
-                endExRW.extensionLength(extension.length).extension(e -> e.set(extension));
-            }
             final LlmEndExFW endEx = endExRW.build();
             final byte[] array = new byte[endEx.sizeof()];
             endEx.buffer().getBytes(endEx.offset(), array);
@@ -745,8 +731,6 @@ public final class LlmFunctions
         private boolean nativeUsageNull;
         private String finishReason;
         private boolean finishReasonNull;
-        private byte[] extension;
-        private boolean extensionNull;
 
         public LlmEndExMatcherBuilder typeId(
             int typeId)
@@ -823,19 +807,6 @@ public final class LlmFunctions
             return this;
         }
 
-        public LlmEndExMatcherBuilder extension(
-            byte[] extension)
-        {
-            this.extension = extension;
-            return this;
-        }
-
-        public LlmEndExMatcherBuilder extensionNull()
-        {
-            this.extensionNull = true;
-            return this;
-        }
-
         public BytesMatcher build()
         {
             return this::match;
@@ -861,8 +832,7 @@ public final class LlmFunctions
                 matchReasoningTokens(endEx) &&
                 matchTotalTokens(endEx) &&
                 matchNativeUsage(endEx) &&
-                matchFinishReason(endEx) &&
-                matchExtension(endEx))
+                matchFinishReason(endEx))
             {
                 byteBuf.position(byteBuf.position() + endEx.sizeof());
                 return endEx;
@@ -927,12 +897,6 @@ public final class LlmFunctions
             return finishReasonNull ? actual == null : finishReason == null || finishReason.equals(actual);
         }
 
-        private boolean matchExtension(
-            LlmEndExFW endEx)
-        {
-            final byte[] actual = asBytes(endEx.extension());
-            return extensionNull ? actual == null : extension == null || Arrays.equals(extension, actual);
-        }
     }
 
     public static final class LlmAbortExBuilder
@@ -1443,20 +1407,6 @@ public final class LlmFunctions
                     (paramNull ? errorParam == null : param == null || param.equals(errorParam)) &&
                     (messageNull ? errorMessage == null : message == null || message.equals(errorMessage));
         }
-    }
-
-    private static byte[] asBytes(
-        OctetsFW octets)
-    {
-        byte[] bytes = null;
-
-        if (octets != null && octets.sizeof() > 0)
-        {
-            bytes = new byte[octets.sizeof()];
-            octets.buffer().getBytes(octets.offset(), bytes);
-        }
-
-        return bytes;
     }
 
     private static String asString(

@@ -26,25 +26,30 @@ scope llm
             octets[extensionLength] extension = null;
         }
 
-        struct LlmFlushEx extends core::stream::Extension
-        {
-            varint32 extensionLength;
-            octets[extensionLength] extension = null;
-        }
-
         struct LlmAttribute
         {
             string8 name;
             string16 value;
         }
 
-        struct LlmDataEx extends core::stream::Extension
+        struct LlmSectionDataEx
         {
             string16 type = null;
             int32 message = -1;
             LlmAttribute[] attributes;
             varint32 extensionLength;
             octets[extensionLength] extension = null;
+        }
+
+        struct LlmDialectDataEx
+        {
+            string16 block;
+        }
+
+        union LlmDataEx switch (uint8) extends core::stream::Extension
+        {
+            case 0: llm::stream::LlmSectionDataEx section;
+            case 1: llm::stream::LlmDialectDataEx dialect;
         }
 
         struct LlmUsage
@@ -70,8 +75,6 @@ scope llm
         {
             LlmUsage usage;
             string16 finishReason = null;
-            varint32 extensionLength;
-            octets[extensionLength] extension = null;
         }
 
         struct LlmAbortEx extends core::stream::Extension

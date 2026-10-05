@@ -428,9 +428,9 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @Specification({
-        "${app}/anthropic.request.options/client",
-        "${net}/anthropic.request.options/server"})
-    public void shouldEncodeAnthropicRequestOptionsFromFlush() throws Exception
+        "${app}/anthropic.request.output.config/client",
+        "${net}/anthropic.request.output.config/server"})
+    public void shouldEncodeAnthropicRequestOutputConfig() throws Exception
     {
         k3po.finish();
     }
@@ -438,9 +438,39 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @Specification({
-        "${app}/anthropic.request.options.begin/client",
-        "${net}/anthropic.request.options.begin/server"})
-    public void shouldEncodeAnthropicRequestOptionsFromBegin() throws Exception
+        "${app}/anthropic.request.output.config.10k/client",
+        "${net}/anthropic.request.output.config.10k/server"})
+    public void shouldEncodeAnthropicRequestOutputConfig10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.request.output.config.100k/client",
+        "${net}/anthropic.request.output.config.100k/server"})
+    public void shouldEncodeAnthropicRequestOutputConfig100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.request.options/client",
+        "${net}/anthropic.request.options/server"})
+    public void shouldEncodeAnthropicRequestOptions() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.anthropic.yaml")
+    @Specification({
+        "${app}/anthropic.request.options.leading/client",
+        "${net}/anthropic.request.options.leading/server"})
+    public void shouldEncodeAnthropicRequestOptionsLeading() throws Exception
     {
         k3po.finish();
     }

@@ -264,9 +264,9 @@ public class LlmOpenaiClientIT
     @Test
     @Configuration("client.openai.yaml")
     @Specification({
-        "${app}/openai.request.options/client",
-        "${net}/openai.request.options/server"})
-    public void shouldEncodeOpenaiRequestOptionsFromFlush() throws Exception
+        "${app}/openai.request.response.format/client",
+        "${net}/openai.request.response.format/server"})
+    public void shouldEncodeOpenaiRequestResponseFormat() throws Exception
     {
         k3po.finish();
     }
@@ -274,9 +274,39 @@ public class LlmOpenaiClientIT
     @Test
     @Configuration("client.openai.yaml")
     @Specification({
-        "${app}/openai.request.options.begin/client",
-        "${net}/openai.request.options.begin/server"})
-    public void shouldEncodeOpenaiRequestOptionsFromBegin() throws Exception
+        "${app}/openai.request.response.format.10k/client",
+        "${net}/openai.request.response.format.10k/server"})
+    public void shouldEncodeOpenaiRequestResponseFormat10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.request.response.format.100k/client",
+        "${net}/openai.request.response.format.100k/server"})
+    public void shouldEncodeOpenaiRequestResponseFormat100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.request.options/client",
+        "${net}/openai.request.options/server"})
+    public void shouldEncodeOpenaiRequestOptions() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.request.options.leading/client",
+        "${net}/openai.request.options.leading/server"})
+    public void shouldEncodeOpenaiRequestOptionsLeading() throws Exception
     {
         k3po.finish();
     }

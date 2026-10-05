@@ -14,22 +14,22 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 final class LlmOptions
 {
     static final int NONE = -1;
 
     private final String[] members;
     private final String[] literals;
+    private final int[] order;
 
-    private int present;
+    private int pending;
 
     LlmOptions(
         String... members)
     {
         this.members = members;
         this.literals = new String[members.length];
+        this.order = new int[members.length];
     }
 
     int slot(
@@ -48,13 +48,19 @@ final class LlmOptions
         return slot;
     }
 
+    String member(
+        int slot)
+    {
+        return members[slot];
+    }
+
     void set(
         int slot,
         String literal)
     {
         if (literals[slot] == null)
         {
-            present++;
+            order[pending++] = slot;
         }
 
         literals[slot] = literal;
@@ -66,39 +72,31 @@ final class LlmOptions
         return literals[slot];
     }
 
-    boolean isEmpty()
+    int next()
     {
-        return present == 0;
+        return pending > 0 ? order[0] : NONE;
     }
 
-    void clear()
+    void remove(
+        int slot)
     {
-        for (int slot = 0; slot < literals.length; slot++)
+        if (literals[slot] != null)
         {
             literals[slot] = null;
-        }
 
-        present = 0;
+            int index = 0;
+            while (order[index] != slot)
+            {
+                index++;
+            }
+
+            System.arraycopy(order, index + 1, order, index, pending - index - 1);
+            pending--;
+        }
     }
 
-    byte[] members(
-        boolean leadingComma)
+    boolean isEmpty()
     {
-        final StringBuilder json = new StringBuilder();
-
-        for (int slot = 0; slot < literals.length; slot++)
-        {
-            if (literals[slot] != null)
-            {
-                if (leadingComma || json.length() > 0)
-                {
-                    json.append(',');
-                }
-
-                json.append('"').append(members[slot]).append("\":").append(literals[slot]);
-            }
-        }
-
-        return json.toString().getBytes(UTF_8);
+        return pending == 0;
     }
 }

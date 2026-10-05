@@ -16,8 +16,8 @@
 # Canonical response contract (dialect-neutral).
 #
 # The response begin names the dialect that served the response (dialect), the served model (model) and the response
-# identifier the upstream reported (id). When the dialect is the request's own dialect the response is native: a content type
-# and the upstream's bytes. Any other dialect carries sections, as here, with no content type.
+# identifier the upstream reported (id). The response is always sections, with no content type, whether or not the serving
+# dialect is the request's own dialect. Detail a section cannot express is left to dialect extensions.
 #
 # A section is a run of data frames. The first has the init flag and the data extension (type, message and, for a tool call,
 # the call id as extension and the tool name as attributes); the last has the fin flag, possibly with an empty payload.
@@ -57,11 +57,22 @@ write zilla:begin.ext ${llm:beginEx()
                            .dialect("openai")
                            .model("gpt-4")
                            .id("chatcmpl_2")
-                           .extension(llm_openai:responseEx()
-                                          .created("1700000000")
-                                          .serviceTier("default")
-                                          .build())
                            .build()}
+write flush
+
+write option zilla:flags "init fin"
+write zilla:data.ext ${llm:dialectDataEx()
+                           .typeId(zilla:id("llm"))
+                           .block("created")
+                           .build()}
+write "1700000000"
+write flush
+write option zilla:flags "init fin"
+write zilla:data.ext ${llm:dialectDataEx()
+                           .typeId(zilla:id("llm"))
+                           .block("service_tier")
+                           .build()}
+write "\"default\""
 write flush
 
 write option zilla:flags "init fin"
@@ -73,15 +84,20 @@ write zilla:data.ext ${llm:dataEx()
 write "Hello! How can I help you today?"
 write flush
 
+write option zilla:flags "init fin"
+write zilla:data.ext ${llm:dialectDataEx()
+                           .typeId(zilla:id("llm"))
+                           .block("system_fingerprint")
+                           .build()}
+write "\"fp_abc\""
+write flush
+
 write zilla:end.ext ${llm:endEx()
                             .typeId(zilla:id("llm"))
                             .inputTokens(25)
                             .outputTokens(15)
                             .totalTokens(40)
                             .finishReason("stop")
-                            .extension(llm_openai:responseEx()
-                                           .systemFingerprint("fp_abc")
-                                           .build())
                             .build()}
 
 write close

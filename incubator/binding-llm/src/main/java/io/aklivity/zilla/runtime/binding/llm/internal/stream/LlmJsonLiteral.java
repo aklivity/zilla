@@ -34,6 +34,18 @@ final class LlmJsonLiteral
         this.literal = new StringBuilder();
     }
 
+    static String quote(
+        String text)
+    {
+        final LlmJsonLiteral quoted = new LlmJsonLiteral();
+
+        quoted.literal.append('"');
+        quoted.appendEscaped(text);
+        quoted.literal.append('"');
+
+        return quoted.literal.toString();
+    }
+
     void reset()
     {
         literal.setLength(0);

@@ -77,6 +77,7 @@ final class LlmOpenaiResponseEncoder
     private static final byte[] DELTA_TOOL_END = "\"}}]".getBytes(UTF_8);
     private static final byte[] DELTA_FINISH_START = "{\"index\":0,\"delta\":{},\"finish_reason\":\"".getBytes(UTF_8);
     private static final byte[] DELTA_FINISH_END = "\"}".getBytes(UTF_8);
+    private static final int BLOCKS_MAX = 4096;
     private static final byte[] USAGE_START = ",\"usage\":{".getBytes(UTF_8);
     private static final byte[] USAGE_END = "}".getBytes(UTF_8);
     private static final byte[] PROMPT_TOKENS = "\"prompt_tokens\":".getBytes(UTF_8);
@@ -96,6 +97,7 @@ final class LlmOpenaiResponseEncoder
     private final byte[] id;
     private final byte[] model;
     private final byte[] carry;
+    private final byte[] blocks;
 
     private MutableDirectBuffer out;
     private int position;
@@ -106,6 +108,9 @@ final class LlmOpenaiResponseEncoder
     private boolean refusalWritten;
     private int toolCalls;
     private int carried;
+    private int blocksLength;
+    private int blockFrom;
+    private boolean blockOpen;
 
     LlmOpenaiResponseEncoder(
         boolean streaming,
@@ -116,6 +121,7 @@ final class LlmOpenaiResponseEncoder
         this.id = id != null ? escape(id) : null;
         this.model = model != null ? escape(model) : null;
         this.carry = new byte[3];
+        this.blocks = new byte[BLOCKS_MAX];
     }
 
     int begin(
@@ -210,6 +216,56 @@ final class LlmOpenaiResponseEncoder
         return position - offset;
     }
 
+    void blockBegin(
+        String block,
+        boolean render)
+    {
+        blockOpen = render;
+        blockFrom = blocksLength;
+
+        if (render)
+        {
+            final byte[] name = escape(block);
+
+            blockOpen = blocksLength + name.length + 4 <= BLOCKS_MAX;
+
+            if (blockOpen)
+            {
+                blocks[blocksLength++] = ',';
+                blocks[blocksLength++] = '"';
+                System.arraycopy(name, 0, blocks, blocksLength, name.length);
+                blocksLength += name.length;
+                blocks[blocksLength++] = '"';
+                blocks[blocksLength++] = ':';
+            }
+        }
+    }
+
+    void blockData(
+        DirectBuffer payload,
+        int offset,
+        int length)
+    {
+        if (blockOpen)
+        {
+            if (blocksLength + length <= BLOCKS_MAX)
+            {
+                payload.getBytes(offset, blocks, blocksLength, length);
+                blocksLength += length;
+            }
+            else
+            {
+                blocksLength = blockFrom;
+                blockOpen = false;
+            }
+        }
+    }
+
+    void blockEnd()
+    {
+        blockOpen = false;
+    }
+
     int end(
         MutableDirectBuffer out,
         int offset)
@@ -254,9 +310,12 @@ final class LlmOpenaiResponseEncoder
             put(DELTA_FINISH_START);
             put(reason);
             put(DELTA_FINISH_END);
-            chunkEnd();
 
-            if (inputTokens != NONE || outputTokens != NONE || totalTokens != NONE)
+            final boolean usage = inputTokens != NONE || outputTokens != NONE || totalTokens != NONE;
+
+            chunkEnd(!usage);
+
+            if (usage)
             {
                 chunkStart();
                 chunkUsageEnd(inputTokens, cacheReadTokens, outputTokens, reasoningTokens, totalTokens);
@@ -274,6 +333,7 @@ final class LlmOpenaiResponseEncoder
             put(CHOICE_END);
             put(CHOICES_END);
             putUsage(inputTokens, cacheReadTokens, outputTokens, reasoningTokens, totalTokens);
+            putBlocks();
             put(OBJECT_END);
         }
 
@@ -559,7 +619,19 @@ final class LlmOpenaiResponseEncoder
 
     private void chunkEnd()
     {
+        chunkEnd(false);
+    }
+
+    private void chunkEnd(
+        boolean trailing)
+    {
         put(CHOICES_END);
+
+        if (trailing)
+        {
+            putBlocks();
+        }
+
         put(OBJECT_END);
         put(SSE_END);
     }
@@ -573,6 +645,7 @@ final class LlmOpenaiResponseEncoder
     {
         put(CHOICES_END);
         putUsage(inputTokens, cacheReadTokens, outputTokens, reasoningTokens, totalTokens);
+        putBlocks();
         put(OBJECT_END);
         put(SSE_END);
     }
@@ -670,6 +743,13 @@ final class LlmOpenaiResponseEncoder
     {
         out.putBytes(position, bytes);
         position += bytes.length;
+    }
+
+    private void putBlocks()
+    {
+        out.putBytes(position, blocks, 0, blocksLength);
+        position += blocksLength;
+        blocksLength = 0;
     }
 
     private void putNumber(

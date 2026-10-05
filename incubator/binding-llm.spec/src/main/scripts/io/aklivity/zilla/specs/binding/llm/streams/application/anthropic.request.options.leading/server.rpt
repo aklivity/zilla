@@ -23,12 +23,16 @@ read zilla:begin.ext ${llm:matchBeginEx()
                            .typeId(zilla:id("llm"))
                            .dialect("anthropic")
                            .model("claude-3-opus-20240229")
-                           .extension(llm_anthropic:requestEx()
-                                          .temperature("0.5")
-                                          .build())
                            .build()}
 
 connected
+
+read option zilla:flags "init fin"
+read zilla:data.ext ${llm:matchDialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .block("temperature")
+                          .build()}
+read "0.5"
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))

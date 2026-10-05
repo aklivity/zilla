@@ -81,7 +81,7 @@
         <artifactId>flyweight-maven-plugin</artifactId>
         <version>${project.version}</version>
         <configuration>
-          <scopeNames>core http llm llm_openai llm_anthropic</scopeNames>
+          <scopeNames>core http llm</scopeNames>
           <packageName>io.aklivity.zilla.specs.binding.llm.internal.types</packageName>
         </configuration>
         <executions>

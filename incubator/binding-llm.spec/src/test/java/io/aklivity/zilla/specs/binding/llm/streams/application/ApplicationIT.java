@@ -524,6 +524,33 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/openai.request.response.format/client",
+        "${app}/openai.request.response.format/server"})
+    public void shouldOpenaiRequestResponseFormat() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.request.response.format.10k/client",
+        "${app}/openai.request.response.format.10k/server"})
+    public void shouldOpenaiRequestResponseFormat10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.request.response.format.100k/client",
+        "${app}/openai.request.response.format.100k/server"})
+    public void shouldOpenaiRequestResponseFormat100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/openai.request.options/client",
         "${app}/openai.request.options/server"})
     public void shouldOpenaiRequestOptions() throws Exception
@@ -542,9 +569,9 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/openai.request.options.begin/client",
-        "${app}/openai.request.options.begin/server"})
-    public void shouldOpenaiRequestOptionsBegin() throws Exception
+        "${app}/openai.request.options.leading/client",
+        "${app}/openai.request.options.leading/server"})
+    public void shouldOpenaiRequestOptionsLeading() throws Exception
     {
         k3po.finish();
     }
@@ -875,6 +902,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/openai.response.encode.options/client",
+        "${app}/openai.response.encode.options/server"})
+    public void shouldOpenaiResponseEncodeOptions() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/openai.response.encode.text/client",
         "${app}/openai.response.encode.text/server"})
     public void shouldEncodeOpenaiResponseText() throws Exception
@@ -1199,6 +1235,33 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/anthropic.request.output.config/client",
+        "${app}/anthropic.request.output.config/server"})
+    public void shouldAnthropicRequestOutputConfig() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.request.output.config.10k/client",
+        "${app}/anthropic.request.output.config.10k/server"})
+    public void shouldAnthropicRequestOutputConfig10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.request.output.config.100k/client",
+        "${app}/anthropic.request.output.config.100k/server"})
+    public void shouldAnthropicRequestOutputConfig100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/anthropic.request.options/client",
         "${app}/anthropic.request.options/server"})
     public void shouldAnthropicRequestOptions() throws Exception
@@ -1217,9 +1280,9 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/anthropic.request.options.begin/client",
-        "${app}/anthropic.request.options.begin/server"})
-    public void shouldAnthropicRequestOptionsBegin() throws Exception
+        "${app}/anthropic.request.options.leading/client",
+        "${app}/anthropic.request.options.leading/server"})
+    public void shouldAnthropicRequestOptionsLeading() throws Exception
     {
         k3po.finish();
     }
@@ -1598,6 +1661,15 @@ public class ApplicationIT
         "${app}/anthropic.response.encode.streaming.tool.call/client",
         "${app}/anthropic.response.encode.streaming.tool.call/server"})
     public void shouldEncodeAnthropicResponseStreamingToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.response.encode.options/client",
+        "${app}/anthropic.response.encode.options/server"})
+    public void shouldAnthropicResponseEncodeOptions() throws Exception
     {
         k3po.finish();
     }

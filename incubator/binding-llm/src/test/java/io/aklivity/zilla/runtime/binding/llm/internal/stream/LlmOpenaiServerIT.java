@@ -137,9 +137,39 @@ public class LlmOpenaiServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/openai.request.response.format/client",
+        "${app}/openai.request.response.format/server"})
+    public void shouldDecodeOpenaiRequestResponseFormat() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.request.response.format.10k/client",
+        "${app}/openai.request.response.format.10k/server"})
+    public void shouldDecodeOpenaiRequestResponseFormat10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.request.response.format.100k/client",
+        "${app}/openai.request.response.format.100k/server"})
+    public void shouldDecodeOpenaiRequestResponseFormat100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/openai.request.options/client",
         "${app}/openai.request.options/server"})
-    public void shouldDecodeOpenaiRequestOptionsOnFlush() throws Exception
+    public void shouldDecodeOpenaiRequestOptions() throws Exception
     {
         k3po.finish();
     }
@@ -149,7 +179,7 @@ public class LlmOpenaiServerIT
     @Specification({
         "${net}/openai.request.options.early/client",
         "${app}/openai.request.options.early/server"})
-    public void shouldDecodeOpenaiRequestOptionsOnBegin() throws Exception
+    public void shouldDecodeOpenaiRequestOptionsEarly() throws Exception
     {
         k3po.finish();
     }
@@ -548,6 +578,16 @@ public class LlmOpenaiServerIT
         "${net}/openai.section.user.image.url.100k/client",
         "${app}/openai.section.user.image.url.100k/server"})
     public void shouldDecodeOpenaiSectionUserImageUrl100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.response.encode.options/client",
+        "${app}/openai.response.encode.options/server"})
+    public void shouldEncodeOpenaiResponseOptions() throws Exception
     {
         k3po.finish();
     }

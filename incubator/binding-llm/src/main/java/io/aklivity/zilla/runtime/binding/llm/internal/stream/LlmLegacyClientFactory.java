@@ -610,8 +610,9 @@ public final class LlmLegacyClientFactory
                 {
                     final OctetsFW extension = data.extension();
                     final LlmDataExFW llmDataEx = extension.get(llmDataExRO::tryWrap);
-                    pendingRequestEvent = llmDataEx != null && llmDataEx.type() != null
-                        ? llmDataEx.type().asString()
+                    pendingRequestEvent = llmDataEx != null && llmDataEx.kind() == LlmDataExFW.KIND_SECTION &&
+                        llmDataEx.section().type() != null
+                        ? llmDataEx.section().type().asString()
                         : null;
                 }
 
@@ -959,10 +960,14 @@ public final class LlmLegacyClientFactory
                 {
                     final LlmDataExFW.Builder dataExBuilder = llmDataExRW.wrap(extBuffer, 0, extBuffer.capacity())
                         .typeId(llmTypeId);
-                    if (replyPendingEvent != null)
+                    final String pendingEvent = replyPendingEvent;
+                    dataExBuilder.section(x ->
                     {
-                        dataExBuilder.type(replyPendingEvent);
-                    }
+                        if (pendingEvent != null)
+                        {
+                            x.type(pendingEvent);
+                        }
+                    });
                     dataEx = dataExBuilder.build();
                 }
 

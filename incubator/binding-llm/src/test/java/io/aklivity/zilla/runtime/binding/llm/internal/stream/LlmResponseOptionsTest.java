@@ -14,8 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 
@@ -24,89 +23,67 @@ public class LlmResponseOptionsTest
     @Test
     public void shouldReportNothingWhenAbsent()
     {
-        final LlmResponseOptions options = new LlmResponseOptions(2);
+        final LlmResponseOptions options = new LlmResponseOptions("created", "service_tier");
 
-        assertNull(options.begin());
-        assertNull(options.end());
+        assertEquals(LlmResponseOptions.NONE, options.next());
     }
 
     @Test
-    public void shouldDeliverDocumentMembersAtBegin()
+    public void shouldDeliverMembersInArrivalOrder()
     {
-        final LlmResponseOptions options = new LlmResponseOptions(3);
+        final LlmResponseOptions options = new LlmResponseOptions("created", "service_tier", "system_fingerprint");
 
+        options.set(2, "\"fp_abc\"");
         options.set(0, "1700000000");
-        options.set(1, "default");
 
-        assertArrayEquals(new String[] {"1700000000", "default", null}, options.begin());
-    }
+        assertEquals(2, options.next());
+        assertEquals("system_fingerprint", options.member(2));
+        assertEquals("\"fp_abc\"", options.latest(2));
 
-    @Test
-    public void shouldDeliverLaterMembersAtEnd()
-    {
-        final LlmResponseOptions options = new LlmResponseOptions(3);
+        options.deliver(2);
 
-        options.set(0, "1700000000");
-        options.begin();
-        options.endDocument();
+        assertEquals(0, options.next());
 
-        options.set(2, "fp_abc");
-        options.endDocument();
+        options.deliver(0);
 
-        assertArrayEquals(new String[] {null, null, "fp_abc"}, options.end());
+        assertEquals(LlmResponseOptions.NONE, options.next());
     }
 
     @Test
     public void shouldNotRepeatDeliveredMembers()
     {
-        final LlmResponseOptions options = new LlmResponseOptions(2);
+        final LlmResponseOptions options = new LlmResponseOptions("created");
 
         options.set(0, "1700000000");
-        options.begin();
-        options.endDocument();
-
+        options.deliver(0);
         options.set(0, "1700000000");
-        options.endDocument();
 
-        assertNull(options.end());
+        assertEquals(LlmResponseOptions.NONE, options.next());
     }
 
     @Test
-    public void shouldDeliverChangedMembersAtEnd()
+    public void shouldDeliverChangedMembersAgain()
     {
-        final LlmResponseOptions options = new LlmResponseOptions(2);
+        final LlmResponseOptions options = new LlmResponseOptions("service_tier");
 
-        options.set(1, "default");
-        options.begin();
-        options.endDocument();
+        options.set(0, "\"default\"");
+        options.deliver(0);
+        options.set(0, "\"scale\"");
 
-        options.set(1, "scale");
-        options.endDocument();
-
-        assertArrayEquals(new String[] {null, "scale"}, options.end());
-    }
-
-    @Test
-    public void shouldCarryKnownMembersAcrossDocuments()
-    {
-        final LlmResponseOptions options = new LlmResponseOptions(2);
-
-        options.set(0, "1700000000");
-        options.endDocument();
-
-        assertArrayEquals(new String[] {"1700000000", null}, options.begin());
+        assertEquals(0, options.next());
+        assertEquals("\"scale\"", options.latest(0));
     }
 
     @Test
     public void shouldClear()
     {
-        final LlmResponseOptions options = new LlmResponseOptions(2);
+        final LlmResponseOptions options = new LlmResponseOptions("created");
 
         options.set(0, "1700000000");
-        options.begin();
-        options.endDocument();
+        options.deliver(0);
         options.clear();
+        options.set(0, "1700000000");
 
-        assertNull(options.begin());
+        assertEquals(0, options.next());
     }
 }

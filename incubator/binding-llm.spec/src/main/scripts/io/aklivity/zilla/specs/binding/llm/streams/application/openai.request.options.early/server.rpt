@@ -23,12 +23,16 @@ read zilla:begin.ext ${llm:matchBeginEx()
                            .typeId(zilla:id("llm"))
                            .dialect("openai")
                            .model("gpt-4")
-                           .extension(llm_openai:requestEx()
-                                          .temperature("0.7")
-                                          .build())
                            .build()}
 
 connected
+
+read option zilla:flags "init fin"
+read zilla:data.ext ${llm:matchDialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .block("temperature")
+                          .build()}
+read "0.7"
 
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))

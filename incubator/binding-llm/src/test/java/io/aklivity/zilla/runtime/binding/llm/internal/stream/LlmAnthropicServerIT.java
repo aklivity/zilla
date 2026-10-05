@@ -367,9 +367,39 @@ public class LlmAnthropicServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/anthropic.request.output.config/client",
+        "${app}/anthropic.request.output.config/server"})
+    public void shouldDecodeAnthropicRequestOutputConfig() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.request.output.config.10k/client",
+        "${app}/anthropic.request.output.config.10k/server"})
+    public void shouldDecodeAnthropicRequestOutputConfig10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.request.output.config.100k/client",
+        "${app}/anthropic.request.output.config.100k/server"})
+    public void shouldDecodeAnthropicRequestOutputConfig100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/anthropic.request.options/client",
         "${app}/anthropic.request.options/server"})
-    public void shouldDecodeAnthropicRequestOptionsOnFlush() throws Exception
+    public void shouldDecodeAnthropicRequestOptions() throws Exception
     {
         k3po.finish();
     }
@@ -379,7 +409,7 @@ public class LlmAnthropicServerIT
     @Specification({
         "${net}/anthropic.request.options.early/client",
         "${app}/anthropic.request.options.early/server"})
-    public void shouldDecodeAnthropicRequestOptionsOnBegin() throws Exception
+    public void shouldDecodeAnthropicRequestOptionsEarly() throws Exception
     {
         k3po.finish();
     }
@@ -650,6 +680,16 @@ public class LlmAnthropicServerIT
         "${net}/anthropic.response.encode.streaming.tool.call/client",
         "${app}/anthropic.response.encode.streaming.tool.call/server"})
     public void shouldEncodeAnthropicResponseStreamingToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.response.encode.options/client",
+        "${app}/anthropic.response.encode.options/server"})
+    public void shouldEncodeAnthropicResponseOptions() throws Exception
     {
         k3po.finish();
     }

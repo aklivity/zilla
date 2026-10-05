@@ -479,6 +479,33 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/openai.request.response.format/client",
+        "${net}/openai.request.response.format/server"})
+    public void shouldOpenaiRequestResponseFormat() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.request.response.format.10k/client",
+        "${net}/openai.request.response.format.10k/server"})
+    public void shouldOpenaiRequestResponseFormat10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.request.response.format.100k/client",
+        "${net}/openai.request.response.format.100k/server"})
+    public void shouldOpenaiRequestResponseFormat100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/openai.request.options/client",
         "${net}/openai.request.options/server"})
     public void shouldOpenaiRequestOptions() throws Exception
@@ -497,9 +524,9 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/openai.request.options.begin/client",
-        "${net}/openai.request.options.begin/server"})
-    public void shouldOpenaiRequestOptionsBegin() throws Exception
+        "${net}/openai.request.options.leading/client",
+        "${net}/openai.request.options.leading/server"})
+    public void shouldOpenaiRequestOptionsLeading() throws Exception
     {
         k3po.finish();
     }
@@ -875,6 +902,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/openai.response.encode.options/client",
+        "${net}/openai.response.encode.options/server"})
+    public void shouldOpenaiResponseEncodeOptions() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/openai.response.encode.text/client",
         "${net}/openai.response.encode.text/server"})
     public void shouldEncodeOpenaiResponseText() throws Exception
@@ -1199,6 +1235,33 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/anthropic.request.output.config/client",
+        "${net}/anthropic.request.output.config/server"})
+    public void shouldAnthropicRequestOutputConfig() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.request.output.config.10k/client",
+        "${net}/anthropic.request.output.config.10k/server"})
+    public void shouldAnthropicRequestOutputConfig10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.request.output.config.100k/client",
+        "${net}/anthropic.request.output.config.100k/server"})
+    public void shouldAnthropicRequestOutputConfig100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/anthropic.request.options/client",
         "${net}/anthropic.request.options/server"})
     public void shouldAnthropicRequestOptions() throws Exception
@@ -1217,9 +1280,9 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/anthropic.request.options.begin/client",
-        "${net}/anthropic.request.options.begin/server"})
-    public void shouldAnthropicRequestOptionsBegin() throws Exception
+        "${net}/anthropic.request.options.leading/client",
+        "${net}/anthropic.request.options.leading/server"})
+    public void shouldAnthropicRequestOptionsLeading() throws Exception
     {
         k3po.finish();
     }
@@ -1940,6 +2003,15 @@ public class NetworkIT
         "${net}/anthropic.response.encode.streaming.tool.call/client",
         "${net}/anthropic.response.encode.streaming.tool.call/server"})
     public void shouldEncodeAnthropicResponseStreamingToolCall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.response.encode.options/client",
+        "${net}/anthropic.response.encode.options/server"})
+    public void shouldAnthropicResponseEncodeOptions() throws Exception
     {
         k3po.finish();
     }

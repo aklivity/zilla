@@ -124,6 +124,13 @@ public class LlmJsonLiteralTest
         assertFalse(literal.overflow());
     }
 
+    @Test
+    public void shouldQuote()
+    {
+        assertEquals("\"fp_abc\"", LlmJsonLiteral.quote("fp_abc"));
+        assertEquals("\"a\\\"b\\\\\\n\"", LlmJsonLiteral.quote("a\"b\\\n"));
+    }
+
     private static String capture(
         String value,
         int window)
