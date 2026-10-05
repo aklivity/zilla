@@ -891,4 +891,14 @@ public class LlmOpenaiServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.response.encode.streaming.members/client",
+        "${app}/openai.response.encode.streaming.members/server"})
+    public void shouldEncodeOpenaiResponseStreamingMembers() throws Exception
+    {
+        k3po.finish();
+    }
 }

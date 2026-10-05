@@ -2627,4 +2627,13 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/openai.response.encode.streaming.members/client",
+        "${net}/openai.response.encode.streaming.members/server"})
+    public void shouldEncodeOpenaiResponseStreamingMembers() throws Exception
+    {
+        k3po.finish();
+    }
 }

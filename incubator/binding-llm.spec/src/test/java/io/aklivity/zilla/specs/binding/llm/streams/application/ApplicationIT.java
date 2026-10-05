@@ -2051,4 +2051,13 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/openai.response.encode.streaming.members/client",
+        "${app}/openai.response.encode.streaming.members/server"})
+    public void shouldEncodeOpenaiResponseStreamingMembers() throws Exception
+    {
+        k3po.finish();
+    }
 }

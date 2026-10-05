@@ -3095,7 +3095,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 switch (replyKind)
                 {
                 case LlmDataExFW.KIND_BLOCK:
-                    responseEncoder.blockBegin(llmDataEx.block().block().asString(), replyDialect);
+                    length += responseEncoder.blockBegin(copyBuffer, length, llmDataEx.block().block().asString(), replyDialect);
                     break;
                 case LlmDataExFW.KIND_AFTER:
                     length += responseEncoder.afterBegin(copyBuffer, length,
@@ -3121,11 +3121,11 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             switch (replyKind)
             {
             case LlmDataExFW.KIND_BLOCK:
-                responseEncoder.blockData(payload.buffer(), payload.offset(), payload.sizeof());
+                length += responseEncoder.blockData(copyBuffer, length, payload.buffer(), payload.offset(), payload.sizeof());
 
                 if (Flags.hasFin(flags))
                 {
-                    responseEncoder.blockEnd();
+                    length += responseEncoder.blockEnd(copyBuffer, length);
                 }
                 break;
             case LlmDataExFW.KIND_AFTER:

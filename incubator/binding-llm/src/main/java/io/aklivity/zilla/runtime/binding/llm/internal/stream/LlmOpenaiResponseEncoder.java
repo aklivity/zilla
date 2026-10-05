@@ -238,51 +238,92 @@ final class LlmOpenaiResponseEncoder
         return position - offset;
     }
 
-    void blockBegin(
+    int blockBegin(
+        MutableDirectBuffer out,
+        int offset,
         String block,
         boolean render)
     {
+        wrap(out, offset);
+
         blockOpen = render;
         blockName = block;
         blockLength = 0;
+
+        if (render && streaming)
+        {
+            chunkStart();
+            put(CHOICES_END);
+            put(COMMA);
+            put(QUOTE);
+            put(escape(block));
+            put(MEMBER_COLON);
+        }
+
+        return position - offset;
     }
 
-    void blockData(
-        DirectBuffer payload,
+    int blockData(
+        MutableDirectBuffer out,
         int offset,
-        int length)
+        DirectBuffer payload,
+        int payloadOffset,
+        int payloadLength)
     {
+        wrap(out, offset);
+
         if (blockOpen)
         {
-            if (membersLength + blockLength + length <= membersMax)
+            if (streaming)
             {
-                if (blockBytes == null || blockBytes.length < blockLength + length)
+                out.putBytes(position, payload, payloadOffset, payloadLength);
+                position += payloadLength;
+            }
+            else if (membersLength + blockLength + payloadLength <= membersMax)
+            {
+                if (blockBytes == null || blockBytes.length < blockLength + payloadLength)
                 {
                     blockBytes = blockBytes == null
-                        ? new byte[Math.max(256, length)]
-                        : Arrays.copyOf(blockBytes, Math.max(blockBytes.length * 2, blockLength + length));
+                        ? new byte[Math.max(256, payloadLength)]
+                        : Arrays.copyOf(blockBytes, Math.max(blockBytes.length * 2, blockLength + payloadLength));
                 }
 
-                payload.getBytes(offset, blockBytes, blockLength, length);
-                blockLength += length;
+                payload.getBytes(payloadOffset, blockBytes, blockLength, payloadLength);
+                blockLength += payloadLength;
             }
             else
             {
                 blockOpen = false;
             }
         }
+
+        return position - offset;
     }
 
-    void blockEnd()
+    int blockEnd(
+        MutableDirectBuffer out,
+        int offset)
     {
+        wrap(out, offset);
+
         if (blockOpen)
         {
-            final byte[] previous = members.put(blockName, Arrays.copyOf(blockBytes, blockLength));
+            if (streaming)
+            {
+                put(OBJECT_END);
+                put(SSE_END);
+            }
+            else
+            {
+                final byte[] previous = members.put(blockName, Arrays.copyOf(blockBytes, blockLength));
 
-            membersLength += blockLength - (previous != null ? previous.length : 0);
+                membersLength += blockLength - (previous != null ? previous.length : 0);
+            }
         }
 
         blockOpen = false;
+
+        return position - offset;
     }
 
     int end(
