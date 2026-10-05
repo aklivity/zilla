@@ -29,8 +29,8 @@ write close
 read http:status "200" "OK"
 read http:header "Content-Type" "text/event-stream"
 read http:header "Transfer-Encoding" "chunked"
+read "id:105\n"
 read "event:one\n"
 read "data:Hello, world\n"
-read "id:105\n"
 read "\n"
 read closed

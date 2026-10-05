@@ -15,17 +15,23 @@
  */
 package io.aklivity.zilla.runtime.binding.http.internal.stream;
 
-import static io.aklivity.zilla.runtime.engine.util.Flags.hasFin;
-import static io.aklivity.zilla.runtime.engine.util.Flags.hasInit;
-import static java.nio.charset.StandardCharsets.UTF_8;
+import static io.aklivity.zilla.runtime.binding.http.internal.types.stream.FrameFW.FIELD_OFFSET_STREAM_ID;
+import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
+import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
 
-import java.util.function.Consumer;
+import java.util.function.LongUnaryOperator;
 
+import io.aklivity.zilla.runtime.binding.http.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.http.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String8FW;
+import io.aklivity.zilla.runtime.binding.http.internal.types.codec.HttpSseEventFW;
+import io.aklivity.zilla.runtime.binding.http.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.BeginFW;
+import io.aklivity.zilla.runtime.binding.http.internal.types.stream.ChallengeFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.DataFW;
+import io.aklivity.zilla.runtime.binding.http.internal.types.stream.EndFW;
+import io.aklivity.zilla.runtime.binding.http.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.HttpDataExFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.ResetFW;
@@ -36,52 +42,89 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 
 public final class HttpSseServerFactory implements BindingHandler
 {
-    private static final int ABSENT = -1;
-    private static final int EVENT_TYPE_MAX = 64;
-    private static final int EVENT_ID_MAX = 64;
-    private static final int EVENT_OVERHEAD_MAX = 6 + EVENT_TYPE_MAX + 1 + 5 + 1 + 3 + EVENT_ID_MAX + 1 + 1;
+    private static final String8FW HEADER_NAME_TYPE = new String8FW("type");
+    private static final String8FW HEADER_NAME_ID = new String8FW("id");
 
-    private static final byte[] EVENT_FIELD = "event:".getBytes(UTF_8);
-    private static final byte[] DATA_FIELD = "data:".getBytes(UTF_8);
-    private static final byte[] ID_FIELD = "id:".getBytes(UTF_8);
-    private static final byte[] NAME_TYPE = "type".getBytes(UTF_8);
-    private static final byte[] NAME_ID = "id".getBytes(UTF_8);
-    private static final byte LINE_FEED = 0x0a;
+    private static final int FIELD_VALUE_MAX = 255;
+
+    private static final int DEFERRED_LENGTH_OFFSET = 0;
+    private static final int DEFERRED_RESERVED_OFFSET = DEFERRED_LENGTH_OFFSET + Integer.BYTES;
+    private static final int DEFERRED_FLAGS_OFFSET = DEFERRED_RESERVED_OFFSET + Integer.BYTES;
+    private static final int DEFERRED_BUDGET_OFFSET = DEFERRED_FLAGS_OFFSET + Integer.BYTES;
+    private static final int DEFERRED_TRACE_OFFSET = DEFERRED_BUDGET_OFFSET + Long.BYTES;
+    private static final int DEFERRED_AUTHORIZATION_OFFSET = DEFERRED_TRACE_OFFSET + Long.BYTES;
+    private static final int DEFERRED_PAYLOAD_OFFSET = DEFERRED_AUTHORIZATION_OFFSET + Long.BYTES;
+
+    public static final int MAXIMUM_HEADER_SIZE =
+            5 +         // data:
+            3 +         // id:
+            255 +       // id string
+            6 +         // event:
+            255 +       // event string
+            3;          // \n for data:, id:, event
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
+    private final EndFW endRO = new EndFW();
+    private final AbortFW abortRO = new AbortFW();
+    private final FlushFW flushRO = new FlushFW();
     private final WindowFW windowRO = new WindowFW();
-    private final HttpBeginExFW beginExRO = new HttpBeginExFW();
-    private final HttpDataExFW dataExRO = new HttpDataExFW();
+    private final ResetFW resetRO = new ResetFW();
+    private final ChallengeFW challengeRO = new ChallengeFW();
 
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
     private final DataFW.Builder dataRW = new DataFW.Builder();
+    private final EndFW.Builder endRW = new EndFW.Builder();
+    private final AbortFW.Builder abortRW = new AbortFW.Builder();
+    private final FlushFW.Builder flushRW = new FlushFW.Builder();
     private final WindowFW.Builder windowRW = new WindowFW.Builder();
     private final ResetFW.Builder resetRW = new ResetFW.Builder();
+    private final ChallengeFW.Builder challengeRW = new ChallengeFW.Builder();
+
+    private final HttpBeginExFW beginExRO = new HttpBeginExFW();
+    private final HttpDataExFW dataExRO = new HttpDataExFW();
+    private final OctetsFW retainedRO = new OctetsFW();
+
+    private final HttpSseEventFW.Builder eventRW = new HttpSseEventFW.Builder();
     private final HttpSseFraming framing = new HttpSseFraming();
 
     private final MutableDirectBufferEx writeBuffer;
+    private final MutableDirectBufferEx networkBuffer;
     private final MutableDirectBufferEx extBuffer;
     private final MutableDirectBufferEx eventBuffer;
+    private final MutableDirectBufferEx idBuffer;
+    private final MutableDirectBufferEx typeBuffer;
+    private final UnsafeBufferEx idView;
+    private final UnsafeBufferEx typeView;
+    private final BufferPool bufferPool;
+    private final BufferPool deferredPool;
+    private final BindingHandler streamFactory;
+    private final LongUnaryOperator supplyInitialId;
+    private final LongUnaryOperator supplyReplyId;
     private final int httpTypeId;
-    private final BindingHandler next;
-
-    private final Consumer<HttpHeaderFW> captureField = this::captureField;
-
-    private HttpSseServer fieldsTarget;
 
     public HttpSseServerFactory(
         EngineContext context,
-        BindingHandler next)
+        BindingHandler streamFactory)
     {
         this.writeBuffer = context.writeBuffer();
+        this.networkBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.extBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.eventBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
+        this.idBuffer = new UnsafeBufferEx(new byte[FIELD_VALUE_MAX]);
+        this.typeBuffer = new UnsafeBufferEx(new byte[FIELD_VALUE_MAX]);
+        this.idView = new UnsafeBufferEx(new byte[0]);
+        this.typeView = new UnsafeBufferEx(new byte[0]);
+        this.bufferPool = context.bufferPool();
+        this.deferredPool = bufferPool.duplicate();
+        this.streamFactory = streamFactory;
+        this.supplyInitialId = context::supplyInitialId;
+        this.supplyReplyId = context::supplyReplyId;
         this.httpTypeId = context.supplyTypeId("http");
-        this.next = next;
     }
 
     @Override
@@ -90,324 +133,857 @@ public final class HttpSseServerFactory implements BindingHandler
         DirectBufferEx buffer,
         int index,
         int length,
-        MessageConsumer exchange)
+        MessageConsumer network)
     {
-        final HttpSseServer server = new HttpSseServer(exchange);
+        final BeginFW begin = beginRO.wrap(buffer, index, index + length);
 
-        server.app = next.newStream(msgTypeId, buffer, index, length, server::onApp);
+        final HttpSseServer server = new HttpSseServer(
+            network,
+            begin.originId(),
+            begin.routedId(),
+            begin.streamId());
 
-        return server::onExchange;
+        server.stream.doAppBegin(msgTypeId, buffer, index, length);
+
+        return server::onNetMessage;
     }
 
     private final class HttpSseServer
     {
-        private final MessageConsumer exchange;
-        private final byte[] eventType;
-        private final byte[] eventId;
+        private final MessageConsumer network;
+        private final long originId;
+        private final long routedId;
+        private final long initialId;
+        private final long replyId;
+        private final HttpStream stream;
 
-        private MessageConsumer app;
-        private boolean replyBegun;
-        private boolean framed;
-        private int eventTypeLength = ABSENT;
-        private int eventIdLength = ABSENT;
-        private boolean eventValid;
+        private int state;
 
-        private boolean windowHeld;
-        private long windowOriginId;
-        private long windowRoutedId;
-        private long windowStreamId;
-        private long windowSequence;
-        private long windowAcknowledge;
-        private int windowMaximum;
-        private long windowTimestamp;
-        private long windowTraceId;
-        private long windowAuthorization;
-        private long windowBudgetId;
-        private int windowPadding;
-        private int windowMinimum;
-        private int windowCapabilities;
+        private long httpReplySeq;
+        private long httpReplyAck;
+        private int httpReplyMax;
+        private long httpReplyBud;
+        private int httpReplyPad;
+        private int httpReplyMin;
+        private int httpReplyCaps;
+        private long httpReplyAuth;
+        private long httpReplyAt;
+
+        private int networkSlot = NO_SLOT;
+        private int networkSlotOffset;
+        private boolean deferredEnd;
+        private OctetsFW deferredEndExtension;
 
         private HttpSseServer(
-            MessageConsumer exchange)
+            MessageConsumer network,
+            long originId,
+            long routedId,
+            long initialId)
         {
-            this.exchange = exchange;
-            this.eventType = new byte[EVENT_TYPE_MAX];
-            this.eventId = new byte[EVENT_ID_MAX];
+            this.network = network;
+            this.originId = originId;
+            this.routedId = routedId;
+            this.initialId = initialId;
+            this.replyId = supplyReplyId.applyAsLong(initialId);
+            this.stream = new HttpStream(originId, routedId);
         }
 
-        private void onExchange(
+        private void onNetMessage(
             int msgTypeId,
             DirectBufferEx buffer,
             int index,
             int length)
         {
-            if (msgTypeId == WindowFW.TYPE_ID)
+            if (msgTypeId != BeginFW.TYPE_ID)
             {
-                onExchangeWindow(windowRO.wrap(buffer, index, index + length));
-            }
-            else
-            {
-                app.accept(msgTypeId, buffer, index, length);
+                final long streamId = buffer.getLong(index + FIELD_OFFSET_STREAM_ID);
+
+                if (streamId == initialId)
+                {
+                    relay(stream.application, writeBuffer, msgTypeId, buffer, index, length, stream.initialId);
+                }
+                else
+                {
+                    switch (msgTypeId)
+                    {
+                    case WindowFW.TYPE_ID:
+                        final WindowFW window = windowRO.wrap(buffer, index, index + length);
+                        onNetWindow(window, buffer, index, length);
+                        break;
+                    case ResetFW.TYPE_ID:
+                        final ResetFW reset = resetRO.wrap(buffer, index, index + length);
+                        onNetReset(reset, buffer, index, length);
+                        break;
+                    case ChallengeFW.TYPE_ID:
+                        relay(stream.application, writeBuffer, msgTypeId, buffer, index, length, stream.replyId);
+                        break;
+                    default:
+                        break;
+                    }
+                }
             }
         }
 
-        private void onExchangeWindow(
-            WindowFW window)
-        {
-            if (!replyBegun)
-            {
-                windowHeld = true;
-                windowOriginId = window.originId();
-                windowRoutedId = window.routedId();
-                windowStreamId = window.streamId();
-                windowSequence = window.sequence();
-                windowAcknowledge = window.acknowledge();
-                windowMaximum = window.maximum();
-                windowTimestamp = window.timestamp();
-                windowTraceId = window.traceId();
-                windowAuthorization = window.authorization();
-                windowBudgetId = window.budgetId();
-                windowPadding = window.padding();
-                windowMinimum = window.minimum();
-                windowCapabilities = window.capabilities();
-            }
-            else if (framed)
-            {
-                doAppWindow(window.originId(), window.routedId(), window.streamId(), window.sequence(),
-                    window.acknowledge(), window.maximum(), window.timestamp(), window.traceId(), window.authorization(),
-                    window.budgetId(), window.padding() + EVENT_OVERHEAD_MAX, window.minimum(), window.capabilities());
-            }
-            else
-            {
-                app.accept(window.typeId(), window.buffer(), window.offset(), window.sizeof());
-            }
-        }
-
-        private void onApp(
-            int msgTypeId,
+        private void onNetReset(
+            ResetFW reset,
             DirectBufferEx buffer,
             int index,
             int length)
         {
-            if (msgTypeId == BeginFW.TYPE_ID)
+            if (stream.framed)
             {
-                onAppBegin(beginRO.wrap(buffer, index, index + length));
-            }
-            else if (msgTypeId == DataFW.TYPE_ID && framed)
-            {
-                onAppData(dataRO.wrap(buffer, index, index + length));
+                state = HttpState.closeReply(state);
+
+                stream.doAppReset(reset.traceId(), reset.extension());
+                cleanupNet();
             }
             else
             {
-                exchange.accept(msgTypeId, buffer, index, length);
+                relay(stream.application, writeBuffer, ResetFW.TYPE_ID, buffer, index, length, stream.replyId);
             }
         }
 
-        private void onAppBegin(
-            BeginFW begin)
+        private void onNetWindow(
+            WindowFW window,
+            DirectBufferEx buffer,
+            int index,
+            int length)
         {
-            final HttpBeginExFW beginEx = begin.extension().get(beginExRO::tryWrap);
+            final long acknowledge = window.acknowledge();
+            final int maximum = window.maximum();
+            final long traceId = window.traceId();
 
-            replyBegun = true;
-            framed = beginEx != null && framing.detect(beginEx);
+            httpReplyAck = acknowledge;
+            httpReplyMax = maximum;
+            httpReplyPad = window.padding();
+            httpReplyBud = window.budgetId();
+            httpReplyMin = window.minimum();
+            httpReplyCaps = window.capabilities();
+            httpReplyAuth = window.authorization();
+            state = HttpState.openReply(state);
 
-            if (windowHeld)
+            if (stream.framed)
             {
-                windowHeld = false;
-                doAppWindow(windowOriginId, windowRoutedId, windowStreamId, windowSequence, windowAcknowledge,
-                    windowMaximum, windowTimestamp, windowTraceId, windowAuthorization, windowBudgetId,
-                    windowPadding + (framed ? EVENT_OVERHEAD_MAX : 0), windowMinimum, windowCapabilities);
+                flushNetwork(traceId);
             }
-
-            if (framed)
+            else
             {
-                final HttpBeginExFW retained = framing.strip(beginEx, extBuffer, httpTypeId);
+                relay(stream.application, writeBuffer, WindowFW.TYPE_ID, buffer, index, length, stream.replyId);
+            }
+        }
 
-                final BeginFW forward = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                    .originId(begin.originId())
-                    .routedId(begin.routedId())
-                    .streamId(begin.streamId())
+        private void doNetBegin(
+            BeginFW begin,
+            OctetsFW extension)
+        {
+            this.httpReplySeq = begin.sequence();
+
+            final BeginFW forward = beginRW.wrap(networkBuffer, 0, networkBuffer.capacity())
+                    .originId(originId)
+                    .routedId(routedId)
+                    .streamId(replyId)
                     .sequence(begin.sequence())
                     .acknowledge(begin.acknowledge())
                     .maximum(begin.maximum())
+                    .timestamp(begin.timestamp())
                     .traceId(begin.traceId())
                     .authorization(begin.authorization())
                     .affinity(begin.affinity())
-                    .extension(retained.buffer(), retained.offset(), retained.sizeof())
+                    .redirectedId(begin.redirectedId())
+                    .extension(extension.buffer(), extension.offset(), extension.sizeof())
                     .build();
 
-                exchange.accept(forward.typeId(), forward.buffer(), forward.offset(), forward.sizeof());
-            }
-            else
-            {
-                exchange.accept(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof());
-            }
+            state = HttpState.openingReply(state);
+
+            network.accept(forward.typeId(), forward.buffer(), forward.offset(), forward.sizeof());
         }
 
-        private void onAppData(
-            DataFW data)
-        {
-            final int flags = data.flags();
-            final OctetsFW payload = data.payload();
-
-            if (hasInit(flags))
-            {
-                eventTypeLength = ABSENT;
-                eventIdLength = ABSENT;
-                eventValid = true;
-
-                final HttpDataExFW dataEx = data.extension().get(dataExRO::tryWrap);
-
-                if (dataEx != null)
-                {
-                    fieldsTarget = this;
-                    dataEx.headers().forEach(captureField);
-                    fieldsTarget = null;
-                }
-            }
-
-            final int length = eventValid ? encodeEvent(flags, payload) : 0;
-
-            if (eventValid && length <= data.reserved())
-            {
-                final DataFW forward = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                    .originId(data.originId())
-                    .routedId(data.routedId())
-                    .streamId(data.streamId())
-                    .sequence(data.sequence())
-                    .acknowledge(data.acknowledge())
-                    .maximum(data.maximum())
-                    .traceId(data.traceId())
-                    .authorization(data.authorization())
-                    .flags(flags)
-                    .budgetId(data.budgetId())
-                    .reserved(data.reserved())
-                    .payload(eventBuffer, 0, length)
-                    .build();
-
-                exchange.accept(forward.typeId(), forward.buffer(), forward.offset(), forward.sizeof());
-            }
-            else
-            {
-                doAppReset(data);
-            }
-        }
-
-        private int encodeEvent(
+        private void doNetData(
+            long traceId,
+            long authorization,
+            long budgetId,
+            int reserved,
             int flags,
-            OctetsFW payload)
+            Flyweight payload)
         {
-            int progress = 0;
+            final long sequence = httpReplySeq;
 
-            if (hasInit(flags))
+            httpReplySeq += reserved;
+
+            assert httpReplySeq <= httpReplyAck + httpReplyMax;
+
+            doHttpData(network, networkBuffer, originId, routedId, replyId, sequence, httpReplyAck, httpReplyMax,
+                    traceId, authorization, budgetId, flags, reserved, payload, null);
+        }
+
+        private void doNetFlush(
+            long traceId,
+            long authorization,
+            long budgetId,
+            int reserved,
+            OctetsFW extension)
+        {
+            doHttpFlush(network, networkBuffer, originId, routedId, replyId, httpReplySeq, httpReplyAck, httpReplyMax,
+                    traceId, authorization, budgetId, reserved, extension);
+        }
+
+        private void doNetAbort(
+            long traceId,
+            long authorization,
+            OctetsFW extension)
+        {
+            if (!HttpState.replyClosed(state))
             {
-                if (eventTypeLength != ABSENT)
+                state = HttpState.closeReply(state);
+
+                doHttpAbort(network, networkBuffer, originId, routedId, replyId, httpReplySeq, httpReplyAck, httpReplyMax,
+                        traceId, authorization, extension);
+
+                cleanupNet();
+            }
+        }
+
+        private void doNetEnd(
+            long traceId,
+            long authorization,
+            OctetsFW extension)
+        {
+            if (!HttpState.replyClosed(state))
+            {
+                state = HttpState.closeReply(state);
+
+                doHttpEnd(network, networkBuffer, originId, routedId, replyId, httpReplySeq, httpReplyAck, httpReplyMax,
+                        traceId, authorization, extension);
+
+                cleanupNet();
+            }
+        }
+
+        private void doEncodeEvent(
+            long traceId,
+            long authorization,
+            long budgetId,
+            int reserved,
+            int flags,
+            OctetsFW payload,
+            DirectBufferEx id,
+            DirectBufferEx type)
+        {
+            final HttpSseEventFW event = eventRW.wrap(eventBuffer, 0, eventBuffer.capacity())
+                    .flags(flags)
+                    .id(id)
+                    .type(type)
+                    .data(payload)
+                    .build();
+
+            final int length = event.sizeof();
+            final int claimed = Math.max(reserved, length + httpReplyPad);
+            final int credit = (int) (httpReplyAck + httpReplyMax - httpReplySeq);
+
+            if (networkSlotOffset == 0 && claimed <= credit)
+            {
+                doNetData(traceId, authorization, budgetId, claimed, flags, event);
+            }
+            else
+            {
+                final int immediate = networkSlotOffset == 0 ? Math.max(Math.min(length, credit - httpReplyPad), 0) : 0;
+
+                if (immediate > 0)
                 {
-                    progress = put(progress, EVENT_FIELD, EVENT_FIELD.length);
-                    progress = put(progress, eventType, eventTypeLength);
-                    eventBuffer.putByte(progress++, LINE_FEED);
+                    final OctetsFW first = retainedRO.wrap(event.buffer(), event.offset(), event.offset() + immediate);
+
+                    doNetData(traceId, authorization, budgetId, immediate + httpReplyPad, COMPLETE, first);
                 }
 
-                progress = put(progress, DATA_FIELD, DATA_FIELD.length);
+                final int deferred = length - immediate;
+
+                if (deferred > 0)
+                {
+                    final OctetsFW rest = retainedRO.wrap(event.buffer(), event.offset() + immediate, event.limit());
+
+                    deferNetData(traceId, authorization, budgetId, deferred + httpReplyPad, COMPLETE, rest);
+                }
+            }
+        }
+
+        private void deferNetData(
+            long traceId,
+            long authorization,
+            long budgetId,
+            int reserved,
+            int flags,
+            Flyweight event)
+        {
+            if (networkSlot == NO_SLOT)
+            {
+                networkSlot = bufferPool.acquire(replyId);
             }
 
-            if (payload != null)
+            final int length = event.sizeof();
+
+            if (networkSlot != NO_SLOT &&
+                networkSlotOffset + DEFERRED_PAYLOAD_OFFSET + length <= bufferPool.slotCapacity())
             {
-                final DirectBufferEx body = payload.buffer();
-                final int limit = payload.limit();
+                final MutableDirectBufferEx slot = deferredPool.buffer(networkSlot);
+                final int offset = networkSlotOffset;
 
-                for (int offset = payload.offset(); offset < limit; offset++)
+                slot.putInt(offset + DEFERRED_LENGTH_OFFSET, length);
+                slot.putInt(offset + DEFERRED_RESERVED_OFFSET, reserved);
+                slot.putInt(offset + DEFERRED_FLAGS_OFFSET, flags);
+                slot.putLong(offset + DEFERRED_BUDGET_OFFSET, budgetId);
+                slot.putLong(offset + DEFERRED_TRACE_OFFSET, traceId);
+                slot.putLong(offset + DEFERRED_AUTHORIZATION_OFFSET, authorization);
+                slot.putBytes(offset + DEFERRED_PAYLOAD_OFFSET, event.buffer(), event.offset(), length);
+
+                networkSlotOffset += DEFERRED_PAYLOAD_OFFSET + length;
+            }
+            else
+            {
+                stream.doAppReset(traceId, null);
+                doNetAbort(traceId, authorization, null);
+            }
+        }
+
+        private void flushDeferred(
+            long traceId)
+        {
+            boolean progressed = networkSlotOffset > 0;
+
+            while (progressed)
+            {
+                final MutableDirectBufferEx slot = deferredPool.buffer(networkSlot);
+                final int length = slot.getInt(DEFERRED_LENGTH_OFFSET);
+                final int reserved = slot.getInt(DEFERRED_RESERVED_OFFSET);
+                final int credit = (int) (httpReplyAck + httpReplyMax - httpReplySeq);
+
+                progressed = reserved <= credit;
+
+                if (progressed)
                 {
-                    final byte value = body.getByte(offset);
+                    final OctetsFW payload = retainedRO.wrap(slot, DEFERRED_PAYLOAD_OFFSET, DEFERRED_PAYLOAD_OFFSET + length);
+                    final int flags = slot.getInt(DEFERRED_FLAGS_OFFSET);
+                    final long budgetId = slot.getLong(DEFERRED_BUDGET_OFFSET);
+                    final long deferredTraceId = slot.getLong(DEFERRED_TRACE_OFFSET);
+                    final long authorization = slot.getLong(DEFERRED_AUTHORIZATION_OFFSET);
+                    final int consumed = DEFERRED_PAYLOAD_OFFSET + length;
 
-                    eventBuffer.putByte(progress++, value);
+                    doNetData(deferredTraceId, authorization, budgetId, reserved, flags, payload);
 
-                    if (value == LINE_FEED)
+                    networkSlotOffset -= consumed;
+
+                    if (networkSlotOffset > 0)
                     {
-                        progress = put(progress, DATA_FIELD, DATA_FIELD.length);
+                        slot.putBytes(0, slot, consumed, networkSlotOffset);
+                    }
+                    else
+                    {
+                        bufferPool.release(networkSlot);
+                        networkSlot = NO_SLOT;
+                        progressed = false;
                     }
                 }
             }
 
-            if (hasFin(flags))
+            if (deferredEnd && networkSlotOffset == 0)
             {
-                eventBuffer.putByte(progress++, LINE_FEED);
+                deferredEnd = false;
 
-                if (eventIdLength != ABSENT)
-                {
-                    progress = put(progress, ID_FIELD, ID_FIELD.length);
-                    progress = put(progress, eventId, eventIdLength);
-                    eventBuffer.putByte(progress++, LINE_FEED);
-                }
+                doNetEnd(traceId, httpReplyAuth, deferredEndExtension);
+            }
+        }
 
-                eventBuffer.putByte(progress++, LINE_FEED);
+        private void flushNetwork(
+            long traceId)
+        {
+            flushDeferred(traceId);
+            stream.flushAppWindow(traceId, false);
+        }
+
+        private void cleanupNet()
+        {
+            networkSlotOffset = 0;
+
+            if (networkSlot != NO_SLOT)
+            {
+                bufferPool.release(networkSlot);
+                networkSlot = NO_SLOT;
+            }
+        }
+
+        final class HttpStream
+        {
+            private MessageConsumer application;
+            private final long originId;
+            private final long routedId;
+            private final long initialId;
+            private final long replyId;
+
+            private int state;
+            private boolean framed;
+
+            private long appReplySeq;
+            private long appReplyAck;
+            private int appReplyMax;
+            private int appReplyPad;
+
+            private HttpStream(
+                long originId,
+                long routedId)
+            {
+                this.originId = originId;
+                this.routedId = routedId;
+                this.initialId = supplyInitialId.applyAsLong(routedId);
+                this.replyId = supplyReplyId.applyAsLong(initialId);
             }
 
-            return progress;
+            private void doAppBegin(
+                int msgTypeId,
+                DirectBufferEx buffer,
+                int index,
+                int length)
+            {
+                writeBuffer.putBytes(0, buffer, index, length);
+                writeBuffer.putLong(FIELD_OFFSET_STREAM_ID, initialId);
+
+                application = streamFactory.newStream(msgTypeId, writeBuffer, 0, length, this::onAppMessage);
+                application.accept(msgTypeId, writeBuffer, 0, length);
+            }
+
+            private void doAppReset(
+                long traceId,
+                OctetsFW extension)
+            {
+                if (!HttpState.replyClosed(state))
+                {
+                    state = HttpState.closeReply(state);
+
+                    doReset(application, writeBuffer, originId, routedId, replyId, appReplySeq, appReplyAck, appReplyMax,
+                            traceId, extension);
+                }
+            }
+
+            private void onAppMessage(
+                int msgTypeId,
+                DirectBufferEx buffer,
+                int index,
+                int length)
+            {
+                final long streamId = buffer.getLong(index + FIELD_OFFSET_STREAM_ID);
+
+                if (streamId == initialId)
+                {
+                    relay(network, networkBuffer, msgTypeId, buffer, index, length, HttpSseServer.this.initialId);
+                }
+                else if (msgTypeId == BeginFW.TYPE_ID)
+                {
+                    onAppBegin(beginRO.wrap(buffer, index, index + length), buffer, index, length);
+                }
+                else if (!framed)
+                {
+                    relay(network, networkBuffer, msgTypeId, buffer, index, length, HttpSseServer.this.replyId);
+                }
+                else
+                {
+                    switch (msgTypeId)
+                    {
+                    case DataFW.TYPE_ID:
+                        final DataFW data = dataRO.wrap(buffer, index, index + length);
+                        onAppData(data);
+                        break;
+                    case EndFW.TYPE_ID:
+                        final EndFW end = endRO.wrap(buffer, index, index + length);
+                        onAppEnd(end);
+                        break;
+                    case AbortFW.TYPE_ID:
+                        final AbortFW abort = abortRO.wrap(buffer, index, index + length);
+                        onAppAbort(abort);
+                        break;
+                    case FlushFW.TYPE_ID:
+                        final FlushFW flush = flushRO.wrap(buffer, index, index + length);
+                        onAppFlush(flush);
+                        break;
+                    default:
+                        break;
+                    }
+                }
+            }
+
+            private void onAppBegin(
+                BeginFW begin,
+                DirectBufferEx buffer,
+                int index,
+                int length)
+            {
+                final HttpBeginExFW beginEx = begin.extension().get(beginExRO::tryWrap);
+
+                framed = beginEx != null && framing.detect(beginEx);
+
+                if (framed)
+                {
+                    final HttpBeginExFW retained = framing.strip(beginEx, extBuffer, httpTypeId);
+
+                    appReplySeq = begin.sequence();
+                    appReplyAck = httpReplyAck;
+                    appReplyMax = httpReplyMax;
+                    appReplyPad = httpReplyPad;
+                    state = HttpState.openingReply(state);
+
+                    doNetBegin(begin, retainedRO.wrap(retained.buffer(), retained.offset(), retained.limit()));
+
+                    flushAppWindow(begin.traceId(), true);
+                }
+                else
+                {
+                    relay(network, networkBuffer, BeginFW.TYPE_ID, buffer, index, length, HttpSseServer.this.replyId);
+                }
+            }
+
+            private void onAppData(
+                DataFW data)
+            {
+                final long sequence = data.sequence();
+                final long traceId = data.traceId();
+                final long authorization = data.authorization();
+                final long budgetId = data.budgetId();
+                final int reserved = data.reserved();
+
+                appReplySeq = sequence + reserved;
+
+                if (appReplySeq > appReplyAck + appReplyMax)
+                {
+                    doAppReset(traceId, null);
+                    doNetAbort(traceId, authorization, null);
+                }
+                else
+                {
+                    final int flags = data.flags();
+                    final OctetsFW payload = data.payload();
+                    final OctetsFW extension = data.extension();
+
+                    DirectBufferEx id = null;
+                    DirectBufferEx type = null;
+
+                    final HttpDataExFW dataEx = extension.sizeof() > 0 ? extension.get(dataExRO::tryWrap) : null;
+
+                    if (dataEx != null)
+                    {
+                        id = fieldValue(dataEx, HEADER_NAME_ID, idBuffer, idView);
+                        type = fieldValue(dataEx, HEADER_NAME_TYPE, typeBuffer, typeView);
+                    }
+
+                    doEncodeEvent(traceId, authorization, budgetId, reserved, flags, payload, id, type);
+
+                    flushAppWindow(traceId, false);
+                }
+            }
+
+            private void onAppEnd(
+                EndFW end)
+            {
+                appReplySeq = end.sequence();
+                state = HttpState.closeReply(state);
+
+                if (networkSlotOffset > 0)
+                {
+                    final OctetsFW extension = end.extension();
+                    final byte[] bytes = new byte[extension.sizeof()];
+
+                    extension.buffer().getBytes(extension.offset(), bytes);
+
+                    deferredEnd = true;
+                    deferredEndExtension = new OctetsFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
+                    flushNetwork(end.traceId());
+                }
+                else
+                {
+                    doNetEnd(end.traceId(), end.authorization(), end.extension());
+                }
+            }
+
+            private void onAppFlush(
+                FlushFW flush)
+            {
+                appReplySeq = flush.sequence();
+
+                flushNetwork(flush.traceId());
+                doNetFlush(flush.traceId(), flush.authorization(), flush.budgetId(), flush.reserved(), flush.extension());
+            }
+
+            private void onAppAbort(
+                AbortFW abort)
+            {
+                appReplySeq = abort.sequence();
+                state = HttpState.closeReply(state);
+
+                doNetAbort(abort.traceId(), abort.authorization(), abort.extension());
+            }
+
+            private void flushAppWindow(
+                long traceId,
+                boolean forced)
+            {
+                final int httpReplyPendingAck = (int) (httpReplySeq - httpReplyAck) + networkSlotOffset;
+                final int appReplyAckMax = Math.max((int) (appReplySeq - httpReplyPendingAck), 0);
+                final int appReplyPadMax = httpReplyPad + MAXIMUM_HEADER_SIZE;
+
+                if (forced || appReplyAckMax > appReplyAck || httpReplyMax > appReplyMax || appReplyPadMax != appReplyPad)
+                {
+                    appReplyAck = appReplyAckMax;
+
+                    assert appReplyAck <= appReplySeq;
+
+                    appReplyMax = httpReplyMax;
+                    appReplyPad = appReplyPadMax;
+
+                    doWindow(application, writeBuffer, originId, routedId, replyId, appReplySeq, appReplyAck, appReplyMax,
+                            traceId, httpReplyAuth, httpReplyBud, appReplyPad, httpReplyMin, httpReplyCaps);
+                }
+            }
         }
+    }
 
-        private int put(
-            int offset,
-            byte[] bytes,
-            int length)
+    private void relay(
+        MessageConsumer target,
+        MutableDirectBufferEx relayBuffer,
+        int msgTypeId,
+        DirectBufferEx buffer,
+        int index,
+        int length,
+        long streamId)
+    {
+        relayBuffer.putBytes(0, buffer, index, length);
+        relayBuffer.putLong(FIELD_OFFSET_STREAM_ID, streamId);
+
+        target.accept(msgTypeId, relayBuffer, 0, length);
+    }
+
+    private DirectBufferEx fieldValue(
+        HttpDataExFW dataEx,
+        String8FW name,
+        MutableDirectBufferEx scratch,
+        UnsafeBufferEx view)
+    {
+        final HttpHeaderFW header = dataEx.headers().matchFirst(h -> name.equals(h.name()));
+
+        DirectBufferEx field = null;
+
+        if (header != null)
         {
-            eventBuffer.putBytes(offset, bytes, 0, length);
-
-            return offset + length;
-        }
-
-        private void captureEventField(
-            HttpHeaderFW header)
-        {
-            final String8FW name = header.name();
             final DirectBufferEx value = header.value().value();
-            final int length = value != null ? value.capacity() : 0;
+            final int length = value != null ? Math.min(value.capacity(), scratch.capacity()) : 0;
 
-            if (HttpSseFraming.equalsBytes(name.value(), NAME_TYPE))
+            if (length > 0)
             {
-                eventValid &= length <= EVENT_TYPE_MAX;
-
-                if (eventValid)
-                {
-                    eventTypeLength = length;
-                    value.getBytes(0, eventType, 0, length);
-                }
+                value.getBytes(0, scratch, 0, length);
             }
-            else if (HttpSseFraming.equalsBytes(name.value(), NAME_ID))
-            {
-                eventValid &= length <= EVENT_ID_MAX;
 
-                if (eventValid)
-                {
-                    eventIdLength = length;
-                    value.getBytes(0, eventId, 0, length);
-                }
-            }
+            view.wrap(scratch, 0, length);
+            field = view;
         }
 
-        private void doAppWindow(
-            long originId,
-            long routedId,
-            long streamId,
-            long sequence,
-            long acknowledge,
-            int maximum,
-            long timestamp,
-            long traceId,
-            long authorization,
-            long budgetId,
-            int padding,
-            int minimum,
-            int capabilities)
-        {
-            final WindowFW window = windowRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+        return field;
+    }
+
+    private void doHttpBegin(
+        MessageConsumer receiver,
+        MutableDirectBufferEx buffer,
+        long originId,
+        long routedId,
+        long streamId,
+        long sequence,
+        long acknowledge,
+        int maximum,
+        long traceId,
+        long authorization,
+        long affinity,
+        OctetsFW extension)
+    {
+        final BeginFW begin = beginRW.wrap(buffer, 0, buffer.capacity())
                 .originId(originId)
                 .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
                 .maximum(maximum)
-                .timestamp(timestamp)
+                .traceId(traceId)
+                .authorization(authorization)
+                .affinity(affinity)
+                .extension(extension.buffer(), extension.offset(), extension.sizeof())
+                .build();
+
+        receiver.accept(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof());
+    }
+
+    private void doHttpData(
+        MessageConsumer receiver,
+        MutableDirectBufferEx buffer,
+        long originId,
+        long routedId,
+        long streamId,
+        long sequence,
+        long acknowledge,
+        int maximum,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int flags,
+        int reserved,
+        Flyweight payload,
+        OctetsFW extension)
+    {
+        final DataFW.Builder builder = dataRW.wrap(buffer, 0, buffer.capacity())
+                .originId(originId)
+                .routedId(routedId)
+                .streamId(streamId)
+                .sequence(sequence)
+                .acknowledge(acknowledge)
+                .maximum(maximum)
+                .traceId(traceId)
+                .authorization(authorization)
+                .flags(flags)
+                .budgetId(budgetId)
+                .reserved(reserved);
+
+        if (payload != null)
+        {
+            builder.payload(payload.buffer(), payload.offset(), payload.sizeof());
+        }
+        else
+        {
+            builder.payload((OctetsFW) null);
+        }
+
+        if (extension != null)
+        {
+            builder.extension(extension.buffer(), extension.offset(), extension.sizeof());
+        }
+
+        final DataFW data = builder.build();
+
+        receiver.accept(data.typeId(), data.buffer(), data.offset(), data.sizeof());
+    }
+
+    private void doHttpEnd(
+        MessageConsumer receiver,
+        MutableDirectBufferEx buffer,
+        long originId,
+        long routedId,
+        long streamId,
+        long sequence,
+        long acknowledge,
+        int maximum,
+        long traceId,
+        long authorization,
+        OctetsFW extension)
+    {
+        final EndFW end = endRW.wrap(buffer, 0, buffer.capacity())
+                .originId(originId)
+                .routedId(routedId)
+                .streamId(streamId)
+                .sequence(sequence)
+                .acknowledge(acknowledge)
+                .maximum(maximum)
+                .traceId(traceId)
+                .authorization(authorization)
+                .extension(extension.buffer(), extension.offset(), extension.sizeof())
+                .build();
+
+        receiver.accept(end.typeId(), end.buffer(), end.offset(), end.sizeof());
+    }
+
+    private void doHttpAbort(
+        MessageConsumer receiver,
+        MutableDirectBufferEx buffer,
+        long originId,
+        long routedId,
+        long streamId,
+        long sequence,
+        long acknowledge,
+        int maximum,
+        long traceId,
+        long authorization,
+        OctetsFW extension)
+    {
+        final AbortFW.Builder builder = abortRW.wrap(buffer, 0, buffer.capacity())
+                .originId(originId)
+                .routedId(routedId)
+                .streamId(streamId)
+                .sequence(sequence)
+                .acknowledge(acknowledge)
+                .maximum(maximum)
+                .traceId(traceId)
+                .authorization(authorization);
+
+        if (extension != null)
+        {
+            builder.extension(extension.buffer(), extension.offset(), extension.sizeof());
+        }
+
+        final AbortFW abort = builder.build();
+
+        receiver.accept(abort.typeId(), abort.buffer(), abort.offset(), abort.sizeof());
+    }
+
+    private void doHttpFlush(
+        MessageConsumer receiver,
+        MutableDirectBufferEx buffer,
+        long originId,
+        long routedId,
+        long streamId,
+        long sequence,
+        long acknowledge,
+        int maximum,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        OctetsFW extension)
+    {
+        final FlushFW.Builder builder = flushRW.wrap(buffer, 0, buffer.capacity())
+                .originId(originId)
+                .routedId(routedId)
+                .streamId(streamId)
+                .sequence(sequence)
+                .acknowledge(acknowledge)
+                .maximum(maximum)
+                .traceId(traceId)
+                .authorization(authorization)
+                .budgetId(budgetId)
+                .reserved(reserved);
+
+        if (extension != null)
+        {
+            builder.extension(extension.buffer(), extension.offset(), extension.sizeof());
+        }
+
+        final FlushFW flush = builder.build();
+
+        receiver.accept(flush.typeId(), flush.buffer(), flush.offset(), flush.sizeof());
+    }
+
+    private void doWindow(
+        MessageConsumer sender,
+        MutableDirectBufferEx buffer,
+        long originId,
+        long routedId,
+        long streamId,
+        long sequence,
+        long acknowledge,
+        int maximum,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int padding,
+        int minimum,
+        int capabilities)
+    {
+        final WindowFW window = windowRW.wrap(buffer, 0, buffer.capacity())
+                .originId(originId)
+                .routedId(routedId)
+                .streamId(streamId)
+                .sequence(sequence)
+                .acknowledge(acknowledge)
+                .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
                 .budgetId(budgetId)
@@ -416,29 +992,65 @@ public final class HttpSseServerFactory implements BindingHandler
                 .capabilities(capabilities)
                 .build();
 
-            app.accept(window.typeId(), window.buffer(), window.offset(), window.sizeof());
-        }
-
-        private void doAppReset(
-            DataFW data)
-        {
-            final ResetFW reset = resetRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .originId(data.originId())
-                .routedId(data.routedId())
-                .streamId(data.streamId())
-                .sequence(data.sequence())
-                .acknowledge(data.acknowledge())
-                .maximum(data.maximum())
-                .traceId(data.traceId())
-                .build();
-
-            app.accept(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());
-        }
+        sender.accept(window.typeId(), window.buffer(), window.offset(), window.sizeof());
     }
 
-    private void captureField(
-        HttpHeaderFW header)
+    private void doReset(
+        MessageConsumer sender,
+        MutableDirectBufferEx buffer,
+        long originId,
+        long routedId,
+        long streamId,
+        long sequence,
+        long acknowledge,
+        int maximum,
+        long traceId,
+        OctetsFW extension)
     {
-        fieldsTarget.captureEventField(header);
+        final ResetFW.Builder builder = resetRW.wrap(buffer, 0, buffer.capacity())
+                .originId(originId)
+                .routedId(routedId)
+                .streamId(streamId)
+                .sequence(sequence)
+                .acknowledge(acknowledge)
+                .maximum(maximum)
+                .traceId(traceId);
+
+        if (extension != null)
+        {
+            builder.extension(extension.buffer(), extension.offset(), extension.sizeof());
+        }
+
+        final ResetFW reset = builder.build();
+
+        sender.accept(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());
+    }
+
+    private void doChallenge(
+        MessageConsumer sender,
+        MutableDirectBufferEx buffer,
+        long originId,
+        long routedId,
+        long streamId,
+        long sequence,
+        long acknowledge,
+        int maximum,
+        long traceId,
+        long authorization,
+        OctetsFW extension)
+    {
+        final ChallengeFW challenge = challengeRW.wrap(buffer, 0, buffer.capacity())
+                .originId(originId)
+                .routedId(routedId)
+                .streamId(streamId)
+                .sequence(sequence)
+                .acknowledge(acknowledge)
+                .maximum(maximum)
+                .traceId(traceId)
+                .authorization(authorization)
+                .extension(extension.buffer(), extension.offset(), extension.sizeof())
+                .build();
+
+        sender.accept(challenge.typeId(), challenge.buffer(), challenge.offset(), challenge.sizeof());
     }
 }

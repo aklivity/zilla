@@ -28,7 +28,5 @@ read closed
 write http:status "200" "OK"
 write http:header "Content-Type" "text/event-stream"
 write http:header "Transfer-Encoding" "chunked"
-write "data:Hello, world\n"
-write "event:one\n"
-write "\n"
+write "data:Hello, world\n" "event:one\n" "\n"
 write close

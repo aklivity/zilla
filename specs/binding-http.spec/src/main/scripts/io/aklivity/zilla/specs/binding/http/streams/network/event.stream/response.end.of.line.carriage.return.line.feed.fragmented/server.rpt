@@ -32,8 +32,7 @@ write "\r"
 write flush
 write "\n"
 write flush
-write "data:Hello, world\r\n"
-write "\r"
+write "data:Hello, world\r\n" "\r"
 write flush
 write "\n"
 write close

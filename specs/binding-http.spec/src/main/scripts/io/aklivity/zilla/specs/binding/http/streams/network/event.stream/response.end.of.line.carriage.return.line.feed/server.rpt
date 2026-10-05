@@ -30,6 +30,5 @@ write http:header "Content-Type" "text/event-stream"
 write http:header "Transfer-Encoding" "chunked"
 write "\r\n"
 write flush
-write "data:Hello, world\r\n"
-write "\r\n"
+write "data:Hello, world\r\n" "\r\n"
 write close
