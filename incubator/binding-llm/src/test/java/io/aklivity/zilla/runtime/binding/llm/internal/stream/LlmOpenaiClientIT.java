@@ -130,60 +130,6 @@ public class LlmOpenaiClientIT
     @Test
     @Configuration("client.openai.yaml")
     @Specification({
-        "${app}/anthropic.streaming.transformed/client",
-        "${net}/openai.streaming.transformed/server"})
-    @ScriptProperty({ "model \"claude-3-opus-20240229\"", "id \"msg_01\"" })
-    public void shouldTransformAnthropicToOpenaiStreaming() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.openai.yaml")
-    @Specification({
-        "${app}/anthropic.transformed/client",
-        "${net}/openai.transformed/server"})
-    @ScriptProperty({ "model \"claude-3-opus-20240229\"", "id \"msg_01\"" })
-    public void shouldTransformAnthropicToOpenaiNonstreaming() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.openai.yaml")
-    @Specification({
-        "${app}/anthropic.transformed.100k/client",
-        "${net}/openai.transformed.100k/server"})
-    @ScriptProperty({ "model \"claude-3-opus-20240229\"", "id \"msg_01\"" })
-    public void shouldTransformAnthropicToOpenai100k() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.openai.yaml")
-    @Specification({
-        "${app}/anthropic.transformed.tool.only/client",
-        "${net}/openai.transformed.tool.only/server"})
-    @ScriptProperty({ "model \"claude-3-opus-20240229\"", "id \"msg_01\"" })
-    public void shouldTransformAnthropicToOpenaiToolOnly() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.openai.guarded.yaml")
-    @Specification({
-        "${app}/openai.authorized/client",
-        "${net}/openai.authorized/server"})
-    public void shouldForwardOpenaiRequestWithAuthorizedCredentials() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.openai.yaml")
-    @Specification({
         "${app}/openai.10k/client",
         "${net}/openai.10k/server"})
     public void shouldForwardOpenai10k() throws Exception

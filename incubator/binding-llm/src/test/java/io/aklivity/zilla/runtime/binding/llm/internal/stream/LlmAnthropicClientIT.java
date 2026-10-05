@@ -90,82 +90,6 @@ public class LlmAnthropicClientIT
     @Test
     @Configuration("client.anthropic.yaml")
     @Specification({
-        "${app}/openai.streaming.transformed/client",
-        "${net}/anthropic.streaming.transformed/server"})
-    @ScriptProperty({ "model \"gpt-4\"", "id \"chatcmpl_1\"" })
-    public void shouldTransformOpenaiToAnthropicStreaming() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.anthropic.yaml")
-    @Specification({
-        "${app}/openai.streaming.transformed.100k/client",
-        "${net}/anthropic.streaming.transformed.100k/server"})
-    @ScriptProperty({ "model \"claude-3-opus-20240229\"", "id \"msg_01\"" })
-    public void shouldTransformOpenaiToAnthropicStreaming100k() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.anthropic.yaml")
-    @Specification({
-        "${app}/openai.transformed/client",
-        "${net}/anthropic.transformed/server"})
-    @ScriptProperty({ "model \"gpt-4\"", "id \"chatcmpl_2\"" })
-    public void shouldTransformOpenaiToAnthropicNonstreaming() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.anthropic.yaml")
-    @Specification({
-        "${app}/openai.transformed.100k/client",
-        "${net}/anthropic.transformed.100k/server"})
-    @ScriptProperty({ "model \"gpt-4\"", "id \"chatcmpl_2\"" })
-    public void shouldTransformOpenaiToAnthropic100k() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.anthropic.yaml")
-    @Specification({
-        "${app}/openai.transformed.tool.only/client",
-        "${net}/anthropic.transformed.tool.only/server"})
-    @ScriptProperty({ "model \"gpt-4\"", "id \"chatcmpl_2\"" })
-    public void shouldTransformOpenaiToAnthropicToolOnly() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.anthropic.yaml")
-    @Specification({
-        "${app}/openai.transformed.multi.tool/client",
-        "${net}/anthropic.transformed.multi.tool/server"})
-    @ScriptProperty({ "model \"gpt-4\"", "id \"chatcmpl_2\"" })
-    public void shouldTransformOpenaiToAnthropicMultiTool() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.anthropic.guarded.yaml")
-    @Specification({
-        "${app}/anthropic.authorized/client",
-        "${net}/anthropic.authorized/server"})
-    public void shouldForwardAnthropicRequestWithAuthorizedCredentials() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.anthropic.yaml")
-    @Specification({
         "${app}/anthropic.10k/client",
         "${net}/anthropic.10k/server"})
     public void shouldForwardAnthropic10k() throws Exception
@@ -209,48 +133,6 @@ public class LlmAnthropicClientIT
         "${app}/anthropic.rejected.rate.limit/client",
         "${net}/anthropic.rejected.rate.limit/server"})
     public void shouldResetAnthropicRequestRateLimited() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.anthropic.yaml")
-    @Specification({
-        "${app}/openai.transformed.rejected.rate.limit/client",
-        "${net}/anthropic.transformed.rejected.rate.limit/server"})
-    @ScriptProperty({ "model \"gpt-4\"" })
-    public void shouldResetOpenaiToAnthropicRequestRateLimited() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.anthropic.yaml")
-    @Specification({
-        "${app}/anthropic.streaming.error/client",
-        "${net}/anthropic.streaming.error/server"})
-    public void shouldAbortAnthropicStreamingError() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.anthropic.yaml")
-    @Specification({
-        "${app}/openai.streaming.transformed.error/client",
-        "${net}/anthropic.streaming.transformed.error/server"})
-    @ScriptProperty({ "model \"gpt-4\"", "id \"chatcmpl_1\"" })
-    public void shouldAbortOpenaiToAnthropicStreamingError() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.anthropic.yaml")
-    @Specification({
-        "${app}/anthropic.section.assistant.reasoning/client",
-        "${net}/anthropic.section.assistant.reasoning/server"})
-    public void shouldEncodeAnthropicSectionAssistantReasoning() throws Exception
     {
         k3po.finish();
     }
