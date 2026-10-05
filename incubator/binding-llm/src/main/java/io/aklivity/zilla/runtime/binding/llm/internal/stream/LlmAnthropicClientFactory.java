@@ -2213,8 +2213,8 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
 
             if (streaming)
             {
-                final int bound = stream.responseDecoder.begun()
-                    ? Math.min(limit - offset, stream.replyCredit())
+                final int bound = stream.responseDecoder.begun() && stream.replyCredit() == 0
+                    ? 0
                     : limit - offset;
 
                 if (bound > 0 || limit == offset)

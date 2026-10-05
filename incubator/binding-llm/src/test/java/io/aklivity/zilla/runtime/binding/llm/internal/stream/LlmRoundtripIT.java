@@ -56,4 +56,15 @@ public class LlmRoundtripIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("roundtrip.openai.yaml")
+    @Specification({
+        "${net}/openai.roundtrip.streaming/client",
+        "${net}/openai.roundtrip.streaming/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/net1\"")
+    public void shouldRoundtripOpenaiStreaming() throws Exception
+    {
+        k3po.finish();
+    }
 }
