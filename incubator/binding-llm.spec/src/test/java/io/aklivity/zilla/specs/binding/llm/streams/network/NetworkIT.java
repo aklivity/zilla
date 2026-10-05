@@ -479,6 +479,33 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/openai.request.options/client",
+        "${net}/openai.request.options/server"})
+    public void shouldOpenaiRequestOptions() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.request.options.early/client",
+        "${net}/openai.request.options.early/server"})
+    public void shouldOpenaiRequestOptionsEarly() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.request.options.begin/client",
+        "${net}/openai.request.options.begin/server"})
+    public void shouldOpenaiRequestOptionsBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/openai.section.user.image/client",
         "${net}/openai.section.user.image/server"})
     public void shouldOpenaiSectionUserImage() throws Exception

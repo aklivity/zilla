@@ -1,1 +1,4 @@
 io.aklivity.zilla.specs.binding.llm.internal.LlmFunctions$Mapper
+io.aklivity.zilla.specs.binding.llm.internal.LlmOpenaiFunctions$Mapper
+io.aklivity.zilla.specs.binding.llm.internal.LlmAnthropicFunctions$Mapper
+io.aklivity.zilla.specs.binding.llm.internal.LlmOllamaFunctions$Mapper

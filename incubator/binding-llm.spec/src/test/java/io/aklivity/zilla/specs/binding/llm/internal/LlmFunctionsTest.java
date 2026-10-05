@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.specs.binding.llm.internal;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -452,13 +453,13 @@ public class LlmFunctionsTest
         BytesMatcher matcher = LlmFunctions.matchBeginEx()
             .typeId(0)
             .dialect("openai")
-            .extension("ext")
+            .extension("ext".getBytes(UTF_8))
             .build();
 
         ByteBuffer byteBuf = ByteBuffer.wrap(LlmFunctions.beginEx()
             .typeId(0)
             .dialect("openai")
-            .extension("ext")
+            .extension("ext".getBytes(UTF_8))
             .build());
 
         assertNotNull(matcher.match(byteBuf));
@@ -487,13 +488,13 @@ public class LlmFunctionsTest
         BytesMatcher matcher = LlmFunctions.matchBeginEx()
             .typeId(0)
             .dialect("openai")
-            .extension("a")
+            .extension("a".getBytes(UTF_8))
             .build();
 
         ByteBuffer byteBuf = ByteBuffer.wrap(LlmFunctions.beginEx()
             .typeId(0)
             .dialect("openai")
-            .extension("b")
+            .extension("b".getBytes(UTF_8))
             .build());
 
         assertThrows(Exception.class, () -> matcher.match(byteBuf));
@@ -1468,6 +1469,146 @@ public class LlmFunctionsTest
             .build());
 
         assertThrows(Exception.class, () -> matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldMatchBeginExWithBinaryExtension() throws Exception
+    {
+        final byte[] overlay = LlmOpenaiFunctions.requestEx().temperature("0.7").maxTokens("100").build();
+
+        final byte[] beginEx = LlmFunctions.beginEx()
+            .typeId(0)
+            .dialect("openai")
+            .model("gpt-4")
+            .extension(overlay)
+            .build();
+
+        final BytesMatcher matcher = LlmFunctions.matchBeginEx()
+            .typeId(0)
+            .extension(overlay)
+            .build();
+
+        assertNotNull(matcher.match(ByteBuffer.wrap(beginEx)));
+    }
+
+    @Test
+    public void shouldFailMatchBeginExWithDifferentBinaryExtension() throws Exception
+    {
+        final byte[] beginEx = LlmFunctions.beginEx()
+            .typeId(0)
+            .dialect("openai")
+            .extension(LlmOpenaiFunctions.requestEx().temperature("0.7").build())
+            .build();
+
+        final BytesMatcher matcher = LlmFunctions.matchBeginEx()
+            .typeId(0)
+            .extension(LlmOpenaiFunctions.requestEx().temperature("0.9").build())
+            .build();
+
+        assertThrows(Exception.class, () -> matcher.match(ByteBuffer.wrap(beginEx)));
+    }
+
+    @Test
+    public void shouldMatchBeginExWithoutBinaryExtension() throws Exception
+    {
+        final byte[] beginEx = LlmFunctions.beginEx()
+            .typeId(0)
+            .dialect("openai")
+            .build();
+
+        final BytesMatcher matcher = LlmFunctions.matchBeginEx()
+            .typeId(0)
+            .extensionNull()
+            .build();
+
+        assertNotNull(matcher.match(ByteBuffer.wrap(beginEx)));
+    }
+
+    @Test
+    public void shouldGenerateAndMatchFlushEx() throws Exception
+    {
+        final byte[] overlay = LlmOpenaiFunctions.requestEx().seed("42").stop("[\"END\"]").build();
+
+        final byte[] flushEx = LlmFunctions.flushEx()
+            .typeId(0)
+            .extension(overlay)
+            .build();
+
+        final BytesMatcher matcher = LlmFunctions.matchFlushEx()
+            .typeId(0)
+            .extension(overlay)
+            .build();
+
+        final ByteBuffer byteBuf = ByteBuffer.wrap(flushEx);
+        assertNotNull(matcher.match(byteBuf));
+        assertEquals(flushEx.length, byteBuf.position());
+    }
+
+    @Test
+    public void shouldFailMatchFlushExMismatch() throws Exception
+    {
+        final byte[] flushEx = LlmFunctions.flushEx()
+            .typeId(0)
+            .extension(LlmOpenaiFunctions.requestEx().seed("42").build())
+            .build();
+
+        final BytesMatcher matcher = LlmFunctions.matchFlushEx()
+            .typeId(0)
+            .extension(LlmOpenaiFunctions.requestEx().seed("43").build())
+            .build();
+
+        assertThrows(Exception.class, () -> matcher.match(ByteBuffer.wrap(flushEx)));
+    }
+
+    @Test
+    public void shouldMatchFlushExExtensionNull() throws Exception
+    {
+        final byte[] flushEx = LlmFunctions.flushEx()
+            .typeId(0)
+            .build();
+
+        final BytesMatcher matcher = LlmFunctions.matchFlushEx()
+            .typeId(0)
+            .extensionNull()
+            .build();
+
+        assertNotNull(matcher.match(ByteBuffer.wrap(flushEx)));
+    }
+
+    @Test
+    public void shouldGenerateAndMatchEndExWithExtension() throws Exception
+    {
+        final byte[] overlay = LlmOpenaiFunctions.responseEx().serviceTier("default").build();
+
+        final byte[] endEx = LlmFunctions.endEx()
+            .typeId(0)
+            .finishReason("stop")
+            .extension(overlay)
+            .build();
+
+        final BytesMatcher matcher = LlmFunctions.matchEndEx()
+            .typeId(0)
+            .finishReason("stop")
+            .extension(overlay)
+            .build();
+
+        assertNotNull(matcher.match(ByteBuffer.wrap(endEx)));
+    }
+
+    @Test
+    public void shouldMatchEndExExtensionNull() throws Exception
+    {
+        final byte[] endEx = LlmFunctions.endEx()
+            .typeId(0)
+            .finishReason("stop")
+            .build();
+
+        final BytesMatcher matcher = LlmFunctions.matchEndEx()
+            .typeId(0)
+            .extensionNull()
+            .build();
+
+        assertNotNull(matcher.match(ByteBuffer.wrap(endEx)));
     }
 
     private static Map<String, String> attributesOf(

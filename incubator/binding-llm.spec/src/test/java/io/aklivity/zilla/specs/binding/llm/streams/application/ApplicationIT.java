@@ -524,6 +524,33 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/openai.request.options/client",
+        "${app}/openai.request.options/server"})
+    public void shouldOpenaiRequestOptions() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.request.options.early/client",
+        "${app}/openai.request.options.early/server"})
+    public void shouldOpenaiRequestOptionsEarly() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.request.options.begin/client",
+        "${app}/openai.request.options.begin/server"})
+    public void shouldOpenaiRequestOptionsBegin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/openai.section.user.image/client",
         "${app}/openai.section.user.image/server"})
     public void shouldOpenaiSectionUserImage() throws Exception

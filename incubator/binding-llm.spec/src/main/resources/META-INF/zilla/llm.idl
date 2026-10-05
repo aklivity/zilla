@@ -26,6 +26,12 @@ scope llm
             octets[extensionLength] extension = null;
         }
 
+        struct LlmFlushEx extends core::stream::Extension
+        {
+            varint32 extensionLength;
+            octets[extensionLength] extension = null;
+        }
+
         struct LlmAttribute
         {
             string8 name;
@@ -64,6 +70,8 @@ scope llm
         {
             LlmUsage usage;
             string16 finishReason = null;
+            varint32 extensionLength;
+            octets[extensionLength] extension = null;
         }
 
         struct LlmAbortEx extends core::stream::Extension
