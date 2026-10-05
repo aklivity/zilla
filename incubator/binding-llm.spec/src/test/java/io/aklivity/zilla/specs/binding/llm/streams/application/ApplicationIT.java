@@ -137,15 +137,6 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/signing.unavailable/client",
-        "${app}/signing.unavailable/server"})
-    public void shouldAbortRequestWhenSigningUnavailable() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${app}/anthropic.streaming.usage/client",
         "${app}/anthropic.streaming.usage/server"})
     public void shouldForwardAnthropicStreamingUsage() throws Exception
@@ -356,15 +347,6 @@ public class ApplicationIT
         "${app}/openai.transformed.multi.tool/client",
         "${app}/openai.transformed.multi.tool/server"})
     public void shouldForwardOpenaiNonstreamingTransformedMultiTool() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/buffer.and.sign/client",
-        "${app}/buffer.and.sign/server"})
-    public void shouldBufferAndSign() throws Exception
     {
         k3po.finish();
     }

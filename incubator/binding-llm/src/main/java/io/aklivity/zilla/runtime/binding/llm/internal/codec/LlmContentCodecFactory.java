@@ -24,7 +24,6 @@ import java.util.function.Supplier;
 import io.aklivity.zilla.runtime.binding.llm.codec.LlmContentCodecSpi;
 import io.aklivity.zilla.runtime.binding.llm.codec.LlmContentDecoder;
 import io.aklivity.zilla.runtime.binding.llm.codec.LlmContentEncoder;
-import io.aklivity.zilla.runtime.binding.llm.dialect.LlmLegacyDialect;
 
 /**
  * Dispatches to the {@link LlmContentCodecSpi} registered for a stream's content-type.
@@ -47,13 +46,6 @@ public final class LlmContentCodecFactory
         return codecsByContentType.keySet();
     }
 
-    public void validate(
-        LlmLegacyDialect dialect)
-    {
-        requireCodec(dialect, dialect.requestContentType());
-        dialect.responseContentTypes().forEach(t -> requireCodec(dialect, t));
-    }
-
     public LlmContentDecoder createDecoder(
         String contentType)
     {
@@ -68,17 +60,6 @@ public final class LlmContentCodecFactory
         LlmContentCodecSpi codecSpi = codecsByContentType.get(mediaType(contentType));
 
         return codecSpi != null ? codecSpi.supplyEncoder() : null;
-    }
-
-    private void requireCodec(
-        LlmLegacyDialect dialect,
-        String contentType)
-    {
-        if (!codecsByContentType.containsKey(mediaType(contentType)))
-        {
-            throw new IllegalStateException(
-                "dialect %s declares content type %s with no registered codec".formatted(dialect.name(), contentType));
-        }
     }
 
     // a content-type header is a media type optionally followed by ";"-separated

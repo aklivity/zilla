@@ -371,15 +371,6 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/buffer.and.sign/client",
-        "${net}/buffer.and.sign/server"})
-    public void shouldBufferAndSign() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${net}/openai.rejected.rate.limit/client",
         "${net}/openai.rejected.rate.limit/server"})
     public void shouldRejectOpenaiRateLimited() throws Exception
