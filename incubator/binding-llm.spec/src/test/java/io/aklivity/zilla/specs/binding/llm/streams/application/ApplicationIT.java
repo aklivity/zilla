@@ -470,6 +470,24 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/openai.section.user.image.detail/client",
+        "${app}/openai.section.user.image.detail/server"})
+    public void shouldOpenaiSectionUserImageDetail() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/openai.section.user.image.detail.first/client",
+        "${app}/openai.section.user.image.detail.first/server"})
+    public void shouldOpenaiSectionUserImageDetailFirst() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/openai.section.user.document/client",
         "${app}/openai.section.user.document/server"})
     public void shouldOpenaiSectionUserDocument() throws Exception
@@ -1202,6 +1220,24 @@ public class ApplicationIT
         "${app}/anthropic.section.user.document/client",
         "${app}/anthropic.section.user.document/server"})
     public void shouldAnthropicSectionUserDocument() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.user.document.title.context/client",
+        "${app}/anthropic.section.user.document.title.context/server"})
+    public void shouldAnthropicSectionUserDocumentTitleContext() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.section.user.document.title.context.first/client",
+        "${app}/anthropic.section.user.document.title.context.first/server"})
+    public void shouldAnthropicSectionUserDocumentTitleContextFirst() throws Exception
     {
         k3po.finish();
     }

@@ -434,6 +434,24 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/openai.section.user.image.detail/client",
+        "${net}/openai.section.user.image.detail/server"})
+    public void shouldOpenaiSectionUserImageDetail() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/openai.section.user.image.detail.first/client",
+        "${net}/openai.section.user.image.detail.first/server"})
+    public void shouldOpenaiSectionUserImageDetailFirst() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/openai.section.user.document/client",
         "${net}/openai.section.user.document/server"})
     public void shouldOpenaiSectionUserDocument() throws Exception
@@ -1220,6 +1238,24 @@ public class NetworkIT
         "${net}/anthropic.section.user.document/client",
         "${net}/anthropic.section.user.document/server"})
     public void shouldAnthropicSectionUserDocument() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.section.user.document.title.context/client",
+        "${net}/anthropic.section.user.document.title.context/server"})
+    public void shouldAnthropicSectionUserDocumentTitleContext() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.section.user.document.title.context.first/client",
+        "${net}/anthropic.section.user.document.title.context.first/server"})
+    public void shouldAnthropicSectionUserDocumentTitleContextFirst() throws Exception
     {
         k3po.finish();
     }

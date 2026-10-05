@@ -217,6 +217,26 @@ public class LlmOpenaiServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/openai.section.user.image.detail/client",
+        "${app}/openai.section.user.image.detail/server"})
+    public void shouldDecodeOpenaiSectionUserImageDetail() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/openai.section.user.image.detail.first/client",
+        "${app}/openai.section.user.image.detail.first/server"})
+    public void shouldDecodeOpenaiSectionUserImageDetailFirst() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/openai.section.user.document/client",
         "${app}/openai.section.user.document/server"})
     public void shouldDecodeOpenaiSectionUserDocument() throws Exception

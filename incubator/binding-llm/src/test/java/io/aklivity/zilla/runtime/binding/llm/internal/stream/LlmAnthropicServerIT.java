@@ -467,6 +467,26 @@ public class LlmAnthropicServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/anthropic.section.user.document.title.context/client",
+        "${app}/anthropic.section.user.document.title.context/server"})
+    public void shouldDecodeAnthropicSectionUserDocumentTitleContext() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/anthropic.section.user.document.title.context.first/client",
+        "${app}/anthropic.section.user.document.title.context.first/server"})
+    public void shouldDecodeAnthropicSectionUserDocumentTitleContextFirst() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/anthropic.section.user.image/client",
         "${app}/anthropic.section.user.image/server"})
     public void shouldDecodeAnthropicSectionUserImage() throws Exception
