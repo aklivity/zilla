@@ -187,6 +187,16 @@ public class LlmOpenaiServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/openai.request.options.verbatim/client",
+        "${app}/openai.request.options.verbatim/server"})
+    public void shouldDecodeOpenaiRequestOptionsVerbatim() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/openai.section.user.text/client",
         "${app}/openai.section.user.text/server"})
     public void shouldDecodeOpenaiSectionUserText() throws Exception

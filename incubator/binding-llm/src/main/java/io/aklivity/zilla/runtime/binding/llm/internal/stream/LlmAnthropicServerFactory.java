@@ -204,7 +204,6 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
     private final LlmAnthropicServerDecoder decodeCapture = this::decodeCapture;
     private final LlmAnthropicServerDecoder decodeText = this::decodeText;
     private final LlmAnthropicServerDecoder decodeSkip = this::decodeSkip;
-    private final LlmAnthropicServerDecoder decodeOption = this::decodeOption;
     private final LlmAnthropicServerDecoder decodeEnd = this::decodeEnd;
     private final LlmAnthropicServerDecoder decodeIgnore = this::decodeIgnore;
 
@@ -1407,6 +1406,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         while (server.decoder == decodeCapture && parser.hasNextEvent())
         {
             final JsonEvent event = parser.nextEvent();
+            final boolean deferred = event == JsonEvent.VALUE_STRING && parser.deferredBytes();
 
             if (server.probing)
             {
@@ -1436,7 +1436,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                 }
             }
 
-            if (server.captureDepth == 0)
+            if (server.captureDepth == 0 && !deferred)
             {
                 server.endCapture(traceId, authorization);
             }
@@ -1527,47 +1527,10 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         return server.decoder == decodeIgnore ? limit : server.position();
     }
 
-    private int decodeOption(
-        LlmAnthropicServer server,
-        long traceId,
-        long authorization,
-        long budgetId,
-        int reserved,
-        DirectBufferEx buffer,
-        int offset,
-        int progress,
-        int limit)
+    private static boolean separator(
+        byte value)
     {
-        final JsonParserEx parser = server.parser;
-
-        decode:
-        while (server.decoder == decodeOption && parser.hasNextEvent())
-        {
-            final JsonEvent event = parser.nextEvent();
-
-            if (!server.optionOpen && server.stream != null &&
-                (event == JsonEvent.START_OBJECT || event == JsonEvent.START_ARRAY))
-            {
-                server.captureDialect(server.options.member(server.optionSlot), server.optionThen);
-            }
-            else
-            {
-                server.optionOpen = true;
-
-                if (server.optionLiteral.accept(event, parser))
-                {
-                    if (server.optionLiteral.overflow())
-                    {
-                        server.onDecodeInvalidRequest(traceId, MESSAGE_OPTION_TOO_LARGE);
-                        break decode;
-                    }
-
-                    server.onDecodeOptionValue(traceId);
-                }
-            }
-        }
-
-        return server.position();
+        return value == ':' || value == ' ' || value == '\t' || value == '\r' || value == '\n';
     }
 
     private int decodeSkip(
@@ -1916,9 +1879,6 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         private LlmAnthropicServerDecoder skipThen;
         private int skipDepth;
 
-        private LlmAnthropicServerDecoder optionThen;
-        private int optionSlot;
-        private boolean optionOpen;
         private boolean streaming;
 
         private LlmAnthropicServerDecoder textThen;
@@ -1938,6 +1898,8 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         private boolean captureOpen;
         private int captureDepth;
         private int captureFrom;
+        private int captureSlot;
+        private boolean captureTrim;
 
         private boolean holding;
         private int holdFrom;
@@ -1952,7 +1914,6 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
 
         private final LlmAnthropicAttributeProbe probe;
         private final LlmOptions options;
-        private final LlmJsonLiteral optionLiteral;
         private final LlmSectionAttributes blockAttributes;
         private final LlmSectionAttributes sentAttributes;
         private final LlmSectionAttributes finAttributes;
@@ -1986,7 +1947,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             this.parser = JsonEx.createParser();
             this.probe = new LlmAnthropicAttributeProbe();
             this.options = LlmAnthropicOptions.request();
-            this.optionLiteral = new LlmJsonLiteral();
+            this.captureSlot = LlmOptions.NONE;
             this.blockAttributes = new LlmSectionAttributes();
             this.sentAttributes = new LlmSectionAttributes();
             this.finAttributes = new LlmSectionAttributes();
@@ -2414,7 +2375,20 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             flushCapture(traceId, authorization, true);
             captureOpen = false;
             probing = false;
-            decoder = captureThen;
+
+            final int slot = captureSlot;
+            captureSlot = LlmOptions.NONE;
+            captureTrim = false;
+
+            if (decoder == decodeCapture)
+            {
+                decoder = captureThen;
+
+                if (slot != LlmOptions.NONE)
+                {
+                    onDecodeOptionValue(traceId, slot);
+                }
+            }
         }
 
         private void flushCapture(
@@ -2423,10 +2397,32 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             boolean fin)
         {
             final int end = position();
+            int from = captureFrom;
 
-            if (end > captureFrom || fin)
+            if (captureTrim)
             {
-                onDecodeData(traceId, authorization, decodedInput, captureFrom, end - captureFrom, fin);
+                while (from < end && separator(decodedInput.getByte(from)))
+                {
+                    from++;
+                }
+
+                captureTrim = from == end;
+            }
+
+            if (end > from || fin)
+            {
+                if (captureSlot == LlmOptions.NONE)
+                {
+                    onDecodeData(traceId, authorization, decodedInput, from, end - from, fin);
+                }
+                else if (!options.append(captureSlot, decodedInput, from, end - from))
+                {
+                    options.remove(captureSlot);
+                    captureOpen = false;
+                    captureSlot = LlmOptions.NONE;
+                    captureTrim = false;
+                    onDecodeInvalidRequest(traceId, MESSAGE_OPTION_TOO_LARGE);
+                }
             }
 
             captureFrom = end;
@@ -2441,32 +2437,45 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             CharSequence member,
             LlmAnthropicServerDecoder then)
         {
-            optionSlot = options.slot(member);
-            optionThen = then;
-            optionOpen = false;
-            optionLiteral.reset();
-            decoder = decodeOption;
-        }
+            final int slot = options.slot(member);
+            final boolean buffered = stream == null || slot == LlmAnthropicOptions.STREAM;
 
-        private void onDecodeOptionValue(
-            long traceId)
-        {
-            final String literal = optionLiteral.value();
+            captureThen = then;
+            captureOpen = true;
+            captureDepth = 0;
+            captureFrom = position();
+            captureTrim = true;
 
-            if (optionSlot == LlmAnthropicOptions.STREAM)
+            if (buffered)
             {
-                streaming = "true".equals(literal);
-            }
-
-            if (optionSlot != LlmAnthropicOptions.STREAM ||
-                "true".equals(literal) || "false".equals(literal) || "null".equals(literal))
-            {
-                options.set(optionSlot, literal);
-                decoder = optionThen;
+                captureSlot = slot;
+                options.begin(slot);
             }
             else
             {
-                onDecodeParseError(traceId);
+                captureSlot = LlmOptions.NONE;
+                onDecodeDialectBlock(options.member(slot));
+            }
+
+            decoder = decodeCapture;
+        }
+
+        private void onDecodeOptionValue(
+            long traceId,
+            int slot)
+        {
+            if (slot == LlmAnthropicOptions.STREAM)
+            {
+                final String literal = options.get(slot);
+
+                if ("true".equals(literal) || "false".equals(literal) || "null".equals(literal))
+                {
+                    streaming = "true".equals(literal);
+                }
+                else
+                {
+                    onDecodeParseError(traceId);
+                }
             }
         }
 
@@ -2479,36 +2488,20 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             int slot = options.next();
             while (flushed && stream != null && slot != LlmOptions.NONE)
             {
-                final byte[] literal = options.get(slot).getBytes(UTF_8);
+                final int length = options.length(slot);
 
-                flushed = available() >= literal.length;
+                flushed = available() >= length;
 
                 if (flushed)
                 {
                     onDecodeDialectBlock(options.member(slot));
-                    onDecodeData(traceId, authorization, new UnsafeBufferEx(literal), 0, literal.length, true);
+                    onDecodeData(traceId, authorization, options.value(slot), 0, length, true);
                     options.remove(slot);
                     slot = options.next();
                 }
             }
 
             return flushed;
-        }
-
-        private void captureDialect(
-            String block,
-            LlmAnthropicServerDecoder then)
-        {
-            hold();
-            onDecodeDialectBlock(block);
-
-            captureThen = then;
-            captureOpen = true;
-            captureDepth = 1;
-            captureFrom = holdFrom;
-            release();
-
-            decoder = decodeCapture;
         }
 
         private void onDecodeDialectBlock(

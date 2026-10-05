@@ -452,6 +452,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/openai.request.options.verbatim/client",
+        "${app}/openai.request.options.verbatim/server"})
+    public void shouldOpenaiRequestOptionsVerbatim() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/openai.section.user.image/client",
         "${app}/openai.section.user.image/server"})
     public void shouldOpenaiSectionUserImage() throws Exception
@@ -1157,6 +1166,15 @@ public class ApplicationIT
         "${app}/anthropic.request.options.leading/client",
         "${app}/anthropic.request.options.leading/server"})
     public void shouldAnthropicRequestOptionsLeading() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/anthropic.request.options.verbatim/client",
+        "${app}/anthropic.request.options.verbatim/server"})
+    public void shouldAnthropicRequestOptionsVerbatim() throws Exception
     {
         k3po.finish();
     }

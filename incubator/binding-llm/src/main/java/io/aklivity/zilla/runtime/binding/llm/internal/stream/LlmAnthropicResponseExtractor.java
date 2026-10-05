@@ -345,7 +345,7 @@ final class LlmAnthropicResponseExtractor implements JsonTransform
             break;
         case "stop_sequence":
         case "delta.stop_sequence":
-            responseOptions.set(LlmAnthropicOptions.RESPONSE_STOP_SEQUENCE, LlmJsonLiteral.quote(source.getString()));
+            responseOptions.set(LlmAnthropicOptions.RESPONSE_STOP_SEQUENCE, Json.createValue(source.getString()).toString());
             break;
         default:
             break;

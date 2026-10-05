@@ -342,10 +342,10 @@ final class LlmOpenaiResponseExtractor implements JsonTransform
             documentFinishReason = source.getString();
             break;
         case "service_tier":
-            responseOptions.set(LlmOpenaiOptions.RESPONSE_SERVICE_TIER, LlmJsonLiteral.quote(source.getString()));
+            responseOptions.set(LlmOpenaiOptions.RESPONSE_SERVICE_TIER, Json.createValue(source.getString()).toString());
             break;
         case "system_fingerprint":
-            responseOptions.set(LlmOpenaiOptions.RESPONSE_SYSTEM_FINGERPRINT, LlmJsonLiteral.quote(source.getString()));
+            responseOptions.set(LlmOpenaiOptions.RESPONSE_SYSTEM_FINGERPRINT, Json.createValue(source.getString()).toString());
             break;
         default:
             break;

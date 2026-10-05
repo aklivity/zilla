@@ -14,13 +14,23 @@
  */
 package io.aklivity.zilla.runtime.binding.llm.internal.stream;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
+import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+
 final class LlmOptions
 {
     static final int NONE = -1;
+    static final int VALUE_MAX = 4096;
 
     private final String[] members;
-    private final String[] literals;
+    private final byte[][] values;
+    private final int[] lengths;
+    private final boolean[] present;
     private final int[] order;
+
+    private final UnsafeBufferEx view;
 
     private int pending;
 
@@ -28,8 +38,11 @@ final class LlmOptions
         String... members)
     {
         this.members = members;
-        this.literals = new String[members.length];
+        this.values = new byte[members.length][];
+        this.lengths = new int[members.length];
+        this.present = new boolean[members.length];
         this.order = new int[members.length];
+        this.view = new UnsafeBufferEx();
     }
 
     int slot(
@@ -54,22 +67,64 @@ final class LlmOptions
         return members[slot];
     }
 
-    void set(
-        int slot,
-        String literal)
+    void begin(
+        int slot)
     {
-        if (literals[slot] == null)
+        if (!present[slot])
         {
+            present[slot] = true;
             order[pending++] = slot;
         }
 
-        literals[slot] = literal;
+        lengths[slot] = 0;
+    }
+
+    boolean append(
+        int slot,
+        DirectBufferEx source,
+        int offset,
+        int length)
+    {
+        final int required = lengths[slot] + length;
+        final boolean fits = required <= VALUE_MAX;
+
+        if (fits)
+        {
+            if (values[slot] == null || values[slot].length < required)
+            {
+                final byte[] grown = new byte[Math.max(required, 64)];
+                if (values[slot] != null)
+                {
+                    System.arraycopy(values[slot], 0, grown, 0, lengths[slot]);
+                }
+                values[slot] = grown;
+            }
+
+            source.getBytes(offset, values[slot], lengths[slot], length);
+            lengths[slot] = required;
+        }
+
+        return fits;
+    }
+
+    int length(
+        int slot)
+    {
+        return lengths[slot];
+    }
+
+    DirectBufferEx value(
+        int slot)
+    {
+        view.wrap(values[slot], 0, lengths[slot]);
+
+        return view;
     }
 
     String get(
         int slot)
     {
-        return literals[slot];
+        return present[slot] ? new String(values[slot], 0, lengths[slot], UTF_8) : null;
     }
 
     int next()
@@ -80,9 +135,10 @@ final class LlmOptions
     void remove(
         int slot)
     {
-        if (literals[slot] != null)
+        if (present[slot])
         {
-            literals[slot] = null;
+            present[slot] = false;
+            lengths[slot] = 0;
 
             int index = 0;
             while (order[index] != slot)

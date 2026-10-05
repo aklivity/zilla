@@ -416,6 +416,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/openai.request.options.verbatim/client",
+        "${net}/openai.request.options.verbatim/server"})
+    public void shouldOpenaiRequestOptionsVerbatim() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/openai.section.user.image/client",
         "${net}/openai.section.user.image/server"})
     public void shouldOpenaiSectionUserImage() throws Exception
@@ -1166,6 +1175,15 @@ public class NetworkIT
         "${net}/anthropic.request.options.leading/client",
         "${net}/anthropic.request.options.leading/server"})
     public void shouldAnthropicRequestOptionsLeading() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/anthropic.request.options.verbatim/client",
+        "${net}/anthropic.request.options.verbatim/server"})
+    public void shouldAnthropicRequestOptionsVerbatim() throws Exception
     {
         k3po.finish();
     }

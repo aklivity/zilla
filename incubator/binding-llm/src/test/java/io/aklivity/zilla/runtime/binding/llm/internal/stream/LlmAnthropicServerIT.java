@@ -417,6 +417,16 @@ public class LlmAnthropicServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/anthropic.request.options.verbatim/client",
+        "${app}/anthropic.request.options.verbatim/server"})
+    public void shouldDecodeAnthropicRequestOptionsVerbatim() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/anthropic.section.user.text/client",
         "${app}/anthropic.section.user.text/server"})
     public void shouldDecodeAnthropicSectionUserText() throws Exception
