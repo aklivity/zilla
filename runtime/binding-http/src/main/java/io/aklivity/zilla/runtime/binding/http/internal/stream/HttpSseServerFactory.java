@@ -211,6 +211,14 @@ public final class HttpSseServerFactory implements BindingHandler
             replyBegun = true;
             framed = beginEx != null && framing.detect(beginEx);
 
+            if (windowHeld)
+            {
+                windowHeld = false;
+                doAppWindow(windowOriginId, windowRoutedId, windowStreamId, windowSequence, windowAcknowledge,
+                    windowMaximum, windowTimestamp, windowTraceId, windowAuthorization, windowBudgetId,
+                    windowPadding + (framed ? EVENT_OVERHEAD_MAX : 0), windowMinimum, windowCapabilities);
+            }
+
             if (framed)
             {
                 final HttpBeginExFW retained = framing.strip(beginEx, extBuffer, httpTypeId);
@@ -233,14 +241,6 @@ public final class HttpSseServerFactory implements BindingHandler
             else
             {
                 exchange.accept(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof());
-            }
-
-            if (windowHeld)
-            {
-                windowHeld = false;
-                doAppWindow(windowOriginId, windowRoutedId, windowStreamId, windowSequence, windowAcknowledge,
-                    windowMaximum, windowTimestamp, windowTraceId, windowAuthorization, windowBudgetId,
-                    windowPadding + (framed ? EVENT_OVERHEAD_MAX : 0), windowMinimum, windowCapabilities);
             }
         }
 

@@ -211,6 +211,7 @@ public final class HttpSseClientFactory implements HttpStreamFactory
         private int eventSlot = NO_SLOT;
         private int payloadLength;
         private int payloadSent;
+        private int payloadCommitted;
 
         private int state;
         private int field;
@@ -664,6 +665,7 @@ public final class HttpSseClientFactory implements HttpStreamFactory
             case FIELD_DATA:
                 if (dataLines++ > 0 && payloadLength < payloadCapacity())
                 {
+                    payloadCommitted = payloadLength;
                     appendPayload((byte) '\n');
                 }
                 break;
@@ -747,14 +749,13 @@ public final class HttpSseClientFactory implements HttpStreamFactory
         {
             boolean progressed = true;
 
-            while (progressed && (eventReady || payloadLength > payloadSent))
+            while (progressed && emittableLength() > payloadSent || progressed && eventReady)
             {
-                final int remaining = payloadLength - payloadSent;
+                final int remaining = emittableLength() - payloadSent;
                 final int window = (int) (appMax - (appSeq - appAck)) - appPad;
                 final int length = Math.max(0, Math.min(remaining, window));
                 final boolean last = eventReady && length == remaining;
-                final boolean complete = eventReady || initSent || payloadLength == payloadCapacity();
-                final boolean sendable = complete && window >= 0 && (length > 0 || last);
+                final boolean sendable = window >= 0 && (length > 0 || last);
 
                 progressed = sendable;
 
@@ -775,15 +776,22 @@ public final class HttpSseClientFactory implements HttpStreamFactory
                     {
                         payloadLength = 0;
                         payloadSent = 0;
+                        payloadCommitted = 0;
                     }
                 }
             }
+        }
+
+        private int emittableLength()
+        {
+            return eventReady || payloadLength == payloadCapacity() ? payloadLength : payloadCommitted;
         }
 
         private void resetEvent()
         {
             payloadLength = 0;
             payloadSent = 0;
+            payloadCommitted = 0;
             dataLines = 0;
             eventIdLength = 0;
             eventTypeLength = 0;
@@ -818,7 +826,7 @@ public final class HttpSseClientFactory implements HttpStreamFactory
 
             builder.payload(length > 0 ? eventPool.buffer(eventSlot) : writeBuffer, length > 0 ? payloadSent : 0, length);
 
-            if ((flags & INIT) != 0 && (eventTypePresent || eventIdPresent))
+            if (eventTypePresent || eventIdPresent)
             {
                 dataExRW.wrap(extBuffer, 0, extBuffer.capacity()).typeId(httpTypeId);
 
