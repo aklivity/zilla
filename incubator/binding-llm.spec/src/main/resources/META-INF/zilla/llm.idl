@@ -51,6 +51,12 @@ scope llm
             UNKNOWN(14)
         }
 
+        enum LlmFollow (uint8)
+        {
+            NONE(0),
+            AFTER_BLOCK(1)
+        }
+
         struct LlmSectionDataEx
         {
             LlmSectionType type = NONE;
@@ -58,6 +64,7 @@ scope llm
             LlmAttribute[] attributes;
             varint32 extensionLength;
             octets[extensionLength] extension = null;
+            LlmFollow follow = NONE;
         }
 
         enum LlmBlockOwner (uint8)

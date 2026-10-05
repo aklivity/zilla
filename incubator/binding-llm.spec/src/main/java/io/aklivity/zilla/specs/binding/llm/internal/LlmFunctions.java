@@ -32,6 +32,7 @@ import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmBlockOwner;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmDataExFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmEndExFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmErrorFW;
+import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmFollow;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmResetExFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmSectionType;
 
@@ -335,6 +336,7 @@ public final class LlmFunctions
         private LlmSectionType type;
         private Integer message;
         private String extension;
+        private LlmFollow follow;
 
         private LlmDataExBuilder()
         {
@@ -379,6 +381,13 @@ public final class LlmFunctions
             return this;
         }
 
+        public LlmDataExBuilder follow(
+            String follow)
+        {
+            this.follow = LlmFollow.valueOf(follow);
+            return this;
+        }
+
         public byte[] build()
         {
             dataExRW.section(s ->
@@ -399,6 +408,11 @@ public final class LlmFunctions
                 {
                     final byte[] bytes = extension.getBytes(StandardCharsets.UTF_8);
                     s.extensionLength(bytes.length).extension(e -> e.set(bytes));
+                }
+
+                if (follow != null)
+                {
+                    s.follow(f -> f.set(follow));
                 }
             });
 
@@ -574,6 +588,7 @@ public final class LlmFunctions
         private boolean attributesNull;
         private String extension;
         private boolean extensionNull;
+        private LlmFollow follow;
 
         public LlmDataExMatcherBuilder typeId(
             int typeId)
@@ -634,6 +649,13 @@ public final class LlmFunctions
             return this;
         }
 
+        public LlmDataExMatcherBuilder follow(
+            String follow)
+        {
+            this.follow = LlmFollow.valueOf(follow);
+            return this;
+        }
+
         public BytesMatcher build()
         {
             return this::match;
@@ -656,7 +678,8 @@ public final class LlmFunctions
                 matchType(dataEx) &&
                 matchMessage(dataEx) &&
                 matchAttributes(dataEx) &&
-                matchExtension(dataEx))
+                matchExtension(dataEx) &&
+                matchFollow(dataEx))
             {
                 byteBuf.position(byteBuf.position() + dataEx.sizeof());
                 return dataEx;
@@ -698,6 +721,12 @@ public final class LlmFunctions
         {
             final String actual = asString(dataEx.section().extension());
             return extensionNull ? actual == null : extension == null || extension.equals(actual);
+        }
+
+        private boolean matchFollow(
+            LlmDataExFW dataEx)
+        {
+            return follow == null || follow == dataEx.section().follow().get();
         }
     }
 

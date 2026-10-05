@@ -32,6 +32,7 @@ import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmBeginExFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmBlockOwner;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmDataExFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmEndExFW;
+import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmFollow;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmResetExFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmSectionDataExFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmSectionType;
@@ -1879,6 +1880,68 @@ public class LlmFunctionsTest
 
         assertThrows(Exception.class,
             () -> LlmFunctions.matchDialectBeforeBlockDataEx().typeId(0).build().match(ByteBuffer.wrap(dataEx)));
+    }
+
+    @Test
+    public void shouldGenerateAndMatchDataExFollow() throws Exception
+    {
+        final byte[] dataEx = LlmFunctions.dataEx()
+            .typeId(0)
+            .type("ASSISTANT_TEXT")
+            .message(0)
+            .follow("AFTER_BLOCK")
+            .build();
+
+        final LlmDataExFW decoded = new LlmDataExFW().wrap(new UnsafeBufferEx(dataEx), 0, dataEx.length);
+
+        assertEquals(LlmFollow.AFTER_BLOCK, decoded.section().follow().get());
+        assertNotNull(LlmFunctions.matchDataEx().typeId(0).type("ASSISTANT_TEXT").follow("AFTER_BLOCK").build()
+            .match(ByteBuffer.wrap(dataEx)));
+    }
+
+    @Test
+    public void shouldDefaultDataExFollowToNone() throws Exception
+    {
+        final byte[] dataEx = LlmFunctions.dataEx()
+            .typeId(0)
+            .type("ASSISTANT_TEXT")
+            .build();
+
+        final LlmDataExFW decoded = new LlmDataExFW().wrap(new UnsafeBufferEx(dataEx), 0, dataEx.length);
+
+        assertEquals(LlmFollow.NONE, decoded.section().follow().get());
+        assertNotNull(LlmFunctions.matchDataEx().typeId(0).follow("NONE").build().match(ByteBuffer.wrap(dataEx)));
+    }
+
+    @Test
+    public void shouldFailMatchDataExFollowMismatch() throws Exception
+    {
+        final byte[] dataEx = LlmFunctions.dataEx()
+            .typeId(0)
+            .type("ASSISTANT_TEXT")
+            .follow("AFTER_BLOCK")
+            .build();
+
+        final BytesMatcher matcher = LlmFunctions.matchDataEx()
+            .typeId(0)
+            .follow("NONE")
+            .build();
+
+        assertThrows(Exception.class, () -> matcher.match(ByteBuffer.wrap(dataEx)));
+    }
+
+    @Test
+    public void shouldGenerateContinuationDataExWithFollowOnly() throws Exception
+    {
+        final byte[] dataEx = LlmFunctions.dataEx()
+            .typeId(0)
+            .follow("AFTER_BLOCK")
+            .build();
+
+        final LlmDataExFW decoded = new LlmDataExFW().wrap(new UnsafeBufferEx(dataEx), 0, dataEx.length);
+
+        assertEquals(LlmSectionType.NONE, decoded.section().type().get());
+        assertEquals(LlmFollow.AFTER_BLOCK, decoded.section().follow().get());
     }
 
     private static Map<String, String> attributesOf(
