@@ -34,5 +34,11 @@ read zilla:data.ext ${llm:matchDataEx()
                           .build()}
 read "Hello"
 
+read zilla:data.ext ${llm:matchDialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .block("max_tokens")
+                          .build()}
+read "1024"
+
 read aborted
 write aborted

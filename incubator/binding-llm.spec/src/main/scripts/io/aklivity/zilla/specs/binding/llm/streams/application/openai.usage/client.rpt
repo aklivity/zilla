@@ -42,12 +42,32 @@ read zilla:begin.ext ${llm:matchBeginEx()
                            .id("chatcmpl-EQNKhNLHHohc7KwUHH83164mX3IMA")
                            .build()}
 
+read option zilla:flags "init fin"
+read zilla:data.ext ${llm:matchDialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .block("created")
+                          .build()}
+read "1789954927"
+
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))
                           .type("assistant-text")
                           .message(0)
                           .build()}
 read "Hello! How can I assist you today?"
+
+read option zilla:flags "init fin"
+read zilla:data.ext ${llm:matchDialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .block("service_tier")
+                          .build()}
+read "\"default\""
+
+read zilla:data.ext ${llm:matchDialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .block("system_fingerprint")
+                          .build()}
+read "\"fp_c28ee603a6\""
 
 read zilla:end.ext ${llm:matchEndEx()
                             .typeId(zilla:id("llm"))

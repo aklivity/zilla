@@ -42,6 +42,25 @@ read zilla:begin.ext ${llm:matchBeginEx()
                            .id("chatcmpl-EQNL5kPFWGuGSBO2lca3rDUj9mrfi")
                            .build()}
 
+read option zilla:flags "init fin"
+read zilla:data.ext ${llm:matchDialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .block("created")
+                          .build()}
+read "1789954951"
+
+read zilla:data.ext ${llm:matchDialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .block("service_tier")
+                          .build()}
+read "\"default\""
+
+read zilla:data.ext ${llm:matchDialectDataEx()
+                          .typeId(zilla:id("llm"))
+                          .block("system_fingerprint")
+                          .build()}
+read "\"fp_c28ee603a6\""
+
 read option zilla:flags "init"
 read zilla:data.ext ${llm:matchDataEx()
                           .typeId(zilla:id("llm"))

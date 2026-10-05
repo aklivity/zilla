@@ -745,11 +745,13 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             while (slot != LlmResponseOptions.NONE)
             {
                 final byte[] literal = options.latest(slot).getBytes(UTF_8);
-
-                queueReplyFrame(options.member(slot), true, NO_MESSAGE, null, null, Flags.COMPLETE,
-                    new UnsafeBufferEx(literal), 0, literal.length);
+                final String member = options.member(slot);
 
                 options.deliver(slot);
+
+                queueReplyFrame(member, true, NO_MESSAGE, null, null, Flags.COMPLETE,
+                    new UnsafeBufferEx(literal), 0, literal.length);
+
                 slot = options.next();
             }
         }
