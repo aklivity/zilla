@@ -29,6 +29,7 @@ import io.aklivity.zilla.specs.binding.llm.internal.types.OctetsFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmAbortExFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmBeginExFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmDataExFW;
+import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmDialectScope;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmEndExFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmErrorFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmResetExFW;
@@ -388,9 +389,11 @@ public final class LlmFunctions
         private final LlmDataExFW.Builder dataExRW;
 
         private String block;
+        private LlmDialectScope type;
 
         private LlmDialectDataExBuilder()
         {
+            this.type = LlmDialectScope.STREAM;
             final MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[1024]);
             this.dataExRW = new LlmDataExFW.Builder().wrap(writeBuffer, 0, writeBuffer.capacity());
         }
@@ -409,9 +412,16 @@ public final class LlmFunctions
             return this;
         }
 
+        public LlmDialectDataExBuilder type(
+            String type)
+        {
+            this.type = LlmDialectScope.valueOf(type);
+            return this;
+        }
+
         public byte[] build()
         {
-            final LlmDataExFW dataEx = dataExRW.dialect(d -> d.block(block)).build();
+            final LlmDataExFW dataEx = dataExRW.dialect(d -> d.block(block).type(t -> t.set(type))).build();
             final byte[] array = new byte[dataEx.sizeof()];
             dataEx.buffer().getBytes(dataEx.offset(), array);
             return array;
@@ -567,6 +577,7 @@ public final class LlmFunctions
 
         private Integer typeId;
         private String block;
+        private LlmDialectScope type = LlmDialectScope.STREAM;
 
         public LlmDialectDataExMatcherBuilder typeId(
             int typeId)
@@ -579,6 +590,13 @@ public final class LlmFunctions
             String block)
         {
             this.block = block;
+            return this;
+        }
+
+        public LlmDialectDataExMatcherBuilder type(
+            String type)
+        {
+            this.type = LlmDialectScope.valueOf(type);
             return this;
         }
 
@@ -601,7 +619,8 @@ public final class LlmFunctions
             if (dataEx != null &&
                 dataEx.kind() == LlmDataExFW.KIND_DIALECT &&
                 (typeId == null || typeId == dataEx.typeId()) &&
-                (block == null || block.equals(dataEx.dialect().block().asString())))
+                (block == null || block.equals(dataEx.dialect().block().asString())) &&
+                type == dataEx.dialect().type().get())
             {
                 byteBuf.position(byteBuf.position() + dataEx.sizeof());
                 return dataEx;

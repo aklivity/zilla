@@ -41,9 +41,16 @@ scope llm
             octets[extensionLength] extension = null;
         }
 
+        enum LlmDialectScope (uint8)
+        {
+            STREAM(0),
+            SECTION(1)
+        }
+
         struct LlmDialectDataEx
         {
             string16 block;
+            LlmDialectScope type = STREAM;
         }
 
         union LlmDataEx switch (uint8) extends core::stream::Extension

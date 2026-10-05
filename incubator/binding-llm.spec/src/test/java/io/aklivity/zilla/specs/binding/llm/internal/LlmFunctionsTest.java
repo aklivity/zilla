@@ -30,6 +30,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmAbortExFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmBeginExFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmDataExFW;
+import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmDialectScope;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmEndExFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmResetExFW;
 import io.aklivity.zilla.specs.binding.llm.internal.types.stream.LlmSectionDataExFW;
@@ -1572,6 +1573,44 @@ public class LlmFunctionsTest
 
         assertEquals(LlmDataExFW.KIND_DIALECT, dataEx.kind());
         assertEquals("logprobs", dataEx.dialect().block().asString());
+        assertEquals(LlmDialectScope.STREAM, dataEx.dialect().type().get());
+    }
+
+    @Test
+    public void shouldGenerateAndMatchDialectDataExSectionType() throws Exception
+    {
+        final byte[] dataEx = LlmFunctions.dialectDataEx()
+            .typeId(0)
+            .block("cache_control")
+            .type("SECTION")
+            .build();
+
+        final BytesMatcher matcher = LlmFunctions.matchDialectDataEx()
+            .typeId(0)
+            .block("cache_control")
+            .type("SECTION")
+            .build();
+
+        final ByteBuffer byteBuf = ByteBuffer.wrap(dataEx);
+        assertNotNull(matcher.match(byteBuf));
+        assertEquals(dataEx.length, byteBuf.position());
+    }
+
+    @Test
+    public void shouldFailMatchDialectDataExTypeMismatch() throws Exception
+    {
+        final byte[] dataEx = LlmFunctions.dialectDataEx()
+            .typeId(0)
+            .block("cache_control")
+            .type("SECTION")
+            .build();
+
+        final BytesMatcher matcher = LlmFunctions.matchDialectDataEx()
+            .typeId(0)
+            .block("cache_control")
+            .build();
+
+        assertThrows(Exception.class, () -> matcher.match(ByteBuffer.wrap(dataEx)));
     }
 
     private static Map<String, String> attributesOf(
