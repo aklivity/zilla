@@ -56,8 +56,8 @@ public class EventStreamIT
     @Configuration("client.yaml")
     @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     @Specification({
-        "${app}/response.sse.framing.event/client",
-        "${net}/server.response.sse.framing.event/server" })
+        "${app}/response.sse.event/client",
+        "${net}/server.response.sse.event/server" })
     public void shouldReceiveResponseEvent() throws Exception
     {
         k3po.finish();
@@ -67,8 +67,8 @@ public class EventStreamIT
     @Configuration("client.yaml")
     @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     @Specification({
-        "${app}/response.sse.framing.data.non.empty/client",
-        "${net}/server.response.sse.framing.data.non.empty/server" })
+        "${app}/response.sse.data.non.empty/client",
+        "${net}/server.response.sse.data.non.empty/server" })
     public void shouldReceiveResponseDataNonEmpty() throws Exception
     {
         k3po.finish();
@@ -78,8 +78,8 @@ public class EventStreamIT
     @Configuration("client.yaml")
     @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     @Specification({
-        "${app}/response.sse.framing.data.multi.line/client",
-        "${net}/server.response.sse.framing.data.multi.line/server" })
+        "${app}/response.sse.data.multi.line/client",
+        "${net}/server.response.sse.data.multi.line/server" })
     public void shouldReceiveResponseDataMultiLine() throws Exception
     {
         k3po.finish();
@@ -89,8 +89,8 @@ public class EventStreamIT
     @Configuration("client.yaml")
     @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     @Specification({
-        "${app}/response.sse.framing.event/client",
-        "${net}/server.response.sse.framing.data.split.frames/server" })
+        "${app}/response.sse.event/client",
+        "${net}/server.response.sse.data.split.frames/server" })
     public void shouldReceiveResponseDataSplitFrames() throws Exception
     {
         k3po.finish();
@@ -100,8 +100,8 @@ public class EventStreamIT
     @Configuration("client.yaml")
     @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     @Specification({
-        "${app}/response.sse.framing.comment.non.empty/client",
-        "${net}/server.response.sse.framing.comment.non.empty/server" })
+        "${app}/response.sse.comment.non.empty/client",
+        "${net}/server.response.sse.comment.non.empty/server" })
     public void shouldReceiveResponseCommentNonEmpty() throws Exception
     {
         k3po.finish();
@@ -111,8 +111,8 @@ public class EventStreamIT
     @Configuration("client.yaml")
     @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     @Specification({
-        "${app}/response.sse.framing.id.only/client",
-        "${net}/server.response.sse.framing.id.only/server" })
+        "${app}/response.sse.id.only/client",
+        "${net}/server.response.sse.id.only/server" })
     public void shouldReceiveResponseIdOnly() throws Exception
     {
         k3po.finish();
@@ -122,8 +122,8 @@ public class EventStreamIT
     @Configuration("client.yaml")
     @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     @Specification({
-        "${app}/response.sse.framing.retry.numeric/client",
-        "${net}/server.response.sse.framing.retry.numeric/server" })
+        "${app}/response.sse.retry.numeric/client",
+        "${net}/server.response.sse.retry.numeric/server" })
     public void shouldReceiveResponseRetryNumeric() throws Exception
     {
         k3po.finish();
@@ -134,8 +134,8 @@ public class EventStreamIT
     @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "65536")
     @Specification({
-        "${app}/response.sse.framing.data.large.frames/client",
-        "${net}/server.response.sse.framing.data.large.frames/server" })
+        "${app}/response.sse.data.large.frames/client",
+        "${net}/server.response.sse.data.large.frames/server" })
     public void shouldReceiveResponseDataLargeFrames() throws Exception
     {
         k3po.finish();

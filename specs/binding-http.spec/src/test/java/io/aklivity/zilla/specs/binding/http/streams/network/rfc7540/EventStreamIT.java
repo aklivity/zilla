@@ -39,8 +39,8 @@ public class EventStreamIT
 
     @Test
     @Specification({
-        "${net}/response.sse.framing.event/client",
-        "${net}/response.sse.framing.event/server" })
+        "${net}/response.sse.event/client",
+        "${net}/response.sse.event/server" })
     public void shouldReceiveEvent() throws Exception
     {
         k3po.finish();
@@ -48,8 +48,8 @@ public class EventStreamIT
 
     @Test
     @Specification({
-        "${net}/server.response.sse.framing.event/client",
-        "${net}/server.response.sse.framing.event/server" })
+        "${net}/server.response.sse.event/client",
+        "${net}/server.response.sse.event/server" })
     public void shouldReceiveServerEvent() throws Exception
     {
         k3po.finish();
@@ -57,8 +57,8 @@ public class EventStreamIT
 
     @Test
     @Specification({
-        "${net}/response.sse.framing.data.non.empty/client",
-        "${net}/response.sse.framing.data.non.empty/server" })
+        "${net}/response.sse.data.non.empty/client",
+        "${net}/response.sse.data.non.empty/server" })
     public void shouldReceiveDataNonEmpty() throws Exception
     {
         k3po.finish();
@@ -66,8 +66,8 @@ public class EventStreamIT
 
     @Test
     @Specification({
-        "${net}/server.response.sse.framing.data.non.empty/client",
-        "${net}/server.response.sse.framing.data.non.empty/server" })
+        "${net}/server.response.sse.data.non.empty/client",
+        "${net}/server.response.sse.data.non.empty/server" })
     public void shouldReceiveServerDataNonEmpty() throws Exception
     {
         k3po.finish();
@@ -75,8 +75,8 @@ public class EventStreamIT
 
     @Test
     @Specification({
-        "${net}/response.sse.framing.data.multi.line/client",
-        "${net}/response.sse.framing.data.multi.line/server" })
+        "${net}/response.sse.data.multi.line/client",
+        "${net}/response.sse.data.multi.line/server" })
     public void shouldReceiveDataMultiLine() throws Exception
     {
         k3po.finish();
@@ -84,8 +84,8 @@ public class EventStreamIT
 
     @Test
     @Specification({
-        "${net}/server.response.sse.framing.data.multi.line/client",
-        "${net}/server.response.sse.framing.data.multi.line/server" })
+        "${net}/server.response.sse.data.multi.line/client",
+        "${net}/server.response.sse.data.multi.line/server" })
     public void shouldReceiveServerDataMultiLine() throws Exception
     {
         k3po.finish();
@@ -93,8 +93,8 @@ public class EventStreamIT
 
     @Test
     @Specification({
-        "${net}/response.sse.framing.id.only/client",
-        "${net}/response.sse.framing.id.only/server" })
+        "${net}/response.sse.id.only/client",
+        "${net}/response.sse.id.only/server" })
     public void shouldReceiveIdOnly() throws Exception
     {
         k3po.finish();
@@ -102,8 +102,8 @@ public class EventStreamIT
 
     @Test
     @Specification({
-        "${net}/response.sse.framing.retry.numeric/client",
-        "${net}/response.sse.framing.retry.numeric/server" })
+        "${net}/response.sse.retry.numeric/client",
+        "${net}/response.sse.retry.numeric/server" })
     public void shouldReceiveRetryNumeric() throws Exception
     {
         k3po.finish();
@@ -111,8 +111,8 @@ public class EventStreamIT
 
     @Test
     @Specification({
-        "${net}/response.sse.framing.comment.initial/client",
-        "${net}/response.sse.framing.comment.initial/server" })
+        "${net}/response.sse.comment.initial/client",
+        "${net}/response.sse.comment.initial/server" })
     public void shouldReceiveCommentInitial() throws Exception
     {
         k3po.finish();
@@ -120,8 +120,8 @@ public class EventStreamIT
 
     @Test
     @Specification({
-        "${net}/server.response.sse.framing.data.split.frames/client",
-        "${net}/server.response.sse.framing.data.split.frames/server" })
+        "${net}/server.response.sse.data.split.frames/client",
+        "${net}/server.response.sse.data.split.frames/server" })
     public void shouldReceiveServerDataSplitFrames() throws Exception
     {
         k3po.finish();
@@ -129,8 +129,8 @@ public class EventStreamIT
 
     @Test
     @Specification({
-        "${net}/server.response.sse.framing.comment.non.empty/client",
-        "${net}/server.response.sse.framing.comment.non.empty/server" })
+        "${net}/server.response.sse.comment.non.empty/client",
+        "${net}/server.response.sse.comment.non.empty/server" })
     public void shouldReceiveServerCommentNonEmpty() throws Exception
     {
         k3po.finish();
@@ -138,8 +138,8 @@ public class EventStreamIT
 
     @Test
     @Specification({
-        "${net}/server.response.sse.framing.id.only/client",
-        "${net}/server.response.sse.framing.id.only/server" })
+        "${net}/server.response.sse.id.only/client",
+        "${net}/server.response.sse.id.only/server" })
     public void shouldReceiveServerIdOnly() throws Exception
     {
         k3po.finish();
@@ -147,8 +147,8 @@ public class EventStreamIT
 
     @Test
     @Specification({
-        "${net}/server.response.sse.framing.retry.numeric/client",
-        "${net}/server.response.sse.framing.retry.numeric/server" })
+        "${net}/server.response.sse.retry.numeric/client",
+        "${net}/server.response.sse.retry.numeric/server" })
     public void shouldReceiveServerRetryNumeric() throws Exception
     {
         k3po.finish();
@@ -156,8 +156,8 @@ public class EventStreamIT
 
     @Test
     @Specification({
-        "${net}/response.sse.framing.comment.idle/client",
-        "${net}/response.sse.framing.comment.idle/server" })
+        "${net}/response.sse.comment.idle/client",
+        "${net}/response.sse.comment.idle/server" })
     public void shouldReceiveCommentIdle() throws Exception
     {
         k3po.finish();
@@ -165,8 +165,8 @@ public class EventStreamIT
 
     @Test
     @Specification({
-        "${net}/response.sse.framing.data.invalid.reset/client",
-        "${net}/response.sse.framing.data.invalid.reset/server" })
+        "${net}/response.sse.data.invalid.reset/client",
+        "${net}/response.sse.data.invalid.reset/server" })
     public void shouldResetInvalidEventData() throws Exception
     {
         k3po.finish();
@@ -174,8 +174,8 @@ public class EventStreamIT
 
     @Test
     @Specification({
-        "${net}/response.sse.framing.comment.initial.budget/client",
-        "${net}/response.sse.framing.comment.initial.budget/server" })
+        "${net}/response.sse.comment.initial.budget/client",
+        "${net}/response.sse.comment.initial.budget/server" })
     public void shouldReceiveCommentInitialBudget() throws Exception
     {
         k3po.finish();
@@ -183,8 +183,8 @@ public class EventStreamIT
 
     @Test
     @Specification({
-        "${net}/response.sse.framing.data.large.frames/client",
-        "${net}/response.sse.framing.data.large.frames/server" })
+        "${net}/response.sse.data.large.frames/client",
+        "${net}/response.sse.data.large.frames/server" })
     public void shouldReceiveDataLargeFrames() throws Exception
     {
         k3po.finish();
@@ -192,8 +192,8 @@ public class EventStreamIT
 
     @Test
     @Specification({
-        "${net}/server.response.sse.framing.data.large.frames/client",
-        "${net}/server.response.sse.framing.data.large.frames/server" })
+        "${net}/server.response.sse.data.large.frames/client",
+        "${net}/server.response.sse.data.large.frames/server" })
     public void shouldReceiveServerDataLargeFrames() throws Exception
     {
         k3po.finish();
