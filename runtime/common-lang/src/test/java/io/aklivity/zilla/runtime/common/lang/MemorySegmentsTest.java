@@ -24,6 +24,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.CharacterCodingException;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CodingErrorAction;
+import java.util.Arrays;
 import java.util.HexFormat;
 
 import org.junit.jupiter.api.Test;
@@ -49,67 +50,157 @@ public class MemorySegmentsTest
         return valid;
     }
 
-    private static void assertUtf8Valid(
+    private static boolean extendable(
+        byte[] tail)
+    {
+        final int[] continuations = {0x80, 0x8f, 0x90, 0x9f, 0xa0, 0xbf};
+        boolean found = false;
+
+        for (int count = 1; !found && count <= 3; count++)
+        {
+            final int combinations = (int) Math.pow(continuations.length, count);
+
+            for (int combination = 0; !found && combination < combinations; combination++)
+            {
+                final byte[] extended = Arrays.copyOf(tail, tail.length + count);
+                int remaining = combination;
+
+                for (int index = 0; index < count; index++)
+                {
+                    extended[tail.length + index] = (byte) continuations[remaining % continuations.length];
+                    remaining /= continuations.length;
+                }
+
+                found = decodes(extended);
+            }
+        }
+
+        return found;
+    }
+
+    private static int utf8Bytes(
+        byte[] bytes)
+    {
+        return MemorySegments.utf8Bytes(MemorySegment.ofArray(bytes), 0, bytes.length);
+    }
+
+    private static int utf8Bytes(
+        int... values)
+    {
+        final byte[] bytes = new byte[values.length];
+
+        for (int index = 0; index < values.length; index++)
+        {
+            bytes[index] = (byte) values[index];
+        }
+
+        return utf8Bytes(bytes);
+    }
+
+    private static void assertMatchesDecoder(
         byte... bytes)
     {
-        assertEquals(decodes(bytes), MemorySegments.utf8Valid(MemorySegment.ofArray(bytes), 0, bytes.length),
-            () -> "utf8Valid mismatch for " + HexFormat.of().formatHex(bytes));
+        final int length = utf8Bytes(bytes);
+        final String hex = HexFormat.of().formatHex(bytes);
+
+        if (decodes(bytes))
+        {
+            assertEquals(bytes.length, length, () -> "length mismatch for " + hex);
+        }
+        else if (length >= 0)
+        {
+            final byte[] tail = Arrays.copyOfRange(bytes, length, bytes.length);
+
+            assertTrue(decodes(Arrays.copyOf(bytes, length)), () -> "complete prefix invalid for " + hex);
+            assertTrue(tail.length >= 1 && tail.length <= 3, () -> "tail length for " + hex);
+            assertTrue(extendable(tail), () -> "tail is not a valid prefix for " + hex);
+        }
+        else
+        {
+            assertFalse(extendable(bytes), () -> "malformed but extendable for " + hex);
+        }
     }
 
     @Test
-    public void shouldAcceptEmptyAndAscii()
+    public void shouldMeasureEmptyAndAscii()
     {
-        assertTrue(MemorySegments.utf8Valid(MemorySegment.ofArray(new byte[0]), 0, 0));
-        assertUtf8Valid("Hello, world".getBytes(UTF_8));
+        assertEquals(0, utf8Bytes());
+        assertEquals(12, utf8Bytes("Hello, world".getBytes(UTF_8)));
     }
 
     @Test
-    public void shouldAcceptMultiByteContent()
+    public void shouldMeasureMultiByteContent()
     {
-        assertUtf8Valid("🎉-日本-café".getBytes(UTF_8));
+        final byte[] bytes = "🎉-日本-café".getBytes(UTF_8);
+
+        assertEquals(bytes.length, utf8Bytes(bytes));
     }
 
     @Test
-    public void shouldRejectInvalidContinuation()
+    public void shouldReportCompleteCharactersAndValidTail()
     {
-        assertFalse(MemorySegments.utf8Valid(MemorySegment.ofArray(new byte[] {(byte) 0xc3, 0x28}), 0, 2));
+        final byte[] bytes = {'c', 'a', 'f', (byte) 0xc3};
+        final MemorySegment segment = MemorySegment.ofArray(bytes);
+
+        assertEquals(3, MemorySegments.utf8Bytes(segment, 0, 4));
+        assertEquals(1, MemorySegments.utf8Bytes(segment, 0, 1));
     }
 
     @Test
-    public void shouldRejectTruncatedSequence()
+    public void shouldMeasureSeamOfRetainedTailAndNextFragment()
     {
-        assertFalse(MemorySegments.utf8Valid(MemorySegment.ofArray(new byte[] {'a', (byte) 0xe2, (byte) 0x82}), 0, 3));
+        assertEquals(2, utf8Bytes((byte) 0xc3, (byte) 0xa9));
     }
 
     @Test
-    public void shouldRejectOverlongAndSurrogateAndOutOfRange()
+    public void shouldRejectMalformedContinuation()
     {
-        assertUtf8Valid((byte) 0xc0, (byte) 0x80);
-        assertUtf8Valid((byte) 0xe0, (byte) 0x80, (byte) 0x80);
-        assertUtf8Valid((byte) 0xed, (byte) 0xa0, (byte) 0x80);
-        assertUtf8Valid((byte) 0xf0, (byte) 0x80, (byte) 0x80, (byte) 0x80);
-        assertUtf8Valid((byte) 0xf4, (byte) 0x90, (byte) 0x80, (byte) 0x80);
-        assertUtf8Valid((byte) 0xf5, (byte) 0x80, (byte) 0x80, (byte) 0x80);
+        assertEquals(-1, utf8Bytes((byte) 0xc3, 0x28));
+        assertEquals(-1, utf8Bytes((byte) 0xe2, 0x28));
+        assertEquals(-1, utf8Bytes('a', (byte) 0xe2, (byte) 0x82, 0x28));
+    }
+
+    @Test
+    public void shouldRejectOverlongSurrogateAndOutOfRange()
+    {
+        assertEquals(-1, utf8Bytes((byte) 0xc0, (byte) 0x80));
+        assertEquals(-1, utf8Bytes((byte) 0xe0, (byte) 0x80, (byte) 0x80));
+        assertEquals(-1, utf8Bytes((byte) 0xed, (byte) 0xa0, (byte) 0x80));
+        assertEquals(-1, utf8Bytes((byte) 0xf0, (byte) 0x80, (byte) 0x80, (byte) 0x80));
+        assertEquals(-1, utf8Bytes((byte) 0xf4, (byte) 0x90, (byte) 0x80, (byte) 0x80));
+        assertEquals(-1, utf8Bytes((byte) 0xf5, (byte) 0x80, (byte) 0x80, (byte) 0x80));
+    }
+
+    @Test
+    public void shouldMeasureOnlyWithinOffsetAndLength()
+    {
+        final MemorySegment segment = MemorySegment.ofArray(new byte[] {(byte) 0xff, 'o', 'k', (byte) 0xc3});
+
+        assertEquals(2, MemorySegments.utf8Bytes(segment, 1, 2));
+        assertEquals(-1, MemorySegments.utf8Bytes(segment, 0, 3));
+        assertEquals(2, MemorySegments.utf8Bytes(segment, 1, 3));
     }
 
     @Test
     public void shouldMatchDecoderForEveryOneAndTwoByteSequence()
     {
+        final int[] seconds = {0x00, 0x28, 0x7f, 0x80, 0x8f, 0x90, 0x9f, 0xa0, 0xbf, 0xc0, 0xc2, 0xe0, 0xf0, 0xff};
+
         for (int first = 0; first < 256; first++)
         {
-            assertUtf8Valid((byte) first);
+            assertMatchesDecoder((byte) first);
 
-            for (int second = 0; second < 256; second++)
+            for (int second : seconds)
             {
-                assertUtf8Valid((byte) first, (byte) second);
+                assertMatchesDecoder((byte) first, (byte) second);
             }
         }
     }
 
     @Test
-    public void shouldMatchDecoderForThreeAndFourByteSequenceBoundaries()
+    public void shouldMatchDecoderForThreeAndFourByteBoundaries()
     {
-        final int[] trails = {0x00, 0x7f, 0x80, 0x8f, 0x90, 0x9f, 0xa0, 0xbf, 0xc0};
+        final int[] trails = {0x00, 0x80, 0x8f, 0x90, 0x9f, 0xa0, 0xbf, 0xc0};
 
         for (int lead = 0xe0; lead <= 0xf4; lead++)
         {
@@ -117,25 +208,14 @@ public class MemorySegmentsTest
             {
                 for (int third : trails)
                 {
-                    assertUtf8Valid((byte) lead, (byte) second, (byte) third);
+                    assertMatchesDecoder((byte) lead, (byte) second, (byte) third);
 
                     for (int fourth : trails)
                     {
-                        assertUtf8Valid((byte) lead, (byte) second, (byte) third, (byte) fourth);
+                        assertMatchesDecoder((byte) lead, (byte) second, (byte) third, (byte) fourth);
                     }
                 }
             }
         }
-    }
-
-    @Test
-    public void shouldValidateOnlyWithinOffsetAndLimit()
-    {
-        final byte[] bytes = {(byte) 0xff, 'o', 'k', (byte) 0xc3};
-        final MemorySegment segment = MemorySegment.ofArray(bytes);
-
-        assertTrue(MemorySegments.utf8Valid(segment, 1, 3));
-        assertFalse(MemorySegments.utf8Valid(segment, 0, 3));
-        assertFalse(MemorySegments.utf8Valid(segment, 1, 4));
     }
 }

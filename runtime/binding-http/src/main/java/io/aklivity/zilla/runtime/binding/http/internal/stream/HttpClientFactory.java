@@ -7036,7 +7036,9 @@ public final class HttpClientFactory implements HttpStreamFactory
         int offset,
         int limit)
     {
-        return MemorySegments.utf8Valid(buffer.segment(), buffer.wrapAdjustment() + offset, buffer.wrapAdjustment() + limit);
+        final int length = limit - offset;
+
+        return MemorySegments.utf8Bytes(buffer.segment(), buffer.wrapAdjustment() + offset, length) == length;
     }
 
     private static boolean isEventRetry(
