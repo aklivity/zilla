@@ -162,6 +162,7 @@ public final class HttpServerFactory implements HttpStreamFactory
     private static final int CLEANUP_SIGNAL = 0;
     private static final int DELEGATE_SIGNAL = 1;
     private static final int EXPIRING_SIGNAL = 2;
+    private static final int EVENT_PADDING_MAX = 288;
     private static final int IDLE_SIGNAL = 3;
 
     private static final int PADDING_CHUNKED = 10;
@@ -1728,6 +1729,7 @@ public final class HttpServerFactory implements HttpStreamFactory
         private long replyAck;
         private long replyBudgetId;
         private int replyMax;
+        private BudgetDebit replyDebit;
 
         private HttpServer(
             HttpBindingConfig binding,
@@ -2786,11 +2788,62 @@ public final class HttpServerFactory implements HttpStreamFactory
             long traceId,
             long authorization)
         {
-            final OctetsFW payload = encodeEventComment();
+            exchange.commentPending = true;
 
-            doEncodePayload(exchange, traceId, authorization, replyBudgetId, payload.sizeof() + replyPad, payload);
+            flushEventComment(exchange, traceId, authorization);
+        }
 
-            exchange.lastEventAt = System.currentTimeMillis();
+        private void flushEventComment(
+            HttpExchange exchange,
+            long traceId,
+            long authorization)
+        {
+            if (exchange.commentPending)
+            {
+                final OctetsFW payload = encodeEventComment();
+                final int size = payload.sizeof();
+                final int chunking = exchange.responseChunked ? Integer.toHexString(size).length() + 4 : 0;
+
+                if (claimReply(traceId, size + chunking + replyPad))
+                {
+                    exchange.commentPending = false;
+
+                    doEncodePayload(exchange, traceId, authorization, replyBudgetId, size + replyPad, payload);
+
+                    exchange.lastEventAt = System.currentTimeMillis();
+                }
+            }
+        }
+
+        private boolean claimReply(
+            long traceId,
+            int reserved)
+        {
+            boolean claimed = true;
+
+            if (replyBudgetId != 0L)
+            {
+                if (replyDebit == null)
+                {
+                    replyDebit = context.supplyDebit(replyId, replyBudgetId, this::onReplyDebitFlush);
+                    replyDebit.declare(traceId, 0, 0);
+                }
+
+                claimed = replyDebit.claim(traceId, reserved, reserved) == reserved;
+            }
+
+            return claimed;
+        }
+
+        private void onReplyDebitFlush(
+            long traceId)
+        {
+            final HttpExchange pending = exchange;
+
+            if (pending != null)
+            {
+                flushEventComment(pending, traceId, pending.sessionId);
+            }
         }
 
         private void doEncodePayload(
@@ -2967,6 +3020,8 @@ public final class HttpServerFactory implements HttpStreamFactory
             private boolean eventFraming;
             private HttpModel eventModel = HttpModel.NONE;
             private long lastEventAt;
+            private int eventPadAdvertised;
+            private boolean commentPending;
             private long idleId = NO_CANCEL_ID;
             private int responseRemaining;
             private boolean redirected;
@@ -3364,6 +3419,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                     }
 
                     scheduleIdle(traceId);
+                    doResponseWindow(traceId);
                 }
             }
 
@@ -3517,11 +3573,15 @@ public final class HttpServerFactory implements HttpStreamFactory
                 int minResponseMax =
                         Math.max(Math.min(responseRemaining - responseNoAckMin + replyPad + responsePad, replyMax), 0);
                 int responsePadMax = responseChunked ? responsePad : 0;
+                final int eventPad = eventFraming ? EVENT_PADDING_MAX : 0;
 
                 if (responseAckMax > responseAck ||
                     minResponseMax > responseMax && encodeSlotOffset == 0 ||
-                    responsePadMax < responsePad)
+                    responsePadMax < responsePad ||
+                    eventPad != eventPadAdvertised)
                 {
+                    eventPadAdvertised = eventPad;
+
                     responseAck = responseAckMax;
                     assert responseAck <= responseSeq;
 
@@ -3532,7 +3592,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                     assert responsePad >= 0;
 
                     doWindow(application, originId, routedId, responseId, responseSeq, responseAck, responseMax,
-                            traceId, sessionId, replyBudgetId, replyPad + responsePad, CAPABILITY_FRAMING_MASK);
+                            traceId, sessionId, replyBudgetId, replyPad + responsePad + eventPad, CAPABILITY_FRAMING_MASK);
                 }
             }
 
@@ -4318,6 +4378,7 @@ public final class HttpServerFactory implements HttpStreamFactory
         private int remoteSharedBudget;
         private int responseSharedBudget;
         private BudgetCredit responseCredit;
+        private BudgetDebit replyDebit;
 
         private int decodeSlot = NO_SLOT;
         private int decodeSlotOffset;
@@ -4612,6 +4673,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             state = HttpState.closeReply(state);
 
             responseCredit = null;
+            replyDebit = null;
             cleanupEncodeSlotIfNecessary();
 
             if (!HttpState.initialClosing(state))
@@ -4672,6 +4734,32 @@ public final class HttpServerFactory implements HttpStreamFactory
             encodeNetwork(traceId, authorization, budgetId);
 
             flushResponseSharedBudget(traceId);
+        }
+
+        private boolean claimReply(
+            long traceId,
+            int reserved)
+        {
+            boolean claimed = true;
+
+            if (budgetId != 0L)
+            {
+                if (replyDebit == null)
+                {
+                    replyDebit = context.supplyDebit(replyId, budgetId, this::onReplyDebitFlush);
+                    replyDebit.declare(traceId, 0, 0);
+                }
+
+                claimed = replyDebit.claim(traceId, reserved, reserved) == reserved;
+            }
+
+            return claimed;
+        }
+
+        private void onReplyDebitFlush(
+            long traceId)
+        {
+            streams.values().forEach(exchange -> exchange.flushEventComment(traceId, authorization));
         }
 
         private void onNetworkSignal(
@@ -4813,6 +4901,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             long authorization)
         {
             responseCredit = null;
+            replyDebit = null;
             cleanupEncodeSlotIfNecessary();
             doEnd(network, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization, EMPTY_OCTETS);
             state = HttpState.closeReply(state);
@@ -4823,6 +4912,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             long authorization)
         {
             responseCredit = null;
+            replyDebit = null;
             cleanupEncodeSlotIfNecessary();
             doAbort(network, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization, EMPTY_OCTETS);
             state = HttpState.closeReply(state);
@@ -6214,6 +6304,8 @@ public final class HttpServerFactory implements HttpStreamFactory
             private boolean eventFraming;
             private HttpModel eventModel = HttpModel.NONE;
             private long lastEventAt;
+            private int eventPadAdvertised;
+            private boolean commentPending;
             private long idleId = NO_CANCEL_ID;
 
             private Http2Exchange(
@@ -6648,6 +6740,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                     }
 
                     scheduleIdle(traceId);
+                    flushResponseWindow(traceId, 0);
                 }
             }
 
@@ -6655,11 +6748,25 @@ public final class HttpServerFactory implements HttpStreamFactory
                 long traceId,
                 long authorization)
             {
-                final OctetsFW payload = encodeEventComment();
-                final int length = payload.sizeof();
+                commentPending = true;
 
-                if (remoteBudget >= length && remoteSharedBudget >= length)
+                flushEventComment(traceId, authorization);
+            }
+
+            private void flushEventComment(
+                long traceId,
+                long authorization)
+            {
+                final OctetsFW payload = commentPending ? encodeEventComment() : null;
+                final int length = payload != null ? payload.sizeof() : 0;
+                final int framing = http2FramePadding(length, remoteSettings.maxFrameSize);
+
+                if (payload != null &&
+                    remoteBudget >= length &&
+                    remoteSharedBudget >= length &&
+                    claimReply(traceId, length + framing + replyPad))
                 {
+                    commentPending = false;
                     remoteBudget -= length;
                     remoteSharedBudget -= length;
                     responseContentObserved += length;
@@ -6771,7 +6878,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
                         final int remotePaddableMax = Math.min(remoteBudget, bufferPool.slotCapacity());
                         final int remotePadding = http2FramePadding(remotePaddableMax, remoteSettings.maxFrameSize);
-                        final int responsePadding = replyPad + remotePadding;
+                        final int responsePadding = replyPad + remotePadding + (eventFraming ? EVENT_PADDING_MAX : 0);
 
                         final int responseWin = responseMax - (int)(responseSeq - responseAck);
                         final int minimumClaim = 1024;
@@ -6918,15 +7025,19 @@ public final class HttpServerFactory implements HttpStreamFactory
                 {
                     final int remotePaddableMax = Math.min(remoteBudget, bufferPool.slotCapacity());
                     final int remotePad = http2FramePadding(remotePaddableMax, remoteSettings.maxFrameSize);
-                    final int responsePad = replyPad + remotePad;
+                    final int eventPad = eventFraming ? EVENT_PADDING_MAX : 0;
+                    final int responsePad = replyPad + remotePad + eventPad;
                     final int newResponseWin = remoteBudget;
                     final int responseWin = responseMax - (int)(responseSeq - responseAck);
                     final int responseCredit = newResponseWin - responseWin;
 
-                    if (responseCredit > 0 && responseCredit >= responseCreditMin && newResponseWin > responsePad)
+                    if ((responseCredit > 0 && responseCredit >= responseCreditMin || eventPad != eventPadAdvertised) &&
+                        newResponseWin > responsePad)
                     {
+                        eventPadAdvertised = eventPad;
+
                         final int responseNoAck = (int)(responseSeq - responseAck);
-                        final int responseAcked = Math.min(responseNoAck, responseCredit);
+                        final int responseAcked = Math.max(Math.min(responseNoAck, responseCredit), 0);
 
                         responseAck += responseAcked;
                         assert responseAck <= responseSeq;
