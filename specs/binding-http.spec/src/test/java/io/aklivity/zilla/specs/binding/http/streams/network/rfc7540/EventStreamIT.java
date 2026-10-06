@@ -102,6 +102,15 @@ public class EventStreamIT
 
     @Test
     @Specification({
+        "${net}/response.sse.framing.retry.numeric/client",
+        "${net}/response.sse.framing.retry.numeric/server" })
+    public void shouldReceiveRetryNumeric() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/response.sse.framing.comment.initial/client",
         "${net}/response.sse.framing.comment.initial/server" })
     public void shouldReceiveCommentInitial() throws Exception
@@ -132,6 +141,15 @@ public class EventStreamIT
         "${net}/server.response.sse.framing.id.only/client",
         "${net}/server.response.sse.framing.id.only/server" })
     public void shouldReceiveServerIdOnly() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/server.response.sse.framing.retry.numeric/client",
+        "${net}/server.response.sse.framing.retry.numeric/server" })
+    public void shouldReceiveServerRetryNumeric() throws Exception
     {
         k3po.finish();
     }

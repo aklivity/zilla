@@ -176,6 +176,7 @@ public final class HttpServerFactory implements HttpStreamFactory
     private static final byte[] CONTENT_TYPE_EVENT_STREAM = "text/event-stream".getBytes(UTF_8);
     private static final String8FW HEADER_NAME_EVENT_TYPE = new String8FW("type");
     private static final String8FW HEADER_NAME_EVENT_ID = new String8FW("id");
+    private static final String8FW HEADER_NAME_EVENT_RETRY = new String8FW("retry");
 
     private static final DirectBufferEx EMPTY_BUFFER = new UnsafeBufferEx(new byte[0]);
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
@@ -584,8 +585,10 @@ public final class HttpServerFactory implements HttpStreamFactory
     private final MutableDirectBufferEx eventBuffer;
     private final MutableDirectBufferEx eventIdBuffer;
     private final MutableDirectBufferEx eventTypeBuffer;
+    private final MutableDirectBufferEx eventRetryBuffer;
     private final UnsafeBufferEx eventIdView;
     private final UnsafeBufferEx eventTypeView;
+    private final UnsafeBufferEx eventRetryView;
     private final int decodeMax;
     private final int encodeMax;
     private final int proxyTypeId;
@@ -620,8 +623,10 @@ public final class HttpServerFactory implements HttpStreamFactory
         this.eventBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.eventIdBuffer = new UnsafeBufferEx(new byte[EVENT_FIELD_VALUE_MAX]);
         this.eventTypeBuffer = new UnsafeBufferEx(new byte[EVENT_FIELD_VALUE_MAX]);
+        this.eventRetryBuffer = new UnsafeBufferEx(new byte[EVENT_FIELD_VALUE_MAX]);
         this.eventIdView = new UnsafeBufferEx(new byte[0]);
         this.eventTypeView = new UnsafeBufferEx(new byte[0]);
+        this.eventRetryView = new UnsafeBufferEx(new byte[0]);
         this.modelBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.modelValueBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.modelBeginExBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
@@ -7956,6 +7961,7 @@ public final class HttpServerFactory implements HttpStreamFactory
     {
         DirectBufferEx id = null;
         DirectBufferEx type = null;
+        DirectBufferEx retry = null;
 
         final HttpDataExFW dataEx = extension.sizeof() > 0 ? extension.get(dataExRO::tryWrap) : null;
 
@@ -7963,16 +7969,18 @@ public final class HttpServerFactory implements HttpStreamFactory
         {
             id = eventField(dataEx, HEADER_NAME_EVENT_ID, eventIdBuffer, eventIdView);
             type = eventField(dataEx, HEADER_NAME_EVENT_TYPE, eventTypeBuffer, eventTypeView);
+            retry = eventField(dataEx, HEADER_NAME_EVENT_RETRY, eventRetryBuffer, eventRetryView);
         }
 
         OctetsFW encoded = null;
 
-        if (payload != null || id != null || type != null)
+        if (payload != null || id != null || type != null || retry != null)
         {
             final HttpSseEventFW event = eventRW.wrap(eventBuffer, 0, eventBuffer.capacity())
                     .flags(flags)
                     .id(id)
                     .type(type)
+                    .retry(retry)
                     .data(payload)
                     .build();
 

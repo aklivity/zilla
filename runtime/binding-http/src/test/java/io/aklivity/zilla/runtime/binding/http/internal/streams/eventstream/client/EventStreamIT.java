@@ -350,6 +350,66 @@ public class EventStreamIT
     @Test
     @Configuration("client.yaml")
     @Specification({
+        "${net}/response.sse.framing.retry.numeric/server",
+        "${app}/response.sse.framing.retry.numeric/client" })
+    public void shouldReceiveResponseRetryNumeric() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/response.sse.framing.retry.non.empty/server",
+        "${app}/response.sse.framing.retry.non.empty/client" })
+    public void shouldReceiveResponseRetryNonEmpty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/response.sse.framing.retry.initial.whitespace/server",
+        "${app}/response.sse.framing.retry.initial.whitespace/client" })
+    public void shouldReceiveResponseRetryInitialWhitespace() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/response.sse.framing.retry.non.numeric/server",
+        "${app}/response.sse.framing.retry.non.numeric/client" })
+    public void shouldReceiveResponseRetryNonNumeric() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/response.sse.framing.retry.name.only/server",
+        "${app}/response.sse.framing.retry.name.only/client" })
+    public void shouldReceiveResponseRetryNameOnly() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/response.sse.framing.retry.invalid.utf8/server",
+        "${app}/response.sse.framing.retry.invalid.utf8/client" })
+    public void shouldReceiveResponseRetryInvalidUtf8() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
         "${net}/response.sse.framing.comment.empty/server",
         "${app}/response.sse.framing.comment.empty/client" })
     public void shouldReceiveResponseCommentEmpty() throws Exception

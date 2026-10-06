@@ -121,6 +121,17 @@ public class EventStreamIT
     @Test
     @Configuration("client.yaml")
     @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
+    @Specification({
+        "${app}/response.sse.framing.retry.numeric/client",
+        "${net}/server.response.sse.framing.retry.numeric/server" })
+    public void shouldReceiveResponseRetryNumeric() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "65536")
     @Specification({
         "${app}/response.sse.framing.data.large.frames/client",

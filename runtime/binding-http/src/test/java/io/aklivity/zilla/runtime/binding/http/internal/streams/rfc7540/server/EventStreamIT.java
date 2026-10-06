@@ -95,6 +95,16 @@ public class EventStreamIT
 
     @Test
     @Configuration("server.yaml")
+    @Specification({
+        "${net}/response.sse.framing.retry.numeric/client",
+        "${app}/response.sse.framing.retry.numeric/server" })
+    public void shouldReceiveResponseRetryNumeric() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
     @Configure(name = HTTP_SSE_INITIAL_COMMENT_ENABLED_NAME, value = "true")
     @Specification({
         "${net}/response.sse.framing.comment.initial/client",

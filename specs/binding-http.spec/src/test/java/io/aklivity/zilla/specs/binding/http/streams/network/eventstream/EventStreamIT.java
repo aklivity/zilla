@@ -309,6 +309,60 @@ public class EventStreamIT
 
     @Test
     @Specification({
+        "${net}/response.sse.framing.retry.numeric/client",
+        "${net}/response.sse.framing.retry.numeric/server" })
+    public void shouldReceiveResponseRetryNumeric() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/response.sse.framing.retry.non.empty/client",
+        "${net}/response.sse.framing.retry.non.empty/server" })
+    public void shouldReceiveResponseRetryNonEmpty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/response.sse.framing.retry.initial.whitespace/client",
+        "${net}/response.sse.framing.retry.initial.whitespace/server" })
+    public void shouldReceiveResponseRetryInitialWhitespace() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/response.sse.framing.retry.non.numeric/client",
+        "${net}/response.sse.framing.retry.non.numeric/server" })
+    public void shouldReceiveResponseRetryNonNumeric() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/response.sse.framing.retry.name.only/client",
+        "${net}/response.sse.framing.retry.name.only/server" })
+    public void shouldReceiveResponseRetryNameOnly() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/response.sse.framing.retry.invalid.utf8/client",
+        "${net}/response.sse.framing.retry.invalid.utf8/server" })
+    public void shouldReceiveResponseRetryInvalidUtf8() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/response.sse.framing.comment.empty/client",
         "${net}/response.sse.framing.comment.empty/server" })
     public void shouldReceiveResponseCommentEmpty() throws Exception

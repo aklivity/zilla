@@ -89,6 +89,18 @@ public class HttpSseEventFWTest
     }
 
     @Test
+    public void shouldEncodeRetryOnlyEvent()
+    {
+        assertEquals("retry:5000\n\n", encodeRetry(COMPLETE, "5000", null));
+    }
+
+    @Test
+    public void shouldEncodeCompleteEventWithRetry()
+    {
+        assertEquals("retry:5000\ndata:Hello, world\n\n", encodeRetry(COMPLETE, "5000", "Hello, world"));
+    }
+
+    @Test
     public void shouldEncodeCommentOnlyEvent()
     {
         assertEquals(":\n\n", encode(COMPLETE, "", null, null, null));
@@ -126,6 +138,21 @@ public class HttpSseEventFWTest
             .id(id != null ? field(id) : null)
             .type(type != null ? field(type) : null)
             .data(dataRO.wrap(dataBuffer, 0, bytes.length))
+            .build();
+
+        return buffer.getStringWithoutLengthUtf8(event.offset(), event.sizeof());
+    }
+
+    private String encodeRetry(
+        int flags,
+        String retry,
+        String data)
+    {
+        final byte[] bytes = data != null ? data.getBytes(UTF_8) : null;
+        final HttpSseEventFW event = eventRW.wrap(buffer, 0, buffer.capacity())
+            .flags(flags)
+            .retry(field(retry))
+            .data(bytes != null ? dataRO.wrap(new UnsafeBufferEx(bytes), 0, bytes.length) : null)
             .build();
 
         return buffer.getStringWithoutLengthUtf8(event.offset(), event.sizeof());

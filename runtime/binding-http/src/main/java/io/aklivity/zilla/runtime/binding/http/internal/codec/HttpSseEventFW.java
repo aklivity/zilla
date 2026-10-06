@@ -34,6 +34,7 @@ public final class HttpSseEventFW extends Flyweight
     private static final byte[] DATA_FIELD_HEADER = "data:".getBytes(UTF_8);
     private static final byte[] ID_FIELD_HEADER = "id:".getBytes(UTF_8);
     private static final byte[] TYPE_FIELD_HEADER = "event:".getBytes(UTF_8);
+    private static final byte[] RETRY_FIELD_HEADER = "retry:".getBytes(UTF_8);
     private static final byte[] COMMENT_FIELD_HEADER = ":".getBytes(UTF_8);
 
     private static final byte FIELD_TRAILER = 0x0a;
@@ -71,6 +72,7 @@ public final class HttpSseEventFW extends Flyweight
         private int flags;
         private DirectBufferEx id;
         private DirectBufferEx type;
+        private DirectBufferEx retry;
         private DirectBufferEx comment;
 
         public Builder()
@@ -90,6 +92,7 @@ public final class HttpSseEventFW extends Flyweight
             flags = 0;
             id = null;
             type = null;
+            retry = null;
             comment = null;
 
             return this;
@@ -120,6 +123,13 @@ public final class HttpSseEventFW extends Flyweight
             DirectBufferEx type)
         {
             this.type = type;
+            return this;
+        }
+
+        public Builder retry(
+            DirectBufferEx retry)
+        {
+            this.retry = retry;
             return this;
         }
 
@@ -200,6 +210,7 @@ public final class HttpSseEventFW extends Flyweight
             buildField(COMMENT_FIELD_HEADER, comment);
             buildField(ID_FIELD_HEADER, id);
             buildField(TYPE_FIELD_HEADER, type);
+            buildField(RETRY_FIELD_HEADER, retry);
         }
 
         private Builder buildData(
