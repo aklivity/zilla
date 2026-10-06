@@ -45,6 +45,8 @@ write advised zilla:challenge ${http:challengeEx()
                                       .header(":method", "POST")
                                       .header("content-type", "application/x-challenge-response")
                                       .build()}
-write "event:challenge\n"
-      "data:{\"method\":\"POST\",\"headers\":{\"content-type\":\"application/x-challenge-response\"}}\n"
-      "\n"
+write zilla:data.ext ${http:dataEx()
+                             .typeId(zilla:id("http"))
+                            .header("type", "challenge")
+                             .build()}
+write "{\"method\":\"POST\",\"headers\":{\"content-type\":\"application/x-challenge-response\"}}"

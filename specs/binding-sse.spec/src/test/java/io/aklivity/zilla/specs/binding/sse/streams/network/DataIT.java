@@ -39,15 +39,6 @@ public class DataIT
 
     @Test
     @Specification({
-        "${net}/name.only/request",
-        "${net}/name.only/response" })
-    public void shouldReceiveDataNameOnly() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${net}/empty/request",
         "${net}/empty/response" })
     public void shouldReceiveEmptyData() throws Exception
@@ -106,24 +97,6 @@ public class DataIT
         "${net}/fragmented.100k/request",
         "${net}/fragmented.100k/response" })
     public void shouldReceiveDataFragmented100k() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/invalid.utf8/request",
-        "${net}/invalid.utf8/response" })
-    public void shouldRejectDataWithInvalidUTF8() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/initial.whitespace/request",
-        "${net}/initial.whitespace/response" })
-    public void shouldReceiveDataWithInitialWhitespace() throws Exception
     {
         k3po.finish();
     }

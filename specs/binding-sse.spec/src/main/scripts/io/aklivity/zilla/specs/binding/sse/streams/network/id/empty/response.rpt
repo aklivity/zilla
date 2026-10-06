@@ -39,5 +39,10 @@ write zilla:begin.ext ${http:beginEx()
                               .build()}
 write flush
 
-write "id:\n"
-write "\n"
+write zilla:data.ext ${http:dataEx()
+                             .typeId(zilla:id("http"))
+                            .header("id", "")
+                             .build()}
+write "Hello, world"
+
+write close

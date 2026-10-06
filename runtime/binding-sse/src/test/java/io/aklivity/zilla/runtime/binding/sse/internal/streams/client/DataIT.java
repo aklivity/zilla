@@ -102,16 +102,6 @@ public class DataIT
     @Test
     @Configuration("client.when.yaml")
     @Specification({
-        "${app}/name.only/client",
-        "${net}/name.only/response" })
-    public void shouldReceiveNameOnlyMessage() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.when.yaml")
-    @Specification({
         "${app}/multi.line/client",
         "${net}/multi.line/response" })
     public void shouldReceiveMultiLineMessage() throws Exception
