@@ -6722,11 +6722,11 @@ public final class HttpServerFactory implements HttpStreamFactory
                 else
                 {
                     final OctetsFW dataPayload = data.payload();
+                    final int flags = data.flags();
+                    final OctetsFW payload = eventFraming ? encodeEvent(flags, dataPayload, data.extension()) : dataPayload;
 
-                    if (dataPayload != null || eventFraming)
+                    if (payload != null)
                     {
-                        final int flags = data.flags();
-                        final OctetsFW payload = eventFraming ? encodeEvent(flags, dataPayload, data.extension()) : dataPayload;
                         final int length = payload.sizeof();
                         final int expansion = Math.max(length - (dataPayload != null ? dataPayload.sizeof() : 0), 0);
 
@@ -7805,14 +7805,21 @@ public final class HttpServerFactory implements HttpStreamFactory
             type = eventField(dataEx, HEADER_NAME_EVENT_TYPE, eventTypeBuffer, eventTypeView);
         }
 
-        final HttpSseEventFW event = eventRW.wrap(eventBuffer, 0, eventBuffer.capacity())
-                .flags(flags)
-                .id(id)
-                .type(type)
-                .data(payload)
-                .build();
+        OctetsFW encoded = null;
 
-        return eventPayloadRO.wrap(event.buffer(), event.offset(), event.limit());
+        if (payload != null || id != null || type != null)
+        {
+            final HttpSseEventFW event = eventRW.wrap(eventBuffer, 0, eventBuffer.capacity())
+                    .flags(flags)
+                    .id(id)
+                    .type(type)
+                    .data(payload)
+                    .build();
+
+            encoded = eventPayloadRO.wrap(event.buffer(), event.offset(), event.limit());
+        }
+
+        return encoded;
     }
 
     private OctetsFW encodeEventComment()
