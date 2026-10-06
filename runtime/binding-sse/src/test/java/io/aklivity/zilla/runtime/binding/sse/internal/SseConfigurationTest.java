@@ -21,7 +21,11 @@ import static io.aklivity.zilla.runtime.binding.sse.internal.SseConfiguration.IN
 import static io.aklivity.zilla.runtime.binding.sse.internal.SseConfiguration.MAXIMUM_IDLE_TIME;
 import static org.junit.Assert.assertEquals;
 
+import java.util.Properties;
+
 import org.junit.Test;
+
+import io.aklivity.zilla.runtime.engine.Configuration;
 
 public class SseConfigurationTest
 {
@@ -35,5 +39,32 @@ public class SseConfigurationTest
         assertEquals(CHALLENGE_EVENT_TYPE.name(), CHALLENGE_EVENT_TYPE_NAME);
         assertEquals(INITIAL_COMMENT_ENABLED.name(), SSE_INITIAL_COMMENT_ENABLED_NAME);
         assertEquals(MAXIMUM_IDLE_TIME.name(), SSE_MAXIMUM_IDLE_TIME_NAME);
+    }
+
+    @Test
+    public void shouldDefaultToHttpEventStreamProperties() throws Exception
+    {
+        final Properties properties = new Properties();
+        properties.setProperty("zilla.binding.http.event.stream.initial.comment.enabled", "true");
+        properties.setProperty("zilla.binding.http.event.stream.maximum.idle.time", "7");
+        properties.setProperty("zilla.binding.http.event.stream.challenge.event.type", "reauthenticate");
+
+        final SseConfiguration config = new SseConfiguration(new Configuration(properties));
+
+        assertEquals(true, config.initialCommentEnabled());
+        assertEquals(7, config.maximumIdleTime());
+        assertEquals("reauthenticate", config.challengeEventType());
+    }
+
+    @Test
+    public void shouldOverrideHttpEventStreamPropertiesWithSseProperties() throws Exception
+    {
+        final Properties properties = new Properties();
+        properties.setProperty("zilla.binding.http.event.stream.maximum.idle.time", "7");
+        properties.setProperty(SSE_MAXIMUM_IDLE_TIME_NAME, "3");
+
+        final SseConfiguration config = new SseConfiguration(new Configuration(properties));
+
+        assertEquals(3, config.maximumIdleTime());
     }
 }

@@ -26,14 +26,23 @@ public class SseConfiguration extends Configuration
 
     private static final ConfigurationDef SSE_CONFIG;
 
+    private static final BooleanPropertyDef HTTP_INITIAL_COMMENT_ENABLED;
+    private static final IntPropertyDef HTTP_MAXIMUM_IDLE_TIME;
+    private static final PropertyDef<String> HTTP_CHALLENGE_EVENT_TYPE;
+
     static final PropertyDef<String> CHALLENGE_EVENT_TYPE;
 
     static
     {
+        final ConfigurationDef http = new ConfigurationDef("zilla.binding.http");
+        HTTP_INITIAL_COMMENT_ENABLED = http.property("event.stream.initial.comment.enabled", false);
+        HTTP_MAXIMUM_IDLE_TIME = http.property("event.stream.maximum.idle.time", 0);
+        HTTP_CHALLENGE_EVENT_TYPE = http.property("event.stream.challenge.event.type", "challenge");
+
         final ConfigurationDef config = new ConfigurationDef("zilla.binding.sse");
-        INITIAL_COMMENT_ENABLED = config.property("initial.comment.enabled", false);
-        CHALLENGE_EVENT_TYPE = config.property("challenge.event.type", "challenge");
-        MAXIMUM_IDLE_TIME = config.property("maximum.idle.time", 0);
+        INITIAL_COMMENT_ENABLED = config.property("initial.comment.enabled", HTTP_INITIAL_COMMENT_ENABLED::getAsBoolean);
+        CHALLENGE_EVENT_TYPE = config.property("challenge.event.type", HTTP_CHALLENGE_EVENT_TYPE::get);
+        MAXIMUM_IDLE_TIME = config.property("maximum.idle.time", HTTP_MAXIMUM_IDLE_TIME::getAsInt);
         SSE_CONFIG = config;
     }
 
