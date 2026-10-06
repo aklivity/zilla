@@ -16,6 +16,8 @@
 package io.aklivity.zilla.runtime.binding.http.internal;
 
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_CONCURRENT_STREAMS;
+import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_EVENT_STREAM_INITIAL_COMMENT_ENABLED;
+import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_EVENT_STREAM_MAXIMUM_IDLE_TIME;
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_MAX_CONCURRENT_STREAMS_CLEANUP;
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_MAX_FRAME_SIZE;
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_MAX_HEADER_LIST_SIZE;
@@ -38,6 +40,9 @@ public class HttpConfigurationTest
     public static final String HTTP_MAX_FRAME_SIZE_NAME = "zilla.binding.http.max.frame.size";
     public static final String HTTP_MAX_CONCURRENT_STREAMS_CLEANUP_NAME = "zilla.binding.http.max.concurrent.streams.cleanup";
     public static final String HTTP_STREAMS_CLEANUP_DELAY_NAME = "zilla.binding.http.streams.cleanup.delay";
+    public static final String HTTP_EVENT_STREAM_INITIAL_COMMENT_ENABLED_NAME =
+        "zilla.binding.http.event.stream.initial.comment.enabled";
+    public static final String HTTP_EVENT_STREAM_MAXIMUM_IDLE_TIME_NAME = "zilla.binding.http.event.stream.maximum.idle.time";
 
     @Test
     public void shouldVerifyConstants() throws Exception
@@ -50,5 +55,7 @@ public class HttpConfigurationTest
         assertEquals(HTTP_MAX_FRAME_SIZE.name(), HTTP_MAX_FRAME_SIZE_NAME);
         assertEquals(HTTP_MAX_CONCURRENT_STREAMS_CLEANUP.name(), HTTP_MAX_CONCURRENT_STREAMS_CLEANUP_NAME);
         assertEquals(HTTP_STREAMS_CLEANUP_DELAY.name(), HTTP_STREAMS_CLEANUP_DELAY_NAME);
+        assertEquals(HTTP_EVENT_STREAM_INITIAL_COMMENT_ENABLED.name(), HTTP_EVENT_STREAM_INITIAL_COMMENT_ENABLED_NAME);
+        assertEquals(HTTP_EVENT_STREAM_MAXIMUM_IDLE_TIME.name(), HTTP_EVENT_STREAM_MAXIMUM_IDLE_TIME_NAME);
     }
 }

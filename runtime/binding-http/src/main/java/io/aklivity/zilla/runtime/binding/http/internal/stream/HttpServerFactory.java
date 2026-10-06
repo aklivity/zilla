@@ -45,6 +45,7 @@ import static java.lang.Integer.parseInt;
 import static java.nio.charset.StandardCharsets.US_ASCII;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Arrays.asList;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.net.URI;
 import java.time.Instant;
@@ -161,6 +162,7 @@ public final class HttpServerFactory implements HttpStreamFactory
     private static final int CLEANUP_SIGNAL = 0;
     private static final int DELEGATE_SIGNAL = 1;
     private static final int EXPIRING_SIGNAL = 2;
+    private static final int IDLE_SIGNAL = 3;
 
     private static final int PADDING_CHUNKED = 10;
     private static final long MAX_REMOTE_BUDGET = Integer.MAX_VALUE;
@@ -173,6 +175,7 @@ public final class HttpServerFactory implements HttpStreamFactory
     private static final byte[] CONTENT_TYPE_EVENT_STREAM = "text/event-stream".getBytes(UTF_8);
     private static final String8FW HEADER_NAME_EVENT_TYPE = new String8FW("type");
     private static final String8FW HEADER_NAME_EVENT_ID = new String8FW("id");
+    private static final String8FW HEADER_NAME_EVENT_TIMESTAMP = new String8FW("timestamp");
 
     private static final DirectBufferEx EMPTY_BUFFER = new UnsafeBufferEx(new byte[0]);
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
@@ -576,8 +579,10 @@ public final class HttpServerFactory implements HttpStreamFactory
     private final MutableDirectBufferEx eventBuffer;
     private final MutableDirectBufferEx eventIdBuffer;
     private final MutableDirectBufferEx eventTypeBuffer;
+    private final MutableDirectBufferEx eventTimestampBuffer;
     private final UnsafeBufferEx eventIdView;
     private final UnsafeBufferEx eventTypeView;
+    private final UnsafeBufferEx eventTimestampView;
     private final int decodeMax;
     private final int encodeMax;
     private final int proxyTypeId;
@@ -612,8 +617,10 @@ public final class HttpServerFactory implements HttpStreamFactory
         this.eventBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.eventIdBuffer = new UnsafeBufferEx(new byte[EVENT_FIELD_VALUE_MAX]);
         this.eventTypeBuffer = new UnsafeBufferEx(new byte[EVENT_FIELD_VALUE_MAX]);
+        this.eventTimestampBuffer = new UnsafeBufferEx(new byte[EVENT_FIELD_VALUE_MAX]);
         this.eventIdView = new UnsafeBufferEx(new byte[0]);
         this.eventTypeView = new UnsafeBufferEx(new byte[0]);
+        this.eventTimestampView = new UnsafeBufferEx(new byte[0]);
         this.modelBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.modelValueBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.modelBeginExBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
@@ -2071,6 +2078,13 @@ public final class HttpServerFactory implements HttpStreamFactory
                     exchange.onResponseExpiring(traceId);
                 }
                 break;
+            case IDLE_SIGNAL:
+                HttpExchange idleExchange = this.exchange;
+                if (idleExchange != null)
+                {
+                    idleExchange.onResponseIdle(traceId);
+                }
+                break;
             }
         }
 
@@ -2762,8 +2776,35 @@ public final class HttpServerFactory implements HttpStreamFactory
 
             final OctetsFW payload = exchange.eventFraming ? encodeEvent(flags, data, extension) : data;
 
-            reserved += Math.max(payload.sizeof() - data.sizeof(), 0);
+            if (payload != null)
+            {
+                final int dataLength = data != null ? data.sizeof() : 0;
 
+                doEncodePayload(exchange, traceId, authorization, budgetId,
+                    reserved + Math.max(payload.sizeof() - dataLength, 0), payload);
+            }
+        }
+
+        private void doEncodeEventComment(
+            HttpExchange exchange,
+            long traceId,
+            long authorization)
+        {
+            final OctetsFW payload = encodeEventComment();
+
+            doEncodePayload(exchange, traceId, authorization, replyBudgetId, payload.sizeof() + replyPad, payload);
+
+            exchange.lastEventAt = System.currentTimeMillis();
+        }
+
+        private void doEncodePayload(
+            HttpExchange exchange,
+            long traceId,
+            long authorization,
+            long budgetId,
+            int reserved,
+            OctetsFW payload)
+        {
             DirectBufferEx buffer = payload.buffer();
             int offset = payload.offset();
             int limit = payload.limit();
@@ -2792,7 +2833,10 @@ public final class HttpServerFactory implements HttpStreamFactory
                 buffer = codecBuffer;
                 offset = 0;
                 limit = chunkLimit;
+                reserved = Math.max(reserved, limit - offset + replyPad);
             }
+
+            exchange.lastEventAt = System.currentTimeMillis();
 
             if (encodeSlot != NO_SLOT)
             {
@@ -2925,6 +2969,8 @@ public final class HttpServerFactory implements HttpStreamFactory
             private boolean responseChunked;
             private boolean responseClosing;
             private boolean eventFraming;
+            private long lastEventAt;
+            private long idleId = NO_CANCEL_ID;
             private int responseRemaining;
             private boolean redirected;
 
@@ -3309,6 +3355,46 @@ public final class HttpServerFactory implements HttpStreamFactory
                 eventFraming = canFrame(requestCaps) && isEventStream(headers);
                 responseState = HttpExchangeState.OPEN;
                 doEncodeHeaders(this, traceId, sessionId, 0L, headers);
+
+                if (eventFraming)
+                {
+                    lastEventAt = System.currentTimeMillis();
+
+                    if (config.eventStreamInitialCommentEnabled())
+                    {
+                        doEncodeEventComment(this, traceId, sessionId);
+                    }
+
+                    scheduleIdle(traceId);
+                }
+            }
+
+            private void scheduleIdle(
+                long traceId)
+            {
+                final int idleTime = config.eventStreamMaximumIdleTime();
+
+                if (idleTime > 0)
+                {
+                    idleId = signaler.signalAt(lastEventAt + SECONDS.toMillis(idleTime),
+                        originId, routedId, replyId, traceId, IDLE_SIGNAL, 0);
+                }
+            }
+
+            private void onResponseIdle(
+                long traceId)
+            {
+                idleId = NO_CANCEL_ID;
+
+                if (responseState == HttpExchangeState.OPEN)
+                {
+                    if (System.currentTimeMillis() - lastEventAt >= SECONDS.toMillis(config.eventStreamMaximumIdleTime()))
+                    {
+                        doEncodeEventComment(this, traceId, sessionId);
+                    }
+
+                    scheduleIdle(traceId);
+                }
             }
 
             private void onResponseData(
@@ -3339,7 +3425,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                     final int reserved = data.reserved();
                     final OctetsFW payload = data.payload();
 
-                    responseRemaining -= data.length();
+                    responseRemaining -= Math.max(data.length(), 0);
                     assert responseRemaining >= 0;
 
                     doEncodeBody(this, traceId, authorization, flags, budgetId, reserved, payload, data.extension());
@@ -3462,6 +3548,12 @@ public final class HttpServerFactory implements HttpStreamFactory
                 {
                     signaler.cancel(expiringId);
                     expiringId = NO_CANCEL_ID;
+                }
+
+                if (idleId != NO_CANCEL_ID)
+                {
+                    signaler.cancel(idleId);
+                    idleId = NO_CANCEL_ID;
                 }
             }
         }
@@ -7633,6 +7725,7 @@ public final class HttpServerFactory implements HttpStreamFactory
     {
         DirectBufferEx id = null;
         DirectBufferEx type = null;
+        DirectBufferEx timestamp = null;
 
         final HttpDataExFW dataEx = extension.sizeof() > 0 ? extension.get(dataExRO::tryWrap) : null;
 
@@ -7640,13 +7733,25 @@ public final class HttpServerFactory implements HttpStreamFactory
         {
             id = eventField(dataEx, HEADER_NAME_EVENT_ID, eventIdBuffer, eventIdView);
             type = eventField(dataEx, HEADER_NAME_EVENT_TYPE, eventTypeBuffer, eventTypeView);
+            timestamp = eventField(dataEx, HEADER_NAME_EVENT_TIMESTAMP, eventTimestampBuffer, eventTimestampView);
         }
 
         final HttpSseEventFW event = eventRW.wrap(eventBuffer, 0, eventBuffer.capacity())
                 .flags(flags)
+                .timestamp(timestamp)
                 .id(id)
                 .type(type)
                 .data(payload)
+                .build();
+
+        return eventPayloadRO.wrap(event.buffer(), event.offset(), event.limit());
+    }
+
+    private OctetsFW encodeEventComment()
+    {
+        final HttpSseEventFW event = eventRW.wrap(eventBuffer, 0, eventBuffer.capacity())
+                .flags(COMPLETE)
+                .comment(EMPTY_BUFFER)
                 .build();
 
         return eventPayloadRO.wrap(event.buffer(), event.offset(), event.limit());

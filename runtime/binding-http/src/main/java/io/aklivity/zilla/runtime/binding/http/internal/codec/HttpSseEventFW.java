@@ -34,6 +34,8 @@ public final class HttpSseEventFW extends Flyweight
     private static final byte[] DATA_FIELD_HEADER = "data:".getBytes(UTF_8);
     private static final byte[] ID_FIELD_HEADER = "id:".getBytes(UTF_8);
     private static final byte[] TYPE_FIELD_HEADER = "event:".getBytes(UTF_8);
+    private static final byte[] TIMESTAMP_FIELD_HEADER = "timestamp:".getBytes(UTF_8);
+    private static final byte[] COMMENT_FIELD_HEADER = ":".getBytes(UTF_8);
 
     private static final byte FIELD_TRAILER = 0x0a;
     private static final int FIELD_TRAILER_LENGTH = 1;
@@ -70,6 +72,8 @@ public final class HttpSseEventFW extends Flyweight
         private int flags;
         private DirectBufferEx id;
         private DirectBufferEx type;
+        private DirectBufferEx timestamp;
+        private DirectBufferEx comment;
 
         public Builder()
         {
@@ -88,6 +92,8 @@ public final class HttpSseEventFW extends Flyweight
             flags = 0;
             id = null;
             type = null;
+            timestamp = null;
+            comment = null;
 
             return this;
         }
@@ -117,6 +123,20 @@ public final class HttpSseEventFW extends Flyweight
             DirectBufferEx type)
         {
             this.type = type;
+            return this;
+        }
+
+        public Builder timestamp(
+            DirectBufferEx timestamp)
+        {
+            this.timestamp = timestamp;
+            return this;
+        }
+
+        public Builder comment(
+            DirectBufferEx comment)
+        {
+            this.comment = comment;
             return this;
         }
 
@@ -150,8 +170,10 @@ public final class HttpSseEventFW extends Flyweight
                 }
             }
 
-            buildId(id);
-            buildType(type);
+            buildField(COMMENT_FIELD_HEADER, comment);
+            buildField(TIMESTAMP_FIELD_HEADER, timestamp);
+            buildField(ID_FIELD_HEADER, id);
+            buildField(TYPE_FIELD_HEADER, type);
 
             if (data != null && (flags != FIN || progress < limit))
             {
@@ -210,46 +232,23 @@ public final class HttpSseEventFW extends Flyweight
             return this;
         }
 
-        private Builder buildId(
-            DirectBufferEx id)
+        private Builder buildField(
+            byte[] header,
+            DirectBufferEx value)
         {
-            if (id != null)
+            if (value != null)
             {
                 checkLimit(limit() +
-                           ID_FIELD_HEADER.length +
-                           id.capacity() +
+                           header.length +
+                           value.capacity() +
                            FIELD_TRAILER_LENGTH,
                            maxLimit());
 
-                buffer().putBytes(limit(), ID_FIELD_HEADER);
-                limit(limit() + ID_FIELD_HEADER.length);
+                buffer().putBytes(limit(), header);
+                limit(limit() + header.length);
 
-                buffer().putBytes(limit(), id, 0, id.capacity());
-                limit(limit() + id.capacity());
-
-                buffer().putByte(limit(), FIELD_TRAILER);
-                limit(limit() + FIELD_TRAILER_LENGTH);
-            }
-
-            return this;
-        }
-
-        private Builder buildType(
-            DirectBufferEx type)
-        {
-            if (type != null)
-            {
-                checkLimit(limit() +
-                           TYPE_FIELD_HEADER.length +
-                           type.capacity() +
-                           FIELD_TRAILER_LENGTH,
-                           maxLimit());
-
-                buffer().putBytes(limit(), TYPE_FIELD_HEADER);
-                limit(limit() + TYPE_FIELD_HEADER.length);
-
-                buffer().putBytes(limit(), type, 0, type.capacity());
-                limit(limit() + type.capacity());
+                buffer().putBytes(limit(), value, 0, value.capacity());
+                limit(limit() + value.capacity());
 
                 buffer().putByte(limit(), FIELD_TRAILER);
                 limit(limit() + FIELD_TRAILER_LENGTH);

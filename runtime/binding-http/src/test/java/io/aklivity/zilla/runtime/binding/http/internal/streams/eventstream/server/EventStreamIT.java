@@ -15,6 +15,8 @@
  */
 package io.aklivity.zilla.runtime.binding.http.internal.streams.eventstream.server;
 
+import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfigurationTest.HTTP_EVENT_STREAM_INITIAL_COMMENT_ENABLED_NAME;
+import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfigurationTest.HTTP_EVENT_STREAM_MAXIMUM_IDLE_TIME_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -28,6 +30,7 @@ import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
+import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
 public class EventStreamIT
 {
@@ -173,6 +176,58 @@ public class EventStreamIT
         "${net}/response.sse/client",
         "${app}/response.sse/server" })
     public void shouldReceiveResponseRaw() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/response.sse.framing.id.only/client",
+        "${app}/response.sse.framing.id.only/server" })
+    public void shouldReceiveResponseIdOnly() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/response.sse.framing.timestamp.non.empty/client",
+        "${app}/response.sse.framing.timestamp.non.empty/server" })
+    public void shouldReceiveResponseTimestampNonEmpty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/response.sse.framing.timestamp.with.type/client",
+        "${app}/response.sse.framing.timestamp.with.type/server" })
+    public void shouldReceiveResponseTimestampWithType() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/response.sse.framing.comment.initial/client",
+        "${app}/response.sse.framing.comment.initial/server" })
+    @Configure(name = HTTP_EVENT_STREAM_INITIAL_COMMENT_ENABLED_NAME, value = "true")
+    public void shouldReceiveResponseCommentInitial() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/response.sse.framing.comment.idle/client",
+        "${app}/response.sse.framing.comment.idle/server" })
+    @Configure(name = HTTP_EVENT_STREAM_MAXIMUM_IDLE_TIME_NAME, value = "1")
+    public void shouldReceiveResponseCommentIdle() throws Exception
     {
         k3po.finish();
     }

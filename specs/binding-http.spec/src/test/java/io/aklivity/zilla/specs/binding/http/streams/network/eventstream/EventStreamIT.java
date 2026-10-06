@@ -297,4 +297,76 @@ public class EventStreamIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/response.sse.framing.id.only/client",
+        "${net}/response.sse.framing.id.only/server" })
+    public void shouldReceiveResponseIdOnly() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/response.sse.framing.timestamp.non.empty/client",
+        "${net}/response.sse.framing.timestamp.non.empty/server" })
+    public void shouldReceiveResponseTimestampNonEmpty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/response.sse.framing.timestamp.with.type/client",
+        "${net}/response.sse.framing.timestamp.with.type/server" })
+    public void shouldReceiveResponseTimestampWithType() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/response.sse.framing.comment.empty/client",
+        "${net}/response.sse.framing.comment.empty/server" })
+    public void shouldReceiveResponseCommentEmpty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/response.sse.framing.comment.non.empty/client",
+        "${net}/response.sse.framing.comment.non.empty/server" })
+    public void shouldReceiveResponseCommentNonEmpty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/response.sse.framing.comment.multi.line/client",
+        "${net}/response.sse.framing.comment.multi.line/server" })
+    public void shouldReceiveResponseCommentMultiLine() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/response.sse.framing.comment.initial/client",
+        "${net}/response.sse.framing.comment.initial/server" })
+    public void shouldReceiveResponseCommentInitial() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/response.sse.framing.comment.idle/client",
+        "${net}/response.sse.framing.comment.idle/server" })
+    public void shouldReceiveResponseCommentIdle() throws Exception
+    {
+        k3po.finish();
+    }
 }

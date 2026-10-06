@@ -336,4 +336,64 @@ public class EventStreamIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/response.sse.framing.id.only/server",
+        "${app}/response.sse.framing.id.only/client" })
+    public void shouldReceiveResponseIdOnly() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/response.sse.framing.timestamp.non.empty/server",
+        "${app}/response.sse.framing.timestamp.non.empty/client" })
+    public void shouldReceiveResponseTimestampNonEmpty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/response.sse.framing.timestamp.with.type/server",
+        "${app}/response.sse.framing.timestamp.with.type/client" })
+    public void shouldReceiveResponseTimestampWithType() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/response.sse.framing.comment.empty/server",
+        "${app}/response.sse.framing.comment.empty/client" })
+    public void shouldReceiveResponseCommentEmpty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/response.sse.framing.comment.non.empty/server",
+        "${app}/response.sse.framing.comment.non.empty/client" })
+    public void shouldReceiveResponseCommentNonEmpty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${net}/response.sse.framing.comment.multi.line/server",
+        "${app}/response.sse.framing.comment.multi.line/client" })
+    public void shouldReceiveResponseCommentMultiLine() throws Exception
+    {
+        k3po.finish();
+    }
 }

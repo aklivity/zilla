@@ -37,6 +37,8 @@ public class HttpConfiguration extends Configuration
     public static final IntPropertyDef HTTP_MAX_CONCURRENT_APPLICATION_HEADERS;
     public static final PropertyDef<String> HTTP_SERVER_HEADER;
     public static final PropertyDef<String> HTTP_USER_AGENT_HEADER;
+    public static final BooleanPropertyDef HTTP_EVENT_STREAM_INITIAL_COMMENT_ENABLED;
+    public static final IntPropertyDef HTTP_EVENT_STREAM_MAXIMUM_IDLE_TIME;
     public static final BooleanPropertyDef HTTP_VERBOSE;
 
     private static final ConfigurationDef HTTP_CONFIG;
@@ -55,6 +57,8 @@ public class HttpConfiguration extends Configuration
         HTTP_MAX_CONCURRENT_STREAMS_CLEANUP = config.property("max.concurrent.streams.cleanup", 1000);
         HTTP_STREAMS_CLEANUP_DELAY = config.property("streams.cleanup.delay", 100);
         HTTP_MAX_CONCURRENT_APPLICATION_HEADERS = config.property("max.concurrent.application.headers", 10000);
+        HTTP_EVENT_STREAM_INITIAL_COMMENT_ENABLED = config.property("event.stream.initial.comment.enabled", false);
+        HTTP_EVENT_STREAM_MAXIMUM_IDLE_TIME = config.property("event.stream.maximum.idle.time", 0);
         HTTP_VERBOSE = config.property("verbose", HttpConfiguration::verboseDefault);
         HTTP_CONFIG = config;
     }
@@ -125,6 +129,16 @@ public class HttpConfiguration extends Configuration
     public String16FW userAgentHeader()
     {
         return userAgentHeader;
+    }
+
+    public boolean eventStreamInitialCommentEnabled()
+    {
+        return HTTP_EVENT_STREAM_INITIAL_COMMENT_ENABLED.getAsBoolean(this);
+    }
+
+    public int eventStreamMaximumIdleTime()
+    {
+        return HTTP_EVENT_STREAM_MAXIMUM_IDLE_TIME.getAsInt(this);
     }
 
     public boolean verbose()
