@@ -202,7 +202,6 @@ public final class HttpClientFactory implements HttpStreamFactory
     private static final String8FW HEADER_UPGRADE = new String8FW("upgrade");
     private static final String8FW HEADER_EVENT_TYPE = new String8FW("type");
     private static final String8FW HEADER_EVENT_ID = new String8FW("id");
-    private static final String8FW HEADER_EVENT_TIMESTAMP = new String8FW("timestamp");
 
     private static final String8FW PROXY_ALPN_H2 = new String8FW("h2");
     private static final String16FW METHOD_HEAD = new String16FW("HEAD");
@@ -228,7 +227,6 @@ public final class HttpClientFactory implements HttpStreamFactory
     private static final DirectBufferEx EVENT_FIELD_NAME_TYPE = new UnsafeBufferEx("event".getBytes(UTF_8));
     private static final DirectBufferEx EVENT_FIELD_NAME_ID = new UnsafeBufferEx("id".getBytes(UTF_8));
     private static final DirectBufferEx EVENT_FIELD_NAME_DATA = new UnsafeBufferEx("data".getBytes(UTF_8));
-    private static final DirectBufferEx EVENT_FIELD_NAME_TIMESTAMP = new UnsafeBufferEx("timestamp".getBytes(UTF_8));
 
     private static final IntPredicate EVENT_EOL_MATCHER = v -> v == EVENT_LINE_CR || v == EVENT_LINE_LF;
     private static final IntPredicate EVENT_COLON_MATCHER = v -> v == EVENT_LINE_COLON;
@@ -287,7 +285,6 @@ public final class HttpClientFactory implements HttpStreamFactory
     private final OctetsFW eventLineDataRO = new OctetsFW();
     private final String8FW.Builder eventIdRW = new String8FW.Builder().wrap(new UnsafeBufferEx(new byte[256]), 0, 256);
     private final String8FW.Builder eventTypeRW = new String8FW.Builder().wrap(new UnsafeBufferEx(new byte[256]), 0, 256);
-    private final String8FW.Builder eventTimestampRW = new String8FW.Builder().wrap(new UnsafeBufferEx(new byte[256]), 0, 256);
 
     private final Map<DirectBufferEx, HttpEventFieldName> eventFieldNames;
     {
@@ -295,7 +292,6 @@ public final class HttpClientFactory implements HttpStreamFactory
         fieldNames.put(EVENT_FIELD_NAME_DATA, HttpEventFieldName.DATA);
         fieldNames.put(EVENT_FIELD_NAME_ID, HttpEventFieldName.ID);
         fieldNames.put(EVENT_FIELD_NAME_TYPE, HttpEventFieldName.TYPE);
-        fieldNames.put(EVENT_FIELD_NAME_TIMESTAMP, HttpEventFieldName.TIMESTAMP);
         eventFieldNames = Collections.unmodifiableMap(fieldNames);
     }
 
@@ -4809,7 +4805,6 @@ public final class HttpClientFactory implements HttpStreamFactory
         private int decodedDataFlags;
         private String8FW decodedId = EVENT_FIELD_VALUE_NULL;
         private String8FW decodedType = EVENT_FIELD_VALUE_NULL;
-        private String8FW decodedTimestamp = EVENT_FIELD_VALUE_NULL;
         private OctetsFW decodedData;
 
         private HttpExchange(
@@ -5677,14 +5672,12 @@ public final class HttpClientFactory implements HttpStreamFactory
             int flags,
             String8FW id,
             String8FW type,
-            String8FW timestamp,
             OctetsFW data)
         {
             final Flyweight dataEx =
                 id != EVENT_FIELD_VALUE_NULL ||
-                type != EVENT_FIELD_VALUE_NULL ||
-                timestamp != EVENT_FIELD_VALUE_NULL
-                    ? eventDataEx(id, type, timestamp)
+                type != EVENT_FIELD_VALUE_NULL
+                    ? eventDataEx(id, type)
                     : EMPTY_OCTETS;
 
             OctetsFW payload = data;
@@ -5701,8 +5694,7 @@ public final class HttpClientFactory implements HttpStreamFactory
 
         private Flyweight eventDataEx(
             String8FW id,
-            String8FW type,
-            String8FW timestamp)
+            String8FW type)
         {
             dataExRW.wrap(extBuffer, 0, extBuffer.capacity()).typeId(httpTypeId);
 
@@ -5718,13 +5710,6 @@ public final class HttpClientFactory implements HttpStreamFactory
                 final DirectBufferEx value = id.value();
 
                 dataExRW.headersItem(h -> h.name(HEADER_EVENT_ID).value(value, 0, value != null ? value.capacity() : 0));
-            }
-
-            if (timestamp != EVENT_FIELD_VALUE_NULL)
-            {
-                final DirectBufferEx value = timestamp.value();
-
-                dataExRW.headersItem(h -> h.name(HEADER_EVENT_TIMESTAMP).value(value, 0, value != null ? value.capacity() : 0));
             }
 
             return dataExRW.build();
@@ -5762,23 +5747,20 @@ public final class HttpClientFactory implements HttpStreamFactory
         {
             final String8FW id = decodedId;
             final String8FW type = decodedType;
-            final String8FW timestamp = decodedTimestamp;
             final OctetsFW data = decodedData;
 
             if (id != EVENT_FIELD_VALUE_NULL ||
                 type != EVENT_FIELD_VALUE_NULL ||
-                timestamp != EVENT_FIELD_VALUE_NULL ||
                 data != null)
             {
                 if (data != null)
                 {
                     final int flags = INIT & ~decodedDataFlags;
 
-                    onDecodedEventFragment(traceId, authorization, flags, id, type, timestamp, data);
+                    onDecodedEventFragment(traceId, authorization, flags, id, type, data);
 
                     decodedType = EVENT_FIELD_VALUE_NULL;
                     decodedId = EVENT_FIELD_VALUE_NULL;
-                    decodedTimestamp = EVENT_FIELD_VALUE_NULL;
                     decodedData = null;
                     decodedDataFlags = init(decodedDataFlags);
                 }
@@ -5791,10 +5773,6 @@ public final class HttpClientFactory implements HttpStreamFactory
                     if (decodedType == eventTypeRW.flyweight())
                     {
                         decodedType = new String8FW(decodedType.asString());
-                    }
-                    if (decodedTimestamp == eventTimestampRW.flyweight())
-                    {
-                        decodedTimestamp = new String8FW(decodedTimestamp.asString());
                     }
                 }
             }
@@ -6433,7 +6411,6 @@ public final class HttpClientFactory implements HttpStreamFactory
     {
         exchange.decodedType = EVENT_FIELD_VALUE_NULL;
         exchange.decodedId = EVENT_FIELD_VALUE_NULL;
-        exchange.decodedTimestamp = EVENT_FIELD_VALUE_NULL;
         exchange.decodedData = null;
         exchange.decodedDataLines = 0;
         exchange.decodedDataFlags = 0;
@@ -6491,7 +6468,6 @@ public final class HttpClientFactory implements HttpStreamFactory
         {
             final String8FW id = exchange.decodedId;
             final String8FW type = exchange.decodedType;
-            final String8FW timestamp = exchange.decodedTimestamp;
             final OctetsFW data =
                 exchange.decodedData == null &&
                 exchange.decodedDataFlags != COMPLETE &&
@@ -6501,16 +6477,14 @@ public final class HttpClientFactory implements HttpStreamFactory
 
             if (id != EVENT_FIELD_VALUE_NULL ||
                 type != EVENT_FIELD_VALUE_NULL ||
-                timestamp != EVENT_FIELD_VALUE_NULL ||
                 data != null)
             {
                 final int flags = COMPLETE & ~exchange.decodedDataFlags;
 
-                exchange.onDecodedEventFragment(traceId, authorization, flags, id, type, timestamp, data);
+                exchange.onDecodedEventFragment(traceId, authorization, flags, id, type, data);
 
                 exchange.decodedType = EVENT_FIELD_VALUE_NULL;
                 exchange.decodedId = EVENT_FIELD_VALUE_NULL;
-                exchange.decodedTimestamp = EVENT_FIELD_VALUE_NULL;
                 exchange.decodedData = null;
                 exchange.decodedDataLines = 0;
                 exchange.decodedDataFlags = fin(exchange.decodedDataFlags);
@@ -6616,9 +6590,6 @@ public final class HttpClientFactory implements HttpStreamFactory
                 case TYPE:
                     exchange.decodedType = EVENT_FIELD_VALUE_EMPTY;
                     break;
-                case TIMESTAMP:
-                    exchange.decodedTimestamp = EVENT_FIELD_VALUE_EMPTY;
-                    break;
                 case DATA:
                     exchange.doEncodeEventFragment(traceId, authorization);
                     exchange.decodedData = EMPTY_OCTETS;
@@ -6686,7 +6657,6 @@ public final class HttpClientFactory implements HttpStreamFactory
                 break;
             case ID:
             case TYPE:
-            case TIMESTAMP:
                 exchange.eventDecoder = decodeEventFieldValue;
                 break;
             case IGNORE:
@@ -6723,11 +6693,6 @@ public final class HttpClientFactory implements HttpStreamFactory
                     break;
                 case TYPE:
                     exchange.decodedType = eventTypeRW
-                        .set(buffer, progress, limitOfField - progress)
-                        .build();
-                    break;
-                case TIMESTAMP:
-                    exchange.decodedTimestamp = eventTimestampRW
                         .set(buffer, progress, limitOfField - progress)
                         .build();
                     break;
@@ -6867,7 +6832,6 @@ public final class HttpClientFactory implements HttpStreamFactory
         DATA,
         ID,
         TYPE,
-        TIMESTAMP,
         IGNORE
     }
 

@@ -77,34 +77,26 @@ public class HttpSseEventFWTest
     }
 
     @Test
-    public void shouldEncodeCompleteEventWithTimestamp()
-    {
-        assertEquals("timestamp:0x161e350a495\nid:105\ndata:Hello, world\n\n",
-            encode(COMPLETE, null, "0x161e350a495", "105", null, "Hello, world"));
-    }
-
-    @Test
     public void shouldEncodeIdOnlyEvent()
     {
-        assertEquals("id:105\n\n", encode(COMPLETE, null, null, "105", null, null));
+        assertEquals("id:105\n\n", encode(COMPLETE, null, "105", null, null));
     }
 
     @Test
     public void shouldEncodeFinalFragmentWithTrailingType()
     {
-        assertEquals("lo\nevent:one\n\n", encode(FIN, null, null, null, "one", "lo"));
+        assertEquals("lo\nevent:one\n\n", encode(FIN, null, null, "one", "lo"));
     }
 
     @Test
     public void shouldEncodeCommentOnlyEvent()
     {
-        assertEquals(":\n\n", encode(COMPLETE, "", null, null, null, null));
+        assertEquals(":\n\n", encode(COMPLETE, "", null, null, null));
     }
 
     private String encode(
         int flags,
         String comment,
-        String timestamp,
         String id,
         String type,
         String data)
@@ -113,7 +105,6 @@ public class HttpSseEventFWTest
         final HttpSseEventFW event = eventRW.wrap(buffer, 0, buffer.capacity())
             .flags(flags)
             .comment(comment != null ? field(comment) : null)
-            .timestamp(timestamp != null ? field(timestamp) : null)
             .id(id != null ? field(id) : null)
             .type(type != null ? field(type) : null)
             .data(bytes != null ? dataRO.wrap(new UnsafeBufferEx(bytes), 0, bytes.length) : null)

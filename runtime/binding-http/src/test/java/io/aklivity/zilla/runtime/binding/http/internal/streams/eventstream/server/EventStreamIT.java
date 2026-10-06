@@ -193,26 +193,6 @@ public class EventStreamIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/response.sse.framing.timestamp.non.empty/client",
-        "${app}/response.sse.framing.timestamp.non.empty/server" })
-    public void shouldReceiveResponseTimestampNonEmpty() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/response.sse.framing.timestamp.with.type/client",
-        "${app}/response.sse.framing.timestamp.with.type/server" })
-    public void shouldReceiveResponseTimestampWithType() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
         "${net}/response.sse.framing.comment.initial/client",
         "${app}/response.sse.framing.comment.initial/server" })
     @Configure(name = HTTP_SSE_INITIAL_COMMENT_ENABLED_NAME, value = "true")

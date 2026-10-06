@@ -309,24 +309,6 @@ public class EventStreamIT
 
     @Test
     @Specification({
-        "${net}/response.sse.framing.timestamp.non.empty/client",
-        "${net}/response.sse.framing.timestamp.non.empty/server" })
-    public void shouldReceiveResponseTimestampNonEmpty() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/response.sse.framing.timestamp.with.type/client",
-        "${net}/response.sse.framing.timestamp.with.type/server" })
-    public void shouldReceiveResponseTimestampWithType() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${net}/response.sse.framing.comment.empty/client",
         "${net}/response.sse.framing.comment.empty/server" })
     public void shouldReceiveResponseCommentEmpty() throws Exception
