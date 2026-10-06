@@ -888,7 +888,6 @@ public final class HttpClientFactory implements HttpStreamFactory
                 final String status = decodeHttp1StartLine(buffer, offset, endOfStartAt);
                 if (status == null)
                 {
-                    client.onDecodeHttp11HeadersError(traceId, authorization);
                     client.decoder = decodeHttp11Ignore;
                     break decode;
                 }
@@ -909,7 +908,6 @@ public final class HttpClientFactory implements HttpStreamFactory
                         .wrap(buffer, startOfLineAt, endOfLineAt - startOfLineAt);
                     if (!headerLine.reset(ascii).matches())
                     {
-                        client.onDecodeHttp11HeadersError(traceId, authorization);
                         client.decoder = decodeHttp11Ignore;
                         break decode;
                     }
@@ -1042,7 +1040,6 @@ public final class HttpClientFactory implements HttpStreamFactory
             }
             catch (NumberFormatException ex)
             {
-                client.onDecodeHttp11HeadersError(traceId, authorization);
                 client.decoder = decodeHttp11Ignore;
             }
         }
@@ -1094,7 +1091,6 @@ public final class HttpClientFactory implements HttpStreamFactory
             if (buffer.getByte(offset) != '\r' ||
                 buffer.getByte(offset + 1) != '\n')
             {
-                client.onDecodeHttp11BodyError(traceId, authorization);
                 client.decoder = decodeHttp11Ignore;
             }
             else
@@ -3001,7 +2997,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             {
                 cleanupDecodeSlotIfNecessary();
 
-                if (decoder == decodeHttp11Ignore)
+                if (decoder == decodeHttp11Ignore && cleanupHandler == null)
                 {
                     cleanupNetwork(traceId, authorization);
                 }
@@ -3023,20 +3019,6 @@ public final class HttpClientFactory implements HttpStreamFactory
             }
         }
 
-        private void onDecodeHttp11HeadersError(
-            long traceId,
-            long authorization)
-        {
-            cleanupNetwork(traceId, authorization);
-        }
-
-        private void onDecodeHttp11BodyError(
-            long traceId,
-            long authorization)
-        {
-            cleanupNetwork(traceId, authorization);
-        }
-
         private void onDecodeHttp11Headers(
             long traceId,
             long authorization,
@@ -3045,7 +3027,6 @@ public final class HttpClientFactory implements HttpStreamFactory
             if (exchange == null)
             {
                 decoder = decodeHttp11Ignore;
-                cleanupNetwork(traceId, authorization);
             }
             else
             {
