@@ -240,6 +240,9 @@ public final class HttpServerFactory implements HttpStreamFactory
     private static final String CHALLENGE_RESPONSE_METHOD = METHOD_NAME_POST;
     private static final String CHALLENGE_RESPONSE_CONTENT_TYPE = "application/x-challenge-response";
     private static final String CHALLENGE_RESPONSE_CONTENT_LENGTH = "0";
+    private static final byte[] CHALLENGE_EVENT_DATA =
+        ("{\"method\":\"" + CHALLENGE_RESPONSE_METHOD + "\",\"headers\":{\"content-type\":\"" +
+            CHALLENGE_RESPONSE_CONTENT_TYPE + "\"}}").getBytes(UTF_8);
 
     private static final String8FW HEADER_ACCESS_CONTROL_ALLOW_ORIGIN = new String8FW("access-control-allow-origin");
     private static final String8FW HEADER_ACCESS_CONTROL_ALLOW_METHODS = new String8FW("access-control-allow-methods");
@@ -583,6 +586,8 @@ public final class HttpServerFactory implements HttpStreamFactory
     private final UnsafeBufferEx eventIdView;
     private final UnsafeBufferEx eventTypeView;
     private final UnsafeBufferEx eventTimestampView;
+    private final DirectBufferEx challengeEventType;
+    private final OctetsFW challengeEventData;
     private final int decodeMax;
     private final int encodeMax;
     private final int proxyTypeId;
@@ -621,6 +626,8 @@ public final class HttpServerFactory implements HttpStreamFactory
         this.eventIdView = new UnsafeBufferEx(new byte[0]);
         this.eventTypeView = new UnsafeBufferEx(new byte[0]);
         this.eventTimestampView = new UnsafeBufferEx(new byte[0]);
+        this.challengeEventType = new UnsafeBufferEx(config.eventStreamChallengeEventType().getBytes(UTF_8));
+        this.challengeEventData = new OctetsFW().wrap(new UnsafeBufferEx(CHALLENGE_EVENT_DATA), 0, CHALLENGE_EVENT_DATA.length);
         this.modelBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.modelValueBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.modelBeginExBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
@@ -2797,6 +2804,16 @@ public final class HttpServerFactory implements HttpStreamFactory
             exchange.lastEventAt = System.currentTimeMillis();
         }
 
+        private void doEncodeEventChallenge(
+            HttpExchange exchange,
+            long traceId,
+            long authorization)
+        {
+            final OctetsFW payload = encodeEventChallenge();
+
+            doEncodePayload(exchange, traceId, authorization, replyBudgetId, payload.sizeof() + replyPad, payload);
+        }
+
         private void doEncodePayload(
             HttpExchange exchange,
             long traceId,
@@ -3480,9 +3497,18 @@ public final class HttpServerFactory implements HttpStreamFactory
                     doNetworkAbort(traceId, 0L);
                     expiringId = NO_CANCEL_ID;
                 }
-                else if (canChallenge(requestCaps) && guard.challenge(sessionId, now))
+                else if ((eventFraming || canChallenge(requestCaps)) && guard.challenge(sessionId, now))
                 {
-                    doResponseChallenge(traceId);
+                    if (eventFraming)
+                    {
+                        doEncodeEventChallenge(this, traceId, sessionId);
+                    }
+
+                    if (canChallenge(requestCaps))
+                    {
+                        doResponseChallenge(traceId);
+                    }
+
                     expiringId = signaler.signalAt(expiresAt, originId, routedId, replyId, traceId, EXPIRING_SIGNAL, 0);
                 }
                 else
@@ -7742,6 +7768,17 @@ public final class HttpServerFactory implements HttpStreamFactory
                 .id(id)
                 .type(type)
                 .data(payload)
+                .build();
+
+        return eventPayloadRO.wrap(event.buffer(), event.offset(), event.limit());
+    }
+
+    private OctetsFW encodeEventChallenge()
+    {
+        final HttpSseEventFW event = eventRW.wrap(eventBuffer, 0, eventBuffer.capacity())
+                .flags(COMPLETE)
+                .type(challengeEventType)
+                .data(challengeEventData)
                 .build();
 
         return eventPayloadRO.wrap(event.buffer(), event.offset(), event.limit());

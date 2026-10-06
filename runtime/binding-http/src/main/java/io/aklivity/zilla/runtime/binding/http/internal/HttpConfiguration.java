@@ -39,6 +39,7 @@ public class HttpConfiguration extends Configuration
     public static final PropertyDef<String> HTTP_USER_AGENT_HEADER;
     public static final BooleanPropertyDef HTTP_EVENT_STREAM_INITIAL_COMMENT_ENABLED;
     public static final IntPropertyDef HTTP_EVENT_STREAM_MAXIMUM_IDLE_TIME;
+    public static final PropertyDef<String> HTTP_EVENT_STREAM_CHALLENGE_EVENT_TYPE;
     public static final BooleanPropertyDef HTTP_VERBOSE;
 
     private static final ConfigurationDef HTTP_CONFIG;
@@ -59,6 +60,7 @@ public class HttpConfiguration extends Configuration
         HTTP_MAX_CONCURRENT_APPLICATION_HEADERS = config.property("max.concurrent.application.headers", 10000);
         HTTP_EVENT_STREAM_INITIAL_COMMENT_ENABLED = config.property("event.stream.initial.comment.enabled", false);
         HTTP_EVENT_STREAM_MAXIMUM_IDLE_TIME = config.property("event.stream.maximum.idle.time", 0);
+        HTTP_EVENT_STREAM_CHALLENGE_EVENT_TYPE = config.property("event.stream.challenge.event.type", "challenge");
         HTTP_VERBOSE = config.property("verbose", HttpConfiguration::verboseDefault);
         HTTP_CONFIG = config;
     }
@@ -139,6 +141,11 @@ public class HttpConfiguration extends Configuration
     public int eventStreamMaximumIdleTime()
     {
         return HTTP_EVENT_STREAM_MAXIMUM_IDLE_TIME.getAsInt(this);
+    }
+
+    public String eventStreamChallengeEventType()
+    {
+        return HTTP_EVENT_STREAM_CHALLENGE_EVENT_TYPE.get(this);
     }
 
     public boolean verbose()

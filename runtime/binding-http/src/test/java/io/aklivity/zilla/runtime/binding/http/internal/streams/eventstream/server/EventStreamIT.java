@@ -231,4 +231,14 @@ public class EventStreamIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.authorization.credentials.yaml")
+    @Specification({
+        "${net}/response.sse.framing.challenge/client",
+        "${app}/response.sse.framing.challenge/server" })
+    public void shouldChallengeResponse() throws Exception
+    {
+        k3po.finish();
+    }
 }

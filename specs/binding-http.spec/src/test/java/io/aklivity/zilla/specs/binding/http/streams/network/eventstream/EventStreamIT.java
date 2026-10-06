@@ -369,4 +369,13 @@ public class EventStreamIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/response.sse.framing.challenge/client",
+        "${net}/response.sse.framing.challenge/server" })
+    public void shouldChallengeResponse() throws Exception
+    {
+        k3po.finish();
+    }
 }
