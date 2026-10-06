@@ -4803,8 +4803,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         private int eventSlot = NO_SLOT;
         private int eventSlotOffset;
         private HttpEventDecoder eventDecoder;
-        private int decodableLineAt;
-        private int decodedLineEndBytes;
+        private boolean decodedLineEmpty;
         private HttpEventFieldName decodedFieldName;
         private int decodedDataLines;
         private int decodedDataFlags;
@@ -5561,14 +5560,42 @@ public final class HttpClientFactory implements HttpStreamFactory
             int offset,
             int limit)
         {
-            if (eventSlot == NO_SLOT)
-            {
-                eventSlot = eventPool.acquire(responseId);
-            }
-
             int progress = -1;
 
-            if (eventSlot != NO_SLOT)
+            if (eventSlot == NO_SLOT)
+            {
+                final int decoded = decodeEventBytes(traceId, authorization, buffer, offset, limit);
+                final int remaining = limit - decoded;
+
+                progress = limit;
+
+                if (remaining > 0)
+                {
+                    eventSlot = eventPool.acquire(responseId);
+
+                    if (eventSlot != NO_SLOT)
+                    {
+                        final int length = Math.min(remaining, eventPool.slotCapacity());
+
+                        eventPool.buffer(eventSlot).putBytes(0, buffer, decoded, length);
+                        eventSlotOffset = length;
+
+                        final boolean stalled = length == eventPool.slotCapacity() && decoded == offset && eventCredit() > 0;
+
+                        progress = stalled ? -1 : decoded + length;
+                    }
+                    else
+                    {
+                        progress = -1;
+                    }
+                }
+
+                if (progress >= 0)
+                {
+                    localBudget -= progress - offset;
+                }
+            }
+            else
             {
                 final MutableDirectBufferEx slotBuffer = eventPool.buffer(eventSlot);
                 final int length = Math.min(limit - offset, eventPool.slotCapacity() - eventSlotOffset);
@@ -5599,16 +5626,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             {
                 final MutableDirectBufferEx slotBuffer = eventPool.buffer(eventSlot);
                 final int limit = eventSlotOffset;
-
-                HttpEventDecoder previous = null;
-                int progress = 0;
-                while (progress <= limit && previous != eventDecoder)
-                {
-                    previous = eventDecoder;
-                    progress = eventDecoder.decode(this, traceId, authorization, slotBuffer, progress, limit);
-                }
-
-                doEncodeEventFragment(traceId, authorization);
+                final int progress = decodeEventBytes(traceId, authorization, slotBuffer, 0, limit);
 
                 if (progress < limit)
                 {
@@ -5626,6 +5644,26 @@ public final class HttpClientFactory implements HttpStreamFactory
                 responseEndPending = false;
                 closeResponse(traceId, authorization, EMPTY_OCTETS);
             }
+        }
+
+        private int decodeEventBytes(
+            long traceId,
+            long authorization,
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            HttpEventDecoder previous = null;
+            int progress = offset;
+            while (progress <= limit && previous != eventDecoder)
+            {
+                previous = eventDecoder;
+                progress = eventDecoder.decode(this, traceId, authorization, buffer, progress, limit);
+            }
+
+            doEncodeEventFragment(traceId, authorization);
+
+            return progress;
         }
 
         private int eventCredit()
@@ -6419,8 +6457,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         {
             final int lineStart = buffer.getByte(progress);
 
-            exchange.decodableLineAt = progress;
-            exchange.decodedLineEndBytes = 0;
+            exchange.decodedLineEmpty = lineStart == EVENT_LINE_CR || lineStart == EVENT_LINE_LF;
 
             switch (lineStart)
             {
@@ -6505,7 +6542,6 @@ public final class HttpClientFactory implements HttpStreamFactory
 
                 progress++;
 
-                exchange.decodedLineEndBytes++;
                 exchange.eventDecoder = endOfLine == EVENT_LINE_CR ? decodeEventLineEndingAfterCR : decodeEventLineEnded;
             }
         }
@@ -6528,8 +6564,6 @@ public final class HttpClientFactory implements HttpStreamFactory
             if (buffer.getByte(progress) == EVENT_LINE_LF)
             {
                 progress++;
-
-                exchange.decodedLineEndBytes++;
             }
 
             exchange.eventDecoder = decodeEventLineEnded;
@@ -6546,9 +6580,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         int progress,
         int limit)
     {
-        boolean lineEmpty = progress - exchange.decodableLineAt == exchange.decodedLineEndBytes;
-
-        exchange.eventDecoder = lineEmpty ? decodeEventStart : decodeEventLine;
+        exchange.eventDecoder = exchange.decodedLineEmpty ? decodeEventStart : decodeEventLine;
 
         return progress;
     }

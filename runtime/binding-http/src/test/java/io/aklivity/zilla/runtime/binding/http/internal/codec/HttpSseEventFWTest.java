@@ -90,6 +90,12 @@ public class HttpSseEventFWTest
     }
 
     @Test
+    public void shouldEncodeFinalFragmentWithTrailingType()
+    {
+        assertEquals("lo\nevent:one\n\n", encode(FIN, null, null, null, "one", "lo"));
+    }
+
+    @Test
     public void shouldEncodeCommentOnlyEvent()
     {
         assertEquals(":\n\n", encode(COMPLETE, "", null, null, null, null));

@@ -150,6 +150,11 @@ public final class HttpSseEventFW extends Flyweight
             int progress = offset;
             int flags = this.flags;
 
+            if (hasInit(flags))
+            {
+                buildFields();
+            }
+
             if (data != null)
             {
                 if (!hasInit(flags))
@@ -168,26 +173,25 @@ public final class HttpSseEventFW extends Flyweight
                     buildData(textAsBytes, progress, limit - progress, flags);
                     progress = limit;
                 }
+
+                if (flags != FIN || progress < limit)
+                {
+                    for (int newlineAt = indexOfByte(textAsBytes, progress, limit, v -> v == 0x0a);
+                        newlineAt != -1;
+                        progress = newlineAt + 1,
+                            newlineAt = indexOfByte(textAsBytes, progress, limit, v -> v == 0x0a))
+                    {
+                        buildData(textAsBytes, progress, newlineAt - progress, fin(flags));
+                        flags = init(flags);
+                    }
+
+                    buildData(textAsBytes, progress, limit - progress, flags);
+                }
             }
 
-            buildField(COMMENT_FIELD_HEADER, comment);
-            buildField(TIMESTAMP_FIELD_HEADER, timestamp);
-            buildField(ID_FIELD_HEADER, id);
-            buildField(TYPE_FIELD_HEADER, type);
-
-            if (data != null && (flags != FIN || progress < limit))
+            if (!hasInit(this.flags) && hasFin(this.flags))
             {
-
-                for (int newlineAt = indexOfByte(textAsBytes, progress, limit, v -> v == 0x0a);
-                    newlineAt != -1;
-                    progress = newlineAt + 1,
-                        newlineAt = indexOfByte(textAsBytes, progress, limit, v -> v == 0x0a))
-                {
-                    buildData(textAsBytes, progress, newlineAt - progress, fin(flags));
-                    flags = init(flags);
-                }
-
-                buildData(textAsBytes, progress, limit - progress, flags);
+                buildFields();
             }
 
             if (hasFin(flags))
@@ -199,6 +203,14 @@ public final class HttpSseEventFW extends Flyweight
             }
 
             return super.build();
+        }
+
+        private void buildFields()
+        {
+            buildField(COMMENT_FIELD_HEADER, comment);
+            buildField(TIMESTAMP_FIELD_HEADER, timestamp);
+            buildField(ID_FIELD_HEADER, id);
+            buildField(TYPE_FIELD_HEADER, type);
         }
 
         private Builder buildData(
