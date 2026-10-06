@@ -396,4 +396,14 @@ public class EventStreamIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/response.sse.framing.data.budget/client",
+        "${net}/response.sse.framing.data.budget/server" })
+    public void shouldHoldResponseDataWhenBudgetExhausted() throws Exception
+    {
+        k3po.finish();
+    }
 }

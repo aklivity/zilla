@@ -290,6 +290,7 @@ public final class HttpClientFactory implements HttpStreamFactory
     private final OctetsFW eventDataRO = new OctetsFW();
     private final OctetsFW eventLineDataRO = new OctetsFW();
     private final OctetsFW eventModelRO = new OctetsFW();
+    private final OctetsFW eventFrameExtensionRO = new OctetsFW();
     private final String8FW.Builder eventIdRW = new String8FW.Builder().wrap(new UnsafeBufferEx(new byte[256]), 0, 256);
     private final String8FW.Builder eventTypeRW = new String8FW.Builder().wrap(new UnsafeBufferEx(new byte[256]), 0, 256);
 
@@ -4806,6 +4807,10 @@ public final class HttpClientFactory implements HttpStreamFactory
 
         private int eventSlot = NO_SLOT;
         private int eventSlotOffset;
+        private int eventFrameSlot = NO_SLOT;
+        private int eventFrameFlags;
+        private int eventFramePayloadLength;
+        private int eventFrameExtensionLength;
         private HttpEventDecoder eventDecoder;
         private boolean decodedLineEmpty;
         private HttpEventFieldName decodedFieldName;
@@ -5343,7 +5348,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             long authorization,
             Flyweight extension)
         {
-            if (responseFraming && eventSlot != NO_SLOT)
+            if (responseFraming && (eventSlot != NO_SLOT || eventFrameSlot != NO_SLOT))
             {
                 responseEndPending = true;
                 decodeEvents(traceId, authorization);
@@ -5634,7 +5639,9 @@ public final class HttpClientFactory implements HttpStreamFactory
             long traceId,
             long authorization)
         {
-            if (responseFraming && eventSlot != NO_SLOT)
+            flushEventFrame(traceId, authorization);
+
+            if (responseFraming && eventSlot != NO_SLOT && eventFrameSlot == NO_SLOT)
             {
                 final MutableDirectBufferEx slotBuffer = eventPool.buffer(eventSlot);
                 final int limit = eventSlotOffset;
@@ -5651,7 +5658,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                 }
             }
 
-            if (responseEndPending && (eventSlot == NO_SLOT || eventCredit() > 0))
+            if (responseEndPending && eventFrameSlot == NO_SLOT && (eventSlot == NO_SLOT || eventCredit() > 0))
             {
                 responseEndPending = false;
                 closeResponse(traceId, authorization, EMPTY_OCTETS);
@@ -5667,20 +5674,23 @@ public final class HttpClientFactory implements HttpStreamFactory
         {
             HttpEventDecoder previous = null;
             int progress = offset;
-            while (progress <= limit && previous != eventDecoder)
+            while (progress <= limit && previous != eventDecoder && eventFrameSlot == NO_SLOT)
             {
                 previous = eventDecoder;
                 progress = eventDecoder.decode(this, traceId, authorization, buffer, progress, limit);
             }
 
-            doEncodeEventFragment(traceId, authorization);
+            if (eventFrameSlot == NO_SLOT)
+            {
+                doEncodeEventFragment(traceId, authorization);
+            }
 
             return progress;
         }
 
         private int eventCredit()
         {
-            return responseMax - (int)(responseSeq - responseAck) - responsePad;
+            return eventFrameSlot == NO_SLOT ? responseMax - (int)(responseSeq - responseAck) - responsePad : 0;
         }
 
         private void onDecodedEventFragment(
@@ -5765,22 +5775,91 @@ public final class HttpClientFactory implements HttpStreamFactory
             Flyweight extension)
         {
             final int length = payload != null ? payload.sizeof() : 0;
+            final int reserved = length + responsePad;
 
-            int reserved = length + responsePad;
-
-            if (responseDebit != null)
+            if (responseDebit == null || responseDebit.claim(traceId, reserved, reserved) == reserved)
             {
-                final int claimed = responseDebit.claim(traceId, reserved, reserved);
-                reserved = claimed > 0 ? claimed : reserved;
+                doData(application, originId, routedId, responseId, responseSeq, responseAck, responseMax,
+                    traceId, authorization, responseBud, flags, reserved,
+                    payload != null ? payload.buffer() : null, payload != null ? payload.offset() : 0, length, extension);
+
+                responseSeq += reserved;
+
+                assert responseSeq <= responseAck + responseMax;
             }
+            else
+            {
+                holdEventFrame(flags, payload, extension);
+            }
+        }
 
-            doData(application, originId, routedId, responseId, responseSeq, responseAck, responseMax,
-                traceId, authorization, responseBud, flags, reserved,
-                payload != null ? payload.buffer() : null, payload != null ? payload.offset() : 0, length, extension);
+        private void holdEventFrame(
+            int flags,
+            OctetsFW payload,
+            Flyweight extension)
+        {
+            final int payloadLength = payload != null ? payload.sizeof() : -1;
+            final int extensionLength = extension.sizeof();
 
-            responseSeq += reserved;
+            eventFrameSlot = eventPool.acquire(responseId);
 
-            assert responseSeq <= responseAck + responseMax;
+            if (eventFrameSlot != NO_SLOT && Math.max(payloadLength, 0) + extensionLength <= eventPool.slotCapacity())
+            {
+                final MutableDirectBufferEx frameBuffer = eventPool.buffer(eventFrameSlot);
+
+                if (payloadLength > 0)
+                {
+                    frameBuffer.putBytes(0, payload.buffer(), payload.offset(), payloadLength);
+                }
+
+                frameBuffer.putBytes(Math.max(payloadLength, 0), extension.buffer(), extension.offset(), extensionLength);
+
+                eventFrameFlags = flags;
+                eventFramePayloadLength = payloadLength;
+                eventFrameExtensionLength = extensionLength;
+            }
+            else
+            {
+                cleanupEventFrame();
+                responseEventInvalid = true;
+            }
+        }
+
+        private void flushEventFrame(
+            long traceId,
+            long authorization)
+        {
+            if (eventFrameSlot != NO_SLOT)
+            {
+                final int length = Math.max(eventFramePayloadLength, 0);
+                final int reserved = length + responsePad;
+
+                if (responseDebit == null || responseDebit.claim(traceId, reserved, reserved) == reserved)
+                {
+                    final MutableDirectBufferEx frameBuffer = eventPool.buffer(eventFrameSlot);
+                    final int extensionLimit = length + eventFrameExtensionLength;
+                    final OctetsFW extension = eventFrameExtensionRO.wrap(frameBuffer, length, extensionLimit);
+
+                    doData(application, originId, routedId, responseId, responseSeq, responseAck, responseMax,
+                        traceId, authorization, responseBud, eventFrameFlags, reserved,
+                        eventFramePayloadLength >= 0 ? frameBuffer : null, 0, length, extension);
+
+                    responseSeq += reserved;
+
+                    assert responseSeq <= responseAck + responseMax;
+
+                    cleanupEventFrame();
+                }
+            }
+        }
+
+        private void cleanupEventFrame()
+        {
+            if (eventFrameSlot != NO_SLOT)
+            {
+                eventPool.release(eventFrameSlot);
+                eventFrameSlot = NO_SLOT;
+            }
         }
 
         private void doEncodeEventFragment(
@@ -5828,6 +5907,8 @@ public final class HttpClientFactory implements HttpStreamFactory
                 eventSlot = NO_SLOT;
                 eventSlotOffset = 0;
             }
+
+            cleanupEventFrame();
         }
 
         public void resolveResponse(

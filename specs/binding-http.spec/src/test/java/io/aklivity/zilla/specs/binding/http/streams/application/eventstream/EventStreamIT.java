@@ -405,4 +405,13 @@ public class EventStreamIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/response.sse.framing.data.budget/client",
+        "${app}/response.sse.framing.data.budget/server" })
+    public void shouldReceiveResponseDataBudget() throws Exception
+    {
+        k3po.finish();
+    }
 }

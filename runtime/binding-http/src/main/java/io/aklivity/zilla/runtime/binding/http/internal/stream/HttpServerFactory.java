@@ -2781,10 +2781,8 @@ public final class HttpServerFactory implements HttpStreamFactory
 
             if (payload != null)
             {
-                final int dataLength = data != null ? data.sizeof() : 0;
-
                 doEncodePayload(exchange, traceId, authorization, budgetId,
-                    reserved + Math.max(payload.sizeof() - dataLength, 0), payload);
+                    Math.max(reserved, payload.sizeof() + replyPad), payload);
             }
         }
 
@@ -6886,7 +6884,6 @@ public final class HttpServerFactory implements HttpStreamFactory
                     else if (payload != null)
                     {
                         final int length = payload.sizeof();
-                        final int expansion = Math.max(length - (dataPayload != null ? dataPayload.sizeof() : 0), 0);
 
                         if (HttpConfiguration.DEBUG_HTTP2_BUDGETS)
                         {
@@ -6902,9 +6899,8 @@ public final class HttpServerFactory implements HttpStreamFactory
                         responseContentObserved += length;
 
                         final boolean endResponse = responseContentLength == responseContentObserved;
-                        responseSharedBudget -= expansion;
 
-                        doEncodeData(traceId, authorization, flags, budgetId, reserved + expansion, streamId, payload,
+                        doEncodeData(traceId, authorization, flags, budgetId, reserved, streamId, payload,
                             endResponse);
 
                         final int remotePaddableMax = Math.min(remoteBudget, bufferPool.slotCapacity());
