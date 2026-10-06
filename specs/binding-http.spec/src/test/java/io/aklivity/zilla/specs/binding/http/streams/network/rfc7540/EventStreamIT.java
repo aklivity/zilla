@@ -90,4 +90,58 @@ public class EventStreamIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/response.sse.framing.id.only/client",
+        "${net}/response.sse.framing.id.only/server" })
+    public void shouldReceiveIdOnly() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/response.sse.framing.comment.initial/client",
+        "${net}/response.sse.framing.comment.initial/server" })
+    public void shouldReceiveCommentInitial() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/server.response.sse.framing.data.split.frames/client",
+        "${net}/server.response.sse.framing.data.split.frames/server" })
+    public void shouldReceiveServerDataSplitFrames() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/server.response.sse.framing.comment.non.empty/client",
+        "${net}/server.response.sse.framing.comment.non.empty/server" })
+    public void shouldReceiveServerCommentNonEmpty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/server.response.sse.framing.id.only/client",
+        "${net}/server.response.sse.framing.id.only/server" })
+    public void shouldReceiveServerIdOnly() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/response.sse.framing.comment.idle/client",
+        "${net}/response.sse.framing.comment.idle/server" })
+    public void shouldReceiveCommentIdle() throws Exception
+    {
+        k3po.finish();
+    }
 }

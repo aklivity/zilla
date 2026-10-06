@@ -16,6 +16,8 @@
 package io.aklivity.zilla.runtime.binding.http.internal.streams.rfc7540.server;
 
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_CONCURRENT_STREAMS;
+import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfigurationTest.HTTP_SSE_INITIAL_COMMENT_ENABLED_NAME;
+import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfigurationTest.HTTP_SSE_MAXIMUM_IDLE_TIME_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -29,6 +31,7 @@ import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
+import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
 public class EventStreamIT
 {
@@ -75,6 +78,38 @@ public class EventStreamIT
         "${net}/response.sse.framing.data.multi.line/client",
         "${app}/response.sse.framing.data.multi.line/server" })
     public void shouldReceiveResponseDataMultiLine() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/response.sse.framing.id.only/client",
+        "${app}/response.sse.framing.id.only/server" })
+    public void shouldReceiveResponseIdOnly() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = HTTP_SSE_INITIAL_COMMENT_ENABLED_NAME, value = "true")
+    @Specification({
+        "${net}/response.sse.framing.comment.initial/client",
+        "${app}/response.sse.framing.comment.initial/server" })
+    public void shouldReceiveResponseCommentInitial() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = HTTP_SSE_MAXIMUM_IDLE_TIME_NAME, value = "1")
+    @Specification({
+        "${net}/response.sse.framing.comment.idle/client",
+        "${app}/response.sse.framing.comment.idle/server" })
+    public void shouldReceiveResponseCommentIdle() throws Exception
     {
         k3po.finish();
     }

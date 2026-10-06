@@ -83,4 +83,37 @@ public class EventStreamIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.yaml")
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
+    @Specification({
+        "${app}/response.sse.framing.event/client",
+        "${net}/server.response.sse.framing.data.split.frames/server" })
+    public void shouldReceiveResponseDataSplitFrames() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
+    @Specification({
+        "${app}/response.sse.framing.comment.non.empty/client",
+        "${net}/server.response.sse.framing.comment.non.empty/server" })
+    public void shouldReceiveResponseCommentNonEmpty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
+    @Specification({
+        "${app}/response.sse.framing.id.only/client",
+        "${net}/server.response.sse.framing.id.only/server" })
+    public void shouldReceiveResponseIdOnly() throws Exception
+    {
+        k3po.finish();
+    }
 }

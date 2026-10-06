@@ -4678,6 +4678,13 @@ public final class HttpServerFactory implements HttpStreamFactory
                     exchange.onResponseExpiring(traceId);
                 }
                 break;
+            case IDLE_SIGNAL:
+                Http2Exchange idleExchange = streams.get(contextId);
+                if (idleExchange != null)
+                {
+                    idleExchange.onResponseIdle(traceId);
+                }
+                break;
             }
         }
 
@@ -6193,6 +6200,8 @@ public final class HttpServerFactory implements HttpStreamFactory
             private long responseAck;
             private int responseMax;
             private boolean eventFraming;
+            private long lastEventAt;
+            private long idleId = NO_CANCEL_ID;
 
             private Http2Exchange(
                 long originId,
@@ -6614,6 +6623,66 @@ public final class HttpServerFactory implements HttpStreamFactory
                 eventFraming = canFrame(requestCaps) && isEventStream(headers);
 
                 doEncodeHeaders(traceId, authorization, streamId, policy, origin, headers, responseContentLength == 0);
+
+                if (eventFraming)
+                {
+                    lastEventAt = System.currentTimeMillis();
+
+                    if (config.sseInitialCommentEnabled())
+                    {
+                        doEncodeEventComment(traceId, authorization);
+                    }
+
+                    scheduleIdle(traceId);
+                }
+            }
+
+            private void doEncodeEventComment(
+                long traceId,
+                long authorization)
+            {
+                final OctetsFW payload = encodeEventComment();
+                final int length = payload.sizeof();
+
+                if (remoteBudget >= length && remoteSharedBudget >= length)
+                {
+                    remoteBudget -= length;
+                    remoteSharedBudget -= length;
+                    responseContentObserved += length;
+                    responseSharedBudget -= length;
+
+                    doEncodeData(traceId, authorization, COMPLETE, Http2Server.this.budgetId, length, streamId, payload, false);
+
+                    lastEventAt = System.currentTimeMillis();
+                }
+            }
+
+            private void scheduleIdle(
+                long traceId)
+            {
+                final int idleTime = config.sseMaximumIdleTime();
+
+                if (idleTime > 0)
+                {
+                    idleId = signaler.signalAt(lastEventAt + SECONDS.toMillis(idleTime),
+                        originId, routedId, replyId, traceId, IDLE_SIGNAL, streamId);
+                }
+            }
+
+            private void onResponseIdle(
+                long traceId)
+            {
+                idleId = NO_CANCEL_ID;
+
+                if (!HttpState.replyClosed(state))
+                {
+                    if (System.currentTimeMillis() - lastEventAt >= SECONDS.toMillis(config.sseMaximumIdleTime()))
+                    {
+                        doEncodeEventComment(traceId, authorization);
+                    }
+
+                    scheduleIdle(traceId);
+                }
             }
 
             private void onResponseData(
@@ -6654,12 +6723,12 @@ public final class HttpServerFactory implements HttpStreamFactory
                 {
                     final OctetsFW dataPayload = data.payload();
 
-                    if (dataPayload != null)
+                    if (dataPayload != null || eventFraming)
                     {
                         final int flags = data.flags();
                         final OctetsFW payload = eventFraming ? encodeEvent(flags, dataPayload, data.extension()) : dataPayload;
                         final int length = payload.sizeof();
-                        final int expansion = Math.max(length - dataPayload.sizeof(), 0);
+                        final int expansion = Math.max(length - (dataPayload != null ? dataPayload.sizeof() : 0), 0);
 
                         if (HttpConfiguration.DEBUG_HTTP2_BUDGETS)
                         {
@@ -6890,6 +6959,12 @@ public final class HttpServerFactory implements HttpStreamFactory
                 {
                     signaler.cancel(expiringId);
                     expiringId = NO_CANCEL_ID;
+                }
+
+                if (idleId != NO_CANCEL_ID)
+                {
+                    signaler.cancel(idleId);
+                    idleId = NO_CANCEL_ID;
                 }
             }
 
