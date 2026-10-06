@@ -396,4 +396,13 @@ public class EventStreamIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/response.sse.framing.data.large.frames/client",
+        "${app}/response.sse.framing.data.large.frames/server" })
+    public void shouldReceiveResponseDataLargeFrames() throws Exception
+    {
+        k3po.finish();
+    }
 }

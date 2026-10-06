@@ -162,4 +162,22 @@ public class EventStreamIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/response.sse.framing.data.large.frames/client",
+        "${net}/response.sse.framing.data.large.frames/server" })
+    public void shouldReceiveDataLargeFrames() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/server.response.sse.framing.data.large.frames/client",
+        "${net}/server.response.sse.framing.data.large.frames/server" })
+    public void shouldReceiveServerDataLargeFrames() throws Exception
+    {
+        k3po.finish();
+    }
 }

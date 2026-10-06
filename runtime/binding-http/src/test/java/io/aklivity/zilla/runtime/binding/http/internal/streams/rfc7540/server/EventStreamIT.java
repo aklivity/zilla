@@ -18,6 +18,7 @@ package io.aklivity.zilla.runtime.binding.http.internal.streams.rfc7540.server;
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_CONCURRENT_STREAMS;
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfigurationTest.HTTP_SSE_INITIAL_COMMENT_ENABLED_NAME;
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfigurationTest.HTTP_SSE_MAXIMUM_IDLE_TIME_NAME;
+import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_SLOT_CAPACITY_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -131,6 +132,17 @@ public class EventStreamIT
         "${net}/response.sse.framing.comment.initial.budget/client",
         "${app}/response.sse.framing.comment.initial/server" })
     public void shouldReceiveResponseCommentInitialBudget() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "65536")
+    @Specification({
+        "${net}/response.sse.framing.data.large.frames/client",
+        "${app}/response.sse.framing.data.large.frames/server" })
+    public void shouldReceiveResponseDataLargeFrames() throws Exception
     {
         k3po.finish();
     }
