@@ -126,7 +126,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.ExpandableArrayBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
-import io.aklivity.zilla.runtime.common.lang.Strings;
+import io.aklivity.zilla.runtime.common.lang.MemorySegments;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -7007,7 +7007,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         int offset,
         int limit)
     {
-        return Strings.utf8Valid(buffer.segment(), buffer.wrapAdjustment() + offset, buffer.wrapAdjustment() + limit);
+        return MemorySegments.utf8Valid(buffer.segment(), buffer.wrapAdjustment() + offset, buffer.wrapAdjustment() + limit);
     }
 
     private static boolean isEventRetry(
