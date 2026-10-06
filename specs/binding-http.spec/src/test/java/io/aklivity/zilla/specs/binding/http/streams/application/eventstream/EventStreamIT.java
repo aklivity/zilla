@@ -360,4 +360,31 @@ public class EventStreamIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/response.sse.framing.data.valid/client",
+        "${app}/response.sse.framing.data.valid/server" })
+    public void shouldReceiveResponseDataValid() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/response.sse.framing.data.invalid.dropped/client",
+        "${app}/response.sse.framing.data.invalid.dropped/server" })
+    public void shouldReceiveResponseDataInvalidDropped() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/response.sse.framing.data.invalid.aborted/client",
+        "${app}/response.sse.framing.data.invalid.aborted/server" })
+    public void shouldReceiveResponseDataInvalidAborted() throws Exception
+    {
+        k3po.finish();
+    }
 }

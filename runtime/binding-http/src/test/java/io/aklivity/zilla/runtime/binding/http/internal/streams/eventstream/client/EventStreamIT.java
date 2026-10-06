@@ -376,4 +376,24 @@ public class EventStreamIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.sse.model.yaml")
+    @Specification({
+        "${app}/response.sse.framing.data.valid/client",
+        "${net}/response.sse.framing.data.valid/server" })
+    public void shouldReceiveResponseDataValid() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.sse.model.yaml")
+    @Specification({
+        "${app}/response.sse.framing.data.invalid.aborted/client",
+        "${net}/response.sse.framing.data.invalid.aborted/server" })
+    public void shouldAbortInvalidEventData() throws Exception
+    {
+        k3po.finish();
+    }
 }

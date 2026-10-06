@@ -456,6 +456,7 @@ public final class HttpServerFactory implements HttpStreamFactory
     private final HttpDataExFW dataExRO = new HttpDataExFW();
     private final HttpSseEventFW.Builder eventRW = new HttpSseEventFW.Builder();
     private final OctetsFW eventPayloadRO = new OctetsFW();
+    private final OctetsFW eventModelRO = new OctetsFW();
     private final HttpResetExFW resetExRO = new HttpResetExFW();
 
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
@@ -2964,6 +2965,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             private boolean responseChunked;
             private boolean responseClosing;
             private boolean eventFraming;
+            private HttpModel eventModel = HttpModel.NONE;
             private long lastEventAt;
             private long idleId = NO_CANCEL_ID;
             private int responseRemaining;
@@ -3348,6 +3350,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 final Array32FW<HttpHeaderFW> headers = beginEx != null ? beginEx.headers() : DEFAULT_HEADERS;
 
                 eventFraming = canFrame(requestCaps) && isEventStream(headers);
+                eventModel = eventFraming ? resolveEventModel(binding, requestType, beginEx) : HttpModel.NONE;
                 responseState = HttpExchangeState.OPEN;
                 doEncodeHeaders(this, traceId, sessionId, 0L, headers);
 
@@ -3423,7 +3426,16 @@ public final class HttpServerFactory implements HttpStreamFactory
                     responseRemaining -= Math.max(data.length(), 0);
                     assert responseRemaining >= 0;
 
-                    doEncodeBody(this, traceId, authorization, flags, budgetId, reserved, payload, data.extension());
+                    final OctetsFW validated = validateEvent(eventModel, routedId, traceId, authorization, flags, payload);
+
+                    if (validated != null || payload == null)
+                    {
+                        doEncodeBody(this, traceId, authorization, flags, budgetId, reserved, validated, data.extension());
+                    }
+                    else
+                    {
+                        doResponseWindow(traceId);
+                    }
 
                 }
             }
@@ -6200,6 +6212,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             private long responseAck;
             private int responseMax;
             private boolean eventFraming;
+            private HttpModel eventModel = HttpModel.NONE;
             private long lastEventAt;
             private long idleId = NO_CANCEL_ID;
 
@@ -6621,6 +6634,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                         header.name().equals(HEADER_CONTENT_LENGTH));
                 responseContentLength = contentLengthHeader != null ? parseInt(contentLengthHeader.value().asString()) : -1;
                 eventFraming = canFrame(requestCaps) && isEventStream(headers);
+                eventModel = eventFraming ? resolveEventModel(binding, requestType, beginEx) : HttpModel.NONE;
 
                 doEncodeHeaders(traceId, authorization, streamId, policy, origin, headers, responseContentLength == 0);
 
@@ -6721,11 +6735,17 @@ public final class HttpServerFactory implements HttpStreamFactory
                 }
                 else
                 {
-                    final OctetsFW dataPayload = data.payload();
                     final int flags = data.flags();
+                    final OctetsFW dataPayload =
+                        validateEvent(eventModel, routedId, traceId, authorization, flags, data.payload());
                     final OctetsFW payload = eventFraming ? encodeEvent(flags, dataPayload, data.extension()) : dataPayload;
 
-                    if (payload != null)
+                    if (dataPayload == null && data.payload() != null)
+                    {
+                        responseSharedBudget += reserved;
+                        flushResponseWindow(traceId, 0);
+                    }
+                    else if (payload != null)
                     {
                         final int length = payload.sizeof();
                         final int expansion = Math.max(length - (dataPayload != null ? dataPayload.sizeof() : 0), 0);
@@ -7820,6 +7840,37 @@ public final class HttpServerFactory implements HttpStreamFactory
         }
 
         return encoded;
+    }
+
+    private HttpModel resolveEventModel(
+        HttpBindingConfig binding,
+        HttpRequestType requestType,
+        HttpBeginExFW beginEx)
+    {
+        final HttpRequestType.Response response = binding.resolveResponse(requestType, beginEx);
+
+        return response != null ? HttpModel.decoder(response.content, modelBuffer) : HttpModel.NONE;
+    }
+
+    private OctetsFW validateEvent(
+        HttpModel model,
+        long routedId,
+        long traceId,
+        long authorization,
+        int flags,
+        OctetsFW payload)
+    {
+        OctetsFW validated = payload;
+
+        if (model != HttpModel.NONE && payload != null)
+        {
+            final int consumed = model.transform(traceId, routedId, authorization, flags,
+                payload.buffer(), payload.offset(), payload.limit(), modelBuffer.capacity());
+
+            validated = consumed >= 0 ? eventModelRO.wrap(model.buffer(), 0, model.produced()) : null;
+        }
+
+        return validated;
     }
 
     private OctetsFW encodeEventComment()

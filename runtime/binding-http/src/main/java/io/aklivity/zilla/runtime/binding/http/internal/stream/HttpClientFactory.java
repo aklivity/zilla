@@ -283,6 +283,7 @@ public final class HttpClientFactory implements HttpStreamFactory
     private final DirectBufferEx eventNameRO = new UnsafeBufferEx(0L, 0);
     private final OctetsFW eventDataRO = new OctetsFW();
     private final OctetsFW eventLineDataRO = new OctetsFW();
+    private final OctetsFW eventModelRO = new OctetsFW();
     private final String8FW.Builder eventIdRW = new String8FW.Builder().wrap(new UnsafeBufferEx(new byte[256]), 0, 256);
     private final String8FW.Builder eventTypeRW = new String8FW.Builder().wrap(new UnsafeBufferEx(new byte[256]), 0, 256);
 
@@ -4794,6 +4795,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         private boolean responseFramingDecided;
         private boolean responseFraming;
         private boolean responseEndPending;
+        private boolean responseEventInvalid;
         private int responseCapabilities;
 
         private int eventSlot = NO_SLOT;
@@ -5610,7 +5612,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                 progress = stalled ? -1 : offset + length;
             }
 
-            return progress;
+            return responseEventInvalid ? -1 : progress;
         }
 
         private void decodeEvents(
@@ -5716,6 +5718,31 @@ public final class HttpClientFactory implements HttpStreamFactory
         }
 
         private void doResponseEventData(
+            long traceId,
+            long authorization,
+            int flags,
+            OctetsFW payload,
+            Flyweight extension)
+        {
+            OctetsFW validated = payload;
+
+            if (content != HttpModel.NONE && payload != null)
+            {
+                final int consumed = content.transform(traceId, routedId, authorization, flags,
+                    payload.buffer(), payload.offset(), payload.limit(), modelBuffer.capacity());
+
+                validated = consumed >= 0 ? eventModelRO.wrap(content.buffer(), 0, content.produced()) : null;
+
+                responseEventInvalid |= validated == null;
+            }
+
+            if (!responseEventInvalid && (validated != null || payload == null))
+            {
+                doResponseEventFrame(traceId, authorization, flags, validated, extension);
+            }
+        }
+
+        private void doResponseEventFrame(
             long traceId,
             long authorization,
             int flags,
