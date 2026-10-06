@@ -221,6 +221,8 @@ public final class HttpServerFactory implements HttpStreamFactory
             initResponse(501, "Not Implemented");
     private static final DirectBufferEx ERROR_505_VERSION_NOT_SUPPORTED =
             initResponse(505, "HTTP Version Not Supported");
+    private static final DirectBufferEx ERROR_502_BAD_GATEWAY =
+            initResponse(502, "Bad Gateway");
     private static final DirectBufferEx ERROR_507_INSUFFICIENT_STORAGE =
             initResponse(507, "Insufficient Storage");
 
@@ -274,6 +276,7 @@ public final class HttpServerFactory implements HttpStreamFactory
     private static final String16FW STATUS_403 = new String16FW("403");
     private static final String16FW STATUS_404 = new String16FW("404");
     private static final String16FW STATUS_500 = new String16FW("500");
+    private static final String16FW STATUS_502 = new String16FW("502");
     private static final String16FW TRANSFER_ENCODING_CHUNKED = new String16FW("chunked");
 
     private static final HttpHeaderFW HEADER_ACCESS_CONTROL_ALLOW_ORIGIN_WILDCARD =
@@ -435,6 +438,7 @@ public final class HttpServerFactory implements HttpStreamFactory
     private final Array32FW<HttpHeaderFW> headers200;
     private final Array32FW<HttpHeaderFW> headers204;
     private final Array32FW<HttpHeaderFW> headers400;
+    private final Array32FW<HttpHeaderFW> headers502;
     private final Array32FW<HttpHeaderFW> headers401;
     private final Array32FW<HttpHeaderFW> headers403;
     private final Array32FW<HttpHeaderFW> headers404;
@@ -640,6 +644,7 @@ public final class HttpServerFactory implements HttpStreamFactory
         this.headers403 = initHeaders(config, STATUS_403);
         this.headers404 = initHeadersEmpty(config, STATUS_404);
         this.headers500 = initHeadersEmpty(config, STATUS_500);
+        this.headers502 = initHeadersEmpty(config, STATUS_502);
         this.response400 = initResponse(config, 400, "Bad Request");
         this.response401 = initResponse(config, 401, "Unauthorized");
         this.response403 = initResponse(config, 403, "Forbidden");
@@ -3402,24 +3407,35 @@ public final class HttpServerFactory implements HttpStreamFactory
                 assert responseAck <= responseSeq;
 
                 final HttpBeginExFW beginEx = begin.extension().get(beginExRO::tryWrap);
-                final Array32FW<HttpHeaderFW> headers = beginEx != null ? beginEx.headers() : DEFAULT_HEADERS;
+                final HttpRequestType.Response response = beginEx != null ? binding.resolveResponse(requestType, beginEx) : null;
+                final HttpBeginExFW responseEx =
+                    response != null ? transformResponseBeginEx(traceId, routedId, sessionId, response, beginEx) : beginEx;
 
-                eventFraming = canFrame(requestCaps) && isEventStream(headers);
-                eventModel = eventFraming ? resolveEventModel(binding, requestType, beginEx) : HttpModel.NONE;
-                responseState = HttpExchangeState.OPEN;
-                doEncodeHeaders(this, traceId, sessionId, 0L, headers);
-
-                if (eventFraming)
+                if (response != null && responseEx == null)
                 {
-                    lastEventAt = System.currentTimeMillis();
+                    onDecodeBodyInvalid(traceId, sessionId, ERROR_502_BAD_GATEWAY);
+                }
+                else
+                {
+                    final Array32FW<HttpHeaderFW> headers = responseEx != null ? responseEx.headers() : DEFAULT_HEADERS;
 
-                    if (config.sseInitialCommentEnabled())
+                    eventFraming = canFrame(requestCaps) && isEventStream(headers);
+                    eventModel = response != null ? HttpModel.decoder(response.content, modelBuffer) : HttpModel.NONE;
+                    responseState = HttpExchangeState.OPEN;
+                    doEncodeHeaders(this, traceId, sessionId, 0L, headers);
+
+                    if (eventFraming)
                     {
-                        doEncodeEventComment(this, traceId, sessionId);
-                    }
+                        lastEventAt = System.currentTimeMillis();
 
-                    scheduleIdle(traceId);
-                    doResponseWindow(traceId);
+                        if (config.sseInitialCommentEnabled())
+                        {
+                            doEncodeEventComment(this, traceId, sessionId);
+                        }
+
+                        scheduleIdle(traceId);
+                        doResponseWindow(traceId);
+                    }
                 }
             }
 
@@ -3490,8 +3506,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                     }
                     else
                     {
-                        doResponseReset(traceId);
-                        doNetworkAbort(traceId, authorization);
+                        onDecodeBodyInvalid(traceId, authorization, ERROR_502_BAD_GATEWAY);
                     }
 
                 }
@@ -6721,27 +6736,41 @@ public final class HttpServerFactory implements HttpStreamFactory
                 responseAck = acknowledge;
 
                 final HttpBeginExFW beginEx = begin.extension().get(beginExRO::tryWrap);
-                final Array32FW<HttpHeaderFW> headers = beginEx != null ? beginEx.headers() : headers200;
+                final HttpRequestType.Response response = beginEx != null ? binding.resolveResponse(requestType, beginEx) : null;
+                final HttpBeginExFW responseEx =
+                    response != null ? transformResponseBeginEx(traceId, routedId, authorization, response, beginEx) : beginEx;
 
-                final HttpHeaderFW contentLengthHeader = headers.matchFirst(header ->
-                        header.name().equals(HEADER_CONTENT_LENGTH));
-                responseContentLength = contentLengthHeader != null ? parseInt(contentLengthHeader.value().asString()) : -1;
-                eventFraming = canFrame(requestCaps) && isEventStream(headers);
-                eventModel = eventFraming ? resolveEventModel(binding, requestType, beginEx) : HttpModel.NONE;
-
-                doEncodeHeaders(traceId, authorization, streamId, policy, origin, headers, responseContentLength == 0);
-
-                if (eventFraming)
+                if (response != null && responseEx == null)
                 {
-                    lastEventAt = System.currentTimeMillis();
+                    doRequestAbortIfNecessary(traceId);
+                    doResponseReset(traceId);
+                    doEncodeHeaders(traceId, authorization, streamId, headers502, true);
+                }
+                else
+                {
+                    final Array32FW<HttpHeaderFW> headers = responseEx != null ? responseEx.headers() : headers200;
 
-                    if (config.sseInitialCommentEnabled())
+                    final HttpHeaderFW contentLengthHeader = headers.matchFirst(header ->
+                            header.name().equals(HEADER_CONTENT_LENGTH));
+                    responseContentLength =
+                        contentLengthHeader != null ? parseInt(contentLengthHeader.value().asString()) : -1;
+                    eventFraming = canFrame(requestCaps) && isEventStream(headers);
+                    eventModel = response != null ? HttpModel.decoder(response.content, modelBuffer) : HttpModel.NONE;
+
+                    doEncodeHeaders(traceId, authorization, streamId, policy, origin, headers, responseContentLength == 0);
+
+                    if (eventFraming)
                     {
-                        doEncodeEventComment(traceId, authorization);
-                    }
+                        lastEventAt = System.currentTimeMillis();
 
-                    scheduleIdle(traceId);
-                    flushResponseWindow(traceId, 0);
+                        if (config.sseInitialCommentEnabled())
+                        {
+                            doEncodeEventComment(traceId, authorization);
+                        }
+
+                        scheduleIdle(traceId);
+                        flushResponseWindow(traceId, 0);
+                    }
                 }
             }
 
@@ -6850,6 +6879,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
                     if (dataPayload == null && data.payload() != null)
                     {
+                        doRequestAbortIfNecessary(traceId);
                         doResponseReset(traceId);
                         doEncodeRstStream(traceId, streamId, Http2ErrorCode.INTERNAL_ERROR);
                     }
@@ -7954,14 +7984,55 @@ public final class HttpServerFactory implements HttpStreamFactory
         return encoded;
     }
 
-    private HttpModel resolveEventModel(
-        HttpBindingConfig binding,
-        HttpRequestType requestType,
+    private HttpBeginExFW transformResponseBeginEx(
+        long traceId,
+        long routedId,
+        long authorization,
+        HttpRequestType.Response response,
         HttpBeginExFW beginEx)
     {
-        final HttpRequestType.Response response = binding.resolveResponse(requestType, beginEx);
+        HttpBeginExFW result = beginEx;
 
-        return response != null ? HttpModel.decoder(response.content, modelBuffer) : HttpModel.NONE;
+        if (response.headers != null && !response.headers.isEmpty())
+        {
+            final HttpBeginExFW.Builder builder = modelBeginExRW
+                .wrap(modelBeginExBuffer, 0, modelBeginExBuffer.capacity())
+                .compositeId(beginEx.compositeId())
+                .typeId(beginEx.typeId());
+
+            modelValid.value = true;
+            beginEx.headers().forEach(header ->
+            {
+                if (modelValid.value)
+                {
+                    final String8FW name = header.name();
+                    final String16FW value = header.value();
+                    final HttpModel model = response.headers.get(name);
+
+                    if (model != null && model != HttpModel.NONE)
+                    {
+                        final int produced = model.transform(traceId, routedId, authorization, value.value(), 0, value.length());
+
+                        if (produced < 0)
+                        {
+                            modelValid.value = false;
+                        }
+                        else
+                        {
+                            builder.headersItem(item -> item.name(name).value(model.buffer(), 0, produced));
+                        }
+                    }
+                    else
+                    {
+                        builder.headersItem(item -> item.name(name).value(value));
+                    }
+                }
+            });
+
+            result = modelValid.value ? builder.build() : null;
+        }
+
+        return result;
     }
 
     private OctetsFW validateEvent(

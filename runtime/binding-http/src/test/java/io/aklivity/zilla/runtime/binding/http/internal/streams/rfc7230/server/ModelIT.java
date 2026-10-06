@@ -68,4 +68,34 @@ public class ModelIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.response.model.yaml")
+    @Specification({
+        "${net}/response.valid/client",
+        "${app}/response.valid/server" })
+    public void shouldPassValidResponse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.response.model.yaml")
+    @Specification({
+        "${net}/response.invalid.header/client",
+        "${app}/response.invalid.header/server" })
+    public void shouldRejectInvalidResponseHeader() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.response.model.yaml")
+    @Specification({
+        "${net}/response.invalid.content/client",
+        "${app}/response.invalid.content/server" })
+    public void shouldAbortInvalidResponseContent() throws Exception
+    {
+        k3po.finish();
+    }
 }

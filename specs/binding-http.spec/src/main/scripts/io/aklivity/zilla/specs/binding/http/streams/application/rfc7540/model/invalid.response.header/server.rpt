@@ -30,8 +30,7 @@ connected
 
 write zilla:begin.ext ${http:beginEx()
                             .typeId(zilla:id("http"))
-                             .header(":status", "503")
-                             .header("retry-after", "0")
+                             .header(":status", "502")
                             .build()}
 
 read abort
