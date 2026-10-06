@@ -14,18 +14,22 @@
 # under the License.
 #
 
-accept "http://localhost:8080/events"
-  option http:transport "zilla://streams/net0"
+connect "zilla://streams/net0"
   option zilla:window 8192
   option zilla:transmission "duplex"
-accepted
 connected
 
-read http:method "GET"
-read http:header "Accept" "text/event-stream"
-read closed
+write "GET /events HTTP/1.1" "\r\n"
+      "Host: localhost:8080" "\r\n"
+      "Accept: text/event-stream" "\r\n"
+      "\r\n"
+write flush
 
-write http:status "200" "OK"
-write http:header "Content-Type" "text/event-stream"
-write http:header "Transfer-Encoding" "chunked"
 write close
+
+read "HTTP/1.1 200 OK" "\r\n"
+     "Content-Type: text/event-stream" "\r\n"
+     "Transfer-Encoding: chunked" "\r\n"
+     "\r\n"
+
+read aborted

@@ -144,4 +144,13 @@ public class EventStreamIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/response.sse.framing.data.invalid.reset/client",
+        "${net}/response.sse.framing.data.invalid.reset/server" })
+    public void shouldResetInvalidEventData() throws Exception
+    {
+        k3po.finish();
+    }
 }

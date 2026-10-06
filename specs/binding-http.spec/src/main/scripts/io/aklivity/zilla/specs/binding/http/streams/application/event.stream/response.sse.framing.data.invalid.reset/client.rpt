@@ -14,32 +14,29 @@
 # under the License.
 #
 
-accept "zilla://streams/app0"
+connect "zilla://streams/app0"
   option zilla:window 8192
   option zilla:transmission "half-duplex"
   option zilla:capabilities ${core:capabilities("FRAMING")}
-accepted
-
-read zilla:begin.ext ${http:matchBeginEx()
-                             .typeId(zilla:id("http"))
-                             .header(":scheme", "http")
-                             .header(":method", "GET")
-                             .header(":path", "/events")
-                             .header(":authority", "localhost:8080")
-                             .header("accept", "text/event-stream")
-                             .build()}
-connected
-
-read closed
 
 write zilla:begin.ext ${http:beginEx()
                               .typeId(zilla:id("http"))
-                              .header(":status", "200")
-                              .header("content-type", "text/event-stream")
+                              .header(":scheme", "http")
+                              .header(":method", "GET")
+                              .header(":path", "/events")
+                              .header(":authority", "localhost:8080")
+                              .header("accept", "text/event-stream")
                               .build()}
-write flush
-
-write "Hello, world"
-write flush
+connected
 
 write close
+
+read zilla:begin.ext ${http:matchBeginEx()
+                             .typeId(zilla:id("http"))
+                             .header(":status", "200")
+                             .header("content-type", "text/event-stream")
+                             .build()}
+
+read "Hello, world"
+
+read abort

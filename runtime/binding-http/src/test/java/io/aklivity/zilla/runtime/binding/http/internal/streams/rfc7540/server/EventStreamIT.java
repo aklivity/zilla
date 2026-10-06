@@ -113,4 +113,14 @@ public class EventStreamIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.sse.model.yaml")
+    @Specification({
+        "${net}/response.sse.framing.data.invalid.reset/client",
+        "${app}/response.sse.framing.data.invalid.reset/server" })
+    public void shouldResetInvalidEventData() throws Exception
+    {
+        k3po.finish();
+    }
 }

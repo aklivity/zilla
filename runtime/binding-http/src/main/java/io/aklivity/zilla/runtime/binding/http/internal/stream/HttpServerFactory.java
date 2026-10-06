@@ -3490,7 +3490,8 @@ public final class HttpServerFactory implements HttpStreamFactory
                     }
                     else
                     {
-                        doResponseWindow(traceId);
+                        doResponseReset(traceId);
+                        doNetworkAbort(traceId, authorization);
                     }
 
                 }
@@ -6849,8 +6850,8 @@ public final class HttpServerFactory implements HttpStreamFactory
 
                     if (dataPayload == null && data.payload() != null)
                     {
-                        responseSharedBudget += reserved;
-                        flushResponseWindow(traceId, 0);
+                        doResponseReset(traceId);
+                        doEncodeRstStream(traceId, streamId, Http2ErrorCode.INTERNAL_ERROR);
                     }
                     else if (payload != null)
                     {

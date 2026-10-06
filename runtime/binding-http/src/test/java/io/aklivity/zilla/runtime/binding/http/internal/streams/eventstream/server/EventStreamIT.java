@@ -235,9 +235,9 @@ public class EventStreamIT
     @Test
     @Configuration("server.sse.model.yaml")
     @Specification({
-        "${net}/response.sse.framing.data.invalid.dropped/client",
-        "${app}/response.sse.framing.data.invalid.dropped/server" })
-    public void shouldDropInvalidEventData() throws Exception
+        "${net}/response.sse.framing.data.invalid.reset/client",
+        "${app}/response.sse.framing.data.invalid.reset/server" })
+    public void shouldResetInvalidEventData() throws Exception
     {
         k3po.finish();
     }

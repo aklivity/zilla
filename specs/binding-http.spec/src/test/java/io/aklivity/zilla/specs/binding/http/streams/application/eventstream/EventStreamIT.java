@@ -372,9 +372,9 @@ public class EventStreamIT
 
     @Test
     @Specification({
-        "${app}/response.sse.framing.data.invalid.dropped/client",
-        "${app}/response.sse.framing.data.invalid.dropped/server" })
-    public void shouldReceiveResponseDataInvalidDropped() throws Exception
+        "${app}/response.sse.framing.data.invalid.reset/client",
+        "${app}/response.sse.framing.data.invalid.reset/server" })
+    public void shouldReceiveResponseDataInvalidReset() throws Exception
     {
         k3po.finish();
     }
