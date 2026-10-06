@@ -94,27 +94,28 @@ read zilla:begin.ext ${http:matchBeginEx()
                            .header("mcp-session-id", "5ca1ab1e-c0de-4a11-b0a7-000100000000")
                            .build()}
 
-read 'id: :0\n'
-read '\n'
+read zilla:data.ext ${http:matchDataEx()
+                            .typeId(zilla:id("http"))
+                            .header("id", ":0")
+                            .build()}
+read zilla:data.null
 
-# a keepalive ping alone must not count as lifecycle activity -- this read only
-# blocks for one sse.keepalive.interval, well short of inactivity.timeout, so it
-# proves nothing on its own; it exists to mark real elapsed time before the
-# notifications/resources/updated push below, gated on this via FLUSH_NOW
-read ':\n\n'
+# released by the test once real time has elapsed since this stream opened
+write notify EVENTS_OPEN
 
-write notify FLUSH_NOW
+read zilla:data.ext ${http:matchDataEx()
+                            .typeId(zilla:id("http"))
+                            .header("id", ":1")
+                            .build()}
+read '{"jsonrpc":"2.0","method":"notifications/resources/updated","params":{"uri":"file:///data/readme.txt"}}'
 
-read 'id: :1\n'
-read 'data: {"jsonrpc":"2.0","method":"notifications/resources/updated","params":{"uri":"file:///data/readme.txt"}}\n'
-read '\n'
+write notify PUSHED
 
-# one more keepalive interval elapses here with no further request/response
-# traffic on this session, landing well past inactivity.timeout as measured
-# from the sse connect above (inactivity.timeout is configured shorter than
-# one keepalive interval, so this point is unreachable on that baseline alone
-# regardless of any incidental delay running the script) -- reaching it at
-# all proves the resources/updated push above reset the session's inactivity
-# deadline instead of leaving it subject to eviction while a caller is
-# legitimately still waiting on a live subscription
-read ':\n\n'
+# released by the test once past the original inactivity deadline; this event only
+# arrives if the push above reset the session inactivity deadline, instead of
+# leaving it subject to eviction while a caller is waiting on a live subscription
+read zilla:data.ext ${http:matchDataEx()
+                            .typeId(zilla:id("http"))
+                            .header("id", ":2")
+                            .build()}
+read zilla:data.null

@@ -22,7 +22,6 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTes
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_SERVER_NAME_NAME;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_SERVER_VERSION_NAME;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_SESSION_ID_NAME;
-import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfigurationTest.MCP_SSE_KEEPALIVE_INTERVAL_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.Assert.assertTrue;
 import static org.junit.rules.RuleChain.outerRule;
@@ -733,7 +732,6 @@ public class McpServerIT
     @Specification({
         "${net}/lifecycle.events.open/client",
         "${app}/lifecycle.events.open/server"})
-    @Configure(name = MCP_SSE_KEEPALIVE_INTERVAL_NAME, value = "PT30S")
     public void shouldOpenLifecycleEvents() throws Exception
     {
         k3po.finish();
@@ -899,20 +897,8 @@ public class McpServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/lifecycle.events.keepalive/client",
-        "${app}/lifecycle.events.keepalive/server"})
-    @Configure(name = MCP_SSE_KEEPALIVE_INTERVAL_NAME, value = "PT0.5S")
-    public void shouldKeepaliveLifecycleEvents() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
         "${net}/lifecycle.events.evict/client",
         "${app}/lifecycle.events.evict/server"})
-    @Configure(name = MCP_SSE_KEEPALIVE_INTERVAL_NAME, value = "PT30S")
     public void shouldEvictLifecycleEvents() throws Exception
     {
         k3po.finish();
@@ -923,7 +909,6 @@ public class McpServerIT
     @Specification({
         "${net}/lifecycle.shutdown.events/client",
         "${app}/lifecycle.shutdown.events/server"})
-    @Configure(name = MCP_SSE_KEEPALIVE_INTERVAL_NAME, value = "PT30S")
     public void shouldLifecycleShutdownEvents() throws Exception
     {
         k3po.finish();
@@ -935,7 +920,6 @@ public class McpServerIT
         "${net}/lifecycle.timeout.events/client",
         "${app}/lifecycle.timeout.events/server"})
     @Configure(name = MCP_INACTIVITY_TIMEOUT_NAME, value = "PT1S")
-    @Configure(name = MCP_SSE_KEEPALIVE_INTERVAL_NAME, value = "PT30S")
     public void shouldLifecycleTimeoutEvents() throws Exception
     {
         k3po.finish();
@@ -947,9 +931,15 @@ public class McpServerIT
         "${net}/lifecycle.timeout.events.resources.updated/client",
         "${app}/lifecycle.timeout.events.resources.updated/server"})
     @Configure(name = MCP_INACTIVITY_TIMEOUT_NAME, value = "PT3S")
-    @Configure(name = MCP_SSE_KEEPALIVE_INTERVAL_NAME, value = "PT2S")
     public void shouldLifecycleTimeoutEventsResourcesUpdated() throws Exception
     {
+        k3po.start();
+        k3po.awaitBarrier("EVENTS_OPEN");
+        Thread.sleep(2000);
+        k3po.notifyBarrier("FLUSH_NOW");
+        k3po.awaitBarrier("PUSHED");
+        Thread.sleep(2000);
+        k3po.notifyBarrier("ALIVE_CHECK");
         k3po.finish();
     }
 
@@ -958,7 +948,6 @@ public class McpServerIT
     @Specification({
         "${net}/lifecycle.notify.tools.list.changed/client",
         "${app}/lifecycle.notify.tools.list.changed/server"})
-    @Configure(name = MCP_SSE_KEEPALIVE_INTERVAL_NAME, value = "PT30S")
     public void shouldNotifyToolsListChanged() throws Exception
     {
         k3po.finish();
@@ -969,7 +958,6 @@ public class McpServerIT
     @Specification({
         "${net}/lifecycle.notify.prompts.list.changed/client",
         "${app}/lifecycle.notify.prompts.list.changed/server"})
-    @Configure(name = MCP_SSE_KEEPALIVE_INTERVAL_NAME, value = "PT30S")
     public void shouldNotifyPromptsListChanged() throws Exception
     {
         k3po.finish();
@@ -980,7 +968,6 @@ public class McpServerIT
     @Specification({
         "${net}/lifecycle.notify.resources.list.changed/client",
         "${app}/lifecycle.notify.resources.list.changed/server"})
-    @Configure(name = MCP_SSE_KEEPALIVE_INTERVAL_NAME, value = "PT30S")
     public void shouldNotifyResourcesListChanged() throws Exception
     {
         k3po.finish();
@@ -991,7 +978,6 @@ public class McpServerIT
     @Specification({
         "${net}/lifecycle.notify.resources.updated/client",
         "${app}/lifecycle.notify.resources.updated/server"})
-    @Configure(name = MCP_SSE_KEEPALIVE_INTERVAL_NAME, value = "PT30S")
     public void shouldNotifyResourcesUpdated() throws Exception
     {
         k3po.finish();
@@ -1046,7 +1032,6 @@ public class McpServerIT
     @Specification({
         "${net}/lifecycle.suspend.events/client",
         "${app}/lifecycle.suspend.events/server"})
-    @Configure(name = MCP_SSE_KEEPALIVE_INTERVAL_NAME, value = "PT30S")
     public void shouldLifecycleSuspendEvents() throws Exception
     {
         k3po.finish();
@@ -1057,7 +1042,6 @@ public class McpServerIT
     @Specification({
         "${net}/lifecycle.suspended.events/client",
         "${app}/lifecycle.suspended.events/server"})
-    @Configure(name = MCP_SSE_KEEPALIVE_INTERVAL_NAME, value = "PT30S")
     public void shouldLifecycleSuspendedEvents() throws Exception
     {
         k3po.finish();

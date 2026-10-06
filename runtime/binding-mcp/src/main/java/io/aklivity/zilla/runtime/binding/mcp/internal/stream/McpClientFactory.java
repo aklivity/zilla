@@ -35,6 +35,8 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeg
 import static io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW.KIND_TOOLS_LIST;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasFin;
+import static io.aklivity.zilla.runtime.engine.util.Flags.hasInit;
 
 import java.util.Iterator;
 import java.util.Map;
@@ -65,11 +67,13 @@ import io.aklivity.zilla.runtime.binding.mcp.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.event.McpAuthorizationError;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.BeginFW;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.Capability;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.ChallengeFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.HttpBeginExFW;
+import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.HttpDataExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBearerError;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpBeginExFW;
 import io.aklivity.zilla.runtime.binding.mcp.internal.types.stream.McpChallengeExFW;
@@ -130,6 +134,8 @@ public final class McpClientFactory implements McpStreamFactory
     private static final String HTTP_HEADER_WWW_AUTHENTICATE = "www-authenticate";
     private static final String HTTP_HEADER_MCP_VERSION = "mcp-protocol-version";
     private static final String HTTP_HEADER_LAST_EVENT_ID = "last-event-id";
+    private static final String HTTP_HEADER_EVENT_ID = "id";
+    private static final String HTTP_HEADER_EVENT_RETRY = "retry";
     private static final String STATUS_401 = "401";
     private static final String STATUS_403 = "403";
     private static final String STATUS_405 = "405";
@@ -193,6 +199,7 @@ public final class McpClientFactory implements McpStreamFactory
     private final ChallengeFW challengeRO = new ChallengeFW();
     private final SignalFW signalRO = new SignalFW();
     private final HttpBeginExFW httpBeginExRO = new HttpBeginExFW();
+    private final HttpDataExFW httpDataExRO = new HttpDataExFW();
     private final McpBeginExFW mcpBeginExRO = new McpBeginExFW();
     private final McpChallengeExFW mcpChallengeExRO = new McpChallengeExFW();
     private final McpFlushExFW mcpFlushExRO = new McpFlushExFW();
@@ -235,11 +242,8 @@ public final class McpClientFactory implements McpStreamFactory
     private final String clientName;
     private final String clientVersion;
 
-    private static final int SSE_LINE_START = 0;
-    private static final int SSE_FIELD_NAME = 1;
-    private static final int SSE_AFTER_COLON = 2;
-    private static final int SSE_SMALL_VALUE = 3;
-    private static final int SSE_IGNORE_VALUE = 4;
+    private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBufferEx(new byte[0]), 0, 0);
+    private static final int FRAMING_CAPABILITIES_MASK = 1 << Capability.FRAMING.ordinal();
 
     private final Matcher bearerChallengeMatcher = BEARER_CHALLENGE_PATTERN.matcher("");
 
@@ -360,8 +364,6 @@ public final class McpClientFactory implements McpStreamFactory
     }
 
     private final HttpResponseDecoder decodeJsonRpc = this::decodeJsonRpc;
-    private final HttpResponseDecoder decodeSse = this::decodeSse;
-    private final HttpResponseDecoder decodeSseEventEnd = this::decodeSseEventEnd;
     private final HttpResponseDecoder decodeJsonRpcStart = this::decodeJsonRpcStart;
     private final HttpResponseDecoder decodeJsonRpcNext = this::decodeJsonRpcNext;
     private final HttpResponseDecoder decodeJsonRpcEnd = this::decodeJsonRpcEnd;
@@ -610,7 +612,13 @@ public final class McpClientFactory implements McpStreamFactory
 
             parser.close();
             http.decodableJson = null;
-            http.decoder = http.sseMode ? decodeSseEventEnd : decodeIgnore;
+            http.decoder = decodeIgnore;
+
+            if (http.sseMode)
+            {
+                finalizeSseEvent(http, traceId, authorization);
+                resetSseEvent(http);
+            }
 
             progress = offset + (int) (parser.getLocation().getStreamOffset() - http.decodedParserProgress);
         }
@@ -1275,184 +1283,6 @@ public final class McpClientFactory implements McpStreamFactory
         return limit;
     }
 
-    private int decodeSse(
-        McpHttpStream http,
-        long traceId,
-        long authorization,
-        long budgetId,
-        int reserved,
-        DirectBufferEx buffer,
-        int offset,
-        int progress,
-        int limit)
-    {
-        outer:
-        while (progress < limit)
-        {
-            switch (http.sseLineState)
-            {
-            case SSE_LINE_START:
-            {
-                final byte b = buffer.getByte(progress);
-                if (b == (byte) '\n')
-                {
-                    progress++;
-                    finalizeSseEvent(http, traceId, authorization);
-                    resetSseEvent(http);
-                }
-                else if (b == (byte) ':')
-                {
-                    http.sseLineState = SSE_IGNORE_VALUE;
-                    progress++;
-                }
-                else
-                {
-                    http.sseFieldKind = (byte) (b | 0x20);
-                    http.sseLineState = SSE_FIELD_NAME;
-                    progress++;
-                }
-                break;
-            }
-            case SSE_FIELD_NAME:
-            {
-                final byte b = buffer.getByte(progress);
-                if (b == (byte) ':')
-                {
-                    http.sseLineState = SSE_AFTER_COLON;
-                    progress++;
-                }
-                else if (b == (byte) '\n')
-                {
-                    http.sseLineState = SSE_LINE_START;
-                    progress++;
-                }
-                else
-                {
-                    progress++;
-                }
-                break;
-            }
-            case SSE_AFTER_COLON:
-            {
-                final byte b = buffer.getByte(progress);
-                if (b == (byte) ' ')
-                {
-                    progress++;
-                    break;
-                }
-                if (b == (byte) '\n')
-                {
-                    if (http.sseFieldKind == (byte) 'i')
-                    {
-                        http.sseEventId = "";
-                    }
-                    http.sseLineState = SSE_LINE_START;
-                    progress++;
-                    break;
-                }
-                if (http.sseFieldKind == (byte) 'd')
-                {
-                    http.sseEventHasData = true;
-                    http.sseLineState = SSE_FIELD_NAME;
-                    http.decoder = decodeJsonRpc;
-                    break outer;
-                }
-                if (http.sseFieldKind == (byte) 'i' || http.sseFieldKind == (byte) 'r')
-                {
-                    http.sseLineState = SSE_SMALL_VALUE;
-                    http.sseSmallValue.setLength(0);
-                    http.sseSmallValue.append((char) (b & 0xff));
-                    progress++;
-                }
-                else
-                {
-                    http.sseLineState = SSE_IGNORE_VALUE;
-                    progress++;
-                }
-                break;
-            }
-            case SSE_SMALL_VALUE:
-            {
-                final byte b = buffer.getByte(progress);
-                if (b == (byte) '\n')
-                {
-                    if (http.sseFieldKind == (byte) 'i')
-                    {
-                        http.sseEventId = http.sseSmallValue.toString();
-                    }
-                    else if (http.sseFieldKind == (byte) 'r')
-                    {
-                        try
-                        {
-                            http.sseEventRetry =
-                                Long.parseLong(http.sseSmallValue, 0, http.sseSmallValue.length(), 10);
-                        }
-                        catch (NumberFormatException ignored)
-                        {
-                        }
-                    }
-                    http.sseLineState = SSE_LINE_START;
-                    progress++;
-                }
-                else
-                {
-                    http.sseSmallValue.append((char) (b & 0xff));
-                    progress++;
-                }
-                break;
-            }
-            case SSE_IGNORE_VALUE:
-            {
-                final byte b = buffer.getByte(progress);
-                if (b == (byte) '\n')
-                {
-                    http.sseLineState = SSE_LINE_START;
-                }
-                progress++;
-                break;
-            }
-            default:
-                break outer;
-            }
-        }
-        return progress;
-    }
-
-    private int decodeSseEventEnd(
-        McpHttpStream http,
-        long traceId,
-        long authorization,
-        long budgetId,
-        int reserved,
-        DirectBufferEx buffer,
-        int offset,
-        int progress,
-        int limit)
-    {
-        // After JSON-RPC payload ends, expect '\n' (end of data: line) followed by '\n' (event terminator).
-        while (progress < limit)
-        {
-            final byte b = buffer.getByte(progress);
-            if (b == (byte) '\n')
-            {
-                progress++;
-                if (http.sseLineState == SSE_LINE_START)
-                {
-                    finalizeSseEvent(http, traceId, authorization);
-                    resetSseEvent(http);
-                    http.decoder = decodeSse;
-                    break;
-                }
-                http.sseLineState = SSE_LINE_START;
-            }
-            else
-            {
-                progress++;
-            }
-        }
-        return progress;
-    }
-
     private void finalizeSseEvent(
         McpHttpStream http,
         long traceId,
@@ -1518,10 +1348,7 @@ public final class McpClientFactory implements McpStreamFactory
         http.sseElicitUrl = null;
         http.sseElicitMode = null;
         http.sseResourceUri = null;
-        http.sseFieldKind = 0;
-        http.sseSmallValue.setLength(0);
         http.sseJsonValue.setLength(0);
-        http.sseLineState = SSE_LINE_START;
     }
 
     private static String stripSseEventIdPrefix(
@@ -4149,12 +3976,6 @@ public final class McpClientFactory implements McpStreamFactory
         protected boolean sseMode;
         protected String sseEventId;
         protected long sseEventRetry = -1L;
-        protected int sseLineState;
-        protected byte sseFieldKind;
-        protected final StringBuilder sseSmallValue = new StringBuilder();
-        // distinct from sseSmallValue (the byte-level id:/retry: field scanner's own accumulator, never
-        // cleared after a read completes) -- accumulates fragments of a JSON-RPC scalar that spans an
-        // input window, so the two never collide when a value read overlaps stale small-value content
         protected final StringBuilder sseJsonValue = new StringBuilder();
         protected boolean sseEventHasData;
         protected boolean sseEventProgress;
@@ -4181,6 +4002,56 @@ public final class McpClientFactory implements McpStreamFactory
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.affinity = mcp.affinity;
             this.replyMax = decodeMax;
+        }
+
+        final void onEventFrame(
+            DataFW data,
+            long traceId,
+            long authorization)
+        {
+            if (hasInit(data.flags()))
+            {
+                final OctetsFW ext = data.extension();
+                final HttpDataExFW httpDataEx = httpDataExRO.tryWrap(ext.buffer(), ext.offset(), ext.limit());
+                if (httpDataEx != null)
+                {
+                    final HttpHeaderFW id = httpDataEx.headers()
+                        .matchFirst(h -> HTTP_HEADER_EVENT_ID.equals(h.name().asString()));
+                    if (id != null)
+                    {
+                        sseEventId = id.value().asString();
+                    }
+
+                    final HttpHeaderFW retry = httpDataEx.headers()
+                        .matchFirst(h -> HTTP_HEADER_EVENT_RETRY.equals(h.name().asString()));
+                    if (retry != null)
+                    {
+                        sseEventRetry = Long.parseLong(retry.value().asString());
+                    }
+                }
+            }
+
+            final OctetsFW payload = data.payload();
+            if (payload != null && payload.sizeof() > 0 && decoder == decodeIgnore)
+            {
+                sseEventHasData = true;
+                decoder = decodeJsonRpc;
+            }
+        }
+
+        final void onEventEnd(
+            long traceId,
+            long authorization)
+        {
+            if (decoder == decodeIgnore)
+            {
+                finalizeSseEvent(this, traceId, authorization);
+                resetSseEvent(this);
+            }
+            else if (decodeSlot == NO_SLOT)
+            {
+                onDecodeParseError(traceId, authorization);
+            }
         }
 
         final void injectAuthorization(
@@ -4339,7 +4210,7 @@ public final class McpClientFactory implements McpStreamFactory
                     .orElse(null);
                 if (CONTENT_TYPE_EVENT_STREAM.equals(contentType))
                 {
-                    decoder = decodeSse;
+                    decoder = decodeIgnore;
                     sseMode = true;
                 }
             }
@@ -4407,7 +4278,7 @@ public final class McpClientFactory implements McpStreamFactory
             }
             else
             {
-                final OctetsFW payload = data.payload();
+                final OctetsFW payload = data.payload() != null ? data.payload() : EMPTY_OCTETS;
                 int reserved = data.reserved();
                 DirectBufferEx buffer = payload.buffer();
                 int offset = payload.offset();
@@ -4432,7 +4303,17 @@ public final class McpClientFactory implements McpStreamFactory
                     decodableJson.wrap(buffer, offset + delta, limit);
                 }
 
+                if (sseMode)
+                {
+                    onEventFrame(data, traceId, authorization);
+                }
+
                 decodeNet(traceId, authorization, budgetId, reserved, buffer, offset, limit);
+
+                if (sseMode && hasFin(data.flags()))
+                {
+                    onEventEnd(traceId, authorization);
+                }
             }
         }
 
@@ -4567,7 +4448,7 @@ public final class McpClientFactory implements McpStreamFactory
 
             doWindow(net, originId, routedId, replyId,
                 replySeq, replyAck, replyMax,
-                traceId, authorization, budgetId, padding);
+                traceId, authorization, budgetId, padding, FRAMING_CAPABILITIES_MASK);
         }
 
         private void onNetAbort(
@@ -5127,7 +5008,7 @@ public final class McpClientFactory implements McpStreamFactory
             String lastEventId)
         {
             super(mcp);
-            this.decoder = decodeSse;
+            this.decoder = decodeIgnore;
             this.sseMode = true;
             this.lastEventId = lastEventId;
         }
@@ -5279,7 +5160,7 @@ public final class McpClientFactory implements McpStreamFactory
             }
             else
             {
-                final OctetsFW payload = data.payload();
+                final OctetsFW payload = data.payload() != null ? data.payload() : EMPTY_OCTETS;
                 int reserved = data.reserved();
                 DirectBufferEx buffer = payload.buffer();
                 int offset = payload.offset();
@@ -5304,7 +5185,14 @@ public final class McpClientFactory implements McpStreamFactory
                     decodableJson.wrap(buffer, offset + delta, limit);
                 }
 
+                onEventFrame(data, traceId, authorization);
+
                 decodeNet(traceId, authorization, budgetId, reserved, buffer, offset, limit);
+
+                if (hasFin(data.flags()))
+                {
+                    onEventEnd(traceId, authorization);
+                }
             }
 
             flushNetWindow(traceId, authorization, budgetId);
@@ -5402,7 +5290,7 @@ public final class McpClientFactory implements McpStreamFactory
             int padding)
         {
             doWindow(net, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                traceId, authorization, budgetId, padding);
+                traceId, authorization, budgetId, padding, FRAMING_CAPABILITIES_MASK);
         }
 
         private void flushNetWindow(
@@ -6947,6 +6835,24 @@ public final class McpClientFactory implements McpStreamFactory
         long budgetId,
         int padding)
     {
+        doWindow(receiver, originId, routedId, streamId, sequence, acknowledge, maximum,
+            traceId, authorization, budgetId, padding, 0);
+    }
+
+    private void doWindow(
+        MessageConsumer receiver,
+        long originId,
+        long routedId,
+        long streamId,
+        long sequence,
+        long acknowledge,
+        int maximum,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int padding,
+        int capabilities)
+    {
         final WindowFW window = windowRW.wrap(writeBuffer, 0, writeBuffer.capacity())
             .originId(originId)
             .routedId(routedId)
@@ -6958,6 +6864,7 @@ public final class McpClientFactory implements McpStreamFactory
             .authorization(authorization)
             .budgetId(budgetId)
             .padding(padding)
+            .capabilities(capabilities)
             .build();
 
         receiver.accept(window.typeId(), window.buffer(), window.offset(), window.sizeof());

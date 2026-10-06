@@ -29,7 +29,6 @@ import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration.MC
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration.MCP_SERVER_VERSION;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration.MCP_SESSION_ID;
 import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration.MCP_SESSION_ID_AFFINITY;
-import static io.aklivity.zilla.runtime.binding.mcp.internal.McpConfiguration.MCP_SSE_KEEPALIVE_INTERVAL;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DETACH_ON_CLOSE;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_SYNTHETIC_ABORT;
 import static org.junit.Assert.assertEquals;
@@ -57,7 +56,6 @@ public class McpConfigurationTest
     public static final String MCP_CLIENT_VERSION_NAME = "zilla.binding.mcp.client.version";
     public static final String MCP_INACTIVITY_TIMEOUT_NAME = "zilla.binding.mcp.inactivity.timeout";
     public static final String MCP_KEEPALIVE_TOLERANCE_NAME = "zilla.binding.mcp.keepalive.tolerance";
-    public static final String MCP_SSE_KEEPALIVE_INTERVAL_NAME = "zilla.binding.mcp.sse.keepalive.interval";
     public static final String MCP_ALT_SVC_ENABLED_NAME = "zilla.binding.mcp.alt.svc.enabled";
     public static final String MCP_ALT_SVC_MAX_AGE_NAME = "zilla.binding.mcp.alt.svc.max.age";
     public static final String MCP_HYDRATE_FILTER_NAME = "zilla.binding.mcp.hydrate.filter";
@@ -79,7 +77,6 @@ public class McpConfigurationTest
         assertEquals(MCP_CLIENT_VERSION.name(), MCP_CLIENT_VERSION_NAME);
         assertEquals(MCP_INACTIVITY_TIMEOUT.name(), MCP_INACTIVITY_TIMEOUT_NAME);
         assertEquals(MCP_KEEPALIVE_TOLERANCE.name(), MCP_KEEPALIVE_TOLERANCE_NAME);
-        assertEquals(MCP_SSE_KEEPALIVE_INTERVAL.name(), MCP_SSE_KEEPALIVE_INTERVAL_NAME);
         assertEquals(MCP_ALT_SVC_ENABLED.name(), MCP_ALT_SVC_ENABLED_NAME);
         assertEquals(MCP_ALT_SVC_MAX_AGE.name(), MCP_ALT_SVC_MAX_AGE_NAME);
         assertEquals(MCP_HYDRATE_FILTER.name(), MCP_HYDRATE_FILTER_NAME);
