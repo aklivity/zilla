@@ -34,8 +34,8 @@ public class SseConfiguration extends Configuration
     static
     {
         final ConfigurationDef http = new ConfigurationDef("zilla.binding.http");
-        HTTP_INITIAL_COMMENT_ENABLED = http.property("event.stream.initial.comment.enabled", false);
-        HTTP_MAXIMUM_IDLE_TIME = http.property("event.stream.maximum.idle.time", 0);
+        HTTP_INITIAL_COMMENT_ENABLED = http.property("sse.initial.comment.enabled", false);
+        HTTP_MAXIMUM_IDLE_TIME = http.property("sse.maximum.idle.time", 0);
 
         final ConfigurationDef config = new ConfigurationDef("zilla.binding.sse");
         INITIAL_COMMENT_ENABLED = config.property("initial.comment.enabled", HTTP_INITIAL_COMMENT_ENABLED::getAsBoolean);

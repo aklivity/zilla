@@ -3362,7 +3362,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 {
                     lastEventAt = System.currentTimeMillis();
 
-                    if (config.eventStreamInitialCommentEnabled())
+                    if (config.sseInitialCommentEnabled())
                     {
                         doEncodeEventComment(this, traceId, sessionId);
                     }
@@ -3374,7 +3374,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             private void scheduleIdle(
                 long traceId)
             {
-                final int idleTime = config.eventStreamMaximumIdleTime();
+                final int idleTime = config.sseMaximumIdleTime();
 
                 if (idleTime > 0)
                 {
@@ -3391,7 +3391,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 if (responseState == HttpExchangeState.OPEN)
                 {
                     if (!eventOpen &&
-                        System.currentTimeMillis() - lastEventAt >= SECONDS.toMillis(config.eventStreamMaximumIdleTime()))
+                        System.currentTimeMillis() - lastEventAt >= SECONDS.toMillis(config.sseMaximumIdleTime()))
                     {
                         doEncodeEventComment(this, traceId, sessionId);
                     }

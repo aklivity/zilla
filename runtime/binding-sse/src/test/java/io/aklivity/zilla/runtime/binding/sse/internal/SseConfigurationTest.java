@@ -45,8 +45,8 @@ public class SseConfigurationTest
     public void shouldDefaultToHttpEventStreamProperties() throws Exception
     {
         final Properties properties = new Properties();
-        properties.setProperty("zilla.binding.http.event.stream.initial.comment.enabled", "true");
-        properties.setProperty("zilla.binding.http.event.stream.maximum.idle.time", "7");
+        properties.setProperty("zilla.binding.http.sse.initial.comment.enabled", "true");
+        properties.setProperty("zilla.binding.http.sse.maximum.idle.time", "7");
 
         final SseConfiguration config = new SseConfiguration(new Configuration(properties));
 
@@ -58,7 +58,7 @@ public class SseConfigurationTest
     public void shouldOverrideHttpEventStreamPropertiesWithSseProperties() throws Exception
     {
         final Properties properties = new Properties();
-        properties.setProperty("zilla.binding.http.event.stream.maximum.idle.time", "7");
+        properties.setProperty("zilla.binding.http.sse.maximum.idle.time", "7");
         properties.setProperty(SSE_MAXIMUM_IDLE_TIME_NAME, "3");
 
         final SseConfiguration config = new SseConfiguration(new Configuration(properties));

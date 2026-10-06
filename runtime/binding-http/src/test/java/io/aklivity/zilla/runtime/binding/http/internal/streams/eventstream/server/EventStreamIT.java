@@ -15,8 +15,8 @@
  */
 package io.aklivity.zilla.runtime.binding.http.internal.streams.eventstream.server;
 
-import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfigurationTest.HTTP_EVENT_STREAM_INITIAL_COMMENT_ENABLED_NAME;
-import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfigurationTest.HTTP_EVENT_STREAM_MAXIMUM_IDLE_TIME_NAME;
+import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfigurationTest.HTTP_SSE_INITIAL_COMMENT_ENABLED_NAME;
+import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfigurationTest.HTTP_SSE_MAXIMUM_IDLE_TIME_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -215,7 +215,7 @@ public class EventStreamIT
     @Specification({
         "${net}/response.sse.framing.comment.initial/client",
         "${app}/response.sse.framing.comment.initial/server" })
-    @Configure(name = HTTP_EVENT_STREAM_INITIAL_COMMENT_ENABLED_NAME, value = "true")
+    @Configure(name = HTTP_SSE_INITIAL_COMMENT_ENABLED_NAME, value = "true")
     public void shouldReceiveResponseCommentInitial() throws Exception
     {
         k3po.finish();
@@ -226,7 +226,7 @@ public class EventStreamIT
     @Specification({
         "${net}/response.sse.framing.comment.idle/client",
         "${app}/response.sse.framing.comment.idle/server" })
-    @Configure(name = HTTP_EVENT_STREAM_MAXIMUM_IDLE_TIME_NAME, value = "1")
+    @Configure(name = HTTP_SSE_MAXIMUM_IDLE_TIME_NAME, value = "1")
     public void shouldReceiveResponseCommentIdle() throws Exception
     {
         k3po.finish();
