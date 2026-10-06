@@ -101,6 +101,7 @@ import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2RstStreamFW;
 import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2Setting;
 import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2SettingsFW;
 import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2WindowUpdateFW;
+import io.aklivity.zilla.runtime.binding.http.internal.codec.HttpSseEventFW;
 import io.aklivity.zilla.runtime.binding.http.internal.config.HttpAccessControlResolver;
 import io.aklivity.zilla.runtime.binding.http.internal.config.HttpBindingConfig;
 import io.aklivity.zilla.runtime.binding.http.internal.config.HttpModel;
@@ -129,6 +130,7 @@ import io.aklivity.zilla.runtime.binding.http.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.HttpChallengeExFW;
+import io.aklivity.zilla.runtime.binding.http.internal.types.stream.HttpDataExFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.HttpEndExFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.HttpFlushExFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.HttpResetExFW;
@@ -165,6 +167,12 @@ public final class HttpServerFactory implements HttpStreamFactory
     private static final long NO_REQUEST_ID = -1;
 
     private static final int CAPABILITY_CHALLENGE_MASK = 1 << Capability.CHALLENGE.ordinal();
+    private static final int CAPABILITY_FRAMING_MASK = 1 << Capability.FRAMING.ordinal();
+    private static final int EVENT_FIELD_VALUE_MAX = 255;
+    private static final String8FW HEADER_CONTENT_TYPE = new String8FW("content-type");
+    private static final byte[] CONTENT_TYPE_EVENT_STREAM = "text/event-stream".getBytes(UTF_8);
+    private static final String8FW HEADER_NAME_EVENT_TYPE = new String8FW("type");
+    private static final String8FW HEADER_NAME_EVENT_ID = new String8FW("id");
 
     private static final DirectBufferEx EMPTY_BUFFER = new UnsafeBufferEx(new byte[0]);
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
@@ -443,6 +451,9 @@ public final class HttpServerFactory implements HttpStreamFactory
     private final HttpBeginExFW beginExRO = new HttpBeginExFW();
     private final HttpFlushExFW flushExRO = new HttpFlushExFW();
     private final HttpEndExFW endExRO = new HttpEndExFW();
+    private final HttpDataExFW dataExRO = new HttpDataExFW();
+    private final HttpSseEventFW.Builder eventRW = new HttpSseEventFW.Builder();
+    private final OctetsFW eventPayloadRO = new OctetsFW();
     private final HttpResetExFW resetExRO = new HttpResetExFW();
 
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
@@ -554,7 +565,6 @@ public final class HttpServerFactory implements HttpStreamFactory
     private final BufferPool bufferPool;
     private final EngineContext context;
     private final BindingHandler streamFactory;
-    private final BindingHandler sseFactory;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final LongSupplier supplyBudgetId;
@@ -563,6 +573,11 @@ public final class HttpServerFactory implements HttpStreamFactory
     private final Http2Settings initialSettings;
     private final BufferPool headersPool;
     private final MutableDirectBufferEx extBuffer;
+    private final MutableDirectBufferEx eventBuffer;
+    private final MutableDirectBufferEx eventIdBuffer;
+    private final MutableDirectBufferEx eventTypeBuffer;
+    private final UnsafeBufferEx eventIdView;
+    private final UnsafeBufferEx eventTypeView;
     private final int decodeMax;
     private final int encodeMax;
     private final int proxyTypeId;
@@ -584,7 +599,6 @@ public final class HttpServerFactory implements HttpStreamFactory
         this.writeBuffer = context.writeBuffer();
         this.bufferPool = context.bufferPool();
         this.streamFactory = context.streamFactory();
-        this.sseFactory = new HttpSseServerFactory(context, streamFactory);
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.supplyBudgetId = context::supplyBudgetId;
@@ -595,6 +609,11 @@ public final class HttpServerFactory implements HttpStreamFactory
         this.codecBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.frameBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.extBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
+        this.eventBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
+        this.eventIdBuffer = new UnsafeBufferEx(new byte[EVENT_FIELD_VALUE_MAX]);
+        this.eventTypeBuffer = new UnsafeBufferEx(new byte[EVENT_FIELD_VALUE_MAX]);
+        this.eventIdView = new UnsafeBufferEx(new byte[0]);
+        this.eventTypeView = new UnsafeBufferEx(new byte[0]);
         this.modelBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.modelValueBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.modelBeginExBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
@@ -741,7 +760,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 .build();
 
         MessageConsumer receiver =
-                sseFactory.newStream(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof(), sender);
+                streamFactory.newStream(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof(), sender);
 
         receiver.accept(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof());
 
@@ -972,6 +991,24 @@ public final class HttpServerFactory implements HttpStreamFactory
         long budgetId,
         int padding)
     {
+        doWindow(receiver, originId, routedId, streamId, sequence, acknowledge, maximum,
+                traceId, authorization, budgetId, padding, 0);
+    }
+
+    private void doWindow(
+        MessageConsumer receiver,
+        long originId,
+        long routedId,
+        long streamId,
+        long sequence,
+        long acknowledge,
+        int maximum,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int padding,
+        int capabilities)
+    {
         final WindowFW window = windowRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .originId(originId)
                 .routedId(routedId)
@@ -983,6 +1020,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 .authorization(authorization)
                 .budgetId(budgetId)
                 .padding(padding)
+                .capabilities(capabilities)
                 .build();
 
         receiver.accept(window.typeId(), window.buffer(), window.offset(), window.sizeof());
@@ -2717,9 +2755,14 @@ public final class HttpServerFactory implements HttpStreamFactory
             int flags,
             long budgetId,
             int reserved,
-            OctetsFW payload)
+            OctetsFW data,
+            OctetsFW extension)
         {
             assert exchange == this.exchange;
+
+            final OctetsFW payload = exchange.eventFraming ? encodeEvent(flags, data, extension) : data;
+
+            reserved += Math.max(payload.sizeof() - data.sizeof(), 0);
 
             DirectBufferEx buffer = payload.buffer();
             int offset = payload.offset();
@@ -2881,6 +2924,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             private HttpExchangeState responseState;
             private boolean responseChunked;
             private boolean responseClosing;
+            private boolean eventFraming;
             private int responseRemaining;
             private boolean redirected;
 
@@ -3262,6 +3306,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 final HttpBeginExFW beginEx = begin.extension().get(beginExRO::tryWrap);
                 final Array32FW<HttpHeaderFW> headers = beginEx != null ? beginEx.headers() : DEFAULT_HEADERS;
 
+                eventFraming = canFrame(requestCaps) && isEventStream(headers);
                 responseState = HttpExchangeState.OPEN;
                 doEncodeHeaders(this, traceId, sessionId, 0L, headers);
             }
@@ -3297,7 +3342,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                     responseRemaining -= data.length();
                     assert responseRemaining >= 0;
 
-                    doEncodeBody(this, traceId, authorization, flags, budgetId, reserved, payload);
+                    doEncodeBody(this, traceId, authorization, flags, budgetId, reserved, payload, data.extension());
                 }
             }
 
@@ -3393,7 +3438,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                     assert responsePad >= 0;
 
                     doWindow(application, originId, routedId, responseId, responseSeq, responseAck, responseMax,
-                            traceId, sessionId, replyBudgetId, replyPad + responsePad);
+                            traceId, sessionId, replyBudgetId, replyPad + responsePad, CAPABILITY_FRAMING_MASK);
                 }
             }
 
@@ -6059,6 +6104,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             private long responseSeq;
             private long responseAck;
             private int responseMax;
+            private boolean eventFraming;
 
             private Http2Exchange(
                 long originId,
@@ -6477,6 +6523,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 final HttpHeaderFW contentLengthHeader = headers.matchFirst(header ->
                         header.name().equals(HEADER_CONTENT_LENGTH));
                 responseContentLength = contentLengthHeader != null ? parseInt(contentLengthHeader.value().asString()) : -1;
+                eventFraming = canFrame(requestCaps) && isEventStream(headers);
 
                 doEncodeHeaders(traceId, authorization, streamId, policy, origin, headers, responseContentLength == 0);
             }
@@ -6517,12 +6564,14 @@ public final class HttpServerFactory implements HttpStreamFactory
                 }
                 else
                 {
-                    final OctetsFW payload = data.payload();
+                    final OctetsFW dataPayload = data.payload();
 
-                    if (payload != null)
+                    if (dataPayload != null)
                     {
                         final int flags = data.flags();
-                        final int length = data.length();
+                        final OctetsFW payload = eventFraming ? encodeEvent(flags, dataPayload, data.extension()) : dataPayload;
+                        final int length = payload.sizeof();
+                        final int expansion = Math.max(length - dataPayload.sizeof(), 0);
 
                         if (HttpConfiguration.DEBUG_HTTP2_BUDGETS)
                         {
@@ -6538,7 +6587,10 @@ public final class HttpServerFactory implements HttpStreamFactory
                         responseContentObserved += length;
 
                         final boolean endResponse = responseContentLength == responseContentObserved;
-                        doEncodeData(traceId, authorization, flags, budgetId, reserved, streamId, payload, endResponse);
+                        responseSharedBudget -= expansion;
+
+                        doEncodeData(traceId, authorization, flags, budgetId, reserved + expansion, streamId, payload,
+                            endResponse);
 
                         final int remotePaddableMax = Math.min(remoteBudget, bufferPool.slotCapacity());
                         final int remotePadding = http2FramePadding(remotePaddableMax, remoteSettings.maxFrameSize);
@@ -6706,7 +6758,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                         assert responseMax >= 0;
 
                         doWindow(application, originId, routedId, responseId, responseSeq, responseAck, responseMax,
-                                traceId, sessionId, budgetId, responsePad);
+                                traceId, sessionId, budgetId, responsePad, CAPABILITY_FRAMING_MASK);
                     }
                 }
             }
@@ -7550,5 +7602,80 @@ public final class HttpServerFactory implements HttpStreamFactory
         int capabilities)
     {
         return (capabilities & CAPABILITY_CHALLENGE_MASK) != 0;
+    }
+
+    private static boolean isEventStream(
+        Array32FW<HttpHeaderFW> headers)
+    {
+        final HttpHeaderFW contentType = headers.matchFirst(h -> HEADER_CONTENT_TYPE.equals(h.name()));
+        final DirectBufferEx value = contentType != null ? contentType.value().value() : null;
+
+        boolean eventStream = value != null && value.capacity() >= CONTENT_TYPE_EVENT_STREAM.length;
+
+        for (int i = 0; eventStream && i < CONTENT_TYPE_EVENT_STREAM.length; i++)
+        {
+            eventStream = value.getByte(i) == CONTENT_TYPE_EVENT_STREAM[i];
+        }
+
+        return eventStream;
+    }
+
+    private static boolean canFrame(
+        int capabilities)
+    {
+        return (capabilities & CAPABILITY_FRAMING_MASK) != 0;
+    }
+
+    private OctetsFW encodeEvent(
+        int flags,
+        OctetsFW payload,
+        OctetsFW extension)
+    {
+        DirectBufferEx id = null;
+        DirectBufferEx type = null;
+
+        final HttpDataExFW dataEx = extension.sizeof() > 0 ? extension.get(dataExRO::tryWrap) : null;
+
+        if (dataEx != null)
+        {
+            id = eventField(dataEx, HEADER_NAME_EVENT_ID, eventIdBuffer, eventIdView);
+            type = eventField(dataEx, HEADER_NAME_EVENT_TYPE, eventTypeBuffer, eventTypeView);
+        }
+
+        final HttpSseEventFW event = eventRW.wrap(eventBuffer, 0, eventBuffer.capacity())
+                .flags(flags)
+                .id(id)
+                .type(type)
+                .data(payload)
+                .build();
+
+        return eventPayloadRO.wrap(event.buffer(), event.offset(), event.limit());
+    }
+
+    private static DirectBufferEx eventField(
+        HttpDataExFW dataEx,
+        String8FW name,
+        MutableDirectBufferEx scratch,
+        UnsafeBufferEx view)
+    {
+        final HttpHeaderFW header = dataEx.headers().matchFirst(h -> name.equals(h.name()));
+
+        DirectBufferEx field = null;
+
+        if (header != null)
+        {
+            final DirectBufferEx value = header.value().value();
+            final int length = value != null ? Math.min(value.capacity(), scratch.capacity()) : 0;
+
+            if (length > 0)
+            {
+                value.getBytes(0, scratch, 0, length);
+            }
+
+            view.wrap(scratch, 0, length);
+            field = view;
+        }
+
+        return field;
     }
 }

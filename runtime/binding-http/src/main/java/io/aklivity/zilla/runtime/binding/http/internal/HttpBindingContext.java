@@ -25,7 +25,6 @@ import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.config.engine.KindConfig;
 import io.aklivity.zilla.runtime.binding.http.internal.stream.HttpClientFactory;
 import io.aklivity.zilla.runtime.binding.http.internal.stream.HttpServerFactory;
-import io.aklivity.zilla.runtime.binding.http.internal.stream.HttpSseClientFactory;
 import io.aklivity.zilla.runtime.binding.http.internal.stream.HttpStreamFactory;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingContext;
@@ -40,7 +39,7 @@ final class HttpBindingContext implements BindingContext
         EngineContext context)
     {
         Map<KindConfig, HttpStreamFactory> factories = new EnumMap<>(KindConfig.class);
-        factories.put(CLIENT, new HttpSseClientFactory(context, new HttpClientFactory(config, context)));
+        factories.put(CLIENT, new HttpClientFactory(config, context));
         factories.put(SERVER, new HttpServerFactory(config, context));
         this.factories = factories;
     }
