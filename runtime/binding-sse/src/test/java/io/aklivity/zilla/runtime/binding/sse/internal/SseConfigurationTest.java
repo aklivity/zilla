@@ -47,13 +47,11 @@ public class SseConfigurationTest
         final Properties properties = new Properties();
         properties.setProperty("zilla.binding.http.event.stream.initial.comment.enabled", "true");
         properties.setProperty("zilla.binding.http.event.stream.maximum.idle.time", "7");
-        properties.setProperty("zilla.binding.http.event.stream.challenge.event.type", "reauthenticate");
 
         final SseConfiguration config = new SseConfiguration(new Configuration(properties));
 
         assertEquals(true, config.initialCommentEnabled());
         assertEquals(7, config.maximumIdleTime());
-        assertEquals("reauthenticate", config.challengeEventType());
     }
 
     @Test

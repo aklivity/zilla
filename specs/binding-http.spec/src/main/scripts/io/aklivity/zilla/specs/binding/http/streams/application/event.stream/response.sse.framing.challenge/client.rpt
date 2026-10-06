@@ -43,4 +43,22 @@ read zilla:begin.ext ${http:matchBeginEx()
 
 read "Hello, world"
 
+read advise zilla:challenge ${http:challengeEx()
+                                  .typeId(zilla:id("http"))
+                                  .header(":method", "POST")
+                                  .header("content-type", "application/x-challenge-response")
+                                  .build()}
+
+read zilla:data.ext ${http:matchDataEx()
+                            .typeId(zilla:id("http"))
+                            .header("type", "challenge")
+                            .build()}
+read "{"
+     "\"method\":\"POST\","
+     "\"headers\":"
+     "{"
+         "\"content-type\":\"application/x-challenge-response\""
+     "}"
+      "}"
+
 read abort

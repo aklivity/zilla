@@ -18,7 +18,7 @@ accept "zilla://streams/app0"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
         option zilla:authorization 1L
-        option zilla:capabilities ${core:capabilities("FRAMING")}
+        option zilla:capabilities ${core:capabilities("CHALLENGE", "FRAMING")}
 accepted
 
 read zilla:begin.ext ${http:matchBeginEx()
@@ -42,6 +42,25 @@ write zilla:begin.ext ${http:beginEx()
                             .build()}
 
 write "Hello, world"
+write flush
+
+write advised zilla:challenge ${http:challengeEx()
+                                    .typeId(zilla:id("http"))
+                                    .header(":method", "POST")
+                                    .header("content-type", "application/x-challenge-response")
+                                    .build()}
+
+write zilla:data.ext ${http:dataEx()
+                             .typeId(zilla:id("http"))
+                             .header("type", "challenge")
+                             .build()}
+write "{"
+          "\"method\":\"POST\","
+          "\"headers\":"
+          "{"
+              "\"content-type\":\"application/x-challenge-response\""
+          "}"
+      "}"
 write flush
 
 write aborted
