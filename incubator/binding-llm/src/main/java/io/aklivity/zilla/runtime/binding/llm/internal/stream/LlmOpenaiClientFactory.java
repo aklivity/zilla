@@ -102,6 +102,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
     private static final int NO_ERROR = -1;
     private static final int STATUS_BAD_GATEWAY = 502;
     private static final int NONE = -1;
+    private static final int MEMBER_NAMES = 16;
     private static final int REPLACEMENT_CHARACTER = 0xFFFD;
     private static final String FINISH_REASON = "finish_reason";
     private static final String COMPLETION = "chat.completion";
@@ -214,8 +215,6 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
     private final MutableDirectBufferEx writeBuffer;
     private final MutableDirectBufferEx extBuffer;
     private final Matcher contentTypeMatcher;
-    private final MutableDirectBufferEx convertBuffer;
-    private final MutableDirectBufferEx copyBuffer;
     private final MutableDirectBufferEx transformBuffer;
     private final UnsafeBufferEx comparisonRO;
     private final DirectBufferEx emptyBufferRO;
@@ -223,6 +222,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
     private final LongUnaryOperator supplyReplyId;
     private final BindingHandler streamFactory;
     private final BufferPool decodePool;
+    private final BufferPool stagePool;
     private final BufferPool encodePool;
     private final Long2ObjectHashMap<LlmBindingConfig> bindings;
     private final int decodeMax;
@@ -237,11 +237,10 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         this.extBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.contentTypeMatcher = CONTENT_TYPE.matcher("");
         this.decodePool = context.bufferPool();
+        this.stagePool = decodePool.duplicate();
         this.encodePool = context.bufferPool().duplicate();
         this.decodeMax = decodePool.slotCapacity();
         this.encodeMax = encodePool.slotCapacity();
-        this.convertBuffer = new UnsafeBufferEx(new byte[encodeMax]);
-        this.copyBuffer = new UnsafeBufferEx(new byte[decodeMax]);
         this.transformBuffer = new UnsafeBufferEx(new byte[decodeMax]);
         this.comparisonRO = new UnsafeBufferEx(new byte[0]);
         this.emptyBufferRO = new UnsafeBufferEx(new byte[0]);
@@ -488,6 +487,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         private final LlmOpenaiHttpStream http;
         private final JsonParserEx parser;
         private final StringBuilder captureValue;
+        private final String[] memberNames;
         private final StringBuilder usagePath;
         private final int[] usageMark;
         private final LlmOpenaiResponseDecoder decodeStart = this::decodeStart;
@@ -648,6 +648,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             this.http = new LlmOpenaiHttpStream(this);
             this.parser = JsonEx.createParser();
             this.captureValue = new StringBuilder();
+            this.memberNames = new String[MEMBER_NAMES];
             this.usagePath = new StringBuilder();
             this.usageMark = new int[8];
             this.textBytes = new byte[1024];
@@ -1485,7 +1486,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
                     if (!canonicalMember(member) || completion && carriedMember(member))
                     {
-                        beginCapture(member.toString(), false, false, decodeRoot);
+                        beginCapture(memberName(member), false, false, decodeRoot);
                     }
                     else if (MEMBER_ID.contentEquals(member))
                     {
@@ -1527,7 +1528,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         {
             while (decoder == decodeId && parser.hasNextEvent())
             {
-                final String value = stringValue(parser.nextEvent(), decodeRoot);
+                final String value = stringValue(parser.nextEvent(), decodeRoot, id);
 
                 if (value != null)
                 {
@@ -1545,11 +1546,16 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         {
             while (decoder == decodeObject && parser.hasNextEvent())
             {
-                final String value = stringValue(parser.nextEvent(), decodeRoot);
+                final JsonEvent event = parser.nextEvent();
 
-                if (value != null)
+                if (event == JsonEvent.VALUE_STRING && !parser.deferredBytes())
                 {
-                    completion = COMPLETION.equals(value);
+                    completion = COMPLETION.contentEquals(parser.getStringView());
+                    decoder = decodeRoot;
+                }
+                else
+                {
+                    stringValue(event, decodeRoot);
                 }
             }
 
@@ -1563,7 +1569,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         {
             while (decoder == decodeModel && parser.hasNextEvent())
             {
-                final String value = stringValue(parser.nextEvent(), decodeRoot);
+                final String value = stringValue(parser.nextEvent(), decodeRoot, servedModel);
 
                 if (value != null)
                 {
@@ -1657,7 +1663,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                     else if (choiceMessage &&
                         (FINISH_REASON.contentEquals(member) || completion && !MEMBER_INDEX.contentEquals(member)))
                     {
-                        beginCapture(member.toString(), true, false, decodeChoice);
+                        beginCapture(memberName(member), true, false, decodeChoice);
                     }
                     else if (MEMBER_INDEX.contentEquals(member))
                     {
@@ -1814,7 +1820,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
                     if (completion && !canonicalMessageMember(member))
                     {
-                        beginCapture(member.toString(), true, true, decodeMessage);
+                        beginCapture(memberName(member), true, true, decodeMessage);
                     }
                     else
                     {
@@ -2470,6 +2476,14 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             JsonEvent event,
             LlmOpenaiResponseDecoder then)
         {
+            return stringValue(event, then, null);
+        }
+
+        private String stringValue(
+            JsonEvent event,
+            LlmOpenaiResponseDecoder then,
+            String known)
+        {
             String value = null;
 
             if (event != JsonEvent.VALUE_STRING)
@@ -2482,11 +2496,34 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             }
             else
             {
-                value = parser.getString();
+                value = known != null && known.contentEquals(parser.getStringView()) ? known : parser.getString();
                 decoder = then;
             }
 
             return value;
+        }
+
+        private String memberName(
+            CharSequence member)
+        {
+            int hash = 0;
+
+            for (int index = 0; index < member.length(); index++)
+            {
+                hash = 31 * hash + member.charAt(index);
+            }
+
+            final int slot = (hash ^ hash >>> 16) & MEMBER_NAMES - 1;
+
+            String name = memberNames[slot];
+
+            if (name == null || !name.contentEquals(member))
+            {
+                name = member.toString();
+                memberNames[slot] = name;
+            }
+
+            return name;
         }
 
         private int intValue(
@@ -3858,7 +3895,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
             }
 
             put(MESSAGE_START);
-            put(role.getBytes(UTF_8));
+            putEscaped(role);
             putByte('"');
 
             if (kind == KIND_TOOL_RESULT)
@@ -3976,9 +4013,8 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 final int at = encodeHold + CONTENT_MEMBER.length;
                 final int tail = encodeSlotOffset - at;
 
-                convertBuffer.putBytes(0, buffer, at, tail);
+                buffer.putBytes(at + CONTENT_ARRAY_TEXT_START.length, buffer, at, tail);
                 buffer.putBytes(at, CONTENT_ARRAY_TEXT_START);
-                buffer.putBytes(at + CONTENT_ARRAY_TEXT_START.length, convertBuffer, 0, tail);
                 encodeSlotOffset += CONTENT_ARRAY_TEXT_START.length;
 
                 if (sectionOpen)
@@ -4057,8 +4093,32 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
         private void putEscaped(
             String value)
         {
-            final byte[] bytes = value.getBytes(UTF_8);
-            putEscaped(new UnsafeBufferEx(bytes), 0, bytes.length);
+            final int length = value.length();
+            final MutableDirectBufferEx buffer = encodeBuffer(length * ESCAPE_EXPANSION);
+
+            if (buffer != null)
+            {
+                int position = encodeSlotOffset;
+
+                for (int index = 0; index < length; index++)
+                {
+                    final char c = value.charAt(index);
+
+                    if (c < 0x80)
+                    {
+                        position = putEscapedByte(buffer, position, (byte) c);
+                    }
+                    else
+                    {
+                        final int codePoint = value.codePointAt(index);
+
+                        index += Character.charCount(codePoint) - 1;
+                        position += buffer.putStringWithoutLengthUtf8(position, Character.toString(codePoint));
+                    }
+                }
+
+                encodeSlotOffset = position;
+            }
         }
 
         private void putEscaped(
@@ -4074,58 +4134,68 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
                 for (int i = 0; i < length; i++)
                 {
-                    final byte value = source.getByte(offset + i);
-
-                    switch (value)
-                    {
-                    case '"':
-                        buffer.putByte(position++, (byte) '\\');
-                        buffer.putByte(position++, (byte) '"');
-                        break;
-                    case '\\':
-                        buffer.putByte(position++, (byte) '\\');
-                        buffer.putByte(position++, (byte) '\\');
-                        break;
-                    case '\n':
-                        buffer.putByte(position++, (byte) '\\');
-                        buffer.putByte(position++, (byte) 'n');
-                        break;
-                    case '\r':
-                        buffer.putByte(position++, (byte) '\\');
-                        buffer.putByte(position++, (byte) 'r');
-                        break;
-                    case '\t':
-                        buffer.putByte(position++, (byte) '\\');
-                        buffer.putByte(position++, (byte) 't');
-                        break;
-                    case '\b':
-                        buffer.putByte(position++, (byte) '\\');
-                        buffer.putByte(position++, (byte) 'b');
-                        break;
-                    case '\f':
-                        buffer.putByte(position++, (byte) '\\');
-                        buffer.putByte(position++, (byte) 'f');
-                        break;
-                    default:
-                        if (value >= 0 && value < 0x20)
-                        {
-                            buffer.putByte(position++, (byte) '\\');
-                            buffer.putByte(position++, (byte) 'u');
-                            buffer.putByte(position++, (byte) '0');
-                            buffer.putByte(position++, (byte) '0');
-                            buffer.putByte(position++, (byte) Character.forDigit(value >> 4, 16));
-                            buffer.putByte(position++, (byte) Character.forDigit(value & 0x0f, 16));
-                        }
-                        else
-                        {
-                            buffer.putByte(position++, value);
-                        }
-                        break;
-                    }
+                    position = putEscapedByte(buffer, position, source.getByte(offset + i));
                 }
 
                 encodeSlotOffset = position;
             }
+        }
+
+        private int putEscapedByte(
+            MutableDirectBufferEx buffer,
+            int position,
+            byte value)
+        {
+            int next = position;
+
+            switch (value)
+            {
+            case '"':
+                buffer.putByte(next++, (byte) '\\');
+                buffer.putByte(next++, (byte) '"');
+                break;
+            case '\\':
+                buffer.putByte(next++, (byte) '\\');
+                buffer.putByte(next++, (byte) '\\');
+                break;
+            case '\n':
+                buffer.putByte(next++, (byte) '\\');
+                buffer.putByte(next++, (byte) 'n');
+                break;
+            case '\r':
+                buffer.putByte(next++, (byte) '\\');
+                buffer.putByte(next++, (byte) 'r');
+                break;
+            case '\t':
+                buffer.putByte(next++, (byte) '\\');
+                buffer.putByte(next++, (byte) 't');
+                break;
+            case '\b':
+                buffer.putByte(next++, (byte) '\\');
+                buffer.putByte(next++, (byte) 'b');
+                break;
+            case '\f':
+                buffer.putByte(next++, (byte) '\\');
+                buffer.putByte(next++, (byte) 'f');
+                break;
+            default:
+                if (value >= 0 && value < 0x20)
+                {
+                    buffer.putByte(next++, (byte) '\\');
+                    buffer.putByte(next++, (byte) 'u');
+                    buffer.putByte(next++, (byte) '0');
+                    buffer.putByte(next++, (byte) '0');
+                    buffer.putByte(next++, (byte) Character.forDigit(value >> 4, 16));
+                    buffer.putByte(next++, (byte) Character.forDigit(value & 0x0f, 16));
+                }
+                else
+                {
+                    buffer.putByte(next++, value);
+                }
+                break;
+            }
+
+            return next;
         }
 
         private void flushEncode(
@@ -4595,8 +4665,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 if (remaining > 0)
                 {
                     final MutableDirectBufferEx slotBuffer = decodePool.buffer(decodeSlot);
-                    copyBuffer.putBytes(0, slotBuffer, progress, remaining);
-                    slotBuffer.putBytes(0, copyBuffer, 0, remaining);
+                    slotBuffer.putBytes(0, slotBuffer, progress, remaining);
                     decodeSlotOffset = remaining;
                 }
                 else
@@ -4638,7 +4707,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                     }
                     else
                     {
-                        decodePool.buffer(stageSlot).putBytes(stageSlotOffset, buffer, offset, length);
+                        stagePool.buffer(stageSlot).putBytes(stageSlotOffset, buffer, offset, length);
                         stageSlotOffset += length;
                         stageLast = last;
                         decodeStaged();
@@ -4653,7 +4722,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
 
         private void decodeStaged()
         {
-            decodeFragment(decodePool.buffer(stageSlot), 0, stageSlotOffset, stageLast);
+            decodeFragment(stagePool.buffer(stageSlot), 0, stageSlotOffset, stageLast);
         }
 
         private void decodeFragment(
@@ -4703,8 +4772,7 @@ public final class LlmOpenaiClientFactory implements LlmDialectHandler
                 }
                 else
                 {
-                    copyBuffer.putBytes(0, source, progress, remaining);
-                    decodePool.buffer(stageSlot).putBytes(0, copyBuffer, 0, remaining);
+                    stagePool.buffer(stageSlot).putBytes(0, source, progress, remaining);
                     stageSlotOffset = remaining;
                     stageLast = last;
                 }

@@ -2611,6 +2611,30 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             long traceId,
             long authorization)
         {
+            final long available = replyMax - (replySeq - replyAck) - replyPad;
+
+            if (encodeSlot == NO_SLOT && available > 0 && length <= available)
+            {
+                doNetData(traceId, authorization, flags, budgetId, length + replyPad, type, buffer, offset, length);
+                stream.ackReply(traceId);
+            }
+            else
+            {
+                doNetEncode(buffer, offset, length, rawLength, flags, type, budgetId, traceId, authorization);
+            }
+        }
+
+        private void doNetEncode(
+            DirectBufferEx buffer,
+            int offset,
+            int length,
+            int rawLength,
+            int flags,
+            String type,
+            long budgetId,
+            long traceId,
+            long authorization)
+        {
             if (encodeSlot == NO_SLOT)
             {
                 encodeSlot = encodePool.acquire(replyId);
@@ -2641,7 +2665,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             long budgetId,
             int reserved,
             String type,
-            MutableDirectBufferEx buffer,
+            DirectBufferEx buffer,
             int offset,
             int length)
         {
@@ -3758,7 +3782,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
                 put(COMMA);
                 put(QUOTE);
-                put(escape(block));
+                putEscaped(block);
                 put(MEMBER_COLON);
             }
         }
@@ -3842,7 +3866,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
                 put(COMMA);
                 put(QUOTE);
-                put(escape(block));
+                putEscaped(block);
                 put(MEMBER_COLON);
             }
         }
@@ -3944,15 +3968,15 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
             eventBegin(position, null);
             put(ERROR_START);
-            put(escape(message != null ? message : ""));
+            putEscaped(message != null ? message : "");
             put(ERROR_TYPE);
-            put(escape(type != null ? type : "server_error"));
+            putEscaped(type != null ? type : "server_error");
             put(QUOTE);
             put(ERROR_PARAM);
             if (param != null)
             {
                 put(QUOTE);
-                put(escape(param));
+                putEscaped(param);
                 put(QUOTE);
             }
             else
@@ -4085,9 +4109,9 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 put(DELTA_TOOL_CALLS);
                 putNumber(index);
                 put(DELTA_TOOL_ID);
-                put(escape(toolCallId != null ? toolCallId : ""));
+                putEscaped(toolCallId != null ? toolCallId : "");
                 put(DELTA_TOOL_TYPE);
-                put(escape(toolName != null ? toolName : ""));
+                putEscaped(toolName != null ? toolName : "");
                 put(DELTA_TOOL_ARGUMENTS_EMPTY);
                 put(DELTA_END);
                 chunkEnd();
@@ -4106,9 +4130,9 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 }
 
                 put(TOOL_CALL_START);
-                put(escape(toolCallId != null ? toolCallId : ""));
+                putEscaped(toolCallId != null ? toolCallId : "");
                 put(TOOL_CALL_TYPE);
-                put(escape(toolName != null ? toolName : ""));
+                putEscaped(toolName != null ? toolName : "");
                 put(TOOL_CALL_ARGUMENTS);
             }
         }
@@ -4459,6 +4483,29 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             for (int i = 0; i < length; i++)
             {
                 putEscaped(source.getByte(offset + i));
+            }
+        }
+
+        private void putEscaped(
+            String value)
+        {
+            final int length = value.length();
+
+            for (int index = 0; index < length; index++)
+            {
+                final char c = value.charAt(index);
+
+                if (c < 0x80)
+                {
+                    putEscaped((byte) c);
+                }
+                else
+                {
+                    final int codePoint = value.codePointAt(index);
+
+                    index += Character.charCount(codePoint) - 1;
+                    position += copyBuffer.putStringWithoutLengthUtf8(position, Character.toString(codePoint));
+                }
             }
         }
 

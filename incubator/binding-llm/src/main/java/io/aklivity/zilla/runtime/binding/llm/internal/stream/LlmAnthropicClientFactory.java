@@ -136,9 +136,11 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
     private static final int ENCODE_SLACK = 256;
 
     private static final int NONE = -1;
+    private static final int MEMBER_NAMES = 16;
     private static final int REPLACEMENT_CHARACTER = 0xFFFD;
 
     private static final String BLOCK_TOOL_USE = "tool_use";
+    private static final String BLOCK_OTHER = "other";
     private static final String KEY_STOP_REASON = "stop_reason";
     private static final String MEMBER_TYPE = "type";
     private static final String MEMBER_ID = "id";
@@ -159,6 +161,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
     private static final String TYPE_MESSAGE_START = "message_start";
     private static final String TYPE_MESSAGE_DELTA = "message_delta";
     private static final String TYPE_MESSAGE_STOP = "message_stop";
+    private static final String TYPE_CONTENT_BLOCK_DELTA = "content_block_delta";
     private static final String TYPE_CONTENT_BLOCK_STOP = "content_block_stop";
     private static final String USAGE_INPUT_TOKENS = "input_tokens";
     private static final String USAGE_CACHE_CREATION_INPUT_TOKENS = "cache_creation_input_tokens";
@@ -231,13 +234,13 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
     private final MutableDirectBufferEx writeBuffer;
     private final MutableDirectBufferEx extBuffer;
     private final Matcher contentTypeMatcher;
-    private final MutableDirectBufferEx copyBuffer;
     private final MutableDirectBufferEx transformBuffer;
     private final DirectBufferEx emptyBufferRO;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final BindingHandler streamFactory;
     private final BufferPool decodePool;
+    private final BufferPool stagePool;
     private final BufferPool encodePool;
     private final Long2ObjectHashMap<LlmBindingConfig> bindings;
     private final int decodeMax;
@@ -252,10 +255,10 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         this.extBuffer = new UnsafeBufferEx(new byte[writeBuffer.capacity()]);
         this.contentTypeMatcher = CONTENT_TYPE.matcher("");
         this.decodePool = context.bufferPool();
+        this.stagePool = decodePool.duplicate();
         this.encodePool = context.bufferPool().duplicate();
         this.decodeMax = decodePool.slotCapacity();
         this.encodeMax = encodePool.slotCapacity();
-        this.copyBuffer = new UnsafeBufferEx(new byte[decodeMax]);
         this.transformBuffer = new UnsafeBufferEx(new byte[decodeMax]);
         this.emptyBufferRO = new UnsafeBufferEx(new byte[0]);
         this.supplyInitialId = context::supplyInitialId;
@@ -490,6 +493,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         private final LlmAnthropicHttpStream http;
         private final JsonParserEx parser;
         private final StringBuilder captureValue;
+        private final String[] memberNames;
         private final LlmAnthropicResponseDecoder decodeStart = this::decodeStart;
         private final LlmAnthropicResponseDecoder decodeRootStart = this::decodeRootStart;
         private final LlmAnthropicResponseDecoder decodeRoot = this::decodeRoot;
@@ -637,6 +641,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             this.http = new LlmAnthropicHttpStream(this);
             this.parser = JsonEx.createParser();
             this.captureValue = new StringBuilder();
+            this.memberNames = new String[MEMBER_NAMES];
             this.textBytes = new byte[1024];
             this.textBuffer = new UnsafeBufferEx(textBytes);
             this.heldBytes = new byte[1024];
@@ -1463,7 +1468,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
 
                     if (TYPE_MESSAGE.equals(documentType) && !canonicalMember(member) && !MEMBER_ERROR.contentEquals(member))
                     {
-                        beginCapture(member.toString(), decodeRoot);
+                        beginCapture(memberName(member), decodeRoot);
                     }
                     else if (MEMBER_TYPE.contentEquals(member))
                     {
@@ -1523,17 +1528,22 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         {
             while (decoder == decodeType && parser.hasNextEvent())
             {
-                final String value = stringValue(parser.nextEvent(), decodeRoot);
+                final JsonEvent event = parser.nextEvent();
 
-                if (value != null)
+                if (event == JsonEvent.VALUE_STRING && !parser.deferredBytes())
                 {
-                    documentType = value;
+                    documentType = eventType(parser.getStringView());
+                    decoder = decodeRoot;
 
-                    if (TYPE_CONTENT_BLOCK_STOP.equals(value) || TYPE_MESSAGE_DELTA.equals(value) ||
-                        TYPE_MESSAGE_STOP.equals(value))
+                    if (TYPE_CONTENT_BLOCK_STOP.equals(documentType) || TYPE_MESSAGE_DELTA.equals(documentType) ||
+                        TYPE_MESSAGE_STOP.equals(documentType))
                     {
                         closeSection();
                     }
+                }
+                else
+                {
+                    stringValue(event, decodeRoot);
                 }
             }
 
@@ -1547,7 +1557,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         {
             while (decoder == decodeId && parser.hasNextEvent())
             {
-                final String value = stringValue(parser.nextEvent(), valueThen);
+                final String value = stringValue(parser.nextEvent(), valueThen, id);
 
                 if (value != null)
                 {
@@ -1565,7 +1575,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         {
             while (decoder == decodeModel && parser.hasNextEvent())
             {
-                final String value = stringValue(parser.nextEvent(), valueThen);
+                final String value = stringValue(parser.nextEvent(), valueThen, servedModel);
 
                 if (value != null)
                 {
@@ -1621,7 +1631,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
 
                     if (TYPE_MESSAGE_START.equals(documentType) && !canonicalMember(member))
                     {
-                        beginCapture(member.toString(), decodeMessage);
+                        beginCapture(memberName(member), decodeMessage);
                     }
                     else if (MEMBER_ID.contentEquals(member))
                     {
@@ -1862,11 +1872,16 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         {
             while (decoder == decodeBlockType && parser.hasNextEvent())
             {
-                final String value = stringValue(parser.nextEvent(), blockThen);
+                final JsonEvent event = parser.nextEvent();
 
-                if (value != null)
+                if (event == JsonEvent.VALUE_STRING && !parser.deferredBytes())
                 {
-                    blockType = value;
+                    blockType = BLOCK_TOOL_USE.contentEquals(parser.getStringView()) ? BLOCK_TOOL_USE : BLOCK_OTHER;
+                    decoder = blockThen;
+                }
+                else
+                {
+                    stringValue(event, blockThen);
                 }
             }
 
@@ -1983,7 +1998,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
 
                     if (TYPE_MESSAGE_DELTA.equals(documentType))
                     {
-                        beginCapture(member.toString(), decodeDelta);
+                        beginCapture(memberName(member), decodeDelta);
                     }
                     else if (MEMBER_TEXT.contentEquals(member))
                     {
@@ -2505,6 +2520,14 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             JsonEvent event,
             LlmAnthropicResponseDecoder then)
         {
+            return stringValue(event, then, null);
+        }
+
+        private String stringValue(
+            JsonEvent event,
+            LlmAnthropicResponseDecoder then,
+            String known)
+        {
             String value = null;
 
             if (event != JsonEvent.VALUE_STRING)
@@ -2517,11 +2540,46 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             }
             else
             {
-                value = parser.getString();
+                value = known != null && known.contentEquals(parser.getStringView()) ? known : parser.getString();
                 decoder = then;
             }
 
             return value;
+        }
+
+        private String memberName(
+            CharSequence member)
+        {
+            int hash = 0;
+
+            for (int index = 0; index < member.length(); index++)
+            {
+                hash = 31 * hash + member.charAt(index);
+            }
+
+            final int slot = (hash ^ hash >>> 16) & MEMBER_NAMES - 1;
+
+            String name = memberNames[slot];
+
+            if (name == null || !name.contentEquals(member))
+            {
+                name = member.toString();
+                memberNames[slot] = name;
+            }
+
+            return name;
+        }
+
+        private String eventType(
+            CharSequence type)
+        {
+            return TYPE_MESSAGE_START.contentEquals(type) ? TYPE_MESSAGE_START :
+                TYPE_CONTENT_BLOCK_DELTA.contentEquals(type) ? TYPE_CONTENT_BLOCK_DELTA :
+                TYPE_CONTENT_BLOCK_STOP.contentEquals(type) ? TYPE_CONTENT_BLOCK_STOP :
+                TYPE_MESSAGE_DELTA.contentEquals(type) ? TYPE_MESSAGE_DELTA :
+                TYPE_MESSAGE.contentEquals(type) ? TYPE_MESSAGE :
+                TYPE_MESSAGE_STOP.contentEquals(type) ? TYPE_MESSAGE_STOP :
+                type.toString();
         }
 
         private int intValue(
@@ -3960,8 +4018,32 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         private void putEscaped(
             String value)
         {
-            final byte[] bytes = value.getBytes(UTF_8);
-            putEscaped(new UnsafeBufferEx(bytes), 0, bytes.length);
+            final int length = value.length();
+            final MutableDirectBufferEx buffer = encodeBuffer(length * ESCAPE_EXPANSION);
+
+            if (buffer != null)
+            {
+                int position = encodeSlotOffset;
+
+                for (int index = 0; index < length; index++)
+                {
+                    final char c = value.charAt(index);
+
+                    if (c < 0x80)
+                    {
+                        position = putEscapedByte(buffer, position, (byte) c);
+                    }
+                    else
+                    {
+                        final int codePoint = value.codePointAt(index);
+
+                        index += Character.charCount(codePoint) - 1;
+                        position += buffer.putStringWithoutLengthUtf8(position, Character.toString(codePoint));
+                    }
+                }
+
+                encodeSlotOffset = position;
+            }
         }
 
         private void putEscaped(
@@ -3977,58 +4059,68 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
 
                 for (int i = 0; i < length; i++)
                 {
-                    final byte value = source.getByte(offset + i);
-
-                    switch (value)
-                    {
-                    case '"':
-                        buffer.putByte(position++, (byte) '\\');
-                        buffer.putByte(position++, (byte) '"');
-                        break;
-                    case '\\':
-                        buffer.putByte(position++, (byte) '\\');
-                        buffer.putByte(position++, (byte) '\\');
-                        break;
-                    case '\n':
-                        buffer.putByte(position++, (byte) '\\');
-                        buffer.putByte(position++, (byte) 'n');
-                        break;
-                    case '\r':
-                        buffer.putByte(position++, (byte) '\\');
-                        buffer.putByte(position++, (byte) 'r');
-                        break;
-                    case '\t':
-                        buffer.putByte(position++, (byte) '\\');
-                        buffer.putByte(position++, (byte) 't');
-                        break;
-                    case '\b':
-                        buffer.putByte(position++, (byte) '\\');
-                        buffer.putByte(position++, (byte) 'b');
-                        break;
-                    case '\f':
-                        buffer.putByte(position++, (byte) '\\');
-                        buffer.putByte(position++, (byte) 'f');
-                        break;
-                    default:
-                        if (value >= 0 && value < 0x20)
-                        {
-                            buffer.putByte(position++, (byte) '\\');
-                            buffer.putByte(position++, (byte) 'u');
-                            buffer.putByte(position++, (byte) '0');
-                            buffer.putByte(position++, (byte) '0');
-                            buffer.putByte(position++, (byte) Character.forDigit(value >> 4, 16));
-                            buffer.putByte(position++, (byte) Character.forDigit(value & 0x0f, 16));
-                        }
-                        else
-                        {
-                            buffer.putByte(position++, value);
-                        }
-                        break;
-                    }
+                    position = putEscapedByte(buffer, position, source.getByte(offset + i));
                 }
 
                 encodeSlotOffset = position;
             }
+        }
+
+        private int putEscapedByte(
+            MutableDirectBufferEx buffer,
+            int position,
+            byte value)
+        {
+            int next = position;
+
+            switch (value)
+            {
+            case '"':
+                buffer.putByte(next++, (byte) '\\');
+                buffer.putByte(next++, (byte) '"');
+                break;
+            case '\\':
+                buffer.putByte(next++, (byte) '\\');
+                buffer.putByte(next++, (byte) '\\');
+                break;
+            case '\n':
+                buffer.putByte(next++, (byte) '\\');
+                buffer.putByte(next++, (byte) 'n');
+                break;
+            case '\r':
+                buffer.putByte(next++, (byte) '\\');
+                buffer.putByte(next++, (byte) 'r');
+                break;
+            case '\t':
+                buffer.putByte(next++, (byte) '\\');
+                buffer.putByte(next++, (byte) 't');
+                break;
+            case '\b':
+                buffer.putByte(next++, (byte) '\\');
+                buffer.putByte(next++, (byte) 'b');
+                break;
+            case '\f':
+                buffer.putByte(next++, (byte) '\\');
+                buffer.putByte(next++, (byte) 'f');
+                break;
+            default:
+                if (value >= 0 && value < 0x20)
+                {
+                    buffer.putByte(next++, (byte) '\\');
+                    buffer.putByte(next++, (byte) 'u');
+                    buffer.putByte(next++, (byte) '0');
+                    buffer.putByte(next++, (byte) '0');
+                    buffer.putByte(next++, (byte) Character.forDigit(value >> 4, 16));
+                    buffer.putByte(next++, (byte) Character.forDigit(value & 0x0f, 16));
+                }
+                else
+                {
+                    buffer.putByte(next++, value);
+                }
+                break;
+            }
+
+            return next;
         }
 
         private void flushEncode(
@@ -4493,8 +4585,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                 if (remaining > 0)
                 {
                     final MutableDirectBufferEx slotBuffer = decodePool.buffer(decodeSlot);
-                    copyBuffer.putBytes(0, slotBuffer, progress, remaining);
-                    slotBuffer.putBytes(0, copyBuffer, 0, remaining);
+                    slotBuffer.putBytes(0, slotBuffer, progress, remaining);
                     decodeSlotOffset = remaining;
                 }
                 else
@@ -4521,7 +4612,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                     }
                     else
                     {
-                        decodePool.buffer(stageSlot).putBytes(stageSlotOffset, buffer, offset, length);
+                        stagePool.buffer(stageSlot).putBytes(stageSlotOffset, buffer, offset, length);
                         stageSlotOffset += length;
                         stageLast = last;
                         decodeStaged();
@@ -4536,7 +4627,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
 
         private void decodeStaged()
         {
-            decodeFragment(decodePool.buffer(stageSlot), 0, stageSlotOffset, stageLast);
+            decodeFragment(stagePool.buffer(stageSlot), 0, stageSlotOffset, stageLast);
         }
 
         private void decodeFragment(
@@ -4586,8 +4677,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                 }
                 else
                 {
-                    copyBuffer.putBytes(0, source, progress, remaining);
-                    decodePool.buffer(stageSlot).putBytes(0, copyBuffer, 0, remaining);
+                    stagePool.buffer(stageSlot).putBytes(0, source, progress, remaining);
                     stageSlotOffset = remaining;
                     stageLast = last;
                 }

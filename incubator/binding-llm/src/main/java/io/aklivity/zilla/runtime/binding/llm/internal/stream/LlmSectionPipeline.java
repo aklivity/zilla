@@ -45,8 +45,7 @@ final class LlmSectionPipeline
     private final MutableDirectBufferEx outputBuffer;
     private final UnsafeBufferEx windowBuffer;
 
-    private byte[] windowBytes;
-    private byte[] tail;
+    private byte[] window;
     private int tailLength;
     private boolean completed;
 
@@ -57,8 +56,7 @@ final class LlmSectionPipeline
         this.envelope = new LlmSectionEnvelope();
         this.outputBuffer = outputBuffer;
         this.windowBuffer = new UnsafeBufferEx();
-        this.windowBytes = new byte[0];
-        this.tail = new byte[0];
+        this.window = new byte[0];
         this.pipeline = JsonEx.stream(JsonEx.createParser())
             .envelope(envelope)
             .transform(stage)
@@ -101,14 +99,9 @@ final class LlmSectionPipeline
 
         if (tailLength > 0)
         {
-            if (windowBytes.length < windowLength)
-            {
-                windowBytes = new byte[windowLength];
-            }
-
-            System.arraycopy(tail, 0, windowBytes, 0, tailLength);
-            buffer.getBytes(offset, windowBytes, tailLength, length);
-            windowBuffer.wrap(windowBytes, 0, windowLength);
+            reserve(windowLength);
+            buffer.getBytes(offset, window, tailLength, length);
+            windowBuffer.wrap(window, 0, windowLength);
 
             input = windowBuffer;
             progress = 0;
@@ -137,12 +130,15 @@ final class LlmSectionPipeline
 
         if (tailLength > 0)
         {
-            if (tail.length < tailLength)
+            if (input == windowBuffer)
             {
-                tail = new byte[tailLength];
+                System.arraycopy(window, progress, window, 0, tailLength);
             }
-
-            input.getBytes(progress, tail, 0, tailLength);
+            else
+            {
+                reserve(tailLength);
+                input.getBytes(progress, window, 0, tailLength);
+            }
         }
 
         return status != Status.REJECTED;
@@ -153,12 +149,17 @@ final class LlmSectionPipeline
         int offset,
         int length)
     {
-        if (tail.length < tailLength + length)
-        {
-            tail = Arrays.copyOf(tail, tailLength + length);
-        }
-
-        buffer.getBytes(offset, tail, tailLength, length);
+        reserve(tailLength + length);
+        buffer.getBytes(offset, window, tailLength, length);
         tailLength += length;
+    }
+
+    private void reserve(
+        int capacity)
+    {
+        if (window.length < capacity)
+        {
+            window = Arrays.copyOf(window, capacity);
+        }
     }
 }
