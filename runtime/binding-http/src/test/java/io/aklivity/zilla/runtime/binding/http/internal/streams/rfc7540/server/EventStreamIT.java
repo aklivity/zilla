@@ -123,4 +123,15 @@ public class EventStreamIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = HTTP_SSE_INITIAL_COMMENT_ENABLED_NAME, value = "true")
+    @Specification({
+        "${net}/response.sse.framing.comment.initial.budget/client",
+        "${app}/response.sse.framing.comment.initial/server" })
+    public void shouldReceiveResponseCommentInitialBudget() throws Exception
+    {
+        k3po.finish();
+    }
 }

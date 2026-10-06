@@ -387,4 +387,13 @@ public class EventStreamIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/response.sse.framing.comment.initial.budget/client",
+        "${app}/response.sse.framing.comment.initial.budget/server" })
+    public void shouldReceiveResponseCommentInitialBudget() throws Exception
+    {
+        k3po.finish();
+    }
 }
