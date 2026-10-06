@@ -33,7 +33,6 @@ import io.aklivity.zilla.runtime.binding.llm.config.LlmBindingConfig;
 import io.aklivity.zilla.runtime.binding.llm.config.LlmRouteConfig;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectHandler;
 import io.aklivity.zilla.runtime.binding.llm.internal.LlmBinding;
-import io.aklivity.zilla.runtime.binding.llm.internal.codec.LlmContentCodecFactory;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.BeginFW;
@@ -272,7 +271,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             final LlmRequestHeaders headers = LlmRequestHeaders.of(httpBeginEx);
             final String contentType = header(headers, HEADER_CONTENT_TYPE);
 
-            if (!CONTENT_TYPE_JSON.equals(LlmContentCodecFactory.mediaType(contentType)))
+            if (!CONTENT_TYPE_JSON.equals(LlmContentTypes.mediaType(contentType)))
             {
                 newStream = new LlmOpenaiRejectHandler(network, originId, routedId, initialId,
                     Integer.toString(STATUS_UNSUPPORTED_MEDIA_TYPE),

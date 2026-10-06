@@ -26,13 +26,10 @@ import org.agrona.DirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
 
 import io.aklivity.zilla.config.binding.llm.LlmServerConfig;
-import io.aklivity.zilla.runtime.binding.llm.codec.LlmContentDecoder;
-import io.aklivity.zilla.runtime.binding.llm.codec.LlmContentDecoderOutput;
 import io.aklivity.zilla.runtime.binding.llm.config.LlmBindingConfig;
 import io.aklivity.zilla.runtime.binding.llm.config.LlmRouteConfig;
 import io.aklivity.zilla.runtime.binding.llm.dialect.LlmDialectHandler;
 import io.aklivity.zilla.runtime.binding.llm.internal.LlmBinding;
-import io.aklivity.zilla.runtime.binding.llm.internal.codec.LlmContentCodecFactory;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.llm.internal.types.stream.AbortFW;
@@ -195,7 +192,6 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
     private final BindingHandler streamFactory;
     private final BufferPool decodePool;
     private final BufferPool encodePool;
-    private final LlmContentCodecFactory codecs;
     private final Long2ObjectHashMap<LlmBindingConfig> bindings;
     private final int decodeMax;
     private final int encodeMax;
@@ -217,7 +213,6 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.streamFactory = context.streamFactory();
-        this.codecs = new LlmContentCodecFactory();
         this.bindings = new Long2ObjectHashMap<>();
         this.llmTypeId = context.supplyTypeId(LlmBinding.NAME);
         this.httpTypeId = context.supplyTypeId(HTTP_TYPE_NAME);
@@ -1103,8 +1098,8 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         private int stageSlot = NO_SLOT;
         private int stageSlotOffset;
         private boolean stageLast;
-        private LlmContentDecoder decoder;
         private boolean framing;
+        private boolean errorJson;
         private LlmErrorBodyDecoder errorBody;
         private int errorStatus = NO_ERROR;
         private boolean errorBodyDropped;
@@ -2009,7 +2004,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
 
             final String responseStatus = header(httpBeginEx, HEADER_STATUS);
             final String responseContentType = header(httpBeginEx, HEADER_CONTENT_TYPE);
-            final String mediaType = LlmContentCodecFactory.mediaType(responseContentType);
+            final String mediaType = LlmContentTypes.mediaType(responseContentType);
             final int status = responseStatus != null ? Integer.parseInt(responseStatus) : STATUS_OK;
             final boolean declared = mediaType != null && RESPONSE_CONTENT_TYPES.contains(mediaType);
             final boolean eventStream = CONTENT_TYPE_EVENT_STREAM.equals(mediaType);
@@ -2023,7 +2018,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
                 errorStatus = status;
                 framing = eventStream;
                 errorBody = framing ? new LlmErrorBodyDecoder() : null;
-                decoder = declared && !framing ? codecs.createDecoder(responseContentType) : null;
+                errorJson = declared && !framing;
                 doNetWindow(traceId);
             }
             else if (!declared)
@@ -2313,7 +2308,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
 
                 if (last)
                 {
-                    errorBody.flush(null, emptyBufferRO, 0, 0);
+                    errorBody.flush();
                 }
             }
             else if (decodeSlot == NO_SLOT && eventAvailable())
@@ -2493,7 +2488,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             int offset,
             int limit)
         {
-            if (decoder != null && !errorBodyDropped)
+            if (errorJson && !errorBodyDropped)
             {
                 if (decodeSlot == NO_SLOT)
                 {
@@ -2520,7 +2515,8 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
 
             if (decodeSlot != NO_SLOT)
             {
-                decoder.decode(decodePool.buffer(decodeSlot), 0, decodeSlotOffset, errorDecoder);
+                errorDecoder.data(decodePool.buffer(decodeSlot), 0, decodeSlotOffset, true);
+                errorDecoder.flush();
                 cleanupDecodeSlot();
             }
 
@@ -2724,7 +2720,7 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
         }
     }
 
-    private final class LlmErrorBodyDecoder implements LlmContentDecoderOutput
+    private final class LlmErrorBodyDecoder
     {
         private final LlmAnthropicResponseDecoder responseDecoder;
 
@@ -2779,34 +2775,16 @@ public final class LlmAnthropicClientFactory implements LlmDialectHandler
             return responseDecoder.errorMessage();
         }
 
-        @Override
-        public boolean available()
-        {
-            return true;
-        }
-
-        @Override
-        public void event(
-            String event)
-        {
-        }
-
-        @Override
-        public void data(
-            DirectBuffer buffer,
+        private void data(
+            DirectBufferEx buffer,
             int offset,
             int length,
             boolean last)
         {
-            responseDecoder.decode((DirectBufferEx) buffer, offset, offset + length, last);
+            responseDecoder.decode(buffer, offset, offset + length, last);
         }
 
-        @Override
-        public void flush(
-            String event,
-            DirectBuffer buffer,
-            int offset,
-            int length)
+        private void flush()
         {
             responseDecoder.reset();
         }
