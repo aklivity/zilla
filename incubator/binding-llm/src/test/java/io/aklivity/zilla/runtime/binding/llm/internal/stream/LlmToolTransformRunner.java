@@ -94,7 +94,7 @@ final class LlmToolTransformRunner
             final boolean last = offset + length == bytes.length;
 
             accepted = pipeline.feed(input, offset, length, last,
-                (buffer, index, size) -> collect(output, buffer, index, size));
+                (buffer, index, size, done) -> collect(output, buffer, index, size));
         }
 
         return accepted;

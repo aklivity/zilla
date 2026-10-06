@@ -37,7 +37,8 @@ final class LlmSectionPipeline
         void put(
             DirectBufferEx buffer,
             int offset,
-            int length);
+            int length,
+            boolean last);
     }
 
     private final LlmSectionEnvelope envelope;
@@ -118,7 +119,7 @@ final class LlmSectionPipeline
 
             if (result.produced() > 0)
             {
-                output.put(outputBuffer, 0, result.produced());
+                output.put(outputBuffer, 0, result.produced(), status == Status.COMPLETED);
             }
 
             progress += result.consumed();
