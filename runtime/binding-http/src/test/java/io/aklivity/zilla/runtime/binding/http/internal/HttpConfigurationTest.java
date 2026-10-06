@@ -27,7 +27,11 @@ import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_USER_AGENT_HEADER;
 import static org.junit.Assert.assertEquals;
 
+import java.util.Properties;
+
 import org.junit.Test;
+
+import io.aklivity.zilla.runtime.engine.Configuration;
 
 public class HttpConfigurationTest
 {
@@ -57,5 +61,30 @@ public class HttpConfigurationTest
         assertEquals(HTTP_STREAMS_CLEANUP_DELAY.name(), HTTP_STREAMS_CLEANUP_DELAY_NAME);
         assertEquals(HTTP_SSE_INITIAL_COMMENT_ENABLED.name(), HTTP_SSE_INITIAL_COMMENT_ENABLED_NAME);
         assertEquals(HTTP_SSE_MAXIMUM_IDLE_TIME.name(), HTTP_SSE_MAXIMUM_IDLE_TIME_NAME);
+    }
+
+    @Test
+    public void shouldDefaultToSseProperties() throws Exception
+    {
+        final Properties properties = new Properties();
+        properties.setProperty("zilla.binding.sse.initial.comment.enabled", "true");
+        properties.setProperty("zilla.binding.sse.maximum.idle.time", "7");
+
+        final HttpConfiguration config = new HttpConfiguration(new Configuration(properties));
+
+        assertEquals(true, config.sseInitialCommentEnabled());
+        assertEquals(7, config.sseMaximumIdleTime());
+    }
+
+    @Test
+    public void shouldOverrideSsePropertiesWithHttpSseProperties() throws Exception
+    {
+        final Properties properties = new Properties();
+        properties.setProperty("zilla.binding.sse.maximum.idle.time", "7");
+        properties.setProperty(HTTP_SSE_MAXIMUM_IDLE_TIME_NAME, "3");
+
+        final HttpConfiguration config = new HttpConfiguration(new Configuration(properties));
+
+        assertEquals(3, config.sseMaximumIdleTime());
     }
 }

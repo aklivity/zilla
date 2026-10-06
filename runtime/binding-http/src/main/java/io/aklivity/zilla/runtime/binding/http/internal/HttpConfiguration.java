@@ -57,8 +57,11 @@ public class HttpConfiguration extends Configuration
         HTTP_MAX_CONCURRENT_STREAMS_CLEANUP = config.property("max.concurrent.streams.cleanup", 1000);
         HTTP_STREAMS_CLEANUP_DELAY = config.property("streams.cleanup.delay", 100);
         HTTP_MAX_CONCURRENT_APPLICATION_HEADERS = config.property("max.concurrent.application.headers", 10000);
-        HTTP_SSE_INITIAL_COMMENT_ENABLED = config.property("sse.initial.comment.enabled", false);
-        HTTP_SSE_MAXIMUM_IDLE_TIME = config.property("sse.maximum.idle.time", 0);
+        final ConfigurationDef sse = new ConfigurationDef("zilla.binding.sse");
+        final BooleanPropertyDef sseInitialCommentEnabled = sse.property("initial.comment.enabled", false);
+        final IntPropertyDef sseMaximumIdleTime = sse.property("maximum.idle.time", 0);
+        HTTP_SSE_INITIAL_COMMENT_ENABLED = config.property("sse.initial.comment.enabled", sseInitialCommentEnabled::getAsBoolean);
+        HTTP_SSE_MAXIMUM_IDLE_TIME = config.property("sse.maximum.idle.time", sseMaximumIdleTime::getAsInt);
         HTTP_VERBOSE = config.property("verbose", HttpConfiguration::verboseDefault);
         HTTP_CONFIG = config;
     }
