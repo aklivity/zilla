@@ -50,8 +50,8 @@ public class EventStreamIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/response.event/client",
-        "${app}/response.event/server" })
+        "${net}/response.sse.framing.event/client",
+        "${app}/response.sse.framing.event/server" })
     public void shouldReceiveResponseEvent() throws Exception
     {
         k3po.finish();
@@ -60,8 +60,8 @@ public class EventStreamIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/response.data.non.empty/client",
-        "${app}/response.data.non.empty/server" })
+        "${net}/response.sse.framing.data.non.empty/client",
+        "${app}/response.sse.framing.data.non.empty/server" })
     public void shouldReceiveResponseDataNonEmpty() throws Exception
     {
         k3po.finish();
@@ -70,8 +70,8 @@ public class EventStreamIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/response.data.empty/client",
-        "${app}/response.data.empty/server" })
+        "${net}/response.sse.framing.data.empty/client",
+        "${app}/response.sse.framing.data.empty/server" })
     public void shouldReceiveResponseDataEmpty() throws Exception
     {
         k3po.finish();
@@ -80,8 +80,8 @@ public class EventStreamIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/response.data.multi.line/client",
-        "${app}/response.data.multi.line/server" })
+        "${net}/response.sse.framing.data.multi.line/client",
+        "${app}/response.sse.framing.data.multi.line/server" })
     public void shouldReceiveResponseDataMultiLine() throws Exception
     {
         k3po.finish();
@@ -90,8 +90,8 @@ public class EventStreamIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/response.data.multiple/client",
-        "${app}/response.data.multiple/server" })
+        "${net}/response.sse.framing.data.multiple/client",
+        "${app}/response.sse.framing.data.multiple/server" })
     public void shouldReceiveResponseDataMultiple() throws Exception
     {
         k3po.finish();
@@ -100,8 +100,8 @@ public class EventStreamIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/response.data.fragmented.10k/client",
-        "${app}/response.data.fragmented.10k/server" })
+        "${net}/response.sse.framing.data.fragmented.10k/client",
+        "${app}/response.sse.framing.data.fragmented.10k/server" })
     public void shouldReceiveResponseDataFragmented10k() throws Exception
     {
         k3po.finish();
@@ -110,8 +110,8 @@ public class EventStreamIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/response.data.fragmented.100k/client",
-        "${app}/response.data.fragmented.100k/server" })
+        "${net}/response.sse.framing.data.fragmented.100k/client",
+        "${app}/response.sse.framing.data.fragmented.100k/server" })
     public void shouldReceiveResponseDataFragmented100k() throws Exception
     {
         k3po.finish();
@@ -120,8 +120,8 @@ public class EventStreamIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/response.id.non.empty/client",
-        "${app}/response.id.non.empty/server" })
+        "${net}/response.sse.framing.id.non.empty/client",
+        "${app}/response.sse.framing.id.non.empty/server" })
     public void shouldReceiveResponseIdNonEmpty() throws Exception
     {
         k3po.finish();
@@ -130,8 +130,8 @@ public class EventStreamIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/response.id.empty/client",
-        "${app}/response.id.empty/server" })
+        "${net}/response.sse.framing.id.empty/client",
+        "${app}/response.sse.framing.id.empty/server" })
     public void shouldReceiveResponseIdEmpty() throws Exception
     {
         k3po.finish();
@@ -140,8 +140,8 @@ public class EventStreamIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/response.type.non.empty/client",
-        "${app}/response.type.non.empty/server" })
+        "${net}/response.sse.framing.type.non.empty/client",
+        "${app}/response.sse.framing.type.non.empty/server" })
     public void shouldReceiveResponseTypeNonEmpty() throws Exception
     {
         k3po.finish();
@@ -150,8 +150,8 @@ public class EventStreamIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/response.type.empty/client",
-        "${app}/response.type.empty/server" })
+        "${net}/response.sse.framing.type.empty/client",
+        "${app}/response.sse.framing.type.empty/server" })
     public void shouldReceiveResponseTypeEmpty() throws Exception
     {
         k3po.finish();
@@ -160,8 +160,8 @@ public class EventStreamIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/response.type.fragmented/client",
-        "${app}/response.type.fragmented/server" })
+        "${net}/response.sse.framing.type.fragmented/client",
+        "${app}/response.sse.framing.type.fragmented/server" })
     public void shouldReceiveResponseTypeFragmented() throws Exception
     {
         k3po.finish();
@@ -170,8 +170,8 @@ public class EventStreamIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/response.raw/client",
-        "${app}/response.raw/server" })
+        "${net}/response.sse/client",
+        "${app}/response.sse/server" })
     public void shouldReceiveResponseRaw() throws Exception
     {
         k3po.finish();
