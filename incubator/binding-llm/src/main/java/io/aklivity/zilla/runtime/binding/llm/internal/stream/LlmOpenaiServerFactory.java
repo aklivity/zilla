@@ -29,7 +29,6 @@ import jakarta.json.Json;
 import jakarta.json.JsonException;
 import jakarta.json.JsonObjectBuilder;
 
-import org.agrona.DirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.binding.llm.config.LlmAuthorizationResult;
@@ -66,6 +65,8 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
+import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
+import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx.Completion;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
@@ -114,6 +115,8 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
     private static final int RESPONSE_ENCODE_SLACK = 2048;
 
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBufferEx(new byte[0]), 0, 0);
+    private static final DirectBufferEx EMPTY_BUFFER = new UnsafeBufferEx(new byte[0]);
+    private static final DirectBufferEx DONE_BUFFER = new UnsafeBufferEx("[DONE]".getBytes(UTF_8));
 
     private static final DirectBufferEx STREAM_TRUE = new UnsafeBufferEx("true".getBytes(UTF_8));
     private static final DirectBufferEx STREAM_FALSE = new UnsafeBufferEx("false".getBytes(UTF_8));
@@ -2958,7 +2961,8 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             LlmOpenaiServer server)
         {
             this.server = server;
-            this.carry = new byte[3];
+            this.generator = JsonEx.createGenerator();
+            this.carryBuffer = new UnsafeBufferEx(new byte[2 * CARRY_MAX]);
             this.eventOffsets = new int[EVENT_CAPACITY];
             this.eventLengths = new int[EVENT_CAPACITY];
             this.eventFlags = new int[EVENT_CAPACITY];
@@ -3100,11 +3104,8 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             replyMax = (encodePool.slotCapacity() - RESPONSE_ENCODE_SLACK) / RESPONSE_ESCAPE_EXPANSION;
             replyDialect = llmBeginEx != null && NAME.equals(llmBeginEx.dialect().asString());
 
-            final String responseId = llmBeginEx != null ? llmBeginEx.id().asString() : null;
-            final String responseModel = llmBeginEx != null ? llmBeginEx.model().asString() : null;
-
-            encodeId = responseId != null ? escape(responseId) : null;
-            encodeModel = responseModel != null ? escape(responseModel) : null;
+            responseId = llmBeginEx != null ? llmBeginEx.id().asString() : null;
+            responseModel = llmBeginEx != null ? llmBeginEx.model().asString() : null;
 
             server.doNetBegin(traceId, authorization, affinity, STATUS_OK,
                 server.streaming ? CONTENT_TYPE_EVENT_STREAM : CONTENT_TYPE_JSON);
@@ -3173,7 +3174,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             switch (replyKind)
             {
             case LlmDataExFW.KIND_BLOCK:
-                doEncodeBlockData(payload.buffer(), payload.offset(), payload.sizeof());
+                doEncodeBlockData(payload.buffer(), payload.offset(), payload.sizeof(), Flags.hasFin(flags));
 
                 if (Flags.hasFin(flags))
                 {
@@ -3181,7 +3182,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 }
                 break;
             case LlmDataExFW.KIND_AFTER:
-                doEncodeAfterData(payload.buffer(), payload.offset(), payload.sizeof());
+                doEncodeAfterData(payload.buffer(), payload.offset(), payload.sizeof(), Flags.hasFin(flags));
 
                 if (Flags.hasFin(flags))
                 {
@@ -3204,7 +3205,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 break;
             }
 
-            if (position > 0)
+            if (generator.length() > 0)
             {
                 doEncodeFlush(reserved, budgetId, traceId, authorization);
             }
@@ -3525,7 +3526,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
         private void beginEncode()
         {
-            position = 0;
+            generator.wrap(copyBuffer, 0, copyBuffer.capacity());
 
             if (eventOpen)
             {
@@ -3543,7 +3544,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             {
                 if (eventOpen && eventStart != NO_EVENT)
                 {
-                    emitEvent(position, false);
+                    emitEvent(generator.length(), false);
                     eventStart = NO_EVENT;
                 }
 
@@ -3564,7 +3565,8 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             }
             else
             {
-                server.doNetData(copyBuffer, 0, position, reserved, Flags.COMPLETE, null, budgetId, traceId, authorization);
+                server.doNetData(copyBuffer, 0, generator.length(), reserved, Flags.COMPLETE, null, budgetId, traceId,
+                    authorization);
             }
         }
 
@@ -3589,69 +3591,20 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private static final int NONE = -1;
         private static final int MESSAGE_FIRST = 0;
 
-        private static final byte[] DONE = "[DONE]".getBytes(UTF_8);
-        private static final byte[] OBJECT_START = "{".getBytes(UTF_8);
-        private static final byte[] ID_START = "\"id\":\"".getBytes(UTF_8);
-        private static final byte[] OBJECT_COMPLETION = "\"object\":\"chat.completion\"".getBytes(UTF_8);
-        private static final byte[] OBJECT_CHUNK = "\"object\":\"chat.completion.chunk\"".getBytes(UTF_8);
-        private static final byte[] MODEL_START = "\"model\":\"".getBytes(UTF_8);
-        private static final byte[] CHOICES_START = "\"choices\":[".getBytes(UTF_8);
-        private static final byte[] CHOICES_END = "]".getBytes(UTF_8);
-        private static final byte[] MESSAGE_START = "{\"index\":0,\"message\":{\"role\":\"assistant\"".getBytes(UTF_8);
-        private static final byte[] MESSAGE_END = "}".getBytes(UTF_8);
-        private static final byte[] CHOICE_END = "}".getBytes(UTF_8);
-        private static final byte[] FINISH_REASON = ",\"finish_reason\":\"".getBytes(UTF_8);
-        private static final byte[] FINISH_REASON_NULL = ",\"finish_reason\":null".getBytes(UTF_8);
+        private static final int CARRY_MAX = 3;
+
+        private static final String OBJECT_COMPLETION = "chat.completion";
+        private static final String OBJECT_CHUNK = "chat.completion.chunk";
         private static final String BLOCK_FINISH_REASON = "finish_reason";
         private static final String BLOCK_MODEL = "model";
         private static final String BLOCK_USAGE = "usage";
-        private static final byte[] CONTENT_START = ",\"content\":\"".getBytes(UTF_8);
-        private static final byte[] REFUSAL_START = ",\"refusal\":\"".getBytes(UTF_8);
-        private static final byte[] TOOL_CALLS_START = ",\"tool_calls\":[".getBytes(UTF_8);
-        private static final byte[] TOOL_CALLS_END = "]".getBytes(UTF_8);
-        private static final byte[] TOOL_CALL_START = "{\"id\":\"".getBytes(UTF_8);
-        private static final byte[] TOOL_CALL_TYPE = "\",\"type\":\"function\",\"function\":{\"name\":\"".getBytes(UTF_8);
-        private static final byte[] TOOL_CALL_ARGUMENTS = "\",\"arguments\":\"".getBytes(UTF_8);
-        private static final byte[] TOOL_CALL_END = "\"}}".getBytes(UTF_8);
-        private static final byte[] COMMA = ",".getBytes(UTF_8);
-        private static final byte[] QUOTE = "\"".getBytes(UTF_8);
-        private static final byte[] ROLE_CHUNK = "{\"index\":0,\"delta\":{\"role\":\"assistant\"},\"finish_reason\":null}"
-            .getBytes(UTF_8);
-        private static final byte[] DELTA_START = "{\"index\":0,\"delta\":{".getBytes(UTF_8);
-        private static final byte[] DELTA_END = "},\"finish_reason\":null}".getBytes(UTF_8);
-        private static final byte[] DELTA_CONTENT = "\"content\":\"".getBytes(UTF_8);
-        private static final byte[] DELTA_REFUSAL = "\"refusal\":\"".getBytes(UTF_8);
-        private static final byte[] DELTA_TOOL_CALLS = "\"tool_calls\":[{\"index\":".getBytes(UTF_8);
-        private static final byte[] DELTA_TOOL_ID = ",\"id\":\"".getBytes(UTF_8);
-        private static final byte[] DELTA_TOOL_TYPE = "\",\"type\":\"function\",\"function\":{\"name\":\"".getBytes(UTF_8);
-        private static final byte[] DELTA_TOOL_ARGUMENTS_EMPTY = "\",\"arguments\":\"\"}}]".getBytes(UTF_8);
-        private static final byte[] DELTA_TOOL_FUNCTION = ",\"function\":{\"arguments\":\"".getBytes(UTF_8);
-        private static final byte[] DELTA_TOOL_END = "\"}}]".getBytes(UTF_8);
-        private static final byte[] DELTA_FINISH_START = "{\"index\":0,\"delta\":{},\"finish_reason\":\"".getBytes(UTF_8);
-        private static final byte[] DELTA_FINISH_END = "\"}".getBytes(UTF_8);
-        private static final byte[] USAGE_START = ",\"usage\":{".getBytes(UTF_8);
-        private static final byte[] USAGE_END = "}".getBytes(UTF_8);
-        private static final byte[] PROMPT_TOKENS = "\"prompt_tokens\":".getBytes(UTF_8);
-        private static final byte[] COMPLETION_TOKENS = "\"completion_tokens\":".getBytes(UTF_8);
-        private static final byte[] TOTAL_TOKENS = "\"total_tokens\":".getBytes(UTF_8);
-        private static final byte[] PROMPT_DETAILS = "\"prompt_tokens_details\":{\"cached_tokens\":".getBytes(UTF_8);
-        private static final byte[] COMPLETION_DETAILS = "\"completion_tokens_details\":{\"reasoning_tokens\":".getBytes(UTF_8);
-        private static final byte[] DETAILS_END = "}".getBytes(UTF_8);
-        private static final byte[] ERROR_START = "{\"error\":{\"message\":\"".getBytes(UTF_8);
-        private static final byte[] ERROR_TYPE = "\",\"type\":\"".getBytes(UTF_8);
-        private static final byte[] ERROR_PARAM = ",\"param\":".getBytes(UTF_8);
-        private static final byte[] ERROR_CODE = ",\"code\":null}}".getBytes(UTF_8);
-        private static final byte[] NULL = "null".getBytes(UTF_8);
-        private static final byte[] DELTA_CLOSE = "}".getBytes(UTF_8);
-        private static final byte[] CHUNK_FINISH = ",\"finish_reason\":null}".getBytes(UTF_8);
-        private static final byte[] MEMBER_COLON = "\":".getBytes(UTF_8);
-        private static final byte[] REPLACEMENT = "\\ufffd".getBytes(UTF_8);
 
-        private final byte[] carry;
+        private final JsonGeneratorEx generator;
+        private final MutableDirectBufferEx carryBuffer;
 
-        private byte[] encodeId;
-        private byte[] encodeModel;
-        private int position;
+        private int carried;
+        private String responseId;
+        private String responseModel;
 
         private int[] eventOffsets;
         private int[] eventLengths;
@@ -3668,7 +3621,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private boolean contentWritten;
         private boolean refusalWritten;
         private int toolCalls;
-        private int carried;
         private int envelope;
         private boolean finishReasonBlock;
         private boolean modelBlock;
@@ -3685,20 +3637,23 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             if (server.streaming)
             {
                 chunkStart();
-                put(ROLE_CHUNK);
+                generator.writeStartObject()
+                    .writeKey("index").write(0)
+                    .writeStartObject("delta").write("role", "assistant").writeEnd()
+                    .writeNull("finish_reason")
+                    .writeEnd();
                 chunkEnd();
             }
             else
             {
-                put(OBJECT_START);
-                if (encodeId != null)
+                generator.writeStartObject();
+
+                if (responseId != null)
                 {
-                    put(ID_START);
-                    put(encodeId);
-                    put(QUOTE);
-                    put(COMMA);
+                    generator.write("id", responseId);
                 }
-                put(OBJECT_COMPLETION);
+
+                generator.write("object", OBJECT_COMPLETION);
             }
         }
 
@@ -3709,6 +3664,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             String toolName,
             boolean follow)
         {
+            carried = 0;
             kind = message == MESSAGE_FIRST && !messageClosed && envelope != ENVELOPE_TAIL ? kindOf(type) : KIND_SKIPPED;
             this.follow = follow && server.streaming && (kind == KIND_TEXT || kind == KIND_REFUSAL);
 
@@ -3734,7 +3690,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         }
 
         private void doEncodeData(
-            DirectBuffer payload,
+            DirectBufferEx payload,
             int payloadOffset,
             int payloadLength,
             boolean fin)
@@ -3751,7 +3707,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 }
                 else
                 {
-                    putEscaped(payload, payloadOffset, payloadLength);
+                    generator.writeSegment(payload, payloadOffset, payloadLength);
                 }
             }
         }
@@ -3767,7 +3723,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 if (server.streaming)
                 {
                     chunkStart();
-                    put(CHOICES_END);
+                    generator.writeEnd();
                 }
                 else
                 {
@@ -3780,22 +3736,19 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                     usageBlock |= BLOCK_USAGE.equals(block);
                 }
 
-                put(COMMA);
-                put(QUOTE);
-                putEscaped(block);
-                put(MEMBER_COLON);
+                generator.writeKey(block);
             }
         }
 
         private void doEncodeBlockData(
-            DirectBuffer payload,
+            DirectBufferEx payload,
             int payloadOffset,
-            int payloadLength)
+            int payloadLength,
+            boolean fin)
         {
             if (blockOpen)
             {
-                copyBuffer.putBytes(position, payload, payloadOffset, payloadLength);
-                position += payloadLength;
+                generator.writeSegment(payload, payloadOffset, payloadLength, fin ? Completion.COMPLETE : Completion.INCOMPLETE);
             }
         }
 
@@ -3803,8 +3756,8 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         {
             if (blockOpen && server.streaming)
             {
-                put(OBJECT_END);
-                eventEnd(position);
+                generator.writeEnd();
+                eventEnd(generator.length());
             }
 
             blockOpen = false;
@@ -3814,20 +3767,12 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         {
             if (follow && !chunkOpen && (kind == KIND_TEXT || kind == KIND_REFUSAL))
             {
-                dataChunkOpen(null, 0, 0);
-            }
-
-            if (server.streaming && carried > 0 && kind != KIND_NONE && kind != KIND_SKIPPED)
-            {
-                carried = 0;
-                dataChunkStart();
-                put(REPLACEMENT);
-                dataChunkEnd();
+                dataChunkOpen(EMPTY_BUFFER, 0, 0);
             }
 
             if (!server.streaming && kind == KIND_TOOL_CALL)
             {
-                put(TOOL_CALL_END);
+                generator.writeEndEscaped().writeEnd().writeEnd();
             }
 
             kind = KIND_NONE;
@@ -3858,29 +3803,26 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 else if (!server.streaming && !messageClosed)
                 {
                     closeMember();
-                    put(MESSAGE_END);
+                    generator.writeEnd();
                     messageClosed = true;
                 }
 
                 finishReasonBlock |= !server.streaming && BLOCK_FINISH_REASON.equals(block);
 
-                put(COMMA);
-                put(QUOTE);
-                putEscaped(block);
-                put(MEMBER_COLON);
+                generator.writeKey(block);
             }
         }
 
         private void doEncodeAfterData(
-            DirectBuffer payload,
+            DirectBufferEx payload,
             int payloadOffset,
-            int payloadLength)
+            int payloadLength,
+            boolean fin)
         {
-            if (afterRender && payloadLength > 0)
+            if (afterRender && (payloadLength > 0 || fin && afterWritten))
             {
-                copyBuffer.putBytes(position, payload, payloadOffset, payloadLength);
-                position += payloadLength;
-                afterWritten = true;
+                generator.writeSegment(payload, payloadOffset, payloadLength, fin ? Completion.COMPLETE : Completion.INCOMPLETE);
+                afterWritten |= payloadLength > 0;
             }
         }
 
@@ -3888,7 +3830,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         {
             if (afterRender && !afterWritten)
             {
-                put(NULL);
+                generator.writeNull();
             }
 
             afterRender = false;
@@ -3907,7 +3849,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             int reasoningTokens,
             int totalTokens)
         {
-            final byte[] reason = finishReason(finishReason);
+            final String reason = finishReason(finishReason);
 
             if (chunkOpen)
             {
@@ -3917,9 +3859,11 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             if (server.streaming)
             {
                 chunkStart();
-                put(DELTA_FINISH_START);
-                put(reason);
-                put(DELTA_FINISH_END);
+                generator.writeStartObject()
+                    .writeKey("index").write(0)
+                    .writeStartObject("delta").writeEnd()
+                    .write("finish_reason", reason)
+                    .writeEnd();
 
                 final boolean usage = inputTokens != NONE || outputTokens != NONE || totalTokens != NONE;
 
@@ -3928,12 +3872,15 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 if (usage)
                 {
                     chunkStart();
-                    chunkUsageEnd(inputTokens, cacheReadTokens, outputTokens, reasoningTokens, totalTokens);
+                    generator.writeEnd();
+                    putUsage(inputTokens, cacheReadTokens, outputTokens, reasoningTokens, totalTokens);
+                    generator.writeEnd();
+                    eventEnd(generator.length());
                 }
 
-                eventBegin(position, null);
-                put(DONE);
-                eventEnd(position);
+                eventBegin(generator.length(), null);
+                generator.writeRaw(DONE_BUFFER, 0, DONE_BUFFER.capacity());
+                eventEnd(generator.length());
             }
             else
             {
@@ -3952,7 +3899,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                     putUsage(inputTokens, cacheReadTokens, outputTokens, reasoningTokens, totalTokens);
                 }
 
-                put(OBJECT_END);
+                generator.writeEnd();
             }
         }
 
@@ -3966,28 +3913,24 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 closeChunk();
             }
 
-            eventBegin(position, null);
-            put(ERROR_START);
-            putEscaped(message != null ? message : "");
-            put(ERROR_TYPE);
-            putEscaped(type != null ? type : "server_error");
-            put(QUOTE);
-            put(ERROR_PARAM);
+            eventBegin(generator.length(), null);
+            generator.writeStartObject()
+                .writeStartObject("error")
+                .write("message", message != null ? message : "")
+                .write("type", type != null ? type : "server_error");
+
             if (param != null)
             {
-                put(QUOTE);
-                putEscaped(param);
-                put(QUOTE);
+                generator.write("param", param);
             }
             else
             {
-                put(NULL);
+                generator.writeNull("param");
             }
-            put(ERROR_CODE);
-            eventEnd(position);
-        }
 
-        private static final byte[] OBJECT_END = "}".getBytes(UTF_8);
+            generator.writeNull("code").writeEnd().writeEnd();
+            eventEnd(generator.length());
+        }
 
         private void eventBegin(
             int position,
@@ -4007,6 +3950,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 emitEvent(position, true);
                 eventOpen = false;
                 eventStart = NO_EVENT;
+                generator.reset();
             }
         }
 
@@ -4053,33 +3997,29 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
         private void sectionText()
         {
-            if (server.streaming)
+            if (!server.streaming)
             {
-                carried = 0;
-            }
-            else if (member == MEMBER_CONTENT)
-            {
-                kind = KIND_TEXT;
-            }
-            else if (member == MEMBER_NONE && !contentWritten)
-            {
-                put(CONTENT_START);
-                member = MEMBER_CONTENT;
-                contentWritten = true;
-            }
-            else
-            {
-                kind = KIND_SKIPPED;
+                if (member == MEMBER_CONTENT)
+                {
+                    kind = KIND_TEXT;
+                }
+                else if (member == MEMBER_NONE && !contentWritten)
+                {
+                    generator.writeKey("content");
+                    generator.writeStartEscaped();
+                    member = MEMBER_CONTENT;
+                    contentWritten = true;
+                }
+                else
+                {
+                    kind = KIND_SKIPPED;
+                }
             }
         }
 
         private void sectionRefusal()
         {
-            if (server.streaming)
-            {
-                carried = 0;
-            }
-            else if (member != MEMBER_REFUSAL)
+            if (!server.streaming && member != MEMBER_REFUSAL)
             {
                 if (refusalWritten)
                 {
@@ -4088,7 +4028,8 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 else
                 {
                     closeMember();
-                    put(REFUSAL_START);
+                    generator.writeKey("refusal");
+                    generator.writeStartEscaped();
                     member = MEMBER_REFUSAL;
                     refusalWritten = true;
                 }
@@ -4100,67 +4041,73 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             String toolName)
         {
             final int index = toolCalls++;
+            final String id = toolCallId != null ? toolCallId : "";
+            final String name = toolName != null ? toolName : "";
 
             if (server.streaming)
             {
-                carried = 0;
                 chunkStart();
-                put(DELTA_START);
-                put(DELTA_TOOL_CALLS);
-                putNumber(index);
-                put(DELTA_TOOL_ID);
-                putEscaped(toolCallId != null ? toolCallId : "");
-                put(DELTA_TOOL_TYPE);
-                putEscaped(toolName != null ? toolName : "");
-                put(DELTA_TOOL_ARGUMENTS_EMPTY);
-                put(DELTA_END);
+                generator.writeStartObject()
+                    .writeKey("index").write(0)
+                    .writeStartObject("delta")
+                    .writeStartArray("tool_calls")
+                    .writeStartObject()
+                    .writeKey("index").write(index)
+                    .write("id", id)
+                    .write("type", "function")
+                    .writeStartObject("function")
+                    .write("name", name)
+                    .write("arguments", "")
+                    .writeEnd()
+                    .writeEnd()
+                    .writeEnd()
+                    .writeEnd()
+                    .writeNull("finish_reason")
+                    .writeEnd();
                 chunkEnd();
             }
             else
             {
-                if (member == MEMBER_TOOL_CALLS)
-                {
-                    put(COMMA);
-                }
-                else
+                if (member != MEMBER_TOOL_CALLS)
                 {
                     closeMember();
-                    put(TOOL_CALLS_START);
+                    generator.writeStartArray("tool_calls");
                     member = MEMBER_TOOL_CALLS;
                 }
 
-                put(TOOL_CALL_START);
-                putEscaped(toolCallId != null ? toolCallId : "");
-                put(TOOL_CALL_TYPE);
-                putEscaped(toolName != null ? toolName : "");
-                put(TOOL_CALL_ARGUMENTS);
+                generator.writeStartObject()
+                    .write("id", id)
+                    .write("type", "function")
+                    .writeStartObject("function")
+                    .write("name", name)
+                    .writeKey("arguments");
+                generator.writeStartEscaped();
             }
         }
 
         private void openChoices()
         {
-            if (!modelBlock && encodeModel != null)
+            if (!modelBlock && responseModel != null)
             {
-                put(COMMA);
-                put(MODEL_START);
-                put(encodeModel);
-                put(QUOTE);
+                generator.write("model", responseModel);
             }
 
-            put(COMMA);
-            put(CHOICES_START);
-            put(MESSAGE_START);
+            generator.writeStartArray("choices")
+                .writeStartObject()
+                .writeKey("index").write(0)
+                .writeStartObject("message")
+                .write("role", "assistant");
             envelope = ENVELOPE_CHOICE;
         }
 
         private void closeChoice(
-            byte[] reason)
+            String reason)
         {
             closeMember();
 
             if (!messageClosed)
             {
-                put(MESSAGE_END);
+                generator.writeEnd();
                 messageClosed = true;
             }
 
@@ -4168,18 +4115,15 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             {
                 if (reason != null)
                 {
-                    put(FINISH_REASON);
-                    put(reason);
-                    put(QUOTE);
+                    generator.write("finish_reason", reason);
                 }
                 else
                 {
-                    put(FINISH_REASON_NULL);
+                    generator.writeNull("finish_reason");
                 }
             }
 
-            put(CHOICE_END);
-            put(CHOICES_END);
+            generator.writeEnd().writeEnd();
             envelope = ENVELOPE_TAIL;
         }
 
@@ -4188,10 +4132,10 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             switch (member)
             {
             case MEMBER_CONTENT, MEMBER_REFUSAL:
-                put(QUOTE);
+                generator.writeEndEscaped();
                 break;
             case MEMBER_TOOL_CALLS:
-                put(TOOL_CALLS_END);
+                generator.writeEnd();
                 break;
             default:
                 break;
@@ -4201,166 +4145,177 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         }
 
         private void dataChunkOpen(
-            DirectBuffer payload,
+            DirectBufferEx payload,
             int offset,
             int length)
         {
             chunkStart();
-            put(DELTA_START);
-            put(kind == KIND_TEXT ? DELTA_CONTENT : DELTA_REFUSAL);
-            putEscaped(carry, 0, carried);
-            carried = 0;
-
-            if (length > 0)
-            {
-                putEscaped(payload, offset, length);
-            }
-
-            put(QUOTE);
-            put(DELTA_CLOSE);
+            generator.writeStartObject()
+                .writeKey("index").write(0)
+                .writeStartObject("delta")
+                .writeKey(kind == KIND_TEXT ? "content" : "refusal");
+            generator.writeStartEscaped();
+            writeText(payload, offset, length, true);
+            generator.writeEndEscaped().writeEnd();
             chunkOpen = true;
         }
 
         private void closeChunk()
         {
-            put(CHUNK_FINISH);
-            put(CHOICES_END);
-            put(OBJECT_END);
-            eventEnd(position);
+            generator.writeNull("finish_reason").writeEnd();
+            chunkEnd();
             chunkOpen = false;
         }
 
         private void dataChunk(
-            DirectBuffer payload,
+            DirectBufferEx payload,
             int offset,
             int length)
         {
-            final int limit = offset + length;
-            final int boundary = boundary(payload, offset, limit);
-            final int complete = carried + (boundary - offset);
+            dataChunkStart();
 
-            if (complete > 0)
-            {
-                dataChunkStart();
-                putEscaped(carry, 0, carried);
-                putEscaped(payload, offset, boundary - offset);
-                dataChunkEnd();
-            }
+            final int mark = generator.consumed();
 
-            carried = 0;
-
-            for (int i = boundary; i < limit; i++)
-            {
-                carry[carried++] = payload.getByte(i);
-            }
+            writeText(payload, offset, length, false);
+            dataChunkEnd(generator.consumed() > mark);
         }
 
-        private int boundary(
-            DirectBuffer payload,
+        private void writeText(
+            DirectBufferEx payload,
             int offset,
-            int limit)
+            int length,
+            boolean fin)
         {
-            int boundary = limit;
+            final Completion completion = fin ? Completion.COMPLETE : Completion.INCOMPLETE;
+            int index = offset;
+            int available = length;
+            boolean staged = false;
 
-            for (int back = 1; back <= 3 && limit - back >= offset && boundary == limit; back++)
+            if (carried > 0)
             {
-                final int value = payload.getByte(limit - back) & 0xFF;
+                final int mark = generator.consumed();
+                final int take = Math.min(length, CARRY_MAX);
+                final int stagedLength = carried + take;
+                final boolean last = take == length;
 
-                if ((value & 0xC0) != 0x80)
+                carryBuffer.putBytes(carried, payload, offset, take);
+                generator.writeSegment(carryBuffer, 0, stagedLength, last ? completion : Completion.INCOMPLETE);
+
+                final int held = stagedLength - (generator.consumed() - mark);
+
+                if (last)
                 {
-                    final int expected = value >= 0xF0 ? 4 : value >= 0xE0 ? 3 : value >= 0xC0 ? 2 : 1;
-
-                    if (expected > back)
-                    {
-                        boundary = limit - back;
-                    }
-                    else
-                    {
-                        back = 4;
-                    }
+                    carryBuffer.putBytes(0, carryBuffer, stagedLength - held, held);
+                    carried = held;
+                    staged = true;
+                }
+                else
+                {
+                    index += take - held;
+                    available -= take - held;
+                    carried = 0;
                 }
             }
 
-            return boundary;
+            if (!staged)
+            {
+                final int mark = generator.consumed();
+
+                generator.writeSegment(payload, index, available, completion);
+
+                carried = available - (generator.consumed() - mark);
+                carryBuffer.putBytes(0, payload, index + available - carried, carried);
+            }
+
+            if (!fin)
+            {
+                generator.writeSegment(payload, offset, 0, Completion.COMPLETE);
+            }
         }
 
         private void dataChunkStart()
         {
             chunkStart();
-            put(DELTA_START);
+            generator.writeStartObject()
+                .writeKey("index").write(0)
+                .writeStartObject("delta");
 
             switch (kind)
             {
             case KIND_TEXT:
-                put(DELTA_CONTENT);
+                generator.writeKey("content");
                 break;
             case KIND_REFUSAL:
-                put(DELTA_REFUSAL);
+                generator.writeKey("refusal");
                 break;
             default:
-                put(DELTA_TOOL_CALLS);
-                putNumber(toolCalls - 1);
-                put(DELTA_TOOL_FUNCTION);
+                generator.writeStartArray("tool_calls")
+                    .writeStartObject()
+                    .writeKey("index").write(toolCalls - 1)
+                    .writeStartObject("function")
+                    .writeKey("arguments");
                 break;
             }
+
+            generator.writeStartEscaped();
         }
 
-        private void dataChunkEnd()
+        private void dataChunkEnd(
+            boolean emit)
         {
+            generator.writeEndEscaped();
+
             if (kind == KIND_TOOL_CALL)
             {
-                put(DELTA_TOOL_END);
-            }
-            else
-            {
-                put(QUOTE);
+                generator.writeEnd().writeEnd().writeEnd();
             }
 
-            put(DELTA_END);
-            chunkEnd();
+            generator.writeEnd()
+                .writeNull("finish_reason")
+                .writeEnd();
+            chunkEnd(emit);
         }
 
         private void chunkStart()
         {
-            eventBegin(position, null);
-            put(OBJECT_START);
-            if (encodeId != null)
+            eventBegin(generator.length(), null);
+            generator.writeStartObject();
+
+            if (responseId != null)
             {
-                put(ID_START);
-                put(encodeId);
-                put(QUOTE);
-                put(COMMA);
+                generator.write("id", responseId);
             }
-            put(OBJECT_CHUNK);
-            if (encodeModel != null)
+
+            generator.write("object", OBJECT_CHUNK);
+
+            if (responseModel != null)
             {
-                put(COMMA);
-                put(MODEL_START);
-                put(encodeModel);
-                put(QUOTE);
+                generator.write("model", responseModel);
             }
-            put(COMMA);
-            put(CHOICES_START);
+
+            generator.writeStartArray("choices");
         }
 
         private void chunkEnd()
         {
-            put(CHOICES_END);
-            put(OBJECT_END);
-            eventEnd(position);
+            chunkEnd(true);
         }
 
-        private void chunkUsageEnd(
-            int inputTokens,
-            int cacheReadTokens,
-            int outputTokens,
-            int reasoningTokens,
-            int totalTokens)
+        private void chunkEnd(
+            boolean emit)
         {
-            put(CHOICES_END);
-            putUsage(inputTokens, cacheReadTokens, outputTokens, reasoningTokens, totalTokens);
-            put(OBJECT_END);
-            eventEnd(position);
+            generator.writeEnd().writeEnd();
+
+            if (emit)
+            {
+                eventEnd(generator.length());
+            }
+            else
+            {
+                eventOpen = false;
+                eventStart = NO_EVENT;
+                generator.reset();
+            }
         }
 
         private void putUsage(
@@ -4376,64 +4331,42 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
             if (inputTokens != NONE || outputTokens != NONE || total != NONE)
             {
-                put(USAGE_START);
-
-                boolean separator = false;
+                generator.writeStartObject("usage");
 
                 if (inputTokens != NONE)
                 {
-                    put(PROMPT_TOKENS);
-                    putNumber(inputTokens);
-                    separator = true;
+                    generator.writeKey("prompt_tokens").write(inputTokens);
                 }
 
                 if (outputTokens != NONE)
                 {
-                    putSeparator(separator);
-                    put(COMPLETION_TOKENS);
-                    putNumber(outputTokens);
-                    separator = true;
+                    generator.writeKey("completion_tokens").write(outputTokens);
                 }
 
                 if (total != NONE)
                 {
-                    putSeparator(separator);
-                    put(TOTAL_TOKENS);
-                    putNumber(total);
-                    separator = true;
+                    generator.writeKey("total_tokens").write(total);
                 }
 
                 if (cacheReadTokens != NONE)
                 {
-                    putSeparator(separator);
-                    put(PROMPT_DETAILS);
-                    putNumber(cacheReadTokens);
-                    put(DETAILS_END);
-                    separator = true;
+                    generator.writeStartObject("prompt_tokens_details")
+                        .writeKey("cached_tokens").write(cacheReadTokens)
+                        .writeEnd();
                 }
 
                 if (reasoningTokens != NONE)
                 {
-                    putSeparator(separator);
-                    put(COMPLETION_DETAILS);
-                    putNumber(reasoningTokens);
-                    put(DETAILS_END);
+                    generator.writeStartObject("completion_tokens_details")
+                        .writeKey("reasoning_tokens").write(reasoningTokens)
+                        .writeEnd();
                 }
 
-                put(USAGE_END);
+                generator.writeEnd();
             }
         }
 
-        private void putSeparator(
-            boolean separator)
-        {
-            if (separator)
-            {
-                put(COMMA);
-            }
-        }
-
-        private byte[] finishReason(
+        private String finishReason(
             String finishReason)
         {
             String reason = toolCalls > 0 ? "tool_calls" : "stop";
@@ -4448,158 +4381,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 };
             }
 
-            return escape(reason);
-        }
-
-        private void put(
-            byte[] bytes)
-        {
-            copyBuffer.putBytes(position, bytes);
-            position += bytes.length;
-        }
-
-        private void putNumber(
-            int value)
-        {
-            position += copyBuffer.putIntAscii(position, value);
-        }
-
-        private void putEscaped(
-            byte[] source,
-            int offset,
-            int length)
-        {
-            for (int i = 0; i < length; i++)
-            {
-                putEscaped(source[offset + i]);
-            }
-        }
-
-        private void putEscaped(
-            DirectBuffer source,
-            int offset,
-            int length)
-        {
-            for (int i = 0; i < length; i++)
-            {
-                putEscaped(source.getByte(offset + i));
-            }
-        }
-
-        private void putEscaped(
-            String value)
-        {
-            final int length = value.length();
-
-            for (int index = 0; index < length; index++)
-            {
-                final char c = value.charAt(index);
-
-                if (c < 0x80)
-                {
-                    putEscaped((byte) c);
-                }
-                else
-                {
-                    final int codePoint = value.codePointAt(index);
-
-                    index += Character.charCount(codePoint) - 1;
-                    position += copyBuffer.putStringWithoutLengthUtf8(position, Character.toString(codePoint));
-                }
-            }
-        }
-
-        private void putEscaped(
-            byte value)
-        {
-            switch (value)
-            {
-            case '"':
-                putPair('"');
-                break;
-            case '\\':
-                putPair('\\');
-                break;
-            case '\n':
-                putPair('n');
-                break;
-            case '\r':
-                putPair('r');
-                break;
-            case '\t':
-                putPair('t');
-                break;
-            case '\b':
-                putPair('b');
-                break;
-            case '\f':
-                putPair('f');
-                break;
-            default:
-                if (value >= 0 && value < 0x20)
-                {
-                    copyBuffer.putByte(position++, (byte) '\\');
-                    copyBuffer.putByte(position++, (byte) 'u');
-                    copyBuffer.putByte(position++, (byte) '0');
-                    copyBuffer.putByte(position++, (byte) '0');
-                    copyBuffer.putByte(position++, (byte) Character.forDigit(value >> 4, 16));
-                    copyBuffer.putByte(position++, (byte) Character.forDigit(value & 0x0f, 16));
-                }
-                else
-                {
-                    copyBuffer.putByte(position++, value);
-                }
-                break;
-            }
-        }
-
-        private void putPair(
-            char value)
-        {
-            copyBuffer.putByte(position++, (byte) '\\');
-            copyBuffer.putByte(position++, (byte) value);
-        }
-
-        private static byte[] escape(
-            String value)
-        {
-            final StringBuilder escaped = new StringBuilder(value.length() + 8);
-
-            for (int i = 0; i < value.length(); i++)
-            {
-                final char c = value.charAt(i);
-
-                switch (c)
-                {
-                case '"':
-                    escaped.append("\\\"");
-                    break;
-                case '\\':
-                    escaped.append("\\\\");
-                    break;
-                case '\n':
-                    escaped.append("\\n");
-                    break;
-                case '\r':
-                    escaped.append("\\r");
-                    break;
-                case '\t':
-                    escaped.append("\\t");
-                    break;
-                default:
-                    if (c < 0x20)
-                    {
-                        escaped.append(String.format("\\u%04x", (int) c));
-                    }
-                    else
-                    {
-                        escaped.append(c);
-                    }
-                    break;
-                }
-            }
-
-            return escaped.toString().getBytes(UTF_8);
+            return reason;
         }
     }
 

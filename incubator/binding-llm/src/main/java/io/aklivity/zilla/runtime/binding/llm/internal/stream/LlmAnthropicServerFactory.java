@@ -28,7 +28,6 @@ import java.util.regex.Pattern;
 import jakarta.json.Json;
 import jakarta.json.JsonException;
 
-import org.agrona.DirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.binding.llm.config.LlmAuthorizationResult;
@@ -64,6 +63,8 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.common.json.JsonEnvelope;
 import io.aklivity.zilla.runtime.common.json.JsonEvent;
 import io.aklivity.zilla.runtime.common.json.JsonEx;
+import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx;
+import io.aklivity.zilla.runtime.common.json.JsonGeneratorEx.Completion;
 import io.aklivity.zilla.runtime.common.json.JsonParserEx;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
@@ -114,6 +115,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
     private static final int RESPONSE_ENCODE_SLACK = 2048;
 
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBufferEx(new byte[0]), 0, 0);
+    private static final DirectBufferEx EMPTY_BUFFER = new UnsafeBufferEx(new byte[0]);
     private static final DirectBufferEx BRACKET = new UnsafeBufferEx(new byte[] {'['});
 
     private static final DirectBufferEx STREAM_TRUE = new UnsafeBufferEx("true".getBytes(UTF_8));
@@ -3211,7 +3213,8 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             LlmAnthropicServer server)
         {
             this.server = server;
-            this.carry = new byte[3];
+            this.generator = JsonEx.createGenerator();
+            this.carryBuffer = new UnsafeBufferEx(new byte[2 * CARRY_MAX]);
             this.eventOffsets = new int[EVENT_CAPACITY];
             this.eventLengths = new int[EVENT_CAPACITY];
             this.eventFlags = new int[EVENT_CAPACITY];
@@ -3353,11 +3356,8 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             replyMax = (encodePool.slotCapacity() - RESPONSE_ENCODE_SLACK) / RESPONSE_ESCAPE_EXPANSION;
             replyDialect = llmBeginEx != null && NAME.equals(llmBeginEx.dialect().asString());
 
-            final String responseId = llmBeginEx != null ? llmBeginEx.id().asString() : null;
-            final String responseModel = llmBeginEx != null ? llmBeginEx.model().asString() : null;
-
-            encodeId = responseId != null ? escape(responseId) : null;
-            encodeModel = responseModel != null ? escape(responseModel) : null;
+            responseId = llmBeginEx != null ? llmBeginEx.id().asString() : null;
+            responseModel = llmBeginEx != null ? llmBeginEx.model().asString() : null;
             replyBegun = true;
 
             server.doNetBegin(traceId, authorization, affinity, STATUS_OK,
@@ -3420,7 +3420,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             switch (replyKind)
             {
             case LlmDataExFW.KIND_BLOCK:
-                doEncodeBlockData(payload.buffer(), payload.offset(), payload.sizeof());
+                doEncodeBlockData(payload.buffer(), payload.offset(), payload.sizeof(), Flags.hasFin(flags));
                 break;
             case LlmDataExFW.KIND_SECTION:
                 if (payload.sizeof() > 0)
@@ -3437,7 +3437,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                 break;
             }
 
-            if (position > 0)
+            if (generator.length() > 0)
             {
                 doEncodeFlush(reserved, budgetId, traceId, authorization);
             }
@@ -3768,7 +3768,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
 
         private void beginEncode()
         {
-            position = 0;
+            generator.wrap(copyBuffer, 0, copyBuffer.capacity());
 
             if (eventOpen)
             {
@@ -3786,7 +3786,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             {
                 if (eventOpen && eventStart != NO_EVENT)
                 {
-                    emitEvent(position, false);
+                    emitEvent(generator.length(), false);
                     eventStart = NO_EVENT;
                 }
 
@@ -3807,7 +3807,8 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             }
             else
             {
-                server.doNetData(copyBuffer, 0, position, reserved, Flags.COMPLETE, null, budgetId, traceId, authorization);
+                server.doNetData(copyBuffer, 0, generator.length(), reserved, Flags.COMPLETE, null, budgetId, traceId,
+                    authorization);
             }
         }
 
@@ -3833,68 +3834,18 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         private static final String EVENT_BLOCK_STOP = "content_block_stop";
         private static final String EVENT_MESSAGE_DELTA = "message_delta";
         private static final String EVENT_MESSAGE_STOP = "message_stop";
+        private static final int CARRY_MAX = 3;
+
         private static final String EVENT_ERROR = "error";
-        private static final byte[] MESSAGE_STOP = "{\"type\":\"message_stop\"}".getBytes(UTF_8);
-        private static final byte[] ERROR_START = "{\"type\":\"error\",\"error\":{\"type\":\"".getBytes(UTF_8);
-        private static final byte[] ERROR_MESSAGE = "\",\"message\":\"".getBytes(UTF_8);
-        private static final byte[] ERROR_END = "\"}}".getBytes(UTF_8);
         private static final String BLOCK_STOP_SEQUENCE = "stop_sequence";
         private static final String BLOCK_STOP_REASON = "stop_reason";
-        private static final byte[] OBJECT_START = "{".getBytes(UTF_8);
-        private static final byte[] OBJECT_END = "}".getBytes(UTF_8);
-        private static final byte[] MESSAGE_ID = "\"id\":\"".getBytes(UTF_8);
-        private static final byte[] MESSAGE_TYPE = "\"type\":\"message\",\"role\":\"assistant\"".getBytes(UTF_8);
-        private static final byte[] MODEL_START = "\"model\":\"".getBytes(UTF_8);
-        private static final byte[] CONTENT_START = "\"content\":[".getBytes(UTF_8);
-        private static final byte[] CONTENT_END = "]".getBytes(UTF_8);
-        private static final byte[] STREAM_MESSAGE_START = "{\"type\":\"message_start\",\"message\":{".getBytes(UTF_8);
-        private static final byte[] STREAM_MESSAGE_CONTENT = ",\"content\":[]".getBytes(UTF_8);
-        private static final byte[] STOP_REASON_NULL = ",\"stop_reason\":null".getBytes(UTF_8);
-        private static final byte[] STREAM_MESSAGE_USAGE = ",\"usage\":{\"input_tokens\":0,\"output_tokens\":0}}}"
-            .getBytes(UTF_8);
-        private static final byte[] BLOCK_START = "{\"type\":\"content_block_start\",\"index\":".getBytes(UTF_8);
-        private static final byte[] BLOCK_TEXT = ",\"content_block\":{\"type\":\"text\",\"text\":\"\"}}".getBytes(UTF_8);
-        private static final byte[] BLOCK_THINKING =
-            ",\"content_block\":{\"type\":\"thinking\",\"thinking\":\"\",\"signature\":\"\"}}".getBytes(UTF_8);
-        private static final byte[] BLOCK_TOOL_ID = ",\"content_block\":{\"type\":\"tool_use\",\"id\":\"".getBytes(UTF_8);
-        private static final byte[] BLOCK_TOOL_NAME = "\",\"name\":\"".getBytes(UTF_8);
-        private static final byte[] BLOCK_TOOL_INPUT = "\",\"input\":{}}}".getBytes(UTF_8);
-        private static final byte[] DELTA_START = "{\"type\":\"content_block_delta\",\"index\":".getBytes(UTF_8);
-        private static final byte[] DELTA_TEXT = ",\"delta\":{\"type\":\"text_delta\",\"text\":\"".getBytes(UTF_8);
-        private static final byte[] DELTA_THINKING = ",\"delta\":{\"type\":\"thinking_delta\",\"thinking\":\"".getBytes(UTF_8);
-        private static final byte[] DELTA_JSON = ",\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"".getBytes(UTF_8);
-        private static final byte[] DELTA_END = "\"}}".getBytes(UTF_8);
-        private static final byte[] STOP_START = "{\"type\":\"content_block_stop\",\"index\":".getBytes(UTF_8);
-        private static final byte[] STOP_END = "}".getBytes(UTF_8);
-        private static final byte[] STOP_REASON_FIRST = "\"stop_reason\":\"".getBytes(UTF_8);
-        private static final byte[] STOP_SEQUENCE_NULL = ",\"stop_sequence\":null".getBytes(UTF_8);
-        private static final byte[] STOP_SEQUENCE_NULL_FIRST = "\"stop_sequence\":null".getBytes(UTF_8);
-        private static final byte[] DELTA_START_OBJECT = "{\"type\":\"message_delta\",\"delta\":{".getBytes(UTF_8);
-        private static final byte[] MESSAGE_DELTA_USAGE = "},".getBytes(UTF_8);
-        private static final byte[] MEMBER_NAME_END = "\":".getBytes(UTF_8);
-        private static final byte[] STOP_REASON = ",\"stop_reason\":\"".getBytes(UTF_8);
-        private static final byte[] MEMBER_SEPARATOR = ",".getBytes(UTF_8);
-        private static final byte[] USAGE_START = "\"usage\":{\"input_tokens\":".getBytes(UTF_8);
-        private static final byte[] USAGE_CACHE_WRITE = ",\"cache_creation_input_tokens\":".getBytes(UTF_8);
-        private static final byte[] USAGE_CACHE_READ = ",\"cache_read_input_tokens\":".getBytes(UTF_8);
-        private static final byte[] USAGE_OUTPUT = ",\"output_tokens\":".getBytes(UTF_8);
-        private static final byte[] TEXT_BLOCK = "{\"type\":\"text\",\"text\":\"".getBytes(UTF_8);
-        private static final byte[] TEXT_BLOCK_END = "\"}".getBytes(UTF_8);
-        private static final byte[] THINKING_BLOCK = "{\"type\":\"thinking\",\"thinking\":\"".getBytes(UTF_8);
-        private static final byte[] THINKING_BLOCK_END = "\",\"signature\":\"\"}".getBytes(UTF_8);
-        private static final byte[] TOOL_BLOCK = "{\"type\":\"tool_use\",\"id\":\"".getBytes(UTF_8);
-        private static final byte[] TOOL_BLOCK_NAME = "\",\"name\":\"".getBytes(UTF_8);
-        private static final byte[] TOOL_BLOCK_INPUT = "\",\"input\":".getBytes(UTF_8);
-        private static final byte[] TOOL_INPUT_EMPTY = "{}".getBytes(UTF_8);
-        private static final byte[] COMMA = ",".getBytes(UTF_8);
-        private static final byte[] QUOTE = "\"".getBytes(UTF_8);
-        private static final byte[] REPLACEMENT = "\\ufffd".getBytes(UTF_8);
 
-        private final byte[] carry;
+        private final JsonGeneratorEx generator;
+        private final MutableDirectBufferEx carryBuffer;
 
-        private byte[] encodeId;
-        private byte[] encodeModel;
-        private int position;
+        private int carried;
+        private String responseId;
+        private String responseModel;
 
         private int[] eventOffsets;
         private int[] eventLengths;
@@ -3910,9 +3861,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         private int blocks;
         private boolean inputWritten;
         private int toolCalls;
-        private int carried;
         private int envelope;
-        private int tailMembers;
         private boolean stopSequenceBlock;
         private boolean stopReasonBlock;
         private boolean blockOpen;
@@ -3921,14 +3870,16 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         {
             if (server.streaming)
             {
-                eventBegin(position, EVENT_MESSAGE_START);
-                put(STREAM_MESSAGE_START);
+                eventBegin(generator.length(), EVENT_MESSAGE_START);
+                generator.writeStartObject()
+                    .write("type", EVENT_MESSAGE_START)
+                    .writeStartObject("message");
                 messageIdentity();
-                put(STREAM_MESSAGE_CONTENT);
+                generator.writeStartArray("content").writeEnd();
             }
             else
             {
-                put(OBJECT_START);
+                generator.writeStartObject();
                 messageIdentity();
             }
         }
@@ -3939,6 +3890,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             String toolCallId,
             String toolName)
         {
+            carried = 0;
             kind = message == MESSAGE_FIRST && envelope != ENVELOPE_TAIL ? kindOf(type) : KIND_SKIPPED;
 
             if (kind != KIND_SKIPPED)
@@ -3950,7 +3902,6 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
 
                 if (server.streaming)
                 {
-                    carried = 0;
                     sectionStream(toolCallId, toolName);
                 }
                 else
@@ -3961,7 +3912,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         }
 
         private void doEncodeData(
-            DirectBuffer payload,
+            DirectBufferEx payload,
             int payloadOffset,
             int payloadLength)
         {
@@ -3973,12 +3924,12 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                 }
                 else if (kind == KIND_TOOL_CALL)
                 {
-                    put(payload, payloadOffset, payloadLength);
-                    inputWritten = inputWritten || payloadLength > 0;
+                    generator.writeSegment(payload, payloadOffset, payloadLength, Completion.INCOMPLETE);
+                    inputWritten = true;
                 }
                 else
                 {
-                    putEscaped(payload, payloadOffset, payloadLength);
+                    generator.writeSegment(payload, payloadOffset, payloadLength);
                 }
             }
         }
@@ -3996,37 +3947,22 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                     openTail();
                 }
 
-                if (envelope == ENVELOPE_TAIL)
-                {
-                    if (!server.streaming || tailMembers > 0)
-                    {
-                        put(MEMBER_SEPARATOR);
-                    }
-
-                    tailMembers++;
-                }
-                else
-                {
-                    put(MEMBER_SEPARATOR);
-                }
-
                 stopSequenceBlock |= BLOCK_STOP_SEQUENCE.equals(block);
                 stopReasonBlock |= BLOCK_STOP_REASON.equals(block);
 
-                put(QUOTE);
-                putEscaped(block);
-                put(MEMBER_NAME_END);
+                generator.writeKey(block);
             }
         }
 
         private void doEncodeBlockData(
-            DirectBuffer payload,
+            DirectBufferEx payload,
             int payloadOffset,
-            int payloadLength)
+            int payloadLength,
+            boolean fin)
         {
             if (blockOpen)
             {
-                put(payload, payloadOffset, payloadLength);
+                generator.writeSegment(payload, payloadOffset, payloadLength, fin ? Completion.COMPLETE : Completion.INCOMPLETE);
             }
         }
 
@@ -4036,19 +3972,12 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             {
                 if (server.streaming)
                 {
-                    if (carried > 0)
-                    {
-                        carried = 0;
-                        dataChunkStart();
-                        put(REPLACEMENT);
-                        dataChunkEnd();
-                    }
-
-                    eventBegin(position, EVENT_BLOCK_STOP);
-                    put(STOP_START);
-                    putNumber(blocks - 1);
-                    put(STOP_END);
-                    eventEnd(position);
+                    eventBegin(generator.length(), EVENT_BLOCK_STOP);
+                    generator.writeStartObject()
+                        .write("type", EVENT_BLOCK_STOP)
+                        .writeKey("index").write(blocks - 1)
+                        .writeEnd();
+                    eventEnd(generator.length());
                 }
                 else
                 {
@@ -4068,7 +3997,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             int reasoningTokens,
             int totalTokens)
         {
-            final byte[] reason = stopReason(finishReason);
+            final String reason = stopReason(finishReason);
 
             if (envelope == ENVELOPE_PRELUDE)
             {
@@ -4084,42 +4013,37 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
 
                 if (!stopReasonBlock)
                 {
-                    put(tailMembers++ > 0 ? STOP_REASON : STOP_REASON_FIRST);
-                    put(reason);
-                    put(QUOTE);
+                    generator.write("stop_reason", reason);
                 }
 
                 if (!stopSequenceBlock)
                 {
-                    put(tailMembers++ > 0 ? STOP_SEQUENCE_NULL : STOP_SEQUENCE_NULL_FIRST);
+                    generator.writeNull("stop_sequence");
                 }
 
-                put(MESSAGE_DELTA_USAGE);
+                generator.writeEnd();
                 putUsage(inputTokens, cacheWriteTokens, cacheReadTokens, outputTokens);
-                put(OBJECT_END);
-                eventEnd(position);
-                eventBegin(position, EVENT_MESSAGE_STOP);
-                put(MESSAGE_STOP);
-                eventEnd(position);
+                generator.writeEnd();
+                eventEnd(generator.length());
+                eventBegin(generator.length(), EVENT_MESSAGE_STOP);
+                generator.writeStartObject().write("type", EVENT_MESSAGE_STOP).writeEnd();
+                eventEnd(generator.length());
             }
             else
             {
                 if (envelope == ENVELOPE_CONTENT)
                 {
-                    put(CONTENT_END);
+                    generator.writeEnd();
                 }
 
                 if (!stopReasonBlock)
                 {
-                    put(STOP_REASON);
-                    put(reason);
-                    put(QUOTE);
+                    generator.write("stop_reason", reason);
                 }
 
                 putStopSequenceDefault();
-                put(MEMBER_SEPARATOR);
                 putUsage(inputTokens, cacheWriteTokens, cacheReadTokens, outputTokens);
-                put(OBJECT_END);
+                generator.writeEnd();
             }
 
             envelope = ENVELOPE_TAIL;
@@ -4136,38 +4060,33 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             }
             else if (server.streaming && envelope == ENVELOPE_TAIL)
             {
-                put(OBJECT_END);
-                put(OBJECT_END);
-                eventEnd(position);
+                generator.writeEnd().writeEnd();
+                eventEnd(generator.length());
             }
 
-            eventBegin(position, EVENT_ERROR);
-            put(ERROR_START);
-            putEscaped(type != null ? type : "api_error");
-            put(ERROR_MESSAGE);
-            putEscaped(message != null ? message : "");
-            put(ERROR_END);
-            eventEnd(position);
+            eventBegin(generator.length(), EVENT_ERROR);
+            generator.writeStartObject()
+                .write("type", EVENT_ERROR)
+                .writeStartObject("error")
+                .write("type", type != null ? type : "api_error")
+                .write("message", message != null ? message : "")
+                .writeEnd()
+                .writeEnd();
+            eventEnd(generator.length());
         }
 
         private void messageIdentity()
         {
-            if (encodeId != null)
+            if (responseId != null)
             {
-                put(MESSAGE_ID);
-                put(encodeId);
-                put(QUOTE);
-                put(COMMA);
+                generator.write("id", responseId);
             }
 
-            put(MESSAGE_TYPE);
+            generator.write("type", "message").write("role", "assistant");
 
-            if (encodeModel != null)
+            if (responseModel != null)
             {
-                put(COMMA);
-                put(MODEL_START);
-                put(encodeModel);
-                put(QUOTE);
+                generator.write("model", responseModel);
             }
         }
 
@@ -4175,56 +4094,57 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             String toolCallId,
             String toolName)
         {
-            eventBegin(position, EVENT_BLOCK_START);
-            put(BLOCK_START);
-            putNumber(blocks++);
+            eventBegin(generator.length(), EVENT_BLOCK_START);
+            generator.writeStartObject()
+                .write("type", EVENT_BLOCK_START)
+                .writeKey("index").write(blocks++)
+                .writeStartObject("content_block");
 
             switch (kind)
             {
             case KIND_TEXT:
-                put(BLOCK_TEXT);
+                generator.write("type", "text").write("text", "");
                 break;
             case KIND_REASONING:
-                put(BLOCK_THINKING);
+                generator.write("type", "thinking").write("thinking", "").write("signature", "");
                 break;
             default:
                 toolCalls++;
-                put(BLOCK_TOOL_ID);
-                putEscaped(toolCallId != null ? toolCallId : "");
-                put(BLOCK_TOOL_NAME);
-                putEscaped(toolName != null ? toolName : "");
-                put(BLOCK_TOOL_INPUT);
+                generator.write("type", "tool_use")
+                    .write("id", toolCallId != null ? toolCallId : "")
+                    .write("name", toolName != null ? toolName : "")
+                    .writeStartObject("input").writeEnd();
                 break;
             }
 
-            eventEnd(position);
+            generator.writeEnd().writeEnd();
+            eventEnd(generator.length());
         }
 
         private void sectionBlock(
             String toolCallId,
             String toolName)
         {
-            if (blocks++ > 0)
-            {
-                put(COMMA);
-            }
+            blocks++;
+            generator.writeStartObject();
 
             switch (kind)
             {
             case KIND_TEXT:
-                put(TEXT_BLOCK);
+                generator.write("type", "text").writeKey("text");
+                generator.writeStartEscaped();
                 break;
             case KIND_REASONING:
-                put(THINKING_BLOCK);
+                generator.write("type", "thinking").writeKey("thinking");
+                generator.writeStartEscaped();
                 break;
             default:
                 toolCalls++;
                 inputWritten = false;
-                put(TOOL_BLOCK);
-                putEscaped(toolCallId != null ? toolCallId : "");
-                put(TOOL_BLOCK_NAME);
-                putEscaped(toolName != null ? toolName : "");
-                put(TOOL_BLOCK_INPUT);
+                generator.write("type", "tool_use")
+                    .write("id", toolCallId != null ? toolCallId : "")
+                    .write("name", toolName != null ? toolName : "")
+                    .writeKey("input");
                 break;
             }
         }
@@ -4234,45 +4154,65 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             switch (kind)
             {
             case KIND_TEXT:
-                put(TEXT_BLOCK_END);
+                generator.writeEndEscaped().writeEnd();
                 break;
             case KIND_REASONING:
-                put(THINKING_BLOCK_END);
+                generator.writeEndEscaped().write("signature", "").writeEnd();
                 break;
             default:
-                if (!inputWritten)
+                if (inputWritten)
                 {
-                    put(TOOL_INPUT_EMPTY);
+                    generator.writeSegment(EMPTY_BUFFER, 0, 0, Completion.COMPLETE);
                 }
-                put(OBJECT_END);
+                else
+                {
+                    generator.writeStartObject().writeEnd();
+                }
+
+                generator.writeEnd();
                 break;
             }
         }
 
         private void dataChunkStart()
         {
-            eventBegin(position, EVENT_BLOCK_DELTA);
-            put(DELTA_START);
-            putNumber(blocks - 1);
+            eventBegin(generator.length(), EVENT_BLOCK_DELTA);
+            generator.writeStartObject()
+                .write("type", EVENT_BLOCK_DELTA)
+                .writeKey("index").write(blocks - 1)
+                .writeStartObject("delta");
 
             switch (kind)
             {
             case KIND_TEXT:
-                put(DELTA_TEXT);
+                generator.write("type", "text_delta").writeKey("text");
                 break;
             case KIND_REASONING:
-                put(DELTA_THINKING);
+                generator.write("type", "thinking_delta").writeKey("thinking");
                 break;
             default:
-                put(DELTA_JSON);
+                generator.write("type", "input_json_delta").writeKey("partial_json");
                 break;
             }
+
+            generator.writeStartEscaped();
         }
 
-        private void dataChunkEnd()
+        private void dataChunkEnd(
+            boolean emit)
         {
-            put(DELTA_END);
-            eventEnd(position);
+            generator.writeEndEscaped().writeEnd().writeEnd();
+
+            if (emit)
+            {
+                eventEnd(generator.length());
+            }
+            else
+            {
+                eventOpen = false;
+                eventStart = NO_EVENT;
+                generator.reset();
+            }
         }
 
         private void putUsage(
@@ -4281,27 +4221,24 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             int cacheReadTokens,
             int outputTokens)
         {
-            put(USAGE_START);
-            putNumber(inputTokens != NONE ? inputTokens : 0);
+            generator.writeStartObject("usage")
+                .writeKey("input_tokens").write(inputTokens != NONE ? inputTokens : 0);
 
             if (cacheWriteTokens != NONE)
             {
-                put(USAGE_CACHE_WRITE);
-                putNumber(cacheWriteTokens);
+                generator.writeKey("cache_creation_input_tokens").write(cacheWriteTokens);
             }
 
             if (cacheReadTokens != NONE)
             {
-                put(USAGE_CACHE_READ);
-                putNumber(cacheReadTokens);
+                generator.writeKey("cache_read_input_tokens").write(cacheReadTokens);
             }
 
-            put(USAGE_OUTPUT);
-            putNumber(outputTokens != NONE ? outputTokens : 0);
-            put(OBJECT_END);
+            generator.writeKey("output_tokens").write(outputTokens != NONE ? outputTokens : 0)
+                .writeEnd();
         }
 
-        private byte[] stopReason(
+        private String stopReason(
             String finishReason)
         {
             String reason = toolCalls > 0 ? "tool_use" : "end_turn";
@@ -4318,7 +4255,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                 };
             }
 
-            return escape(reason);
+            return reason;
         }
 
         private static int kindOf(
@@ -4351,6 +4288,7 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
                 emitEvent(position, true);
                 eventOpen = false;
                 eventStart = NO_EVENT;
+                generator.reset();
             }
         }
 
@@ -4384,80 +4322,70 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         }
 
         private void dataChunk(
-            DirectBuffer payload,
+            DirectBufferEx payload,
             int offset,
             int length)
         {
-            final int limit = offset + length;
-            final int boundary = boundary(payload, offset, limit);
-            final int complete = carried + (boundary - offset);
+            dataChunkStart();
 
-            if (complete > 0)
-            {
-                dataChunkStart();
-                putEscaped(carry, 0, carried);
-                putEscaped(payload, offset, boundary - offset);
-                dataChunkEnd();
-            }
+            final int mark = generator.consumed();
 
-            carried = 0;
-
-            for (int i = boundary; i < limit; i++)
-            {
-                carry[carried++] = payload.getByte(i);
-            }
+            writeText(payload, offset, length);
+            dataChunkEnd(generator.consumed() > mark);
         }
 
-        private int boundary(
-            DirectBuffer payload,
+        private void writeText(
+            DirectBufferEx payload,
             int offset,
-            int limit)
+            int length)
         {
-            int boundary = limit;
+            int index = offset;
+            int available = length;
+            boolean staged = false;
 
-            for (int back = 1; back <= 3 && limit - back >= offset && boundary == limit; back++)
+            if (carried > 0)
             {
-                final int value = payload.getByte(limit - back) & 0xFF;
+                final int mark = generator.consumed();
+                final int take = Math.min(length, CARRY_MAX);
+                final int stagedLength = carried + take;
 
-                if ((value & 0xC0) != 0x80)
+                carryBuffer.putBytes(carried, payload, offset, take);
+                generator.writeSegment(carryBuffer, 0, stagedLength, Completion.INCOMPLETE);
+
+                final int held = stagedLength - (generator.consumed() - mark);
+
+                if (take == length)
                 {
-                    final int expected = value >= 0xF0 ? 4 : value >= 0xE0 ? 3 : value >= 0xC0 ? 2 : 1;
-
-                    if (expected > back)
-                    {
-                        boundary = limit - back;
-                    }
-                    else
-                    {
-                        back = 4;
-                    }
+                    carryBuffer.putBytes(0, carryBuffer, stagedLength - held, held);
+                    carried = held;
+                    staged = true;
+                }
+                else
+                {
+                    index += take - held;
+                    available -= take - held;
+                    carried = 0;
                 }
             }
 
-            return boundary;
-        }
+            if (!staged)
+            {
+                final int mark = generator.consumed();
 
-        private void put(
-            DirectBuffer source,
-            int offset,
-            int length)
-        {
-            copyBuffer.putBytes(position, source, offset, length);
-            position += length;
-        }
+                generator.writeSegment(payload, index, available, Completion.INCOMPLETE);
 
-        private void put(
-            byte[] bytes)
-        {
-            copyBuffer.putBytes(position, bytes);
-            position += bytes.length;
+                carried = available - (generator.consumed() - mark);
+                carryBuffer.putBytes(0, payload, index + available - carried, carried);
+            }
+
+            generator.writeSegment(payload, offset, 0, Completion.COMPLETE);
         }
 
         private void putStopSequenceDefault()
         {
             if (!stopSequenceBlock)
             {
-                put(STOP_SEQUENCE_NULL);
+                generator.writeNull("stop_sequence");
             }
         }
 
@@ -4467,19 +4395,23 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             {
                 if (!stopReasonBlock)
                 {
-                    put(STOP_REASON_NULL);
+                    generator.writeNull("stop_reason");
                 }
 
                 putStopSequenceDefault();
-                put(STREAM_MESSAGE_USAGE);
-                eventEnd(position);
+                generator.writeStartObject("usage")
+                    .writeKey("input_tokens").write(0)
+                    .writeKey("output_tokens").write(0)
+                    .writeEnd()
+                    .writeEnd()
+                    .writeEnd();
+                eventEnd(generator.length());
                 stopSequenceBlock = false;
                 stopReasonBlock = false;
             }
             else
             {
-                put(MEMBER_SEPARATOR);
-                put(CONTENT_START);
+                generator.writeStartArray("content");
             }
 
             envelope = ENVELOPE_CONTENT;
@@ -4489,159 +4421,17 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         {
             if (server.streaming)
             {
-                eventBegin(position, EVENT_MESSAGE_DELTA);
-                put(DELTA_START_OBJECT);
+                eventBegin(generator.length(), EVENT_MESSAGE_DELTA);
+                generator.writeStartObject()
+                    .write("type", EVENT_MESSAGE_DELTA)
+                    .writeStartObject("delta");
             }
             else
             {
-                put(CONTENT_END);
+                generator.writeEnd();
             }
 
             envelope = ENVELOPE_TAIL;
-        }
-
-        private void putNumber(
-            int value)
-        {
-            position += copyBuffer.putIntAscii(position, value);
-        }
-
-        private void putEscaped(
-            byte[] source,
-            int offset,
-            int length)
-        {
-            for (int i = 0; i < length; i++)
-            {
-                putEscaped(source[offset + i]);
-            }
-        }
-
-        private void putEscaped(
-            DirectBuffer source,
-            int offset,
-            int length)
-        {
-            for (int i = 0; i < length; i++)
-            {
-                putEscaped(source.getByte(offset + i));
-            }
-        }
-
-        private void putEscaped(
-            String value)
-        {
-            final int length = value.length();
-
-            for (int index = 0; index < length; index++)
-            {
-                final char c = value.charAt(index);
-
-                if (c < 0x80)
-                {
-                    putEscaped((byte) c);
-                }
-                else
-                {
-                    final int codePoint = value.codePointAt(index);
-
-                    index += Character.charCount(codePoint) - 1;
-                    position += copyBuffer.putStringWithoutLengthUtf8(position, Character.toString(codePoint));
-                }
-            }
-        }
-
-        private void putEscaped(
-            byte value)
-        {
-            switch (value)
-            {
-            case '"':
-                putPair('"');
-                break;
-            case '\\':
-                putPair('\\');
-                break;
-            case '\n':
-                putPair('n');
-                break;
-            case '\r':
-                putPair('r');
-                break;
-            case '\t':
-                putPair('t');
-                break;
-            case '\b':
-                putPair('b');
-                break;
-            case '\f':
-                putPair('f');
-                break;
-            default:
-                if (value >= 0 && value < 0x20)
-                {
-                    copyBuffer.putByte(position++, (byte) '\\');
-                    copyBuffer.putByte(position++, (byte) 'u');
-                    copyBuffer.putByte(position++, (byte) '0');
-                    copyBuffer.putByte(position++, (byte) '0');
-                    copyBuffer.putByte(position++, (byte) Character.forDigit(value >> 4, 16));
-                    copyBuffer.putByte(position++, (byte) Character.forDigit(value & 0x0f, 16));
-                }
-                else
-                {
-                    copyBuffer.putByte(position++, value);
-                }
-                break;
-            }
-        }
-
-        private void putPair(
-            char value)
-        {
-            copyBuffer.putByte(position++, (byte) '\\');
-            copyBuffer.putByte(position++, (byte) value);
-        }
-
-        private static byte[] escape(
-            String value)
-        {
-            final StringBuilder escaped = new StringBuilder(value.length() + 8);
-
-            for (int i = 0; i < value.length(); i++)
-            {
-                final char c = value.charAt(i);
-
-                switch (c)
-                {
-                case '"':
-                    escaped.append("\\\"");
-                    break;
-                case '\\':
-                    escaped.append("\\\\");
-                    break;
-                case '\n':
-                    escaped.append("\\n");
-                    break;
-                case '\r':
-                    escaped.append("\\r");
-                    break;
-                case '\t':
-                    escaped.append("\\t");
-                    break;
-                default:
-                    if (c < 0x20)
-                    {
-                        escaped.append(String.format("\\u%04x", (int) c));
-                    }
-                    else
-                    {
-                        escaped.append(c);
-                    }
-                    break;
-                }
-            }
-
-            return escaped.toString().getBytes(UTF_8);
         }
     }
 
