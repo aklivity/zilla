@@ -56,12 +56,12 @@ write zilla:data.ext ${http:dataEx()
                           .typeId(zilla:id("http"))
                           .header("type", "content_block_delta")
                           .build()}
-write "{\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"caf\"}}"
+write "{\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"caf" [0xc3] "\"}}"
 write zilla:data.ext ${http:dataEx()
                           .typeId(zilla:id("http"))
                           .header("type", "content_block_delta")
                           .build()}
-write "{\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"é ok\"}}"
+write "{\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"" [0xa9] " ok\"}}"
 write zilla:data.ext ${http:dataEx()
                           .typeId(zilla:id("http"))
                           .header("type", "content_block_stop")

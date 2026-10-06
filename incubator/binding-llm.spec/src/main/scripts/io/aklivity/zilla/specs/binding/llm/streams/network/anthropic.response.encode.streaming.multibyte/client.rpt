@@ -52,12 +52,12 @@ read zilla:data.ext ${http:matchDataEx()
                          .typeId(zilla:id("http"))
                          .header("type", "content_block_delta")
                          .build()}
-read "{\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"caf\"}}"
+read "{\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"caf" [0xc3] "\"}}"
 read zilla:data.ext ${http:matchDataEx()
                          .typeId(zilla:id("http"))
                          .header("type", "content_block_delta")
                          .build()}
-read "{\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"é ok\"}}"
+read "{\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"" [0xa9] " ok\"}}"
 read zilla:data.ext ${http:matchDataEx()
                          .typeId(zilla:id("http"))
                          .header("type", "content_block_stop")

@@ -2962,7 +2962,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         {
             this.server = server;
             this.generator = JsonEx.createGenerator();
-            this.carryBuffer = new UnsafeBufferEx(new byte[2 * CARRY_MAX]);
             this.eventOffsets = new int[EVENT_CAPACITY];
             this.eventLengths = new int[EVENT_CAPACITY];
             this.eventFlags = new int[EVENT_CAPACITY];
@@ -3591,8 +3590,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private static final int NONE = -1;
         private static final int MESSAGE_FIRST = 0;
 
-        private static final int CARRY_MAX = 3;
-
         private static final String OBJECT_COMPLETION = "chat.completion";
         private static final String OBJECT_CHUNK = "chat.completion.chunk";
         private static final String BLOCK_FINISH_REASON = "finish_reason";
@@ -3600,9 +3597,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         private static final String BLOCK_USAGE = "usage";
 
         private final JsonGeneratorEx generator;
-        private final MutableDirectBufferEx carryBuffer;
 
-        private int carried;
         private String responseId;
         private String responseModel;
 
@@ -3664,7 +3659,6 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             String toolName,
             boolean follow)
         {
-            carried = 0;
             kind = message == MESSAGE_FIRST && !messageClosed && envelope != ENVELOPE_TAIL ? kindOf(type) : KIND_SKIPPED;
             this.follow = follow && server.streaming && (kind == KIND_TEXT || kind == KIND_REFUSAL);
 
@@ -4155,7 +4149,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
                 .writeStartObject("delta")
                 .writeKey(kind == KIND_TEXT ? "content" : "refusal");
             generator.writeStartEscaped();
-            writeText(payload, offset, length, true);
+            generator.writeSegment(payload, offset, length);
             generator.writeEndEscaped().writeEnd();
             chunkOpen = true;
         }
@@ -4174,63 +4168,8 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
         {
             dataChunkStart();
 
-            final int mark = generator.consumed();
-
-            writeText(payload, offset, length, false);
-            dataChunkEnd(generator.consumed() > mark);
-        }
-
-        private void writeText(
-            DirectBufferEx payload,
-            int offset,
-            int length,
-            boolean fin)
-        {
-            final Completion completion = fin ? Completion.COMPLETE : Completion.INCOMPLETE;
-            int index = offset;
-            int available = length;
-            boolean staged = false;
-
-            if (carried > 0)
-            {
-                final int mark = generator.consumed();
-                final int take = Math.min(length, CARRY_MAX);
-                final int stagedLength = carried + take;
-                final boolean last = take == length;
-
-                carryBuffer.putBytes(carried, payload, offset, take);
-                generator.writeSegment(carryBuffer, 0, stagedLength, last ? completion : Completion.INCOMPLETE);
-
-                final int held = stagedLength - (generator.consumed() - mark);
-
-                if (last)
-                {
-                    carryBuffer.putBytes(0, carryBuffer, stagedLength - held, held);
-                    carried = held;
-                    staged = true;
-                }
-                else
-                {
-                    index += take - held;
-                    available -= take - held;
-                    carried = 0;
-                }
-            }
-
-            if (!staged)
-            {
-                final int mark = generator.consumed();
-
-                generator.writeSegment(payload, index, available, completion);
-
-                carried = available - (generator.consumed() - mark);
-                carryBuffer.putBytes(0, payload, index + available - carried, carried);
-            }
-
-            if (!fin)
-            {
-                generator.writeSegment(payload, offset, 0, Completion.COMPLETE);
-            }
+            generator.writeSegment(payload, offset, length);
+            dataChunkEnd();
         }
 
         private void dataChunkStart()
@@ -4260,8 +4199,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             generator.writeStartEscaped();
         }
 
-        private void dataChunkEnd(
-            boolean emit)
+        private void dataChunkEnd()
         {
             generator.writeEndEscaped();
 
@@ -4273,7 +4211,7 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
             generator.writeEnd()
                 .writeNull("finish_reason")
                 .writeEnd();
-            chunkEnd(emit);
+            chunkEnd();
         }
 
         private void chunkStart()
@@ -4298,24 +4236,8 @@ public final class LlmOpenaiServerFactory implements LlmDialectHandler
 
         private void chunkEnd()
         {
-            chunkEnd(true);
-        }
-
-        private void chunkEnd(
-            boolean emit)
-        {
             generator.writeEnd().writeEnd();
-
-            if (emit)
-            {
-                eventEnd(generator.length());
-            }
-            else
-            {
-                eventOpen = false;
-                eventStart = NO_EVENT;
-                generator.reset();
-            }
+            eventEnd(generator.length());
         }
 
         private void putUsage(

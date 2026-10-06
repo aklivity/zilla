@@ -3214,7 +3214,6 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         {
             this.server = server;
             this.generator = JsonEx.createGenerator();
-            this.carryBuffer = new UnsafeBufferEx(new byte[2 * CARRY_MAX]);
             this.eventOffsets = new int[EVENT_CAPACITY];
             this.eventLengths = new int[EVENT_CAPACITY];
             this.eventFlags = new int[EVENT_CAPACITY];
@@ -3834,16 +3833,12 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         private static final String EVENT_BLOCK_STOP = "content_block_stop";
         private static final String EVENT_MESSAGE_DELTA = "message_delta";
         private static final String EVENT_MESSAGE_STOP = "message_stop";
-        private static final int CARRY_MAX = 3;
-
         private static final String EVENT_ERROR = "error";
         private static final String BLOCK_STOP_SEQUENCE = "stop_sequence";
         private static final String BLOCK_STOP_REASON = "stop_reason";
 
         private final JsonGeneratorEx generator;
-        private final MutableDirectBufferEx carryBuffer;
 
-        private int carried;
         private String responseId;
         private String responseModel;
 
@@ -3890,7 +3885,6 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             String toolCallId,
             String toolName)
         {
-            carried = 0;
             kind = message == MESSAGE_FIRST && envelope != ENVELOPE_TAIL ? kindOf(type) : KIND_SKIPPED;
 
             if (kind != KIND_SKIPPED)
@@ -4198,21 +4192,10 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
             generator.writeStartEscaped();
         }
 
-        private void dataChunkEnd(
-            boolean emit)
+        private void dataChunkEnd()
         {
             generator.writeEndEscaped().writeEnd().writeEnd();
-
-            if (emit)
-            {
-                eventEnd(generator.length());
-            }
-            else
-            {
-                eventOpen = false;
-                eventStart = NO_EVENT;
-                generator.reset();
-            }
+            eventEnd(generator.length());
         }
 
         private void putUsage(
@@ -4328,57 +4311,8 @@ public final class LlmAnthropicServerFactory implements LlmDialectHandler
         {
             dataChunkStart();
 
-            final int mark = generator.consumed();
-
-            writeText(payload, offset, length);
-            dataChunkEnd(generator.consumed() > mark);
-        }
-
-        private void writeText(
-            DirectBufferEx payload,
-            int offset,
-            int length)
-        {
-            int index = offset;
-            int available = length;
-            boolean staged = false;
-
-            if (carried > 0)
-            {
-                final int mark = generator.consumed();
-                final int take = Math.min(length, CARRY_MAX);
-                final int stagedLength = carried + take;
-
-                carryBuffer.putBytes(carried, payload, offset, take);
-                generator.writeSegment(carryBuffer, 0, stagedLength, Completion.INCOMPLETE);
-
-                final int held = stagedLength - (generator.consumed() - mark);
-
-                if (take == length)
-                {
-                    carryBuffer.putBytes(0, carryBuffer, stagedLength - held, held);
-                    carried = held;
-                    staged = true;
-                }
-                else
-                {
-                    index += take - held;
-                    available -= take - held;
-                    carried = 0;
-                }
-            }
-
-            if (!staged)
-            {
-                final int mark = generator.consumed();
-
-                generator.writeSegment(payload, index, available, Completion.INCOMPLETE);
-
-                carried = available - (generator.consumed() - mark);
-                carryBuffer.putBytes(0, payload, index + available - carried, carried);
-            }
-
-            generator.writeSegment(payload, offset, 0, Completion.COMPLETE);
+            generator.writeSegment(payload, offset, length);
+            dataChunkEnd();
         }
 
         private void putStopSequenceDefault()
